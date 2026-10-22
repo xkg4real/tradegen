@@ -1,0 +1,86 @@
+edge_id,source,target,type,reason
+E-001,TF-03,TF-19,refutes,KRX-adjusted holding returns give +1.43%/month (t 3.3); the KJFS sign appears only with unadjusted closes (-11.37%/month).
+E-002,TF-01,TF-21,supports,"KRX 12-1 momentum is earned overnight (+18.4%/yr vs -7.9% intraday), so the constrained card must fill at the close."
+E-003,TF-01,TF-02,qualifies,Close fills need the locked-limit exception: a locked limit-up close cannot be bought.
+E-004,TF-02,TF-14,qualifies,"Attention and limit events act over 5-20 sessions, so they belong in the entry rule, not in a month-end screen."
+E-005,TF-12,TF-02,supports,The F4 screen cuts entries at a locked limit-up close from 6.3% to 1.9% of EW-book entries.
+E-006,TF-07,TF-41,refutes,"Weekly reversal break-even is 12.5 bp per side (22.2 bp VW), far below 2 x 35 bp: rejected before the gate."
+E-007,TF-07,TF-14,refutes,"The F5 attention screen breaks even at 68 bp per side on the EW book, below 70 bp: rejected before the gate."
+E-008,TF-07,TF-20,refutes,"Raw 12-1 L/S quintiles break even near 64 bp per side, below 70 bp."
+E-009,TF-07,TF-61,refutes,Intraday edges of 1-7 bp cannot pay a 25-46 bp KRX round trip.
+E-010,TF-07,TF-34,refutes,SPY trend turnover of 7.3-11.9 units/yr costs 3.7-6.0%/yr at 50 bp per side.
+E-011,TF-08,TF-12,supports,"Screens add under one unit of turnover per year (F4: 2.8 vs 1.9), well inside the turnover limit."
+E-012,TF-09,TF-07,qualifies,Break-even screens use the flat 35 bp until quote calibration; a bucket may only raise the cost.
+E-013,TF-10,TF-21,qualifies,No name-level stops: a 15% stop cut KRX 12-1 net Sharpe from 0.04 to -0.15 (EW) and 0.28 to 0.07 (VW).
+E-014,TF-10,TF-30,qualifies,Trend sleeves stop through their own signal exit; a separate stop layer double counts.
+E-015,TF-11,TF-21,qualifies,The winner-led 2026-06-22..07-30 crash replay is mandatory for any Korean momentum card.
+E-016,TF-11,TF-22,supports,The 2026 replay shows R-03 had cut exposure to 0.55 / 0.27 before the crash (VW L/S -10.5% vs -40.3% static).
+E-017,TF-04,TF-36,qualifies,Prerequisite: the KR-VQ composite needs the OpenDART point-in-time store (statements from 2015).
+E-018,TF-04,TF-43,qualifies,Prerequisite: US-VQ needs EDGAR acceptance-time data and FMP prices.
+E-019,TF-04,TF-38,qualifies,Prerequisite: a Korean drift test needs DART timestamps (entry at rcept_dt + 1 session).
+E-020,TF-04,TF-46,qualifies,Prerequisite: insider and IPO tests need EDGAR Form 4 / S-1 data with acceptance times.
+E-021,TF-04,TF-40,supports,Forward archives include final investor flows with timestamps.
+E-022,TF-05,TF-36,qualifies,Korean value tests must split at 2024-02-26 (Value-up).
+E-023,TF-05,TF-37,qualifies,"Value-up ETF returns are chip beta, not value evidence; regime split required."
+E-024,TF-06,TF-12,supports,The low-risk/lottery premium sits in the short leg; the long-only form is an exclusion screen.
+E-025,TF-06,TF-17,refutes,Long-only low-vol top quintile excess is +1.1%/yr (t 0.5) EW and -1.8% VW.
+E-026,TF-06,TF-20,refutes,Long-only 12-1 top-quintile excess is -1.3%/yr (t -0.6).
+E-027,TF-26,TF-20,qualifies,A 5% name cap cuts VW 12-1 net Sharpe in 2016-26 from 0.30 to 0.02: the post-2016 VW edge is a two-stock artefact.
+E-028,TF-26,TF-31,qualifies,The pair cap applies on look-through to the KOSPI ETF line once the pair share exceeds 0.45 (owner open point).
+E-029,TF-06,TF-26,supports,Benchmark set includes CW ex-pair and capped CW (H1-2026 CW +117.1% vs EW +3.4%).
+E-030,TF-12,TF-15,supports,Inside the 12-1 top quintile the F4 screen adds +6.13%/yr (IR 1.24).
+E-031,TF-13,TF-12,qualifies,Dilution and lottery flags overlap little (Jaccard 0.13): complementary screens; report the overlap.
+E-032,TF-14,TF-12,conflicts,Adding the attention screen to the composite (F8) lowers the IR from 1.53 to 0.67.
+E-033,TF-15,TF-21,supports,The constrained card inherits the exclusion (+7.81%/yr vs the unfiltered momentum quintile).
+E-034,TF-16,TF-12,supports,Low volatility enters as the high-volatility tail exclusion inside the lottery composite (F2 alone +3.64%/yr on B1).
+E-035,TF-59,TF-16,refutes,"Against the same-beta static book S_beta, Korean low-vol drawdowns are 7-22 pp worse and the tail ratio is 0.97-0.99."
+E-036,TF-50,TF-17,refutes,"Low-vol CAPM alpha is +2.2% (t 0.8) EW, +0.7% (t 0.3) VW: a factor tilt, not alpha."
+E-037,TF-50,TF-18,qualifies,"Size stays an attribution factor (SMB) and a microcap risk control, not a signal."
+E-038,TF-19,TF-41,refutes,"The -2.95 anchor that justified reversal weight 3 is a regression slope, not a spread."
+E-039,TF-19,TF-20,qualifies,"Momentum is positive but fragile, not negative; the drop rests on net-of-cost failure, not on sign."
+E-040,TF-22,TF-20,qualifies,Controls raise full-sample net Sharpe (0.20 -> 0.31 EW) but lower 2016-26 and leave long-only winners negative.
+E-041,TF-22,TF-21,supports,The constrained card is R-03 scaled: the only control de-risked before July 2026.
+E-042,TF-23,TF-22,qualifies,The D-M gate was off on 2026-06-22 and fired 9 times in 30 years; R-03 carries the crash control on KRX.
+E-043,TF-24,TF-21,qualifies,The 52-week high may be tested once inside the constrained card as a Tier A single configuration.
+E-044,TF-25,TF-22,qualifies,Any crowding multiplier must beat R-03 out of sample before it acts.
+E-045,TF-27,TF-31,qualifies,A book-level ladder on VT20 cuts Sharpe 0.40 -> 0.35 and max DD -47.4% -> -34.8%.
+E-046,TF-28,TF-27,qualifies,Threshold units remain open; fixed and sigma ladders coincide at an 8% book volatility.
+E-047,TF-22,TF-29,qualifies,US momentum gets weight 1 only as an R-03-scaled composite or ETF leg.
+E-048,TF-62,TF-24,supports,The 52-week high is one of the feature primitives.
+E-049,TF-30,TF-59,supports,"Single-index trend is judged on CARD-P checks against S, never on step 5 alone."
+E-050,TF-31,TF-32,supports,VT20 is the robust component of the floored product (PASS from every start 1996-2006).
+E-051,TF-33,TF-32,qualifies,Flooring trend gives back slow-bear protection (1997-98: -39.2% vs -6.9%) unless VT20 sits on top.
+E-052,TF-03,TF-30,qualifies,Month-end data only: Shiller averages inflate trend Sharpe by +0.10 (SMA10) to +0.23 (12-month sign).
+E-053,TF-59,TF-31,supports,VT20 fails CARD-O step 5 (p 0.51) yet passes CARD-P (dMDD +6.5 pp vs S).
+E-054,TF-54,TF-31,qualifies,"INSUFFICIENT DATA from 2011/2016 starts reflects power (11-16 years), not failure."
+E-055,TF-30,TF-35,qualifies,Single-asset trend is weak; a diversified book must claim breadth (>= 25 markets).
+E-056,TF-67,TF-30,qualifies,Crypto trend C3 is the one technical alpha card kept (CARD-O PASS); the CARD-P-only rule covers equity single-index trend.
+E-057,TF-51,TF-60,refutes,Family tests reject classic rules: SPA p 0.880 over 303 KOSPI rules; 0.82-0.97 over 322 SPY rules.
+E-058,TF-13,TF-36,supports,"Net issuance, a KR-VQ leg, is already buildable from KRX share counts."
+E-059,TF-37,TF-36,qualifies,Individual value and quality weights stay 1 until a point-in-time test passes.
+E-060,TF-44,TF-43,qualifies,"Quality enters as a composite leg at weight 2, never as a hedge."
+E-061,TF-45,TF-43,qualifies,Earnings drift only as a confirmation input inside a composite; the standalone card is dropped.
+E-062,TF-56,TF-43,qualifies,Expected net L/S Sharpe after decay haircuts at 50 bp is 0.42 (0.17 after the 60% haircut).
+E-063,TF-39,TF-40,qualifies,No direction rule; flows are logged to build a t-1 history for an open-leg test.
+E-064,TF-41,TF-42,qualifies,Reversal is real gross but not net; only a conditioning guard survives.
+E-065,TF-41,TF-60,qualifies,RSI14 and %B are re-parameterised 1-month reversal (correlation 0.92 / 0.87) and share its net failure.
+E-066,TF-22,TF-41,qualifies,"Vol scaling hurts reversal (KR STR EW net -0.29 -> -0.59), consistent with macro R-05 (reversal at 1.0x)."
+E-067,TF-56,TF-47,refutes,Live records undercut headline backtests: FFTY 3.52%/yr vs 13-14% for the S&P; AIEQ 4.18% vs 12.65%.
+E-068,TF-51,TF-12,qualifies,"Pooled over 176 trials the screen's deflated Sharpe is 0.94 < 0.95: REVISE, not PASS."
+E-069,TF-53,TF-54,qualifies,Longer blocks fix the size of steps 2 and 5; power stays the binding constraint.
+E-070,TF-54,TF-58,supports,History cannot settle realistic edges (Sharpe 0.4 needs 40 years for 80% power): prospective incubation is the clean test.
+E-071,TF-55,TF-54,qualifies,"Step 8 alone passes 24-31% of zero-Sharpe strategies, but the joint false-pass rate is 0.5% at 10 years."
+E-072,TF-57,TF-56,conflicts,The per-factor Ilmanen haircuts in the macro spec are unverifiable; plan with 0.5 / 0.3 and measured local decay.
+E-073,TF-58,TF-21,qualifies,The constrained card runs as FORWARD-SIM (incubation from the header commit).
+E-074,TF-58,TF-32,qualifies,The floored trend x VT20 cell runs as FORWARD-SIM; its plateau and start-date sweep are still owed.
+E-075,TF-50,TF-16,qualifies,Jensen's alpha against a beta-matched benchmark is the alpha-side test for beta < 1 sleeves.
+E-076,TF-52,TF-51,qualifies,Tiered hurdles would complement the family gate (one-sided professors' proposal).
+E-077,TF-62,TF-63,supports,L0 combines the primitive features with signs fixed in advance.
+E-078,TF-63,TF-64,qualifies,Nonlinear combiners run only as shadows against L0/L1: a +0.10 uplift needs 27-108 years to detect.
+E-079,TF-66,TF-63,qualifies,No macro x characteristic terms in any combiner (macro P1).
+E-080,TF-58,TF-65,refutes,In-window LLM backtests are contaminated; only point-in-time models are honest.
+E-081,TF-69,TF-68,refutes,"Short-horizon crypto cross-sectional evidence is momentum (1-4 weeks), not reversal."
+E-082,TF-67,TF-69,qualifies,"C3 stays the crypto trend card; CTREND-lite would be a separate, pre-registered card."
+E-083,TF-35,TF-70,qualifies,FX trend only inside a diversified futures book or as one USD/KRW slow-trend test.
+E-084,TF-30,TF-34,qualifies,"US single-index trend is CARD-P only; at 50 bp it fails PC-1, at 5 bp it is INSUFFICIENT DATA."
+E-085,TF-12,TF-17,qualifies,Low volatility survives only as the high-vol tail exclusion inside the screen.

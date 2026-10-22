@@ -1,0 +1,206 @@
+file_id: kr_sessions
+version: 0.1.0-draft
+status: UNSIGNED DRAFT - refused at load (R-20 rule 6, T-CAL-01); every KR/US acting input fails closed and every book stays
+  DISARMED until the owner verifies and signs
+covers:
+  from: '1995-01-01'
+  to: '2027-12-31'
+coverage_calendar: KRX
+signed_off_by: null
+signed_utc: null
+md5: null
+how_to_sign: verify every row against its official source, fill source_url and signed_off_by on every row, set signed_off_by
+  / signed_utc at file level, set md5 to the content md5 printed by `python -m core.calendars.store`, and add the matching
+  MANIFEST.yaml row with a new test id
+unverified:
+- CSAT dates
+- regular open eras
+- lunch-break last date
+- pre-2016 CSAT window (config placeholder 10:00-16:00 governs until a signed csat_window row exists)
+owner_must_sign:
+- 'saturday_close rows (saturday_session_close_kst, from_krx_notice): without them decision_time_utc on a pre-1998-12-12 Saturday
+  raises CalendarUnsigned (never the weekday close)'
+- random_end_extension rows for sessions before 2015-06-15 whose conditional random end was triggered
+- csat_window / csat_closing_call rows for CSAT days before 2016-08-01
+- the CSAT date list
+notes: 'row kinds: csat_day{date}; saturday_close{close_kst}; random_end_extension{session_date, extension_s}; lunch_break{window_kst};
+  regular_open{open_kst}; csat_window{window_kst}; csat_closing_call{window_kst}'
+rows:
+- effective_from: '2008-11-13'
+  effective_to: '2008-11-13'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  kind: csat_day
+  date: '2008-11-13'
+  unverified: 'UNVERIFIED: date from memory of the KRX CSAT-day notices; owner confirms'
+- effective_from: '2009-11-12'
+  effective_to: '2009-11-12'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  kind: csat_day
+  date: '2009-11-12'
+  unverified: 'UNVERIFIED: date from memory of the KRX CSAT-day notices; owner confirms'
+- effective_from: '2010-11-18'
+  effective_to: '2010-11-18'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  kind: csat_day
+  date: '2010-11-18'
+  unverified: 'UNVERIFIED: date from memory of the KRX CSAT-day notices; owner confirms'
+- effective_from: '2011-11-10'
+  effective_to: '2011-11-10'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  kind: csat_day
+  date: '2011-11-10'
+  unverified: 'UNVERIFIED: date from memory of the KRX CSAT-day notices; owner confirms'
+- effective_from: '2012-11-08'
+  effective_to: '2012-11-08'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  kind: csat_day
+  date: '2012-11-08'
+  unverified: 'UNVERIFIED: date from memory of the KRX CSAT-day notices; owner confirms'
+- effective_from: '2013-11-07'
+  effective_to: '2013-11-07'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  kind: csat_day
+  date: '2013-11-07'
+  unverified: 'UNVERIFIED: date from memory of the KRX CSAT-day notices; owner confirms'
+- effective_from: '2014-11-13'
+  effective_to: '2014-11-13'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  kind: csat_day
+  date: '2014-11-13'
+  unverified: 'UNVERIFIED: date from memory of the KRX CSAT-day notices; owner confirms'
+- effective_from: '2015-11-12'
+  effective_to: '2015-11-12'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  kind: csat_day
+  date: '2015-11-12'
+  unverified: 'UNVERIFIED: date from memory of the KRX CSAT-day notices; owner confirms'
+- effective_from: '2016-11-17'
+  effective_to: '2016-11-17'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  kind: csat_day
+  date: '2016-11-17'
+  unverified: 'UNVERIFIED: date from memory of the KRX CSAT-day notices; owner confirms'
+- effective_from: '2017-11-23'
+  effective_to: '2017-11-23'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  kind: csat_day
+  date: '2017-11-23'
+  unverified: postponed from 2017-11-16 (Pohang earthquake); both dates appear in the cross-check
+- effective_from: '2018-11-15'
+  effective_to: '2018-11-15'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  kind: csat_day
+  date: '2018-11-15'
+  unverified: 'UNVERIFIED: date from memory of the KRX CSAT-day notices; owner confirms'
+- effective_from: '2019-11-14'
+  effective_to: '2019-11-14'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  kind: csat_day
+  date: '2019-11-14'
+  unverified: 'UNVERIFIED: date from memory of the KRX CSAT-day notices; owner confirms'
+- effective_from: '2020-12-03'
+  effective_to: '2020-12-03'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  kind: csat_day
+  date: '2020-12-03'
+  unverified: 'UNVERIFIED: date from memory of the KRX CSAT-day notices; owner confirms'
+- effective_from: '2021-11-18'
+  effective_to: '2021-11-18'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  kind: csat_day
+  date: '2021-11-18'
+  unverified: 'UNVERIFIED: date from memory of the KRX CSAT-day notices; owner confirms'
+- effective_from: '2022-11-17'
+  effective_to: '2022-11-17'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  kind: csat_day
+  date: '2022-11-17'
+  unverified: 'UNVERIFIED: date from memory of the KRX CSAT-day notices; owner confirms'
+- effective_from: '2023-11-16'
+  effective_to: '2023-11-16'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  kind: csat_day
+  date: '2023-11-16'
+  unverified: 'UNVERIFIED: date from memory of the KRX CSAT-day notices; owner confirms'
+- effective_from: '2024-11-14'
+  effective_to: '2024-11-14'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  kind: csat_day
+  date: '2024-11-14'
+  unverified: 'UNVERIFIED: date from memory of the KRX CSAT-day notices; owner confirms'
+- effective_from: '2025-11-13'
+  effective_to: '2025-11-13'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  kind: csat_day
+  date: '2025-11-13'
+  unverified: the spec's example date (L2013)
+- effective_from: '2026-11-19'
+  effective_to: '2026-11-19'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  kind: csat_day
+  date: '2026-11-19'
+  unverified: 'UNVERIFIED: date from memory of the KRX CSAT-day notices; owner confirms'
+- effective_from: '1995-01-01'
+  effective_to: '1998-12-06'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  kind: regular_open
+  open_kst: 09:30
+  unverified: 'UNVERIFIED: cross-check shows a 09:30 open before 1998-12-07 (brief F-17)'
+- effective_from: '1998-12-07'
+  effective_to: null
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  kind: regular_open
+  open_kst: 09:00
+  unverified: 'UNVERIFIED: 09:00 KST regular open; the effective date comes from the KRX notice'
+- effective_from: '1995-01-01'
+  effective_to: '2000-05-21'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  kind: lunch_break
+  window_kst:
+  - '12:00'
+  - '13:00'
+  unverified: 'UNVERIFIED: lunch break until May-2000 (spec L2016); the exact last date from the KRX notice'

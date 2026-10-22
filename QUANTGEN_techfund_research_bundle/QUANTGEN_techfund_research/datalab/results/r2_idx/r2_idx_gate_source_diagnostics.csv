@@ -1,0 +1,10 @@
+item,value
+source_obs,7912
+source_ann_vol,0.15
+source_skew,-0.0667074
+source_kurtosis,10.4228
+variance_ratio_5,1.01899
+variance_ratio_21,1.00124
+variance_ratio_63,1.09197
+variance_ratio_126,1.23267
+variance_ratio_252,1.34035

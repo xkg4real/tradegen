@@ -1,0 +1,115 @@
+{
+ "card_id": "FS-1",
+ "class": "CARD-P",
+ "register_id": "G-30",
+ "node": "TF-32",
+ "register_decision": "FORWARD-SIM",
+ "ruling": "CR-02",
+ "build_status": "FORWARD_SIM",
+ "market": "KR",
+ "instrument_book": "KRX_ETF_line",
+ "hypothesis": "KOSPI floored trend x VT20 cuts drawdowns against the same-exposure static book S",
+ "rule": "vt x min(1, clip(ENS share of positive 20/60/120/250-session returns, 0.5, 1.0)); comparison cells: unbounded product (0 allowed), plain sleeve",
+ "construction": "core.quant.risk_layer.compose(vt, overlays=[trend_overlay]) (D-22: vt x min(1, overlay))",
+ "costs": {
+  "per_side": "read_from_gate",
+  "floor": "tick_floor",
+  "stress": 2.0,
+  "stress_line": "printed",
+  "printed_lines": [
+   "3 bp per side (validate.COST_BP_PER_SIDE['krx_etf'])",
+   "stress 2 x = 6 bp per side (printed)"
+  ]
+ },
+ "cost_detail": {
+  "per_side_bp": 3.0,
+  "stress_multiplier": 2.0,
+  "binding": "flat table rate until KIS quote calibration; an itemised total may only raise it (PX-T-07, D-28)",
+  "itemised": {
+   "commission": null,
+   "sell_tax": null,
+   "half_tick_floor": null,
+   "sqrt_impact": null
+  }
+ },
+ "evaluation": {
+  "gate": "nine-step gate, core.quant.validate (walk_forward 756/126, embargo = holding period)",
+  "tightenings": [
+   "GOV-1 long-only primary statistic vs the declared benchmark set (sign split EW / capped VW -> REVISE)",
+   "GOV-2 family gate if > 1 configuration (SPA consistent p <= 0.05 at 1x, BH q 0.10, persistence >= 60%)",
+   "GOV-4 block max(10, PW(d), PW(d^2), 2 x holding) for steps 2 and 5: the worse of it and the 10-session result",
+   "GOV-7 break-even pre-gate screen: REJECT if break-even < 2 x 35 bp",
+   "GOV-3 attribution block; GOV-9 stress table; GOV-5 minimum track record (reported)"
+  ],
+  "holding_sessions": 1,
+  "step8": "kept; 2-of-3 subperiods 1996-2005 / 2006-2015 / 2016-2026 reported (PX-T-05)",
+  "step9": "expected live = 0.6 x OOS (reported, not gated)",
+  "cpcv": "reported, not gating (GOV-10)"
+ },
+ "attribution": {
+  "factors": [
+   "MKT",
+   "SMB",
+   "HML",
+   "RMWq",
+   "CMA",
+   "UMD",
+   "SEMI"
+  ],
+  "tilt_threshold_t": 2.0,
+  "status": "proposal pending owner confirmation (OQ-15); display only, never changes a verdict (D-19)"
+ },
+ "stress_windows": [
+  "2008-06..2009-03 GFC",
+  "2009-03..2009-05 post-GFC rebound",
+  "2020-02-17..03-19 COVID crash",
+  "2020-03-20..06-30 COVID rebound",
+  "2022 full year",
+  "2026-01-02..06-22 melt-up",
+  "2026-06-22..07-30 crash",
+  "2026-07-31..09-29 after crash"
+ ],
+ "incubation": {
+  "clock_start": "2026-10-01",
+  "min_sessions": 252,
+  "first_recorded_session": null,
+  "rule": "counted from the first recorded session, never back-filled"
+ },
+ "trials": {
+  "N_registered": null
+ },
+ "data_span": {
+  "start": null,
+  "end": null
+ },
+ "run_status": "NOT_RUN",
+ "verdict": null,
+ "blocked_by": "REFDATA: KRX official KOSPI closes (krx_kospi_official_close_1997-01-03_2026-10-02.csv) / the rebuilt KOSPI are absent; the forward record starts at its first recorded session and is never back-filled (GOV-10)",
+ "lab_reference": {
+  "label": "lab, in sample, 1996-2026, price returns without dividends, rf 0; not a QUANTGEN gate result (D-31)",
+  "rows": [
+   {
+    "gv": "GV-375..383",
+    "item": "clip[0.5,1] primary, KOSPI rebuilt 1996-09..2026-09, net 3 bp",
+    "value": "avg exposure 0.61, MDD -29.39%, PC-1 +15.4 pp vs own S, tail 0.64, dSR 0.156, PASS",
+    "source": "r2_idx_overlay_vs_sleeve.csv line 12"
+   }
+  ]
+ },
+ "what_would_change_it": "start-date sweep REJECT from 2011, or plateau < 0.5 (R3:832)",
+ "proposal_status": "tech-fund values are proposals pending owner confirmation; Council v2.0 governs on conflict (rulings 3.7)",
+ "book": "forward_sim:FS-1",
+ "comparator": "S_same_average_exposure",
+ "comparator_text": "S, the same-average-exposure static book (CARD-P)",
+ "nulls": {
+  "cost_detail.itemised.commission": "OWNER: itemised cost inputs (sell-tax table, tick table, impact model) not signed",
+  "cost_detail.itemised.sell_tax": "OWNER: itemised cost inputs (sell-tax table, tick table, impact model) not signed",
+  "cost_detail.itemised.half_tick_floor": "OWNER: itemised cost inputs (sell-tax table, tick table, impact model) not signed",
+  "cost_detail.itemised.sqrt_impact": "OWNER: itemised cost inputs (sell-tax table, tick table, impact model) not signed",
+  "incubation.first_recorded_session": "PENDING: set at the first recorded forward session",
+  "trials.N_registered": "REFDATA: KRX official KOSPI closes (krx_kospi_official_close_1997-01-03_2026-10-02.csv) / the rebuilt KOSPI are absent; the forward record starts at its first recorded session and is never back-filled (GOV-10)",
+  "data_span.start": "REFDATA: KRX official KOSPI closes (krx_kospi_official_close_1997-01-03_2026-10-02.csv) / the rebuilt KOSPI are absent; the forward record starts at its first recorded session and is never back-filled (GOV-10)",
+  "data_span.end": "REFDATA: KRX official KOSPI closes (krx_kospi_official_close_1997-01-03_2026-10-02.csv) / the rebuilt KOSPI are absent; the forward record starts at its first recorded session and is never back-filled (GOV-10)",
+  "verdict": "REFDATA: KRX official KOSPI closes (krx_kospi_official_close_1997-01-03_2026-10-02.csv) / the rebuilt KOSPI are absent; the forward record starts at its first recorded session and is never back-filled (GOV-10)"
+ }
+}

@@ -1,0 +1,51 @@
+{
+ "card_id": "M_C4_funding",
+ "kind": "model",
+ "hypothesis": "High perpetual funding (crowded longs) predicts weaker 30-day BTC returns",
+ "rules": {},
+ "universe": {
+  "symbol": "BTCUSDT perpetual"
+ },
+ "data": {
+  "start": "2019-09-10",
+  "end": "2026-09-25"
+ },
+ "costs": {},
+ "protocol": {},
+ "trials": {
+  "N_planned": 1,
+  "N_total": 1,
+  "ledger": []
+ },
+ "seed": 11,
+ "stats": {
+  "last_ann_pct": 5.550189999999999,
+  "percentile": 0.3876119984417608,
+  "flag": "normal",
+  "top_decile_fwd30": -0.02936111150082876,
+  "bottom_decile_fwd30": 0.0771634243503577,
+  "n": 2573
+ },
+ "tests": {
+  "bootstrap_p": 0.0
+ },
+ "decision": "PASS",
+ "decision_reason": "BIS sign confirmed",
+ "revise_target": null,
+ "lines": [
+  "Funding now +5.6 %/yr (7-day mean), 39% percentile since 2019-09-10: normal.",
+  "Forward 30-day BTC return after top-decile funding -2.94% vs bottom decile +7.72%; bootstrap P(top ≥ bottom) = 0.000 (gate: < 0.05, the BIS sign)."
+ ],
+ "decay_haircut": {
+  "factor": 0.6,
+  "source": "McLean-Pontiff 2016 26-58%"
+ },
+ "created": "2026-09-27",
+ "author": "QUANTGEN validation gate",
+ "results_file": "docs/asset_expansion/results.csv",
+ "results_md5": "ca757e25f508b588cb2f361719ec83cd",
+ "citations": [
+  "Schmeling, Schrimpf & Todorov 2023 BIS WP 1087",
+  "He, Manela, Ross & von Wachter 2022 (arXiv 2212.06888)"
+ ]
+}

@@ -1,0 +1,320 @@
+{
+ "E_max_sim": 0.5,
+ "N_clusters": 2,
+ "N_eff": 2,
+ "N_equiv": 1.3,
+ "N_hat_linear": 2.1,
+ "N_raw": 3,
+ "V_null": 1.0,
+ "V_trials": null,
+ "caps_applied": [],
+ "claim_line_results": {
+  "band": [
+   0.0,
+   0.2
+  ],
+  "pass": true,
+  "stacked_dMDD": 0.149
+ },
+ "config_hash": "00000000000000000000000000000000",
+ "contracts_path": [
+  1,
+  1,
+  2
+ ],
+ "cost_episodes": [
+  {}
+ ],
+ "cost_stress": 2.0,
+ "costs_per_side": {
+  "applied_bp": 3.0,
+  "floor_bp": 0.3,
+  "roll_cost_line": null,
+  "stress_line": null,
+  "table_bp": 3.0
+ },
+ "data_snapshot_id": "00000000000000000000000000000000",
+ "disposition": "SPECIFICATION_ONLY",
+ "episodes": [
+  {
+   "benefit_vs_S": 0.01,
+   "depth": -0.386,
+   "open": false,
+   "peak": "2026-06-22",
+   "post_trough_63": null,
+   "regime_tags": {},
+   "share": 0.1,
+   "trough": "2026-07-30",
+   "window": [
+    "2026-06-22",
+    "2026-07-30"
+   ]
+  }
+ ],
+ "first_failed_check": "PC3",
+ "forecast_eval": {
+  "christoffersen_p": 0.2,
+  "dMDD_vs_sma20": 0.0,
+  "dSR_vs_sma20": 0.0,
+  "es_z2": 0.1,
+  "fan_pit_p": 0.11,
+  "mse_mcs_p": {
+   "1": 0.2
+  },
+  "qlike_mcs_p": {
+   "1": 0.0005,
+   "21": 0.0005,
+   "5": 0.0005
+  },
+  "vol_of_vol": 0.3
+ },
+ "forward_record": {
+  "alarms": [],
+  "cusum_S": null,
+  "dES21": null,
+  "dMDD": null,
+  "dSR_vs_S": null,
+  "demoted": false,
+  "demotion_reason": null,
+  "first_registered_utc": "2026-10-02T06:40:45Z",
+  "gaps": [],
+  "honesty_line": "falsification alarm only",
+  "lag_audit_violations": 0,
+  "missed_decisions": 0,
+  "months": 0.0,
+  "start_utc": "2026-10-02T06:40:45Z",
+  "switch_p99": null,
+  "switches": null
+ },
+ "generated_at_utc": "2026-10-02T06:40:45Z",
+ "git_hash": "00000000000000000000000000000000",
+ "gjr_null_pct": 87.0,
+ "knowledge_utc": "2026-10-02T06:40:45Z",
+ "lag_audit_violations": 0,
+ "ledger_hash_at_run": "00000000000000000000000000000000",
+ "midpoint_halves_results": {
+  "h1": "INSUFFICIENT_DATA",
+  "h2": "INSUFFICIENT_DATA"
+ },
+ "pc4_section_8_6": {
+  "max_share": 0.493,
+  "n": 4,
+  "positive": 3
+ },
+ "permitted_fix": null,
+ "pooling": {
+  "n_onsets_own": 5,
+  "n_onsets_pooled": 45,
+  "rule": "pooled_onsets"
+ },
+ "power": {
+  "mde80": 0.3,
+  "pc3_power_at_0": 0.5,
+  "power_at_0p05": 0.1,
+  "power_at_0p10": 0.2,
+  "se_blk250": 0.1,
+  "se_curve": {
+   "250": 0.1
+  },
+  "se_hac": 0.1,
+  "se_plateau": 0.1,
+  "years_to_detect_0p05": 99.0
+ },
+ "printed": {
+  "ban_basis": null,
+  "bands": {},
+  "binding_share": 0.19,
+  "binding_shares": {},
+  "by_q": {},
+  "dCDaR95": 0.0,
+  "dES99": 0.0,
+  "dMDD": 0.0,
+  "exec_variants": {
+   "A": 0,
+   "B": 0,
+   "C": 0
+  },
+  "fill_tracking_error": 0.0019,
+  "hl_haircut": 0.0,
+  "lo_sr_20": 0.0,
+  "lo_sr_all": 0.0,
+  "n_halts": 24,
+  "overnight_intraday": {},
+  "persistence_check": {},
+  "placebo_panel": {
+   "n": 20,
+   "passes": 1
+  },
+  "post_trough": {},
+  "reentry_lag": 0,
+  "roll_cost": 0.0,
+  "rolling_5y": [],
+  "stress_cost": 0.0,
+  "turnover_by_regime": {},
+  "tuw": 0.0,
+  "with_risk_layer": {}
+ },
+ "read_only": true,
+ "regime_line_results": [
+  {
+   "gated": true,
+   "line": "etf_era",
+   "numbers": {},
+   "span": "2002-11..2025-12",
+   "verdict": "INSUFFICIENT_DATA"
+  }
+ ],
+ "results_md5": "00000000000000000000000000000000",
+ "schema": "quantgen.model_card.macro",
+ "schema_version": "2.0",
+ "selection_factor": {
+  "alt_value": 1.49,
+  "rule": "computed_by_step3",
+  "value": 1.26
+ },
+ "settling_run": {
+  "midpoint_halves": null,
+  "n_pass": 0,
+  "n_reject": 0,
+  "n_starts": 10,
+  "pc1_prime_1x": true,
+  "pc1_prime_2x": false,
+  "span": "1926-07..2026-08",
+  "starts": [
+   "1926-07"
+  ],
+  "verdict": "INSUFFICIENT_DATA"
+ },
+ "snooping": {
+  "deflated_prob_sr": 0.5,
+  "n_variants": 10,
+  "share_dMDD_ge_3pp": 0.5
+ },
+ "start_band_results": {
+  "floor_pass": false,
+  "n_pass": 0,
+  "n_reject": 0,
+  "n_starts": 1,
+  "starts": [
+   "1997-05"
+  ],
+  "verdicts": [
+   "INSUFFICIENT_DATA"
+  ]
+ },
+ "tests": {
+  "PC1p": {
+   "legs": [
+    {
+     "dES": 0.0165,
+     "h": 21,
+     "p": 0.1,
+     "p_adj": 0.13,
+     "pass": false,
+     "z": 1.0
+    }
+   ],
+   "two_x": [
+    {
+     "dES": 0.0165,
+     "h": 21,
+     "p": 0.1,
+     "p_adj": 0.13,
+     "pass": false,
+     "z": 1.0
+    }
+   ]
+  },
+  "PC2": {
+   "ci90": [
+    0.8,
+    1.0
+   ],
+   "horizon_used": 21,
+   "pass": true,
+   "ratio_daily": 0.95,
+   "ratio_horizon": 0.9
+  },
+  "PC3": {
+   "block": 30,
+   "block_PW": 30,
+   "dSR": 0.006,
+   "n_blocks": 240,
+   "p10": 0.07,
+   "pPW": 0.078,
+   "p_adj": 0.098,
+   "p_hac": 0.07,
+   "p_lw": 0.07,
+   "p_ni": 0.078,
+   "pass": false,
+   "point_2x": 0.0
+  },
+  "PC4": {
+   "max_share": 0.174,
+   "n": 18,
+   "positive": 14
+  },
+  "PC5": {},
+  "PC6": {},
+  "PC7": {},
+  "step1": {},
+  "step2": {
+   "block": 250,
+   "n_blocks": 10,
+   "p_hac": 0.1,
+   "p_lw": 0.1
+  },
+  "step3": {
+   "at_N_hat_linear": 0.947,
+   "at_N_raw": 0.9,
+   "borderline": true,
+   "break_even_N": 7,
+   "by_q": {},
+   "deflated_dSR": 0.98,
+   "dsr_vs0": 0.9,
+   "pass": true,
+   "psr_vs_S": 0.9,
+   "selection_factor": 1.26,
+   "z_check": 1.33
+  },
+  "step4": {
+   "n_configs": 8,
+   "pbo": 0.1,
+   "pbo_null": 0.5,
+   "slope": -1.0,
+   "winner_loses_share": 0.03
+  },
+  "step5": {
+   "block": 250,
+   "n_blocks": 10,
+   "p_hac": 0.1,
+   "p_lw": 0.1
+  },
+  "step6": {},
+  "step7": {},
+  "step8": {},
+  "step9": {}
+ },
+ "timing_profile": {
+  "FR": null,
+  "LF": null,
+  "LP": 0.0,
+  "label": "robust",
+  "lags": [
+   {
+    "L": 1,
+    "dES21": 0.0,
+    "dMDD": 0.0,
+    "dSR": 0.0,
+    "lag_audit": null,
+    "timing_class": "COMPLIANT"
+   }
+  ],
+  "live_feeds": [],
+  "strict": null
+ },
+ "verdict": "INSUFFICIENT_DATA",
+ "verdict_at_f1": "INSUFFICIENT_DATA",
+ "verdict_at_f_neff": "INSUFFICIENT_DATA",
+ "verdict_reason": "underpowered"
+}

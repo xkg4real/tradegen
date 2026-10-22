@@ -1,0 +1,490 @@
+file_id: kr_regime_tags
+version: 0.1.0-draft
+status: UNSIGNED DRAFT - refused at load (R-20 rule 6, T-CAL-01); every KR/US acting input fails closed and every book stays
+  DISARMED until the owner verifies and signs
+covers:
+  from: '1995-01-01'
+  to: '2027-12-31'
+coverage_calendar: KRX
+signed_off_by: null
+signed_utc: null
+md5: null
+how_to_sign: verify every row against its official source, fill source_url and signed_off_by on every row, set signed_off_by
+  / signed_utc at file level, set md5 to the content md5 printed by `python -m core.calendars.store`, and add the matching
+  MANIFEST.yaml row with a new test id
+unverified:
+- month-level dates carried as specific days
+- sell-tax steps between the anchors
+- BoK fx regimes outside the 1997 peg (null)
+- pre-Apr-1995 price limit (null)
+owner_must_sign:
+- exact days from the official notices for every row marked UNVERIFIED
+- the committed expected-values file tests/fixtures/macro/kr_regime_tags_expected.csv (T-REGIME-01 full-range clause)
+- coverage into 2027 with the 2027 calendars (brief F-4)
+rows:
+- effective_from: '1995-01-01'
+  effective_to: '1995-03-31'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: price_limit
+  value: null
+  unverified: 'OWNER: the pre-Apr-1995 limit (a band schedule, not one fraction) from the KRX notice'
+  unit: fraction
+- effective_from: '1995-04-01'
+  effective_to: '1996-11-24'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: price_limit
+  value: 0.06
+  unverified: 'UNVERIFIED: exact day from the official notice at sign-off (spec L2034)'
+  unit: fraction
+- effective_from: '1996-11-25'
+  effective_to: '1998-03-01'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: price_limit
+  value: 0.08
+  unverified: 'UNVERIFIED: exact day from the official notice at sign-off (spec L2034)'
+  unit: fraction
+- effective_from: '1998-03-02'
+  effective_to: '1998-12-06'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: price_limit
+  value: 0.12
+  unverified: 'UNVERIFIED: exact day from the official notice at sign-off (spec L2034)'
+  unit: fraction
+- effective_from: '1998-12-07'
+  effective_to: '2015-06-14'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: price_limit
+  value: 0.15
+  unverified: 'UNVERIFIED: exact day from the official notice at sign-off (spec L2034)'
+  unit: fraction
+- effective_from: '2015-06-15'
+  effective_to: null
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: price_limit
+  value: 0.3
+  unverified: 'spec L2038 / tech-fund GV-214: 2015-06-15'
+  unit: fraction
+- effective_from: '1995-01-01'
+  effective_to: '1998-12-11'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: saturday_session
+  value: true
+  unverified: 'spec L2039: true before 1998-12-12'
+- effective_from: '1998-12-12'
+  effective_to: null
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: saturday_session
+  value: false
+- effective_from: '1995-01-01'
+  effective_to: '2016-07-31'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: close_time_kst
+  value: '15:00'
+  unverified: spec L2010
+- effective_from: '2016-08-01'
+  effective_to: null
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: close_time_kst
+  value: '15:30'
+  unverified: spec L2010
+- effective_from: '1995-01-01'
+  effective_to: '2016-07-31'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: closing_call
+  value: 14:50-15:00
+  unverified: spec L2011
+- effective_from: '2016-08-01'
+  effective_to: null
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: closing_call
+  value: 15:20-15:30
+  unverified: spec L2011
+- effective_from: '1995-01-01'
+  effective_to: '2015-06-14'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: random_end
+  value: conditional
+  unverified: spec L2012
+- effective_from: '2015-06-15'
+  effective_to: null
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: random_end
+  value: unconditional_le_30s
+  unverified: spec L2012
+- effective_from: '1995-01-01'
+  effective_to: '2000-05-21'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: lunch_break
+  value: 12:00-13:00
+  unverified: 'UNVERIFIED: until May-2000; exact end from the KRX notice'
+- effective_from: '2000-05-22'
+  effective_to: null
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: lunch_break
+  value: none
+- effective_from: '1995-01-01'
+  effective_to: '1997-09-21'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: fx_regime
+  value: null
+  unverified: 'OWNER: BoK regime name (market average rate system) - never invented here (brief F-11)'
+- effective_from: '1997-09-22'
+  effective_to: '1997-10-17'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: fx_regime
+  value: peg_1997
+  unverified: spec L2041
+- effective_from: '1997-10-18'
+  effective_to: null
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: fx_regime
+  value: null
+  unverified: 'OWNER: BoK regimes after the 1997 band break (free float from Dec-1997)'
+- effective_from: '1995-01-01'
+  effective_to: '2002-10-13'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: etf_available
+  value: false
+  unverified: 'spec L2042: KODEX 200 listed Oct-2002'
+- effective_from: '2002-10-14'
+  effective_to: null
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: etf_available
+  value: true
+  unverified: 'UNVERIFIED: 2002-10-14 listing day from the KRX listing record'
+- effective_from: '1995-01-01'
+  effective_to: '2008-09-30'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: short_sale_ban
+  value: false
+- effective_from: '2008-10-01'
+  effective_to: '2009-05-31'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: short_sale_ban
+  value: true
+  unverified: tech-fund GV-216
+- effective_from: '2009-06-01'
+  effective_to: '2011-08-10'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: short_sale_ban
+  value: false
+- effective_from: '2011-08-11'
+  effective_to: '2011-11-09'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: short_sale_ban
+  value: true
+  unverified: tech-fund GV-216 (11 Aug - 9 Nov 2011)
+- effective_from: '2011-11-10'
+  effective_to: '2020-03-15'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: short_sale_ban
+  value: false
+- effective_from: '2020-03-16'
+  effective_to: '2021-05-02'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: short_sale_ban
+  value: true
+  unverified: tech-fund GV-217 full ban
+- effective_from: '2021-05-03'
+  effective_to: '2023-11-05'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: short_sale_ban
+  value: false
+  unverified: 'partial regime (index stocks resumed): boolean false, see short_sale_regime (brief F-14)'
+- effective_from: '2023-11-06'
+  effective_to: '2025-03-30'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: short_sale_ban
+  value: true
+  unverified: tech-fund GV-210/217
+- effective_from: '2025-03-31'
+  effective_to: null
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: short_sale_ban
+  value: false
+  unverified: resumed 2025-03-31 (GV-210)
+- effective_from: '1995-01-01'
+  effective_to: '2008-09-30'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: short_sale_regime
+  value: none
+- effective_from: '2008-10-01'
+  effective_to: '2009-05-31'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: short_sale_regime
+  value: full_ban
+  unverified: GV-216
+- effective_from: '2009-06-01'
+  effective_to: '2011-08-10'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: short_sale_regime
+  value: none
+- effective_from: '2011-08-11'
+  effective_to: '2011-11-09'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: short_sale_regime
+  value: full_ban
+  unverified: GV-216
+- effective_from: '2011-11-10'
+  effective_to: '2020-03-15'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: short_sale_regime
+  value: none
+- effective_from: '2020-03-16'
+  effective_to: '2021-05-02'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: short_sale_regime
+  value: full_ban
+  unverified: GV-217
+- effective_from: '2021-05-03'
+  effective_to: '2023-11-05'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: short_sale_regime
+  value: partial_ban_non_index
+  unverified: 'GV-217: index stocks only until 2023-11-05'
+- effective_from: '2023-11-06'
+  effective_to: '2025-03-30'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: short_sale_regime
+  value: full_ban
+  unverified: GV-210
+- effective_from: '2025-03-31'
+  effective_to: null
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: short_sale_regime
+  value: none
+  unverified: GV-210
+- effective_from: '1995-01-01'
+  effective_to: '2019-05-29'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: sell_tax_pct
+  value: 0.3
+  unverified: 'UNVERIFIED step schedule (owner: tax notices); anchor 0.30 (2019)'
+  unit: percent
+- effective_from: '2019-05-30'
+  effective_to: '2020-12-31'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: sell_tax_pct
+  value: 0.25
+  unverified: UNVERIFIED
+  unit: percent
+- effective_from: '2021-01-01'
+  effective_to: '2022-12-31'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: sell_tax_pct
+  value: 0.23
+  unverified: UNVERIFIED
+  unit: percent
+- effective_from: '2023-01-01'
+  effective_to: '2023-12-31'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: sell_tax_pct
+  value: 0.2
+  unverified: UNVERIFIED
+  unit: percent
+- effective_from: '2024-01-01'
+  effective_to: '2024-12-31'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: sell_tax_pct
+  value: 0.18
+  unverified: 'tech-fund GV-213: 0.18 (2024)'
+  unit: percent
+- effective_from: '2025-01-01'
+  effective_to: '2025-12-31'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: sell_tax_pct
+  value: 0.15
+  unverified: spec L2044 anchor 0.15 (2025)
+  unit: percent
+- effective_from: '2026-01-01'
+  effective_to: null
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: sell_tax_pct
+  value: 0.2
+  unverified: 'spec L2044 / GV-211: 0.20 from 2026-01-01 (0.05 + 0.15 rural); ETFs exempt'
+  unit: percent
+- effective_from: '1995-01-01'
+  effective_to: '2023-01-24'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: tick_regime
+  value: pre_2023_reform
+- effective_from: '2023-01-25'
+  effective_to: '2023-12-10'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: tick_regime
+  value: stocks_reformed_2023_01_25
+  unverified: spec L2045
+- effective_from: '2023-12-11'
+  effective_to: null
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: tick_regime
+  value: stocks_reformed_etf_w1_tick_below_w2000
+  unverified: 'spec L2045: ETFs 1 won tick below 2,000 won from 2023-12-11'
+- effective_from: '1995-01-01'
+  effective_to: '2026-05-26'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: letf_rules
+  value: none
+- effective_from: '2026-05-27'
+  effective_to: '2026-07-15'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: letf_rules
+  value: single_stock_letf_rule_2026_05_27
+  unverified: spec L2046
+- effective_from: '2026-07-16'
+  effective_to: null
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: letf_rules
+  value: single_stock_letf_rule_2026_07_16
+  unverified: spec L2046
+- effective_from: '1995-01-01'
+  effective_to: '2016-07-31'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: usdkrw_onshore_hours
+  value: close_15:00
+  unverified: spec L2047
+- effective_from: '2016-08-01'
+  effective_to: '2024-06-30'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: usdkrw_onshore_hours
+  value: close_15:30
+  unverified: spec L2047
+- effective_from: '2024-07-01'
+  effective_to: '2026-07-05'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: usdkrw_onshore_hours
+  value: close_02:00_next_day
+  unverified: 'UNVERIFIED: Jul-2024 exact day from the BoK/MOEF notice'
+- effective_from: '2026-07-06'
+  effective_to: null
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: usdkrw_onshore_hours
+  value: 24h
+  unverified: 'spec L2047 / L1305: 24 hours from 2026-07-06'
+- effective_from: '1995-01-01'
+  effective_to: '2024-02-25'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: value_up
+  value: pre_value_up
+- effective_from: '2024-02-26'
+  effective_to: null
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  tag: value_up
+  value: post_value_up_2024_02_26
+  unverified: tech-fund GV-218 split date

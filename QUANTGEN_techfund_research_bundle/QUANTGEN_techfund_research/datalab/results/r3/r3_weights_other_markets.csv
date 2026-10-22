@@ -1,0 +1,7 @@
+market,XS-mom,ST-rev,value,quality,low-vol,flow,earn drift,TS-mom,exec TS trend alpha / protective
+Europe,2,0,2,2,1,1 (n.r.),2 (n.r.),0 (protective 2),0-1 / 1-2
+Japan,0 (value-paired hedge only),1,3,1,2,1,1,0 (protective 2),1 / 2
+Taiwan,0,2,2,1,1,1,2,0 (protective 2),unchanged
+China A,0,3,2,2,3,1,1,0 (protective 1),unchanged (0)
+India,3 (n.r.),1 (n.r.),2 (n.r.),3 (n.r.),2 (n.r.),2 (n.r.),2 (n.r.),2 (n.r.),unchanged
+EM broad,2,1,2,2,2,1,1,0 (protective 2),-

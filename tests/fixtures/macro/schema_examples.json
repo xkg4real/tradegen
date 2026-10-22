@@ -1,0 +1,566 @@
+{
+ "context_log": {
+  "acts": false,
+  "as_of_utc": "2026-10-02T06:30:30Z",
+  "config_hash": "<sha>",
+  "data_snapshot_id": "<md5>",
+  "decision_utc": "2026-10-02T06:30:30Z",
+  "generated_at_utc": "2026-10-02T06:41:07Z",
+  "git_hash": "<sha>",
+  "items": [
+   {
+    "available_at_utc": "<latest input release>",
+    "name": "Taylor residual range (pp)",
+    "note": "never thresholded",
+    "obs_date": "2026-08-01",
+    "range": [
+     -2.3,
+     -0.4
+    ],
+    "retrieved_at_utc": "<retrieved>",
+    "series_id": "TAYLOR_RESIDUAL_RANGE",
+    "source": "FRED PCEPILFE/UNRATE/NROU/GDPPOT; EFFR 3.875 mid",
+    "stale": false,
+    "timing": "publication",
+    "value": null,
+    "value_status": "vendor_derived",
+    "vintage": "<vintage date>"
+   },
+   {
+    "available_at_utc": "<latest input release>",
+    "name": "Recession probit (E-T coefficients)",
+    "note": "last read in Q1a",
+    "obs_date": "<last input date>",
+    "retrieved_at_utc": "<retrieved>",
+    "series_id": "RECESSION_PROBIT_ET",
+    "source": "FRED T10Y3M; published coefficients",
+    "stale": false,
+    "timing": "publication",
+    "value": 0.095,
+    "value_status": "vendor_derived",
+    "vintage": null
+   },
+   {
+    "available_at_utc": "<release instant>",
+    "first_release": 119.4,
+    "latest": 9.7,
+    "name": "Payrolls, 2025 monthly average (k)",
+    "note": "known then vs known now",
+    "obs_date": "2025-12-01",
+    "retrieved_at_utc": "<retrieved>",
+    "series_id": "PAYEMS",
+    "source": "FRED/ALFRED PAYEMS",
+    "stale": false,
+    "timing": "publication",
+    "value": 9.7,
+    "value_status": "revised",
+    "vintage": "<vintage date>",
+    "vintage_date": "<vintage date>"
+   }
+  ],
+  "knowledge_utc": "2026-10-02T06:40:50Z",
+  "read_only": true,
+  "schema": "quantgen.context_log",
+  "schema_version": "2.0"
+ },
+ "event_calendar": {
+  "calendar_version": "<signed version>",
+  "config_hash": "<sha>",
+  "data_snapshot_id": "<md5>",
+  "events": [
+   {
+    "event_id": "FOMC-2026-10-28",
+    "gap_sessions": null,
+    "kr_open_gap_session": "2026-10-29",
+    "notes": "KR opening-gap event night",
+    "region": "US",
+    "released_utc": null,
+    "scenario_tag": null,
+    "scheduled_utc": "2026-10-28T18:00:00Z",
+    "source": "federalreserve.gov FOMC calendar",
+    "status": "scheduled",
+    "type": "FOMC",
+    "var_display_scale": null,
+    "windows": [
+     {
+      "action": "evaluator_block_new_intraday_entries",
+      "end_utc": "2026-10-28T19:00:00Z",
+      "market": "US",
+      "resume_condition": "VIX < pre-14:00 ET level else 19:30Z",
+      "start_utc": "2026-10-28T17:45:00Z"
+     },
+     {
+      "action": "evaluator_block_new_futures_entries",
+      "end_utc": "2026-10-28T19:00:00Z",
+      "market": "KR_FUT_NIGHT",
+      "resume_condition": null,
+      "start_utc": "2026-10-28T17:45:00Z"
+     }
+    ]
+   },
+   {
+    "event_id": "US-NFP-2026-10-02",
+    "gap_sessions": null,
+    "kr_open_gap_session": "2026-10-06",
+    "notes": "KR opening-gap event; the 6 Oct session is also tagged KRX_HOLIDAY_GAP",
+    "region": "US",
+    "released_utc": null,
+    "scenario_tag": null,
+    "scheduled_utc": "2026-10-02T12:30:00Z",
+    "source": "bls.gov Employment Situation schedule",
+    "status": "scheduled",
+    "type": "US_NFP",
+    "var_display_scale": null,
+    "windows": [
+     {
+      "action": "evaluator_block_new_intraday_entries",
+      "end_utc": "2026-10-02T14:00:00Z",
+      "market": "US",
+      "resume_condition": "10:00 ET",
+      "start_utc": "2026-10-02T12:25:00Z"
+     }
+    ]
+   }
+  ],
+  "generated_at_utc": "2026-10-02T06:41:07Z",
+  "git_hash": "<sha>",
+  "knowledge_utc": "2026-10-02T06:40:50Z",
+  "read_only": true,
+  "schema": "quantgen.event_calendar",
+  "schema_version": "2.0"
+ },
+ "governance_event": {
+  "actor": "runtime",
+  "book_id": "recommended:KR",
+  "event_id": "<uuid>",
+  "key": "engine_state",
+  "kind": "book_state",
+  "new": "ARMED",
+  "old": "DISARMED",
+  "prev_row_md5": "<md5>",
+  "reason": "every acting input bound to the book fresh and past warm-up; calendars cover 60 sessions or more",
+  "refs": [
+   "\u00a73.8"
+  ],
+  "rule_id": null,
+  "schema": "quantgen.governance_event",
+  "schema_version": "2.0",
+  "utc": "2026-10-02T06:41:05Z"
+ },
+ "macro_state": {
+  "alerts": [],
+  "annotations": {
+   "notes": [],
+   "vix_ge_vix3m": false
+  },
+  "concentration": {
+   "absolute_bound": 0.755,
+   "active_bound": 0.685,
+   "by_book": {
+    "recommended:KR": {
+     "binding_factor": "active_single_name",
+     "composed": 1.0,
+     "gross": 0.685
+    },
+    "specification:KR": {
+     "binding_factor": "active_single_name",
+     "composed": 0.694,
+     "gross": 0.685
+    }
+   },
+   "pair_lookthrough_share": 0.538,
+   "pair_risk_contribution": 0.75,
+   "pair_share_kospi": 0.51,
+   "semis_bound": null,
+   "template": "msci_25_50"
+  },
+  "config_hash": "<sha>",
+  "data_snapshot_id": "<md5>",
+  "decided_session": "2026-10-02",
+  "decision_utc": "2026-10-02T06:30:30Z",
+  "effective_session": "2026-10-06",
+  "fail_closed": false,
+  "flags": {
+   "block_new_entries": false,
+   "classic_risk_off": false,
+   "dm_bear_state": false,
+   "engine_state": "ARMED",
+   "fx_hedge_credit": false,
+   "gap_sessions": 2,
+   "hard_stop": "armed",
+   "hard_stop_level": -0.15,
+   "hedge_credit_off": true,
+   "hedge_failure": false,
+   "hedge_reasons": [
+    "corr_positive",
+    "core_pce_ge_3"
+   ],
+   "hedge_stale_inputs": [],
+   "kr_open_gap_event": true,
+   "ladder_dwell_left": 0,
+   "ladder_step": "none",
+   "ladder_steps_act_in": "specification",
+   "var_display_scale": 1.4142
+  },
+  "forward_sim": {
+   "R28_below_sma10m": null,
+   "R29_vt_weight_next": null
+  },
+  "generated_at_utc": "2026-10-02T06:41:07Z",
+  "git_hash": "<sha>",
+  "inputs": [
+   {
+    "available_at_source": "calendar_bound",
+    "available_at_utc": "2026-10-02T06:30:30Z",
+    "books": [
+     "specification:KR"
+    ],
+    "channel": "KRX official close",
+    "content_hash": "<md5>",
+    "dispute": false,
+    "expected_available_utc": "2026-10-06T06:30:30Z",
+    "name": "KOSPI official close",
+    "obs_date": "2026-10-02",
+    "obs_kind": "close",
+    "retrieved_at_utc": "2026-10-02T06:40:45Z",
+    "role": "acting_exposure",
+    "series_id": "KOSPI_OFFICIAL_CLOSE",
+    "session_date": "2026-10-02",
+    "source": "KIS",
+    "stale_deadline_utc": "2026-10-07T06:30:30Z",
+    "status": "ok",
+    "timing": "live",
+    "value": 7003.74,
+    "value_status": "official_close",
+    "vintage": null
+   },
+   {
+    "available_at_source": "published",
+    "available_at_utc": "2026-09-28T20:15:00Z",
+    "books": [],
+    "channel": "H.10",
+    "content_hash": "<md5>",
+    "dispute": false,
+    "expected_available_utc": "2026-10-05T20:15:00Z",
+    "name": "USD/KRW DEXKOUS (labelled proxy; R-11 refusal book and context)",
+    "obs_date": "2026-09-25",
+    "obs_kind": "release",
+    "retrieved_at_utc": "2026-10-02T06:40:45Z",
+    "role": "context",
+    "series_id": "DEXKOUS",
+    "session_date": null,
+    "source": "FRED",
+    "stale_deadline_utc": "2026-10-06T20:15:00Z",
+    "status": "ok",
+    "timing": "publication",
+    "value": 1356.51,
+    "value_status": "first_release",
+    "vintage": null
+   }
+  ],
+  "knowledge_utc": "2026-10-02T06:40:50Z",
+  "lag_audit": {
+   "checked": 1,
+   "violations": []
+  },
+  "market": "KR",
+  "owner_decisions": {
+   "risk_layer.drawdown.hard_stop.level": {
+    "decision": "D2",
+    "status": "default",
+    "value": -0.15
+   },
+   "risk_layer.korea_caps.template": {
+    "decision": "D1",
+    "status": "default",
+    "value": "msci_25_50"
+   }
+  },
+  "read_only": true,
+  "refusal_books": {
+   "S1_krw_flag": false,
+   "S2_rates_flag": null
+  },
+  "run_mode": "live",
+  "runtime": [
+   {
+    "book_counter": 0,
+    "book_id": "recommended:KR",
+    "consecutive_failures": {},
+    "engine_state": "ARMED",
+    "halt": null,
+    "hwm_hard": null,
+    "nav": null,
+    "post_rearm_cap_until": null,
+    "ref_step": null
+   },
+   {
+    "book_counter": 0,
+    "book_id": "specification:KR",
+    "consecutive_failures": {},
+    "engine_state": "ARMED",
+    "halt": null,
+    "hwm_hard": null,
+    "nav": null,
+    "post_rearm_cap_until": null,
+    "ref_step": null
+   }
+  ],
+  "schema": "quantgen.macro_state",
+  "schema_version": "2.0",
+  "vol": {
+   "alt_sigma_logged": null,
+   "display_label_abs": "stressed",
+   "display_label_rel": "elevated",
+   "estimator": "sma20",
+   "estimator_b5": "PASS",
+   "estimator_gate": {
+    "fallback_used": false,
+    "reason": null,
+    "stage1": null,
+    "stage2_mcs_p": null,
+    "stage3_rank": null,
+    "status": "registered_default"
+   },
+   "instrument_book": "KRX_ETF_line",
+   "label_method_abs": "expanding_full_history_quartiles_causal_filtered",
+   "label_method_rel": "trailing756_quartiles_causal_filtered",
+   "no_trade_band": 0.0,
+   "rebalance": "daily",
+   "sigma_ann": 0.2882,
+   "target_ann": 0.2,
+   "vt_status": "ok",
+   "vt_weight_next": 0.694,
+   "vt_weight_recommended_book": 1.0
+  }
+ },
+ "model_card_header": {
+  "N_raw_at_registration": "<R-06 ledger row count at commit>",
+  "benchmarks": [
+   "buy_and_hold",
+   "overlay_off",
+   "static_same_avg_exposure",
+   "ewma_derisk"
+  ],
+  "build_status_on_pass": "BUILD_AS_INSURANCE",
+  "card_id": "MACRO-R06-KR-ETF",
+  "cash_convention": {
+   "cash_series": "BOK_CALL_RATE",
+   "day_count": "act_365",
+   "returns": "excess"
+  },
+  "checks": "gate_package_2.0.0",
+  "claim": "Crisis-clustering insurance: reduces drawdown in volatility-clustering crises (1997\u201398, 2008, 2026); no help against gap shocks from calm states (2018-10, 2020-02, 2024-08); Sharpe non-inferiority is marginal \u2014 it pays a premium in calm decades (2016\u201325 alone: tail 0.95, \u0394SR \u22120.079) and is short the post-crash rebound premium; not expected to outperform; cap 1.0 permanent.",
+  "claim_type": "protection",
+  "class": "CARD-P",
+  "comparator": "S_same_average_exposure",
+  "costs": {
+   "floor": "tick_floor",
+   "per_side": "read_from_gate",
+   "printed_lines": [
+    "krx_etf_3bp_throughout"
+   ],
+   "schedule": [
+    {
+     "cost_class": "futures",
+     "to": "<the day before the KODEX 200 listing, from the KRX listing record>"
+    },
+    {
+     "cost_class": "krx_etf",
+     "from": "<the KODEX 200 listing date>"
+    }
+   ],
+   "stress": 2.0,
+   "stress_line": "printed"
+  },
+  "created_utc": "<commit time>",
+  "data": {
+   "golden_tolerance": "Level-2, only for I-16's raw-flag data check vs G-KR-L01; the formal run's differences are printed, never gated",
+   "history_file": "<the frozen KRX official-close fixture>",
+   "reconciliation": "R-01: index 1 bp, stocks exact",
+   "saturday_sessions_before": "1998-12-12",
+   "source": "KRX_official_closes",
+   "value_status": "official_close"
+  },
+  "data_span": {
+   "end": "2026-10-02",
+   "start": "first_close_plus_20_session_warmup"
+  },
+  "episode_rule_version": "1",
+  "estimator": "sma20",
+  "family_id": "R-06",
+  "fill_model": "KRX_close_auction",
+  "gate_package_md5": "<gate.package.definitions_md5 at the freeze>",
+  "gate_package_version": "2.0.0",
+  "gating_lines": {
+   "etf_era": {
+    "from": "<the first day of the first full month after the KODEX 200 listing>",
+    "require": "v2_PASS",
+    "to": "2025-12-31"
+   },
+   "full_span": "v2_PASS"
+  },
+  "header_md5": "<md5 of the header fields, committed before the run>",
+  "history_first_close": "1997-04-01",
+  "hypothesis": "VT20 lowers tail losses vs a same-average-exposure static book without a Sharpe loss beyond 0.10",
+  "instrument_book": "KRX_ETF_line",
+  "label": "Crisis-clustering insurance: reduces drawdown in volatility-clustering crises (1997\u201398, 2008, 2026); no help against gap shocks from calm states (2018-10, 2020-02, 2024-08); Sharpe non-inferiority is marginal \u2014 it pays a premium in calm decades (2016\u201325 alone: tail 0.95, \u0394SR \u22120.079) and is short the post-crash rebound premium; not expected to outperform; cap 1.0 permanent.",
+  "ledger_hash_at_registration": "<md5 of the R-06 family ledger at commit>",
+  "mechanism": "variance reduction (variance ratio 0.59); implicitly short the rebound premium (timing return -1.8%/yr)",
+  "midpoint_halves": {
+   "require": "no_reject",
+   "split": "calendar_midpoint",
+   "split_date": "<the calendar midpoint of the fixed span>"
+  },
+  "no_trade_band": 0.0,
+  "notional_nav": "<sleeves.KR.notional_nav at commit, KRW>",
+  "outcomes": {
+   "INSUFFICIENT_DATA": "specification_book_control_regated_on_new_objective_episode",
+   "PASS": "BUILD-AS-INSURANCE",
+   "REJECT": "archive"
+  },
+  "owner_decisions": {
+   "risk_layer.korea_caps.template": "msci_25_50"
+  },
+  "parameters": {
+   "cap": 1.0,
+   "estimator": "sma",
+   "floor": "none",
+   "target_ann": 0.2,
+   "window": 20
+  },
+  "primary_oos_line": "etf_era",
+  "printed_lines": [
+   "etf_era_to_present",
+   "pre_design_2002-10_to_2015-12",
+   "1997_to_2002_alone",
+   "2016_to_2025_alone",
+   "rolling_decades",
+   "pc4_under_section_8_6",
+   "ewma094_line",
+   "timing_return",
+   "years_lagging_S",
+   "h1_2026_bull_tax",
+   "median_reentry_lag",
+   "per_regime_table",
+   "with_risk_layer"
+  ],
+  "rebalance": "daily",
+  "regime_lines": "from_R20_tags",
+  "revision": 2,
+  "rule": "vt = min(1.0, 0.20 / sigma_SMA20(t)); decided at the KRX close of t (available_at <= close_print_bound_utc(KR, t)); earns from t+1",
+  "rule_id": "R-06-KR-VT20",
+  "searched_parameters": [],
+  "seed": 11,
+  "start_band": {
+   "from": "1997-05",
+   "require": {
+    "no_reject": true,
+    "pass_share_min": "2/3"
+   },
+   "shape": "R-06_KR",
+   "starts": 32,
+   "step": "month",
+   "to": "1999-12"
+  },
+  "tier": "A",
+  "timing": {
+   "decision": "close_t_earn_t_plus_1",
+   "inputs": {
+    "KOSPI": {
+     "available_at": "<= close_print_bound_utc(KR, t)",
+     "series": "KOSPI_OFFICIAL_CLOSE",
+     "value_status": "official_close"
+    }
+   }
+  }
+ },
+ "overlay_decision": {
+  "binding": [],
+  "composition": "min",
+  "config_hash": "<sha>",
+  "data_snapshot_id": "<md5>",
+  "decision_utc": "2026-10-01T20:00:30Z",
+  "effective_session": "2026-10-02",
+  "exposure_basis": "active",
+  "family": "momentum",
+  "forward_sim": [],
+  "generated_at_utc": "<run time>",
+  "git_hash": "<sha>",
+  "inputs": [
+   {
+    "available_at_source": "published",
+    "available_at_utc": "2026-09-30T00:00:00Z",
+    "books": [
+     "specification:US"
+    ],
+    "channel": "Mom daily (research snapshot)",
+    "content_hash": "<md5>",
+    "dispute": false,
+    "expected_available_utc": null,
+    "name": "Mom sigma126",
+    "obs_date": "2026-08-31",
+    "obs_kind": "derived",
+    "retrieved_at_utc": "<retrieved_at_utc>",
+    "role": "acting_exposure",
+    "series_id": "MOM_PAPER_LS_SERIES",
+    "session_date": null,
+    "source": "French Data Library",
+    "stale_deadline_utc": null,
+    "status": "ok",
+    "timing": "publication",
+    "value": 0.239,
+    "value_status": "vendor_derived",
+    "vintage": null
+   }
+  ],
+  "knowledge_utc": "<pinned knowledge instant>",
+  "ladder": null,
+  "market": "US",
+  "multipliers": [
+   {
+    "card": {
+     "card_id": "MACRO-R04-US-DM",
+     "class": "CARD-O",
+     "displayed_as": "descriptive",
+     "disposition": "SPECIFICATION_ONLY",
+     "label": "step 3 FAIL (indicative)",
+     "results_md5": null,
+     "verdict": "NOT_RUN"
+    },
+    "exposure_basis": "active",
+    "rule_id": "R-04-DM",
+    "value": 1.0
+   }
+  ],
+  "overlay_applied_recommended_book": 1.0,
+  "overlay_applied_spec_book": 1.0,
+  "overlay_cap": 1.0,
+  "overlay_floor": 0.5,
+  "overlay_min": 1.0,
+  "post_rearm_cap": null,
+  "read_only": true,
+  "reasons": [
+   "DM: 24m market return +39.7% >= 0 -> 1.0 (specification book only)",
+   "VS: sigma126 23.9% -> min(1, 0.12/0.239)=0.50"
+  ],
+  "refusal": [],
+  "rule_versions": {
+   "R-03": "2.0",
+   "R-04": "2.0"
+  },
+  "schema": "quantgen.overlay_decision",
+  "schema_version": "2.0",
+  "vol_scale": 0.5,
+  "vol_scale_card": {
+   "card_id": "MACRO-R03-US-MOM",
+   "class": "CARD-O",
+   "displayed_as": "descriptive",
+   "disposition": "DESCRIPTIVE",
+   "label": "indicative PASS; step 3 borderline",
+   "results_md5": null,
+   "verdict": "NOT_RUN"
+  },
+  "vol_scale_recommended_book": 1.0
+ }
+}

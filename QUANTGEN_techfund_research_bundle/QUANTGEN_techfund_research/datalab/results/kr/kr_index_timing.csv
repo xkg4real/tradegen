@@ -1,0 +1,1189 @@
+rule,cost_level,period,metric,value
+Buy & hold,gross,full,cagr,0.0719844
+Buy & hold,gross,full,total_return,7.23163
+Buy & hold,gross,full,ann_vol,0.265133
+Buy & hold,gross,full,sharpe,0.394992
+Buy & hold,gross,full,max_dd,-0.670633
+Buy & hold,gross,full,time_in_market,1
+Buy & hold,gross,full,switches_per_year,0
+Buy & hold,gross,full,entries_per_year,0.0329754
+Buy & hold,gross,full,n_days,7593
+Buy & hold,gross,full,excess_mean_ann_vs_bh,0
+Buy & hold,gross,full,excess_nw_t_vs_bh,
+Buy & hold,gross,1996-2005,cagr,0.0534292
+Buy & hold,gross,1996-2005,total_return,0.646105
+Buy & hold,gross,1996-2005,ann_vol,0.340631
+Buy & hold,gross,1996-2005,sharpe,0.323316
+Buy & hold,gross,1996-2005,max_dd,-0.670633
+Buy & hold,gross,1996-2005,time_in_market,1
+Buy & hold,gross,1996-2005,switches_per_year,0
+Buy & hold,gross,1996-2005,entries_per_year,0.104433
+Buy & hold,gross,1996-2005,n_days,2479
+Buy & hold,gross,1996-2005,excess_mean_ann_vs_bh,0
+Buy & hold,gross,1996-2005,excess_nw_t_vs_bh,
+Buy & hold,gross,2006-2015,cagr,0.0365692
+Buy & hold,gross,2006-2015,total_return,0.431843
+Buy & hold,gross,2006-2015,ann_vol,0.211817
+Buy & hold,gross,2006-2015,sharpe,0.275855
+Buy & hold,gross,2006-2015,max_dd,-0.545808
+Buy & hold,gross,2006-2015,time_in_market,1
+Buy & hold,gross,2006-2015,switches_per_year,0
+Buy & hold,gross,2006-2015,entries_per_year,0.100056
+Buy & hold,gross,2006-2015,n_days,2481
+Buy & hold,gross,2006-2015,excess_mean_ann_vs_bh,0
+Buy & hold,gross,2006-2015,excess_nw_t_vs_bh,
+Buy & hold,gross,2016-2026,cagr,0.123506
+Buy & hold,gross,2016-2026,total_return,2.49247
+Buy & hold,gross,2016-2026,ann_vol,0.230934
+Buy & hold,gross,2016-2026,sharpe,0.619886
+Buy & hold,gross,2016-2026,max_dd,-0.440493
+Buy & hold,gross,2016-2026,time_in_market,1
+Buy & hold,gross,2016-2026,switches_per_year,0
+Buy & hold,gross,2016-2026,entries_per_year,0.0931178
+Buy & hold,gross,2016-2026,n_days,2633
+Buy & hold,gross,2016-2026,excess_mean_ann_vs_bh,0
+Buy & hold,gross,2016-2026,excess_nw_t_vs_bh,
+Buy & hold,net3,full,cagr,0.0719844
+Buy & hold,net3,full,total_return,7.23163
+Buy & hold,net3,full,ann_vol,0.265133
+Buy & hold,net3,full,sharpe,0.394992
+Buy & hold,net3,full,max_dd,-0.670633
+Buy & hold,net3,full,time_in_market,1
+Buy & hold,net3,full,switches_per_year,0
+Buy & hold,net3,full,entries_per_year,0.0329754
+Buy & hold,net3,full,n_days,7593
+Buy & hold,net3,full,excess_mean_ann_vs_bh,0
+Buy & hold,net3,full,excess_nw_t_vs_bh,
+Buy & hold,net3,1996-2005,cagr,0.0534292
+Buy & hold,net3,1996-2005,total_return,0.646105
+Buy & hold,net3,1996-2005,ann_vol,0.340631
+Buy & hold,net3,1996-2005,sharpe,0.323316
+Buy & hold,net3,1996-2005,max_dd,-0.670633
+Buy & hold,net3,1996-2005,time_in_market,1
+Buy & hold,net3,1996-2005,switches_per_year,0
+Buy & hold,net3,1996-2005,entries_per_year,0.104433
+Buy & hold,net3,1996-2005,n_days,2479
+Buy & hold,net3,1996-2005,excess_mean_ann_vs_bh,0
+Buy & hold,net3,1996-2005,excess_nw_t_vs_bh,
+Buy & hold,net3,2006-2015,cagr,0.0365692
+Buy & hold,net3,2006-2015,total_return,0.431843
+Buy & hold,net3,2006-2015,ann_vol,0.211817
+Buy & hold,net3,2006-2015,sharpe,0.275855
+Buy & hold,net3,2006-2015,max_dd,-0.545808
+Buy & hold,net3,2006-2015,time_in_market,1
+Buy & hold,net3,2006-2015,switches_per_year,0
+Buy & hold,net3,2006-2015,entries_per_year,0.100056
+Buy & hold,net3,2006-2015,n_days,2481
+Buy & hold,net3,2006-2015,excess_mean_ann_vs_bh,0
+Buy & hold,net3,2006-2015,excess_nw_t_vs_bh,
+Buy & hold,net3,2016-2026,cagr,0.123506
+Buy & hold,net3,2016-2026,total_return,2.49247
+Buy & hold,net3,2016-2026,ann_vol,0.230934
+Buy & hold,net3,2016-2026,sharpe,0.619886
+Buy & hold,net3,2016-2026,max_dd,-0.440493
+Buy & hold,net3,2016-2026,time_in_market,1
+Buy & hold,net3,2016-2026,switches_per_year,0
+Buy & hold,net3,2016-2026,entries_per_year,0.0931178
+Buy & hold,net3,2016-2026,n_days,2633
+Buy & hold,net3,2016-2026,excess_mean_ann_vs_bh,0
+Buy & hold,net3,2016-2026,excess_nw_t_vs_bh,
+Buy & hold,net6,full,cagr,0.0719844
+Buy & hold,net6,full,total_return,7.23163
+Buy & hold,net6,full,ann_vol,0.265133
+Buy & hold,net6,full,sharpe,0.394992
+Buy & hold,net6,full,max_dd,-0.670633
+Buy & hold,net6,full,time_in_market,1
+Buy & hold,net6,full,switches_per_year,0
+Buy & hold,net6,full,entries_per_year,0.0329754
+Buy & hold,net6,full,n_days,7593
+Buy & hold,net6,full,excess_mean_ann_vs_bh,0
+Buy & hold,net6,full,excess_nw_t_vs_bh,
+Buy & hold,net6,1996-2005,cagr,0.0534292
+Buy & hold,net6,1996-2005,total_return,0.646105
+Buy & hold,net6,1996-2005,ann_vol,0.340631
+Buy & hold,net6,1996-2005,sharpe,0.323316
+Buy & hold,net6,1996-2005,max_dd,-0.670633
+Buy & hold,net6,1996-2005,time_in_market,1
+Buy & hold,net6,1996-2005,switches_per_year,0
+Buy & hold,net6,1996-2005,entries_per_year,0.104433
+Buy & hold,net6,1996-2005,n_days,2479
+Buy & hold,net6,1996-2005,excess_mean_ann_vs_bh,0
+Buy & hold,net6,1996-2005,excess_nw_t_vs_bh,
+Buy & hold,net6,2006-2015,cagr,0.0365692
+Buy & hold,net6,2006-2015,total_return,0.431843
+Buy & hold,net6,2006-2015,ann_vol,0.211817
+Buy & hold,net6,2006-2015,sharpe,0.275855
+Buy & hold,net6,2006-2015,max_dd,-0.545808
+Buy & hold,net6,2006-2015,time_in_market,1
+Buy & hold,net6,2006-2015,switches_per_year,0
+Buy & hold,net6,2006-2015,entries_per_year,0.100056
+Buy & hold,net6,2006-2015,n_days,2481
+Buy & hold,net6,2006-2015,excess_mean_ann_vs_bh,0
+Buy & hold,net6,2006-2015,excess_nw_t_vs_bh,
+Buy & hold,net6,2016-2026,cagr,0.123506
+Buy & hold,net6,2016-2026,total_return,2.49247
+Buy & hold,net6,2016-2026,ann_vol,0.230934
+Buy & hold,net6,2016-2026,sharpe,0.619886
+Buy & hold,net6,2016-2026,max_dd,-0.440493
+Buy & hold,net6,2016-2026,time_in_market,1
+Buy & hold,net6,2016-2026,switches_per_year,0
+Buy & hold,net6,2016-2026,entries_per_year,0.0931178
+Buy & hold,net6,2016-2026,n_days,2633
+Buy & hold,net6,2016-2026,excess_mean_ann_vs_bh,0
+Buy & hold,net6,2016-2026,excess_nw_t_vs_bh,
+SMA200 (close > SMA200),gross,full,cagr,0.0833949
+SMA200 (close > SMA200),gross,full,total_return,10.3483
+SMA200 (close > SMA200),gross,full,ann_vol,0.176074
+SMA200 (close > SMA200),gross,full,sharpe,0.543343
+SMA200 (close > SMA200),gross,full,max_dd,-0.410252
+SMA200 (close > SMA200),gross,full,time_in_market,0.577374
+SMA200 (close > SMA200),gross,full,switches_per_year,7.65029
+SMA200 (close > SMA200),gross,full,entries_per_year,3.85812
+SMA200 (close > SMA200),gross,full,n_days,7593
+SMA200 (close > SMA200),gross,full,excess_mean_ann_vs_bh,-0.00905809
+SMA200 (close > SMA200),gross,full,excess_nw_t_vs_bh,-0.256822
+SMA200 (close > SMA200),gross,1996-2005,cagr,0.155759
+SMA200 (close > SMA200),gross,1996-2005,total_return,2.99933
+SMA200 (close > SMA200),gross,1996-2005,ann_vol,0.202856
+SMA200 (close > SMA200),gross,1996-2005,sharpe,0.815025
+SMA200 (close > SMA200),gross,1996-2005,max_dd,-0.311024
+SMA200 (close > SMA200),gross,1996-2005,time_in_market,0.486486
+SMA200 (close > SMA200),gross,1996-2005,switches_per_year,4.3862
+SMA200 (close > SMA200),gross,1996-2005,entries_per_year,2.29753
+SMA200 (close > SMA200),gross,1996-2005,n_days,2479
+SMA200 (close > SMA200),gross,1996-2005,excess_mean_ann_vs_bh,0.0552242
+SMA200 (close > SMA200),gross,1996-2005,excess_nw_t_vs_bh,0.637664
+SMA200 (close > SMA200),gross,2006-2015,cagr,0.0209419
+SMA200 (close > SMA200),gross,2006-2015,total_return,0.230154
+SMA200 (close > SMA200),gross,2006-2015,ann_vol,0.130596
+SMA200 (close > SMA200),gross,2006-2015,sharpe,0.224167
+SMA200 (close > SMA200),gross,2006-2015,max_dd,-0.273829
+SMA200 (close > SMA200),gross,2006-2015,time_in_market,0.649738
+SMA200 (close > SMA200),gross,2006-2015,switches_per_year,9.10511
+SMA200 (close > SMA200),gross,2006-2015,entries_per_year,4.60258
+SMA200 (close > SMA200),gross,2006-2015,n_days,2481
+SMA200 (close > SMA200),gross,2006-2015,excess_mean_ann_vs_bh,-0.0291673
+SMA200 (close > SMA200),gross,2006-2015,excess_nw_t_vs_bh,-0.592124
+SMA200 (close > SMA200),gross,2016-2026,cagr,0.0809373
+SMA200 (close > SMA200),gross,2016-2026,total_return,1.30667
+SMA200 (close > SMA200),gross,2016-2026,ann_vol,0.18701
+SMA200 (close > SMA200),gross,2016-2026,sharpe,0.510618
+SMA200 (close > SMA200),gross,2016-2026,max_dd,-0.410252
+SMA200 (close > SMA200),gross,2016-2026,time_in_market,0.594759
+SMA200 (close > SMA200),gross,2016-2026,switches_per_year,9.21867
+SMA200 (close > SMA200),gross,2016-2026,entries_per_year,4.65589
+SMA200 (close > SMA200),gross,2016-2026,n_days,2633
+SMA200 (close > SMA200),gross,2016-2026,excess_mean_ann_vs_bh,-0.0476793
+SMA200 (close > SMA200),gross,2016-2026,excess_nw_t_vs_bh,-1.1134
+SMA200 (close > SMA200),net3,full,cagr,0.0808997
+SMA200 (close > SMA200),net3,full,total_return,9.58192
+SMA200 (close > SMA200),net3,full,ann_vol,0.176083
+SMA200 (close > SMA200),net3,full,sharpe,0.530225
+SMA200 (close > SMA200),net3,full,max_dd,-0.414829
+SMA200 (close > SMA200),net3,full,time_in_market,0.577374
+SMA200 (close > SMA200),net3,full,switches_per_year,7.65029
+SMA200 (close > SMA200),net3,full,entries_per_year,3.85812
+SMA200 (close > SMA200),net3,full,n_days,7593
+SMA200 (close > SMA200),net3,full,excess_mean_ann_vs_bh,-0.0113634
+SMA200 (close > SMA200),net3,full,excess_nw_t_vs_bh,-0.32186
+SMA200 (close > SMA200),net3,1996-2005,cagr,0.154201
+SMA200 (close > SMA200),net3,1996-2005,total_return,2.94799
+SMA200 (close > SMA200),net3,1996-2005,ann_vol,0.202869
+SMA200 (close > SMA200),net3,1996-2005,sharpe,0.808333
+SMA200 (close > SMA200),net3,1996-2005,max_dd,-0.312478
+SMA200 (close > SMA200),net3,1996-2005,time_in_market,0.486486
+SMA200 (close > SMA200),net3,1996-2005,switches_per_year,4.3862
+SMA200 (close > SMA200),net3,1996-2005,entries_per_year,2.29753
+SMA200 (close > SMA200),net3,1996-2005,n_days,2479
+SMA200 (close > SMA200),net3,1996-2005,excess_mean_ann_vs_bh,0.0538764
+SMA200 (close > SMA200),net3,1996-2005,excess_nw_t_vs_bh,0.62175
+SMA200 (close > SMA200),net3,2006-2015,cagr,0.0181574
+SMA200 (close > SMA200),net3,2006-2015,total_return,0.197031
+SMA200 (close > SMA200),net3,2006-2015,ann_vol,0.130594
+SMA200 (close > SMA200),net3,2006-2015,sharpe,0.203254
+SMA200 (close > SMA200),net3,2006-2015,max_dd,-0.286141
+SMA200 (close > SMA200),net3,2006-2015,time_in_market,0.649738
+SMA200 (close > SMA200),net3,2006-2015,switches_per_year,9.10511
+SMA200 (close > SMA200),net3,2006-2015,entries_per_year,4.60258
+SMA200 (close > SMA200),net3,2006-2015,n_days,2481
+SMA200 (close > SMA200),net3,2006-2015,excess_mean_ann_vs_bh,-0.0318999
+SMA200 (close > SMA200),net3,2006-2015,excess_nw_t_vs_bh,-0.64687
+SMA200 (close > SMA200),net3,2016-2026,cagr,0.0779508
+SMA200 (close > SMA200),net3,2016-2026,total_return,1.23915
+SMA200 (close > SMA200),net3,2016-2026,ann_vol,0.187021
+SMA200 (close > SMA200),net3,2016-2026,sharpe,0.495802
+SMA200 (close > SMA200),net3,2016-2026,max_dd,-0.410615
+SMA200 (close > SMA200),net3,2016-2026,time_in_market,0.594759
+SMA200 (close > SMA200),net3,2016-2026,switches_per_year,9.21867
+SMA200 (close > SMA200),net3,2016-2026,entries_per_year,4.65589
+SMA200 (close > SMA200),net3,2016-2026,n_days,2633
+SMA200 (close > SMA200),net3,2016-2026,excess_mean_ann_vs_bh,-0.050446
+SMA200 (close > SMA200),net3,2016-2026,excess_nw_t_vs_bh,-1.17555
+SMA200 (close > SMA200),net6,full,cagr,0.0784095
+SMA200 (close > SMA200),net6,full,total_return,8.86704
+SMA200 (close > SMA200),net6,full,ann_vol,0.176096
+SMA200 (close > SMA200),net6,full,sharpe,0.517098
+SMA200 (close > SMA200),net6,full,max_dd,-0.43587
+SMA200 (close > SMA200),net6,full,time_in_market,0.577374
+SMA200 (close > SMA200),net6,full,switches_per_year,7.65029
+SMA200 (close > SMA200),net6,full,entries_per_year,3.85812
+SMA200 (close > SMA200),net6,full,n_days,7593
+SMA200 (close > SMA200),net6,full,excess_mean_ann_vs_bh,-0.0136686
+SMA200 (close > SMA200),net6,full,excess_nw_t_vs_bh,-0.386752
+SMA200 (close > SMA200),net6,1996-2005,cagr,0.152645
+SMA200 (close > SMA200),net6,1996-2005,total_return,2.8973
+SMA200 (close > SMA200),net6,1996-2005,ann_vol,0.202883
+SMA200 (close > SMA200),net6,1996-2005,sharpe,0.801635
+SMA200 (close > SMA200),net6,1996-2005,max_dd,-0.31393
+SMA200 (close > SMA200),net6,1996-2005,time_in_market,0.486486
+SMA200 (close > SMA200),net6,1996-2005,switches_per_year,4.3862
+SMA200 (close > SMA200),net6,1996-2005,entries_per_year,2.29753
+SMA200 (close > SMA200),net6,1996-2005,n_days,2479
+SMA200 (close > SMA200),net6,1996-2005,excess_mean_ann_vs_bh,0.0525287
+SMA200 (close > SMA200),net6,1996-2005,excess_nw_t_vs_bh,0.605846
+SMA200 (close > SMA200),net6,2006-2015,cagr,0.0153798
+SMA200 (close > SMA200),net6,2006-2015,total_return,0.164791
+SMA200 (close > SMA200),net6,2006-2015,ann_vol,0.130598
+SMA200 (close > SMA200),net6,2006-2015,sharpe,0.182332
+SMA200 (close > SMA200),net6,2006-2015,max_dd,-0.298249
+SMA200 (close > SMA200),net6,2006-2015,time_in_market,0.649738
+SMA200 (close > SMA200),net6,2006-2015,switches_per_year,9.10511
+SMA200 (close > SMA200),net6,2006-2015,entries_per_year,4.60258
+SMA200 (close > SMA200),net6,2006-2015,n_days,2481
+SMA200 (close > SMA200),net6,2006-2015,excess_mean_ann_vs_bh,-0.0346325
+SMA200 (close > SMA200),net6,2006-2015,excess_nw_t_vs_bh,-0.701441
+SMA200 (close > SMA200),net6,2016-2026,cagr,0.0749717
+SMA200 (close > SMA200),net6,2016-2026,total_return,1.17358
+SMA200 (close > SMA200),net6,2016-2026,ann_vol,0.187035
+SMA200 (close > SMA200),net6,2016-2026,sharpe,0.480977
+SMA200 (close > SMA200),net6,2016-2026,max_dd,-0.410978
+SMA200 (close > SMA200),net6,2016-2026,time_in_market,0.594759
+SMA200 (close > SMA200),net6,2016-2026,switches_per_year,9.21867
+SMA200 (close > SMA200),net6,2016-2026,entries_per_year,4.65589
+SMA200 (close > SMA200),net6,2016-2026,n_days,2633
+SMA200 (close > SMA200),net6,2016-2026,excess_mean_ann_vs_bh,-0.0532126
+SMA200 (close > SMA200),net6,2016-2026,excess_nw_t_vs_bh,-1.23733
+10M_SMA (monthly),gross,full,cagr,0.0912664
+10M_SMA (monthly),gross,full,total_return,13.1344
+10M_SMA (monthly),gross,full,ann_vol,0.182493
+10M_SMA (monthly),gross,full,sharpe,0.569943
+10M_SMA (monthly),gross,full,max_dd,-0.43185
+10M_SMA (monthly),gross,full,time_in_market,0.56855
+10M_SMA (monthly),gross,full,switches_per_year,1.8796
+10M_SMA (monthly),gross,full,entries_per_year,0.956286
+10M_SMA (monthly),gross,full,n_days,7593
+10M_SMA (monthly),gross,full,excess_mean_ann_vs_bh,-0.000714901
+10M_SMA (monthly),gross,full,excess_nw_t_vs_bh,-0.0208237
+10M_SMA (monthly),gross,1996-2005,cagr,0.152781
+10M_SMA (monthly),gross,1996-2005,total_return,2.90172
+10M_SMA (monthly),gross,1996-2005,ann_vol,0.203411
+10M_SMA (monthly),gross,1996-2005,sharpe,0.800677
+10M_SMA (monthly),gross,1996-2005,max_dd,-0.328934
+10M_SMA (monthly),gross,1996-2005,time_in_market,0.470754
+10M_SMA (monthly),gross,1996-2005,switches_per_year,1.14877
+10M_SMA (monthly),gross,1996-2005,entries_per_year,0.626599
+10M_SMA (monthly),gross,1996-2005,n_days,2479
+10M_SMA (monthly),gross,1996-2005,excess_mean_ann_vs_bh,0.0527565
+10M_SMA (monthly),gross,1996-2005,excess_nw_t_vs_bh,0.606796
+10M_SMA (monthly),gross,2006-2015,cagr,-0.00304805
+10M_SMA (monthly),gross,2006-2015,total_return,-0.0300492
+10M_SMA (monthly),gross,2006-2015,ann_vol,0.141939
+10M_SMA (monthly),gross,2006-2015,sharpe,0.0497284
+10M_SMA (monthly),gross,2006-2015,max_dd,-0.4169
+10M_SMA (monthly),gross,2006-2015,time_in_market,0.652559
+10M_SMA (monthly),gross,2006-2015,switches_per_year,2.5014
+10M_SMA (monthly),gross,2006-2015,entries_per_year,1.30073
+10M_SMA (monthly),gross,2006-2015,n_days,2481
+10M_SMA (monthly),gross,2006-2015,excess_mean_ann_vs_bh,-0.051393
+10M_SMA (monthly),gross,2006-2015,excess_nw_t_vs_bh,-1.11444
+10M_SMA (monthly),gross,2016-2026,cagr,0.130547
+10M_SMA (monthly),gross,2016-2026,total_return,2.73483
+10M_SMA (monthly),gross,2016-2026,ann_vol,0.195898
+10M_SMA (monthly),gross,2016-2026,sharpe,0.724479
+10M_SMA (monthly),gross,2016-2026,max_dd,-0.386055
+10M_SMA (monthly),gross,2016-2026,time_in_market,0.581466
+10M_SMA (monthly),gross,2016-2026,switches_per_year,1.95547
+10M_SMA (monthly),gross,2016-2026,entries_per_year,1.0243
+10M_SMA (monthly),gross,2016-2026,n_days,2633
+10M_SMA (monthly),gross,2016-2026,excess_mean_ann_vs_bh,-0.00122953
+10M_SMA (monthly),gross,2016-2026,excess_nw_t_vs_bh,-0.0314476
+10M_SMA (monthly),net3,full,cagr,0.0906521
+10M_SMA (monthly),net3,full,total_return,12.8951
+10M_SMA (monthly),net3,full,ann_vol,0.18249
+10M_SMA (monthly),net3,full,sharpe,0.566863
+10M_SMA (monthly),net3,full,max_dd,-0.436772
+10M_SMA (monthly),net3,full,time_in_market,0.56855
+10M_SMA (monthly),net3,full,switches_per_year,1.8796
+10M_SMA (monthly),net3,full,entries_per_year,0.956286
+10M_SMA (monthly),net3,full,n_days,7593
+10M_SMA (monthly),net3,full,excess_mean_ann_vs_bh,-0.00127885
+10M_SMA (monthly),net3,full,excess_nw_t_vs_bh,-0.0372481
+10M_SMA (monthly),net3,1996-2005,cagr,0.152385
+10M_SMA (monthly),net3,1996-2005,total_return,2.88891
+10M_SMA (monthly),net3,1996-2005,ann_vol,0.203405
+10M_SMA (monthly),net3,1996-2005,sharpe,0.799004
+10M_SMA (monthly),net3,1996-2005,max_dd,-0.329338
+10M_SMA (monthly),net3,1996-2005,time_in_market,0.470754
+10M_SMA (monthly),net3,1996-2005,switches_per_year,1.14877
+10M_SMA (monthly),net3,1996-2005,entries_per_year,0.626599
+10M_SMA (monthly),net3,1996-2005,n_days,2479
+10M_SMA (monthly),net3,1996-2005,excess_mean_ann_vs_bh,0.0524117
+10M_SMA (monthly),net3,1996-2005,excess_nw_t_vs_bh,0.602779
+10M_SMA (monthly),net3,2006-2015,cagr,-0.00379509
+10M_SMA (monthly),net3,2006-2015,total_return,-0.0372887
+10M_SMA (monthly),net3,2006-2015,ann_vol,0.141933
+10M_SMA (monthly),net3,2006-2015,sharpe,0.0444432
+10M_SMA (monthly),net3,2006-2015,max_dd,-0.419343
+10M_SMA (monthly),net3,2006-2015,time_in_market,0.652559
+10M_SMA (monthly),net3,2006-2015,switches_per_year,2.5014
+10M_SMA (monthly),net3,2006-2015,entries_per_year,1.30073
+10M_SMA (monthly),net3,2006-2015,n_days,2481
+10M_SMA (monthly),net3,2006-2015,excess_mean_ann_vs_bh,-0.0521438
+10M_SMA (monthly),net3,2006-2015,excess_nw_t_vs_bh,-1.13087
+10M_SMA (monthly),net3,2016-2026,cagr,0.129884
+10M_SMA (monthly),net3,2016-2026,total_return,2.71139
+10M_SMA (monthly),net3,2016-2026,ann_vol,0.195898
+10M_SMA (monthly),net3,2016-2026,sharpe,0.721484
+10M_SMA (monthly),net3,2016-2026,max_dd,-0.386055
+10M_SMA (monthly),net3,2016-2026,time_in_market,0.581466
+10M_SMA (monthly),net3,2016-2026,switches_per_year,1.95547
+10M_SMA (monthly),net3,2016-2026,entries_per_year,1.0243
+10M_SMA (monthly),net3,2016-2026,n_days,2633
+10M_SMA (monthly),net3,2016-2026,excess_mean_ann_vs_bh,-0.00181639
+10M_SMA (monthly),net3,2016-2026,excess_nw_t_vs_bh,-0.0464496
+10M_SMA (monthly),net6,full,cagr,0.0900379
+10M_SMA (monthly),net6,full,total_return,12.6597
+10M_SMA (monthly),net6,full,ann_vol,0.182488
+10M_SMA (monthly),net6,full,sharpe,0.56378
+10M_SMA (monthly),net6,full,max_dd,-0.441705
+10M_SMA (monthly),net6,full,time_in_market,0.56855
+10M_SMA (monthly),net6,full,switches_per_year,1.8796
+10M_SMA (monthly),net6,full,entries_per_year,0.956286
+10M_SMA (monthly),net6,full,n_days,7593
+10M_SMA (monthly),net6,full,excess_mean_ann_vs_bh,-0.00184281
+10M_SMA (monthly),net6,full,excess_nw_t_vs_bh,-0.0536701
+10M_SMA (monthly),net6,1996-2005,cagr,0.15199
+10M_SMA (monthly),net6,1996-2005,total_return,2.87615
+10M_SMA (monthly),net6,1996-2005,ann_vol,0.2034
+10M_SMA (monthly),net6,1996-2005,sharpe,0.797329
+10M_SMA (monthly),net6,1996-2005,max_dd,-0.329742
+10M_SMA (monthly),net6,1996-2005,time_in_market,0.470754
+10M_SMA (monthly),net6,1996-2005,switches_per_year,1.14877
+10M_SMA (monthly),net6,1996-2005,entries_per_year,0.626599
+10M_SMA (monthly),net6,1996-2005,n_days,2479
+10M_SMA (monthly),net6,1996-2005,excess_mean_ann_vs_bh,0.0520669
+10M_SMA (monthly),net6,1996-2005,excess_nw_t_vs_bh,0.598761
+10M_SMA (monthly),net6,2006-2015,cagr,-0.00454179
+10M_SMA (monthly),net6,2006-2015,total_return,-0.0444763
+10M_SMA (monthly),net6,2006-2015,ann_vol,0.141928
+10M_SMA (monthly),net6,2006-2015,sharpe,0.0391572
+10M_SMA (monthly),net6,2006-2015,max_dd,-0.421776
+10M_SMA (monthly),net6,2006-2015,time_in_market,0.652559
+10M_SMA (monthly),net6,2006-2015,switches_per_year,2.5014
+10M_SMA (monthly),net6,2006-2015,entries_per_year,1.30073
+10M_SMA (monthly),net6,2006-2015,n_days,2481
+10M_SMA (monthly),net6,2006-2015,excess_mean_ann_vs_bh,-0.0528945
+10M_SMA (monthly),net6,2006-2015,excess_nw_t_vs_bh,-1.14729
+10M_SMA (monthly),net6,2016-2026,cagr,0.129222
+10M_SMA (monthly),net6,2016-2026,total_return,2.68808
+10M_SMA (monthly),net6,2016-2026,ann_vol,0.195899
+10M_SMA (monthly),net6,2016-2026,sharpe,0.718485
+10M_SMA (monthly),net6,2016-2026,max_dd,-0.386055
+10M_SMA (monthly),net6,2016-2026,time_in_market,0.581466
+10M_SMA (monthly),net6,2016-2026,switches_per_year,1.95547
+10M_SMA (monthly),net6,2016-2026,entries_per_year,1.0243
+10M_SMA (monthly),net6,2016-2026,n_days,2633
+10M_SMA (monthly),net6,2016-2026,excess_mean_ann_vs_bh,-0.00240325
+10M_SMA (monthly),net6,2016-2026,excess_nw_t_vs_bh,-0.0614458
+SMA50 > SMA200,gross,full,cagr,0.0690706
+SMA50 > SMA200,gross,full,total_return,6.57945
+SMA50 > SMA200,gross,full,ann_vol,0.185519
+SMA50 > SMA200,gross,full,sharpe,0.452886
+SMA50 > SMA200,gross,full,max_dd,-0.557329
+SMA50 > SMA200,gross,full,time_in_market,0.573818
+SMA50 > SMA200,gross,full,switches_per_year,1.51687
+SMA50 > SMA200,gross,full,entries_per_year,0.791409
+SMA50 > SMA200,gross,full,n_days,7593
+SMA50 > SMA200,gross,full,excess_mean_ann_vs_bh,-0.0207091
+SMA50 > SMA200,gross,full,excess_nw_t_vs_bh,-0.611452
+SMA50 > SMA200,gross,1996-2005,cagr,0.111431
+SMA50 > SMA200,gross,1996-2005,total_return,1.75009
+SMA50 > SMA200,gross,1996-2005,ann_vol,0.207539
+SMA50 > SMA200,gross,1996-2005,sharpe,0.612713
+SMA50 > SMA200,gross,1996-2005,max_dd,-0.353771
+SMA50 > SMA200,gross,1996-2005,time_in_market,0.492134
+SMA50 > SMA200,gross,1996-2005,switches_per_year,1.2532
+SMA50 > SMA200,gross,1996-2005,entries_per_year,0.731033
+SMA50 > SMA200,gross,1996-2005,n_days,2479
+SMA50 > SMA200,gross,1996-2005,excess_mean_ann_vs_bh,0.0170375
+SMA50 > SMA200,gross,1996-2005,excess_nw_t_vs_bh,0.19772
+SMA50 > SMA200,gross,2006-2015,cagr,0.00867363
+SMA50 > SMA200,gross,2006-2015,total_return,0.0901484
+SMA50 > SMA200,gross,2006-2015,ann_vol,0.140995
+SMA50 > SMA200,gross,2006-2015,sharpe,0.13202
+SMA50 > SMA200,gross,2006-2015,max_dd,-0.419205
+SMA50 > SMA200,gross,2006-2015,time_in_market,0.649738
+SMA50 > SMA200,gross,2006-2015,switches_per_year,1.70095
+SMA50 > SMA200,gross,2006-2015,entries_per_year,0.900506
+SMA50 > SMA200,gross,2006-2015,n_days,2481
+SMA50 > SMA200,gross,2006-2015,excess_mean_ann_vs_bh,-0.0398327
+SMA50 > SMA200,gross,2006-2015,excess_nw_t_vs_bh,-0.847777
+SMA50 > SMA200,gross,2016-2026,cagr,0.0902054
+SMA50 > SMA200,gross,2016-2026,total_return,1.52816
+SMA50 > SMA200,gross,2016-2026,ann_vol,0.200712
+SMA50 > SMA200,gross,2016-2026,sharpe,0.530865
+SMA50 > SMA200,gross,2016-2026,max_dd,-0.425256
+SMA50 > SMA200,gross,2016-2026,time_in_market,0.579187
+SMA50 > SMA200,gross,2016-2026,switches_per_year,1.583
+SMA50 > SMA200,gross,2016-2026,entries_per_year,0.838061
+SMA50 > SMA200,gross,2016-2026,n_days,2633
+SMA50 > SMA200,gross,2016-2026,excess_mean_ann_vs_bh,-0.0366149
+SMA50 > SMA200,gross,2016-2026,excess_nw_t_vs_bh,-1.00585
+SMA50 > SMA200,net3,full,cagr,0.0685836
+SMA50 > SMA200,net3,full,total_return,6.47545
+SMA50 > SMA200,net3,full,ann_vol,0.185523
+SMA50 > SMA200,net3,full,sharpe,0.450425
+SMA50 > SMA200,net3,full,max_dd,-0.560241
+SMA50 > SMA200,net3,full,time_in_market,0.573818
+SMA50 > SMA200,net3,full,switches_per_year,1.51687
+SMA50 > SMA200,net3,full,entries_per_year,0.791409
+SMA50 > SMA200,net3,full,n_days,7593
+SMA50 > SMA200,net3,full,excess_mean_ann_vs_bh,-0.0211642
+SMA50 > SMA200,net3,full,excess_nw_t_vs_bh,-0.624814
+SMA50 > SMA200,net3,1996-2005,cagr,0.111012
+SMA50 > SMA200,net3,1996-2005,total_return,1.74018
+SMA50 > SMA200,net3,1996-2005,ann_vol,0.207544
+SMA50 > SMA200,net3,1996-2005,sharpe,0.610887
+SMA50 > SMA200,net3,1996-2005,max_dd,-0.35455
+SMA50 > SMA200,net3,1996-2005,time_in_market,0.492134
+SMA50 > SMA200,net3,1996-2005,switches_per_year,1.2532
+SMA50 > SMA200,net3,1996-2005,entries_per_year,0.731033
+SMA50 > SMA200,net3,1996-2005,n_days,2479
+SMA50 > SMA200,net3,1996-2005,excess_mean_ann_vs_bh,0.0166614
+SMA50 > SMA200,net3,1996-2005,excess_nw_t_vs_bh,0.193349
+SMA50 > SMA200,net3,2006-2015,cagr,0.0081578
+SMA50 > SMA200,net3,2006-2015,total_return,0.0845893
+SMA50 > SMA200,net3,2006-2015,ann_vol,0.141004
+SMA50 > SMA200,net3,2006-2015,sharpe,0.128393
+SMA50 > SMA200,net3,2006-2015,max_dd,-0.421295
+SMA50 > SMA200,net3,2006-2015,time_in_market,0.649738
+SMA50 > SMA200,net3,2006-2015,switches_per_year,1.70095
+SMA50 > SMA200,net3,2006-2015,entries_per_year,0.900506
+SMA50 > SMA200,net3,2006-2015,n_days,2481
+SMA50 > SMA200,net3,2006-2015,excess_mean_ann_vs_bh,-0.0403432
+SMA50 > SMA200,net3,2006-2015,excess_nw_t_vs_bh,-0.85858
+SMA50 > SMA200,net3,2016-2026,cagr,0.0896883
+SMA50 > SMA200,net3,2016-2026,total_return,1.51532
+SMA50 > SMA200,net3,2016-2026,ann_vol,0.200711
+SMA50 > SMA200,net3,2016-2026,sharpe,0.528503
+SMA50 > SMA200,net3,2016-2026,max_dd,-0.426288
+SMA50 > SMA200,net3,2016-2026,time_in_market,0.579187
+SMA50 > SMA200,net3,2016-2026,switches_per_year,1.583
+SMA50 > SMA200,net3,2016-2026,entries_per_year,0.838061
+SMA50 > SMA200,net3,2016-2026,n_days,2633
+SMA50 > SMA200,net3,2016-2026,excess_mean_ann_vs_bh,-0.03709
+SMA50 > SMA200,net3,2016-2026,excess_nw_t_vs_bh,-1.01831
+SMA50 > SMA200,net6,full,cagr,0.0680968
+SMA50 > SMA200,net6,full,total_return,6.37286
+SMA50 > SMA200,net6,full,ann_vol,0.185527
+SMA50 > SMA200,net6,full,sharpe,0.447962
+SMA50 > SMA200,net6,full,max_dd,-0.563135
+SMA50 > SMA200,net6,full,time_in_market,0.573818
+SMA50 > SMA200,net6,full,switches_per_year,1.51687
+SMA50 > SMA200,net6,full,entries_per_year,0.791409
+SMA50 > SMA200,net6,full,n_days,7593
+SMA50 > SMA200,net6,full,excess_mean_ann_vs_bh,-0.0216194
+SMA50 > SMA200,net6,full,excess_nw_t_vs_bh,-0.638169
+SMA50 > SMA200,net6,1996-2005,cagr,0.110593
+SMA50 > SMA200,net6,1996-2005,total_return,1.73031
+SMA50 > SMA200,net6,1996-2005,ann_vol,0.207549
+SMA50 > SMA200,net6,1996-2005,sharpe,0.609059
+SMA50 > SMA200,net6,1996-2005,max_dd,-0.355329
+SMA50 > SMA200,net6,1996-2005,time_in_market,0.492134
+SMA50 > SMA200,net6,1996-2005,switches_per_year,1.2532
+SMA50 > SMA200,net6,1996-2005,entries_per_year,0.731033
+SMA50 > SMA200,net6,1996-2005,n_days,2479
+SMA50 > SMA200,net6,1996-2005,excess_mean_ann_vs_bh,0.0162853
+SMA50 > SMA200,net6,1996-2005,excess_nw_t_vs_bh,0.188978
+SMA50 > SMA200,net6,2006-2015,cagr,0.00764208
+SMA50 > SMA200,net6,2006-2015,total_return,0.079057
+SMA50 > SMA200,net6,2006-2015,ann_vol,0.141013
+SMA50 > SMA200,net6,2006-2015,sharpe,0.124765
+SMA50 > SMA200,net6,2006-2015,max_dd,-0.423377
+SMA50 > SMA200,net6,2006-2015,time_in_market,0.649738
+SMA50 > SMA200,net6,2006-2015,switches_per_year,1.70095
+SMA50 > SMA200,net6,2006-2015,entries_per_year,0.900506
+SMA50 > SMA200,net6,2006-2015,n_days,2481
+SMA50 > SMA200,net6,2006-2015,excess_mean_ann_vs_bh,-0.0408537
+SMA50 > SMA200,net6,2006-2015,excess_nw_t_vs_bh,-0.869375
+SMA50 > SMA200,net6,2016-2026,cagr,0.0891714
+SMA50 > SMA200,net6,2016-2026,total_return,1.50253
+SMA50 > SMA200,net6,2016-2026,ann_vol,0.20071
+SMA50 > SMA200,net6,2016-2026,sharpe,0.52614
+SMA50 > SMA200,net6,2016-2026,max_dd,-0.427318
+SMA50 > SMA200,net6,2016-2026,time_in_market,0.579187
+SMA50 > SMA200,net6,2016-2026,switches_per_year,1.583
+SMA50 > SMA200,net6,2016-2026,entries_per_year,0.838061
+SMA50 > SMA200,net6,2016-2026,n_days,2633
+SMA50 > SMA200,net6,2016-2026,excess_mean_ann_vs_bh,-0.037565
+SMA50 > SMA200,net6,2016-2026,excess_nw_t_vs_bh,-1.03074
+"MACD(12,26,9) > signal",gross,full,cagr,0.0431052
+"MACD(12,26,9) > signal",gross,full,total_return,2.59594
+"MACD(12,26,9) > signal",gross,full,ann_vol,0.174706
+"MACD(12,26,9) > signal",gross,full,sharpe,0.329344
+"MACD(12,26,9) > signal",gross,full,max_dd,-0.646612
+"MACD(12,26,9) > signal",gross,full,time_in_market,0.519821
+"MACD(12,26,9) > signal",gross,full,switches_per_year,19.2906
+"MACD(12,26,9) > signal",gross,full,entries_per_year,9.66178
+"MACD(12,26,9) > signal",gross,full,n_days,7593
+"MACD(12,26,9) > signal",gross,full,excess_mean_ann_vs_bh,-0.0471936
+"MACD(12,26,9) > signal",gross,full,excess_nw_t_vs_bh,-1.37711
+"MACD(12,26,9) > signal",gross,1996-2005,cagr,-0.0129602
+"MACD(12,26,9) > signal",gross,1996-2005,total_return,-0.117425
+"MACD(12,26,9) > signal",gross,1996-2005,ann_vol,0.237925
+"MACD(12,26,9) > signal",gross,1996-2005,sharpe,0.0643767
+"MACD(12,26,9) > signal",gross,1996-2005,max_dd,-0.646612
+"MACD(12,26,9) > signal",gross,1996-2005,time_in_market,0.524405
+"MACD(12,26,9) > signal",gross,1996-2005,switches_per_year,21.1999
+"MACD(12,26,9) > signal",gross,1996-2005,entries_per_year,10.6522
+"MACD(12,26,9) > signal",gross,1996-2005,n_days,2479
+"MACD(12,26,9) > signal",gross,1996-2005,excess_mean_ann_vs_bh,-0.094854
+"MACD(12,26,9) > signal",gross,1996-2005,excess_nw_t_vs_bh,-1.23797
+"MACD(12,26,9) > signal",gross,2006-2015,cagr,0.0494038
+"MACD(12,26,9) > signal",gross,2006-2015,total_return,0.619231
+"MACD(12,26,9) > signal",gross,2006-2015,ann_vol,0.131848
+"MACD(12,26,9) > signal",gross,2006-2015,sharpe,0.431943
+"MACD(12,26,9) > signal",gross,2006-2015,max_dd,-0.350915
+"MACD(12,26,9) > signal",gross,2006-2015,time_in_market,0.520355
+"MACD(12,26,9) > signal",gross,2006-2015,switches_per_year,18.2102
+"MACD(12,26,9) > signal",gross,2006-2015,entries_per_year,9.20517
+"MACD(12,26,9) > signal",gross,2006-2015,n_days,2481
+"MACD(12,26,9) > signal",gross,2006-2015,excess_mean_ann_vs_bh,-0.00148097
+"MACD(12,26,9) > signal",gross,2006-2015,excess_nw_t_vs_bh,-0.0299456
+"MACD(12,26,9) > signal",gross,2016-2026,cagr,0.0897256
+"MACD(12,26,9) > signal",gross,2016-2026,total_return,1.51624
+"MACD(12,26,9) > signal",gross,2016-2026,ann_vol,0.13981
+"MACD(12,26,9) > signal",gross,2016-2026,sharpe,0.685366
+"MACD(12,26,9) > signal",gross,2016-2026,max_dd,-0.272483
+"MACD(12,26,9) > signal",gross,2016-2026,time_in_market,0.515002
+"MACD(12,26,9) > signal",gross,2016-2026,switches_per_year,18.6236
+"MACD(12,26,9) > signal",gross,2016-2026,entries_per_year,9.4049
+"MACD(12,26,9) > signal",gross,2016-2026,n_days,2633
+"MACD(12,26,9) > signal",gross,2016-2026,excess_mean_ann_vs_bh,-0.047349
+"MACD(12,26,9) > signal",gross,2016-2026,excess_nw_t_vs_bh,-0.934175
+"MACD(12,26,9) > signal",net3,full,cagr,0.0370924
+"MACD(12,26,9) > signal",net3,full,total_return,2.01769
+"MACD(12,26,9) > signal",net3,full,ann_vol,0.174674
+"MACD(12,26,9) > signal",net3,full,sharpe,0.296272
+"MACD(12,26,9) > signal",net3,full,max_dd,-0.652094
+"MACD(12,26,9) > signal",net3,full,time_in_market,0.519821
+"MACD(12,26,9) > signal",net3,full,switches_per_year,19.2906
+"MACD(12,26,9) > signal",net3,full,entries_per_year,9.66178
+"MACD(12,26,9) > signal",net3,full,n_days,7593
+"MACD(12,26,9) > signal",net3,full,excess_mean_ann_vs_bh,-0.0529815
+"MACD(12,26,9) > signal",net3,full,excess_nw_t_vs_bh,-1.54254
+"MACD(12,26,9) > signal",net3,1996-2005,cagr,-0.0192103
+"MACD(12,26,9) > signal",net3,1996-2005,total_return,-0.169508
+"MACD(12,26,9) > signal",net3,1996-2005,ann_vol,0.237888
+"MACD(12,26,9) > signal",net3,1996-2005,sharpe,0.0376514
+"MACD(12,26,9) > signal",net3,1996-2005,max_dd,-0.652094
+"MACD(12,26,9) > signal",net3,1996-2005,time_in_market,0.524405
+"MACD(12,26,9) > signal",net3,1996-2005,switches_per_year,21.1999
+"MACD(12,26,9) > signal",net3,1996-2005,entries_per_year,10.6522
+"MACD(12,26,9) > signal",net3,1996-2005,n_days,2479
+"MACD(12,26,9) > signal",net3,1996-2005,excess_mean_ann_vs_bh,-0.101217
+"MACD(12,26,9) > signal",net3,1996-2005,excess_nw_t_vs_bh,-1.31825
+"MACD(12,26,9) > signal",net3,2006-2015,cagr,0.0436926
+"MACD(12,26,9) > signal",net3,2006-2015,total_return,0.533281
+"MACD(12,26,9) > signal",net3,2006-2015,ann_vol,0.13181
+"MACD(12,26,9) > signal",net3,2006-2015,sharpe,0.39062
+"MACD(12,26,9) > signal",net3,2006-2015,max_dd,-0.355561
+"MACD(12,26,9) > signal",net3,2006-2015,time_in_market,0.520355
+"MACD(12,26,9) > signal",net3,2006-2015,switches_per_year,18.2102
+"MACD(12,26,9) > signal",net3,2006-2015,entries_per_year,9.20517
+"MACD(12,26,9) > signal",net3,2006-2015,n_days,2481
+"MACD(12,26,9) > signal",net3,2006-2015,excess_mean_ann_vs_bh,-0.0069462
+"MACD(12,26,9) > signal",net3,2006-2015,excess_nw_t_vs_bh,-0.140091
+"MACD(12,26,9) > signal",net3,2016-2026,cagr,0.0836597
+"MACD(12,26,9) > signal",net3,2016-2026,total_return,1.36983
+"MACD(12,26,9) > signal",net3,2016-2026,ann_vol,0.139787
+"MACD(12,26,9) > signal",net3,2016-2026,sharpe,0.645513
+"MACD(12,26,9) > signal",net3,2016-2026,max_dd,-0.273798
+"MACD(12,26,9) > signal",net3,2016-2026,time_in_market,0.515002
+"MACD(12,26,9) > signal",net3,2016-2026,switches_per_year,18.6236
+"MACD(12,26,9) > signal",net3,2016-2026,entries_per_year,9.4049
+"MACD(12,26,9) > signal",net3,2016-2026,n_days,2633
+"MACD(12,26,9) > signal",net3,2016-2026,excess_mean_ann_vs_bh,-0.0529381
+"MACD(12,26,9) > signal",net3,2016-2026,excess_nw_t_vs_bh,-1.04214
+"MACD(12,26,9) > signal",net6,full,cagr,0.0311125
+"MACD(12,26,9) > signal",net6,full,total_return,1.5323
+"MACD(12,26,9) > signal",net6,full,ann_vol,0.174651
+"MACD(12,26,9) > signal",net6,full,sharpe,0.263175
+"MACD(12,26,9) > signal",net6,full,max_dd,-0.657492
+"MACD(12,26,9) > signal",net6,full,time_in_market,0.519821
+"MACD(12,26,9) > signal",net6,full,switches_per_year,19.2906
+"MACD(12,26,9) > signal",net6,full,entries_per_year,9.66178
+"MACD(12,26,9) > signal",net6,full,n_days,7593
+"MACD(12,26,9) > signal",net6,full,excess_mean_ann_vs_bh,-0.0587694
+"MACD(12,26,9) > signal",net6,full,excess_nw_t_vs_bh,-1.70716
+"MACD(12,26,9) > signal",net6,1996-2005,cagr,-0.0254226
+"MACD(12,26,9) > signal",net6,1996-2005,total_return,-0.218533
+"MACD(12,26,9) > signal",net6,1996-2005,ann_vol,0.237859
+"MACD(12,26,9) > signal",net6,1996-2005,sharpe,0.0109175
+"MACD(12,26,9) > signal",net6,1996-2005,max_dd,-0.657492
+"MACD(12,26,9) > signal",net6,1996-2005,time_in_market,0.524405
+"MACD(12,26,9) > signal",net6,1996-2005,switches_per_year,21.1999
+"MACD(12,26,9) > signal",net6,1996-2005,entries_per_year,10.6522
+"MACD(12,26,9) > signal",net6,1996-2005,n_days,2479
+"MACD(12,26,9) > signal",net6,1996-2005,excess_mean_ann_vs_bh,-0.107579
+"MACD(12,26,9) > signal",net6,1996-2005,excess_nw_t_vs_bh,-1.39817
+"MACD(12,26,9) > signal",net6,2006-2015,cagr,0.0380108
+"MACD(12,26,9) > signal",net6,2006-2015,total_return,0.45187
+"MACD(12,26,9) > signal",net6,2006-2015,ann_vol,0.131784
+"MACD(12,26,9) > signal",net6,2006-2015,sharpe,0.349243
+"MACD(12,26,9) > signal",net6,2006-2015,max_dd,-0.360175
+"MACD(12,26,9) > signal",net6,2006-2015,time_in_market,0.520355
+"MACD(12,26,9) > signal",net6,2006-2015,switches_per_year,18.2102
+"MACD(12,26,9) > signal",net6,2006-2015,entries_per_year,9.20517
+"MACD(12,26,9) > signal",net6,2006-2015,n_days,2481
+"MACD(12,26,9) > signal",net6,2006-2015,excess_mean_ann_vs_bh,-0.0124114
+"MACD(12,26,9) > signal",net6,2006-2015,excess_nw_t_vs_bh,-0.249656
+"MACD(12,26,9) > signal",net6,2016-2026,cagr,0.0776258
+"MACD(12,26,9) > signal",net6,2016-2026,total_return,1.23191
+"MACD(12,26,9) > signal",net6,2016-2026,ann_vol,0.139774
+"MACD(12,26,9) > signal",net6,2016-2026,sharpe,0.605598
+"MACD(12,26,9) > signal",net6,2016-2026,max_dd,-0.275111
+"MACD(12,26,9) > signal",net6,2016-2026,time_in_market,0.515002
+"MACD(12,26,9) > signal",net6,2016-2026,switches_per_year,18.6236
+"MACD(12,26,9) > signal",net6,2016-2026,entries_per_year,9.4049
+"MACD(12,26,9) > signal",net6,2016-2026,n_days,2633
+"MACD(12,26,9) > signal",net6,2016-2026,excess_mean_ann_vs_bh,-0.0585273
+"MACD(12,26,9) > signal",net6,2016-2026,excess_nw_t_vs_bh,-1.14958
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",gross,full,cagr,0.0314017
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",gross,full,total_return,1.55392
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",gross,full,ann_vol,0.0942755
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",gross,full,sharpe,0.374308
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",gross,full,max_dd,-0.245732
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",gross,full,time_in_market,0.0998288
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",gross,full,switches_per_year,12.2668
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",gross,full,entries_per_year,6.13342
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",gross,full,n_days,7593
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",gross,full,excess_mean_ann_vs_bh,-0.0694466
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",gross,full,excess_nw_t_vs_bh,-1.51958
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",gross,1996-2005,cagr,0.018923
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",gross,1996-2005,total_return,0.196624
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",gross,1996-2005,ann_vol,0.093113
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",gross,1996-2005,sharpe,0.247835
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",gross,1996-2005,max_dd,-0.203599
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",gross,1996-2005,time_in_market,0.0879387
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",gross,1996-2005,switches_per_year,10.6522
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",gross,1996-2005,entries_per_year,5.3261
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",gross,1996-2005,n_days,2479
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",gross,1996-2005,excess_mean_ann_vs_bh,-0.0870908
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",gross,1996-2005,excess_nw_t_vs_bh,-0.813902
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",gross,2006-2015,cagr,0.00977635
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",gross,2006-2015,total_return,0.102118
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",gross,2006-2015,ann_vol,0.0704845
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",gross,2006-2015,sharpe,0.173234
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",gross,2006-2015,max_dd,-0.175559
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",gross,2006-2015,time_in_market,0.126159
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",gross,2006-2015,switches_per_year,14.6082
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",gross,2006-2015,entries_per_year,7.3041
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",gross,2006-2015,n_days,2481
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",gross,2006-2015,excess_mean_ann_vs_bh,-0.0462391
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",gross,2006-2015,excess_nw_t_vs_bh,-0.751755
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",gross,2016-2026,cagr,0.0634741
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",gross,2016-2026,total_return,0.936522
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",gross,2016-2026,ann_vol,0.112887
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",gross,2016-2026,sharpe,0.599793
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",gross,2016-2026,max_dd,-0.163375
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",gross,2016-2026,time_in_market,0.0862134
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",gross,2016-2026,switches_per_year,11.5466
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",gross,2016-2026,entries_per_year,5.77331
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",gross,2016-2026,n_days,2633
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",gross,2016-2026,excess_mean_ann_vs_bh,-0.0754719
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",gross,2016-2026,excess_nw_t_vs_bh,-1.15463
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net3,full,cagr,0.0276114
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net3,full,total_return,1.28413
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net3,full,ann_vol,0.0942907
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net3,full,sharpe,0.335219
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net3,full,max_dd,-0.265425
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net3,full,time_in_market,0.0998288
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net3,full,switches_per_year,12.2668
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net3,full,entries_per_year,6.13342
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net3,full,n_days,7593
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net3,full,excess_mean_ann_vs_bh,-0.0731271
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net3,full,excess_nw_t_vs_bh,-1.60178
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net3,1996-2005,cagr,0.0156622
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net3,1996-2005,total_return,0.160453
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net3,1996-2005,ann_vol,0.0932139
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net3,1996-2005,sharpe,0.213284
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net3,1996-2005,max_dd,-0.209357
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net3,1996-2005,time_in_market,0.0879387
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net3,1996-2005,switches_per_year,10.6522
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net3,1996-2005,entries_per_year,5.3261
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net3,1996-2005,n_days,2479
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net3,1996-2005,excess_mean_ann_vs_bh,-0.0902878
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net3,1996-2005,excess_nw_t_vs_bh,-0.844249
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net3,2006-2015,cagr,0.00535777
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net3,2006-2015,total_return,0.0548564
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net3,2006-2015,ann_vol,0.0705249
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net3,2006-2015,sharpe,0.110994
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net3,2006-2015,max_dd,-0.18786
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net3,2006-2015,time_in_market,0.126159
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net3,2006-2015,switches_per_year,14.6082
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net3,2006-2015,entries_per_year,7.3041
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net3,2006-2015,n_days,2481
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net3,2006-2015,excess_mean_ann_vs_bh,-0.0506233
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net3,2006-2015,excess_nw_t_vs_bh,-0.824334
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net3,2016-2026,cagr,0.0598039
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net3,2016-2026,total_return,0.865945
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net3,2016-2026,ann_vol,0.112824
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net3,2016-2026,sharpe,0.569423
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net3,2016-2026,max_dd,-0.163893
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net3,2016-2026,time_in_market,0.0862134
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net3,2016-2026,switches_per_year,11.5466
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net3,2016-2026,entries_per_year,5.77331
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net3,2016-2026,n_days,2633
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net3,2016-2026,excess_mean_ann_vs_bh,-0.0789372
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net3,2016-2026,excess_nw_t_vs_bh,-1.20961
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net6,full,cagr,0.0238339
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net6,full,total_return,1.04276
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net6,full,ann_vol,0.094317
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net6,full,sharpe,0.296107
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net6,full,max_dd,-0.28461
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net6,full,time_in_market,0.0998288
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net6,full,switches_per_year,12.2668
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net6,full,entries_per_year,6.13342
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net6,full,n_days,7593
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net6,full,excess_mean_ann_vs_bh,-0.0768077
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net6,full,excess_nw_t_vs_bh,-1.68411
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net6,1996-2005,cagr,0.0124108
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net6,1996-2005,total_return,0.125366
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net6,1996-2005,ann_vol,0.0933246
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net6,1996-2005,sharpe,0.178789
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net6,1996-2005,max_dd,-0.21856
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net6,1996-2005,time_in_market,0.0879387
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net6,1996-2005,switches_per_year,10.6522
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net6,1996-2005,entries_per_year,5.3261
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net6,1996-2005,n_days,2479
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net6,1996-2005,excess_mean_ann_vs_bh,-0.0934848
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net6,1996-2005,excess_nw_t_vs_bh,-0.874619
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net6,2006-2015,cagr,0.000957199
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net6,2006-2015,total_return,0.0096079
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net6,2006-2015,ann_vol,0.0705828
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net6,2006-2015,sharpe,0.048813
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net6,2006-2015,max_dd,-0.19998
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net6,2006-2015,time_in_market,0.126159
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net6,2006-2015,switches_per_year,14.6082
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net6,2006-2015,entries_per_year,7.3041
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net6,2006-2015,n_days,2481
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net6,2006-2015,excess_mean_ann_vs_bh,-0.0550075
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net6,2006-2015,excess_nw_t_vs_bh,-0.897108
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net6,2016-2026,cagr,0.0561453
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net6,2016-2026,total_return,0.79792
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net6,2016-2026,ann_vol,0.112771
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net6,2016-2026,sharpe,0.538977
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net6,2016-2026,max_dd,-0.164411
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net6,2016-2026,time_in_market,0.0862134
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net6,2016-2026,switches_per_year,11.5466
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net6,2016-2026,entries_per_year,5.77331
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net6,2016-2026,n_days,2633
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net6,2016-2026,excess_mean_ann_vs_bh,-0.0824024
+"Connors RSI(2)<10 & >SMA200, exit >SMA5",net6,2016-2026,excess_nw_t_vs_bh,-1.26475
+"Bollinger(20,2) MR: buy < lower, exit > middle",gross,full,cagr,0.0266213
+"Bollinger(20,2) MR: buy < lower, exit > middle",gross,full,total_return,1.21832
+"Bollinger(20,2) MR: buy < lower, exit > middle",gross,full,ann_vol,0.160145
+"Bollinger(20,2) MR: buy < lower, exit > middle",gross,full,sharpe,0.244158
+"Bollinger(20,2) MR: buy < lower, exit > middle",gross,full,max_dd,-0.40582
+"Bollinger(20,2) MR: buy < lower, exit > middle",gross,full,time_in_market,0.234558
+"Bollinger(20,2) MR: buy < lower, exit > middle",gross,full,switches_per_year,9.26608
+"Bollinger(20,2) MR: buy < lower, exit > middle",gross,full,entries_per_year,4.64953
+"Bollinger(20,2) MR: buy < lower, exit > middle",gross,full,n_days,7593
+"Bollinger(20,2) MR: buy < lower, exit > middle",gross,full,excess_mean_ann_vs_bh,-0.0656334
+"Bollinger(20,2) MR: buy < lower, exit > middle",gross,full,excess_nw_t_vs_bh,-1.62136
+"Bollinger(20,2) MR: buy < lower, exit > middle",gross,1996-2005,cagr,0.0256502
+"Bollinger(20,2) MR: buy < lower, exit > middle",gross,1996-2005,total_return,0.274452
+"Bollinger(20,2) MR: buy < lower, exit > middle",gross,1996-2005,ann_vol,0.198372
+"Bollinger(20,2) MR: buy < lower, exit > middle",gross,1996-2005,sharpe,0.227163
+"Bollinger(20,2) MR: buy < lower, exit > middle",gross,1996-2005,max_dd,-0.3946
+"Bollinger(20,2) MR: buy < lower, exit > middle",gross,1996-2005,time_in_market,0.243647
+"Bollinger(20,2) MR: buy < lower, exit > middle",gross,1996-2005,switches_per_year,8.87683
+"Bollinger(20,2) MR: buy < lower, exit > middle",gross,1996-2005,entries_per_year,4.49063
+"Bollinger(20,2) MR: buy < lower, exit > middle",gross,1996-2005,n_days,2479
+"Bollinger(20,2) MR: buy < lower, exit > middle",gross,1996-2005,excess_mean_ann_vs_bh,-0.0650956
+"Bollinger(20,2) MR: buy < lower, exit > middle",gross,1996-2005,excess_nw_t_vs_bh,-0.652442
+"Bollinger(20,2) MR: buy < lower, exit > middle",gross,2006-2015,cagr,0.0225179
+"Bollinger(20,2) MR: buy < lower, exit > middle",gross,2006-2015,total_return,0.249266
+"Bollinger(20,2) MR: buy < lower, exit > middle",gross,2006-2015,ann_vol,0.13317
+"Bollinger(20,2) MR: buy < lower, exit > middle",gross,2006-2015,sharpe,0.234042
+"Bollinger(20,2) MR: buy < lower, exit > middle",gross,2006-2015,max_dd,-0.40582
+"Bollinger(20,2) MR: buy < lower, exit > middle",gross,2006-2015,time_in_market,0.224506
+"Bollinger(20,2) MR: buy < lower, exit > middle",gross,2006-2015,switches_per_year,9.20517
+"Bollinger(20,2) MR: buy < lower, exit > middle",gross,2006-2015,entries_per_year,4.60258
+"Bollinger(20,2) MR: buy < lower, exit > middle",gross,2006-2015,n_days,2481
+"Bollinger(20,2) MR: buy < lower, exit > middle",gross,2006-2015,excess_mean_ann_vs_bh,-0.0272744
+"Bollinger(20,2) MR: buy < lower, exit > middle",gross,2006-2015,excess_nw_t_vs_bh,-0.539745
+"Bollinger(20,2) MR: buy < lower, exit > middle",gross,2016-2026,cagr,0.0313669
+"Bollinger(20,2) MR: buy < lower, exit > middle",gross,2016-2026,total_return,0.393303
+"Bollinger(20,2) MR: buy < lower, exit > middle",gross,2016-2026,ann_vol,0.144391
+"Bollinger(20,2) MR: buy < lower, exit > middle",gross,2016-2026,sharpe,0.285535
+"Bollinger(20,2) MR: buy < lower, exit > middle",gross,2016-2026,max_dd,-0.363511
+"Bollinger(20,2) MR: buy < lower, exit > middle",gross,2016-2026,time_in_market,0.235473
+"Bollinger(20,2) MR: buy < lower, exit > middle",gross,2016-2026,switches_per_year,9.68425
+"Bollinger(20,2) MR: buy < lower, exit > middle",gross,2016-2026,entries_per_year,4.84213
+"Bollinger(20,2) MR: buy < lower, exit > middle",gross,2016-2026,n_days,2633
+"Bollinger(20,2) MR: buy < lower, exit > middle",gross,2016-2026,excess_mean_ann_vs_bh,-0.101962
+"Bollinger(20,2) MR: buy < lower, exit > middle",gross,2016-2026,excess_nw_t_vs_bh,-1.88391
+"Bollinger(20,2) MR: buy < lower, exit > middle",net3,full,cagr,0.0237709
+"Bollinger(20,2) MR: buy < lower, exit > middle",net3,full,total_return,1.03895
+"Bollinger(20,2) MR: buy < lower, exit > middle",net3,full,ann_vol,0.160147
+"Bollinger(20,2) MR: buy < lower, exit > middle",net3,full,sharpe,0.226797
+"Bollinger(20,2) MR: buy < lower, exit > middle",net3,full,max_dd,-0.4076
+"Bollinger(20,2) MR: buy < lower, exit > middle",net3,full,time_in_market,0.234558
+"Bollinger(20,2) MR: buy < lower, exit > middle",net3,full,switches_per_year,9.26608
+"Bollinger(20,2) MR: buy < lower, exit > middle",net3,full,entries_per_year,4.64953
+"Bollinger(20,2) MR: buy < lower, exit > middle",net3,full,n_days,7593
+"Bollinger(20,2) MR: buy < lower, exit > middle",net3,full,excess_mean_ann_vs_bh,-0.0684136
+"Bollinger(20,2) MR: buy < lower, exit > middle",net3,full,excess_nw_t_vs_bh,-1.69242
+"Bollinger(20,2) MR: buy < lower, exit > middle",net3,1996-2005,cagr,0.0229203
+"Bollinger(20,2) MR: buy < lower, exit > middle",net3,1996-2005,total_return,0.242339
+"Bollinger(20,2) MR: buy < lower, exit > middle",net3,1996-2005,ann_vol,0.19838
+"Bollinger(20,2) MR: buy < lower, exit > middle",net3,1996-2005,sharpe,0.213729
+"Bollinger(20,2) MR: buy < lower, exit > middle",net3,1996-2005,max_dd,-0.395334
+"Bollinger(20,2) MR: buy < lower, exit > middle",net3,1996-2005,time_in_market,0.243647
+"Bollinger(20,2) MR: buy < lower, exit > middle",net3,1996-2005,switches_per_year,8.87683
+"Bollinger(20,2) MR: buy < lower, exit > middle",net3,1996-2005,entries_per_year,4.49063
+"Bollinger(20,2) MR: buy < lower, exit > middle",net3,1996-2005,n_days,2479
+"Bollinger(20,2) MR: buy < lower, exit > middle",net3,1996-2005,excess_mean_ann_vs_bh,-0.0677598
+"Bollinger(20,2) MR: buy < lower, exit > middle",net3,1996-2005,excess_nw_t_vs_bh,-0.679894
+"Bollinger(20,2) MR: buy < lower, exit > middle",net3,2006-2015,cagr,0.0196959
+"Bollinger(20,2) MR: buy < lower, exit > middle",net3,2006-2015,total_return,0.215232
+"Bollinger(20,2) MR: buy < lower, exit > middle",net3,2006-2015,ann_vol,0.133186
+"Bollinger(20,2) MR: buy < lower, exit > middle",net3,2006-2015,sharpe,0.213279
+"Bollinger(20,2) MR: buy < lower, exit > middle",net3,2006-2015,max_dd,-0.4076
+"Bollinger(20,2) MR: buy < lower, exit > middle",net3,2006-2015,time_in_market,0.224506
+"Bollinger(20,2) MR: buy < lower, exit > middle",net3,2006-2015,switches_per_year,9.20517
+"Bollinger(20,2) MR: buy < lower, exit > middle",net3,2006-2015,entries_per_year,4.60258
+"Bollinger(20,2) MR: buy < lower, exit > middle",net3,2006-2015,n_days,2481
+"Bollinger(20,2) MR: buy < lower, exit > middle",net3,2006-2015,excess_mean_ann_vs_bh,-0.0300371
+"Bollinger(20,2) MR: buy < lower, exit > middle",net3,2006-2015,excess_nw_t_vs_bh,-0.595583
+"Bollinger(20,2) MR: buy < lower, exit > middle",net3,2016-2026,cagr,0.0283775
+"Bollinger(20,2) MR: buy < lower, exit > middle",net3,2016-2026,total_return,0.350539
+"Bollinger(20,2) MR: buy < lower, exit > middle",net3,2016-2026,ann_vol,0.144373
+"Bollinger(20,2) MR: buy < lower, exit > middle",net3,2016-2026,sharpe,0.265446
+"Bollinger(20,2) MR: buy < lower, exit > middle",net3,2016-2026,max_dd,-0.367953
+"Bollinger(20,2) MR: buy < lower, exit > middle",net3,2016-2026,time_in_market,0.235473
+"Bollinger(20,2) MR: buy < lower, exit > middle",net3,2016-2026,switches_per_year,9.68425
+"Bollinger(20,2) MR: buy < lower, exit > middle",net3,2016-2026,entries_per_year,4.84213
+"Bollinger(20,2) MR: buy < lower, exit > middle",net3,2016-2026,n_days,2633
+"Bollinger(20,2) MR: buy < lower, exit > middle",net3,2016-2026,excess_mean_ann_vs_bh,-0.104868
+"Bollinger(20,2) MR: buy < lower, exit > middle",net3,2016-2026,excess_nw_t_vs_bh,-1.94118
+"Bollinger(20,2) MR: buy < lower, exit > middle",net6,full,cagr,0.0209277
+"Bollinger(20,2) MR: buy < lower, exit > middle",net6,full,total_return,0.874039
+"Bollinger(20,2) MR: buy < lower, exit > middle",net6,full,ann_vol,0.160155
+"Bollinger(20,2) MR: buy < lower, exit > middle",net6,full,sharpe,0.209429
+"Bollinger(20,2) MR: buy < lower, exit > middle",net6,full,max_dd,-0.409375
+"Bollinger(20,2) MR: buy < lower, exit > middle",net6,full,time_in_market,0.234558
+"Bollinger(20,2) MR: buy < lower, exit > middle",net6,full,switches_per_year,9.26608
+"Bollinger(20,2) MR: buy < lower, exit > middle",net6,full,entries_per_year,4.64953
+"Bollinger(20,2) MR: buy < lower, exit > middle",net6,full,n_days,7593
+"Bollinger(20,2) MR: buy < lower, exit > middle",net6,full,excess_mean_ann_vs_bh,-0.0711938
+"Bollinger(20,2) MR: buy < lower, exit > middle",net6,full,excess_nw_t_vs_bh,-1.76367
+"Bollinger(20,2) MR: buy < lower, exit > middle",net6,1996-2005,cagr,0.0201968
+"Bollinger(20,2) MR: buy < lower, exit > middle",net6,1996-2005,total_return,0.211026
+"Bollinger(20,2) MR: buy < lower, exit > middle",net6,1996-2005,ann_vol,0.198393
+"Bollinger(20,2) MR: buy < lower, exit > middle",net6,1996-2005,sharpe,0.200293
+"Bollinger(20,2) MR: buy < lower, exit > middle",net6,1996-2005,max_dd,-0.396067
+"Bollinger(20,2) MR: buy < lower, exit > middle",net6,1996-2005,time_in_market,0.243647
+"Bollinger(20,2) MR: buy < lower, exit > middle",net6,1996-2005,switches_per_year,8.87683
+"Bollinger(20,2) MR: buy < lower, exit > middle",net6,1996-2005,entries_per_year,4.49063
+"Bollinger(20,2) MR: buy < lower, exit > middle",net6,1996-2005,n_days,2479
+"Bollinger(20,2) MR: buy < lower, exit > middle",net6,1996-2005,excess_mean_ann_vs_bh,-0.0704239
+"Bollinger(20,2) MR: buy < lower, exit > middle",net6,1996-2005,excess_nw_t_vs_bh,-0.707402
+"Bollinger(20,2) MR: buy < lower, exit > middle",net6,2006-2015,cagr,0.016881
+"Bollinger(20,2) MR: buy < lower, exit > middle",net6,2006-2015,total_return,0.182117
+"Bollinger(20,2) MR: buy < lower, exit > middle",net6,2006-2015,ann_vol,0.133209
+"Bollinger(20,2) MR: buy < lower, exit > middle",net6,2006-2015,sharpe,0.192512
+"Bollinger(20,2) MR: buy < lower, exit > middle",net6,2006-2015,max_dd,-0.409375
+"Bollinger(20,2) MR: buy < lower, exit > middle",net6,2006-2015,time_in_market,0.224506
+"Bollinger(20,2) MR: buy < lower, exit > middle",net6,2006-2015,switches_per_year,9.20517
+"Bollinger(20,2) MR: buy < lower, exit > middle",net6,2006-2015,entries_per_year,4.60258
+"Bollinger(20,2) MR: buy < lower, exit > middle",net6,2006-2015,n_days,2481
+"Bollinger(20,2) MR: buy < lower, exit > middle",net6,2006-2015,excess_mean_ann_vs_bh,-0.0327997
+"Bollinger(20,2) MR: buy < lower, exit > middle",net6,2006-2015,excess_nw_t_vs_bh,-0.651625
+"Bollinger(20,2) MR: buy < lower, exit > middle",net6,2016-2026,cagr,0.0253958
+"Bollinger(20,2) MR: buy < lower, exit > middle",net6,2016-2026,total_return,0.309076
+"Bollinger(20,2) MR: buy < lower, exit > middle",net6,2016-2026,ann_vol,0.144362
+"Bollinger(20,2) MR: buy < lower, exit > middle",net6,2016-2026,sharpe,0.245343
+"Bollinger(20,2) MR: buy < lower, exit > middle",net6,2016-2026,max_dd,-0.372506
+"Bollinger(20,2) MR: buy < lower, exit > middle",net6,2016-2026,time_in_market,0.235473
+"Bollinger(20,2) MR: buy < lower, exit > middle",net6,2016-2026,switches_per_year,9.68425
+"Bollinger(20,2) MR: buy < lower, exit > middle",net6,2016-2026,entries_per_year,4.84213
+"Bollinger(20,2) MR: buy < lower, exit > middle",net6,2016-2026,n_days,2633
+"Bollinger(20,2) MR: buy < lower, exit > middle",net6,2016-2026,excess_mean_ann_vs_bh,-0.107774
+"Bollinger(20,2) MR: buy < lower, exit > middle",net6,2016-2026,excess_nw_t_vs_bh,-1.99862
+Donchian 20-high entry / 10-low exit,gross,full,cagr,0.0634559
+Donchian 20-high entry / 10-low exit,gross,full,total_return,5.4608
+Donchian 20-high entry / 10-low exit,gross,full,ann_vol,0.145797
+Donchian 20-high entry / 10-low exit,gross,full,sharpe,0.495242
+Donchian 20-high entry / 10-low exit,gross,full,max_dd,-0.390458
+Donchian 20-high entry / 10-low exit,gross,full,time_in_market,0.406822
+Donchian 20-high entry / 10-low exit,gross,full,switches_per_year,11.3106
+Donchian 20-high entry / 10-low exit,gross,full,entries_per_year,5.67176
+Donchian 20-high entry / 10-low exit,gross,full,n_days,7593
+Donchian 20-high entry / 10-low exit,gross,full,excess_mean_ann_vs_bh,-0.0325253
+Donchian 20-high entry / 10-low exit,gross,full,excess_nw_t_vs_bh,-0.856198
+Donchian 20-high entry / 10-low exit,gross,1996-2005,cagr,0.0937119
+Donchian 20-high entry / 10-low exit,gross,1996-2005,total_return,1.35784
+Donchian 20-high entry / 10-low exit,gross,1996-2005,ann_vol,0.191505
+Donchian 20-high entry / 10-low exit,gross,1996-2005,sharpe,0.56346
+Donchian 20-high entry / 10-low exit,gross,1996-2005,max_dd,-0.390458
+Donchian 20-high entry / 10-low exit,gross,1996-2005,time_in_market,0.394514
+Donchian 20-high entry / 10-low exit,gross,1996-2005,switches_per_year,10.9655
+Donchian 20-high entry / 10-low exit,gross,1996-2005,entries_per_year,5.53496
+Donchian 20-high entry / 10-low exit,gross,1996-2005,n_days,2479
+Donchian 20-high entry / 10-low exit,gross,1996-2005,excess_mean_ann_vs_bh,-0.00222695
+Donchian 20-high entry / 10-low exit,gross,1996-2005,excess_nw_t_vs_bh,-0.0251565
+Donchian 20-high entry / 10-low exit,gross,2006-2015,cagr,0.0281095
+Donchian 20-high entry / 10-low exit,gross,2006-2015,total_return,0.319247
+Donchian 20-high entry / 10-low exit,gross,2006-2015,ann_vol,0.101689
+Donchian 20-high entry / 10-low exit,gross,2006-2015,sharpe,0.323609
+Donchian 20-high entry / 10-low exit,gross,2006-2015,max_dd,-0.206594
+Donchian 20-high entry / 10-low exit,gross,2006-2015,time_in_market,0.418783
+Donchian 20-high entry / 10-low exit,gross,2006-2015,switches_per_year,11.7066
+Donchian 20-high entry / 10-low exit,gross,2006-2015,entries_per_year,5.90331
+Donchian 20-high entry / 10-low exit,gross,2006-2015,n_days,2481
+Donchian 20-high entry / 10-low exit,gross,2006-2015,excess_mean_ann_vs_bh,-0.0255337
+Donchian 20-high entry / 10-low exit,gross,2006-2015,excess_nw_t_vs_bh,-0.47032
+Donchian 20-high entry / 10-low exit,gross,2016-2026,cagr,0.0704338
+Donchian 20-high entry / 10-low exit,gross,2016-2026,total_return,1.07704
+Donchian 20-high entry / 10-low exit,gross,2016-2026,ann_vol,0.133071
+Donchian 20-high entry / 10-low exit,gross,2016-2026,sharpe,0.579059
+Donchian 20-high entry / 10-low exit,gross,2016-2026,max_dd,-0.313463
+Donchian 20-high entry / 10-low exit,gross,2016-2026,time_in_market,0.40714
+Donchian 20-high entry / 10-low exit,gross,2016-2026,switches_per_year,11.2673
+Donchian 20-high entry / 10-low exit,gross,2016-2026,entries_per_year,5.68019
+Donchian 20-high entry / 10-low exit,gross,2016-2026,n_days,2633
+Donchian 20-high entry / 10-low exit,gross,2016-2026,excess_mean_ann_vs_bh,-0.0661209
+Donchian 20-high entry / 10-low exit,gross,2016-2026,excess_nw_t_vs_bh,-1.26827
+Donchian 20-high entry / 10-low exit,net3,full,cagr,0.0598572
+Donchian 20-high entry / 10-low exit,net3,full,total_return,4.82966
+Donchian 20-high entry / 10-low exit,net3,full,ann_vol,0.145777
+Donchian 20-high entry / 10-low exit,net3,full,sharpe,0.47203
+Donchian 20-high entry / 10-low exit,net3,full,max_dd,-0.401866
+Donchian 20-high entry / 10-low exit,net3,full,time_in_market,0.406822
+Donchian 20-high entry / 10-low exit,net3,full,switches_per_year,11.3106
+Donchian 20-high entry / 10-low exit,net3,full,entries_per_year,5.67176
+Donchian 20-high entry / 10-low exit,net3,full,n_days,7593
+Donchian 20-high entry / 10-low exit,net3,full,excess_mean_ann_vs_bh,-0.0359189
+Donchian 20-high entry / 10-low exit,net3,full,excess_nw_t_vs_bh,-0.944181
+Donchian 20-high entry / 10-low exit,net3,1996-2005,cagr,0.0901276
+Donchian 20-high entry / 10-low exit,net3,1996-2005,total_return,1.28488
+Donchian 20-high entry / 10-low exit,net3,1996-2005,ann_vol,0.191472
+Donchian 20-high entry / 10-low exit,net3,1996-2005,sharpe,0.546375
+Donchian 20-high entry / 10-low exit,net3,1996-2005,max_dd,-0.401866
+Donchian 20-high entry / 10-low exit,net3,1996-2005,time_in_market,0.394514
+Donchian 20-high entry / 10-low exit,net3,1996-2005,switches_per_year,10.9655
+Donchian 20-high entry / 10-low exit,net3,1996-2005,entries_per_year,5.53496
+Donchian 20-high entry / 10-low exit,net3,1996-2005,n_days,2479
+Donchian 20-high entry / 10-low exit,net3,1996-2005,excess_mean_ann_vs_bh,-0.00551796
+Donchian 20-high entry / 10-low exit,net3,1996-2005,excess_nw_t_vs_bh,-0.0622486
+Donchian 20-high entry / 10-low exit,net3,2006-2015,cagr,0.0245056
+Donchian 20-high entry / 10-low exit,net3,2006-2015,total_return,0.273751
+Donchian 20-high entry / 10-low exit,net3,2006-2015,ann_vol,0.101687
+Donchian 20-high entry / 10-low exit,net3,2006-2015,sharpe,0.289077
+Donchian 20-high entry / 10-low exit,net3,2006-2015,max_dd,-0.217012
+Donchian 20-high entry / 10-low exit,net3,2006-2015,time_in_market,0.418783
+Donchian 20-high entry / 10-low exit,net3,2006-2015,switches_per_year,11.7066
+Donchian 20-high entry / 10-low exit,net3,2006-2015,entries_per_year,5.90331
+Donchian 20-high entry / 10-low exit,net3,2006-2015,n_days,2481
+Donchian 20-high entry / 10-low exit,net3,2006-2015,excess_mean_ann_vs_bh,-0.0290471
+Donchian 20-high entry / 10-low exit,net3,2006-2015,excess_nw_t_vs_bh,-0.53429
+Donchian 20-high entry / 10-low exit,net3,2016-2026,cagr,0.0668249
+Donchian 20-high entry / 10-low exit,net3,2016-2026,total_return,1.00306
+Donchian 20-high entry / 10-low exit,net3,2016-2026,ann_vol,0.133055
+Donchian 20-high entry / 10-low exit,net3,2016-2026,sharpe,0.553726
+Donchian 20-high entry / 10-low exit,net3,2016-2026,max_dd,-0.31469
+Donchian 20-high entry / 10-low exit,net3,2016-2026,time_in_market,0.40714
+Donchian 20-high entry / 10-low exit,net3,2016-2026,switches_per_year,11.2673
+Donchian 20-high entry / 10-low exit,net3,2016-2026,entries_per_year,5.68019
+Donchian 20-high entry / 10-low exit,net3,2016-2026,n_days,2633
+Donchian 20-high entry / 10-low exit,net3,2016-2026,excess_mean_ann_vs_bh,-0.0695024
+Donchian 20-high entry / 10-low exit,net3,2016-2026,excess_nw_t_vs_bh,-1.33097
+Donchian 20-high entry / 10-low exit,net6,full,cagr,0.0562697
+Donchian 20-high entry / 10-low exit,net6,full,total_return,4.26001
+Donchian 20-high entry / 10-low exit,net6,full,ann_vol,0.145765
+Donchian 20-high entry / 10-low exit,net6,full,sharpe,0.448792
+Donchian 20-high entry / 10-low exit,net6,full,max_dd,-0.413063
+Donchian 20-high entry / 10-low exit,net6,full,time_in_market,0.406822
+Donchian 20-high entry / 10-low exit,net6,full,switches_per_year,11.3106
+Donchian 20-high entry / 10-low exit,net6,full,entries_per_year,5.67176
+Donchian 20-high entry / 10-low exit,net6,full,n_days,7593
+Donchian 20-high entry / 10-low exit,net6,full,excess_mean_ann_vs_bh,-0.0393126
+Donchian 20-high entry / 10-low exit,net6,full,excess_nw_t_vs_bh,-1.0319
+Donchian 20-high entry / 10-low exit,net6,1996-2005,cagr,0.0865541
+Donchian 20-high entry / 10-low exit,net6,1996-2005,total_return,1.21416
+Donchian 20-high entry / 10-low exit,net6,1996-2005,ann_vol,0.191445
+Donchian 20-high entry / 10-low exit,net6,1996-2005,sharpe,0.529271
+Donchian 20-high entry / 10-low exit,net6,1996-2005,max_dd,-0.413063
+Donchian 20-high entry / 10-low exit,net6,1996-2005,time_in_market,0.394514
+Donchian 20-high entry / 10-low exit,net6,1996-2005,switches_per_year,10.9655
+Donchian 20-high entry / 10-low exit,net6,1996-2005,entries_per_year,5.53496
+Donchian 20-high entry / 10-low exit,net6,1996-2005,n_days,2479
+Donchian 20-high entry / 10-low exit,net6,1996-2005,excess_mean_ann_vs_bh,-0.00880897
+Donchian 20-high entry / 10-low exit,net6,1996-2005,excess_nw_t_vs_bh,-0.0992395
+Donchian 20-high entry / 10-low exit,net6,2006-2015,cagr,0.0209133
+Donchian 20-high entry / 10-low exit,net6,2006-2015,total_return,0.229811
+Donchian 20-high entry / 10-low exit,net6,2006-2015,ann_vol,0.101696
+Donchian 20-high entry / 10-low exit,net6,2006-2015,sharpe,0.254519
+Donchian 20-high entry / 10-low exit,net6,2006-2015,max_dd,-0.228715
+Donchian 20-high entry / 10-low exit,net6,2006-2015,time_in_market,0.418783
+Donchian 20-high entry / 10-low exit,net6,2006-2015,switches_per_year,11.7066
+Donchian 20-high entry / 10-low exit,net6,2006-2015,entries_per_year,5.90331
+Donchian 20-high entry / 10-low exit,net6,2006-2015,n_days,2481
+Donchian 20-high entry / 10-low exit,net6,2006-2015,excess_mean_ann_vs_bh,-0.0325604
+Donchian 20-high entry / 10-low exit,net6,2006-2015,excess_nw_t_vs_bh,-0.598065
+Donchian 20-high entry / 10-low exit,net6,2016-2026,cagr,0.0632271
+Donchian 20-high entry / 10-low exit,net6,2016-2026,total_return,0.931698
+Donchian 20-high entry / 10-low exit,net6,2016-2026,ann_vol,0.133046
+Donchian 20-high entry / 10-low exit,net6,2016-2026,sharpe,0.528358
+Donchian 20-high entry / 10-low exit,net6,2016-2026,max_dd,-0.315915
+Donchian 20-high entry / 10-low exit,net6,2016-2026,time_in_market,0.40714
+Donchian 20-high entry / 10-low exit,net6,2016-2026,switches_per_year,11.2673
+Donchian 20-high entry / 10-low exit,net6,2016-2026,entries_per_year,5.68019
+Donchian 20-high entry / 10-low exit,net6,2016-2026,n_days,2633
+Donchian 20-high entry / 10-low exit,net6,2016-2026,excess_mean_ann_vs_bh,-0.0728838
+Donchian 20-high entry / 10-low exit,net6,2016-2026,excess_nw_t_vs_bh,-1.39343
+TSMOM 12M sign (monthly),gross,full,cagr,0.0757861
+TSMOM 12M sign (monthly),gross,full,total_return,8.16452
+TSMOM 12M sign (monthly),gross,full,ann_vol,0.190837
+TSMOM 12M sign (monthly),gross,full,sharpe,0.4784
+TSMOM 12M sign (monthly),gross,full,max_dd,-0.387506
+TSMOM 12M sign (monthly),gross,full,time_in_market,0.580798
+TSMOM 12M sign (monthly),gross,full,switches_per_year,1.45092
+TSMOM 12M sign (monthly),gross,full,entries_per_year,0.758433
+TSMOM 12M sign (monthly),gross,full,n_days,7593
+TSMOM 12M sign (monthly),gross,full,excess_mean_ann_vs_bh,-0.0134309
+TSMOM 12M sign (monthly),gross,full,excess_nw_t_vs_bh,-0.398852
+TSMOM 12M sign (monthly),gross,1996-2005,cagr,0.104488
+TSMOM 12M sign (monthly),gross,1996-2005,total_return,1.58994
+TSMOM 12M sign (monthly),gross,1996-2005,ann_vol,0.220294
+TSMOM 12M sign (monthly),gross,1996-2005,sharpe,0.561464
+TSMOM 12M sign (monthly),gross,1996-2005,max_dd,-0.387506
+TSMOM 12M sign (monthly),gross,1996-2005,time_in_market,0.490117
+TSMOM 12M sign (monthly),gross,1996-2005,switches_per_year,0.835466
+TSMOM 12M sign (monthly),gross,1996-2005,entries_per_year,0.522166
+TSMOM 12M sign (monthly),gross,1996-2005,n_days,2479
+TSMOM 12M sign (monthly),gross,1996-2005,excess_mean_ann_vs_bh,0.0135613
+TSMOM 12M sign (monthly),gross,1996-2005,excess_nw_t_vs_bh,0.16053
+TSMOM 12M sign (monthly),gross,2006-2015,cagr,0.0244622
+TSMOM 12M sign (monthly),gross,2006-2015,total_return,0.273212
+TSMOM 12M sign (monthly),gross,2006-2015,ann_vol,0.150588
+TSMOM 12M sign (monthly),gross,2006-2015,sharpe,0.236036
+TSMOM 12M sign (monthly),gross,2006-2015,max_dd,-0.277426
+TSMOM 12M sign (monthly),gross,2006-2015,time_in_market,0.682386
+TSMOM 12M sign (monthly),gross,2006-2015,switches_per_year,1.80101
+TSMOM 12M sign (monthly),gross,2006-2015,entries_per_year,1.00056
+TSMOM 12M sign (monthly),gross,2006-2015,n_days,2481
+TSMOM 12M sign (monthly),gross,2006-2015,excess_mean_ann_vs_bh,-0.0228958
+TSMOM 12M sign (monthly),gross,2006-2015,excess_nw_t_vs_bh,-0.506736
+TSMOM 12M sign (monthly),gross,2016-2026,cagr,0.0998585
+TSMOM 12M sign (monthly),gross,2016-2026,total_return,1.7792
+TSMOM 12M sign (monthly),gross,2016-2026,ann_vol,0.196154
+TSMOM 12M sign (monthly),gross,2016-2026,sharpe,0.583436
+TSMOM 12M sign (monthly),gross,2016-2026,max_dd,-0.386055
+TSMOM 12M sign (monthly),gross,2016-2026,time_in_market,0.570452
+TSMOM 12M sign (monthly),gross,2016-2026,switches_per_year,1.67612
+TSMOM 12M sign (monthly),gross,2016-2026,entries_per_year,0.931178
+TSMOM 12M sign (monthly),gross,2016-2026,n_days,2633
+TSMOM 12M sign (monthly),gross,2016-2026,excess_mean_ann_vs_bh,-0.0287199
+TSMOM 12M sign (monthly),gross,2016-2026,excess_nw_t_vs_bh,-0.717769
+TSMOM 12M sign (monthly),net3,full,cagr,0.0753182
+TSMOM 12M sign (monthly),net3,full,total_return,8.0444
+TSMOM 12M sign (monthly),net3,full,ann_vol,0.190837
+TSMOM 12M sign (monthly),net3,full,sharpe,0.47612
+TSMOM 12M sign (monthly),net3,full,max_dd,-0.387872
+TSMOM 12M sign (monthly),net3,full,time_in_market,0.580798
+TSMOM 12M sign (monthly),net3,full,switches_per_year,1.45092
+TSMOM 12M sign (monthly),net3,full,entries_per_year,0.758433
+TSMOM 12M sign (monthly),net3,full,n_days,7593
+TSMOM 12M sign (monthly),net3,full,excess_mean_ann_vs_bh,-0.0138662
+TSMOM 12M sign (monthly),net3,full,excess_nw_t_vs_bh,-0.411741
+TSMOM 12M sign (monthly),net3,1996-2005,cagr,0.104213
+TSMOM 12M sign (monthly),net3,1996-2005,total_return,1.58376
+TSMOM 12M sign (monthly),net3,1996-2005,ann_vol,0.22029
+TSMOM 12M sign (monthly),net3,1996-2005,sharpe,0.560337
+TSMOM 12M sign (monthly),net3,1996-2005,max_dd,-0.387872
+TSMOM 12M sign (monthly),net3,1996-2005,time_in_market,0.490117
+TSMOM 12M sign (monthly),net3,1996-2005,switches_per_year,0.835466
+TSMOM 12M sign (monthly),net3,1996-2005,entries_per_year,0.522166
+TSMOM 12M sign (monthly),net3,1996-2005,n_days,2479
+TSMOM 12M sign (monthly),net3,1996-2005,excess_mean_ann_vs_bh,0.0133106
+TSMOM 12M sign (monthly),net3,1996-2005,excess_nw_t_vs_bh,0.157545
+TSMOM 12M sign (monthly),net3,2006-2015,cagr,0.0239094
+TSMOM 12M sign (monthly),net3,2006-2015,total_return,0.266362
+TSMOM 12M sign (monthly),net3,2006-2015,ann_vol,0.150585
+TSMOM 12M sign (monthly),net3,2006-2015,sharpe,0.232453
+TSMOM 12M sign (monthly),net3,2006-2015,max_dd,-0.279158
+TSMOM 12M sign (monthly),net3,2006-2015,time_in_market,0.682386
+TSMOM 12M sign (monthly),net3,2006-2015,switches_per_year,1.80101
+TSMOM 12M sign (monthly),net3,2006-2015,entries_per_year,1.00056
+TSMOM 12M sign (monthly),net3,2006-2015,n_days,2481
+TSMOM 12M sign (monthly),net3,2006-2015,excess_mean_ann_vs_bh,-0.0234363
+TSMOM 12M sign (monthly),net3,2006-2015,excess_nw_t_vs_bh,-0.518726
+TSMOM 12M sign (monthly),net3,2016-2026,cagr,0.0993047
+TSMOM 12M sign (monthly),net3,2016-2026,total_return,1.76421
+TSMOM 12M sign (monthly),net3,2016-2026,ann_vol,0.196159
+TSMOM 12M sign (monthly),net3,2016-2026,sharpe,0.580857
+TSMOM 12M sign (monthly),net3,2016-2026,max_dd,-0.386055
+TSMOM 12M sign (monthly),net3,2016-2026,time_in_market,0.570452
+TSMOM 12M sign (monthly),net3,2016-2026,switches_per_year,1.67612
+TSMOM 12M sign (monthly),net3,2016-2026,entries_per_year,0.931178
+TSMOM 12M sign (monthly),net3,2016-2026,n_days,2633
+TSMOM 12M sign (monthly),net3,2016-2026,excess_mean_ann_vs_bh,-0.0292229
+TSMOM 12M sign (monthly),net3,2016-2026,excess_nw_t_vs_bh,-0.730201
+TSMOM 12M sign (monthly),net6,full,cagr,0.0748503
+TSMOM 12M sign (monthly),net6,full,total_return,7.92582
+TSMOM 12M sign (monthly),net6,full,ann_vol,0.190837
+TSMOM 12M sign (monthly),net6,full,sharpe,0.473838
+TSMOM 12M sign (monthly),net6,full,max_dd,-0.388239
+TSMOM 12M sign (monthly),net6,full,time_in_market,0.580798
+TSMOM 12M sign (monthly),net6,full,switches_per_year,1.45092
+TSMOM 12M sign (monthly),net6,full,entries_per_year,0.758433
+TSMOM 12M sign (monthly),net6,full,n_days,7593
+TSMOM 12M sign (monthly),net6,full,excess_mean_ann_vs_bh,-0.0143015
+TSMOM 12M sign (monthly),net6,full,excess_nw_t_vs_bh,-0.424627
+TSMOM 12M sign (monthly),net6,1996-2005,cagr,0.103937
+TSMOM 12M sign (monthly),net6,1996-2005,total_return,1.57758
+TSMOM 12M sign (monthly),net6,1996-2005,ann_vol,0.220286
+TSMOM 12M sign (monthly),net6,1996-2005,sharpe,0.559209
+TSMOM 12M sign (monthly),net6,1996-2005,max_dd,-0.388239
+TSMOM 12M sign (monthly),net6,1996-2005,time_in_market,0.490117
+TSMOM 12M sign (monthly),net6,1996-2005,switches_per_year,0.835466
+TSMOM 12M sign (monthly),net6,1996-2005,entries_per_year,0.522166
+TSMOM 12M sign (monthly),net6,1996-2005,n_days,2479
+TSMOM 12M sign (monthly),net6,1996-2005,excess_mean_ann_vs_bh,0.0130598
+TSMOM 12M sign (monthly),net6,1996-2005,excess_nw_t_vs_bh,0.154561
+TSMOM 12M sign (monthly),net6,2006-2015,cagr,0.0233568
+TSMOM 12M sign (monthly),net6,2006-2015,total_return,0.259547
+TSMOM 12M sign (monthly),net6,2006-2015,ann_vol,0.150583
+TSMOM 12M sign (monthly),net6,2006-2015,sharpe,0.228869
+TSMOM 12M sign (monthly),net6,2006-2015,max_dd,-0.280887
+TSMOM 12M sign (monthly),net6,2006-2015,time_in_market,0.682386
+TSMOM 12M sign (monthly),net6,2006-2015,switches_per_year,1.80101
+TSMOM 12M sign (monthly),net6,2006-2015,entries_per_year,1.00056
+TSMOM 12M sign (monthly),net6,2006-2015,n_days,2481
+TSMOM 12M sign (monthly),net6,2006-2015,excess_mean_ann_vs_bh,-0.0239768
+TSMOM 12M sign (monthly),net6,2006-2015,excess_nw_t_vs_bh,-0.530713
+TSMOM 12M sign (monthly),net6,2016-2026,cagr,0.0987511
+TSMOM 12M sign (monthly),net6,2016-2026,total_return,1.74929
+TSMOM 12M sign (monthly),net6,2016-2026,ann_vol,0.196165
+TSMOM 12M sign (monthly),net6,2016-2026,sharpe,0.578277
+TSMOM 12M sign (monthly),net6,2016-2026,max_dd,-0.386055
+TSMOM 12M sign (monthly),net6,2016-2026,time_in_market,0.570452
+TSMOM 12M sign (monthly),net6,2016-2026,switches_per_year,1.67612
+TSMOM 12M sign (monthly),net6,2016-2026,entries_per_year,0.931178
+TSMOM 12M sign (monthly),net6,2016-2026,n_days,2633
+TSMOM 12M sign (monthly),net6,2016-2026,excess_mean_ann_vs_bh,-0.0297259
+TSMOM 12M sign (monthly),net6,2016-2026,excess_nw_t_vs_bh,-0.742622

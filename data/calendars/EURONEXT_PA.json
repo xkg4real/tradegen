@@ -1,0 +1,48 @@
+{
+ "market": "EURONEXT_PA",
+ "timezone": "Europe/Paris",
+ "source": {
+  "library": "exchange_calendars",
+  "version": "4.13.2",
+  "calendar": "XPAR",
+  "generated": "2026-08-18"
+ },
+ "covers": {
+  "from": "2026-01-01",
+  "to": "2027-12-31"
+ },
+ "regular": {
+  "open": "09:00",
+  "close": "17:30",
+  "break_start": null,
+  "break_end": null
+ },
+ "holidays": [
+  "2026-01-01",
+  "2026-04-03",
+  "2026-04-06",
+  "2026-05-01",
+  "2026-12-25",
+  "2027-01-01",
+  "2027-03-26",
+  "2027-03-29"
+ ],
+ "special_sessions": {
+  "2026-12-24": {
+   "open": "09:00",
+   "close": "14:05"
+  },
+  "2026-12-31": {
+   "open": "09:00",
+   "close": "14:05"
+  },
+  "2027-12-24": {
+   "open": "09:00",
+   "close": "14:05"
+  },
+  "2027-12-31": {
+   "open": "09:00",
+   "close": "14:05"
+  }
+ }
+}

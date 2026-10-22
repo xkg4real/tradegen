@@ -1,0 +1,167 @@
+{
+ "card_id": "S_V1_vix_rolldown",
+ "kind": "strategy",
+ "hypothesis": "Short the VIX ETP while VIX3M/VIX − 1 exceeds a contango threshold, hedged with a rolling SPY beta (reset only when it moves by 0.25), earns the roll-down with a smaller drawdown than the unhedged short (Simon–Campasano)",
+ "rules": {
+  "family": "vix_roll_down",
+  "grid": [
+   {
+    "threshold": 0.02,
+    "exit": 0.0
+   },
+   {
+    "threshold": 0.02,
+    "exit": 0.02
+   },
+   {
+    "threshold": 0.04,
+    "exit": 0.0
+   },
+   {
+    "threshold": 0.04,
+    "exit": 0.02
+   },
+   {
+    "threshold": 0.06,
+    "exit": 0.0
+   },
+   {
+    "threshold": 0.06,
+    "exit": 0.02
+   },
+   {
+    "threshold": 0.08,
+    "exit": 0.0
+   },
+   {
+    "threshold": 0.08,
+    "exit": 0.02
+   }
+  ],
+  "cost_bps_per_side": 5.0,
+  "embargo": 1
+ },
+ "universe": {
+  "symbols": [
+   "^VIX",
+   "^VIX3M",
+   "VIXY",
+   "SPY"
+  ],
+  "venue": "us (10 bp per side, futures-like)"
+ },
+ "data": {
+  "sessions": 3955,
+  "start": "2011-01-04",
+  "end": "2026-09-25",
+  "source": "Yahoo adjusted close unless stated"
+ },
+ "costs": {
+  "cost_bps": 5.0,
+  "stress_multiplier": 2.0
+ },
+ "protocol": {
+  "w_is": 756,
+  "w_oos": 126,
+  "min_is": 504,
+  "ci_level": 0.9,
+  "bootstrap_B": 2000,
+  "block": 10
+ },
+ "trials": {
+  "N_planned": 8,
+  "N_total": 8,
+  "ledger": []
+ },
+ "seed": 11,
+ "stats": {
+  "sr_oos": -0.14300187591805635,
+  "se_lo": 0.28076163491874256,
+  "ci90": [
+   -0.5783164164475892,
+   0.30292356920434726
+  ],
+  "sr_is": 0.08343606178105258,
+  "oos_is": -1.713909703616075,
+  "dsr": 0.27856258019684016,
+  "pbo": 0.9256410256410257,
+  "pbo_slope": -0.9818416235147854,
+  "prob_loss_oos": 0.6212898212898212,
+  "sr_stress": -0.22164630025185222,
+  "turnover_annual": 53.171533642517105,
+  "n_trades": 341,
+  "n_sessions": 3197,
+  "years_positive": 0.38461538461538464,
+  "n_years": 13,
+  "max_year_share": 0.2127802712049746,
+  "plateau": 0.0,
+  "edge": false,
+  "total_return": -0.740659102405856,
+  "max_drawdown": -0.8981241431123558,
+  "haircut_sr": -0.08580112555083381,
+  "bench_sr": 0.5429882345745253,
+  "n_trials": 8,
+  "n_configs": 8,
+  "bench_diff": -0.6859901104925816,
+  "bench_p": 0.988,
+  "bench_ci": [
+   -1.2266818299418045,
+   -0.2009755325954684
+  ],
+  "bench_mdd": -0.9180403376806164,
+  "decision": "REJECT",
+  "reason": "deflated Sharpe below 0.95",
+  "revise_target": "the sleeve set or the cost model, not the rule: the benchmark is as good",
+  "regime": {
+   "high_vol": 0.14085677414624082,
+   "low_vol": -0.4549863242133645,
+   "up_market": -0.27060261990578394,
+   "down_market": 0.17208785145115332
+  },
+  "chosen_last": {
+   "threshold": 0.06,
+   "exit": 0.02
+  },
+  "bench_sharpe": 0.5429882345745253,
+  "walk_forward": "IS 756 / OOS 126 / embargo 1; 26 origins; 8 configs",
+  "seconds": 4.3
+ },
+ "tests": {
+  "dsr": 0.27856258019684016,
+  "pbo": 0.9256410256410257,
+  "ci90": [
+   -0.5783164164475892,
+   0.30292356920434726
+  ],
+  "sr_stress": -0.22164630025185222
+ },
+ "decision": "REJECT",
+ "decision_reason": "deflated Sharpe below 0.95",
+ "revise_target": "the sleeve set or the cost model, not the rule: the benchmark is as good",
+ "lines": [
+  "Out-of-sample Sharpe -0.14 over 3,197 sessions (13 years); Lo standard error 0.28; 90 % block-bootstrap interval -0.58 to 0.30: fails (the interval must exclude zero).",
+  "Deflated Sharpe 0.28 after 8 trials: fails (needs ≥ 0.95).",
+  "Probability of backtest overfitting 0.93 over the 8-config grid; the in-sample winner loses out of sample in 62% of the splits: fails (PBO ≤ 0.05, or ≤ 10% losing splits because near-identical configurations put PBO at 0.5 by construction; rejected when PBO > 0.2 and the winner also loses).",
+  "Out-of-sample over in-sample Sharpe -1.71: fails (needs ≥ 0.5).",
+  "Against the benchmark (Sharpe 0.54): difference -0.69, paired block-bootstrap 90 % interval -1.23 to -0.20, one-sided p 0.99: fails (the claim 'beats the benchmark' needs p ≤ 0.1); max drawdown -90% against the benchmark's -92% (reported, not gated).",
+  "Positive in 38% of calendar years: fails (needs ≥ 60%); largest year carries 21% of the P&L.",
+  "Sharpe at 2× costs -0.22: fails (must stay positive); turnover 53.2× equity per year.",
+  "Parameter plateau 0% of neighbours keep half the Sharpe, not on a grid edge: fails.",
+  "341 position changes out of sample: passes (needs ≥ 100).",
+  "Regime split (Sharpe): high-vol 0.14 / low-vol -0.45, up -0.27 / down 0.17.",
+  "Expected live Sharpe after the McLean–Pontiff haircut: -0.09."
+ ],
+ "decay_haircut": {
+  "factor": 0.6,
+  "source": "McLean-Pontiff 2016 26-58%"
+ },
+ "created": "2026-09-27",
+ "author": "QUANTGEN validation gate",
+ "results_file": "docs/asset_expansion/results.csv",
+ "results_md5": "ca757e25f508b588cb2f361719ec83cd",
+ "citations": [
+  "Simon & Campasano 2014 J. Derivatives 21(3)",
+  "Eraker & Wu 2017 JFE 125",
+  "RN→FH §5.1 p. 11, §5.5 p. 13"
+ ]
+}

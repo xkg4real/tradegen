@@ -1,0 +1,338 @@
+{
+ "source": "research_notes/QUANTGEN v2 integration map/tf_goldens_amendments.md section C (status per its summary line)",
+ "r3": "QUANTGEN_techfund_research_bundle/QUANTGEN_techfund_research/research_notes/R3_TF_neural_link.md",
+ "governs": "Council v2.0 governs where the two differ (ruling 3.7)",
+ "caveat": "All lab numbers are in-sample computations on price returns without dividends, not runs of QUANTGEN's gate. Proposals pending owner confirmation; nothing here is an input to exposure (coordinator rulings 3.7-3.9).",
+ "items": [
+  {
+   "id": "XS-01",
+   "macro_target": "§2.2 KEEP Korea flow 3; R-15 flow prior",
+   "amendment": "Korea investor flow 3 → 1; log final investor-type flows with timestamps now (DATA-6); no direction rule; t-1 history before an open-leg test; foreigners sold KRW148.3tn net in H1-2026 while KOSPI rose about 101% (R3:1289)",
+   "type": "Supersession",
+   "status": "CONFLICT",
+   "status_text": "**CONFLICT (prior) / ADOPTED (rest).** SPEC:1718 \"flow takes §2.2's prior where one exists (Korea 3)\"; SPEC:698 \"Flow weight stays, but with no flow-conditioned multiplier\"; SPEC:6141-6143 DNB item 14 bans flow as a direction signal; SPEC:1412 investor flows logged \"C (log from day one; backlog BL-C06)\". Integer stays 3.",
+   "exposure": "None: in v2.0 the integer is an admissibility filter (SPEC:1717) and no flow sleeve exists. Ambiguity A-8.",
+   "owner_status": "proposal pending owner confirmation",
+   "acting": false,
+   "r3_lines": [
+    "1289"
+   ],
+   "brief_line": 275
+  },
+  {
+   "id": "XS-02",
+   "macro_target": "R-15 Korea ST reversal 3; §2.2 \"Korea keeps 1-5-day reversal\"",
+   "amendment": "3 → 0 for daily/weekly; monthly reversal only as a conditioning guard of weight 1 (FS-5); net-of-cost test fails (weekly L/S net-35 Sharpe -1.78, break-even 12.5 bp; 1-month VW ex-microcap -0.68%/month net 35); delete the 1-5-day sentence (R3:1290)",
+   "type": "Supersession",
+   "status": "CONFLICT",
+   "status_text": "**CONFLICT.** v2.0 moved the prior 3 → **1 (UNVERIFIED)** \"until BL-U02 runs net of 35 bp plus the 0.20% sell tax\" (SPEC:698, 1727); R-05 keeps the family at 1.0x with its own net-of-cost card pending (SPEC:1552). v2.0 treats the test as not yet run; TF treats it as run and failed (price returns, no tax: tax makes it worse). The \"1-5-day\" sentence is absent from v2.0 (grep: no hit).",
+   "exposure": "None: prior 1 vs 0 changes admissibility of a reversal family only if a Korea reversal sleeve is registered; none exists. Owner confirms 1 → 0.",
+   "owner_status": "proposal pending owner confirmation",
+   "acting": false,
+   "r3_lines": [
+    "1290"
+   ],
+   "brief_line": 276
+  },
+  {
+   "id": "XS-03",
+   "macro_target": "§2.2 volume-spike reversal \"KEEP as signal spec; UNTESTED\"",
+   "amendment": "DROP: volume-filtered weekly reversal -0.05 to +0.31%/week gross, -0.92 to -1.33%/week net 35; volume-spike buying -43 / -93 bp at t+5 / t+20 (R3:1291)",
+   "type": "Proposal",
+   "status": "OPEN",
+   "status_text": "**OPEN.** SPEC:701 still \"KEEP as signal spec; UNTESTED — Not evaluated by either panel\".",
+   "exposure": "None (never built). Conservative: do not build; record TF evidence in the backlog row.",
+   "owner_status": "proposal pending owner confirmation",
+   "acting": false,
+   "r3_lines": [
+    "1291"
+   ],
+   "brief_line": 277
+  },
+  {
+   "id": "XS-04",
+   "macro_target": "R-05 reversal and quality at 1.0x; reversal card must clear 35 bp and stay positive at 70 bp",
+   "amendment": "Record that reversal fails its own test; 1.0x stays for a future sleeve on a venue ≤ 5 bp (DC-E2-09); vol scaling hurts reversal (KR STR EW net -0.29 → -0.59) (R3:1292)",
+   "type": "Information",
+   "status": "OPEN",
+   "status_text": "**OPEN.** R-05 unchanged (SPEC:1548 \"Unchanged\"; SPEC:1552 requirement text intact, no failure recorded). Vol-scaling point consistent with SPEC:700.",
+   "exposure": "None.",
+   "owner_status": "proposal pending owner confirmation",
+   "acting": false,
+   "r3_lines": [
+    "1292"
+   ],
+   "brief_line": 278
+  },
+  {
+   "id": "XS-05",
+   "macro_target": "R-15 prior calibration; §7 YAML `prior_haircuts`; §13 N-60",
+   "amendment": "Replace per-factor Ilmanen haircuts with one per stage: planning 0.5 in sample, 0.3 post-publication, 0.75 drift-like, replaced by measured local decay where 20+ years exist (GOV-8); withdraw N-60 (R3:1293; CA-04)",
+   "type": "Correction",
+   "status": "CONFLICT",
+   "status_text": "**CONFLICT.** v2.0 retains them: SPEC:703, 1738 (\"value −49%, momentum −23% (not significant), carry ≈ −25%, defensive no decline, multifactor −18%\"), SPEC:4329 `prior_haircuts: {value: 0.49, momentum: 0.23, carry: 0.25, defensive: 0.0, multifactor: 0.18}`, SPEC:6440 \"priors use the factor-specific figures\" while conceding the ≈ 30% average.",
+   "exposure": "None in v2.0 (haircuts only shape 0-3 priors = admissibility/display). Owner decides; fail closed = keep v2.0 key, add TF stage haircuts as printed lines.",
+   "owner_status": "proposal pending owner confirmation",
+   "acting": false,
+   "r3_lines": [
+    "1293"
+   ],
+   "brief_line": 279
+  },
+  {
+   "id": "XS-06",
+   "macro_target": "R-07 evidence text \"55.5% of KOSPI (22% at end-2023)\"",
+   "amendment": "Dated, denominated values: 53.71% on 2026-09-29 and 29.29% on 2023-12-28 under CR-07; end-2023 alternatives 26.88% / 27.79%, not 22% (R3:1294)",
+   "type": "Correction",
+   "status": "CONFLICT",
+   "status_text": "**CONFLICT (text not corrected).** SPEC:1588 still carries \"55.5% of KOSPI market cap (22% at end-2023)\"; v2.0 adds its own dated anchors: \"On 2 Oct 2026 ≈ 51% (51.2% Sedaily anchor, 53.6% on the 25-Oct-2024 KRX-weight anchor; re-anchor monthly to an official KRX figure), ≈ 54% of KODEX 200 on look-through (53.8%)\" (SPEC:1588, 6310). 53.6% ≈ CR-07's 53.71%; \"22%\" is wrong under every definition.",
+   "exposure": "None (evidence text).",
+   "owner_status": "proposal pending owner confirmation",
+   "acting": false,
+   "r3_lines": [
+    "1294"
+   ],
+   "brief_line": 280
+  },
+  {
+   "id": "XS-07",
+   "macro_target": "R-07 pair-share denominator (undefined)",
+   "amendment": "CR-07: (005930 + 005935 + 000660) over all KOSPI lines; 53.71% on 2026-09-29; first > 0.45 on 2026-05-06 (0.4702); 99/181 sessions > 0.45; peak 59.69% on 2026-06-25; alternatives 50.82 / 52.59 / 53.96% (R3:1295; section 11.1)",
+   "type": "Proposal",
+   "status": "OPEN",
+   "status_text": "**OPEN.** v2.0 defines no KOSPI-share formula; `macro_state` carries `pair_share_kospi` and `pair_lookthrough_share` (SPEC:3595; example 0.51 / 0.538 SPEC:3683) and says \"re-anchor monthly to an official KRX figure\" (SPEC:1588). The acting caps use **look-through of the ETF basket** (SPEC:1585 (1)-(5)), and the 0.45 trigger is removed (\"without v1.2's 0.45 trigger\", SPEC:1585).",
+   "exposure": "None: under v2.0 the KOSPI pair share is a reported field. Conservative: compute `pair_share_kospi` per CR-07 (all four definitions printed) as display; never a trigger.",
+   "owner_status": "proposal pending owner confirmation",
+   "acting": false,
+   "r3_lines": [
+    "1295"
+   ],
+   "brief_line": 281
+  },
+  {
+   "id": "XS-08",
+   "macro_target": "R-07 ladder open points (cumulative steps; re-arm reference)",
+   "amendment": "Steps non-cumulative; total book NAV only; re-arm at 0.5 with the reference peak reset (never the all-time HWM); thresholds unchanged. Evidence KOSPI CW 2000-26 net 35: Sharpe 0.42 → 0.40, max DD -55.8% → -41.3%, 0.69 halts/yr; all-time-peak reference 22.8 halts/yr, Sharpe -1.65; per-sleeve ladder on VW WML 0.38 → 0.16 (R3:1296)",
+   "type": "Proposal",
+   "status": "ADOPTED",
+   "status_text": "**ADOPTED.** SPEC:92 \"non-cumulative steps … explicit re-arm, steps time-boxed at 21 sessions\"; SPEC:1586 hard stop −15% of book NAV from the HWM since the last re-arm, re-arm refused 10 sessions then automatic, references reset to NAV at re-arm, `post_rearm_cap = 0.5` in `min()` for 10 sessions; SPEC:1587 / 3316 `steps: [{dd: -0.08, mult: 0.5}, {dd: -0.12, mult: 0.5, evaluator_block_new_entries: true}]   # totals, non-cumulative`; SPEC:3277 \"Levels are in % of whole-book NAV\"; SPEC:4349-4351 `hard_stop: {level: -0.15, alt: \"-1.5*sigma_book\", reference: hwm_since_last_rearm, … rearm_refused_sessions: 10, … rearm_resets: [hwm_hard, ref_step], post_rearm_cap: 0.5, post_rearm_sessions: 10}`; SPEC:2671 sleeve NAV never the denominator. v2.0 goes further (21-session time-box, R-31 CARD-P).",
+   "exposure": "None beyond v2.0. Evidence sign differs between labs (Ambiguity A-2); v2.0's own fixture numbers govern (T-RLAYER-01, SPEC:2405).",
+   "owner_status": "proposal pending owner confirmation",
+   "acting": false,
+   "r3_lines": [
+    "1296"
+   ],
+   "brief_line": 282
+  },
+  {
+   "id": "XS-09",
+   "macro_target": "R-14 TS trend sleeve (CARD-O; 12-1 sign monthly; US weight 3)",
+   "amendment": "Add a CARD-P cell (single-index trend judged PC-1..PC-7 vs S; never CARD-O) and a speed cell (KOSPI 3 bp: 12-month sign PC-1 +4.7 pp INSUFFICIENT vs multi-speed +8.9 pp PASS); US single-index trend protective 0 at 50 bp (REJECT, PC-1 -10.7 pp), 1 at futures cost (BACKLOG) (R3:1297)",
+   "type": "Proposal",
+   "status": "PARTIAL",
+   "status_text": "**ADOPTED (CARD-P cell) / CONFLICT (KOSPI and weight).** CARD-P cell exists as **R-28** \"Trend-axis protective card (US and non-Korean sleeves): monthly SMA10m, 0.5× below trend, FORWARD-SIM · CARD-P\" (SPEC:2964-2975), claim \"protection only\" (SPEC:2970); R-14 stays CARD-O diversification (SPEC:1702). Speed cell: not adopted (SMA10m fixed). KOSPI: \"A KOSPI trend card that acts\" is DNB item 37 (SPEC:6224-6226); an R-28 instance with `market: KR` is refused by rules-store validation (SPEC:6248, T-DNB-01); KOSPI trend state CONTEXT-ONLY (SPEC:1705, 6259). US TS trend prior `3` kept (SPEC:699, 1724).",
+   "exposure": "TF FS-1 (KOSPI floored trend × VT20, FORWARD-SIM) cannot be an R-28 instance; if built it must be a separate FORWARD-SIM rule id and never reach the recommended book (both programmes agree it never acts).",
+   "owner_status": "proposal pending owner confirmation",
+   "acting": false,
+   "r3_lines": [
+    "1297"
+   ],
+   "brief_line": 283
+  },
+  {
+   "id": "XS-10",
+   "macro_target": "R-03 scope",
+   "amendment": "R-03 applies to every momentum sleeve in every market, KRX stock sleeves included, as a risk control, not a return claim; on KRX it lowered 2016-26 Sharpe (EW L/S -0.20 → -0.24; VW 0.32 → 0.23) (R3:1298)",
+   "type": "Clarification",
+   "status": "PARTIAL",
+   "status_text": "**ADOPTED (scope) / CONFLICT (claim type).** SPEC:1515 \"Size every cross-sectional momentum sleeve by its own risk\"; SPEC:1517 long-only sleeves: vs on the long-only active budget, computed on the paper unit-gross L/S series; formula SPEC:1518 `vs = min(1.0, 0.12 / σ126(t))`. But v2.0 R-03 is **CARD-O (indicative PASS on French data; step 3 borderline)** (SPEC:1510), i.e. an outperformance claim.",
+   "exposure": "None. KRX values (section 11.7) are the negative-control line for the KRX sleeve's own card.",
+   "owner_status": "proposal pending owner confirmation",
+   "acting": false,
+   "r3_lines": [
+    "1298"
+   ],
+   "brief_line": 284
+  },
+  {
+   "id": "XS-11",
+   "macro_target": "§8.5 blocks (macro cards) vs §8.1 step 2 (10-session blocks)",
+   "amendment": "max(10, Politis-White on d and d²) for steps 2 and 5 on every card; 10-session blocks gave false passes 8.0% at nominal 5% (step 2) and 13.7% at nominal 10% (step 5) (R3:1299)",
+   "type": "Tightening",
+   "status": "ADOPTED",
+   "status_text": "**ADOPTED, superseded by a stricter rule (formula CONFLICT).** R-24: steps 2, 5 and PC-3 use a Ledoit–Wolf studentized circular-block bootstrap with block = Politis–White on the influence function ψ of ΔSR, **floor 21** (SPEC:2564-2570, 4761); `block: {rule: politis_white_on_influence_function, floor_sessions: 21, pc3_also_block_10: true}` (SPEC:2598); \"v1.2 computed Politis–White on dₜ and dₜ². That rule is withdrawn\" (SPEC:4991). v1.2-check mode keeps `max(10, PW(d), PW(d²))` for reproduction only (SPEC:5987). Current code: `CODE:core/quant/validate.py:54` `\"block\": 10`, `:106-142` 10-session circular block bootstrap.",
+   "exposure": "None (governance). Build R-24's rule; keep the TF false-pass rates (GV-450..459) as a calibration fixture only.",
+   "owner_status": "proposal pending owner confirmation",
+   "acting": false,
+   "r3_lines": [
+    "1299"
+   ],
+   "brief_line": 285
+  },
+  {
+   "id": "XS-12",
+   "macro_target": "§8.7 CARD-P comparator (\"applies only to rules whose output never exceeds 1.0\")",
+   "amendment": "Add S_beta = beta_hat x market + (1 - beta_hat) x cash, beta_hat pre-registered, as the CARD-P comparator for stock-level sleeves (window: OQ-03) (R3:1300)",
+   "type": "Proposal",
+   "status": "OPEN",
+   "status_text": "**OPEN.** SPEC:5185 sentence present verbatim; comparator S defined only as x_S = m̄ · x_off (SPEC:2143, 5187); no `S_beta`/`beta_hat` anywhere in v2.0.",
+   "exposure": "None (no stock-level CARD-P exists in v2.0). Conservative: specify S_beta in the gate package only when a stock-level protective card is registered (GOV-11).",
+   "owner_status": "proposal pending owner confirmation",
+   "acting": false,
+   "r3_lines": [
+    "1300"
+   ],
+   "brief_line": 286
+  },
+  {
+   "id": "XS-13",
+   "macro_target": "§8.1 step-9 wording; context brief \"60% live haircut\"",
+   "amendment": "One wording: expected live Sharpe = 0.6 x OOS (\"take 40% off\"); fix harness prints using 0.4 x (R3:1301; CA-21)",
+   "type": "Correction",
+   "status": "ADOPTED",
+   "status_text": "**ADOPTED.** `live_sharpe_multiplier: 0.60` \"take 40% off\" (SPEC:476, 2579, 2608, 4596, 4768); `CODE:core/quant/validate.py:57` `\"haircut\": 0.6`. The 0.4× print is in the TF lab only (`r2_kr_excl_gate.csv` g9 columns).",
+   "exposure": "None.",
+   "owner_status": "proposal pending owner confirmation",
+   "acting": false,
+   "r3_lines": [
+    "1301"
+   ],
+   "brief_line": 287
+  },
+  {
+   "id": "XS-14",
+   "macro_target": "R-08 market stress gauges",
+   "amendment": "Do not count R-08 as factor-crash protection: VIX was 12.9-25.8 at 19 factor-crash onsets (R3:1302)",
+   "type": "Information",
+   "status": "ADOPTED",
+   "status_text": "**ADOPTED in effect.** R-08 demoted to CONVENTION, \"REJECT as a CARD-P\" (SPEC:1592), \"No book's weights change\" (SPEC:1601), PC-1/PC-2 fail 10 of 10 cells (SPEC:1603). The factor-crash statistic itself is not in v2.0.",
+   "exposure": "None.",
+   "owner_status": "proposal pending owner confirmation",
+   "acting": false,
+   "r3_lines": [
+    "1302"
+   ],
+   "brief_line": 288
+  },
+  {
+   "id": "XS-15",
+   "macro_target": "R-04 Daniel-Moskowitz gate scope",
+   "amendment": "Specification book only; no extension to earnings-momentum or revision sleeves; KOSPI 9 onsets 1996-2026, off on 2026-06-22 (R3:1303)",
+   "type": "Information",
+   "status": "ADOPTED",
+   "status_text": "**ADOPTED.** \"SPECIFICATION BOOK ONLY\" (SPEC:1528, 1534); recommended-book builder refuses it (I-03, SPEC:1542); DNB item 22 (SPEC:6165); \"Untested on KRX stock data\" (SPEC:1541). Extension to other sleeves not mentioned (conservative: none).",
+   "exposure": "None.",
+   "owner_status": "proposal pending owner confirmation",
+   "acting": false,
+   "r3_lines": [
+    "1303"
+   ],
+   "brief_line": 289
+  },
+  {
+   "id": "XS-16",
+   "macro_target": "R-15 US XS momentum \"2 if vol-scaled + D-M, else 1\"",
+   "amendment": "Final weight 1 (professors 1, executives 2, rule W3; no US stock sleeve at 50 bp; French WML Sharpe -0.16 in 2008..2017-03) (R3:1304)",
+   "type": "Conflict (OQ-06)",
+   "status": "CONFLICT",
+   "status_text": "**CONFLICT.** SPEC:694, 1724 keep \"2 if vol-scaled with the D&M gate, else 1\".",
+   "exposure": "None: 1 and 2 are both admissible (SPEC:1713); R-04 is spec-book only so the \"2\" condition cannot hold in the recommended book; base weight identical. Display integer only.",
+   "owner_status": "proposal pending owner confirmation",
+   "acting": false,
+   "r3_lines": [
+    "1304"
+   ],
+   "brief_line": 290
+  },
+  {
+   "id": "XS-17",
+   "macro_target": "R-15 crypto ST reversal 2",
+   "amendment": "2 → 0 (short-horizon crypto evidence is momentum) (R3:1305; CR-10)",
+   "type": "Supersession",
+   "status": "CONFLICT",
+   "status_text": "**CONFLICT.** SPEC:1732 Crypto ST reversal `2 (prior)`.",
+   "exposure": "Prior 2 keeps a crypto reversal family admissible (NOT_RUN stays admissible, SPEC:1718); no such sleeve exists (C3 is trend). Conservative: register none until the owner rules.",
+   "owner_status": "proposal pending owner confirmation",
+   "acting": false,
+   "r3_lines": [
+    "1305"
+   ],
+   "brief_line": 291
+  },
+  {
+   "id": "XS-18",
+   "macro_target": "R-15 Korea 12-7 / residual momentum 1 (UNVERIFIED)",
+   "amendment": "Replace with FS-2 constrained momentum (weight 1, FORWARD-SIM: Q5 12-1 or 12-7 excluding lottery/highest-turnover names, R-03, 5% cap, long-only); 12-7 L/S EW net-35 Sharpe 0.20 / -0.01 (2016-26); residual untested (R3:1306)",
+   "type": "Supersession",
+   "status": "OPEN",
+   "status_text": "**OPEN.** SPEC:697, 1727 \"12-1: 0; 12-7 / residual: 1 (UNVERIFIED)\"; no FS-2 or screen-constrained card in v2.0.",
+   "exposure": "None: FORWARD-SIM never reaches the recommended book in either programme.",
+   "owner_status": "proposal pending owner confirmation",
+   "acting": false,
+   "r3_lines": [
+    "1306"
+   ],
+   "brief_line": 292
+  },
+  {
+   "id": "XS-19",
+   "macro_target": "§10 DO-NOT-BUILD (items 1-26)",
+   "amendment": "Add DNB-TF-01..17 (R3 §6). Overlaps: DNB-TF-06 = item 14 (flow direction); DNB-TF-11 = item 26 (\"value timing presented as compliant\"); DNB-TF-14/15 extend item 11; clarify item 13: the aggregate issuance-timing ban does not cover the firm-level dilution screen SCR-2 (R3:1307)",
+   "type": "Proposal",
+   "status": "OPEN",
+   "status_text": "**OPEN, with one mis-mapping (CONFLICT).** v2.0 §10 has 37 items (SPEC:6072-6227), none from TF. Item 14 (SPEC:6141-6143) = flow direction: overlap correct. Item 11 split into 11a/11b/11c (SPEC:6118-6129). Item 13 (SPEC:6137) \"aggregate issuance or IPO-window multipliers, buyback-blackout multipliers, Korean issuance volume as sentiment\" — silent on firm-level SCR-2 (clarification still needed). **Item 26 (SPEC:6182) is \"Value-timing golden values presented as compliant\" = publication-lag (value-date) timing of H.10/H.15 series, NOT valuation timing (CAPE); DNB-TF-11 (valuation timing CONTEXT, CR-12) matches no v2.0 item.** Enforcement rows are per-item predicates (SPEC:6229-6252): DNB-TF entries need either a predicate row or the \"design prohibition\" class.",
+   "exposure": "None.",
+   "owner_status": "proposal pending owner confirmation",
+   "acting": false,
+   "r3_lines": [
+    "1307"
+   ],
+   "brief_line": 293
+  },
+  {
+   "id": "XS-20",
+   "macro_target": "R-06 Korea card evidence (indicative INSUFFICIENT DATA on the 2016-26 card)",
+   "amendment": "R2: PASS on 1996-09..2026-09 (PC-1 +6.5 pp, tail 0.70) and from every start 1996-2006; INSUFFICIENT from 2011/2016; 2016-26 goldens reproduce; owner declares the judged history (OQ-07) (R3:1308)",
+   "type": "Information",
+   "status": "ADOPTED",
+   "status_text": "**ADOPTED (v2.0 judges the long history).** R-06 KR \"BUILD-AS-INSURANCE (Korea, on a formal PASS)\" (SPEC:1554); definitive cell 1997-04-01 → 2026-10-02, KRX ETF 3 bp: ΔMDD +12.7 pp, tail ratio 0.68, p_ni 0.052, indicative PASS; 2016-26 INSUFFICIENT; 2016-25 REJECT (SPEC:1569); PASS requires (i) full span, (ii) ETF-era line from Oct-2002 listing to 2025-12, (iii) no REJECT at any of 32 monthly starts 1997-05..1999-12 with 3·n_pass ≥ 2·n_starts, (iv) no REJECT in either calendar-midpoint half (SPEC:1574); `gate.evaluation.history_start` 1997-04-01.",
+   "exposure": "None. Series differ (TF rebuilt KOSPI from 1996-09-02 vs ^KS11/official from 1997-04-01); TF PC-1 +6.5 pp vs Council ΔMDD +12.7 pp are not interchangeable goldens (Ambiguity A-1).",
+   "owner_status": "proposal pending owner confirmation",
+   "acting": false,
+   "r3_lines": [
+    "1308"
+   ],
+   "brief_line": 294
+  },
+  {
+   "id": "XS-21",
+   "macro_target": "R-15 0-3 normalisation into base_weight (open point)",
+   "amendment": "base_weight = w / 3 (3 = 1.0x; never above 1.0); one-sided (*) cells cannot feed any book until a card passes (R3:1309)",
+   "type": "Proposal",
+   "status": "CONFLICT",
+   "status_text": "**CONFLICT (superseded by v2.0's own rule).** `base_weight(m, f) = IV_m × 1/K_m` over admissible families (prior ≥ 1 and card not REJECT) (SPEC:95, 861, 1712-1715; T-PRIOR-01 SPEC:5648); the integers are \"admissibility filters and display scores only\" (SPEC:1717); \"A family whose card is NOT_RUN stays admissible\" (SPEC:1718) vs TF \"cannot feed any book until a card passes\"; tilts only after a PASS (SPEC:1719). Both bound every weight ≤ 1.0.",
+   "exposure": "None if v2.0's rule is built; the TF one-sided clause is stricter and can be honoured by giving one-sided (*) families prior 0 until their card passes (owner decision).",
+   "owner_status": "proposal pending owner confirmation",
+   "acting": false,
+   "r3_lines": [
+    "1309"
+   ],
+   "brief_line": 295
+  },
+  {
+   "id": "XS-22",
+   "macro_target": "R-07 caps: 0.05 single name vs 0.35 pair (open point)",
+   "amendment": "By book type: 0.05 single name in selection sleeves (VW legs capped at 5% of leg); 0.35 pair cap on look-through for market/ETF books when the pair share exceeds 0.45; semis ≤ 0.50. Pair cap on KOSPI CW cost -15.0 pp in the H1-2026 melt-up, saved +4.6 pp in the crash, -2.2 pp 2026 YTD (R3:1310)",
+   "type": "Proposal",
+   "status": "CONFLICT",
+   "status_text": "**CONFLICT (part ADOPTED).** v2.0 R-07 (SPEC:1585): (2) **active** single-name cap `w_i − g·b̃_i ≤ 0.05 of NAV` (an absolute 0.05 \"cannot be met at all\" on an ETF book, SPEC:1588); (3) default template **MSCI 25/50** (owner decision D1), alternative (c) \"a 35% pair cap (Samsung + SK hynix ≤ 35% of the Korea long book), **without v1.2's 0.45 trigger**\"; (5) semiconductor cap ≤ 0.50 of Korea sleeve NAV on look-through (ADOPTED); acceptance T-CAPS-01, I-04, I-04b (SPEC:1582). The 0.45 trigger \"was set inside the regime it targets\" (SPEC:1588).",
+   "exposure": "Changes exposure if applied (pair cap binds); keep v2.0 default (D1) and the active cap; TF's 0.35/0.45 variant only as alternative (c) on owner ruling.",
+   "owner_status": "proposal pending owner confirmation",
+   "acting": false,
+   "r3_lines": [
+    "1310"
+   ],
+   "brief_line": 296
+  }
+ ]
+}

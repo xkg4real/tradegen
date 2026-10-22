@@ -1,0 +1,188 @@
+{
+ "card_id": "S_E8_pairs_gld_iau",
+ "kind": "strategy",
+ "hypothesis": "IAU/GLD: the Engle–Granger spread mean-reverts fast enough to trade at 2σ after 50 bp per side (dollar-neutral)",
+ "rules": {
+  "family": "pairs",
+  "grid": [
+   {
+    "formation": 126,
+    "trading": 126,
+    "entry": 1.5,
+    "exit": 0.0,
+    "long_only": false
+   },
+   {
+    "formation": 126,
+    "trading": 126,
+    "entry": 2.0,
+    "exit": 0.0,
+    "long_only": false
+   },
+   {
+    "formation": 126,
+    "trading": 126,
+    "entry": 2.5,
+    "exit": 0.0,
+    "long_only": false
+   },
+   {
+    "formation": 126,
+    "trading": 126,
+    "entry": 3.0,
+    "exit": 0.0,
+    "long_only": false
+   },
+   {
+    "formation": 252,
+    "trading": 126,
+    "entry": 1.5,
+    "exit": 0.0,
+    "long_only": false
+   },
+   {
+    "formation": 252,
+    "trading": 126,
+    "entry": 2.0,
+    "exit": 0.0,
+    "long_only": false
+   },
+   {
+    "formation": 252,
+    "trading": 126,
+    "entry": 2.5,
+    "exit": 0.0,
+    "long_only": false
+   },
+   {
+    "formation": 252,
+    "trading": 126,
+    "entry": 3.0,
+    "exit": 0.0,
+    "long_only": false
+   }
+  ],
+  "cost_bps_per_side": 50.0,
+  "embargo": 5
+ },
+ "universe": {
+  "symbols": [
+   "IAU",
+   "GLD"
+  ],
+  "venue": "us"
+ },
+ "data": {
+  "sessions": 5364,
+  "start": "2005-06-01",
+  "end": "2026-09-25",
+  "source": "Yahoo adjusted close unless stated"
+ },
+ "costs": {
+  "cost_bps": 50.0,
+  "stress_multiplier": 2.0
+ },
+ "protocol": {
+  "w_is": 756,
+  "w_oos": 126,
+  "min_is": 504,
+  "ci_level": 0.9,
+  "bootstrap_B": 2000,
+  "block": 10
+ },
+ "trials": {
+  "N_planned": 8,
+  "N_total": 8,
+  "ledger": []
+ },
+ "seed": 11,
+ "stats": {
+  "sr_oos": -2.2809427825452753,
+  "se_lo": 0.23521068347583546,
+  "ci90": [
+   -2.5317351641056445,
+   -2.0312440566681587
+  ],
+  "sr_is": -2.2258618323180728,
+  "oos_is": 1.024745898162888,
+  "dsr": 5.821286819096434e-165,
+  "pbo": 0.0,
+  "pbo_slope": -0.9544776341539375,
+  "prob_loss_oos": 1.0,
+  "sr_stress": -2.403117340272463,
+  "turnover_annual": 5.968709256844851,
+  "n_trades": 109,
+  "n_sessions": 4602,
+  "years_positive": 0.0,
+  "n_years": 19,
+  "max_year_share": 0.22515705005835146,
+  "plateau": 0.0,
+  "edge": true,
+  "total_return": -0.39049954146349497,
+  "max_drawdown": -0.39055011327493283,
+  "haircut_sr": -1.368565669527165,
+  "bench_sr": NaN,
+  "n_trials": 8,
+  "n_configs": 8,
+  "bench_diff": NaN,
+  "bench_p": NaN,
+  "bench_ci": [
+   NaN,
+   NaN
+  ],
+  "bench_mdd": NaN,
+  "decision": "REJECT",
+  "reason": "deflated Sharpe below 0.95",
+  "revise_target": null,
+  "regime": {},
+  "chosen_last": {
+   "formation": 252,
+   "trading": 126,
+   "entry": 3.0,
+   "exit": 0.0,
+   "long_only": false
+  },
+  "bench_sharpe": NaN,
+  "walk_forward": "IS 756 / OOS 126 / embargo 5; 37 origins; 8 configs",
+  "seconds": 6.1,
+  "share_cointegrated": 0.7317073170731707,
+  "median_half_life": 0.5212521774848088
+ },
+ "tests": {
+  "dsr": 5.821286819096434e-165,
+  "pbo": 0.0,
+  "ci90": [
+   -2.5317351641056445,
+   -2.0312440566681587
+  ],
+  "sr_stress": -2.403117340272463
+ },
+ "decision": "REJECT",
+ "decision_reason": "deflated Sharpe below 0.95",
+ "revise_target": null,
+ "lines": [
+  "ADF rejects a unit root in 73% of the 41 formation windows; median half-life 1 sessions (gate: ≥ 60 % and 5–40 sessions).",
+  "Out-of-sample Sharpe -2.28 over 4,602 sessions (19 years); Lo standard error 0.24; 90 % block-bootstrap interval -2.53 to -2.03: fails (the interval must exclude zero).",
+  "Deflated Sharpe 0.00 after 8 trials: fails (needs ≥ 0.95).",
+  "Probability of backtest overfitting 0.00 over the 8-config grid; the in-sample winner loses out of sample in 100% of the splits: passes (PBO ≤ 0.05, or ≤ 10% losing splits because near-identical configurations put PBO at 0.5 by construction; rejected when PBO > 0.2 and the winner also loses).",
+  "Out-of-sample over in-sample Sharpe 1.02: passes (needs ≥ 0.5).",
+  "Positive in 0% of calendar years: fails (needs ≥ 60%); largest year carries 23% of the P&L.",
+  "Sharpe at 2× costs -2.40: fails (must stay positive); turnover 6.0× equity per year.",
+  "Parameter plateau 0% of neighbours keep half the Sharpe, on a grid edge: fails.",
+  "109 position changes out of sample: passes (needs ≥ 100).",
+  "Expected live Sharpe after the McLean–Pontiff haircut: -1.37."
+ ],
+ "decay_haircut": {
+  "factor": 0.6,
+  "source": "McLean-Pontiff 2016 26-58%"
+ },
+ "created": "2026-09-27",
+ "author": "QUANTGEN validation gate",
+ "results_file": "docs/asset_expansion/results.csv",
+ "results_md5": "ca757e25f508b588cb2f361719ec83cd",
+ "citations": [
+  "Gatev, Goetzmann & Rouwenhorst 2006 RFS 19",
+  "Do & Faff 2010 FAJ 66",
+  "MTSA §5.3.2 p. 170, §6.2.3 pp. 215–219, §6.3.2 pp. 228–238"
+ ]
+}

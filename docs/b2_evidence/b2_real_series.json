@@ -1,0 +1,319 @@
+{
+ "AAPL": {
+  "source": "FMP",
+  "n_obs": 503,
+  "first": "2024-09-20",
+  "last": "2026-09-24",
+  "alpha": 0.18348099677042465,
+  "beta": 0.6452333100812189,
+  "persistence": 0.8287143068516435,
+  "nu": 3.094317462219237,
+  "lr": 85.02721364260833,
+  "loglik": 1391.7689563807014,
+  "se": {
+   "omega": 5.147006019724738e-05,
+   "alpha": 0.10023867286614432,
+   "beta": 0.1846517867183887,
+   "eta": 0.05453093287936115,
+   "persistence": 0.13422055668468097
+  },
+  "se_note": "",
+  "alpha_iv": [
+   -0.012983193454995046,
+   0.37994518699584434
+  ],
+  "beta_iv": [
+   0.2833224555774989,
+   1.0071441645849388
+  ],
+  "pers_iv": [
+   0.5656468476897094,
+   1.0917817660135776
+  ],
+  "half_life": 3.6893117540805056,
+  "half_life_iv": [
+   1.216505818031108,
+   Infinity
+  ],
+  "nu_iv": [
+   2.5,
+   4.434229687741716
+  ],
+  "at_bound": [],
+  "interval_at_bound": [
+   "alpha",
+   "beta",
+   "persistence",
+   "nu"
+  ],
+  "converged": true,
+  "cond_vol": 0.2430500404181814,
+  "uncond_vol": 0.3314512475250755,
+  "horizon_vol": 0.3098614781781844,
+  "mc_ms": 515.1089999999385,
+  "note": "GARCH(1,1)-t on 503 sessions, mu fixed at +0.077%/day: alpha=0.183\u00b10.100 beta=0.645\u00b10.185 persistence=0.829\u00b10.134 nu=3.1 (2.5 to 4.4); 95% interval reaches a bound: alpha, beta, nu; persistence interval reaches 1.",
+  "bound_note": "t innovations are capped at \u00b122: this fit expects a larger day once per 118 years (P 0.2% within the horizon); the cap drops 4.61% of innovation variance, so the fan's vol over this horizon runs 4.4% below the fit's own forecast and VaR/CVaR exclude those days."
+ },
+ "MSFT": {
+  "source": "FMP",
+  "n_obs": 503,
+  "first": "2024-09-20",
+  "last": "2026-09-24",
+  "alpha": 0.11030827965503848,
+  "beta": 0.8439966389169453,
+  "persistence": 0.9543049185719839,
+  "nu": 3.164332276126282,
+  "lr": 149.59869343238688,
+  "loglik": 1393.7964456665638,
+  "se": {
+   "omega": 1.648377065104074e-05,
+   "alpha": 0.05588101285687913,
+   "beta": 0.07754610318297267,
+   "eta": 0.050412672380175945,
+   "persistence": 0.05369447363154091
+  },
+  "se_note": "",
+  "alpha_iv": [
+   0.0007835061720182224,
+   0.21983305313805873
+  ],
+  "beta_iv": [
+   0.6920090683380334,
+   0.9959842094958572
+  ],
+  "pers_iv": [
+   0.8490656832552144,
+   1.0595441538887533
+  ],
+  "half_life": 14.819691812542294,
+  "half_life_iv": [
+   4.236355945294896,
+   Infinity
+  ],
+  "nu_iv": [
+   2.583238993467107,
+   4.413867201185814
+  ],
+  "at_bound": [],
+  "interval_at_bound": [
+   "persistence"
+  ],
+  "converged": true,
+  "cond_vol": 0.24698352979837376,
+  "uncond_vol": 0.35447799544859154,
+  "horizon_vol": 0.3074942704653512,
+  "mc_ms": 563.2670000195503,
+  "note": "GARCH(1,1)-t on 503 sessions, mu fixed at +0.027%/day: alpha=0.110\u00b10.056 beta=0.844\u00b10.078 persistence=0.954\u00b10.054 nu=3.2 (2.6 to 4.4); persistence interval reaches 1.",
+  "bound_note": "t innovations are capped at \u00b122: this fit expects a larger day once per 133 years (P 0.2% within the horizon); the cap drops 3.91% of innovation variance, so the fan's vol over this horizon runs 4.8% below the fit's own forecast and VaR/CVaR exclude those days."
+ },
+ "NVDA": {
+  "source": "FMP",
+  "n_obs": 503,
+  "first": "2024-09-20",
+  "last": "2026-09-24",
+  "alpha": 0.055574646304733945,
+  "beta": 0.8891663893010379,
+  "persistence": 0.9447410356057718,
+  "nu": 6.408150566198273,
+  "lr": 39.466471000705496,
+  "loglik": 1131.668887710211,
+  "se": {
+   "omega": 4.495523318663303e-05,
+   "alpha": 0.040474204259628735,
+   "beta": 0.09709792049870682,
+   "eta": 0.039231810738850625,
+   "persistence": 0.06236232974516575
+  },
+  "se_note": "",
+  "alpha_iv": [
+   -0.023753336972785026,
+   0.1349026295822529
+  ],
+  "beta_iv": [
+   0.6988579606487104,
+   1.0794748179533653
+  ],
+  "pers_iv": [
+   0.8225131143491178,
+   1.0669689568624259
+  ],
+  "half_life": 12.193758230538757,
+  "half_life_iv": [
+   3.547490445756176,
+   Infinity
+  ],
+  "nu_iv": [
+   4.160241450364308,
+   11.216784356499737
+  ],
+  "at_bound": [],
+  "interval_at_bound": [
+   "alpha",
+   "beta",
+   "persistence"
+  ],
+  "converged": true,
+  "cond_vol": 0.37026923675157036,
+  "uncond_vol": 0.4196963768179001,
+  "horizon_vol": 0.40647811005133644,
+  "mc_ms": 487.77289999998175,
+  "note": "GARCH(1,1)-t on 503 sessions, mu fixed at +0.131%/day: alpha=0.056\u00b10.040 beta=0.889\u00b10.097 persistence=0.945\u00b10.062 nu=6.4 (4.2 to 11.2); 95% interval reaches a bound: alpha, beta; persistence interval reaches 1.",
+  "bound_note": "t innovations are capped at \u00b122: this fit expects a larger day once per 46,368 years (P 0.0% within the horizon); the cap drops 0.01% of innovation variance, so the fan's vol over this horizon runs 0.0% below the fit's own forecast and VaR/CVaR exclude those days."
+ },
+ "SPY": {
+  "source": "FMP",
+  "n_obs": 503,
+  "first": "2024-09-20",
+  "last": "2026-09-24",
+  "alpha": 0.11958664644964233,
+  "beta": 0.8036273503000458,
+  "persistence": 0.9232139967496882,
+  "nu": 4.230799574536211,
+  "lr": 59.46349256576514,
+  "loglik": 1694.5964498119745,
+  "se": {
+   "omega": 3.410468169028982e-06,
+   "alpha": 0.04258068545217338,
+   "beta": 0.0561897090097647,
+   "eta": 0.046154331601435825,
+   "persistence": 0.04362544662904571
+  },
+  "se_note": "",
+  "alpha_iv": [
+   0.03613003586805878,
+   0.2030432570312259
+  ],
+  "beta_iv": [
+   0.6934975434704314,
+   0.9137571571296603
+  ],
+  "pers_iv": [
+   0.8377096918728373,
+   1.008718301626539
+  ],
+  "half_life": 8.675811107567315,
+  "half_life_iv": [
+   3.9142354986454575,
+   Infinity
+  ],
+  "nu_iv": [
+   2.972990976486961,
+   6.460065535255301
+  ],
+  "at_bound": [],
+  "interval_at_bound": [
+   "persistence"
+  ],
+  "converged": true,
+  "cond_vol": 0.13098675921975655,
+  "uncond_vol": 0.1566620749467477,
+  "horizon_vol": 0.1511044456862022,
+  "mc_ms": 728.5643999930471,
+  "note": "GARCH(1,1)-t on 503 sessions, mu fixed at +0.060%/day: alpha=0.120\u00b10.043 beta=0.804\u00b10.056 persistence=0.923\u00b10.044 nu=4.2 (3.0 to 6.5); persistence interval reaches 1.",
+  "bound_note": "t innovations are capped at \u00b122: this fit expects a larger day once per 958 years (P 0.0% within the horizon); the cap drops 0.38% of innovation variance, so the fan's vol over this horizon runs 0.4% below the fit's own forecast and VaR/CVaR exclude those days."
+ },
+ "005930": {
+  "source": "KIS",
+  "n_obs": 503,
+  "first": "2024-08-27",
+  "last": "2026-09-23",
+  "alpha": 0.1049583193701083,
+  "beta": 0.8824064345374185,
+  "persistence": 0.9873647539075268,
+  "nu": 6.45157986992264,
+  "lr": 16.35131092546726,
+  "loglik": 1057.650065148155,
+  "se": {
+   "omega": 1.2875400715183792e-05,
+   "alpha": 0.036156470133712725,
+   "beta": 0.03950684438606327,
+   "eta": 0.04655871460228232,
+   "persistence": 0.01745216389441455
+  },
+  "se_note": "",
+  "alpha_iv": [
+   0.03409293954095617,
+   0.17582369919926044
+  ],
+  "beta_iv": [
+   0.8049744417871324,
+   0.9598384272877046
+  ],
+  "pers_iv": [
+   0.9531591409523744,
+   1.021570366862679
+  ],
+  "half_life": 54.51091751387909,
+  "half_life_iv": [
+   14.448573235840858,
+   Infinity
+  ],
+  "nu_iv": [
+   4.232088918783426,
+   13.798524488446512
+  ],
+  "at_bound": [],
+  "interval_at_bound": [
+   "persistence"
+  ],
+  "converged": true,
+  "cond_vol": 0.5228478955083365,
+  "uncond_vol": 0.6232371187670974,
+  "horizon_vol": 0.5556088735420357,
+  "mc_ms": 665.048900002148,
+  "note": "GARCH(1,1)-t on 503 sessions, mu fixed at +0.264%/day: alpha=0.105\u00b10.036 beta=0.882\u00b10.040 persistence=0.987\u00b10.017 nu=6.5 (4.2 to 13.8); persistence interval reaches 1.",
+  "bound_note": "t innovations are capped at \u00b122: this fit expects a larger day once per 49,928 years (P 0.0% within the horizon); the cap drops 0.01% of innovation variance, so the fan's vol over this horizon runs 0.0% below the fit's own forecast and VaR/CVaR exclude those days."
+ },
+ "000660": {
+  "source": "KIS",
+  "n_obs": 503,
+  "first": "2024-08-27",
+  "last": "2026-09-23",
+  "alpha": 0.08953673095711884,
+  "beta": 0.8866662566213374,
+  "persistence": 0.9762029875784561,
+  "nu": 8.33448812008523,
+  "lr": 8.221198037246495,
+  "loglik": 889.0512610795828,
+  "se": {
+   "omega": 2.8838679109771392e-05,
+   "alpha": 0.029062830777774624,
+   "beta": 0.035093769146795385,
+   "eta": 0.04749083928443883,
+   "persistence": 0.018482735064108236
+  },
+  "se_note": "",
+  "alpha_iv": [
+   0.03257462889458857,
+   0.1464988330196491
+  ],
+  "beta_iv": [
+   0.8178837324693077,
+   0.955448780773367
+  ],
+  "pers_iv": [
+   0.9399774922312663,
+   1.012428482925646
+  ],
+  "half_life": 28.779522680279335,
+  "half_life_iv": [
+   11.19797216018342,
+   Infinity
+  ],
+  "nu_iv": [
+   4.545049868675863,
+   28.686697319232824
+  ],
+  "at_bound": [],
+  "interval_at_bound": [
+   "persistence"
+  ],
+  "converged": true,
+  "cond_vol": 0.6190854726118937,
+  "uncond_vol": 0.723000072138685,
+  "horizon_vol": 0.6708965099019697,
+  "mc_ms": 652.1087999863084,
+  "note": "GARCH(1,1)-t on 503 sessions, mu fixed at +0.470%/day: alpha=0.090\u00b10.029 beta=0.887\u00b10.035 persistence=0.976\u00b10.018 nu=8.3 (4.5 to 28.7); persistence interval reaches 1.",
+  "bound_note": "t innovations are capped at \u00b122: this fit expects a larger day once per 1,093,531 years (P 0.0% within the horizon); the cap drops 0.00% of innovation variance, so the fan's vol over this horizon runs 0.0% below the fit's own forecast and VaR/CVaR exclude those days."
+ }
+}

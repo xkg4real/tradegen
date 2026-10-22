@@ -1,0 +1,30 @@
+{
+ "demo_fit_no_profile_ms": [
+  60,
+  61
+ ],
+ "demo_fit_with_profile_ms": [
+  149,
+  153
+ ],
+ "t6_500_fit_no_profile_ms": [
+  89,
+  96
+ ],
+ "t6_500_fit_with_profile_ms": [
+  239,
+  253
+ ],
+ "recovery_3000_fit_with_profile_ms": [
+  351,
+  351
+ ],
+ "mc_garch_t_5000x252_demo_ms": [
+  291,
+  365
+ ],
+ "mc_gbm_5000x252_demo_ms": [
+  135,
+  150
+ ]
+}

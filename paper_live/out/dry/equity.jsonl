@@ -1,0 +1,5 @@
+{"t": "2026-10-07 12:16:31+00:00", "account": "QG-TREND", "equity": 499.39914, "cash": 499.39914, "gross": 174.1511, "n_pos": 3, "costs": 0.60086, "halted": false, "decided": true}
+{"t": "2026-10-07 12:16:31+00:00", "account": "QG-TACTICAL", "equity": 500.0, "cash": 500.0, "gross": 0.0, "n_pos": 0, "costs": 0.0, "halted": false, "decided": true}
+{"t": "2026-10-07 12:16:31+00:00", "account": "QG-CORE", "equity": 499.75, "cash": 499.75, "gross": 500.0, "n_pos": 7, "costs": 0.25, "halted": false, "decided": true}
+{"t": "2026-10-07 12:16:31+00:00", "account": "LAZYOWEN-CAL", "equity": 500.0, "cash": 500.0, "gross": 0.0, "n_pos": 0, "costs": 0.0, "halted": false, "decided": true}
+{"t": "2026-10-07 12:16:31+00:00", "account": "LAZYOWEN-NAIVE", "equity": 499.865, "cash": 499.865, "gross": 150.0, "n_pos": 5, "costs": 0.135, "halted": false, "decided": true}

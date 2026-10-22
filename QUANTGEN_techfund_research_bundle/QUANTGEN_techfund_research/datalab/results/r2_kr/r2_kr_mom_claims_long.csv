@@ -1,0 +1,780 @@
+claim,variant,metric,value
+KJFS/P6-Eom,adjusted|broad|high-turnover W-L,n_periods,227
+KJFS/P6-Eom,adjusted|broad|high-turnover W-L,mean_monthly,0.0142727
+KJFS/P6-Eom,adjusted|broad|high-turnover W-L,ann_mean,0.171273
+KJFS/P6-Eom,adjusted|broad|high-turnover W-L,ann_vol,0.230618
+KJFS/P6-Eom,adjusted|broad|high-turnover W-L,sharpe,0.742671
+KJFS/P6-Eom,adjusted|broad|high-turnover W-L,nw_t,3.25557
+KJFS/P6-Eom,adjusted|broad|high-turnover W-L,total_return,14.2466
+KJFS/P6-Eom,adjusted|broad|high-turnover W-L,cagr,0.154906
+KJFS/P6-Eom,adjusted|broad|high-turnover W-L,max_dd,-0.473845
+KJFS/P6-Eom,adjusted|broad|high-turnover W-L,turnover_per_year,17.1633
+KJFS/P6-Eom,adjusted|broad|high-turnover W-L,hit_rate,0.603524
+KJFS/P6-Eom,adjusted|broad|high-turnover W-L,pct_pos_years,0.75
+KJFS/P6-Eom,adjusted|broad|high-turnover W-L,n_years,20
+KJFS/P6-Eom,adjusted|broad|high-turnover W-L,mean_pct_month,1.42727
+KJFS/P6-Eom,adjusted|broad|high-turnover W-L,winners_pct_month,0.512942
+KJFS/P6-Eom,adjusted|broad|high-turnover W-L,losers_pct_month,-0.914332
+KJFS/P6-Eom,adjusted|broad|high-turnover W-L,avg_names_W,84.2511
+KJFS/P6-Eom,adjusted|broad|high-turnover W-L,avg_names_L,83.4449
+KJFS/P6-Eom,adjusted|broad|low-turnover W-L,n_periods,227
+KJFS/P6-Eom,adjusted|broad|low-turnover W-L,mean_monthly,0.00434367
+KJFS/P6-Eom,adjusted|broad|low-turnover W-L,ann_mean,0.052124
+KJFS/P6-Eom,adjusted|broad|low-turnover W-L,ann_vol,0.146365
+KJFS/P6-Eom,adjusted|broad|low-turnover W-L,sharpe,0.356123
+KJFS/P6-Eom,adjusted|broad|low-turnover W-L,nw_t,1.48302
+KJFS/P6-Eom,adjusted|broad|low-turnover W-L,total_return,1.18241
+KJFS/P6-Eom,adjusted|broad|low-turnover W-L,cagr,0.042119
+KJFS/P6-Eom,adjusted|broad|low-turnover W-L,max_dd,-0.358377
+KJFS/P6-Eom,adjusted|broad|low-turnover W-L,turnover_per_year,15.1547
+KJFS/P6-Eom,adjusted|broad|low-turnover W-L,hit_rate,0.515419
+KJFS/P6-Eom,adjusted|broad|low-turnover W-L,pct_pos_years,0.65
+KJFS/P6-Eom,adjusted|broad|low-turnover W-L,n_years,20
+KJFS/P6-Eom,adjusted|broad|low-turnover W-L,mean_pct_month,0.434367
+KJFS/P6-Eom,adjusted|broad|low-turnover W-L,winners_pct_month,1.8729
+KJFS/P6-Eom,adjusted|broad|low-turnover W-L,losers_pct_month,1.43853
+KJFS/P6-Eom,adjusted|broad|low-turnover W-L,avg_names_W,84.0705
+KJFS/P6-Eom,adjusted|broad|low-turnover W-L,avg_names_L,83.2863
+KJFS/P6-Eom,adjusted|broad_cut|high-turnover W-L,n_periods,227
+KJFS/P6-Eom,adjusted|broad_cut|high-turnover W-L,mean_monthly,0.016622
+KJFS/P6-Eom,adjusted|broad_cut|high-turnover W-L,ann_mean,0.199464
+KJFS/P6-Eom,adjusted|broad_cut|high-turnover W-L,ann_vol,0.20471
+KJFS/P6-Eom,adjusted|broad_cut|high-turnover W-L,sharpe,0.974372
+KJFS/P6-Eom,adjusted|broad_cut|high-turnover W-L,nw_t,4.49855
+KJFS/P6-Eom,adjusted|broad_cut|high-turnover W-L,total_return,27.7188
+KJFS/P6-Eom,adjusted|broad_cut|high-turnover W-L,cagr,0.194218
+KJFS/P6-Eom,adjusted|broad_cut|high-turnover W-L,max_dd,-0.307254
+KJFS/P6-Eom,adjusted|broad_cut|high-turnover W-L,turnover_per_year,18.081
+KJFS/P6-Eom,adjusted|broad_cut|high-turnover W-L,hit_rate,0.599119
+KJFS/P6-Eom,adjusted|broad_cut|high-turnover W-L,pct_pos_years,0.85
+KJFS/P6-Eom,adjusted|broad_cut|high-turnover W-L,n_years,20
+KJFS/P6-Eom,adjusted|broad_cut|high-turnover W-L,mean_pct_month,1.6622
+KJFS/P6-Eom,adjusted|broad_cut|high-turnover W-L,winners_pct_month,0.232423
+KJFS/P6-Eom,adjusted|broad_cut|high-turnover W-L,losers_pct_month,-1.42978
+KJFS/P6-Eom,adjusted|broad_cut|high-turnover W-L,avg_names_W,67.5242
+KJFS/P6-Eom,adjusted|broad_cut|high-turnover W-L,avg_names_L,66.7093
+KJFS/P6-Eom,adjusted|broad_cut|low-turnover W-L,n_periods,227
+KJFS/P6-Eom,adjusted|broad_cut|low-turnover W-L,mean_monthly,0.00958616
+KJFS/P6-Eom,adjusted|broad_cut|low-turnover W-L,ann_mean,0.115034
+KJFS/P6-Eom,adjusted|broad_cut|low-turnover W-L,ann_vol,0.144698
+KJFS/P6-Eom,adjusted|broad_cut|low-turnover W-L,sharpe,0.794994
+KJFS/P6-Eom,adjusted|broad_cut|low-turnover W-L,nw_t,3.21293
+KJFS/P6-Eom,adjusted|broad_cut|low-turnover W-L,total_return,6.18557
+KJFS/P6-Eom,adjusted|broad_cut|low-turnover W-L,cagr,0.109879
+KJFS/P6-Eom,adjusted|broad_cut|low-turnover W-L,max_dd,-0.338572
+KJFS/P6-Eom,adjusted|broad_cut|low-turnover W-L,turnover_per_year,15.2201
+KJFS/P6-Eom,adjusted|broad_cut|low-turnover W-L,hit_rate,0.585903
+KJFS/P6-Eom,adjusted|broad_cut|low-turnover W-L,pct_pos_years,0.75
+KJFS/P6-Eom,adjusted|broad_cut|low-turnover W-L,n_years,20
+KJFS/P6-Eom,adjusted|broad_cut|low-turnover W-L,mean_pct_month,0.958616
+KJFS/P6-Eom,adjusted|broad_cut|low-turnover W-L,winners_pct_month,1.71805
+KJFS/P6-Eom,adjusted|broad_cut|low-turnover W-L,losers_pct_month,0.759431
+KJFS/P6-Eom,adjusted|broad_cut|low-turnover W-L,avg_names_W,67.2907
+KJFS/P6-Eom,adjusted|broad_cut|low-turnover W-L,avg_names_L,66.5374
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad|high-turnover W-L,n_periods,227
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad|high-turnover W-L,mean_monthly,0.0182568
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad|high-turnover W-L,ann_mean,0.219081
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad|high-turnover W-L,ann_vol,0.219414
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad|high-turnover W-L,sharpe,0.998485
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad|high-turnover W-L,nw_t,4.50166
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad|high-turnover W-L,total_return,38.2332
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad|high-turnover W-L,cagr,0.214076
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad|high-turnover W-L,max_dd,-0.354734
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad|high-turnover W-L,turnover_per_year,16.8779
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad|high-turnover W-L,hit_rate,0.625551
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad|high-turnover W-L,pct_pos_years,0.9
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad|high-turnover W-L,n_years,20
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad|high-turnover W-L,mean_pct_month,1.82568
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad|high-turnover W-L,winners_pct_month,0.649032
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad|high-turnover W-L,losers_pct_month,-1.17665
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad|low-turnover W-L,n_periods,227
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad|low-turnover W-L,mean_monthly,0.00410696
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad|low-turnover W-L,ann_mean,0.0492835
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad|low-turnover W-L,ann_vol,0.135503
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad|low-turnover W-L,sharpe,0.363707
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad|low-turnover W-L,nw_t,1.56094
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad|low-turnover W-L,total_return,1.13556
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad|low-turnover W-L,cagr,0.0409242
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad|low-turnover W-L,max_dd,-0.362272
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad|low-turnover W-L,turnover_per_year,14.9768
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad|low-turnover W-L,hit_rate,0.546256
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad|low-turnover W-L,pct_pos_years,0.6
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad|low-turnover W-L,n_years,20
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad|low-turnover W-L,mean_pct_month,0.410696
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad|low-turnover W-L,winners_pct_month,1.88715
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad|low-turnover W-L,losers_pct_month,1.47646
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad_cut|high-turnover W-L,n_periods,227
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad_cut|high-turnover W-L,mean_monthly,0.0181749
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad_cut|high-turnover W-L,ann_mean,0.218099
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad_cut|high-turnover W-L,ann_vol,0.195845
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad_cut|high-turnover W-L,sharpe,1.11363
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad_cut|high-turnover W-L,nw_t,5.08615
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad_cut|high-turnover W-L,total_return,41.0404
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad_cut|high-turnover W-L,cagr,0.21852
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad_cut|high-turnover W-L,max_dd,-0.274006
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad_cut|high-turnover W-L,turnover_per_year,17.7094
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad_cut|high-turnover W-L,hit_rate,0.638767
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad_cut|high-turnover W-L,pct_pos_years,0.95
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad_cut|high-turnover W-L,n_years,20
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad_cut|high-turnover W-L,mean_pct_month,1.81749
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad_cut|high-turnover W-L,winners_pct_month,0.300791
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad_cut|high-turnover W-L,losers_pct_month,-1.5167
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad_cut|low-turnover W-L,n_periods,227
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad_cut|low-turnover W-L,mean_monthly,0.00896779
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad_cut|low-turnover W-L,ann_mean,0.107613
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad_cut|low-turnover W-L,ann_vol,0.134629
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad_cut|low-turnover W-L,sharpe,0.799333
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad_cut|low-turnover W-L,nw_t,3.30389
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad_cut|low-turnover W-L,total_return,5.42349
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad_cut|low-turnover W-L,cagr,0.10332
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad_cut|low-turnover W-L,max_dd,-0.349905
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad_cut|low-turnover W-L,turnover_per_year,15.0791
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad_cut|low-turnover W-L,hit_rate,0.577093
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad_cut|low-turnover W-L,pct_pos_years,0.75
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad_cut|low-turnover W-L,n_years,20
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad_cut|low-turnover W-L,mean_pct_month,0.896779
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad_cut|low-turnover W-L,winners_pct_month,1.71005
+KJFS/P6-Eom,unadjusted signal + adjusted holding returns|broad_cut|low-turnover W-L,losers_pct_month,0.813272
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad|high-turnover W-L,n_periods,227
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad|high-turnover W-L,mean_monthly,-0.110072
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad|high-turnover W-L,ann_mean,-1.32086
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad|high-turnover W-L,ann_vol,0.773566
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad|high-turnover W-L,sharpe,-1.7075
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad|high-turnover W-L,nw_t,-5.53307
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad|high-turnover W-L,total_return,-1
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad|high-turnover W-L,cagr,-0.821777
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad|high-turnover W-L,max_dd,-1.00112
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad|high-turnover W-L,turnover_per_year,18.1282
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad|high-turnover W-L,hit_rate,0.30837
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad|high-turnover W-L,pct_pos_years,0
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad|high-turnover W-L,n_years,20
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad|high-turnover W-L,mean_pct_month,-11.0072
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad|high-turnover W-L,winners_pct_month,0.453578
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad|high-turnover W-L,losers_pct_month,11.4608
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad|low-turnover W-L,n_periods,227
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad|low-turnover W-L,mean_monthly,0.000724311
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad|low-turnover W-L,ann_mean,0.00869173
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad|low-turnover W-L,ann_vol,0.154132
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad|low-turnover W-L,sharpe,0.0563915
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad|low-turnover W-L,nw_t,0.239885
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad|low-turnover W-L,total_return,-0.0593465
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad|low-turnover W-L,cagr,-0.00322898
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad|low-turnover W-L,max_dd,-0.452345
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad|low-turnover W-L,turnover_per_year,15.1966
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad|low-turnover W-L,hit_rate,0.475771
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad|low-turnover W-L,pct_pos_years,0.4
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad|low-turnover W-L,n_years,20
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad|low-turnover W-L,mean_pct_month,0.0724311
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad|low-turnover W-L,winners_pct_month,1.57264
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad|low-turnover W-L,losers_pct_month,1.50021
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad|high-turnover W-L,n_periods,227
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad|high-turnover W-L,mean_monthly,-0.113722
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad|high-turnover W-L,ann_mean,-1.36466
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad|high-turnover W-L,ann_vol,0.785139
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad|high-turnover W-L,sharpe,-1.73812
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad|high-turnover W-L,nw_t,-5.42322
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad|high-turnover W-L,total_return,-1
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad|high-turnover W-L,cagr,-1
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad|high-turnover W-L,max_dd,-1.00003
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad|high-turnover W-L,turnover_per_year,18.0309
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad|high-turnover W-L,hit_rate,0.299559
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad|high-turnover W-L,pct_pos_years,0.1
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad|high-turnover W-L,n_years,20
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad|high-turnover W-L,mean_pct_month,-11.3722
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad|high-turnover W-L,winners_pct_month,0.991701
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad|high-turnover W-L,losers_pct_month,12.3639
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad|low-turnover W-L,n_periods,227
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad|low-turnover W-L,mean_monthly,0.000758071
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad|low-turnover W-L,ann_mean,0.00909685
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad|low-turnover W-L,ann_vol,0.155742
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad|low-turnover W-L,sharpe,0.0584097
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad|low-turnover W-L,nw_t,0.246177
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad|low-turnover W-L,total_return,-0.0536852
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad|low-turnover W-L,cagr,-0.00291275
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad|low-turnover W-L,max_dd,-0.518092
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad|low-turnover W-L,turnover_per_year,15.0095
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad|low-turnover W-L,hit_rate,0.471366
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad|low-turnover W-L,pct_pos_years,0.4
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad|low-turnover W-L,n_years,20
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad|low-turnover W-L,mean_pct_month,0.0758071
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad|low-turnover W-L,winners_pct_month,1.60951
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad|low-turnover W-L,losers_pct_month,1.5337
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad_cut|high-turnover W-L,n_periods,227
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad_cut|high-turnover W-L,mean_monthly,-0.00577083
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad_cut|high-turnover W-L,ann_mean,-0.0692499
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad_cut|high-turnover W-L,ann_vol,0.327935
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad_cut|high-turnover W-L,sharpe,-0.211169
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad_cut|high-turnover W-L,nw_t,-1.02232
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad_cut|high-turnover W-L,total_return,-0.935445
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad_cut|high-turnover W-L,cagr,-0.134855
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad_cut|high-turnover W-L,max_dd,-1.0712
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad_cut|high-turnover W-L,turnover_per_year,18.3142
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad_cut|high-turnover W-L,hit_rate,0.511013
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad_cut|high-turnover W-L,pct_pos_years,0.4
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad_cut|high-turnover W-L,n_years,20
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad_cut|high-turnover W-L,mean_pct_month,-0.577083
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad_cut|high-turnover W-L,winners_pct_month,0.151123
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad_cut|high-turnover W-L,losers_pct_month,0.728205
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad_cut|low-turnover W-L,n_periods,227
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad_cut|low-turnover W-L,mean_monthly,0.00555389
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad_cut|low-turnover W-L,ann_mean,0.0666467
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad_cut|low-turnover W-L,ann_vol,0.153163
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad_cut|low-turnover W-L,sharpe,0.435136
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad_cut|low-turnover W-L,nw_t,1.75218
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad_cut|low-turnover W-L,total_return,1.82381
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad_cut|low-turnover W-L,cagr,0.0564105
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad_cut|low-turnover W-L,max_dd,-0.345911
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad_cut|low-turnover W-L,turnover_per_year,15.2359
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad_cut|low-turnover W-L,hit_rate,0.524229
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad_cut|low-turnover W-L,pct_pos_years,0.6
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad_cut|low-turnover W-L,n_years,20
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad_cut|low-turnover W-L,mean_pct_month,0.555389
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad_cut|low-turnover W-L,winners_pct_month,1.23089
+KJFS/P6-Eom,adjusted signal + unadjusted holding returns|broad_cut|low-turnover W-L,losers_pct_month,0.675499
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad_cut|high-turnover W-L,n_periods,227
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad_cut|high-turnover W-L,mean_monthly,-0.00525294
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad_cut|high-turnover W-L,ann_mean,-0.0630352
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad_cut|high-turnover W-L,ann_vol,0.345277
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad_cut|high-turnover W-L,sharpe,-0.182564
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad_cut|high-turnover W-L,nw_t,-0.858606
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad_cut|high-turnover W-L,total_return,-0.946547
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad_cut|high-turnover W-L,cagr,-0.143443
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad_cut|high-turnover W-L,max_dd,-1.04432
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad_cut|high-turnover W-L,turnover_per_year,17.9411
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad_cut|high-turnover W-L,hit_rate,0.54185
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad_cut|high-turnover W-L,pct_pos_years,0.55
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad_cut|high-turnover W-L,n_years,20
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad_cut|high-turnover W-L,mean_pct_month,-0.525294
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad_cut|high-turnover W-L,winners_pct_month,0.240431
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad_cut|high-turnover W-L,losers_pct_month,0.765725
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad_cut|low-turnover W-L,n_periods,227
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad_cut|low-turnover W-L,mean_monthly,0.00528788
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad_cut|low-turnover W-L,ann_mean,0.0634546
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad_cut|low-turnover W-L,ann_vol,0.141878
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad_cut|low-turnover W-L,sharpe,0.447248
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad_cut|low-turnover W-L,nw_t,1.85236
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad_cut|low-turnover W-L,total_return,1.74607
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad_cut|low-turnover W-L,cagr,0.0548527
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad_cut|low-turnover W-L,max_dd,-0.386045
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad_cut|low-turnover W-L,turnover_per_year,15.083
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad_cut|low-turnover W-L,hit_rate,0.519824
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad_cut|low-turnover W-L,pct_pos_years,0.65
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad_cut|low-turnover W-L,n_years,20
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad_cut|low-turnover W-L,mean_pct_month,0.528788
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad_cut|low-turnover W-L,winners_pct_month,1.25081
+KJFS/P6-Eom,unadjusted signal + unadjusted holding returns|broad_cut|low-turnover W-L,losers_pct_month,0.722019
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad|high-turnover W-L,n_periods,227
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad|high-turnover W-L,mean_monthly,-0.113325
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad|high-turnover W-L,ann_mean,-1.3599
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad|high-turnover W-L,ann_vol,0.783834
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad|high-turnover W-L,sharpe,-1.73493
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad|high-turnover W-L,nw_t,-5.40434
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad|high-turnover W-L,total_return,-1
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad|high-turnover W-L,cagr,-1
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad|high-turnover W-L,max_dd,-1.00002
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad|high-turnover W-L,turnover_per_year,18.0287
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad|high-turnover W-L,hit_rate,0.299559
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad|high-turnover W-L,pct_pos_years,0.1
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad|high-turnover W-L,n_years,20
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad|high-turnover W-L,mean_pct_month,-11.3325
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad|high-turnover W-L,winners_pct_month,0.991736
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad|high-turnover W-L,losers_pct_month,12.3242
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad|low-turnover W-L,n_periods,227
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad|low-turnover W-L,mean_monthly,0.00074164
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad|low-turnover W-L,ann_mean,0.00889968
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad|low-turnover W-L,ann_vol,0.155731
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad|low-turnover W-L,sharpe,0.0571477
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad|low-turnover W-L,nw_t,0.240733
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad|low-turnover W-L,total_return,-0.0571557
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad|low-turnover W-L,cagr,-0.00310639
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad|low-turnover W-L,max_dd,-0.519895
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad|low-turnover W-L,turnover_per_year,15.0096
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad|low-turnover W-L,hit_rate,0.471366
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad|low-turnover W-L,pct_pos_years,0.4
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad|low-turnover W-L,n_years,20
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad|low-turnover W-L,mean_pct_month,0.074164
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad|low-turnover W-L,winners_pct_month,1.60946
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad|low-turnover W-L,losers_pct_month,1.5353
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad_cut|high-turnover W-L,n_periods,227
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad_cut|high-turnover W-L,mean_monthly,-0.00470973
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad_cut|high-turnover W-L,ann_mean,-0.0565167
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad_cut|high-turnover W-L,ann_vol,0.344157
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad_cut|high-turnover W-L,sharpe,-0.164218
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad_cut|high-turnover W-L,nw_t,-0.772355
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad_cut|high-turnover W-L,total_return,-0.939006
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad_cut|high-turnover W-L,cagr,-0.137447
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad_cut|high-turnover W-L,max_dd,-0.976763
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad_cut|high-turnover W-L,turnover_per_year,17.941
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad_cut|high-turnover W-L,hit_rate,0.546256
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad_cut|high-turnover W-L,pct_pos_years,0.6
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad_cut|high-turnover W-L,n_years,20
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad_cut|high-turnover W-L,mean_pct_month,-0.470973
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad_cut|high-turnover W-L,winners_pct_month,0.240496
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad_cut|high-turnover W-L,losers_pct_month,0.711469
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad_cut|low-turnover W-L,n_periods,227
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad_cut|low-turnover W-L,mean_monthly,0.00526226
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad_cut|low-turnover W-L,ann_mean,0.0631472
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad_cut|low-turnover W-L,ann_vol,0.141965
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad_cut|low-turnover W-L,sharpe,0.444809
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad_cut|low-turnover W-L,nw_t,1.84629
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad_cut|low-turnover W-L,total_return,1.72957
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad_cut|low-turnover W-L,cagr,0.0545167
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad_cut|low-turnover W-L,max_dd,-0.38599
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad_cut|low-turnover W-L,turnover_per_year,15.0832
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad_cut|low-turnover W-L,hit_rate,0.519824
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad_cut|low-turnover W-L,pct_pos_years,0.65
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad_cut|low-turnover W-L,n_years,20
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad_cut|low-turnover W-L,mean_pct_month,0.526226
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad_cut|low-turnover W-L,winners_pct_month,1.25073
+KJFS/P6-Eom,unadjusted signal + cleaned returns except unadjusted corporate-action days|broad_cut|low-turnover W-L,losers_pct_month,0.724507
+KJFS/P6-Eom anatomy,all panel stock-days,share_of_days_that_are_KRX_adjustment_days,0.000881184
+KJFS/P6-Eom anatomy,"top-40 single-name contributions (losers, all caps, high turnover; cleaned returns except unadjusted corporate-action days)",share_on_KRX_adjustment_days,1
+KJFS/P6-Eom anatomy,"top-40 single-name contributions (losers, all caps, high turnover; cleaned returns except unadjusted corporate-action days)",share_positions_carried_not_members,0.675
+P6-deciles,MOM_12_1|EW|D10-D1|gross,n_periods,308
+P6-deciles,MOM_12_1|EW|D10-D1|gross,mean_monthly,0.00891823
+P6-deciles,MOM_12_1|EW|D10-D1|gross,ann_mean,0.107019
+P6-deciles,MOM_12_1|EW|D10-D1|gross,ann_vol,0.196365
+P6-deciles,MOM_12_1|EW|D10-D1|gross,sharpe,0.544999
+P6-deciles,MOM_12_1|EW|D10-D1|gross,nw_t,2.74945
+P6-deciles,MOM_12_1|EW|D10-D1|gross,total_return,8.45993
+P6-deciles,MOM_12_1|EW|D10-D1|gross,cagr,0.0914946
+P6-deciles,MOM_12_1|EW|D10-D1|gross,max_dd,-0.598086
+P6-deciles,MOM_12_1|EW|D10-D1|gross,turnover_per_year,16.8668
+P6-deciles,MOM_12_1|EW|D10-D1|gross,hit_rate,0.571429
+P6-deciles,MOM_12_1|EW|D10-D1|gross,pct_pos_years,0.576923
+P6-deciles,MOM_12_1|EW|D10-D1|gross,n_years,26
+P6-deciles,MOM_12_1|EW|D10-D1|gross,mean_pct_month,0.891823
+P6-deciles,MOM_12_1|EW|D10-D1|net35,n_periods,308
+P6-deciles,MOM_12_1|EW|D10-D1|net35,mean_monthly,0.00399873
+P6-deciles,MOM_12_1|EW|D10-D1|net35,ann_mean,0.0479848
+P6-deciles,MOM_12_1|EW|D10-D1|net35,ann_vol,0.19638
+P6-deciles,MOM_12_1|EW|D10-D1|net35,sharpe,0.244347
+P6-deciles,MOM_12_1|EW|D10-D1|net35,nw_t,1.23206
+P6-deciles,MOM_12_1|EW|D10-D1|net35,total_return,1.08884
+P6-deciles,MOM_12_1|EW|D10-D1|net35,cagr,0.0291148
+P6-deciles,MOM_12_1|EW|D10-D1|net35,max_dd,-0.74252
+P6-deciles,MOM_12_1|EW|D10-D1|net35,turnover_per_year,16.8668
+P6-deciles,MOM_12_1|EW|D10-D1|net35,hit_rate,0.538961
+P6-deciles,MOM_12_1|EW|D10-D1|net35,pct_pos_years,0.461538
+P6-deciles,MOM_12_1|EW|D10-D1|net35,n_years,26
+P6-deciles,MOM_12_1|EW|D10-D1|net35,mean_pct_month,0.399873
+P6-deciles,MOM_12_1|EW|D10-D1|net70,n_periods,308
+P6-deciles,MOM_12_1|EW|D10-D1|net70,mean_monthly,-0.00092076
+P6-deciles,MOM_12_1|EW|D10-D1|net70,ann_mean,-0.0110491
+P6-deciles,MOM_12_1|EW|D10-D1|net70,ann_vol,0.196415
+P6-deciles,MOM_12_1|EW|D10-D1|net70,sharpe,-0.056254
+P6-deciles,MOM_12_1|EW|D10-D1|net70,nw_t,-0.283458
+P6-deciles,MOM_12_1|EW|D10-D1|net70,total_return,-0.542245
+P6-deciles,MOM_12_1|EW|D10-D1|net70,cagr,-0.0299862
+P6-deciles,MOM_12_1|EW|D10-D1|net70,max_dd,-0.878797
+P6-deciles,MOM_12_1|EW|D10-D1|net70,turnover_per_year,16.8668
+P6-deciles,MOM_12_1|EW|D10-D1|net70,hit_rate,0.503247
+P6-deciles,MOM_12_1|EW|D10-D1|net70,pct_pos_years,0.461538
+P6-deciles,MOM_12_1|EW|D10-D1|net70,n_years,26
+P6-deciles,MOM_12_1|EW|D10-D1|net70,mean_pct_month,-0.092076
+P6-deciles,MOM_12_1|VW|D10-D1|gross,n_periods,308
+P6-deciles,MOM_12_1|VW|D10-D1|gross,mean_monthly,0.0179977
+P6-deciles,MOM_12_1|VW|D10-D1|gross,ann_mean,0.215973
+P6-deciles,MOM_12_1|VW|D10-D1|gross,ann_vol,0.330836
+P6-deciles,MOM_12_1|VW|D10-D1|gross,sharpe,0.65281
+P6-deciles,MOM_12_1|VW|D10-D1|gross,nw_t,2.91814
+P6-deciles,MOM_12_1|VW|D10-D1|gross,total_return,63.9486
+P6-deciles,MOM_12_1|VW|D10-D1|gross,cagr,0.176575
+P6-deciles,MOM_12_1|VW|D10-D1|gross,max_dd,-0.743139
+P6-deciles,MOM_12_1|VW|D10-D1|gross,turnover_per_year,17.7681
+P6-deciles,MOM_12_1|VW|D10-D1|gross,hit_rate,0.568182
+P6-deciles,MOM_12_1|VW|D10-D1|gross,pct_pos_years,0.653846
+P6-deciles,MOM_12_1|VW|D10-D1|gross,n_years,26
+P6-deciles,MOM_12_1|VW|D10-D1|gross,mean_pct_month,1.79977
+P6-deciles,MOM_12_1|VW|D10-D1|net35,n_periods,308
+P6-deciles,MOM_12_1|VW|D10-D1|net35,mean_monthly,0.0128154
+P6-deciles,MOM_12_1|VW|D10-D1|net35,ann_mean,0.153785
+P6-deciles,MOM_12_1|VW|D10-D1|net35,ann_vol,0.331403
+P6-deciles,MOM_12_1|VW|D10-D1|net35,sharpe,0.46404
+P6-deciles,MOM_12_1|VW|D10-D1|net35,nw_t,2.06192
+P6-deciles,MOM_12_1|VW|D10-D1|net35,total_return,12.2517
+P6-deciles,MOM_12_1|VW|D10-D1|net35,cagr,0.105923
+P6-deciles,MOM_12_1|VW|D10-D1|net35,max_dd,-0.826943
+P6-deciles,MOM_12_1|VW|D10-D1|net35,turnover_per_year,17.7681
+P6-deciles,MOM_12_1|VW|D10-D1|net35,hit_rate,0.555195
+P6-deciles,MOM_12_1|VW|D10-D1|net35,pct_pos_years,0.576923
+P6-deciles,MOM_12_1|VW|D10-D1|net35,n_years,26
+P6-deciles,MOM_12_1|VW|D10-D1|net35,mean_pct_month,1.28154
+P6-deciles,MOM_12_1|VW|D10-D1|net70,n_periods,308
+P6-deciles,MOM_12_1|VW|D10-D1|net70,mean_monthly,0.00763301
+P6-deciles,MOM_12_1|VW|D10-D1|net70,ann_mean,0.0915962
+P6-deciles,MOM_12_1|VW|D10-D1|net70,ann_vol,0.332071
+P6-deciles,MOM_12_1|VW|D10-D1|net70,sharpe,0.275833
+P6-deciles,MOM_12_1|VW|D10-D1|net70,nw_t,1.21821
+P6-deciles,MOM_12_1|VW|D10-D1|net70,total_return,1.67899
+P6-deciles,MOM_12_1|VW|D10-D1|net70,cagr,0.0391403
+P6-deciles,MOM_12_1|VW|D10-D1|net70,max_dd,-0.937094
+P6-deciles,MOM_12_1|VW|D10-D1|net70,turnover_per_year,17.7681
+P6-deciles,MOM_12_1|VW|D10-D1|net70,hit_rate,0.525974
+P6-deciles,MOM_12_1|VW|D10-D1|net70,pct_pos_years,0.576923
+P6-deciles,MOM_12_1|VW|D10-D1|net70,n_years,26
+P6-deciles,MOM_12_1|VW|D10-D1|net70,mean_pct_month,0.763301
+P6-deciles,MOM_12_7|EW|D10-D1|gross,n_periods,308
+P6-deciles,MOM_12_7|EW|D10-D1|gross,mean_monthly,0.0140361
+P6-deciles,MOM_12_7|EW|D10-D1|gross,ann_mean,0.168434
+P6-deciles,MOM_12_7|EW|D10-D1|gross,ann_vol,0.158804
+P6-deciles,MOM_12_7|EW|D10-D1|gross,sharpe,1.06064
+P6-deciles,MOM_12_7|EW|D10-D1|gross,nw_t,5.10133
+P6-deciles,MOM_12_7|EW|D10-D1|gross,total_return,52.3089
+P6-deciles,MOM_12_7|EW|D10-D1|gross,cagr,0.167556
+P6-deciles,MOM_12_7|EW|D10-D1|gross,max_dd,-0.355838
+P6-deciles,MOM_12_7|EW|D10-D1|gross,turnover_per_year,20.8377
+P6-deciles,MOM_12_7|EW|D10-D1|gross,hit_rate,0.63961
+P6-deciles,MOM_12_7|EW|D10-D1|gross,pct_pos_years,0.846154
+P6-deciles,MOM_12_7|EW|D10-D1|gross,n_years,26
+P6-deciles,MOM_12_7|EW|D10-D1|gross,mean_pct_month,1.40361
+P6-deciles,MOM_12_7|EW|D10-D1|net35,n_periods,308
+P6-deciles,MOM_12_7|EW|D10-D1|net35,mean_monthly,0.00795848
+P6-deciles,MOM_12_7|EW|D10-D1|net35,ann_mean,0.0955017
+P6-deciles,MOM_12_7|EW|D10-D1|net35,ann_vol,0.158722
+P6-deciles,MOM_12_7|EW|D10-D1|net35,sharpe,0.60169
+P6-deciles,MOM_12_7|EW|D10-D1|net35,nw_t,2.89334
+P6-deciles,MOM_12_7|EW|D10-D1|net35,total_return,7.33902
+P6-deciles,MOM_12_7|EW|D10-D1|net35,cagr,0.0861445
+P6-deciles,MOM_12_7|EW|D10-D1|net35,max_dd,-0.564745
+P6-deciles,MOM_12_7|EW|D10-D1|net35,turnover_per_year,20.8377
+P6-deciles,MOM_12_7|EW|D10-D1|net35,hit_rate,0.600649
+P6-deciles,MOM_12_7|EW|D10-D1|net35,pct_pos_years,0.653846
+P6-deciles,MOM_12_7|EW|D10-D1|net35,n_years,26
+P6-deciles,MOM_12_7|EW|D10-D1|net35,mean_pct_month,0.795848
+P6-deciles,MOM_12_7|EW|D10-D1|net70,n_periods,308
+P6-deciles,MOM_12_7|EW|D10-D1|net70,mean_monthly,0.00188083
+P6-deciles,MOM_12_7|EW|D10-D1|net70,ann_mean,0.0225699
+P6-deciles,MOM_12_7|EW|D10-D1|net70,ann_vol,0.158671
+P6-deciles,MOM_12_7|EW|D10-D1|net70,sharpe,0.142243
+P6-deciles,MOM_12_7|EW|D10-D1|net70,nw_t,0.683777
+P6-deciles,MOM_12_7|EW|D10-D1|net70,total_return,0.289691
+P6-deciles,MOM_12_7|EW|D10-D1|net70,cagr,0.00996107
+P6-deciles,MOM_12_7|EW|D10-D1|net70,max_dd,-0.764259
+P6-deciles,MOM_12_7|EW|D10-D1|net70,turnover_per_year,20.8377
+P6-deciles,MOM_12_7|EW|D10-D1|net70,hit_rate,0.529221
+P6-deciles,MOM_12_7|EW|D10-D1|net70,pct_pos_years,0.5
+P6-deciles,MOM_12_7|EW|D10-D1|net70,n_years,26
+P6-deciles,MOM_12_7|EW|D10-D1|net70,mean_pct_month,0.188083
+P6-deciles,MOM_12_7|VW|D10-D1|gross,n_periods,308
+P6-deciles,MOM_12_7|VW|D10-D1|gross,mean_monthly,0.015406
+P6-deciles,MOM_12_7|VW|D10-D1|gross,ann_mean,0.184873
+P6-deciles,MOM_12_7|VW|D10-D1|gross,ann_vol,0.296295
+P6-deciles,MOM_12_7|VW|D10-D1|gross,sharpe,0.623948
+P6-deciles,MOM_12_7|VW|D10-D1|gross,nw_t,2.92998
+P6-deciles,MOM_12_7|VW|D10-D1|gross,total_return,37.5168
+P6-deciles,MOM_12_7|VW|D10-D1|gross,cagr,0.152865
+P6-deciles,MOM_12_7|VW|D10-D1|gross,max_dd,-0.645073
+P6-deciles,MOM_12_7|VW|D10-D1|gross,turnover_per_year,23.9286
+P6-deciles,MOM_12_7|VW|D10-D1|gross,hit_rate,0.603896
+P6-deciles,MOM_12_7|VW|D10-D1|gross,pct_pos_years,0.692308
+P6-deciles,MOM_12_7|VW|D10-D1|gross,n_years,26
+P6-deciles,MOM_12_7|VW|D10-D1|gross,mean_pct_month,1.5406
+P6-deciles,MOM_12_7|VW|D10-D1|net35,n_periods,308
+P6-deciles,MOM_12_7|VW|D10-D1|net35,mean_monthly,0.00842687
+P6-deciles,MOM_12_7|VW|D10-D1|net35,ann_mean,0.101122
+P6-deciles,MOM_12_7|VW|D10-D1|net35,ann_vol,0.296508
+P6-deciles,MOM_12_7|VW|D10-D1|net35,sharpe,0.341045
+P6-deciles,MOM_12_7|VW|D10-D1|net35,nw_t,1.59602
+P6-deciles,MOM_12_7|VW|D10-D1|net35,total_return,3.52953
+P6-deciles,MOM_12_7|VW|D10-D1|net35,cagr,0.0606217
+P6-deciles,MOM_12_7|VW|D10-D1|net35,max_dd,-0.829575
+P6-deciles,MOM_12_7|VW|D10-D1|net35,turnover_per_year,23.9286
+P6-deciles,MOM_12_7|VW|D10-D1|net35,hit_rate,0.555195
+P6-deciles,MOM_12_7|VW|D10-D1|net35,pct_pos_years,0.5
+P6-deciles,MOM_12_7|VW|D10-D1|net35,n_years,26
+P6-deciles,MOM_12_7|VW|D10-D1|net35,mean_pct_month,0.842687
+P6-deciles,MOM_12_7|VW|D10-D1|net70,n_periods,308
+P6-deciles,MOM_12_7|VW|D10-D1|net70,mean_monthly,0.00144769
+P6-deciles,MOM_12_7|VW|D10-D1|net70,ann_mean,0.0173723
+P6-deciles,MOM_12_7|VW|D10-D1|net70,ann_vol,0.296828
+P6-deciles,MOM_12_7|VW|D10-D1|net70,sharpe,0.0585263
+P6-deciles,MOM_12_7|VW|D10-D1|net70,nw_t,0.272944
+P6-deciles,MOM_12_7|VW|D10-D1|net70,total_return,-0.475754
+P6-deciles,MOM_12_7|VW|D10-D1|net70,cagr,-0.0248469
+P6-deciles,MOM_12_7|VW|D10-D1|net70,max_dd,-0.958078
+P6-deciles,MOM_12_7|VW|D10-D1|net70,turnover_per_year,23.9286
+P6-deciles,MOM_12_7|VW|D10-D1|net70,hit_rate,0.496753
+P6-deciles,MOM_12_7|VW|D10-D1|net70,pct_pos_years,0.384615
+P6-deciles,MOM_12_7|VW|D10-D1|net70,n_years,26
+P6-deciles,MOM_12_7|VW|D10-D1|net70,mean_pct_month,0.144769
+Round-1,MOM_12_1 Q5-Q1 in low TURN_1M tercile (dependent)|gross,n_periods,366
+Round-1,MOM_12_1 Q5-Q1 in low TURN_1M tercile (dependent)|gross,mean_monthly,0.00706194
+Round-1,MOM_12_1 Q5-Q1 in low TURN_1M tercile (dependent)|gross,ann_mean,0.0847433
+Round-1,MOM_12_1 Q5-Q1 in low TURN_1M tercile (dependent)|gross,ann_vol,0.186532
+Round-1,MOM_12_1 Q5-Q1 in low TURN_1M tercile (dependent)|gross,sharpe,0.45431
+Round-1,MOM_12_1 Q5-Q1 in low TURN_1M tercile (dependent)|gross,nw_t,2.28201
+Round-1,MOM_12_1 Q5-Q1 in low TURN_1M tercile (dependent)|gross,total_return,6.6404
+Round-1,MOM_12_1 Q5-Q1 in low TURN_1M tercile (dependent)|gross,cagr,0.0689432
+Round-1,MOM_12_1 Q5-Q1 in low TURN_1M tercile (dependent)|gross,max_dd,-0.650322
+Round-1,MOM_12_1 Q5-Q1 in low TURN_1M tercile (dependent)|gross,turnover_per_year,21.5907
+Round-1,MOM_12_1 Q5-Q1 in low TURN_1M tercile (dependent)|gross,hit_rate,0.587432
+Round-1,MOM_12_1 Q5-Q1 in low TURN_1M tercile (dependent)|gross,pct_pos_years,0.677419
+Round-1,MOM_12_1 Q5-Q1 in low TURN_1M tercile (dependent)|gross,n_years,31
+Round-1,MOM_12_1 Q5-Q1 in low TURN_1M tercile (dependent)|gross,mean_pct_month,0.706194
+Round-1,MOM_12_1 Q5-Q1 in low TURN_1M tercile (dependent)|net35,n_periods,366
+Round-1,MOM_12_1 Q5-Q1 in low TURN_1M tercile (dependent)|net35,mean_monthly,0.000764647
+Round-1,MOM_12_1 Q5-Q1 in low TURN_1M tercile (dependent)|net35,ann_mean,0.00917576
+Round-1,MOM_12_1 Q5-Q1 in low TURN_1M tercile (dependent)|net35,ann_vol,0.186561
+Round-1,MOM_12_1 Q5-Q1 in low TURN_1M tercile (dependent)|net35,sharpe,0.0491837
+Round-1,MOM_12_1 Q5-Q1 in low TURN_1M tercile (dependent)|net35,nw_t,0.246187
+Round-1,MOM_12_1 Q5-Q1 in low TURN_1M tercile (dependent)|net35,total_return,-0.236379
+Round-1,MOM_12_1 Q5-Q1 in low TURN_1M tercile (dependent)|net35,cagr,-0.00880312
+Round-1,MOM_12_1 Q5-Q1 in low TURN_1M tercile (dependent)|net35,max_dd,-0.705077
+Round-1,MOM_12_1 Q5-Q1 in low TURN_1M tercile (dependent)|net35,turnover_per_year,21.5907
+Round-1,MOM_12_1 Q5-Q1 in low TURN_1M tercile (dependent)|net35,hit_rate,0.527322
+Round-1,MOM_12_1 Q5-Q1 in low TURN_1M tercile (dependent)|net35,pct_pos_years,0.516129
+Round-1,MOM_12_1 Q5-Q1 in low TURN_1M tercile (dependent)|net35,n_years,31
+Round-1,MOM_12_1 Q5-Q1 in low TURN_1M tercile (dependent)|net35,mean_pct_month,0.0764647
+Round-1,MOM_12_1 Q5-Q1 in mid TURN_1M tercile (dependent)|gross,n_periods,366
+Round-1,MOM_12_1 Q5-Q1 in mid TURN_1M tercile (dependent)|gross,mean_monthly,0.00890281
+Round-1,MOM_12_1 Q5-Q1 in mid TURN_1M tercile (dependent)|gross,ann_mean,0.106834
+Round-1,MOM_12_1 Q5-Q1 in mid TURN_1M tercile (dependent)|gross,ann_vol,0.207684
+Round-1,MOM_12_1 Q5-Q1 in mid TURN_1M tercile (dependent)|gross,sharpe,0.514404
+Round-1,MOM_12_1 Q5-Q1 in mid TURN_1M tercile (dependent)|gross,nw_t,3.24757
+Round-1,MOM_12_1 Q5-Q1 in mid TURN_1M tercile (dependent)|gross,total_return,12.3127
+Round-1,MOM_12_1 Q5-Q1 in mid TURN_1M tercile (dependent)|gross,cagr,0.088582
+Round-1,MOM_12_1 Q5-Q1 in mid TURN_1M tercile (dependent)|gross,max_dd,-0.600008
+Round-1,MOM_12_1 Q5-Q1 in mid TURN_1M tercile (dependent)|gross,turnover_per_year,27.024
+Round-1,MOM_12_1 Q5-Q1 in mid TURN_1M tercile (dependent)|gross,hit_rate,0.579235
+Round-1,MOM_12_1 Q5-Q1 in mid TURN_1M tercile (dependent)|gross,pct_pos_years,0.709677
+Round-1,MOM_12_1 Q5-Q1 in mid TURN_1M tercile (dependent)|gross,n_years,31
+Round-1,MOM_12_1 Q5-Q1 in mid TURN_1M tercile (dependent)|gross,mean_pct_month,0.890281
+Round-1,MOM_12_1 Q5-Q1 in mid TURN_1M tercile (dependent)|net35,n_periods,366
+Round-1,MOM_12_1 Q5-Q1 in mid TURN_1M tercile (dependent)|net35,mean_monthly,0.00102082
+Round-1,MOM_12_1 Q5-Q1 in mid TURN_1M tercile (dependent)|net35,ann_mean,0.0122498
+Round-1,MOM_12_1 Q5-Q1 in mid TURN_1M tercile (dependent)|net35,ann_vol,0.207711
+Round-1,MOM_12_1 Q5-Q1 in mid TURN_1M tercile (dependent)|net35,sharpe,0.0589753
+Round-1,MOM_12_1 Q5-Q1 in mid TURN_1M tercile (dependent)|net35,nw_t,0.370397
+Round-1,MOM_12_1 Q5-Q1 in mid TURN_1M tercile (dependent)|net35,total_return,-0.253953
+Round-1,MOM_12_1 Q5-Q1 in mid TURN_1M tercile (dependent)|net35,cagr,-0.00955949
+Round-1,MOM_12_1 Q5-Q1 in mid TURN_1M tercile (dependent)|net35,max_dd,-0.716642
+Round-1,MOM_12_1 Q5-Q1 in mid TURN_1M tercile (dependent)|net35,turnover_per_year,27.024
+Round-1,MOM_12_1 Q5-Q1 in mid TURN_1M tercile (dependent)|net35,hit_rate,0.530055
+Round-1,MOM_12_1 Q5-Q1 in mid TURN_1M tercile (dependent)|net35,pct_pos_years,0.451613
+Round-1,MOM_12_1 Q5-Q1 in mid TURN_1M tercile (dependent)|net35,n_years,31
+Round-1,MOM_12_1 Q5-Q1 in mid TURN_1M tercile (dependent)|net35,mean_pct_month,0.102082
+Round-1,MOM_12_1 Q5-Q1 in high TURN_1M tercile (dependent)|gross,n_periods,366
+Round-1,MOM_12_1 Q5-Q1 in high TURN_1M tercile (dependent)|gross,mean_monthly,0.0143671
+Round-1,MOM_12_1 Q5-Q1 in high TURN_1M tercile (dependent)|gross,ann_mean,0.172405
+Round-1,MOM_12_1 Q5-Q1 in high TURN_1M tercile (dependent)|gross,ann_vol,0.28356
+Round-1,MOM_12_1 Q5-Q1 in high TURN_1M tercile (dependent)|gross,sharpe,0.608002
+Round-1,MOM_12_1 Q5-Q1 in high TURN_1M tercile (dependent)|gross,nw_t,3.41451
+Round-1,MOM_12_1 Q5-Q1 in high TURN_1M tercile (dependent)|gross,total_return,56.4765
+Round-1,MOM_12_1 Q5-Q1 in high TURN_1M tercile (dependent)|gross,cagr,0.142058
+Round-1,MOM_12_1 Q5-Q1 in high TURN_1M tercile (dependent)|gross,max_dd,-0.633753
+Round-1,MOM_12_1 Q5-Q1 in high TURN_1M tercile (dependent)|gross,turnover_per_year,23.0031
+Round-1,MOM_12_1 Q5-Q1 in high TURN_1M tercile (dependent)|gross,hit_rate,0.598361
+Round-1,MOM_12_1 Q5-Q1 in high TURN_1M tercile (dependent)|gross,pct_pos_years,0.741935
+Round-1,MOM_12_1 Q5-Q1 in high TURN_1M tercile (dependent)|gross,n_years,31
+Round-1,MOM_12_1 Q5-Q1 in high TURN_1M tercile (dependent)|gross,mean_pct_month,1.43671
+Round-1,MOM_12_1 Q5-Q1 in high TURN_1M tercile (dependent)|net35,n_periods,366
+Round-1,MOM_12_1 Q5-Q1 in high TURN_1M tercile (dependent)|net35,mean_monthly,0.00765784
+Round-1,MOM_12_1 Q5-Q1 in high TURN_1M tercile (dependent)|net35,ann_mean,0.0918941
+Round-1,MOM_12_1 Q5-Q1 in high TURN_1M tercile (dependent)|net35,ann_vol,0.283698
+Round-1,MOM_12_1 Q5-Q1 in high TURN_1M tercile (dependent)|net35,sharpe,0.323915
+Round-1,MOM_12_1 Q5-Q1 in high TURN_1M tercile (dependent)|net35,nw_t,1.81287
+Round-1,MOM_12_1 Q5-Q1 in high TURN_1M tercile (dependent)|net35,total_return,3.97728
+Round-1,MOM_12_1 Q5-Q1 in high TURN_1M tercile (dependent)|net35,cagr,0.0540281
+Round-1,MOM_12_1 Q5-Q1 in high TURN_1M tercile (dependent)|net35,max_dd,-0.715534
+Round-1,MOM_12_1 Q5-Q1 in high TURN_1M tercile (dependent)|net35,turnover_per_year,23.0031
+Round-1,MOM_12_1 Q5-Q1 in high TURN_1M tercile (dependent)|net35,hit_rate,0.551913
+Round-1,MOM_12_1 Q5-Q1 in high TURN_1M tercile (dependent)|net35,pct_pos_years,0.580645
+Round-1,MOM_12_1 Q5-Q1 in high TURN_1M tercile (dependent)|net35,n_years,31
+Round-1,MOM_12_1 Q5-Q1 in high TURN_1M tercile (dependent)|net35,mean_pct_month,0.765784
+E5/P2-top500,MOM_12_1|deciles|EW|gross,n_periods,321
+E5/P2-top500,MOM_12_1|deciles|EW|gross,mean_monthly,0.00590905
+E5/P2-top500,MOM_12_1|deciles|EW|gross,ann_mean,0.0709086
+E5/P2-top500,MOM_12_1|deciles|EW|gross,ann_vol,0.274727
+E5/P2-top500,MOM_12_1|deciles|EW|gross,sharpe,0.258106
+E5/P2-top500,MOM_12_1|deciles|EW|gross,nw_t,1.2898
+E5/P2-top500,MOM_12_1|deciles|EW|gross,total_return,1.43368
+E5/P2-top500,MOM_12_1|deciles|EW|gross,cagr,0.0338077
+E5/P2-top500,MOM_12_1|deciles|EW|gross,max_dd,-0.789175
+E5/P2-top500,MOM_12_1|deciles|EW|gross,turnover_per_year,16.9099
+E5/P2-top500,MOM_12_1|deciles|EW|gross,hit_rate,0.545171
+E5/P2-top500,MOM_12_1|deciles|EW|gross,pct_pos_years,0.62963
+E5/P2-top500,MOM_12_1|deciles|EW|gross,n_years,27
+E5/P2-top500,MOM_12_1|deciles|EW|gross,mean_pct_month,0.590905
+E5/P2-top500,MOM_12_1|deciles|EW|gross,jul2026_month,-0.299622
+E5/P2-top500,MOM_12_1|deciles|EW|gross,sharpe_2016_2026,0.0777522
+E5/P2-top500,MOM_12_1|deciles|EW|net35,n_periods,321
+E5/P2-top500,MOM_12_1|deciles|EW|net35,mean_monthly,0.000976993
+E5/P2-top500,MOM_12_1|deciles|EW|net35,ann_mean,0.0117239
+E5/P2-top500,MOM_12_1|deciles|EW|net35,ann_vol,0.274878
+E5/P2-top500,MOM_12_1|deciles|EW|net35,sharpe,0.0426513
+E5/P2-top500,MOM_12_1|deciles|EW|net35,nw_t,0.212109
+E5/P2-top500,MOM_12_1|deciles|EW|net35,total_return,-0.503289
+E5/P2-top500,MOM_12_1|deciles|EW|net35,cagr,-0.0258196
+E5/P2-top500,MOM_12_1|deciles|EW|net35,max_dd,-0.804255
+E5/P2-top500,MOM_12_1|deciles|EW|net35,turnover_per_year,16.9099
+E5/P2-top500,MOM_12_1|deciles|EW|net35,hit_rate,0.498442
+E5/P2-top500,MOM_12_1|deciles|EW|net35,pct_pos_years,0.518519
+E5/P2-top500,MOM_12_1|deciles|EW|net35,n_years,27
+E5/P2-top500,MOM_12_1|deciles|EW|net35,mean_pct_month,0.0976993
+E5/P2-top500,MOM_12_1|deciles|EW|net35,jul2026_month,-0.305377
+E5/P2-top500,MOM_12_1|deciles|EW|net35,sharpe_2016_2026,-0.138938
+E5/P2-top500,MOM_12_1|deciles|VW|gross,n_periods,321
+E5/P2-top500,MOM_12_1|deciles|VW|gross,mean_monthly,0.0141287
+E5/P2-top500,MOM_12_1|deciles|VW|gross,ann_mean,0.169544
+E5/P2-top500,MOM_12_1|deciles|VW|gross,ann_vol,0.38567
+E5/P2-top500,MOM_12_1|deciles|VW|gross,sharpe,0.439609
+E5/P2-top500,MOM_12_1|deciles|VW|gross,nw_t,2.09161
+E5/P2-top500,MOM_12_1|deciles|VW|gross,total_return,12.7022
+E5/P2-top500,MOM_12_1|deciles|VW|gross,cagr,0.1028
+E5/P2-top500,MOM_12_1|deciles|VW|gross,max_dd,-0.776855
+E5/P2-top500,MOM_12_1|deciles|VW|gross,turnover_per_year,18.0433
+E5/P2-top500,MOM_12_1|deciles|VW|gross,hit_rate,0.538941
+E5/P2-top500,MOM_12_1|deciles|VW|gross,pct_pos_years,0.592593
+E5/P2-top500,MOM_12_1|deciles|VW|gross,n_years,27
+E5/P2-top500,MOM_12_1|deciles|VW|gross,mean_pct_month,1.41287
+E5/P2-top500,MOM_12_1|deciles|VW|gross,jul2026_month,-0.298304
+E5/P2-top500,MOM_12_1|deciles|VW|gross,sharpe_2016_2026,0.396511
+E5/P2-top500,MOM_12_1|deciles|VW|net35,n_periods,321
+E5/P2-top500,MOM_12_1|deciles|VW|net35,mean_monthly,0.00886604
+E5/P2-top500,MOM_12_1|deciles|VW|net35,ann_mean,0.106392
+E5/P2-top500,MOM_12_1|deciles|VW|net35,ann_vol,0.385939
+E5/P2-top500,MOM_12_1|deciles|VW|net35,sharpe,0.275672
+E5/P2-top500,MOM_12_1|deciles|VW|net35,nw_t,1.30365
+E5/P2-top500,MOM_12_1|deciles|VW|net35,total_return,1.52392
+E5/P2-top500,MOM_12_1|deciles|VW|net35,cagr,0.0352157
+E5/P2-top500,MOM_12_1|deciles|VW|net35,max_dd,-0.869777
+E5/P2-top500,MOM_12_1|deciles|VW|net35,turnover_per_year,18.0433
+E5/P2-top500,MOM_12_1|deciles|VW|net35,hit_rate,0.523364
+E5/P2-top500,MOM_12_1|deciles|VW|net35,pct_pos_years,0.555556
+E5/P2-top500,MOM_12_1|deciles|VW|net35,n_years,27
+E5/P2-top500,MOM_12_1|deciles|VW|net35,mean_pct_month,0.886604
+E5/P2-top500,MOM_12_1|deciles|VW|net35,jul2026_month,-0.305059
+E5/P2-top500,MOM_12_1|deciles|VW|net35,sharpe_2016_2026,0.250095
+E5/P2-top500,MOM_12_1|quintiles|EW|gross,n_periods,321
+E5/P2-top500,MOM_12_1|quintiles|EW|gross,mean_monthly,0.00705793
+E5/P2-top500,MOM_12_1|quintiles|EW|gross,ann_mean,0.0846952
+E5/P2-top500,MOM_12_1|quintiles|EW|gross,ann_vol,0.218516
+E5/P2-top500,MOM_12_1|quintiles|EW|gross,sharpe,0.387592
+E5/P2-top500,MOM_12_1|quintiles|EW|gross,nw_t,1.94239
+E5/P2-top500,MOM_12_1|quintiles|EW|gross,total_return,4.06736
+E5/P2-top500,MOM_12_1|quintiles|EW|gross,cagr,0.0625441
+E5/P2-top500,MOM_12_1|quintiles|EW|gross,max_dd,-0.662645
+E5/P2-top500,MOM_12_1|quintiles|EW|gross,turnover_per_year,14.3912
+E5/P2-top500,MOM_12_1|quintiles|EW|gross,hit_rate,0.545171
+E5/P2-top500,MOM_12_1|quintiles|EW|gross,pct_pos_years,0.666667
+E5/P2-top500,MOM_12_1|quintiles|EW|gross,n_years,27
+E5/P2-top500,MOM_12_1|quintiles|EW|gross,mean_pct_month,0.705793
+E5/P2-top500,MOM_12_1|quintiles|EW|gross,jul2026_month,-0.292689
+E5/P2-top500,MOM_12_1|quintiles|EW|gross,sharpe_2016_2026,0.239902
+E5/P2-top500,MOM_12_1|quintiles|EW|net35,n_periods,321
+E5/P2-top500,MOM_12_1|quintiles|EW|net35,mean_monthly,0.00286049
+E5/P2-top500,MOM_12_1|quintiles|EW|net35,ann_mean,0.0343258
+E5/P2-top500,MOM_12_1|quintiles|EW|net35,ann_vol,0.218673
+E5/P2-top500,MOM_12_1|quintiles|EW|net35,sharpe,0.156973
+E5/P2-top500,MOM_12_1|quintiles|EW|net35,nw_t,0.784629
+E5/P2-top500,MOM_12_1|quintiles|EW|net35,total_return,0.317335
+E5/P2-top500,MOM_12_1|quintiles|EW|net35,cagr,0.0103565
+E5/P2-top500,MOM_12_1|quintiles|EW|net35,max_dd,-0.68779
+E5/P2-top500,MOM_12_1|quintiles|EW|net35,turnover_per_year,14.3912
+E5/P2-top500,MOM_12_1|quintiles|EW|net35,hit_rate,0.517134
+E5/P2-top500,MOM_12_1|quintiles|EW|net35,pct_pos_years,0.555556
+E5/P2-top500,MOM_12_1|quintiles|EW|net35,n_years,27
+E5/P2-top500,MOM_12_1|quintiles|EW|net35,mean_pct_month,0.286049
+E5/P2-top500,MOM_12_1|quintiles|EW|net35,jul2026_month,-0.297102
+E5/P2-top500,MOM_12_1|quintiles|EW|net35,sharpe_2016_2026,0.00459868
+E5/P2-top500,MOM_12_1|quintiles|VW|gross,n_periods,321
+E5/P2-top500,MOM_12_1|quintiles|VW|gross,mean_monthly,0.0123115
+E5/P2-top500,MOM_12_1|quintiles|VW|gross,ann_mean,0.147738
+E5/P2-top500,MOM_12_1|quintiles|VW|gross,ann_vol,0.309468
+E5/P2-top500,MOM_12_1|quintiles|VW|gross,sharpe,0.477394
+E5/P2-top500,MOM_12_1|quintiles|VW|gross,nw_t,2.51201
+E5/P2-top500,MOM_12_1|quintiles|VW|gross,total_return,13.4551
+E5/P2-top500,MOM_12_1|quintiles|VW|gross,cagr,0.105008
+E5/P2-top500,MOM_12_1|quintiles|VW|gross,max_dd,-0.660891
+E5/P2-top500,MOM_12_1|quintiles|VW|gross,turnover_per_year,15.1131
+E5/P2-top500,MOM_12_1|quintiles|VW|gross,hit_rate,0.576324
+E5/P2-top500,MOM_12_1|quintiles|VW|gross,pct_pos_years,0.592593
+E5/P2-top500,MOM_12_1|quintiles|VW|gross,n_years,27
+E5/P2-top500,MOM_12_1|quintiles|VW|gross,mean_pct_month,1.23115
+E5/P2-top500,MOM_12_1|quintiles|VW|gross,jul2026_month,-0.314125
+E5/P2-top500,MOM_12_1|quintiles|VW|gross,sharpe_2016_2026,0.526701
+E5/P2-top500,MOM_12_1|quintiles|VW|net35,n_periods,321
+E5/P2-top500,MOM_12_1|quintiles|VW|net35,mean_monthly,0.00790354
+E5/P2-top500,MOM_12_1|quintiles|VW|net35,ann_mean,0.0948425
+E5/P2-top500,MOM_12_1|quintiles|VW|net35,ann_vol,0.309476
+E5/P2-top500,MOM_12_1|quintiles|VW|net35,sharpe,0.306461
+E5/P2-top500,MOM_12_1|quintiles|VW|net35,nw_t,1.60379
+E5/P2-top500,MOM_12_1|quintiles|VW|net35,total_return,2.52621
+E5/P2-top500,MOM_12_1|quintiles|VW|net35,cagr,0.0482386
+E5/P2-top500,MOM_12_1|quintiles|VW|net35,max_dd,-0.743779
+E5/P2-top500,MOM_12_1|quintiles|VW|net35,turnover_per_year,15.1131
+E5/P2-top500,MOM_12_1|quintiles|VW|net35,hit_rate,0.548287
+E5/P2-top500,MOM_12_1|quintiles|VW|net35,pct_pos_years,0.518519
+E5/P2-top500,MOM_12_1|quintiles|VW|net35,n_years,27
+E5/P2-top500,MOM_12_1|quintiles|VW|net35,mean_pct_month,0.790354
+E5/P2-top500,MOM_12_1|quintiles|VW|net35,jul2026_month,-0.317171
+E5/P2-top500,MOM_12_1|quintiles|VW|net35,sharpe_2016_2026,0.379444
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|EW|gross,n_periods,321
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|EW|gross,mean_monthly,0.0059068
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|EW|gross,ann_mean,0.0708816
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|EW|gross,ann_vol,0.276003
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|EW|gross,sharpe,0.256815
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|EW|gross,nw_t,1.31496
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|EW|gross,total_return,1.4367
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|EW|gross,cagr,0.0338556
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|EW|gross,max_dd,-0.773168
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|EW|gross,turnover_per_year,16.8561
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|EW|gross,hit_rate,0.523364
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|EW|gross,pct_pos_years,0.62963
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|EW|gross,n_years,27
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|EW|gross,mean_pct_month,0.59068
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|EW|gross,jul2026_month,-0.306059
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|EW|gross,sharpe_2016_2026,0.0643962
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|EW|net35,n_periods,321
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|EW|net35,mean_monthly,0.000990436
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|EW|net35,ann_mean,0.0118852
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|EW|net35,ann_vol,0.276085
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|EW|net35,sharpe,0.0430491
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|EW|net35,nw_t,0.219407
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|EW|net35,total_return,-0.499924
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|EW|net35,cagr,-0.0255736
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|EW|net35,max_dd,-0.806036
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|EW|net35,turnover_per_year,16.8561
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|EW|net35,hit_rate,0.504673
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|EW|net35,pct_pos_years,0.518519
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|EW|net35,n_years,27
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|EW|net35,mean_pct_month,0.0990436
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|EW|net35,jul2026_month,-0.311671
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|EW|net35,sharpe_2016_2026,-0.152201
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|VW|gross,n_periods,321
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|VW|gross,mean_monthly,0.0138097
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|VW|gross,ann_mean,0.165717
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|VW|gross,ann_vol,0.389112
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|VW|gross,sharpe,0.425885
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|VW|gross,nw_t,2.05906
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|VW|gross,total_return,10.9816
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|VW|gross,cagr,0.097282
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|VW|gross,max_dd,-0.775193
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|VW|gross,turnover_per_year,17.922
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|VW|gross,hit_rate,0.538941
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|VW|gross,pct_pos_years,0.62963
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|VW|gross,n_years,27
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|VW|gross,mean_pct_month,1.38097
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|VW|gross,jul2026_month,-0.299896
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|VW|gross,sharpe_2016_2026,0.389761
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|VW|net35,n_periods,321
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|VW|net35,mean_monthly,0.00858248
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|VW|net35,ann_mean,0.10299
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|VW|net35,ann_vol,0.389511
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|VW|net35,sharpe,0.264408
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|VW|net35,nw_t,1.27026
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|VW|net35,total_return,1.2266
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|VW|net35,cagr,0.0303765
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|VW|net35,max_dd,-0.869943
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|VW|net35,turnover_per_year,17.922
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|VW|net35,hit_rate,0.520249
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|VW|net35,pct_pos_years,0.555556
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|VW|net35,n_years,27
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|VW|net35,mean_pct_month,0.858248
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|VW|net35,jul2026_month,-0.306618
+E5/P2-top500,MOM_12_1|deciles (looser top-500: no 200-day/limit screens)|VW|net35,sharpe_2016_2026,0.243997
+Jul-2026,ALL quintiles EW gross,jul2026_month,-0.172379
+Jul-2026,ALL deciles EW gross,jul2026_month,-0.196104
+Jul-2026,ALL quintiles VW gross,jul2026_month,-0.250376
+Jul-2026,ALL deciles VW gross,jul2026_month,-0.223443

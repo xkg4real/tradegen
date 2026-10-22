@@ -1,0 +1,187 @@
+{
+ "source": "research_notes/QUANTGEN v2 integration map/tf_goldens_amendments.md section D",
+ "r3": "QUANTGEN_techfund_research_bundle/QUANTGEN_techfund_research/research_notes/R3_TF_neural_link.md",
+ "caveat": "All lab numbers are in-sample computations on price returns without dividends, not runs of QUANTGEN's gate. Proposals pending owner confirmation; nothing here is an input to exposure (coordinator rulings 3.7-3.9).",
+ "items": [
+  {
+   "id": "OQ-01",
+   "question": "Ladder threshold units (CR-07): fixed -8 / -12 / -15%, book-vol units (-1.0 / -1.5 / -1.9 sigma), or a book-vol ceiling of 8% where they coincide; Brownian check at Sharpe 0.5: P(-15% within 10 y) = 0.97 at 12% book vol, 0.66 at 8%; E5 sigma ladder not re-run. Suggested: FORWARD-SIM both (R3:1314)",
+   "v2_fixes": "D2 default −15% of book NAV, option (b) −1.5 σ_book (SPEC:70, 1586, 4349 `alt: \"-1.5*sigma_book\"`); steps −8/−12 fixed (SPEC:1587)",
+   "conservative_default": "Keep D2 default; sigma variant specification book only",
+   "owner_status": "proposal pending owner confirmation",
+   "acting": false,
+   "r3_lines": [
+    "1314"
+   ],
+   "brief_line": 306
+  },
+  {
+   "id": "OQ-02",
+   "question": "Confirm CR-07 denominator (preferred line in numerator, all KOSPI lines in denominator); first binds 2026-05-06 (CR-07) vs 2026-05-07 (common/all) (R3:1315)",
+   "v2_fixes": "Not defined; `pair_share_kospi` is a reported field; 0.45 trigger removed (XS-07)",
+   "conservative_default": "Display all four definitions; no trigger",
+   "owner_status": "proposal pending owner confirmation",
+   "acting": false,
+   "r3_lines": [
+    "1315"
+   ],
+   "brief_line": 307
+  },
+  {
+   "id": "OQ-03",
+   "question": "S_beta beta_hat window: OLS beta of daily returns on the declared market over the prior 252 sessions, frozen in the card header at each formation; full-period beta descriptive only (c12 used full-period monthly OLS betas 0.631-0.742) (R3:1316)",
+   "v2_fixes": "No S_beta (XS-12)",
+   "conservative_default": "Specify in gate package only when needed",
+   "owner_status": "proposal pending owner confirmation",
+   "acting": false,
+   "r3_lines": [
+    "1316"
+   ],
+   "brief_line": 308
+  },
+  {
+   "id": "OQ-04",
+   "question": "Step 8 stays (CR-08). Add \"positive in at least 2 of 3 sub-periods\" and a short-sale-regime split as extra checks (both tighten)? (R3:1317)",
+   "v2_fixes": "Step 8 ≥ 60% of years (SPEC:4767); CARD-P PC-5; R-22 declared start band and regime lines (SPEC:2276)",
+   "conservative_default": "Print, do not gate, until owner rules",
+   "owner_status": "proposal pending owner confirmation",
+   "acting": false,
+   "r3_lines": [
+    "1317"
+   ],
+   "brief_line": 309
+  },
+  {
+   "id": "OQ-05",
+   "question": "Professors' Jensen-alpha step-5 variant not adopted (loosens for beta < 1); print as a report line only? (R3:1318)",
+   "v2_fixes": "Not in v2.0",
+   "conservative_default": "Report line only",
+   "owner_status": "proposal pending owner confirmation",
+   "acting": false,
+   "r3_lines": [
+    "1318"
+   ],
+   "brief_line": 310
+  },
+  {
+   "id": "OQ-06",
+   "question": "US stock momentum prior: 1 (TF) or R-15's \"2 if vol-scaled + D-M\"? (R3:1319)",
+   "v2_fixes": "v2.0 keeps 2-if (XS-16); no exposure difference",
+   "conservative_default": "Display 1 (D&M is spec-book only)",
+   "owner_status": "proposal pending owner confirmation",
+   "acting": false,
+   "r3_lines": [
+    "1319"
+   ],
+   "brief_line": 311
+  },
+  {
+   "id": "OQ-07",
+   "question": "R-06 Korea card judged from 1996-09 (PASS) or 2016-01 (INSUFFICIENT DATA)? (R3:1320)",
+   "v2_fixes": "**Answered:** long history, `history_start` 1997-04-01, start-band conditions (SPEC:1574; XS-20)",
+   "conservative_default": "Follow v2.0",
+   "owner_status": "proposal pending owner confirmation",
+   "acting": false,
+   "r3_lines": [
+    "1320"
+   ],
+   "brief_line": 312
+  },
+  {
+   "id": "OQ-08",
+   "question": "Build order of data stores: OpenDART PIT, FMP/EDGAR PIT, KIS quote snapshots, t-1 investor flows (R3:1321)",
+   "v2_fixes": "v2.0 register (SPEC:6024-6033) has KRX closes, KODEX PDF, French, ECOS, calendars; investor flows logged from day one (SPEC:1412); no OpenDART/FMP PIT",
+   "conservative_default": "Flows logging first (already v2.0); PIT fundamentals outside v2.0 scope",
+   "owner_status": "proposal pending owner confirmation",
+   "acting": false,
+   "r3_lines": [
+    "1321"
+   ],
+   "brief_line": 313
+  },
+  {
+   "id": "OQ-09",
+   "question": "Crypto C3 prior 2 (macro R-15, executives) or 3 (prior design, professors)? Card PASS governs; only base_weight changes (R3:1322)",
+   "v2_fixes": "SPEC:699 \"crypto 3 → 2 with BTC's own vol cap\"; SPEC:1732 TS trend `2`",
+   "conservative_default": "Keep 2 (admissible either way)",
+   "owner_status": "proposal pending owner confirmation",
+   "acting": false,
+   "r3_lines": [
+    "1322"
+   ],
+   "brief_line": 314
+  },
+  {
+   "id": "OQ-10",
+   "question": "Tiered t-hurdles: Tier A t ≥ 2.0; new signals t ≥ 3.0 plus SPA; > 100 configurations or TradingView-sourced t ≥ 3.4-3.8. Adopt as tightening? (R3:1323)",
+   "v2_fixes": "v2.0 one-sided z 2.50 (≤ 8 cells) / 3.34 (Bonferroni-120) (SPEC:2580)",
+   "conservative_default": "Keep v2.0; print tiered hurdle",
+   "owner_status": "proposal pending owner confirmation",
+   "acting": false,
+   "r3_lines": [
+    "1323"
+   ],
+   "brief_line": 315
+  },
+  {
+   "id": "OQ-11",
+   "question": "Statistical review triggers: forward drawdown beyond the 95th simulated percentile, or 12-month Sharpe below its 90% CI → review, never automatic liquidation. Governance option? (R3:1324)",
+   "v2_fixes": "R-25 calibrated alarms on whole-book NAV; alarms demote verdicts, never raise (SPEC:2654, 2671); no liquidation path exists (read-only)",
+   "conservative_default": "Add as printed alarm under the D4 budget",
+   "owner_status": "proposal pending owner confirmation",
+   "acting": false,
+   "r3_lines": [
+    "1324"
+   ],
+   "brief_line": 316
+  },
+  {
+   "id": "OQ-12",
+   "question": "CR-06 adopted only \"never enter at a locked limit-up close\". Add the five-session no-new-long window after locked limit-ups or volume spikes once BL-TF-02 tests it? (R3:1325)",
+   "v2_fixes": "R-27: a stock at its daily limit is non-fillable at the close; order carries (SPEC:2914, T-FILL-02 SPEC:2953)",
+   "conservative_default": "No window until tested",
+   "owner_status": "proposal pending owner confirmation",
+   "acting": false,
+   "r3_lines": [
+    "1325"
+   ],
+   "brief_line": 317
+  },
+  {
+   "id": "OQ-13",
+   "question": "KOSDAQ trend: keep macro R-14's 0 until a KOSDAQ index rebuild and test exist? (R3:1326)",
+   "v2_fixes": "KOSDAQ TS trend 0 (SPEC:699, 1727)",
+   "conservative_default": "Keep 0",
+   "owner_status": "proposal pending owner confirmation",
+   "acting": false,
+   "r3_lines": [
+    "1326"
+   ],
+   "brief_line": 318
+  },
+  {
+   "id": "OQ-14",
+   "question": "SCR-1 primary definition: F4 10% cut (IR 1.53, smallest exclusion) or F1 highest-turnover quintile (+4.28%/yr net 35 on B1, IR 1.15)? One combined screen or two cards (overlap Jaccard 0.13)? (R3:1327)",
+   "v2_fixes": "Screens absent from v2.0",
+   "conservative_default": "Two cards, F4 primary (per R3 §11.2 GV ids)",
+   "owner_status": "proposal pending owner confirmation",
+   "acting": false,
+   "r3_lines": [
+    "1327"
+   ],
+   "brief_line": 319
+  },
+  {
+   "id": "OQ-15",
+   "question": "Attribution block \"factor tilt\" threshold. Proposal: Newey-West alpha t below 2.0 after attribution (R3:1328)",
+   "v2_fixes": "No attribution block in v2.0",
+   "conservative_default": "Print; label only",
+   "owner_status": "proposal pending owner confirmation",
+   "acting": false,
+   "r3_lines": [
+    "1328"
+   ],
+   "brief_line": 320
+  }
+ ]
+}

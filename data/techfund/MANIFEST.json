@@ -1,0 +1,106 @@
+{
+ "source": "QUANTGEN_techfund_research_bundle 2026-10-03 (R3 round-3 synthesis)",
+ "r3_report": "QUANTGEN_techfund_research_bundle/QUANTGEN_techfund_research/research_notes/R3_TF_neural_link.md",
+ "built": "2026-10-07 (Sprint 7 package A)",
+ "caveat": "All lab numbers are in-sample computations on price returns without dividends, not runs of QUANTGEN's gate. Proposals pending owner confirmation; nothing here is an input to exposure (coordinator rulings 3.7-3.9).",
+ "files": {
+  "r3_weights_final.csv": {
+   "sha256": "ee2f55a066ac6c33d8993c0eb72ed56f2d01d9b60ff1ea7c3375c8813c4ab7aa",
+   "bytes": 11733,
+   "rows": 50,
+   "cols": 10,
+   "provenance": "verbatim copy of QUANTGEN_techfund_research_bundle/QUANTGEN_techfund_research/datalab/results/r3/r3_weights_final.csv"
+  },
+  "r3_weights_other_markets.csv": {
+   "sha256": "ea55ca0de14f4aa8dfb49c74fd59759afc0942cceeb731d7c4f4f4a1d42ca06c",
+   "bytes": 461,
+   "rows": 6,
+   "cols": 10,
+   "provenance": "verbatim copy of QUANTGEN_techfund_research_bundle/QUANTGEN_techfund_research/datalab/results/r3/r3_weights_other_markets.csv"
+  },
+  "r3_go_nogo.csv": {
+   "sha256": "9c2a0cff755f1fbcfedae75668097fabb650ba5c28eb61aaeee31bb19d2839f5",
+   "bytes": 25159,
+   "rows": 77,
+   "cols": 11,
+   "provenance": "verbatim copy of QUANTGEN_techfund_research_bundle/QUANTGEN_techfund_research/datalab/results/r3/r3_go_nogo.csv"
+  },
+  "R3_TF_nodes.csv": {
+   "sha256": "b9e4749c0a23db819a104ffed84927ff706bb02117967926980cac371683e45e",
+   "bytes": 80626,
+   "rows": 70,
+   "cols": 32,
+   "provenance": "verbatim copy of QUANTGEN_techfund_research_bundle/QUANTGEN_techfund_research/datalab/results/r3/R3_TF_nodes.csv"
+  },
+  "R3_TF_edges.csv": {
+   "sha256": "b0da1b01194cb802f4e3213f87c78668659c1aa6c0053f0994a52ad66d3002f1",
+   "bytes": 10009,
+   "rows": 85,
+   "cols": 5,
+   "provenance": "verbatim copy of QUANTGEN_techfund_research_bundle/QUANTGEN_techfund_research/datalab/results/r3/R3_TF_edges.csv"
+  },
+  "r3_golden_values.csv": {
+   "sha256": "ca2dfc3fd78d81c32e17e6ae8f7d6f4397afb557916ce4d256907aee04d265eb",
+   "bytes": 125250,
+   "rows": 523,
+   "cols": 13,
+   "provenance": "verbatim copy of QUANTGEN_techfund_research_bundle/QUANTGEN_techfund_research/datalab/results/r3/r3_golden_values.csv"
+  },
+  "r3_pair_share.csv": {
+   "sha256": "66837d6562c7984c89e28472709e9e576f1530df0f85019b7c585d36d78694e2",
+   "bytes": 1774,
+   "rows": 8,
+   "cols": 12,
+   "provenance": "verbatim copy of QUANTGEN_techfund_research_bundle/QUANTGEN_techfund_research/datalab/results/r3/r3_pair_share.csv"
+  },
+  "r3_pair_share_summary.csv": {
+   "sha256": "4a82a1199409f13bf56d646ee4d0a4933ad629b0c5af5b5b448dd0bb5b2d8e6f",
+   "bytes": 951,
+   "rows": 16,
+   "cols": 2,
+   "provenance": "verbatim copy of QUANTGEN_techfund_research_bundle/QUANTGEN_techfund_research/datalab/results/r3/r3_pair_share_summary.csv"
+  },
+  "r3_pair_share_2026_daily.csv": {
+   "sha256": "669d359cb9cbe203048911fb51f15c9a395c7922dc32ccef69973a5dd5543fa5",
+   "bytes": 15983,
+   "rows": 181,
+   "cols": 5,
+   "provenance": "verbatim copy of QUANTGEN_techfund_research_bundle/QUANTGEN_techfund_research/datalab/results/r3/r3_pair_share_2026_daily.csv"
+  },
+  "r3_focus_by_theme.json": {
+   "sha256": "85705c549b760bf410ab19cc042fd24210a1db8f62d395364225cdd8252d2097",
+   "bytes": 617,
+   "provenance": "verbatim copy of QUANTGEN_techfund_research_bundle/QUANTGEN_techfund_research/datalab/results/r3/r3_focus_by_theme.json"
+  },
+  "dnb_tf_items.json": {
+   "sha256": "7adfd2a5c463f5c6e10a0e6ed674f5456f4fe5a07f80fd2a385d25a221ba0d2d",
+   "bytes": 22133,
+   "provenance": "brief table as data: research_notes/QUANTGEN v2 integration map/tf_dnb_backlog.md A.1/A.2",
+   "rows": 17
+  },
+  "bl_tf_items.json": {
+   "sha256": "8a5017fb66ce5153bbb05ccfbe10ce8539cb6e38e26b18c016940d1ed0fa44a7",
+   "bytes": 21148,
+   "provenance": "brief table as data: research_notes/QUANTGEN v2 integration map/tf_dnb_backlog.md B",
+   "rows": 20
+  },
+  "ca_items.json": {
+   "sha256": "854b7080a30cb2e22fc44a7b5130b74f67552eb3efb536b7dbb189ee9fb19a60",
+   "bytes": 13527,
+   "provenance": "brief table as data: research_notes/QUANTGEN v2 integration map/tf_goldens_amendments.md B",
+   "rows": 38
+  },
+  "xs_items.json": {
+   "sha256": "213f6aaebc4afbaa69e57909939d54bf7a06ccb5da450cb007c96b4621b48e58",
+   "bytes": 22671,
+   "provenance": "brief table as data: research_notes/QUANTGEN v2 integration map/tf_goldens_amendments.md C",
+   "rows": 22
+  },
+  "oq_items.json": {
+   "sha256": "47ba9f4b9210ca57a1432d77ea01fb6ab84926b07538ea5b5d1ab0e308990bfa",
+   "bytes": 7762,
+   "provenance": "brief table as data: research_notes/QUANTGEN v2 integration map/tf_goldens_amendments.md D",
+   "rows": 15
+  }
+ }
+}

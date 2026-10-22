@@ -1,0 +1,126 @@
+{
+ "N_raw_at_registration": null,
+ "benchmarks": [
+  "buy_and_hold",
+  "overlay_off",
+  "static_same_avg_exposure",
+  "ewma_derisk"
+ ],
+ "build_status_on_pass": "BUILD_AS_INSURANCE",
+ "card_id": "MACRO-R28-US-TREND",
+ "cash_convention": {
+  "cash_series": "US_RF",
+  "returns": "excess"
+ },
+ "checks": "gate_package_2.0.0",
+ "claim": "slow-bear protection via the volatility state",
+ "claim_lines": [
+  {
+   "failure": "cap_INSUFFICIENT",
+   "line": "stacked_dMDD_on_VT",
+   "min_pp": 3.0,
+   "reason": "claim_not_shown"
+  }
+ ],
+ "claim_type": "protection",
+ "class": "CARD-P",
+ "comparator": "S_same_average_exposure",
+ "costs": {
+  "floor": "tick_floor",
+  "per_side": "read_from_gate",
+  "stress": 2.0,
+  "stress_line": "printed"
+ },
+ "created_utc": null,
+ "data": {
+  "history_file": null,
+  "source": "SPX_MONTH_END_CLOSE",
+  "value_status": "official_close"
+ },
+ "data_span": {
+  "end": "2026-10-01",
+  "start": null
+ },
+ "episode_rule_version": "1",
+ "estimator": "sma20",
+ "family_id": "R-28",
+ "fill_model": "NYSE_moc",
+ "gate_package_md5": null,
+ "gate_package_version": "2.0.0",
+ "header_md5": null,
+ "history_first_close": null,
+ "hypothesis": "a month-end close below SMA10m halves the vt book and lowers stacked drawdown by >= 3 pp",
+ "instrument_book": "CME_micro_ES",
+ "label": "protective: reduces tail losses vs a same-exposure static book; not expected to outperform",
+ "ledger_hash_at_registration": null,
+ "mechanism": "exposure state on the vol-targeted book; decided at month end, applies next month",
+ "midpoint_halves": null,
+ "nav_fx": {
+  "conversion_instant": null,
+  "history": "ECOS_1530_CLOSE",
+  "role": "forward_sim",
+  "series": "USDKRW_1530_SNAPSHOT"
+ },
+ "no_trade_band": 0.0,
+ "notional_nav": null,
+ "outcomes": {
+  "INSUFFICIENT_DATA": "FORWARD_SIM",
+  "PASS": "BUILD-AS-INSURANCE once D5 names a US sleeve",
+  "REJECT": "FORWARD_SIM"
+ },
+ "owner_decisions": {
+  "sleeves.US.line": "none"
+ },
+ "parameters": {
+  "applies": "next_month",
+  "composition": "min",
+  "decided": "month_end_close",
+  "exposure_basis": "total",
+  "multiplier_above": 1.0,
+  "multiplier_below": 0.5,
+  "signal": "month_end_close_below_sma10m"
+ },
+ "pooling_rule": {
+  "declared_before_any_run": true,
+  "decluster_gap_months": 10,
+  "indices": [
+   "SPX",
+   "N225",
+   "HSI",
+   "DAX",
+   "FTSE100",
+   "TAIEX"
+  ],
+  "own_market_veto": true
+ },
+ "primary_oos_line": "full_span",
+ "printed_lines": [
+  "exec_variants_ABC",
+  "overnight_intraday",
+  "turnover_by_regime",
+  "stress_cost_line",
+  "with_risk_layer"
+ ],
+ "rebalance": "monthly",
+ "regime_lines": "from_R20_tags",
+ "revision": 1,
+ "roll_calendar": {
+  "calendar": null,
+  "rule": "roll_before_expiry_fixed_calendar"
+ },
+ "rule": "month-end close < SMA10m -> 0.5 else 1.0; applies next month; composition min; incremental on R-29's vt book",
+ "rule_id": "R-28-US-SMA10M",
+ "searched_parameters": [],
+ "seed": 11,
+ "start_band": null,
+ "tier": "A",
+ "timing": {
+  "decision": "close_t_earn_t_plus_1",
+  "inputs": {
+   "SPX": {
+    "series": "SPX_MONTH_END_CLOSE",
+    "value_status": "official_close"
+   }
+  }
+ }
+}

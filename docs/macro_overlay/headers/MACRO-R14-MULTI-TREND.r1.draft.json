@@ -1,0 +1,95 @@
+{
+ "N_raw_at_registration": null,
+ "benchmarks": [
+  "buy_and_hold",
+  "overlay_off",
+  "static_same_avg_exposure",
+  "ewma_derisk"
+ ],
+ "build_status_on_pass": "BUILD_NOW",
+ "card_id": "MACRO-R14-MULTI-TREND",
+ "cash_convention": {
+  "cash_series": "US_RF",
+  "returns": "excess"
+ },
+ "checks": "gate_package_2.0.0",
+ "claim": "diversification, i.e. correlation and drawdown behaviour against the equal-weight long-only basket, not outperformance",
+ "claim_type": "diversification",
+ "class": "CARD-O",
+ "comparator": "overlay_off",
+ "costs": {
+  "floor": "tick_floor",
+  "per_side": "read_from_gate",
+  "stress": 2.0,
+  "stress_line": "printed"
+ },
+ "created_utc": null,
+ "data": {
+  "history_file": null,
+  "source": "NON_KR_INDEX_MONTH_END_CLOSES",
+  "value_status": "official_close"
+ },
+ "data_span": {
+  "end": "2026-10-01",
+  "start": null
+ },
+ "episode_rule_version": "1",
+ "estimator": "sd12m",
+ "family_id": "R-14",
+ "fill_model": "per_line",
+ "gate_package_md5": null,
+ "gate_package_version": "2.0.0",
+ "header_md5": null,
+ "history_first_close": null,
+ "hypothesis": "a 12-1 sign TS-trend sleeve lowers correlation and drawdown vs the equal-weight basket of the same indices",
+ "instrument_book": "multi_line",
+ "instrument_lines": null,
+ "label": null,
+ "ledger_hash_at_registration": null,
+ "mechanism": "sign of the 12-1 month return times min(1, 0.15 / sigma_12m); second-moment sizing per asset",
+ "midpoint_halves": null,
+ "no_trade_band": 0.0,
+ "notional_nav": null,
+ "outcomes": {
+  "INSUFFICIENT_DATA": "displayed descriptively",
+  "PASS": "sleeve acts (ts_trend admissible)",
+  "REJECT": "displayed descriptively"
+ },
+ "parameters": {
+  "cap": 1.0,
+  "overlay_exempt": true,
+  "rebalance": "monthly",
+  "signal": "sign_12_1",
+  "target_ann": 0.15,
+  "vol_window_months": 12
+ },
+ "primary_oos_line": "full_span",
+ "printed_lines": [
+  "exec_variants_ABC",
+  "overnight_intraday",
+  "turnover_by_regime",
+  "stress_cost_line",
+  "with_risk_layer",
+  "failure_mode: not fast-crash protection",
+  "correlation_with_SP500_2001_2026",
+  "correlation_with_SP500_2013_2026"
+ ],
+ "rebalance": "monthly",
+ "regime_lines": "from_R20_tags",
+ "revision": 1,
+ "rule": "signal = sign(12-1 month return), monthly; per-asset weight = signal x min(1.0, 0.15 / sigma_12m)",
+ "rule_id": "R-14-MULTI-TREND",
+ "searched_parameters": [],
+ "seed": 11,
+ "start_band": null,
+ "tier": "A",
+ "timing": {
+  "decision": "close_t_earn_t_plus_1",
+  "inputs": {
+   "indices": {
+    "series": "NON_KR_INDEX_MONTH_END_CLOSES",
+    "value_status": "official_close"
+   }
+  }
+ }
+}

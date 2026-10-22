@@ -1,0 +1,27 @@
+test,item,round2,round1,abs_diff,tol,passed,note
+R1,MOM_12_1 LS EW gross ann_mean,0.0933695,0.0933695,4.78274e-08,1e-06,True,
+R1,MOM_12_1 LS EW gross sharpe,0.447161,0.447161,3.58318e-08,1e-06,True,
+R1,MOM_12_1 LS EW gross nw_t,2.66631,2.66631,6.26554e-07,1e-06,True,
+R1,MOM_12_1 LS EW gross max_dd,-0.550883,-0.550883,2.99319e-07,1e-06,True,
+R1,MOM_12_1 LS EW gross turnover_per_year,14.6556,14.6556,2.85767e-05,1e-06,True,
+R1,MOM_12_1 LS EW net35 ann_mean,0.042075,0.042075,4.78089e-08,1e-06,True,
+R1,MOM_12_1 LS EW net35 sharpe,0.201321,0.201321,1.05894e-07,1e-06,True,
+R1,MOM_12_1 LS EW net35 nw_t,1.19781,1.19781,4.217e-06,1e-06,True,
+R1,MOM_12_1 LS EW net35 max_dd,-0.64378,-0.64378,3.72981e-07,1e-06,True,
+R1,MOM_12_1 LS EW net35 turnover_per_year,14.6556,14.6556,2.85767e-05,1e-06,True,
+R2,TURN_1M_LOW exclude-worst xs UEW net35 ann_mean,0.0361705,0.0361705,1.29828e-08,1e-06,True,
+R2,TURN_1M_LOW exclude-worst xs UEW net35 nw_t,5.62866,5.62866,2.91653e-06,1e-06,True,
+R2,TURN_1M_LOW exclude-worst xs UEW net35 pct_pos_years,0.870968,0.870968,2.58065e-07,1e-06,True,
+R4,VOL_3M exclude-worst xs UEW net35 ann_mean,0.0298189,0.0298189,3.61281e-08,1e-06,True,
+R4,VOL_3M exclude-worst xs UEW net35 nw_t,4.66743,4.66743,1.0022e-06,1e-06,True,
+R4,VOL_3M exclude-worst xs UEW net35 pct_pos_years,0.83871,0.83871,3.22581e-07,1e-06,True,
+R0,UNIV ALL EW net35 ann_mean,0.0664052,0.0664052,4.55596e-08,1e-06,True,
+R0,UNIV ALL EW turnover/yr,1.89331,1.89331,2.24158e-06,1e-06,True,
+R3,"MOM_12_1 Q5-Q1 in high TURN_1M tercile, mean %/month",1.43671,1.43671,1.83655e-06,1e-06,True,
+R3,"same, NW t",3.41451,3.41451,2.39767e-07,1e-06,True,
+R5,daily series identical: UNIV|EW,0,0,0,1e-12,True,same NaN pattern: True
+R5,daily series identical: UNIV|VW,0,0,0,1e-12,True,same NaN pattern: True
+R5,daily series identical: MOM|Q5,0,0,0,1e-12,True,same NaN pattern: True
+R5,daily series identical: MOM|Q1,0,0,0,1e-12,True,same NaN pattern: True
+R5,daily series identical: TURN|NOTQ5,0,0,0,1e-12,True,same NaN pattern: True
+R5,daily series identical: VOL|NOTQ5,0,0,0,1e-12,True,same NaN pattern: True

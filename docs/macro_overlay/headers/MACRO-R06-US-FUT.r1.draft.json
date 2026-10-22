@@ -1,0 +1,117 @@
+{
+ "N_raw_at_registration": null,
+ "benchmarks": [
+  "buy_and_hold",
+  "overlay_off",
+  "static_same_avg_exposure",
+  "ewma_derisk"
+ ],
+ "build_status_on_pass": "BUILD_AS_INSURANCE",
+ "card_id": "MACRO-R06-US-FUT",
+ "cash_convention": {
+  "cash_series": "US_RF",
+  "returns": "excess"
+ },
+ "checks": "gate_package_2.0.0",
+ "claim": "crisis-clustering insurance on the US futures line: lower tail losses vs a same-exposure static book; not expected to outperform; cap 1.0 permanent",
+ "claim_type": "protection",
+ "class": "CARD-P",
+ "comparator": "S_same_average_exposure",
+ "costs": {
+  "floor": "tick_floor",
+  "per_side": "read_from_gate",
+  "stress": 2.0,
+  "stress_line": "printed"
+ },
+ "created_utc": null,
+ "data": {
+  "history_file": null,
+  "source": "French_daily_MktRF_RF",
+  "value_status": "official_close"
+ },
+ "data_span": {
+  "end": "2026-08-31",
+  "start": "1926-07-01"
+ },
+ "episode_rule_version": "1",
+ "estimator": "sma20",
+ "family_id": "R-06",
+ "fill_model": "NYSE_moc",
+ "gate_package_md5": null,
+ "gate_package_version": "2.0.0",
+ "header_md5": null,
+ "history_first_close": "1926-07-01",
+ "hypothesis": "VT15 on CME micro ES lowers tail losses vs S without a Sharpe loss beyond 0.10",
+ "instrument_book": "CME_micro_ES",
+ "label": "protective: reduces tail losses vs a same-exposure static book; not expected to outperform",
+ "ledger_hash_at_registration": null,
+ "mechanism": "variance reduction through the SMA20 volatility state",
+ "midpoint_halves": {
+  "require": "no_reject",
+  "split": "calendar_midpoint",
+  "split_date": "1976-07-31"
+ },
+ "nav_fx": {
+  "conversion_instant": null,
+  "history": "ECOS_1530_CLOSE",
+  "role": "forward_sim",
+  "series": "USDKRW_1530_SNAPSHOT"
+ },
+ "no_trade_band": 0.0,
+ "notional_nav": null,
+ "outcomes": {
+  "INSUFFICIENT_DATA": "FORWARD_SIM",
+  "PASS": "promotion only with a US sleeve, the settling run and the v2 package (L3092-3095)",
+  "REJECT": "FORWARD_SIM"
+ },
+ "owner_decisions": {
+  "sleeves.US.line": "none"
+ },
+ "parameters": {
+  "cap": 1.0,
+  "estimator": "sma",
+  "exposure_basis": "total",
+  "floor": "none",
+  "rebalance": "daily",
+  "target_ann": 0.15,
+  "window": 20
+ },
+ "primary_oos_line": "full_span",
+ "printed_lines": [
+  "exec_variants_ABC",
+  "overnight_intraday",
+  "turnover_by_regime",
+  "stress_cost_line",
+  "with_risk_layer"
+ ],
+ "rebalance": "daily",
+ "regime_lines": "from_R20_tags",
+ "revision": 1,
+ "roll_calendar": {
+  "calendar": null,
+  "rule": "roll_before_expiry_fixed_calendar"
+ },
+ "rule": "vt_US(t) = min(1.0, 0.15 / sigma_SMA20(t)); daily; earns from t+1",
+ "rule_id": "R-29-US-VT15",
+ "searched_parameters": [],
+ "seed": 11,
+ "start_band": {
+  "require": {
+   "no_reject": true,
+   "pass_share_min": "4/5"
+  },
+  "shape": "decade_spaced",
+  "starts": 10,
+  "step": "decade"
+ },
+ "tier": "A",
+ "timing": {
+  "decision": "close_t_earn_t_plus_1",
+  "inputs": {
+   "SPX": {
+    "series": "SPX_OFFICIAL_CLOSE",
+    "value_status": "official_close"
+   }
+  }
+ }
+}

@@ -1,0 +1,507 @@
+{
+ "acts": false,
+ "components": [
+  "fast_fhs",
+  "gjr_evt"
+ ],
+ "components_lines": {
+  "fast_fhs": {
+   "2016-26": {
+    "basel": {
+     "last_250": "green",
+     "n_windows": 10,
+     "windows": {
+      "green": 8,
+      "red": 0,
+      "yellow": 2
+     }
+    },
+    "es975": {
+     "B": 2000,
+     "alpha": 0.025000000000000022,
+     "law": "x*_t = scale_t z*, z* iid from the residual pool",
+     "n": 2697,
+     "p": 0.4125,
+     "q": 0.975,
+     "rejected_5pct": false,
+     "seed": 11,
+     "z2": -0.18936291424854645
+    },
+    "n": 2697,
+    "tick_loss": {
+     "var95": 0.0012526967472331187,
+     "var99": 0.0004018358622968109
+    },
+    "unscaled": {
+     "var95_rate": 0.04968483500185391,
+     "var99_rate": 0.01260659992584353
+    },
+    "var95": {
+     "cc_p": 0.26297947197637245,
+     "ind_p": 0.10253221957669839,
+     "kupiec_p": 0.9400766616295757,
+     "n": 2697,
+     "q": 0.95,
+     "rate": 0.04968483500185391,
+     "tick_loss": 0.0012526967472331187,
+     "x": 134
+    },
+    "var99": {
+     "cc_p": 0.08727145169547254,
+     "ind_p": 0.07510669145140281,
+     "kupiec_p": 0.19102013204626161,
+     "n": 2697,
+     "q": 0.99,
+     "rate": 0.01260659992584353,
+     "tick_loss": 0.0004018358622968109,
+     "x": 34
+    }
+   },
+   "2026": {
+    "basel": {
+     "last_250": null,
+     "n_windows": 0,
+     "windows": {
+      "green": 0,
+      "red": 0,
+      "yellow": 0
+     }
+    },
+    "es975": {
+     "B": 2000,
+     "alpha": 0.025000000000000022,
+     "law": "x*_t = scale_t z*, z* iid from the residual pool",
+     "n": 183,
+     "p": 0.451,
+     "q": 0.975,
+     "rejected_5pct": false,
+     "seed": 11,
+     "z2": 0.23037184057088322
+    },
+    "n": 183,
+    "tick_loss": {
+     "var95": 0.0009955470476656911,
+     "var99": 0.0003400242713629585
+    },
+    "unscaled": {
+     "var95_rate": 0.06557377049180328,
+     "var99_rate": 0.01092896174863388
+    },
+    "var95": {
+     "cc_p": 0.6333224271670436,
+     "ind_p": 0.8082334484809132,
+     "kupiec_p": 0.3552415390331608,
+     "n": 183,
+     "q": 0.95,
+     "rate": 0.06557377049180328,
+     "tick_loss": 0.0009955470476656911,
+     "x": 12
+    },
+    "var99": {
+     "cc_p": 0.970479605318518,
+     "ind_p": 0.8330272011338409,
+     "kupiec_p": 0.9009697358751695,
+     "n": 183,
+     "q": 0.99,
+     "rate": 0.01092896174863388,
+     "tick_loss": 0.0003400242713629585,
+     "x": 2
+    }
+   }
+  },
+  "gjr_evt": {
+   "2016-26": {
+    "basel": {
+     "last_250": "green",
+     "n_windows": 10,
+     "windows": {
+      "green": 9,
+      "red": 0,
+      "yellow": 1
+     }
+    },
+    "es975": {
+     "B": 2000,
+     "alpha": 0.025000000000000022,
+     "law": "x*_t = scale_t z*, z* iid from the residual pool; losses beyond u redrawn from GPD(xi, beta)",
+     "n": 2697,
+     "p": 0.533,
+     "q": 0.975,
+     "rejected_5pct": false,
+     "seed": 11,
+     "z2": -0.02110135041105221
+    },
+    "n": 2697,
+    "tick_loss": {
+     "var95": 0.0011664414159982086,
+     "var99": 0.00037514623545445625
+    },
+    "unscaled": {
+     "var95_rate": 0.04671857619577308,
+     "var99_rate": 0.011494252873563218
+    },
+    "var95": {
+     "cc_p": 0.7309622690496057,
+     "ind_p": 0.9617419989405853,
+     "kupiec_p": 0.42938513861121763,
+     "n": 2697,
+     "q": 0.95,
+     "rate": 0.04671857619577308,
+     "tick_loss": 0.0011664414159982086,
+     "x": 126
+    },
+    "var99": {
+     "cc_p": 0.5006438221323437,
+     "ind_p": 0.3700826893917334,
+     "kupiec_p": 0.44618147137366193,
+     "n": 2697,
+     "q": 0.99,
+     "rate": 0.011494252873563218,
+     "tick_loss": 0.00037514623545445625,
+     "x": 31
+    }
+   },
+   "2026": {
+    "basel": {
+     "last_250": null,
+     "n_windows": 0,
+     "windows": {
+      "green": 0,
+      "red": 0,
+      "yellow": 0
+     }
+    },
+    "es975": {
+     "B": 2000,
+     "alpha": 0.025000000000000022,
+     "law": "x*_t = scale_t z*, z* iid from the residual pool; losses beyond u redrawn from GPD(xi, beta)",
+     "n": 183,
+     "p": 0.67,
+     "q": 0.975,
+     "rejected_5pct": false,
+     "seed": 11,
+     "z2": 0.24039943853490398
+    },
+    "n": 183,
+    "tick_loss": {
+     "var95": 0.0009275261917767484,
+     "var99": 0.0003171428283220232
+    },
+    "unscaled": {
+     "var95_rate": 0.03825136612021858,
+     "var99_rate": 0.01092896174863388
+    },
+    "var95": {
+     "cc_p": 0.5664261087528735,
+     "ind_p": 0.4542000416282411,
+     "kupiec_p": 0.447621387573637,
+     "n": 183,
+     "q": 0.95,
+     "rate": 0.03825136612021858,
+     "tick_loss": 0.0009275261917767484,
+     "x": 7
+    },
+    "var99": {
+     "cc_p": 0.970479605318518,
+     "ind_p": 0.8330272011338409,
+     "kupiec_p": 0.9009697358751695,
+     "n": 183,
+     "q": 0.99,
+     "rate": 0.01092896174863388,
+     "tick_loss": 0.0003171428283220232,
+     "x": 2
+    }
+   }
+  }
+ },
+ "config": {
+  "acceptance": {
+   "es975_z2_reject_level": 0.05,
+   "fan_pit_h21_chi2_p_min": 0.01,
+   "reported_not_gated": [
+    "fan_pit_h126",
+    "period_2026"
+   ],
+   "sample": "oos_2016_26",
+   "var99_cc_p_min": 0.05,
+   "var99_kupiec_p_min": 0.05
+  },
+  "envelope": "max(fast_fhs, gjr_evt)",
+  "fit": {
+   "min_years": 10,
+   "refit_every_origins": 21,
+   "window": "expanding"
+  },
+  "lines": {
+   "basel_zones": true,
+   "es_level": 0.975,
+   "es_test": "z2_simulated_critical_values",
+   "fan_model": {
+    "drift": "premium",
+    "erp": 0.04,
+    "fit": "expanding",
+    "model": "garch_t",
+    "n_paths": 2000,
+    "rf_rate": 0.03
+   },
+   "fan_pit_h": [
+    21,
+    126
+   ],
+   "var_levels": [
+    0.95,
+    0.99
+   ]
+  },
+  "outputs": "descriptive",
+  "path_colour_label": "path-vol quartile",
+  "post_holiday": {
+   "reported_separately": true,
+   "var_display_scale": "sqrt(max(n_US, 1))"
+  },
+  "report_periods": [
+   "2016-26",
+   "2026"
+  ],
+  "source": "core.quant.lab.LAB_CONFIG (module constant)",
+  "tails": {
+   "evt": {
+    "dist": "gpd",
+    "method": "mcneil_frey",
+    "side": "lower",
+    "threshold_share": 0.1
+   },
+   "fhs": true
+  }
+ },
+ "fan_pit": {
+  "h126": {
+   "chi2_p": 0.09908899717133104,
+   "counts": [
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    2,
+    6,
+    5,
+    2
+   ],
+   "drift": "premium",
+   "erp": 0.04,
+   "h": 126,
+   "model": "garch_t",
+   "n_origins": 21,
+   "n_paths": 2000,
+   "overlap": false,
+   "period": "2016-26",
+   "rf_rate": 0.03
+  },
+  "h21": {
+   "chi2_p": 8.280866084260159e-05,
+   "counts": [
+    8,
+    11,
+    6,
+    13,
+    9,
+    7,
+    15,
+    25,
+    25,
+    9
+   ],
+   "drift": "premium",
+   "erp": 0.04,
+   "h": 21,
+   "model": "garch_t",
+   "n_origins": 128,
+   "n_paths": 2000,
+   "overlap": false,
+   "period": "2016-26",
+   "rf_rate": 0.03
+  }
+ },
+ "gate": {
+  "lines": {
+   "es975_z2_p": 0.3115,
+   "fan_pit_h21_chi2_p": 8.280866084260159e-05,
+   "var99_cc_p": 0.5496533693217256,
+   "var99_kupiec_p": 0.9953685056832656
+  },
+  "n": 2697,
+  "n_fan_origins": 128,
+  "period": "2016-26",
+  "reported_not_gated": [
+   "fan_pit_h126",
+   "period_2026"
+  ],
+  "status": "FAIL",
+  "thresholds": {
+   "es975_z2_reject_level": 0.05,
+   "fan_pit_h21_chi2_p_min": 0.01,
+   "min_fan_origins": 20,
+   "min_origins": 200,
+   "var99_cc_p_min": 0.05,
+   "var99_kupiec_p_min": 0.05
+  }
+ },
+ "label": "SMOKE: VENDOR DATA \u2014 Yahoo auto-adjusted closes (docs/asset_expansion/cache), last row dropped; not an official close, not the I-11 KOSPI fixture, not a card run; gates nothing",
+ "lines": [
+  "model envelope = fast_fhs / gjr_evt; expanding GJR fit >= 10 years, refit every 21 origins; returns log",
+  "2016-26 (gated; n 2697): 95% VaR breaches 3.93% Kupiec p 0.008 CC p 0.028",
+  "2016-26 (gated): 99% VaR breaches 1.00% Kupiec p 0.995 CC p 0.550",
+  "2016-26 (gated): ES 97.5% Z2 +0.149 p 0.311 (not rejected at 5%; 2000 simulated)",
+  "2016-26: Basel last 250 green; windows green 9 / yellow 1 / red 0",
+  "fan PIT h21 (gated; garch_t fan, 2016-26 origins, non-overlapping): chi2 p 0.000 n 128",
+  "fan PIT h126 (reported, not gated; garch_t fan): chi2 p 0.099 n 21",
+  "2026 (reported, not gated; n 183): 95% VaR breaches 3.83% Kupiec p 0.448 CC p 0.566",
+  "2026 (reported, not gated): 99% VaR breaches 1.09% Kupiec p 0.901 CC p 0.970",
+  "2026 (reported, not gated): ES 97.5% Z2 +0.425 p 0.634 (not rejected at 5%; 2000 simulated)",
+  "2026: Basel last 250 None; windows green 0 / yellow 0 / red 0",
+  "post-holiday buckets: not run (gap_sessions not supplied: KR/US calendars)",
+  "1-day VaR (envelope): withheld: 1-day VaR only from components that pass 1-day B5 (L1747 (2)); B5 {'fast_fhs': 'FAIL', 'gjr_evt': 'PASS'}",
+  "M9 gate: FAIL var99_kupiec_p 0.9954, var99_cc_p 0.5497, es975_z2_p 0.3115, fan_pit_h21_chi2_p 0.0001",
+  "SMOKE: VENDOR DATA \u2014 Yahoo auto-adjusted closes (docs/asset_expansion/cache), last row dropped; not an official close, not the I-11 KOSPI fixture, not a card run; gates nothing"
+ ],
+ "market": "US",
+ "model": "envelope",
+ "n_ok": 4960,
+ "note": "",
+ "path_colour_label": "path-vol quartile",
+ "per_label": {},
+ "periods": {
+  "2016-26": {
+   "basel": {
+    "last_250": "green",
+    "n_windows": 10,
+    "windows": {
+     "green": 9,
+     "red": 0,
+     "yellow": 1
+    }
+   },
+   "es975": {
+    "B": 2000,
+    "alpha": 0.025000000000000022,
+    "law": "x*_t = scale_t z*, z* iid from the residual pool; losses beyond u redrawn from GPD(xi, beta)",
+    "n": 2697,
+    "p": 0.3115,
+    "q": 0.975,
+    "rejected_5pct": false,
+    "seed": 11,
+    "z2": 0.14890964347612923
+   },
+   "n": 2697,
+   "tick_loss": {
+    "var95": 0.0012239088948389474,
+    "var99": 0.0003910393914579639
+   },
+   "unscaled": {
+    "var95_rate": 0.039302929180571,
+    "var99_rate": 0.010011123470522803
+   },
+   "var95": {
+    "cc_p": 0.027872382620118093,
+    "ind_p": 0.680044466029575,
+    "kupiec_p": 0.008195892996157667,
+    "n": 2697,
+    "q": 0.95,
+    "rate": 0.039302929180571,
+    "tick_loss": 0.0012239088948389474,
+    "x": 106
+   },
+   "var99": {
+    "cc_p": 0.5496533693217256,
+    "ind_p": 0.2739419135699354,
+    "kupiec_p": 0.9953685056832656,
+    "n": 2697,
+    "q": 0.99,
+    "rate": 0.010011123470522803,
+    "tick_loss": 0.0003910393914579639,
+    "x": 27
+   }
+  },
+  "2026": {
+   "basel": {
+    "last_250": null,
+    "n_windows": 0,
+    "windows": {
+     "green": 0,
+     "red": 0,
+     "yellow": 0
+    }
+   },
+   "es975": {
+    "B": 2000,
+    "alpha": 0.025000000000000022,
+    "law": "x*_t = scale_t z*, z* iid from the residual pool; losses beyond u redrawn from GPD(xi, beta)",
+    "n": 183,
+    "p": 0.634,
+    "q": 0.975,
+    "rejected_5pct": false,
+    "seed": 11,
+    "z2": 0.4245159220376633
+   },
+   "n": 183,
+   "tick_loss": {
+    "var95": 0.000988645842719859,
+    "var99": 0.00034697986101371966
+   },
+   "unscaled": {
+    "var95_rate": 0.03825136612021858,
+    "var99_rate": 0.01092896174863388
+   },
+   "var95": {
+    "cc_p": 0.5664261087528735,
+    "ind_p": 0.4542000416282411,
+    "kupiec_p": 0.447621387573637,
+    "n": 183,
+    "q": 0.95,
+    "rate": 0.03825136612021858,
+    "tick_loss": 0.000988645842719859,
+    "x": 7
+   },
+   "var99": {
+    "cc_p": 0.970479605318518,
+    "ind_p": 0.8330272011338409,
+    "kupiec_p": 0.9009697358751695,
+    "n": 183,
+    "q": 0.99,
+    "rate": 0.01092896174863388,
+    "tick_loss": 0.00034697986101371966,
+    "x": 2
+   }
+  }
+ },
+ "post_holiday": {},
+ "reason": "",
+ "repro": {
+  "config_hash": "56547d133d7b40fb6c6f729da73e854f",
+  "data_snapshot_id": "52731965507b910b34a01d04eb443e0d",
+  "git_hash": "UNVERSIONED",
+  "knowledge_utc": "2026-09-24T23:59:59Z (last close in the file)",
+  "package_version": "quant_lab_grading 2.0",
+  "seed": 11
+ },
+ "returns": "log",
+ "status": "ok",
+ "symbol": "SPY",
+ "var_1d": {
+  "b5": {
+   "fast_fhs": "FAIL",
+   "gjr_evt": "PASS"
+  },
+  "displayable": false,
+  "es975": null,
+  "model": "envelope",
+  "origin": "2026-09-24",
+  "reason": "withheld: 1-day VaR only from components that pass 1-day B5 (L1747 (2))",
+  "scale": 1.0,
+  "var95": null,
+  "var99": null
+ },
+ "verdict": "FAIL"
+}

@@ -1,0 +1,153 @@
+{
+ "card_id": "SCR-2",
+ "class": "CARD-O",
+ "register_id": "G-02",
+ "node": "TF-13",
+ "register_decision": "BUILD NOW (screen card)",
+ "ruling": "CR-06",
+ "build_status": "SPECIFICATION_BOOK",
+ "market": "KR",
+ "instrument_book": "KRX_stock_book",
+ "hypothesis": "excluding heavy issuers (252-session share growth > 10%) raises long-only net excess",
+ "rule": "F6: drop names whose share count grew more than 10% over 252 sessions (split-like days ignored)",
+ "construction": "core.quant.tf_screens.dilution_at(P, t, window=252) -> dilution_flag(dil_lit, threshold=0.10) (split-like days ignored); core.quant.tf_books.run_books(B1..B4 base and filtered books)",
+ "costs": {
+  "per_side": "read_from_gate",
+  "floor": "tick_floor",
+  "stress": 2.0,
+  "stress_line": "printed",
+  "printed_lines": [
+   "35 bp per side (validate.COST_BP_PER_SIDE['krx_stock'])",
+   "stress 2 x = 70 bp per side (printed)"
+  ]
+ },
+ "cost_detail": {
+  "per_side_bp": 35.0,
+  "stress_multiplier": 2.0,
+  "binding": "flat table rate until KIS quote calibration; an itemised total may only raise it (PX-T-07, D-28)",
+  "itemised": {
+   "commission": null,
+   "sell_tax": null,
+   "half_tick_floor": null,
+   "sqrt_impact": null
+  }
+ },
+ "evaluation": {
+  "gate": "nine-step gate, core.quant.validate (walk_forward 756/126, embargo = holding period)",
+  "tightenings": [
+   "GOV-1 long-only primary statistic vs the declared benchmark set (sign split EW / capped VW -> REVISE)",
+   "GOV-2 family gate if > 1 configuration (SPA consistent p <= 0.05 at 1x, BH q 0.10, persistence >= 60%)",
+   "GOV-4 block max(10, PW(d), PW(d^2), 2 x holding) for steps 2 and 5: the worse of it and the 10-session result",
+   "GOV-7 break-even pre-gate screen: REJECT if break-even < 2 x 35 bp",
+   "GOV-3 attribution block; GOV-9 stress table; GOV-5 minimum track record (reported)"
+  ],
+  "holding_sessions": 21,
+  "step8": "kept; 2-of-3 subperiods 1996-2005 / 2006-2015 / 2016-2026 reported (PX-T-05)",
+  "step9": "expected live = 0.6 x OOS (reported, not gated)",
+  "cpcv": "reported, not gating (GOV-10)"
+ },
+ "attribution": {
+  "factors": [
+   "MKT",
+   "SMB",
+   "HML",
+   "RMWq",
+   "CMA",
+   "UMD",
+   "SEMI"
+  ],
+  "tilt_threshold_t": 2.0,
+  "status": "proposal pending owner confirmation (OQ-15); display only, never changes a verdict (D-19)"
+ },
+ "stress_windows": [
+  "2008-06..2009-03 GFC",
+  "2009-03..2009-05 post-GFC rebound",
+  "2020-02-17..03-19 COVID crash",
+  "2020-03-20..06-30 COVID rebound",
+  "2022 full year",
+  "2026-01-02..06-22 melt-up",
+  "2026-06-22..07-30 crash",
+  "2026-07-31..09-29 after crash"
+ ],
+ "incubation": {
+  "clock_start": "2026-10-01",
+  "min_sessions": 252,
+  "first_recorded_session": null,
+  "rule": "counted from the first recorded session, never back-filled"
+ },
+ "trials": {
+  "N_registered": null
+ },
+ "data_span": {
+  "start": null,
+  "end": null
+ },
+ "run_status": "NOT_RUN",
+ "verdict": null,
+ "blocked_by": "REFDATA: KRX all-stock daily panel (marcap files 1995-2026: close, high, volume, amount, marcap, shares, market, name class; expected under data/techfund/marcap/) absent",
+ "lab_reference": {
+  "label": "lab, in sample, 1996-2026, price returns without dividends, rf 0; not a QUANTGEN gate result (D-31)",
+  "rows": [
+   {
+    "gv": "GV-014..017",
+    "item": "B1 F6 gross / net 35 / net 70 %/yr; IR (monthly basis)",
+    "value": "2.4164 / 2.3363 / 2.2563; IR 0.6453",
+    "source": "r2_kr_excl_summary.csv lines 19 / 17 / 18"
+   },
+   {
+    "gv": "G-TF-SCR-16",
+    "item": "B1 F6 daily basis (QA recomputation)",
+    "value": "2.56 / 2.48 / 2.40 %/yr; IR 1.03",
+    "source": "qa_exact_costconv.json (not shipped)"
+   }
+  ]
+ },
+ "what_would_change_it": "post-2015 decay check pre-registered; drop to hygiene if 2016+ forward IR <= 0 (R3:799)",
+ "proposal_status": "tech-fund values are proposals pending owner confirmation; Council v2.0 governs on conflict (rulings 3.7)",
+ "comparator": "overlay_off",
+ "comparator_text": "the unscreened base book on the same days (CR-06)",
+ "base_books": {
+  "B1": "EW ALL",
+  "B2": "VW ALL capped 5%",
+  "B3": "top-200 VW capped 5%",
+  "B4": "MOM_12_1 top quintile EW"
+ },
+ "screen_weight_by_book": {
+  "B1": 3,
+  "B2": 1,
+  "B3": 0,
+  "B4": 3,
+  "status": "prior (0-3), not a gate result (CR-06; D-26)"
+ },
+ "primary_statistic": "long_only_net_excess",
+ "benchmarks": [
+  "EW",
+  "CW",
+  "CW_ex_pair",
+  "capped_CW"
+ ],
+ "sign_split_rule": "EW and capped-VW signs differ -> REVISE (GOV-1)",
+ "long_short": "diagnostic only; short-leg share reported",
+ "statistic_basis": "daily session differences (F-15 / C4-1); golden rows compared on the same basis only",
+ "break_even": {
+  "bp_per_side": null,
+  "pre_gate_screen": "REJECT if < 2 x 35 bp (GOV-7)",
+  "lab_reference": {
+   "bp_per_side": 1057.0,
+   "form": "gross diff / extra one-way turnover (QA 1,060)",
+   "source": "r2_kr_excl_summary.csv line 19"
+  }
+ },
+ "nulls": {
+  "cost_detail.itemised.commission": "OWNER: itemised cost inputs (sell-tax table, tick table, impact model) not signed",
+  "cost_detail.itemised.sell_tax": "OWNER: itemised cost inputs (sell-tax table, tick table, impact model) not signed",
+  "cost_detail.itemised.half_tick_floor": "OWNER: itemised cost inputs (sell-tax table, tick table, impact model) not signed",
+  "cost_detail.itemised.sqrt_impact": "OWNER: itemised cost inputs (sell-tax table, tick table, impact model) not signed",
+  "incubation.first_recorded_session": "PENDING: set at the first recorded forward session",
+  "trials.N_registered": "REFDATA: KRX all-stock daily panel (marcap files 1995-2026: close, high, volume, amount, marcap, shares, market, name class; expected under data/techfund/marcap/) absent",
+  "data_span.start": "REFDATA: KRX all-stock daily panel (marcap files 1995-2026: close, high, volume, amount, marcap, shares, market, name class; expected under data/techfund/marcap/) absent",
+  "data_span.end": "REFDATA: KRX all-stock daily panel (marcap files 1995-2026: close, high, volume, amount, marcap, shares, market, name class; expected under data/techfund/marcap/) absent",
+  "verdict": "REFDATA: KRX all-stock daily panel (marcap files 1995-2026: close, high, volume, amount, marcap, shares, market, name class; expected under data/techfund/marcap/) absent",
+  "break_even.bp_per_side": "REFDATA: KRX all-stock daily panel (marcap files 1995-2026: close, high, volume, amount, marcap, shares, market, name class; expected under data/techfund/marcap/) absent"
+ }
+}

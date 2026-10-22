@@ -1,0 +1,105 @@
+{
+ "item": "CRY-1",
+ "addition": "pre-registered split at 2024-01-10 (US spot-ETF date)",
+ "register_id": "G-29",
+ "node": "TF-67",
+ "ruling": "CR-10",
+ "card": "S_C3_crypto_trend",
+ "c3_verdict": "PASS, unchanged (D-24: additions are governance lines; the stored verdict is not rewritten)",
+ "label": "vendor data, labelled trial, not a formal card run",
+ "run_mode": "labelled_trial",
+ "value_status": "vendor_close",
+ "seed": 11,
+ "B": 2000,
+ "cost_bp_per_side": 10.0,
+ "stress_multiplier": 2.0,
+ "gate": "core.quant.validate nine-step gate (walk_forward 756/126, embargo 1, hysteresis lattice) + GOV report lines",
+ "trials": {
+  "card_N_total": 11,
+  "extra_trials": 3,
+  "N_after_cry1": 14,
+  "registered_rows_appended": 3,
+  "family": "C3",
+  "family_rows": 3,
+  "global_N": 3,
+  "registry_dir": "C:\\Users\\whydi\\.nextgen\\macro\\ledgers",
+  "cut_time_trial": "not counted: not run (D-24 counts four trials only if it runs)"
+ },
+ "bonferroni_note": "C3's step-5 p (0.038 KRW-BTC, 0.07 BTC-USD; cards of 2026-09-27) fails Bonferroni across the 16 trading cards (0.10 / 16 = 0.00625; R3:291 prints 0.006); its Sharpe-vs-zero t 3.49 survives (P:L371). Printed, not applied: C3 stays PASS (CR-10).",
+ "data": {
+  "binance_BTCUSDT": {
+   "file": "docs/asset_expansion/cache/binance_BTCUSDT.csv",
+   "md5": "8df4a74993c678269cca1d2e15ae87d9",
+   "start": "2017-08-17",
+   "end": "2026-09-25",
+   "sessions": 3327,
+   "source": "vendor: Binance public daily close (USDT), not an official close"
+  },
+  "upbit_KRW-BTC": {
+   "file": "docs/asset_expansion/cache/upbit_KRW-BTC.csv",
+   "md5": "de7eaec6f45d0dc12b2950f50433b89d",
+   "start": "2017-09-25",
+   "end": "2026-09-25",
+   "sessions": 3288,
+   "source": "vendor: Upbit public daily close (KRW), not an official close"
+  }
+ },
+ "run_utc": "2026-10-06T18:24:53Z",
+ "script": "docs/techfund_study.py",
+ "what_would_change_it": "post-ETF sub-period dSR <= 0 (R3:826)",
+ "proposal_status": "tech-fund values are proposals pending owner confirmation; Council v2.0 governs on conflict (rulings 3.7)",
+ "results": {
+  "binance_BTCUSDT": {
+   "pre": {
+    "start": "2019-09-14",
+    "end": "2024-01-09",
+    "sessions": 1579,
+    "sr_c3": 0.906248239785049,
+    "sr_buy_hold": 0.7133400649917446,
+    "dSR": 0.19290817479330435,
+    "p_block10": 0.2735,
+    "p_lw": 0.256,
+    "block_pw": 10
+   },
+   "post": {
+    "start": "2024-01-10",
+    "end": "2026-09-25",
+    "sessions": 990,
+    "sr_c3": 0.5357065179520532,
+    "sr_buy_hold": 0.5847295190534564,
+    "dSR": -0.04902300110140323,
+    "p_block10": 0.5855,
+    "p_lw": 0.537,
+    "block_pw": 25
+   },
+   "post_dsr_le_0": true,
+   "trigger": "post-ETF sub-period dSR <= 0: the R3 'what would change it' condition is met; reported for the owner, C3's verdict is not rewritten (D-24)"
+  },
+  "upbit_KRW-BTC": {
+   "pre": {
+    "start": "2019-10-23",
+    "end": "2024-01-09",
+    "sessions": 1540,
+    "sr_c3": 1.3593947558117578,
+    "sr_buy_hold": 0.8814945813438307,
+    "dSR": 0.4779001744679271,
+    "p_block10": 0.073,
+    "p_lw": 0.0455,
+    "block_pw": 28
+   },
+   "post": {
+    "start": "2024-01-10",
+    "end": "2026-09-25",
+    "sessions": 990,
+    "sr_c3": 0.9526060681584771,
+    "sr_buy_hold": 0.6175741964757239,
+    "dSR": 0.3350318716827533,
+    "p_block10": 0.1945,
+    "p_lw": 0.144,
+    "block_pw": 24
+   },
+   "post_dsr_le_0": false,
+   "trigger": null
+  }
+ }
+}

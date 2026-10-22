@@ -1,0 +1,541 @@
+<meta charset="utf-8">
+<title>QUANTGEN Paper Run</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap">
+<style>
+/* Layout: a trading-desk post-mortem read top to bottom — the session clock is the spine,
+   then the ledger, the blotter, the evidence. One 1120px column; wide tables scroll in place. */
+:root {
+  --paper: #f2f4f6; --sheet: #fbfcfd; --ink: #13202b; --ink-2: #4a5865; --muted: #6f7c89;
+  --rule: #d9dfe5; --rule-2: #e8ecf0; --accent: #1f4e79; --accent-wash: rgba(31,78,121,.08);
+  --gain: #13753f; --loss: #b42f2f; --warn: #8a5a00; --gain-wash: rgba(19,117,63,.10); --loss-wash: rgba(180,47,47,.09);
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --bench: #8a949e;
+  --div-pos: #2a78d6; --div-neg: #e34948;
+  --f-display: "Archivo", "Arial Narrow", system-ui, sans-serif;
+  --f-body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --f-data: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --ease: cubic-bezier(.2,.7,.2,1);
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #0e1419; --sheet: #151c22; --ink: #e4eaf0; --ink-2: #aab6c2; --muted: #8592a0;
+  --rule: #26313b; --rule-2: #1d262e; --accent: #8cb8e0; --accent-wash: rgba(140,184,224,.10);
+  --gain: #4cc38a; --loss: #f08080; --warn: #e3b04b; --gain-wash: rgba(76,195,138,.12); --loss-wash: rgba(240,128,128,.12);
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --bench: #7d8893;
+  --div-pos: #3987e5; --div-neg: #e66767; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --paper: #0e1419; --sheet: #151c22; --ink: #e4eaf0; --ink-2: #aab6c2; --muted: #8592a0;
+  --rule: #26313b; --rule-2: #1d262e; --accent: #8cb8e0; --accent-wash: rgba(140,184,224,.10);
+  --gain: #4cc38a; --loss: #f08080; --warn: #e3b04b; --gain-wash: rgba(76,195,138,.12); --loss-wash: rgba(240,128,128,.12);
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --bench: #7d8893;
+  --div-pos: #3987e5; --div-neg: #e66767; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { background: var(--paper); color: var(--ink); font: 16px/1.55 var(--f-body); }
+.wrap { max-width: 1120px; margin: 0 auto; padding-inline: 20px; padding-block: 28px 80px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 56px; }
+section > *, header > * { min-width: 0; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; letter-spacing: -.01em; }
+h1 { font-size: clamp(2.1rem, 5vw, 3.4rem); font-weight: 800; font-stretch: 112%; line-height: 1.02; }
+h2 { font-size: clamp(1.45rem, 3vw, 1.9rem); font-weight: 750; font-stretch: 106%; }
+h3 { font-size: 1.08rem; font-weight: 700; font-stretch: 100%; }
+p { margin: 0; max-width: 68ch; }
+a { color: var(--accent); }
+.eyebrow { font: 600 .74rem/1.2 var(--f-data); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.lede { font-size: 1.12rem; color: var(--ink-2); max-width: 70ch; }
+.mono, .num { font-family: var(--f-data); font-variant-numeric: tabular-nums; }
+.gain { color: var(--gain); } .loss { color: var(--loss); } .flat { color: var(--ink-2); }
+section { display: grid; gap: 18px; min-width: 0; }
+.sec-head { display: grid; gap: 6px; }
+.sheet { background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; padding: 18px; min-width: 0; }
+.note { font-size: .9rem; color: var(--muted); max-width: 80ch; }
+
+/* header + session clock */
+header { display: grid; gap: 18px; }
+.meta-line { display: flex; flex-wrap: wrap; gap: 6px 18px; font: .8rem/1.4 var(--f-data); color: var(--muted); }
+.clock { position: relative; }
+.clock svg { width: 100%; height: auto; display: block; overflow: visible; }
+
+/* hero account strip */
+.accts { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; border-top: 2px solid var(--ink); border-bottom: 1px solid var(--rule); }
+.acct { padding: 14px 14px 16px; display: grid; gap: 6px; align-content: start; border-right: 1px solid var(--rule); min-width: 0; }
+.acct:last-child { border-right: 0; }
+.acct .nm { display: flex; align-items: center; gap: 8px; font: 700 .82rem/1.2 var(--f-display); font-stretch: 100%; }
+.sw { width: 10px; height: 10px; border-radius: 2px; flex: none; }
+.acct .big { font: 700 1.9rem/1 var(--f-display); font-stretch: 92%; font-variant-numeric: tabular-nums; }
+.acct .sub { font: .78rem/1.35 var(--f-data); color: var(--muted); }
+.acct .what { font-size: .86rem; color: var(--ink-2); }
+@media (max-width: 900px) { .accts { grid-template-columns: repeat(2, minmax(0,1fr)); } .acct { border-bottom: 1px solid var(--rule); } }
+@media (max-width: 460px) { .accts { grid-template-columns: 1fr; } .acct { border-right: 0; } }
+
+/* verdict */
+.verdict { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 28px; }
+.verdict .points { display: grid; gap: 14px; }
+.vp { display: grid; grid-template-columns: 28px minmax(0,1fr); gap: 10px; }
+.vp .k { font: 700 .8rem/1.6 var(--f-data); color: var(--accent); }
+.qa { display: grid; gap: 12px; }
+.qa dt { font: 700 .95rem/1.3 var(--f-display); font-stretch: 100%; }
+.qa dd { margin: 2px 0 0; color: var(--ink-2); }
+@media (max-width: 860px) { .verdict { grid-template-columns: 1fr; } }
+
+/* tables */
+.tbl { overflow-x: auto; border: 1px solid var(--rule); border-radius: 6px; background: var(--sheet); }
+table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+th, td { padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--rule-2); vertical-align: top; }
+th { font: 600 .72rem/1.2 var(--f-data); letter-spacing: .07em; text-transform: uppercase; color: var(--muted); background: var(--sheet); position: sticky; top: 0; white-space: nowrap; }
+td.r, th.r { text-align: right; }
+td.num { white-space: nowrap; }
+tbody tr { transition: background-color .25s var(--ease); }
+tbody tr:hover { background: var(--accent-wash); }
+tbody tr:last-child td { border-bottom: 0; }
+.chip { display: inline-flex; align-items: center; gap: 5px; font: 600 .72rem/1 var(--f-data); padding: 4px 7px; border-radius: 3px; white-space: nowrap; }
+.chip.ok { background: var(--gain-wash); color: var(--gain); }
+.chip.bad { background: var(--loss-wash); color: var(--loss); }
+.chip.neu { background: var(--accent-wash); color: var(--accent); }
+
+/* tabs with sliding indicator */
+.tabs { position: relative; display: flex; gap: 2px; flex-wrap: wrap; border-bottom: 1px solid var(--rule); }
+.tab { appearance: none; border: 0; background: none; color: var(--ink-2); font: 600 .86rem/1 var(--f-body); padding: 10px 12px 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; transition: color .25s var(--ease); }
+.tab:hover { color: var(--ink); }
+.tab[aria-selected="true"] { color: var(--ink); }
+.tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+.tab-ind { position: absolute; top: 0; left: 0; height: 3px; width: 0; background: var(--ink); border-radius: 2px 2px 0 0; transition: transform .38s var(--ease), width .38s var(--ease), background-color .3s; }
+.panel { animation: none; }
+.panel.enter { animation: panelIn .42s var(--ease); }
+@keyframes panelIn { from { transform: translateX(14px); } to { transform: none; } }
+
+/* charts */
+.chart { position: relative; }
+.chart svg { width: 100%; height: auto; display: block; overflow: visible; min-width: 680px; }
+.scroll { overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; }
+.clock svg { min-width: 620px; }
+.chart text { fill: var(--muted); font: 11px var(--f-data); }
+.chart .lbl { fill: var(--ink-2); font: 600 11px var(--f-data); }
+.chart .grid line { stroke: var(--rule-2); }
+.chart .axis line, .chart .axis path { stroke: var(--rule); }
+.tip { position: absolute; pointer-events: none; background: var(--sheet); border: 1px solid var(--rule); border-radius: 5px; padding: 8px 10px; font: .78rem/1.45 var(--f-data); color: var(--ink); box-shadow: 0 6px 18px rgba(0,0,0,.12); opacity: 0; transform: translateY(4px); transition: opacity .15s, transform .15s; z-index: 5; min-width: 150px; }
+.tip.on { opacity: 1; transform: none; }
+.tip .row { display: flex; justify-content: space-between; gap: 14px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font: .8rem/1.3 var(--f-data); color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.two { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 22px; }
+@media (max-width: 860px) { .two { grid-template-columns: 1fr; } }
+.lessons { display: grid; gap: 12px; }
+.lesson { display: grid; gap: 4px; padding-left: 14px; border-left: 2px solid var(--rule); }
+.lesson.good { border-color: var(--gain); } .lesson.bad { border-color: var(--loss); }
+.lesson b { font-family: var(--f-display); font-stretch: 100%; }
+ol.impl { margin: 0; padding-left: 1.3em; display: grid; gap: 10px; max-width: 80ch; }
+ol.impl li::marker { font: 700 .9rem var(--f-data); color: var(--accent); }
+
+/* motion: elements are visible at rest; scroll entry adds a short settle */
+.rv.in { animation: settle .6s var(--ease) both; }
+@keyframes settle { from { transform: translateY(12px); } to { transform: none; } }
+.draw.in .ln { animation: draw 1.6s var(--ease) both; }
+@keyframes draw { from { stroke-dashoffset: var(--len); } to { stroke-dashoffset: 0; } }
+.grow.in .bar { animation: grow .7s var(--ease) both; }
+@keyframes grow { from { transform: scaleX(.04); } to { transform: none; } }
+.pulse { animation: pulse 2.4s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.35); } }
+@media (prefers-reduced-motion: reduce) { .rv.in, .draw.in .ln, .grow.in .bar, .panel.enter, .pulse { animation: none !important; } .tab-ind { transition: none; } }
+footer { font: .8rem/1.5 var(--f-data); color: var(--muted); display: grid; gap: 6px; border-top: 1px solid var(--rule); padding-top: 16px; }
+</style>
+
+<div class="wrap" id="app">
+  <header class="rv">
+    <div class="eyebrow">QUANTGEN · live paper session · 2026-10-07 20:42 → 2026-10-08 01:42 KST</div>
+    <h1>Five $500 accounts, one five-hour market window</h1>
+    <p class="lede" id="lede"></p>
+    <div id="errataSlot"></div>
+    <div class="meta-line" id="metaLine"></div>
+    <div class="clock sheet" id="clock" aria-label="Session clock with market hours"></div>
+  </header>
+
+  <section class="rv" aria-labelledby="h-accts">
+    <div class="sec-head"><div class="eyebrow">Net result after costs · started at $500.00 each</div><h2 id="h-accts">Where each account finished</h2></div>
+    <div class="accts" id="accts"></div>
+  </section>
+
+  <section class="rv" aria-labelledby="h-verdict">
+    <div class="sec-head"><div class="eyebrow">Verdict</div><h2 id="h-verdict">What five hours can and cannot say about QUANTGEN</h2></div>
+    <div class="verdict"><div class="points" id="verdictPts"></div><dl class="qa" id="qa"></dl></div>
+  </section>
+
+  <section class="rv" aria-labelledby="h-eq">
+    <div class="sec-head"><div class="eyebrow">Equity, marked every 5 minutes (KST)</div><h2 id="h-eq">How the accounts moved</h2></div>
+    <div class="sheet"><div class="legend" id="eqLegend"></div><div class="chart draw" id="eqChart"></div></div>
+    <p class="note" id="eqNote"></p>
+  </section>
+
+  <section class="rv" aria-labelledby="h-ledger">
+    <div class="sec-head"><div class="eyebrow">Ledger</div><h2 id="h-ledger">Account ledger</h2></div>
+    <div class="tbl"><table id="ledger"></table></div>
+    <div class="tbl"><table id="incTbl"></table></div>
+    <p class="note">Replay percentile: where tonight's result ranks among 49 replayed sessions of the same rules in the same clock window (Jul 29 – Oct 6). Gross is P&amp;L before costs on closed trades.</p>
+  </section>
+
+  <section class="rv" aria-labelledby="h-var">
+    <div class="sec-head"><div class="eyebrow">Variance bridge · live result against the 49-session replay average</div><h2 id="h-var">Why each account landed where it did</h2></div>
+    <div class="tbl"><table id="varTbl"></table></div>
+    <p class="note">Expected net is the replay average for the same rules and window. Gross edge is tonight's P&amp;L before costs minus the replay average. Trade volume prices the extra or missing trades at the expected cost per trade. Cost rate is the change in cost per trade, which moves with the venue mix (50 bp ETF and LSE fills against 5 bp futures). The residual holds open-leg marks and rounding.</p>
+  </section>
+
+  <section class="rv" aria-labelledby="h-blotter">
+    <div class="sec-head"><div class="eyebrow">Blotter · every closed trade</div><h2 id="h-blotter">What the rules traded</h2></div>
+    <div class="tabs" role="tablist" id="blotTabs"><span class="tab-ind"></span></div>
+    <div id="blotPanel" class="panel"></div>
+  </section>
+
+  <section class="rv" aria-labelledby="h-asset">
+    <div class="sec-head"><div class="eyebrow">Attribution</div><h2 id="h-asset">P&amp;L by instrument</h2></div>
+    <div class="tabs" role="tablist" id="assetTabs"><span class="tab-ind"></span></div>
+    <div class="sheet"><div class="chart grow panel" id="assetChart"></div></div>
+  </section>
+
+  <section class="rv" aria-labelledby="h-good">
+    <div class="sec-head"><div class="eyebrow">Post-mortem</div><h2 id="h-good">What worked, what hurt, and what to change</h2></div>
+    <div class="two">
+      <div class="lessons" id="goodLessons"></div>
+      <div class="lessons" id="badLessons"></div>
+    </div>
+    <div class="tbl"><table id="riskTbl"></table></div>
+  </section>
+
+  <section class="rv" aria-labelledby="h-replay">
+    <div class="sec-head"><div class="eyebrow">Backtest context · 49 replayed sessions, same window, same rules</div><h2 id="h-replay">Is tonight typical?</h2></div>
+    <div class="sheet"><div class="chart" id="replayChart"></div></div>
+    <p class="note" id="replayNote"></p>
+  </section>
+
+  <section class="rv" aria-labelledby="h-grid">
+    <div class="sec-head"><div class="eyebrow">Stress test · 14 parameter variants on the replay</div><h2 id="h-grid">Turnover explains the losses</h2></div>
+    <div class="sheet"><div class="legend" id="gridLegend"></div><div class="chart" id="gridChart"></div></div>
+    <div class="tbl"><table id="gridTbl"></table></div>
+  </section>
+
+  <section class="rv" aria-labelledby="h-cmp">
+    <div class="sec-head"><div class="eyebrow">Comparison</div><h2 id="h-cmp">QUANTGEN against the LAZYOWEN Grok bot</h2></div>
+    <p class="note" id="cmpNote"></p>
+    <div class="tbl"><table id="cmpTbl"></table></div>
+  </section>
+
+  <section class="rv" aria-labelledby="h-evid">
+    <div class="sec-head"><div class="eyebrow">Validation record</div><h2 id="h-evid">What QUANTGEN had been tested on before tonight</h2></div>
+    <div class="tbl"><table id="evidTbl"></table></div>
+    <div class="tbl"><table id="calTbl"></table></div>
+  </section>
+
+  <section class="rv" aria-labelledby="h-impl">
+    <div class="sec-head"><div class="eyebrow">Implementation</div><h2 id="h-impl">Changes this run argues for</h2></div>
+    <ol class="impl" id="impl"></ol>
+  </section>
+
+  <section class="rv" aria-labelledby="h-ctl">
+    <div class="sec-head"><div class="eyebrow">Controls test · LAZYOWEN's 48-hour checklist plus QUANTGEN invariants</div><h2 id="h-ctl">Did the system obey its own rules?</h2></div>
+    <div class="tbl"><table id="ctlTbl"></table></div>
+    <div class="tbl"><table id="amdTbl"></table></div>
+  </section>
+
+  <section class="rv" aria-labelledby="h-lim">
+    <div class="sec-head"><div class="eyebrow">Method</div><h2 id="h-lim">How this was run, and its limits</h2></div>
+    <div class="lessons" id="limits"></div>
+  </section>
+
+  <footer id="foot"></footer>
+</div>
+
+<script>
+const D = __DATA__;
+const $ = (s, r = document) => r.querySelector(s);
+const el = (tag, attrs = {}, html) => { const e = document.createElement(tag); for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); if (html !== undefined) e.innerHTML = html; return e; };
+const NS = "http://www.w3.org/2000/svg";
+const sv = (tag, attrs = {}) => { const e = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); return e; };
+const usd = (v, d = 2) => (v > 0 ? "+" : v < 0 ? "−" : "±") + "$" + Math.abs(v).toFixed(d);
+const cls = v => v > 0.005 ? "gain" : v < -0.005 ? "loss" : "flat";
+const pct = v => (v == null || isNaN(v)) ? "—" : (100 * v).toFixed(0) + "%";
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const ACC = D.accounts, AC = Object.fromEntries(ACC.map(a => [a.id, a]));
+const colorOf = id => id === "EW_ALL_BH" ? "var(--bench)" : `var(--s${AC[id].slot})`;
+
+// ---------- header
+$("#lede").textContent = D.narrative.lede;
+if ((D.narrative.errata || []).length) {
+  const box = el("div", { class: "lesson bad" }, `<b>${D.narrative.errataTitle || "Corrections"}</b><p>${D.narrative.errataIntro || ""}</p>`);
+  D.narrative.errata.forEach(([h, x]) => box.append(el("p", {}, `<b>${h}</b> ${x}`)));
+  $("#errataSlot").append(box);
+}
+$("#metaLine").innerHTML = D.meta.line.map(x => `<span>${esc(x)}</span>`).join("");
+
+function sessionClock() {
+  const W = 1080, H = 150, L = 64, R = 20, x0 = D.clock.start, x1 = D.clock.end;
+  const X = m => L + (m - x0) / (x1 - x0) * (W - L - R);
+  const s = sv("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "Market sessions across the window" });
+  const rows = D.clock.rows;
+  rows.forEach((r, i) => {
+    const y = 18 + i * 24;
+    const t = sv("text", { x: 0, y: y + 12 }); t.textContent = r.name; s.append(t);
+    s.append(sv("rect", { x: L, y, width: W - L - R, height: 16, rx: 3, fill: "var(--rule-2)" }));
+    r.spans.forEach(([a, b, label]) => {
+      const rr = sv("rect", { x: X(a), y, width: Math.max(2, X(b) - X(a)), height: 16, rx: 3, fill: r.color, opacity: .85, class: "bar", style: `transform-origin:${X(a)}px ${y}px` });
+      const ti = sv("title"); ti.textContent = label; rr.append(ti); s.append(rr);
+    });
+  });
+  const yb = 18 + rows.length * 24 + 6;
+  D.clock.ticks.forEach(([m, lab]) => {
+    s.append(sv("line", { x1: X(m), x2: X(m), y1: 14, y2: yb, stroke: "var(--rule)", "stroke-dasharray": "2 3" }));
+    const t = sv("text", { x: X(m), y: yb + 14, "text-anchor": "middle" }); t.textContent = lab; s.append(t);
+  });
+  D.clock.marks.forEach(([m, lab, kind]) => {
+    s.append(sv("line", { x1: X(m), x2: X(m), y1: 8, y2: yb, stroke: kind === "amend" ? "var(--warn)" : "var(--ink)", "stroke-width": 1.5 }));
+    const c = sv("circle", { cx: X(m), cy: 8, r: 4, fill: kind === "amend" ? "var(--warn)" : "var(--ink)", class: kind === "live" ? "pulse" : "" });
+    const ti = sv("title"); ti.textContent = lab; c.append(ti); s.append(c);
+  });
+  const g = el("div", { class: "grow scroll" }); g.append(s); $("#clock").append(g);
+  const lg = el("div", { class: "legend", style: "margin-top:8px" }, D.clock.marks.map(([m, lab, k]) => `<span><span class="sw" style="background:${k === "amend" ? "var(--warn)" : "var(--ink)"}"></span>${esc(lab)}</span>`).join(""));
+  $("#clock").append(lg);
+}
+sessionClock();
+
+// ---------- account strip
+for (const a of ACC) {
+  const d = el("div", { class: "acct" });
+  d.innerHTML = `<div class="nm"><span class="sw" style="background:${colorOf(a.id)}"></span>${esc(a.label)}</div>
+    <div class="big ${cls(a.net)}">${usd(a.net)}</div>
+    <div class="sub">$${a.final.toFixed(2)} · ${a.trades} trades · costs $${a.costs.toFixed(2)}</div>
+    <div class="what">${esc(a.desc)}</div>`;
+  $("#accts").append(d);
+}
+
+// ---------- verdict
+D.narrative.verdict.forEach((v, i) => $("#verdictPts").append(el("div", { class: "vp" }, `<span class="k">${String(i + 1).padStart(2, "0")}</span><p>${v}</p>`)));
+D.narrative.qa.forEach(([q, a]) => { $("#qa").append(el("dt", {}, esc(q))); $("#qa").append(el("dd", {}, a)); });
+
+// ---------- tooltip helper
+function tipFor(box) { const t = el("div", { class: "tip" }); box.append(t); return { show(html, x, y) { t.innerHTML = html; const bw = box.clientWidth; t.classList.add("on"); const tw = t.offsetWidth; t.style.left = Math.min(Math.max(0, x + 14), bw - tw) + "px"; t.style.top = Math.max(0, y - 10) + "px"; }, hide() { t.classList.remove("on"); } }; }
+
+// ---------- equity chart
+function equityChart() {
+  const box = $("#eqChart"), W = 1080, H = 380, L = 58, R = 120, T = 12, B = 34;
+  const series = Object.entries(D.equity);
+  const all = series.flatMap(([, p]) => p.map(q => q[1]));
+  let lo = Math.min(...all), hi = Math.max(...all); const pad = Math.max(.4, (hi - lo) * .08); lo -= pad; hi += pad;
+  const t0 = D.clock.start, t1 = D.clock.end;
+  const X = m => L + (m - t0) / (t1 - t0) * (W - L - R), Y = v => T + (hi - v) / (hi - lo) * (H - T - B);
+  const s = sv("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "Equity curves" });
+  const g = sv("g", { class: "grid" }); s.append(g);
+  const step = niceStep((hi - lo) / 6);
+  for (let v = Math.ceil(lo / step) * step; v <= hi; v += step) {
+    g.append(sv("line", { x1: L, x2: W - R, y1: Y(v), y2: Y(v) }));
+    const t = sv("text", { x: L - 8, y: Y(v) + 4, "text-anchor": "end" }); t.textContent = "$" + v.toFixed(step < 1 ? 1 : 0); s.append(t);
+  }
+  D.clock.ticks.forEach(([m, lab]) => { const t = sv("text", { x: X(m), y: H - 10, "text-anchor": "middle" }); t.textContent = lab; s.append(t); });
+  s.append(sv("line", { x1: L, x2: W - R, y1: Y(500), y2: Y(500), stroke: "var(--ink-2)", "stroke-dasharray": "4 4", "stroke-width": 1 }));
+  const ends = [];
+  for (const [id, pts] of series) {
+    if (!pts.length) continue;
+    const d = pts.map((p, i) => (i ? "L" : "M") + X(p[0]).toFixed(1) + " " + Y(p[1]).toFixed(1)).join(" ");
+    const path = sv("path", { d, fill: "none", stroke: colorOf(id), "stroke-width": 2, "stroke-linejoin": "round", class: "ln", "stroke-dasharray": id === "EW_ALL_BH" ? "5 4" : "none" });
+    s.append(path);
+    const last = pts[pts.length - 1];
+    s.append(sv("circle", { cx: X(last[0]), cy: Y(last[1]), r: 4, fill: colorOf(id), stroke: "var(--sheet)", "stroke-width": 2 }));
+    ends.push({ id, y: Y(last[1]), v: last[1] });
+  }
+  ends.sort((a, b) => a.y - b.y); for (let i = 1; i < ends.length; i++) if (ends[i].y - ends[i - 1].y < 14) ends[i].y = ends[i - 1].y + 14;
+  ends.forEach(e => { const t = sv("text", { x: W - R + 10, y: e.y + 4, class: "lbl" }); t.textContent = (e.id === "EW_ALL_BH" ? "EW basket" : AC[e.id].short) + " " + e.v.toFixed(2); s.append(t); });
+  const cross = sv("line", { y1: T, y2: H - B, stroke: "var(--muted)", "stroke-width": 1, opacity: 0 }); s.append(cross);
+  const hit = sv("rect", { x: L, y: T, width: W - L - R, height: H - T - B, fill: "transparent" }); s.append(hit);
+  const sc = el("div", { class: "scroll" }); sc.append(s); box.append(sc);
+  requestAnimationFrame(() => s.querySelectorAll(".ln").forEach(p => { const len = p.getTotalLength(); p.style.setProperty("--len", len); if (!p.getAttribute("stroke-dasharray") || p.getAttribute("stroke-dasharray") === "none") p.style.strokeDasharray = len; }));
+  const tip = tipFor(box);
+  hit.addEventListener("pointermove", ev => {
+    const r = s.getBoundingClientRect(), mx = (ev.clientX - r.left) / r.width * W;
+    const m = t0 + (mx - L) / (W - L - R) * (t1 - t0);
+    cross.setAttribute("x1", mx); cross.setAttribute("x2", mx); cross.setAttribute("opacity", 1);
+    let rows = "", tl = "";
+    for (const [id, pts] of series) { let best = null; for (const p of pts) if (p[0] <= m + 2.5) best = p; if (!best) continue; tl = best[2] || tl; rows += `<div class="row"><span><span class="sw" style="display:inline-block;background:${colorOf(id)}"></span> ${id === "EW_ALL_BH" ? "EW basket" : AC[id].short}</span><b>$${best[1].toFixed(2)}</b></div>`; }
+    tip.show(`<div style="color:var(--muted)">${hm(m)} KST</div>${rows}`, ev.clientX - box.getBoundingClientRect().left, ev.clientY - box.getBoundingClientRect().top);
+  });
+  hit.addEventListener("pointerleave", () => { cross.setAttribute("opacity", 0); tip.hide(); });
+  $("#eqLegend").innerHTML = series.map(([id]) => `<span><span class="sw" style="background:${colorOf(id)}"></span>${id === "EW_ALL_BH" ? "Equal-weight buy-and-hold basket (benchmark, no costs)" : esc(AC[id].label)}</span>`).join("");
+  $("#eqNote").innerHTML = D.narrative.eqNote;
+}
+function niceStep(x) { const p = Math.pow(10, Math.floor(Math.log10(x))), f = x / p; return (f < 1.5 ? 1 : f < 3.5 ? 2 : f < 7.5 ? 5 : 10) * p; }
+function hm(m) { m = ((m % 1440) + 1440) % 1440; return String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(Math.floor(m % 60)).padStart(2, "0"); }
+equityChart();
+
+// ---------- ledger
+(function ledger() {
+  const t = $("#ledger");
+  t.innerHTML = `<thead><tr><th>Account</th><th class="r">Net P&amp;L</th><th class="r">Gross (closed)</th><th class="r">Costs</th><th class="r">Trades</th><th class="r">Win rate</th><th class="r">Max drawdown</th><th class="r">Peak exposure</th><th class="r">Replay pct.</th><th class="r">Replay mean ± sd</th></tr></thead>`;
+  const b = el("tbody");
+  for (const a of ACC) b.append(el("tr", {}, `<td><span class="sw" style="display:inline-block;background:${colorOf(a.id)};margin-right:7px"></span>${esc(a.label)}</td>
+    <td class="r num ${cls(a.net)}">${usd(a.net)}</td><td class="r num ${cls(a.gross)}">${usd(a.gross)}</td><td class="r num">$${a.costs.toFixed(2)}</td>
+    <td class="r num">${a.trades}</td><td class="r num">${pct(a.win_rate)}</td><td class="r num">${(100 * a.maxdd).toFixed(2)}%</td><td class="r num">$${a.peak_gross.toFixed(0)}</td>
+    <td class="r num">${a.replay_pct == null ? "—" : a.replay_pct.toFixed(0)}</td><td class="r num">${a.replay_mean == null ? "—" : usd(a.replay_mean) + " ± " + a.replay_sd.toFixed(2)}</td>`));
+  b.append(el("tr", {}, `<td style="color:var(--muted)">Equal-weight basket, buy-and-hold</td><td class="r num ${cls(D.bench.EW * 500)}">${usd(D.bench.EW * 500)}</td><td colspan="8" class="note">all ${D.bench.n} instruments held from their first fresh quote in the window, no costs</td>`));
+  if (D.bench.SPY != null) b.append(el("tr", {}, `<td style="color:var(--muted)">SPY, buy-and-hold from the NYSE open</td><td class="r num ${cls(D.bench.SPY * 500)}">${usd(D.bench.SPY * 500)}</td><td colspan="8" class="note">$500 in SPY at 22:30 KST, no costs</td>`));
+  t.append(b);
+})();
+
+// ---------- session income statement (accounts as columns)
+(function incTbl() {
+  const t = $("#incTbl"), I = D.income, ids = ACC.map(a => a.id);
+  const cell = v => `<td class="r num ${cls(v)}">${Math.abs(v) < 0.0005 ? "—" : usd(v, 3)}</td>`;
+  let h = `<thead><tr><th>Session income statement, USD</th>${ids.map(id => `<th class="r">${esc(AC[id].short)}</th>`).join("")}</tr></thead><tbody>`;
+  h += `<tr><td><b>Trading result before costs</b></td>${ids.map(() => "<td></td>").join("")}</tr>`;
+  I.venues.forEach(v => { h += `<tr><td style="padding-left:24px">${esc(v)}</td>${ids.map(id => cell(I.acct[id].gross[v])).join("")}</tr>`; });
+  h += `<tr><td><b>Total trading result</b></td>${ids.map(id => cell(I.acct[id].gross_total)).join("")}</tr>`;
+  h += `<tr><td><b>Transaction costs</b> (QUANTGEN table, both legs)</td>${ids.map(() => "<td></td>").join("")}</tr>`;
+  I.venues.forEach(v => { h += `<tr><td style="padding-left:24px">${esc(v)}</td>${ids.map(id => cell(-I.acct[id].cost[v])).join("")}</tr>`; });
+  h += `<tr><td><b>Total costs</b></td>${ids.map(id => cell(-I.acct[id].cost_total)).join("")}</tr>`;
+  h += `<tr style="border-top:2px solid var(--ink)"><td><b>Net result</b></td>${ids.map(id => `<td class="r num ${cls(I.acct[id].net)}"><b>${usd(I.acct[id].net, 2)}</b></td>`).join("")}</tr>`;
+  h += `<tr><td>Return on $500 capital</td>${ids.map(id => `<td class="r num ${cls(I.acct[id].net)}">${(I.acct[id].net / 5).toFixed(2)}%</td>`).join("")}</tr>`;
+  h += `<tr><td>Expected net (replay mean, the "budget")</td>${ids.map(id => cell(I.acct[id].expected)).join("")}</tr>`;
+  h += `<tr><td>Variance vs expected</td>${ids.map(id => cell(I.acct[id].net - I.acct[id].expected)).join("")}</tr>`;
+  h += `<tr><td>Cash: opening $500.00 → closing</td>${ids.map(id => `<td class="r num">$${I.acct[id].closing_cash.toFixed(2)}</td>`).join("")}</tr></tbody>`;
+  t.innerHTML = h;
+})();
+
+// ---------- variance bridge
+(function varTbl() {
+  const t = $("#varTbl");
+  t.innerHTML = `<thead><tr><th>Account</th><th class="r">Expected net</th><th class="r">Gross edge</th><th class="r">Trade volume</th><th class="r">Cost rate / venue mix</th><th class="r">Residual</th><th class="r">Actual net</th><th class="r">Trades exp. → act.</th><th class="r">Cost per trade exp. → act.</th></tr></thead>`;
+  const b = el("tbody");
+  D.variance.forEach(v => b.append(el("tr", {}, `<td><span class="sw" style="display:inline-block;background:${colorOf(v.id)};margin-right:7px"></span>${esc(AC[v.id].short)}</td>
+    <td class="r num ${cls(v.budget)}">${usd(v.budget)}</td><td class="r num ${cls(v.edge)}">${usd(v.edge)}</td><td class="r num ${cls(v.volume)}">${usd(v.volume)}</td>
+    <td class="r num ${cls(v.rate)}">${usd(v.rate)}</td><td class="r num ${cls(v.resid)}">${usd(v.resid)}</td><td class="r num ${cls(v.actual)}"><b>${usd(v.actual)}</b></td>
+    <td class="r num">${v.bt.toFixed(1)} → ${v.at}</td><td class="r num">$${v.bcpt.toFixed(3)} → $${v.acpt.toFixed(3)}</td>`)));
+  t.append(b);
+})();
+
+// ---------- tabs component (sliding indicator, measured)
+function makeTabs(host, items, onSelect) {
+  const ind = host.querySelector(".tab-ind");
+  const btns = items.map((it, i) => { const b = el("button", { class: "tab", role: "tab", "aria-selected": i === 0 ? "true" : "false", id: host.id + "-" + i, type: "button" }, `<span class="sw" style="background:${it.color}"></span>${esc(it.label)}`); host.insertBefore(b, ind); return b; });
+  const place = b => { ind.style.width = b.offsetWidth + "px"; ind.style.transform = `translate(${b.offsetLeft}px, ${b.offsetTop + b.offsetHeight - 2}px)`; ind.style.background = b.dataset.c || "var(--ink)"; };
+  btns.forEach((b, i) => { b.dataset.c = items[i].color; b.addEventListener("click", () => { btns.forEach(x => x.setAttribute("aria-selected", "false")); b.setAttribute("aria-selected", "true"); place(b); onSelect(items[i], true); }); });
+  host.addEventListener("keydown", e => { const i = btns.findIndex(b => b === document.activeElement); if (i < 0) return; const j = e.key === "ArrowRight" ? (i + 1) % btns.length : e.key === "ArrowLeft" ? (i - 1 + btns.length) % btns.length : -1; if (j >= 0) { btns[j].focus(); btns[j].click(); } });
+  const ro = new ResizeObserver(() => place(btns.find(b => b.getAttribute("aria-selected") === "true"))); ro.observe(host);
+  requestAnimationFrame(() => place(btns[0])); onSelect(items[0], false);
+}
+function replayAnim(node) { node.classList.remove("enter", "in"); void node.offsetWidth; node.classList.add("enter", "in"); }
+
+// ---------- blotter
+const tabItems = ACC.map(a => ({ id: a.id, label: a.short + " (" + a.trades + ")", color: colorOf(a.id) }));
+makeTabs($("#blotTabs"), tabItems, (it, anim) => {
+  const p = $("#blotPanel"); const rows = D.trades.filter(t => t.account === it.id);
+  if (!rows.length) { p.innerHTML = `<div class="sheet"><p>${esc(AC[it.id].label)} closed no trades. ${esc(AC[it.id].why_none || "")}</p></div>`; if (anim) replayAnim(p); return; }
+  p.innerHTML = `<div class="tbl"><table><thead><tr><th>Entry → exit (KST)</th><th>Instrument</th><th>Venue</th><th>Position</th><th class="r">Notional</th><th class="r">Entry</th><th class="r">Exit</th><th class="r">Net P&amp;L</th><th class="r">Cost</th><th class="r">Worst / best</th><th>Exit reason</th></tr></thead><tbody>${rows.map(t => `<tr>
+    <td class="num">${t.entry_kst}–${t.exit_kst}<br><span class="note">${t.hold.toFixed(0)} min</span></td><td>${esc(t.name)}<br><span class="note mono">${esc(t.key)}</span></td><td>${esc(t.venue)}</td><td>${esc(t.route)}</td>
+    <td class="r num">$${t.notional.toFixed(2)}</td><td class="r num">${fmtPx(t.entry_px)}</td><td class="r num">${fmtPx(t.exit_px)}</td>
+    <td class="r num ${cls(t.pnl_net)}">${usd(t.pnl_net, 3)}</td><td class="r num">$${t.cost.toFixed(3)}</td>
+    <td class="r num">${t.mae_usd == null ? "—" : usd(t.mae_usd, 3) + " / " + usd(t.mfe_usd, 3)}</td><td>${esc(t.reason)}</td></tr>`).join("")}</tbody></table></div>`;
+  if (anim) replayAnim(p);
+});
+function fmtPx(v) { return v >= 1000 ? v.toFixed(1) : v >= 10 ? v.toFixed(2) : v.toFixed(4); }
+
+// ---------- P&L by asset (diverging bars)
+makeTabs($("#assetTabs"), [{ id: "ALL", label: "All accounts", color: "var(--ink)" }, ...tabItems], (it, anim) => {
+  const box = $("#assetChart"); box.innerHTML = "";
+  let rows = D.by_asset.filter(r => it.id === "ALL" || r.account === it.id);
+  const agg = {}; rows.forEach(r => { const k = r.key; agg[k] = agg[k] || { key: k, name: r.name, venue: r.venue, net: 0, gross: 0, cost: 0, trades: 0 }; agg[k].net += r.net; agg[k].gross += r.gross; agg[k].cost += r.cost; agg[k].trades += r.trades; });
+  rows = Object.values(agg).sort((a, b) => a.net - b.net);
+  if (!rows.length) { box.innerHTML = `<p class="note">No closed trades for this account.</p>`; if (anim) replayAnim(box); return; }
+  const W = 1080, rowH = 24, L = 210, R = 90, T = 8, H = T + rows.length * rowH + 26;
+  const m = Math.max(...rows.map(r => Math.abs(r.net)), 0.01);
+  const X = v => L + (W - L - R) / 2 + v / m * (W - L - R) / 2;
+  const s = sv("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "Net P&L by instrument" });
+  s.append(sv("line", { x1: X(0), x2: X(0), y1: T - 4, y2: H - 22, stroke: "var(--rule)" }));
+  const tip = tipFor(box);
+  rows.forEach((r, i) => {
+    const y = T + i * rowH;
+    const t = sv("text", { x: L - 10, y: y + 15, "text-anchor": "end", class: "lbl" }); t.textContent = r.name.length > 26 ? r.key : r.name; s.append(t);
+    const x0 = Math.min(X(0), X(r.net)), w = Math.max(2, Math.abs(X(r.net) - X(0)));
+    const bar = sv("rect", { x: x0, y: y + 4, width: w, height: rowH - 8, rx: 2, fill: r.net >= 0 ? "var(--div-pos)" : "var(--div-neg)", class: "bar", style: `transform-origin:${X(0)}px ${y + 12}px` });
+    s.append(bar);
+    const v = sv("text", { x: r.net >= 0 ? X(r.net) + 6 : X(r.net) - 6, y: y + 15, "text-anchor": r.net >= 0 ? "start" : "end" }); v.textContent = usd(r.net, 3); s.append(v);
+    const hit = sv("rect", { x: L, y, width: W - L, height: rowH, fill: "transparent" }); s.append(hit);
+    hit.addEventListener("pointermove", ev => tip.show(`<b>${esc(r.name)}</b> <span style="color:var(--muted)">${esc(r.venue)}</span><div class="row"><span>Net</span><b>${usd(r.net, 3)}</b></div><div class="row"><span>Gross</span><span>${usd(r.gross, 3)}</span></div><div class="row"><span>Costs</span><span>$${r.cost.toFixed(3)}</span></div><div class="row"><span>Trades</span><span>${r.trades}</span></div>`, ev.clientX - box.getBoundingClientRect().left, ev.clientY - box.getBoundingClientRect().top));
+    hit.addEventListener("pointerleave", () => tip.hide());
+  });
+  const a = sv("text", { x: X(0), y: H - 6, "text-anchor": "middle" }); a.textContent = "$0 · bars scaled to the largest |net| (" + usd(m, 2).replace(/^[+−±]/, "") + ")"; s.append(a);
+  const sc = el("div", { class: "scroll" }); sc.append(s); box.append(sc); if (anim) replayAnim(box);
+});
+
+// ---------- lessons + risk table
+D.narrative.good.forEach(([h, b]) => $("#goodLessons").append(el("div", { class: "lesson good" }, `<b>${h}</b><p>${b}</p>`)));
+D.narrative.bad.forEach(([h, b]) => $("#badLessons").append(el("div", { class: "lesson bad" }, `<b>${h}</b><p>${b}</p>`)));
+(function riskTbl() {
+  const t = $("#riskTbl");
+  t.innerHTML = `<thead><tr><th>Riskiest trades (largest 1σ hourly risk at entry)</th><th>Account</th><th class="r">Notional</th><th class="r">1σ risk</th><th class="r">Worst excursion</th><th class="r">Net P&amp;L</th><th>Why it was risky</th></tr></thead>`;
+  const b = el("tbody");
+  D.risky.forEach(r => b.append(el("tr", {}, `<td>${esc(r.name)} <span class="note mono">${esc(r.key)}</span><br><span class="note">${r.entry_kst}–${r.exit_kst} KST</span></td><td>${esc(AC[r.account].short)}</td><td class="r num">$${r.notional.toFixed(2)}</td><td class="r num">$${r.risk.toFixed(3)}</td><td class="r num ${cls(r.mae_usd)}">${r.mae_usd == null ? "—" : usd(r.mae_usd, 3)}</td><td class="r num ${cls(r.pnl_net)}">${usd(r.pnl_net, 3)}</td><td>${r.why}</td></tr>`)));
+  t.append(b);
+})();
+
+// ---------- replay distribution (dot strip per account)
+(function replayChart() {
+  const box = $("#replayChart"), ids = ACC.map(a => a.id), W = 1080, rowH = 46, L = 150, R = 30, T = 10, H = T + ids.length * rowH + 30;
+  const vals = ids.flatMap(id => (D.replay.acct[id] || [])).concat(ACC.map(a => a.net));
+  let lo = Math.min(...vals, -1), hi = Math.max(...vals, 1); const pad = (hi - lo) * .05; lo -= pad; hi += pad;
+  const X = v => L + (v - lo) / (hi - lo) * (W - L - R);
+  const s = sv("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "Distribution of replayed session P&L" });
+  const step = niceStep((hi - lo) / 8);
+  for (let v = Math.ceil(lo / step) * step; v <= hi; v += step) { s.append(sv("line", { x1: X(v), x2: X(v), y1: T, y2: H - 26, stroke: v === 0 ? "var(--ink-2)" : "var(--rule-2)", "stroke-dasharray": v === 0 ? "4 3" : "none" })); const t = sv("text", { x: X(v), y: H - 8, "text-anchor": "middle" }); t.textContent = (v < 0 ? "−$" : "$") + Math.abs(v).toFixed(step < 1 ? 1 : 0); s.append(t); }
+  const tip = tipFor(box);
+  ids.forEach((id, i) => {
+    const y = T + i * rowH + rowH / 2;
+    const t = sv("text", { x: L - 12, y: y + 4, "text-anchor": "end", class: "lbl" }); t.textContent = AC[id].short; s.append(t);
+    const arr = D.replay.acct[id] || [];
+    arr.forEach((v, j) => { const jitter = ((j * 37) % 11 - 5) * 1.6; const c = sv("circle", { cx: X(v), cy: y + jitter, r: 4, fill: colorOf(id), opacity: .55, stroke: "var(--sheet)", "stroke-width": 1 }); c.addEventListener("pointermove", ev => tip.show(`${D.replay.days[j]}<div class="row"><span>${AC[id].short}</span><b>${usd(v)}</b></div>`, ev.clientX - box.getBoundingClientRect().left, ev.clientY - box.getBoundingClientRect().top)); c.addEventListener("pointerleave", () => tip.hide()); s.append(c); });
+    const live = AC[id].net;
+    const dmd = sv("path", { d: `M ${X(live)} ${y - 9} l 7 9 l -7 9 l -7 -9 z`, fill: "var(--ink)", stroke: "var(--sheet)", "stroke-width": 1.5, class: "pulse" });
+    dmd.addEventListener("pointermove", ev => tip.show(`Tonight, live<div class="row"><span>${AC[id].short}</span><b>${usd(live)}</b></div>`, ev.clientX - box.getBoundingClientRect().left, ev.clientY - box.getBoundingClientRect().top)); dmd.addEventListener("pointerleave", () => tip.hide());
+    s.append(dmd);
+  });
+  const sc = el("div", { class: "scroll" }); sc.append(s); box.append(sc);
+  box.insertAdjacentHTML("beforebegin", `<div class="legend" style="margin-bottom:8px"><span><span class="sw" style="background:var(--muted);border-radius:50%"></span>one replayed session (Jul 29 – Oct 6)</span><span><span class="sw" style="background:var(--ink);transform:rotate(45deg)"></span>tonight's live result</span></div>`);
+  $("#replayNote").innerHTML = D.narrative.replayNote;
+})();
+
+// ---------- sensitivity grid (dot plot: trades/session vs net/session)
+(function gridChart() {
+  const box = $("#gridChart"), W = 1080, H = 360, L = 60, R = 30, T = 14, B = 40, V = D.grid;
+  const fam = { TREND: "var(--s1)", LZNAIVE: "var(--s2)", LZCAL: "var(--s4)", TACT: "var(--s5)" };
+  const famOf = n => n.split("-")[0];
+  const xs = V.map(v => v.trades), ys = V.flatMap(v => [v.net, v.gross]);
+  const x1 = Math.max(...xs) * 1.08, ylo = Math.min(...ys) * 1.1, yhi = Math.max(1, ...ys) * 1.4;
+  const X = v => L + v / x1 * (W - L - R), Y = v => T + (yhi - v) / (yhi - ylo) * (H - T - B);
+  const s = sv("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "Net and gross P&L per session against trades per session" });
+  const sy = niceStep((yhi - ylo) / 6);
+  for (let v = Math.ceil(ylo / sy) * sy; v <= yhi; v += sy) { s.append(sv("line", { x1: L, x2: W - R, y1: Y(v), y2: Y(v), stroke: Math.abs(v) < 1e-9 ? "var(--ink-2)" : "var(--rule-2)", "stroke-dasharray": Math.abs(v) < 1e-9 ? "4 3" : "none" })); const t = sv("text", { x: L - 8, y: Y(v) + 4, "text-anchor": "end" }); t.textContent = (v < 0 ? "−$" : "$") + Math.abs(v).toFixed(0); s.append(t); }
+  const sx = niceStep(x1 / 8); for (let v = 0; v <= x1; v += sx) { const t = sv("text", { x: X(v), y: H - 18, "text-anchor": "middle" }); t.textContent = v.toFixed(0); s.append(t); }
+  const xt = sv("text", { x: (L + W - R) / 2, y: H - 2, "text-anchor": "middle" }); xt.textContent = "trades per session"; s.append(xt);
+  const tip = tipFor(box);
+  V.forEach(v => {
+    const c = fam[famOf(v.name)] || "var(--muted)";
+    s.append(sv("line", { x1: X(v.trades), x2: X(v.trades), y1: Y(v.gross), y2: Y(v.net), stroke: c, "stroke-width": 1.2, opacity: .5 }));
+    const g1 = sv("circle", { cx: X(v.trades), cy: Y(v.gross), r: 5, fill: "var(--sheet)", stroke: c, "stroke-width": 2 });
+    const g2 = sv("circle", { cx: X(v.trades), cy: Y(v.net), r: 6, fill: c, stroke: "var(--sheet)", "stroke-width": 2 });
+    [g1, g2].forEach(n => { n.addEventListener("pointermove", ev => tip.show(`<b>${esc(v.name)}</b><div class="row"><span>Net / session</span><b>${usd(v.net)}</b></div><div class="row"><span>Gross / session</span><span>${usd(v.gross)} (t ${v.gross_t == null ? "—" : v.gross_t.toFixed(1)})</span></div><div class="row"><span>At institutional costs</span><span>${usd(v.lowcost)}</span></div><div class="row"><span>At 2× costs</span><span>${usd(v.net2x)}</span></div><div class="row"><span>Trades / session</span><span>${v.trades.toFixed(1)}</span></div>`, ev.clientX - box.getBoundingClientRect().left, ev.clientY - box.getBoundingClientRect().top)); n.addEventListener("pointerleave", () => tip.hide()); s.append(n); });
+  });
+  const sc = el("div", { class: "scroll" }); sc.append(s); box.append(sc);
+  $("#gridLegend").innerHTML = `<span><span class="sw" style="background:var(--s1)"></span>QG-TREND variants</span><span><span class="sw" style="background:var(--s2)"></span>LAZYOWEN-NAIVE variants</span><span><span class="sw" style="background:var(--s4)"></span>LAZYOWEN-CAL variants</span><span><span class="sw" style="background:var(--s5)"></span>QG-TACTICAL without cost gate</span><span>● net after costs · ○ gross before costs</span>`;
+  const t = $("#gridTbl");
+  t.innerHTML = `<thead><tr><th>Variant</th><th class="r">Trades / session</th><th class="r">Gross / session</th><th class="r">Gross t-stat</th><th class="r">Net / session</th><th class="r">Net at institutional costs</th><th class="r">Net at 2× costs</th><th class="r">Losing sessions</th></tr></thead>`;
+  const b = el("tbody"); V.forEach(v => b.append(el("tr", {}, `<td class="mono">${esc(v.name)}${v.base ? ' <span class="chip neu">live rule</span>' : ""}</td><td class="r num">${v.trades.toFixed(1)}</td><td class="r num ${cls(v.gross)}">${usd(v.gross)}</td><td class="r num">${v.gross_t == null ? "—" : v.gross_t.toFixed(1)}</td><td class="r num ${cls(v.net)}">${usd(v.net)}</td><td class="r num ${cls(v.lowcost)}">${usd(v.lowcost)}</td><td class="r num ${cls(v.net2x)}">${usd(v.net2x)}</td><td class="r num">${pct(1 - v.win)}</td></tr>`))); t.append(b);
+})();
+
+// ---------- comparison, evidence, calibration, impl, controls, amendments, limits
+$("#cmpNote").innerHTML = D.narrative.cmpNote;
+(function () { const t = $("#cmpTbl"); t.innerHTML = `<thead><tr><th>Dimension</th><th>LAZYOWEN (Grok bot, Polymarket)</th><th>QUANTGEN tonight</th><th>Which held up</th></tr></thead>`; const b = el("tbody"); D.narrative.compare.forEach(r => b.append(el("tr", {}, `<td><b>${r[0]}</b></td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td>`))); t.append(b); })();
+(function () { const t = $("#evidTbl"); t.innerHTML = `<thead><tr><th>Test on record</th><th>Result</th><th>Source</th></tr></thead>`; const b = el("tbody"); D.narrative.evidence.forEach(r => b.append(el("tr", {}, `<td>${r[0]}</td><td>${r[1]}</td><td class="mono note">${esc(r[2])}</td>`))); t.append(b); })();
+(function () { const t = $("#calTbl"); t.innerHTML = `<thead><tr><th>Intraday model, out of sample (12 dates, Sep 24 – Oct 7)</th><th class="r">AUC</th><th class="r">Brier (coin flip 0.2500)</th><th class="r">Signals ≥ 2 pp</th><th class="r">Hit rate</th><th class="r">Mean move</th><th class="r">Signals ≥ 8 pp</th></tr></thead>`; const b = el("tbody"); Object.entries(D.calib).forEach(([g, r]) => b.append(el("tr", {}, `<td>${esc(g)}</td><td class="r num">${r.auc.toFixed(3)}</td><td class="r num">${r.brier.toFixed(4)}</td><td class="r num">${r.n2}</td><td class="r num">${pct(r.hit2)}</td><td class="r num">${r.bp2 == null ? "—" : r.bp2.toFixed(1) + " bp"}</td><td class="r num">${r.n8}</td></tr>`))); t.append(b); })();
+D.narrative.impl.forEach(x => $("#impl").append(el("li", {}, x)));
+(function () { const t = $("#ctlTbl"); t.innerHTML = `<thead><tr><th>ID</th><th>Control</th><th>Type · frequency</th><th>Assertion</th><th class="r">Population tested</th><th>Result</th><th>Conclusion</th></tr></thead>`; const b = el("tbody"); D.controls.forEach(c => b.append(el("tr", {}, `<td class="mono">${esc(c.id)}</td><td>${esc(c.control)}${c.note ? `<br><span class="note">${esc(c.note)}</span>` : ""}</td><td>${esc(c.type)}<br><span class="note">${esc(c.frequency)}</span></td><td>${esc(c.assertion)}</td><td class="r num">${c.population} (100%)</td><td>${c.passed ? '<span class="chip ok">✓ pass</span>' : '<span class="chip bad">✕ fail</span>'}</td><td>${esc(c.conclusion)}</td>`))); t.append(b); })();
+(function () { const t = $("#amdTbl"); t.innerHTML = `<thead><tr><th>Time (KST)</th><th>Amendment during the run</th></tr></thead>`; const b = el("tbody"); D.narrative.amend.forEach(r => b.append(el("tr", {}, `<td class="num">${r[0]}</td><td>${r[1]}</td>`))); t.append(b); })();
+D.narrative.limits.forEach(([h, x]) => $("#limits").append(el("div", { class: "lesson" }, `<b>${h}</b><p>${x}</p>`)));
+$("#foot").innerHTML = D.narrative.foot.map(x => `<div>${x}</div>`).join("");
+
+// ---------- scroll-entry motion (everything is visible before it runs)
+const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add("in"); e.target.querySelectorAll(".draw,.grow").forEach(n => n.classList.add("in")); io.unobserve(e.target); } }), { threshold: .12 });
+document.querySelectorAll(".rv").forEach(n => io.observe(n));
+</script>

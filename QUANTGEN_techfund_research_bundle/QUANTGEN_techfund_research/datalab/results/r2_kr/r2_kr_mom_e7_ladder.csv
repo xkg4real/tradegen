@@ -1,0 +1,14 @@
+step,group,ann_excess_net35,t,ann_excess_gross,n_days,avg_names,one_way_turnover_per_year,n_months,pct_pos_years,note
+"S0 E7 exact (daily re-weighted EW legs and benchmark, E7 cleaning, iid daily t)",all,-0.0449679,-1.43234,-0.0213964,2336,162.558,3.29521,,,
+"S0 E7 exact (daily re-weighted EW legs and benchmark, E7 cleaning, iid daily t)",high,-0.112002,-2.06669,-0.0873228,2336,59.483,3.49993,,,
+"S0 E7 exact (daily re-weighted EW legs and benchmark, E7 cleaning, iid daily t)",low,0.0292848,0.754423,0.0581215,2336,43.9932,3.97139,,,
+"S1 same names, monthly buy-and-hold engine, round-1 returns, NW t",all,-0.0499356,-1.8535,-0.0235363,,165.632,,114,0.3,
+"S1 same names, monthly buy-and-hold engine, round-1 returns, NW t",high,-0.119361,-2.07159,-0.0918492,,59.7281,,114,0.2,
+"S1 same names, monthly buy-and-hold engine, round-1 returns, NW t",low,0.0274089,0.789089,0.0582444,,45.8421,,114,0.4,
+S2 + turnover terciles formed inside the liquid universe,all,-0.0499356,-1.8535,-0.0235363,,165.632,,114,0.3,
+S2 + turnover terciles formed inside the liquid universe,high,-0.128565,-2.17672,-0.100984,,55.4649,,114,0.2,
+S2 + turnover terciles formed inside the liquid universe,low,0.0243863,0.816185,0.0551672,,55.2982,,114,0.4,
+"S3 grid cell: ALL universe, TURN_12M terciles (independent), MOM_12_1, vs ALL EW universe",all,-0.0649759,-2.42002,-0.0420325,,300.842,,114,0.2,
+"S3 grid cell: ALL universe, TURN_12M terciles (independent), MOM_12_1, vs ALL EW universe",high,-0.117398,-3.40188,-0.0944043,,174.825,,114,0.2,
+"S3 grid cell: ALL universe, TURN_12M terciles (independent), MOM_12_1, vs ALL EW universe",low,-0.000842679,-0.0204658,0.0318362,,43.4649,,114,0.6,
+info,universe,,,,,871.509,,,,E7 liquid universe 872 names vs ALL 1519; share of E7 names in ALL 0.946

@@ -1,0 +1,257 @@
+{
+ "item": "CRY-1",
+ "addition": "ETH replication",
+ "register_id": "G-29",
+ "node": "TF-67",
+ "ruling": "CR-10",
+ "card": "S_C3_crypto_trend",
+ "c3_verdict": "PASS, unchanged (D-24: additions are governance lines; the stored verdict is not rewritten)",
+ "label": "vendor data, labelled trial, not a formal card run",
+ "run_mode": "labelled_trial",
+ "value_status": "vendor_close",
+ "seed": 11,
+ "B": 2000,
+ "cost_bp_per_side": 10.0,
+ "stress_multiplier": 2.0,
+ "gate": "core.quant.validate nine-step gate (walk_forward 756/126, embargo 1, hysteresis lattice) + GOV report lines",
+ "trials": {
+  "card_N_total": 11,
+  "extra_trials": 3,
+  "N_after_cry1": 14,
+  "registered_rows_appended": 3,
+  "family": "C3",
+  "family_rows": 3,
+  "global_N": 3,
+  "registry_dir": "C:\\Users\\whydi\\.nextgen\\macro\\ledgers",
+  "cut_time_trial": "not counted: not run (D-24 counts four trials only if it runs)"
+ },
+ "bonferroni_note": "C3's step-5 p (0.038 KRW-BTC, 0.07 BTC-USD; cards of 2026-09-27) fails Bonferroni across the 16 trading cards (0.10 / 16 = 0.00625; R3:291 prints 0.006); its Sharpe-vs-zero t 3.49 survives (P:L371). Printed, not applied: C3 stays PASS (CR-10).",
+ "data": {
+  "binance_ETHUSDT": {
+   "file": "docs/asset_expansion/cache/binance_ETHUSDT.csv",
+   "md5": "b289ac745e63e20f8e11bb837f7821a2",
+   "start": "2017-08-17",
+   "end": "2026-09-25",
+   "sessions": 3327,
+   "source": "vendor: Binance public daily close (USDT), not an official close"
+  }
+ },
+ "run_utc": "2026-10-06T18:24:53Z",
+ "script": "docs/techfund_study.py",
+ "what_would_change_it": "post-ETF sub-period dSR <= 0 (R3:826)",
+ "proposal_status": "tech-fund values are proposals pending owner confirmation; Council v2.0 governs on conflict (rulings 3.7)",
+ "results": {
+  "binance_ETHUSDT": {
+   "decision": "REJECT",
+   "reason": "does not beat its benchmark (Sharpe difference -0.01, p 0.54)",
+   "sr_oos": 0.7219785180659012,
+   "ci90": [
+    0.17141641730046664,
+    1.27552080566229
+   ],
+   "se_lo": 0.31335936815804194,
+   "dsr": 0.9651334307740975,
+   "pbo": 0.4376068376068376,
+   "prob_loss_oos": 0.004273504273504274,
+   "sr_stress": 0.7061513616611238,
+   "bench_sr": 0.7357901507531732,
+   "bench_diff": -0.013811632687272035,
+   "bench_p": 0.5405,
+   "bench_ci": [
+    -0.39495932172118103,
+    0.3661069321499014
+   ],
+   "n_sessions": 2569,
+   "n_trials": 14,
+   "n_trades": 75,
+   "years_positive": 0.75,
+   "plateau": 1.0,
+   "edge": false,
+   "turnover_annual": 7.356948228882834,
+   "max_drawdown": -0.6753319425890967,
+   "bench_mdd": -0.7930253453633337,
+   "haircut_sr": 0.4331871108395407,
+   "oos_start": "2019-09-14",
+   "oos_end": "2026-09-25",
+   "walk_forward": "IS 756 / OOS 126 / embargo 1; 21 origins; 5 configs",
+   "chosen_last": {
+    "hysteresis": 0.444
+   },
+   "benchmark": "buy_and_hold",
+   "gov": {
+    "attribution": {
+     "beta": 0.4849984628741246,
+     "jensen_alpha": 0.09783983964918046,
+     "nw_t": 0.9214479070773174,
+     "factor_alpha": null,
+     "factor_alpha_t": null,
+     "factor_loadings": null,
+     "factor_tilt": null,
+     "threshold_t": 2.0,
+     "threshold_status": "proposal pending owner confirmation (OQ-15); display only, never changes a verdict (D-19)",
+     "nw_lag": 10,
+     "T": 2569,
+     "nulls": {
+      "factor_alpha": "REFDATA: factor returns not supplied (French / local KRX factor files absent)"
+     },
+     "label": "no alpha (CAPM only)"
+    },
+    "lw_sharpe_test": {
+     "dSR": -0.013811632687272035,
+     "se": 0.23435616056724184,
+     "t_obs": -0.05893437003679355,
+     "p": 0.501,
+     "p_hac": 0.5234978088566553,
+     "block": 30,
+     "B": 2000,
+     "seed": 11,
+     "ci": [
+      -0.4018507872618032,
+      0.4113096043647175
+     ]
+    },
+    "gov4": {
+     "block_step2": 77,
+     "block_step5": 30,
+     "ci90_pw": [
+      0.19915004362658317,
+      1.2816719613564573
+     ],
+     "bench_p_pw": 0.542,
+     "ci90_worse": [
+      0.17141641730046664,
+      1.2816719613564573
+     ],
+     "bench_p_worse": 0.542,
+     "decision": "REJECT",
+     "reason": "does not beat its benchmark (Sharpe difference -0.01, p 0.54)",
+     "reading": "GOV-4 / D-01: the worse of the 10-session and the max(10, PW(d), PW(d^2), 2 x holding) result (a tightening)"
+    },
+    "min_track_record": {
+     "min_trl_sessions": 1307.9962626102044,
+     "sessions": 2569,
+     "exceeds_history": false
+    },
+    "step8": {
+     "years_positive": 0.8571428571428571,
+     "n_years": 7,
+     "step8_pass": true,
+     "subperiods": [
+      {
+       "name": "third 1",
+       "start": "2019-09-14",
+       "end": "2022-01-17",
+       "sessions": 857,
+       "compounded": 7.080400790328275
+      },
+      {
+       "name": "third 2",
+       "start": "2022-01-18",
+       "end": "2024-05-22",
+       "sessions": 856,
+       "compounded": 0.16507383237524587
+      },
+      {
+       "name": "third 3",
+       "start": "2024-05-23",
+       "end": "2026-09-25",
+       "sessions": 856,
+       "compounded": 0.0783768743289747
+      }
+     ],
+     "two_of_three": true,
+     "standalone_note": "step 8 alone passes 23.8% (KOSPI bootstrap, GV-451) / 31.2% (sign-flip, GV-453) / 29.5% (iid, GV-455) of zero-Sharpe strategies at 10 years; reported beside 2-of-3 subperiods (PX-T-05)",
+     "status": "reported, not gated (GOV-6; owner may add 2-of-3 as a tightening, OQ-04)"
+    },
+    "step9": {
+     "expected_live": 0.4331871108395407,
+     "multiplier": 0.6,
+     "line": "step 9 (reported, not gated): expected live = 0.6 x OOS = 0.4332"
+    },
+    "stress": {
+     "windows": [
+      {
+       "name": "2008-06..2009-03 GFC",
+       "start": "2008-05-31",
+       "end": "2009-03-31",
+       "sessions": 0,
+       "book": null,
+       "benchmark": null,
+       "relative": null
+      },
+      {
+       "name": "2009-03..2009-05 post-GFC rebound",
+       "start": "2009-02-27",
+       "end": "2009-05-29",
+       "sessions": 0,
+       "book": null,
+       "benchmark": null,
+       "relative": null
+      },
+      {
+       "name": "2020-02-17..03-19 COVID crash",
+       "start": "2020-02-17",
+       "end": "2020-03-19",
+       "sessions": 31,
+       "book": -0.25618603696098563,
+       "benchmark": -0.49113309688258355,
+       "relative": 0.461706309611152
+      },
+      {
+       "name": "2020-03-20..06-30 COVID rebound",
+       "start": "2020-03-19",
+       "end": "2020-06-30",
+       "sessions": 103,
+       "book": 0.2797972719349824,
+       "benchmark": 0.6551724137931032,
+       "relative": -0.22678914820594798
+      },
+      {
+       "name": "2022 full year",
+       "start": "2021-12-31",
+       "end": "2022-12-31",
+       "sessions": 365,
+       "book": -0.4897857041719199,
+       "benchmark": -0.6746313478754051,
+       "relative": 0.5681114099237241
+      },
+      {
+       "name": "2026-01-02..06-22 melt-up",
+       "start": "2025-12-31",
+       "end": "2026-06-22",
+       "sessions": 173,
+       "book": -0.0934218379996209,
+       "benchmark": -0.4184389764574449,
+       "relative": 0.5588702222133035
+      },
+      {
+       "name": "2026-06-22..07-30 crash",
+       "start": "2026-06-22",
+       "end": "2026-07-30",
+       "sessions": 38,
+       "book": 0.06652304655854402,
+       "benchmark": 0.1100110520255293,
+       "relative": -0.0391779932169406
+      },
+      {
+       "name": "2026-07-31..09-29 after crash",
+       "start": "2026-07-30",
+       "end": "2026-09-29",
+       "sessions": 57,
+       "book": 0.34504283982933437,
+       "benchmark": 0.40529424337046804,
+       "relative": -0.042874582191859134
+      }
+     ],
+     "worst_rolling_relative": {
+      "21": -0.37548340643303146,
+      "63": -0.45076997005712566,
+      "25": -0.40717465695914845
+     },
+     "reporting_only": true,
+     "relative_to": "benchmark"
+    }
+   }
+  }
+ }
+}

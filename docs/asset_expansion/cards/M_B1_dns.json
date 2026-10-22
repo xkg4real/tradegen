@@ -1,0 +1,74 @@
+{
+ "card_id": "M_B1_dns",
+ "kind": "model",
+ "hypothesis": "Diebold–Li AR(1) factor forecasts beat the random walk at 12 months on ≥ 4 of 5 maturities with DM p < 0.05 at ≥ 3",
+ "rules": {},
+ "universe": {
+  "curve": "US Treasury par (FRED)"
+ },
+ "data": {
+  "months": 303,
+  "start": "2001-07-31",
+  "end": "2026-09-24"
+ },
+ "costs": {},
+ "protocol": {},
+ "trials": {
+  "N_planned": 1,
+  "N_total": 1,
+  "ledger": []
+ },
+ "seed": 11,
+ "stats": {
+  "beats_rw_12m": 0,
+  "significant_12m": 0,
+  "n_forecasts_12m": 171,
+  "fit_rmse_bp": 10.392545351015867,
+  "rmse_dns_12m_bp": [
+   139.0872219548562,
+   123.72168237578137,
+   100.25765394720163,
+   88.05627212346128,
+   78.76688547725995
+  ],
+  "rmse_rw_12m_bp": [
+   126.8346300968819,
+   114.48603684108794,
+   95.75712454217071,
+   84.75251208131573,
+   73.46586906944376
+  ],
+  "dm_t_12m": [
+   1.0248480833023632,
+   1.0156778231671377,
+   0.7450185813628198,
+   0.5887254079991864,
+   1.7076020896062403
+  ]
+ },
+ "tests": {
+  "dm_t_min": 0.5887254079991864
+ },
+ "decision": "REJECT",
+ "decision_reason": "0/5 maturities beaten, 0/5 significant",
+ "revise_target": "no claim at h = 1; use h = 12 only",
+ "lines": [
+  "12-month forecasts (171 origins): DNS beats the random walk at 0 of 5 maturities (1/2/5/10/30y) and significantly (DM t < −1.96) at 0: gate needs 4 and 3.",
+  "RMSE in bp — DNS vs RW at 12m: 1y 139/127, 2y 124/114, 5y 100/96, 10y 88/85, 30y 79/73",
+  "6-month: DNS beats RW at 0 of 5.",
+  "Daily NS fit RMSE 10.4 bp with λ fixed at 0.0609/month; AR(1) γ per factor at 12m: 0.75, 0.69, 0.54"
+ ],
+ "decay_haircut": {
+  "factor": 0.6,
+  "source": "McLean-Pontiff 2016 26-58%"
+ },
+ "created": "2026-09-27",
+ "author": "QUANTGEN validation gate",
+ "results_file": "docs/asset_expansion/results.csv",
+ "results_md5": "ca757e25f508b588cb2f361719ec83cd",
+ "citations": [
+  "Diebold & Li 2006 J. Econometrics 130 (NBER w10048 pp. 12–16)",
+  "Berkeley Lec 6 §1.1",
+  "MTSA §2.4.3 p. 85"
+ ]
+}

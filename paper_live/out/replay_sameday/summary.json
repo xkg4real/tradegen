@@ -1,0 +1,110 @@
+{
+ "run": "run1",
+ "profile": "base",
+ "code": {
+  "config_sha": "ffbdfc4d489bcaf2",
+  "engine_sha": "1a47be9b1110a5b9"
+ },
+ "bars": "replay_5m_60d_20261007",
+ "ticks": 59,
+ "first_tick": "2026-10-07 12:01:42+00:00",
+ "last_tick": "2026-10-07 16:42:06+00:00",
+ "accounts": {
+  "QG-TREND": {
+   "live": {
+    "net": -10.26601050369186,
+    "gross": -1.4418827190162675,
+    "costs": 8.824127784675683,
+    "trades": 25
+   },
+   "replay": {
+    "net": -10.327423206433537,
+    "gross": -1.3671752952044585,
+    "costs": 8.960247911229152,
+    "trades": 27,
+    "open_left": 0
+   },
+   "gap_net": 0.061412702741677094,
+   "gap_gross": -0.07470742381180906,
+   "entries_matched": 24,
+   "live_entries": 25
+  },
+  "QG-TACTICAL": {
+   "live": {
+    "net": 0.0,
+    "gross": 0.0,
+    "costs": 0.0,
+    "trades": 0
+   },
+   "replay": {
+    "net": 0.0,
+    "gross": 0,
+    "costs": 0.0,
+    "trades": 0,
+    "open_left": 0
+   },
+   "gap_net": 0.0,
+   "gap_gross": 0.0,
+   "entries_matched": 0,
+   "live_entries": 0
+  },
+  "QG-CORE": {
+   "live": {
+    "net": -0.009702399965988207,
+    "gross": 0.49054287146976,
+    "costs": 0.5002452714357348,
+    "trades": 7
+   },
+   "replay": {
+    "net": -0.1389495968667802,
+    "gross": 0.36123101864255935,
+    "costs": 0.5001806155093212,
+    "trades": 7,
+    "open_left": 0
+   },
+   "gap_net": 0.129247196900792,
+   "gap_gross": 0.12931185282720065,
+   "entries_matched": 7,
+   "live_entries": 7
+  },
+  "LAZYOWEN-CAL": {
+   "live": {
+    "net": 0.0,
+    "gross": 0.0,
+    "costs": 0.0,
+    "trades": 0
+   },
+   "replay": {
+    "net": 0.0,
+    "gross": 0,
+    "costs": 0.0,
+    "trades": 0,
+    "open_left": 0
+   },
+   "gap_net": 0.0,
+   "gap_gross": 0.0,
+   "entries_matched": 0,
+   "live_entries": 0
+  },
+  "LAZYOWEN-NAIVE": {
+   "live": {
+    "net": -7.046716362526013,
+    "gross": -0.4627157689849416,
+    "costs": 6.5840005935409724,
+    "trades": 70
+   },
+   "replay": {
+    "net": -6.739664903919902,
+    "gross": -0.09291885633742343,
+    "costs": 6.646746047582957,
+    "trades": 65,
+    "open_left": 0
+   },
+   "gap_net": -0.3070514586061108,
+   "gap_gross": -0.3697969126475182,
+   "entries_matched": 52,
+   "live_entries": 70
+  }
+ },
+ "note": "gap = live - replay; entries matched on account, key and direction within 15 min"
+}

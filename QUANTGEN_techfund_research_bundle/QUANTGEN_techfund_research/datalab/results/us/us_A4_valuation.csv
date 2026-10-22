@@ -1,0 +1,1589 @@
+test,series,period,cost_level,metric,value
+A4_valuation_insample,y10~log_cape,1881-01:2013-09,na,n_obs,1593
+A4_valuation_insample,y10~log_cape,1881-01:2013-09,na,independent_obs_approx,13.275
+A4_valuation_insample,y10~log_cape,1881-01:2013-09,na,intercept,0.2596135933417347
+A4_valuation_insample,y10~log_cape,1881-01:2013-09,na,slope,-0.07081255552191229
+A4_valuation_insample,y10~log_cape,1881-01:2013-09,na,slope_nw_t,-5.911670587473668
+A4_valuation_insample,y10~log_cape,1881-01:2013-09,na,r2,0.2915377362148738
+A4_valuation_insample,y10~log_cape,1881-01:2013-09,na,corr,-0.5399423452692645
+A4_valuation_insample,y10~log_cape,1881-01:2013-09,na,mean_y,0.06648113184042215
+A4_valuation_insample,y10~log_cape,1881-01:2013-09,na,sd_y,0.051680877188294054
+A4_valuation_insample,y10~log_dy,1881-01:2013-09,na,n_obs,1593
+A4_valuation_insample,y10~log_dy,1881-01:2013-09,na,independent_obs_approx,13.275
+A4_valuation_insample,y10~log_dy,1881-01:2013-09,na,intercept,0.20164907763595968
+A4_valuation_insample,y10~log_dy,1881-01:2013-09,na,slope,0.04188938908649541
+A4_valuation_insample,y10~log_dy,1881-01:2013-09,na,slope_nw_t,2.276080408923897
+A4_valuation_insample,y10~log_dy,1881-01:2013-09,na,r2,0.11622822370696784
+A4_valuation_insample,y10~log_dy,1881-01:2013-09,na,corr,0.3409226066235092
+A4_valuation_insample,y10~log_dy,1881-01:2013-09,na,mean_y,0.06648113184042215
+A4_valuation_insample,y10~log_dy,1881-01:2013-09,na,sd_y,0.051680877188294054
+A4_valuation_insample,y10~ey,1881-01:2013-09,na,n_obs,1593
+A4_valuation_insample,y10~ey,1881-01:2013-09,na,independent_obs_approx,13.275
+A4_valuation_insample,y10~ey,1881-01:2013-09,na,intercept,0.00033059490649615833
+A4_valuation_insample,y10~ey,1881-01:2013-09,na,slope,0.8988413317525947
+A4_valuation_insample,y10~ey,1881-01:2013-09,na,slope_nw_t,4.715398764360572
+A4_valuation_insample,y10~ey,1881-01:2013-09,na,r2,0.23090919429555357
+A4_valuation_insample,y10~ey,1881-01:2013-09,na,corr,0.48053011799007345
+A4_valuation_insample,y10~ey,1881-01:2013-09,na,mean_y,0.06648113184042215
+A4_valuation_insample,y10~ey,1881-01:2013-09,na,sd_y,0.051680877188294054
+A4_valuation_insample,y10~fed_spread,1881-01:2013-09,na,n_obs,1593
+A4_valuation_insample,y10~fed_spread,1881-01:2013-09,na,independent_obs_approx,13.275
+A4_valuation_insample,y10~fed_spread,1881-01:2013-09,na,intercept,0.052547995687098274
+A4_valuation_insample,y10~fed_spread,1881-01:2013-09,na,slope,0.5111260332477682
+A4_valuation_insample,y10~fed_spread,1881-01:2013-09,na,slope_nw_t,1.6462580207351978
+A4_valuation_insample,y10~fed_spread,1881-01:2013-09,na,r2,0.11074185266122716
+A4_valuation_insample,y10~fed_spread,1881-01:2013-09,na,corr,0.3327789847049049
+A4_valuation_insample,y10~fed_spread,1881-01:2013-09,na,mean_y,0.06648113184042215
+A4_valuation_insample,y10~fed_spread,1881-01:2013-09,na,sd_y,0.051680877188294054
+A4_valuation_insample,y10~log_cape+log_dy,1881-01:2013-09,na,n_obs,1593
+A4_valuation_insample,y10~log_cape+log_dy,1881-01:2013-09,na,b_log_cape,-0.10552575852385207
+A4_valuation_insample,y10~log_cape+log_dy,1881-01:2013-09,na,b_log_dy,-0.0395036117649121
+A4_valuation_insample,y10~log_cape+log_dy,1881-01:2013-09,na,r2,0.3248446552798139
+A4_valuation_insample,y5~log_cape,1881-01:2018-09,na,n_obs,1653
+A4_valuation_insample,y5~log_cape,1881-01:2018-09,na,independent_obs_approx,27.55
+A4_valuation_insample,y5~log_cape,1881-01:2018-09,na,intercept,0.28692987178371554
+A4_valuation_insample,y5~log_cape,1881-01:2018-09,na,slope,-0.07924743735680842
+A4_valuation_insample,y5~log_cape,1881-01:2018-09,na,slope_nw_t,-3.1622922814708674
+A4_valuation_insample,y5~log_cape,1881-01:2018-09,na,r2,0.1614919660676244
+A4_valuation_insample,y5~log_cape,1881-01:2018-09,na,corr,-0.401860630153819
+A4_valuation_insample,y5~log_cape,1881-01:2018-09,na,mean_y,0.06911313667383663
+A4_valuation_insample,y5~log_cape,1881-01:2018-09,na,sd_y,0.07934484859484328
+A4_valuation_insample,y5~log_dy,1881-01:2018-09,na,n_obs,1653
+A4_valuation_insample,y5~log_dy,1881-01:2018-09,na,independent_obs_approx,27.55
+A4_valuation_insample,y5~log_dy,1881-01:2018-09,na,intercept,0.24230412917741334
+A4_valuation_insample,y5~log_dy,1881-01:2018-09,na,slope,0.05325640361707386
+A4_valuation_insample,y5~log_dy,1881-01:2018-09,na,slope_nw_t,2.2702607701273503
+A4_valuation_insample,y5~log_dy,1881-01:2018-09,na,r2,0.08448017890350956
+A4_valuation_insample,y5~log_dy,1881-01:2018-09,na,corr,0.2906547417530112
+A4_valuation_insample,y5~log_dy,1881-01:2018-09,na,mean_y,0.06911313667383663
+A4_valuation_insample,y5~log_dy,1881-01:2018-09,na,sd_y,0.07934484859484328
+A4_valuation_insample,y5~ey,1881-01:2018-09,na,n_obs,1653
+A4_valuation_insample,y5~ey,1881-01:2018-09,na,independent_obs_approx,27.55
+A4_valuation_insample,y5~ey,1881-01:2018-09,na,intercept,0.016607333192232683
+A4_valuation_insample,y5~ey,1881-01:2018-09,na,slope,0.7232451936234678
+A4_valuation_insample,y5~ey,1881-01:2018-09,na,slope_nw_t,1.808577869962395
+A4_valuation_insample,y5~ey,1881-01:2018-09,na,r2,0.06339135936463858
+A4_valuation_insample,y5~ey,1881-01:2018-09,na,corr,0.25177640748219127
+A4_valuation_insample,y5~ey,1881-01:2018-09,na,mean_y,0.06911313667383663
+A4_valuation_insample,y5~ey,1881-01:2018-09,na,sd_y,0.07934484859484328
+A4_valuation_insample,y5~fed_spread,1881-01:2018-09,na,n_obs,1653
+A4_valuation_insample,y5~fed_spread,1881-01:2018-09,na,independent_obs_approx,27.55
+A4_valuation_insample,y5~fed_spread,1881-01:2018-09,na,intercept,0.05702530662726449
+A4_valuation_insample,y5~fed_spread,1881-01:2018-09,na,slope,0.44612215656697174
+A4_valuation_insample,y5~fed_spread,1881-01:2018-09,na,slope_nw_t,1.1730920428217742
+A4_valuation_insample,y5~fed_spread,1881-01:2018-09,na,r2,0.03454192108122134
+A4_valuation_insample,y5~fed_spread,1881-01:2018-09,na,corr,0.18585456970766573
+A4_valuation_insample,y5~fed_spread,1881-01:2018-09,na,mean_y,0.06911313667383663
+A4_valuation_insample,y5~fed_spread,1881-01:2018-09,na,sd_y,0.07934484859484328
+A4_valuation_insample,y5~log_cape+log_dy,1881-01:2018-09,na,n_obs,1653
+A4_valuation_insample,y5~log_cape+log_dy,1881-01:2018-09,na,b_log_cape,-0.10444470461932677
+A4_valuation_insample,y5~log_cape+log_dy,1881-01:2018-09,na,b_log_dy,-0.02797093374028342
+A4_valuation_insample,y5~log_cape+log_dy,1881-01:2018-09,na,r2,0.16846939271873496
+A4_valuation_insample,y1~log_cape,1881-01:2022-09,na,n_obs,1701
+A4_valuation_insample,y1~log_cape,1881-01:2022-09,na,independent_obs_approx,141.75
+A4_valuation_insample,y1~log_cape,1881-01:2022-09,na,intercept,0.36877510695713006
+A4_valuation_insample,y1~log_cape,1881-01:2022-09,na,slope,-0.10338879777552441
+A4_valuation_insample,y1~log_cape,1881-01:2022-09,na,slope_nw_t,-2.941988096965708
+A4_valuation_insample,y1~log_cape,1881-01:2022-09,na,r2,0.048473924367318566
+A4_valuation_insample,y1~log_cape,1881-01:2022-09,na,corr,-0.2201679458216351
+A4_valuation_insample,y1~log_cape,1881-01:2022-09,na,mean_y,0.08254096389538544
+A4_valuation_insample,y1~log_cape,1881-01:2022-09,na,sd_y,0.19440575453212558
+A4_valuation_insample,y1~log_dy,1881-01:2022-09,na,n_obs,1701
+A4_valuation_insample,y1~log_dy,1881-01:2022-09,na,independent_obs_approx,141.75
+A4_valuation_insample,y1~log_dy,1881-01:2022-09,na,intercept,0.32145666162773884
+A4_valuation_insample,y1~log_dy,1881-01:2022-09,na,slope,0.0729383186892628
+A4_valuation_insample,y1~log_dy,1881-01:2022-09,na,slope_nw_t,2.263430777586485
+A4_valuation_insample,y1~log_dy,1881-01:2022-09,na,r2,0.02844635077919
+A4_valuation_insample,y1~log_dy,1881-01:2022-09,na,corr,0.16866046003491753
+A4_valuation_insample,y1~log_dy,1881-01:2022-09,na,mean_y,0.08254096389538544
+A4_valuation_insample,y1~log_dy,1881-01:2022-09,na,sd_y,0.19440575453212558
+A4_valuation_insample,y1~ey,1881-01:2022-09,na,n_obs,1701
+A4_valuation_insample,y1~ey,1881-01:2022-09,na,independent_obs_approx,141.75
+A4_valuation_insample,y1~ey,1881-01:2022-09,na,intercept,0.02711545415203605
+A4_valuation_insample,y1~ey,1881-01:2022-09,na,slope,0.7730199423365345
+A4_valuation_insample,y1~ey,1881-01:2022-09,na,slope_nw_t,1.5085318632499745
+A4_valuation_insample,y1~ey,1881-01:2022-09,na,r2,0.01218465663274404
+A4_valuation_insample,y1~ey,1881-01:2022-09,na,corr,0.1103841321601249
+A4_valuation_insample,y1~ey,1881-01:2022-09,na,mean_y,0.08254096389538544
+A4_valuation_insample,y1~ey,1881-01:2022-09,na,sd_y,0.19440575453212558
+A4_valuation_insample,y1~fed_spread,1881-01:2022-09,na,n_obs,1701
+A4_valuation_insample,y1~fed_spread,1881-01:2022-09,na,independent_obs_approx,141.75
+A4_valuation_insample,y1~fed_spread,1881-01:2022-09,na,intercept,0.06485422555201589
+A4_valuation_insample,y1~fed_spread,1881-01:2022-09,na,slope,0.6556931969334743
+A4_valuation_insample,y1~fed_spread,1881-01:2022-09,na,slope_nw_t,1.5144725979275193
+A4_valuation_insample,y1~fed_spread,1881-01:2022-09,na,r2,0.012091570370762583
+A4_valuation_insample,y1~fed_spread,1881-01:2022-09,na,corr,0.10996167682771352
+A4_valuation_insample,y1~fed_spread,1881-01:2022-09,na,mean_y,0.08254096389538544
+A4_valuation_insample,y1~fed_spread,1881-01:2022-09,na,sd_y,0.19440575453212558
+A4_valuation_insample,y1~log_cape+log_dy,1881-01:2022-09,na,n_obs,1701
+A4_valuation_insample,y1~log_cape+log_dy,1881-01:2022-09,na,b_log_cape,-0.13053559730842126
+A4_valuation_insample,y1~log_cape+log_dy,1881-01:2022-09,na,b_log_dy,-0.029374143163806547
+A4_valuation_insample,y1~log_cape+log_dy,1881-01:2022-09,na,r2,0.049745644510521436
+A4_valuation_insample_sub,y10~log_cape,1881-01:1949-12,na,n_obs,828
+A4_valuation_insample_sub,y10~log_cape,1881-01:1949-12,na,slope,-0.08033708311630522
+A4_valuation_insample_sub,y10~log_cape,1881-01:1949-12,na,slope_nw_t,-5.541513644593137
+A4_valuation_insample_sub,y10~log_cape,1881-01:1949-12,na,r2,0.33651910586058853
+A4_valuation_insample_sub,y10~log_cape,1950-01:2013-09,na,n_obs,765
+A4_valuation_insample_sub,y10~log_cape,1950-01:2013-09,na,slope,-0.0791509393393773
+A4_valuation_insample_sub,y10~log_cape,1950-01:2013-09,na,slope_nw_t,-4.767898955809404
+A4_valuation_insample_sub,y10~log_cape,1950-01:2013-09,na,r2,0.3329776248054286
+A4_valuation_insample_sub,y10~log_cape,1881-01:1989-12,na,n_obs,1308
+A4_valuation_insample_sub,y10~log_cape,1881-01:1989-12,na,slope,-0.09189468174703434
+A4_valuation_insample_sub,y10~log_cape,1881-01:1989-12,na,slope_nw_t,-6.590043119162237
+A4_valuation_insample_sub,y10~log_cape,1881-01:1989-12,na,r2,0.35968958208780166
+A4_valuation_insample_sub,y10~log_cape,1990-01:2013-09,na,n_obs,285
+A4_valuation_insample_sub,y10~log_cape,1990-01:2013-09,na,slope,-0.17559828617588813
+A4_valuation_insample_sub,y10~log_cape,1990-01:2013-09,na,slope_nw_t,-27.168139259146567
+A4_valuation_insample_sub,y10~log_cape,1990-01:2013-09,na,r2,0.8616076578153271
+A4_valuation_insample_sub,y10~ey,1881-01:1949-12,na,n_obs,828
+A4_valuation_insample_sub,y10~ey,1881-01:1949-12,na,slope,0.8923709517666448
+A4_valuation_insample_sub,y10~ey,1881-01:1949-12,na,slope_nw_t,4.6699537631414145
+A4_valuation_insample_sub,y10~ey,1881-01:1949-12,na,r2,0.23112122174001748
+A4_valuation_insample_sub,y10~ey,1950-01:2013-09,na,n_obs,765
+A4_valuation_insample_sub,y10~ey,1950-01:2013-09,na,slope,0.9767079221764619
+A4_valuation_insample_sub,y10~ey,1950-01:2013-09,na,slope_nw_t,3.6320424756748197
+A4_valuation_insample_sub,y10~ey,1950-01:2013-09,na,r2,0.25504004108172096
+A4_valuation_insample_sub,y10~ey,1881-01:1989-12,na,n_obs,1308
+A4_valuation_insample_sub,y10~ey,1881-01:1989-12,na,slope,1.0780437463983055
+A4_valuation_insample_sub,y10~ey,1881-01:1989-12,na,slope_nw_t,5.628408693777739
+A4_valuation_insample_sub,y10~ey,1881-01:1989-12,na,r2,0.29824842131550555
+A4_valuation_insample_sub,y10~ey,1990-01:2013-09,na,n_obs,285
+A4_valuation_insample_sub,y10~ey,1990-01:2013-09,na,slope,1.728749123927662
+A4_valuation_insample_sub,y10~ey,1990-01:2013-09,na,slope_nw_t,1.7640299087269198
+A4_valuation_insample_sub,y10~ey,1990-01:2013-09,na,r2,0.23854747134564336
+A4_valuation_insample_sub,y5~log_cape,1881-01:1949-12,na,n_obs,828
+A4_valuation_insample_sub,y5~log_cape,1881-01:1949-12,na,slope,-0.12594314008559537
+A4_valuation_insample_sub,y5~log_cape,1881-01:1949-12,na,slope_nw_t,-3.1877363666095127
+A4_valuation_insample_sub,y5~log_cape,1881-01:1949-12,na,r2,0.296507362994784
+A4_valuation_insample_sub,y5~log_cape,1950-01:2018-09,na,n_obs,825
+A4_valuation_insample_sub,y5~log_cape,1950-01:2018-09,na,slope,-0.07171734690684976
+A4_valuation_insample_sub,y5~log_cape,1950-01:2018-09,na,slope_nw_t,-2.2944665685026835
+A4_valuation_insample_sub,y5~log_cape,1950-01:2018-09,na,r2,0.14108875655581465
+A4_valuation_insample_sub,y5~log_cape,1881-01:1989-12,na,n_obs,1308
+A4_valuation_insample_sub,y5~log_cape,1881-01:1989-12,na,slope,-0.1198920657021733
+A4_valuation_insample_sub,y5~log_cape,1881-01:1989-12,na,slope_nw_t,-3.9727932491736584
+A4_valuation_insample_sub,y5~log_cape,1881-01:1989-12,na,r2,0.2677306710494016
+A4_valuation_insample_sub,y5~log_cape,1990-01:2018-09,na,n_obs,345
+A4_valuation_insample_sub,y5~log_cape,1990-01:2018-09,na,slope,-0.2360616474314486
+A4_valuation_insample_sub,y5~log_cape,1990-01:2018-09,na,slope_nw_t,-6.979597091072721
+A4_valuation_insample_sub,y5~log_cape,1990-01:2018-09,na,r2,0.5119506353976013
+A4_valuation_insample_sub,y5~ey,1881-01:1949-12,na,n_obs,828
+A4_valuation_insample_sub,y5~ey,1881-01:1949-12,na,slope,0.7331700679058124
+A4_valuation_insample_sub,y5~ey,1881-01:1949-12,na,slope_nw_t,1.320492725828449
+A4_valuation_insample_sub,y5~ey,1881-01:1949-12,na,r2,0.055932891092070225
+A4_valuation_insample_sub,y5~ey,1950-01:2018-09,na,n_obs,825
+A4_valuation_insample_sub,y5~ey,1950-01:2018-09,na,slope,0.8507828687103568
+A4_valuation_insample_sub,y5~ey,1950-01:2018-09,na,slope_nw_t,1.779970935482503
+A4_valuation_insample_sub,y5~ey,1950-01:2018-09,na,r2,0.09521870299887181
+A4_valuation_insample_sub,y5~ey,1881-01:1989-12,na,n_obs,1308
+A4_valuation_insample_sub,y5~ey,1881-01:1989-12,na,slope,1.011330055283988
+A4_valuation_insample_sub,y5~ey,1881-01:1989-12,na,slope_nw_t,2.2372152416171454
+A4_valuation_insample_sub,y5~ey,1881-01:1989-12,na,r2,0.11477871271856399
+A4_valuation_insample_sub,y5~ey,1990-01:2018-09,na,n_obs,345
+A4_valuation_insample_sub,y5~ey,1990-01:2018-09,na,slope,1.518209969137556
+A4_valuation_insample_sub,y5~ey,1990-01:2018-09,na,slope_nw_t,0.942020065224701
+A4_valuation_insample_sub,y5~ey,1990-01:2018-09,na,r2,0.05848208608774197
+A4_valuation_insample_sub,y1~log_cape,1881-01:1949-12,na,n_obs,828
+A4_valuation_insample_sub,y1~log_cape,1881-01:1949-12,na,slope,-0.18913639026899715
+A4_valuation_insample_sub,y1~log_cape,1881-01:1949-12,na,slope_nw_t,-2.6954400939123944
+A4_valuation_insample_sub,y1~log_cape,1881-01:1949-12,na,r2,0.09015483673591806
+A4_valuation_insample_sub,y1~log_cape,1950-01:2022-09,na,n_obs,873
+A4_valuation_insample_sub,y1~log_cape,1950-01:2022-09,na,slope,-0.07917694961747208
+A4_valuation_insample_sub,y1~log_cape,1950-01:2022-09,na,slope_nw_t,-1.9634037715754076
+A4_valuation_insample_sub,y1~log_cape,1950-01:2022-09,na,r2,0.03958688783621889
+A4_valuation_insample_sub,y1~log_cape,1881-01:1989-12,na,n_obs,1308
+A4_valuation_insample_sub,y1~log_cape,1881-01:1989-12,na,slope,-0.17186556728689886
+A4_valuation_insample_sub,y1~log_cape,1881-01:1989-12,na,slope_nw_t,-3.370064750505566
+A4_valuation_insample_sub,y1~log_cape,1881-01:1989-12,na,r2,0.08250462087482457
+A4_valuation_insample_sub,y1~log_cape,1990-01:2022-09,na,n_obs,393
+A4_valuation_insample_sub,y1~log_cape,1990-01:2022-09,na,slope,-0.21278078108157025
+A4_valuation_insample_sub,y1~log_cape,1990-01:2022-09,na,slope_nw_t,-2.777002008421878
+A4_valuation_insample_sub,y1~log_cape,1990-01:2022-09,na,r2,0.10736201476157914
+A4_valuation_insample_sub,y1~ey,1881-01:1949-12,na,n_obs,828
+A4_valuation_insample_sub,y1~ey,1881-01:1949-12,na,slope,0.6969351051467899
+A4_valuation_insample_sub,y1~ey,1881-01:1949-12,na,slope_nw_t,0.7896749597461816
+A4_valuation_insample_sub,y1~ey,1881-01:1949-12,na,r2,0.006813886385354961
+A4_valuation_insample_sub,y1~ey,1950-01:2022-09,na,n_obs,873
+A4_valuation_insample_sub,y1~ey,1950-01:2022-09,na,slope,0.9752166510108287
+A4_valuation_insample_sub,y1~ey,1950-01:2022-09,na,slope_nw_t,1.729247068812448
+A4_valuation_insample_sub,y1~ey,1950-01:2022-09,na,r2,0.027211133648345598
+A4_valuation_insample_sub,y1~ey,1881-01:1989-12,na,n_obs,1308
+A4_valuation_insample_sub,y1~ey,1881-01:1989-12,na,slope,1.0078445048183156
+A4_valuation_insample_sub,y1~ey,1881-01:1989-12,na,slope_nw_t,1.6139232687951606
+A4_valuation_insample_sub,y1~ey,1881-01:1989-12,na,r2,0.017094085295838446
+A4_valuation_insample_sub,y1~ey,1990-01:2022-09,na,n_obs,393
+A4_valuation_insample_sub,y1~ey,1990-01:2022-09,na,slope,2.3476410500421445
+A4_valuation_insample_sub,y1~ey,1990-01:2022-09,na,slope_nw_t,1.154544070084015
+A4_valuation_insample_sub,y1~ey,1990-01:2022-09,na,r2,0.03369466013249256
+A4_valuation_oos,y10~log_cape,1950-01:2013-09,na,r2_oos,0.19880213417102433
+A4_valuation_oos,y10~log_cape,1950-01:2013-09,na,n_forecasts,765
+A4_valuation_oos,y10~log_cape,1950-01:2013-09,na,rmse_model,0.0518616277829935
+A4_valuation_oos,y10~log_cape,1950-01:2013-09,na,rmse_hist_mean,0.05793970130605773
+A4_valuation_oos,y10~log_cape,1950-01:2013-09,na,mean_error_model,0.021784721662480442
+A4_valuation_oos,y10~log_cape,1950-01:2013-09,na,mean_error_hist_mean,0.003339322829580876
+A4_valuation_oos,y10~log_cape,1950-01:2013-09,na,share_months_model_closer,0.5163398692810458
+A4_valuation_oos,y10~log_cape,1950-01:2013-09,na,slope_first,-0.06939290466301704
+A4_valuation_oos,y10~log_cape,1950-01:2013-09,na,slope_last,-0.0806381744839037
+A4_valuation_oos,y10~log_cape,1950-01:1989-12,na,r2_oos,0.3696957845908999
+A4_valuation_oos,y10~log_cape,1950-01:1989-12,na,n_forecasts,480
+A4_valuation_oos,y10~log_cape,1950-01:1989-12,na,rmse_model,0.049400667012479776
+A4_valuation_oos,y10~log_cape,1950-01:1989-12,na,rmse_hist_mean,0.06222396865395583
+A4_valuation_oos,y10~log_cape,1950-01:1989-12,na,mean_error_model,0.005974837213334223
+A4_valuation_oos,y10~log_cape,1950-01:1989-12,na,mean_error_hist_mean,0.005637758273343963
+A4_valuation_oos,y10~log_cape,1950-01:1989-12,na,share_months_model_closer,0.6979166666666666
+A4_valuation_oos,y10~log_cape,1950-01:1989-12,na,slope_first,-0.06939290466301704
+A4_valuation_oos,y10~log_cape,1950-01:1989-12,na,slope_last,-0.09260960845133902
+A4_valuation_oos,y10~log_cape,1990-01:2013-09,na,r2_oos,-0.2487526611216151
+A4_valuation_oos,y10~log_cape,1990-01:2013-09,na,n_forecasts,285
+A4_valuation_oos,y10~log_cape,1990-01:2013-09,na,rmse_model,0.05576143801027301
+A4_valuation_oos,y10~log_cape,1990-01:2013-09,na,rmse_hist_mean,0.04989944918884021
+A4_valuation_oos,y10~log_cape,1990-01:2013-09,na,mean_error_model,0.0484118954715688
+A4_valuation_oos,y10~log_cape,1990-01:2013-09,na,mean_error_hist_mean,-0.0005317263388622122
+A4_valuation_oos,y10~log_cape,1990-01:2013-09,na,share_months_model_closer,0.21052631578947367
+A4_valuation_oos,y10~log_cape,1990-01:2013-09,na,slope_first,-0.09262776811614688
+A4_valuation_oos,y10~log_cape,1990-01:2013-09,na,slope_last,-0.0806381744839037
+A4_valuation_oos,y10~log_dy,1950-01:2013-09,na,r2_oos,-0.12557826172306408
+A4_valuation_oos,y10~log_dy,1950-01:2013-09,na,n_forecasts,765
+A4_valuation_oos,y10~log_dy,1950-01:2013-09,na,rmse_model,0.06147012559500755
+A4_valuation_oos,y10~log_dy,1950-01:2013-09,na,rmse_hist_mean,0.05793970130605773
+A4_valuation_oos,y10~log_dy,1950-01:2013-09,na,mean_error_model,0.0397084355665149
+A4_valuation_oos,y10~log_dy,1950-01:2013-09,na,mean_error_hist_mean,0.003339322829580876
+A4_valuation_oos,y10~log_dy,1950-01:2013-09,na,share_months_model_closer,0.42745098039215684
+A4_valuation_oos,y10~log_dy,1950-01:2013-09,na,slope_first,0.075025111383951
+A4_valuation_oos,y10~log_dy,1950-01:2013-09,na,slope_last,0.061365111599156516
+A4_valuation_oos,y10~log_dy,1950-01:1989-12,na,r2_oos,0.21524792953936767
+A4_valuation_oos,y10~log_dy,1950-01:1989-12,na,n_forecasts,480
+A4_valuation_oos,y10~log_dy,1950-01:1989-12,na,rmse_model,0.05512186995013766
+A4_valuation_oos,y10~log_dy,1950-01:1989-12,na,rmse_hist_mean,0.06222396865395583
+A4_valuation_oos,y10~log_dy,1950-01:1989-12,na,mean_error_model,0.024602952467925085
+A4_valuation_oos,y10~log_dy,1950-01:1989-12,na,mean_error_hist_mean,0.005637758273343963
+A4_valuation_oos,y10~log_dy,1950-01:1989-12,na,share_months_model_closer,0.575
+A4_valuation_oos,y10~log_dy,1950-01:1989-12,na,slope_first,0.075025111383951
+A4_valuation_oos,y10~log_dy,1950-01:1989-12,na,slope_last,0.10256928278999727
+A4_valuation_oos,y10~log_dy,1990-01:2013-09,na,r2_oos,-1.0181707944827636
+A4_valuation_oos,y10~log_dy,1990-01:2013-09,na,n_forecasts,285
+A4_valuation_oos,y10~log_dy,1990-01:2013-09,na,rmse_model,0.0708883242841085
+A4_valuation_oos,y10~log_dy,1990-01:2013-09,na,rmse_hist_mean,0.04989944918884021
+A4_valuation_oos,y10~log_dy,1990-01:2013-09,na,mean_error_model,0.0651492492062451
+A4_valuation_oos,y10~log_dy,1990-01:2013-09,na,mean_error_hist_mean,-0.0005317263388622122
+A4_valuation_oos,y10~log_dy,1990-01:2013-09,na,share_months_model_closer,0.17894736842105263
+A4_valuation_oos,y10~log_dy,1990-01:2013-09,na,slope_first,0.10261289580809811
+A4_valuation_oos,y10~log_dy,1990-01:2013-09,na,slope_last,0.061365111599156516
+A4_valuation_oos,y10~ey,1950-01:2013-09,na,r2_oos,0.21236934186222667
+A4_valuation_oos,y10~ey,1950-01:2013-09,na,n_forecasts,765
+A4_valuation_oos,y10~ey,1950-01:2013-09,na,rmse_model,0.05142064953059225
+A4_valuation_oos,y10~ey,1950-01:2013-09,na,rmse_hist_mean,0.05793970130605773
+A4_valuation_oos,y10~ey,1950-01:2013-09,na,mean_error_model,0.013146333450937247
+A4_valuation_oos,y10~ey,1950-01:2013-09,na,mean_error_hist_mean,0.003339322829580876
+A4_valuation_oos,y10~ey,1950-01:2013-09,na,share_months_model_closer,0.6013071895424836
+A4_valuation_oos,y10~ey,1950-01:2013-09,na,slope_first,0.7502350504490938
+A4_valuation_oos,y10~ey,1950-01:2013-09,na,slope_last,1.030448920995551
+A4_valuation_oos,y10~ey,1950-01:1989-12,na,r2_oos,0.3642667235266328
+A4_valuation_oos,y10~ey,1950-01:1989-12,na,n_forecasts,480
+A4_valuation_oos,y10~ey,1950-01:1989-12,na,rmse_model,0.04961296464472906
+A4_valuation_oos,y10~ey,1950-01:1989-12,na,rmse_hist_mean,0.06222396865395583
+A4_valuation_oos,y10~ey,1950-01:1989-12,na,mean_error_model,0.001798552884285152
+A4_valuation_oos,y10~ey,1950-01:1989-12,na,mean_error_hist_mean,0.005637758273343963
+A4_valuation_oos,y10~ey,1950-01:1989-12,na,share_months_model_closer,0.75
+A4_valuation_oos,y10~ey,1950-01:1989-12,na,slope_first,0.7502350504490938
+A4_valuation_oos,y10~ey,1950-01:1989-12,na,slope_last,1.1037397595810203
+A4_valuation_oos,y10~ey,1990-01:2013-09,na,r2_oos,-0.18543596798557838
+A4_valuation_oos,y10~ey,1990-01:2013-09,na,n_forecasts,285
+A4_valuation_oos,y10~ey,1990-01:2013-09,na,rmse_model,0.05432938661956029
+A4_valuation_oos,y10~ey,1990-01:2013-09,na,rmse_hist_mean,0.04989944918884021
+A4_valuation_oos,y10~ey,1990-01:2013-09,na,mean_error_model,0.03225838493161446
+A4_valuation_oos,y10~ey,1990-01:2013-09,na,mean_error_hist_mean,-0.0005317263388622122
+A4_valuation_oos,y10~ey,1990-01:2013-09,na,share_months_model_closer,0.3508771929824561
+A4_valuation_oos,y10~ey,1990-01:2013-09,na,slope_first,1.1027613150420632
+A4_valuation_oos,y10~ey,1990-01:2013-09,na,slope_last,1.030448920995551
+A4_valuation_oos,y10~fed_spread,1950-01:2013-09,na,r2_oos,-0.3300999666829698
+A4_valuation_oos,y10~fed_spread,1950-01:2013-09,na,n_forecasts,765
+A4_valuation_oos,y10~fed_spread,1950-01:2013-09,na,rmse_model,0.06682183432338544
+A4_valuation_oos,y10~fed_spread,1950-01:2013-09,na,rmse_hist_mean,0.05793970130605773
+A4_valuation_oos,y10~fed_spread,1950-01:2013-09,na,mean_error_model,0.03168668303301975
+A4_valuation_oos,y10~fed_spread,1950-01:2013-09,na,mean_error_hist_mean,0.003339322829580876
+A4_valuation_oos,y10~fed_spread,1950-01:2013-09,na,share_months_model_closer,0.5490196078431373
+A4_valuation_oos,y10~fed_spread,1950-01:2013-09,na,slope_first,0.7228217497053784
+A4_valuation_oos,y10~fed_spread,1950-01:2013-09,na,slope_last,0.5334806759672879
+A4_valuation_oos,y10~fed_spread,1950-01:1989-12,na,r2_oos,-0.270641624955823
+A4_valuation_oos,y10~fed_spread,1950-01:1989-12,na,n_forecasts,480
+A4_valuation_oos,y10~fed_spread,1950-01:1989-12,na,rmse_model,0.07014056278009001
+A4_valuation_oos,y10~fed_spread,1950-01:1989-12,na,rmse_hist_mean,0.06222396865395583
+A4_valuation_oos,y10~fed_spread,1950-01:1989-12,na,mean_error_model,0.03495521149582436
+A4_valuation_oos,y10~fed_spread,1950-01:1989-12,na,mean_error_hist_mean,0.005637758273343963
+A4_valuation_oos,y10~fed_spread,1950-01:1989-12,na,share_months_model_closer,0.5416666666666666
+A4_valuation_oos,y10~fed_spread,1950-01:1989-12,na,slope_first,0.7228217497053784
+A4_valuation_oos,y10~fed_spread,1950-01:1989-12,na,slope_last,1.1497007225938065
+A4_valuation_oos,y10~fed_spread,1990-01:2013-09,na,r2_oos,-0.4858159098719157
+A4_valuation_oos,y10~fed_spread,1990-01:2013-09,na,n_forecasts,285
+A4_valuation_oos,y10~fed_spread,1990-01:2013-09,na,rmse_model,0.06082445887530194
+A4_valuation_oos,y10~fed_spread,1990-01:2013-09,na,rmse_hist_mean,0.04989944918884021
+A4_valuation_oos,y10~fed_spread,1990-01:2013-09,na,mean_error_model,0.026181792990401426
+A4_valuation_oos,y10~fed_spread,1990-01:2013-09,na,mean_error_hist_mean,-0.0005317263388622122
+A4_valuation_oos,y10~fed_spread,1990-01:2013-09,na,share_months_model_closer,0.5614035087719298
+A4_valuation_oos,y10~fed_spread,1990-01:2013-09,na,slope_first,1.1489520159100923
+A4_valuation_oos,y10~fed_spread,1990-01:2013-09,na,slope_last,0.5334806759672879
+A4_valuation_oos,y5~log_cape,1950-01:2018-09,na,r2_oos,-0.04398729677213131
+A4_valuation_oos,y5~log_cape,1950-01:2018-09,na,n_forecasts,825
+A4_valuation_oos,y5~log_cape,1950-01:2018-09,na,rmse_model,0.08138331081611397
+A4_valuation_oos,y5~log_cape,1950-01:2018-09,na,rmse_hist_mean,0.07965036065846025
+A4_valuation_oos,y5~log_cape,1950-01:2018-09,na,mean_error_model,0.0317698288860708
+A4_valuation_oos,y5~log_cape,1950-01:2018-09,na,mean_error_hist_mean,0.007162465653657682
+A4_valuation_oos,y5~log_cape,1950-01:2018-09,na,share_months_model_closer,0.45454545454545453
+A4_valuation_oos,y5~log_cape,1950-01:2018-09,na,slope_first,-0.11968069878477577
+A4_valuation_oos,y5~log_cape,1950-01:2018-09,na,slope_last,-0.08956142455599102
+A4_valuation_oos,y5~log_cape,1950-01:1989-12,na,r2_oos,0.1853762343350588
+A4_valuation_oos,y5~log_cape,1950-01:1989-12,na,n_forecasts,480
+A4_valuation_oos,y5~log_cape,1950-01:1989-12,na,rmse_model,0.07045145006980585
+A4_valuation_oos,y5~log_cape,1950-01:1989-12,na,rmse_hist_mean,0.07805691779298271
+A4_valuation_oos,y5~log_cape,1950-01:1989-12,na,mean_error_model,0.00763830473454013
+A4_valuation_oos,y5~log_cape,1950-01:1989-12,na,mean_error_hist_mean,0.005187139641501228
+A4_valuation_oos,y5~log_cape,1950-01:1989-12,na,share_months_model_closer,0.53125
+A4_valuation_oos,y5~log_cape,1950-01:1989-12,na,slope_first,-0.11968069878477577
+A4_valuation_oos,y5~log_cape,1950-01:1989-12,na,slope_last,-0.12003015422536352
+A4_valuation_oos,y5~log_cape,1990-01:2018-09,na,r2_oos,-0.3344536547077872
+A4_valuation_oos,y5~log_cape,1990-01:2018-09,na,n_forecasts,345
+A4_valuation_oos,y5~log_cape,1990-01:2018-09,na,rmse_model,0.09451233235025229
+A4_valuation_oos,y5~log_cape,1990-01:2018-09,na,rmse_hist_mean,0.08181571554290908
+A4_valuation_oos,y5~log_cape,1990-01:2018-09,na,mean_error_model,0.06534412335776565
+A4_valuation_oos,y5~log_cape,1990-01:2018-09,na,mean_error_hist_mean,0.009910745322744921
+A4_valuation_oos,y5~log_cape,1990-01:2018-09,na,share_months_model_closer,0.34782608695652173
+A4_valuation_oos,y5~log_cape,1990-01:2018-09,na,slope_first,-0.1201122055366992
+A4_valuation_oos,y5~log_cape,1990-01:2018-09,na,slope_last,-0.08956142455599102
+A4_valuation_oos,y5~log_dy,1950-01:2018-09,na,r2_oos,-0.2549532549963023
+A4_valuation_oos,y5~log_dy,1950-01:2018-09,na,n_forecasts,825
+A4_valuation_oos,y5~log_dy,1950-01:2018-09,na,rmse_model,0.089228074518776
+A4_valuation_oos,y5~log_dy,1950-01:2018-09,na,rmse_hist_mean,0.07965036065846025
+A4_valuation_oos,y5~log_dy,1950-01:2018-09,na,mean_error_model,0.05702767385449484
+A4_valuation_oos,y5~log_dy,1950-01:2018-09,na,mean_error_hist_mean,0.007162465653657682
+A4_valuation_oos,y5~log_dy,1950-01:2018-09,na,share_months_model_closer,0.4412121212121212
+A4_valuation_oos,y5~log_dy,1950-01:2018-09,na,slope_first,0.1594313321475196
+A4_valuation_oos,y5~log_dy,1950-01:2018-09,na,slope_last,0.06266198080055337
+A4_valuation_oos,y5~log_dy,1950-01:1989-12,na,r2_oos,0.13023987173108564
+A4_valuation_oos,y5~log_dy,1950-01:1989-12,na,n_forecasts,480
+A4_valuation_oos,y5~log_dy,1950-01:1989-12,na,rmse_model,0.07279660837631058
+A4_valuation_oos,y5~log_dy,1950-01:1989-12,na,rmse_hist_mean,0.07805691779298271
+A4_valuation_oos,y5~log_dy,1950-01:1989-12,na,mean_error_model,0.038074412544084286
+A4_valuation_oos,y5~log_dy,1950-01:1989-12,na,mean_error_hist_mean,0.005187139641501228
+A4_valuation_oos,y5~log_dy,1950-01:1989-12,na,share_months_model_closer,0.5333333333333333
+A4_valuation_oos,y5~log_dy,1950-01:1989-12,na,slope_first,0.1594313321475196
+A4_valuation_oos,y5~log_dy,1950-01:1989-12,na,slope_last,0.15265610784240216
+A4_valuation_oos,y5~log_dy,1990-01:2018-09,na,r2_oos,-0.7427624724523396
+A4_valuation_oos,y5~log_dy,1990-01:2018-09,na,n_forecasts,345
+A4_valuation_oos,y5~log_dy,1990-01:2018-09,na,rmse_model,0.1080079772442451
+A4_valuation_oos,y5~log_dy,1990-01:2018-09,na,rmse_hist_mean,0.08181571554290908
+A4_valuation_oos,y5~log_dy,1990-01:2018-09,na,mean_error_model,0.08339742872115295
+A4_valuation_oos,y5~log_dy,1990-01:2018-09,na,mean_error_hist_mean,0.009910745322744921
+A4_valuation_oos,y5~log_dy,1990-01:2018-09,na,share_months_model_closer,0.3130434782608696
+A4_valuation_oos,y5~log_dy,1990-01:2018-09,na,slope_first,0.15260081660621233
+A4_valuation_oos,y5~log_dy,1990-01:2018-09,na,slope_last,0.06266198080055337
+A4_valuation_oos,y5~ey,1950-01:2018-09,na,r2_oos,0.02596179881953864
+A4_valuation_oos,y5~ey,1950-01:2018-09,na,n_forecasts,825
+A4_valuation_oos,y5~ey,1950-01:2018-09,na,rmse_model,0.07860962809610197
+A4_valuation_oos,y5~ey,1950-01:2018-09,na,rmse_hist_mean,0.07965036065846025
+A4_valuation_oos,y5~ey,1950-01:2018-09,na,mean_error_model,0.016798844146758005
+A4_valuation_oos,y5~ey,1950-01:2018-09,na,mean_error_hist_mean,0.007162465653657682
+A4_valuation_oos,y5~ey,1950-01:2018-09,na,share_months_model_closer,0.4896969696969697
+A4_valuation_oos,y5~ey,1950-01:2018-09,na,slope_first,0.507650947720677
+A4_valuation_oos,y5~ey,1950-01:2018-09,na,slope_last,0.7918927630564997
+A4_valuation_oos,y5~ey,1950-01:1989-12,na,r2_oos,0.1765452764212766
+A4_valuation_oos,y5~ey,1950-01:1989-12,na,n_forecasts,480
+A4_valuation_oos,y5~ey,1950-01:1989-12,na,rmse_model,0.07083228645979066
+A4_valuation_oos,y5~ey,1950-01:1989-12,na,rmse_hist_mean,0.07805691779298271
+A4_valuation_oos,y5~ey,1950-01:1989-12,na,mean_error_model,0.0029588077896475847
+A4_valuation_oos,y5~ey,1950-01:1989-12,na,mean_error_hist_mean,0.005187139641501228
+A4_valuation_oos,y5~ey,1950-01:1989-12,na,share_months_model_closer,0.5854166666666667
+A4_valuation_oos,y5~ey,1950-01:1989-12,na,slope_first,0.507650947720677
+A4_valuation_oos,y5~ey,1950-01:1989-12,na,slope_last,1.024340740044365
+A4_valuation_oos,y5~ey,1990-01:2018-09,na,r2_oos,-0.16473736810173234
+A4_valuation_oos,y5~ey,1990-01:2018-09,na,n_forecasts,345
+A4_valuation_oos,y5~ey,1990-01:2018-09,na,rmse_model,0.08829797374540359
+A4_valuation_oos,y5~ey,1990-01:2018-09,na,rmse_hist_mean,0.08181571554290908
+A4_valuation_oos,y5~ey,1990-01:2018-09,na,mean_error_model,0.03605454690447684
+A4_valuation_oos,y5~ey,1990-01:2018-09,na,mean_error_hist_mean,0.009910745322744921
+A4_valuation_oos,y5~ey,1990-01:2018-09,na,share_months_model_closer,0.3565217391304348
+A4_valuation_oos,y5~ey,1990-01:2018-09,na,slope_first,1.025449220396752
+A4_valuation_oos,y5~ey,1990-01:2018-09,na,slope_last,0.7918927630564997
+A4_valuation_oos,y5~fed_spread,1950-01:2018-09,na,r2_oos,-0.13122261495122456
+A4_valuation_oos,y5~fed_spread,1950-01:2018-09,na,n_forecasts,825
+A4_valuation_oos,y5~fed_spread,1950-01:2018-09,na,rmse_model,0.08471528690962205
+A4_valuation_oos,y5~fed_spread,1950-01:2018-09,na,rmse_hist_mean,0.07965036065846025
+A4_valuation_oos,y5~fed_spread,1950-01:2018-09,na,mean_error_model,0.029944184828729986
+A4_valuation_oos,y5~fed_spread,1950-01:2018-09,na,mean_error_hist_mean,0.007162465653657682
+A4_valuation_oos,y5~fed_spread,1950-01:2018-09,na,share_months_model_closer,0.5212121212121212
+A4_valuation_oos,y5~fed_spread,1950-01:2018-09,na,slope_first,0.39607319533466245
+A4_valuation_oos,y5~fed_spread,1950-01:2018-09,na,slope_last,0.449916426309885
+A4_valuation_oos,y5~fed_spread,1950-01:1989-12,na,r2_oos,-0.10851787694309101
+A4_valuation_oos,y5~fed_spread,1950-01:1989-12,na,n_forecasts,480
+A4_valuation_oos,y5~fed_spread,1950-01:1989-12,na,rmse_model,0.08218314352418687
+A4_valuation_oos,y5~fed_spread,1950-01:1989-12,na,rmse_hist_mean,0.07805691779298271
+A4_valuation_oos,y5~fed_spread,1950-01:1989-12,na,mean_error_model,0.033610276296055494
+A4_valuation_oos,y5~fed_spread,1950-01:1989-12,na,mean_error_hist_mean,0.005187139641501228
+A4_valuation_oos,y5~fed_spread,1950-01:1989-12,na,share_months_model_closer,0.5229166666666667
+A4_valuation_oos,y5~fed_spread,1950-01:1989-12,na,slope_first,0.39607319533466245
+A4_valuation_oos,y5~fed_spread,1950-01:1989-12,na,slope_last,0.7697480079028698
+A4_valuation_oos,y5~fed_spread,1990-01:2018-09,na,r2_oos,-0.15997593299298263
+A4_valuation_oos,y5~fed_spread,1990-01:2018-09,na,n_forecasts,345
+A4_valuation_oos,y5~fed_spread,1990-01:2018-09,na,rmse_model,0.08811730828482087
+A4_valuation_oos,y5~fed_spread,1990-01:2018-09,na,rmse_hist_mean,0.08181571554290908
+A4_valuation_oos,y5~fed_spread,1990-01:2018-09,na,mean_error_model,0.0248435358307119
+A4_valuation_oos,y5~fed_spread,1990-01:2018-09,na,mean_error_hist_mean,0.009910745322744921
+A4_valuation_oos,y5~fed_spread,1990-01:2018-09,na,share_months_model_closer,0.518840579710145
+A4_valuation_oos,y5~fed_spread,1990-01:2018-09,na,slope_first,0.7643003971515947
+A4_valuation_oos,y5~fed_spread,1990-01:2018-09,na,slope_last,0.449916426309885
+A4_valuation_oos,y1~log_cape,1950-01:2022-09,na,r2_oos,-0.04367722690434528
+A4_valuation_oos,y1~log_cape,1950-01:2022-09,na,n_forecasts,873
+A4_valuation_oos,y1~log_cape,1950-01:2022-09,na,rmse_model,0.16878499691036516
+A4_valuation_oos,y1~log_cape,1950-01:2022-09,na,rmse_hist_mean,0.16521548000639186
+A4_valuation_oos,y1~log_cape,1950-01:2022-09,na,mean_error_model,0.0365675169890602
+A4_valuation_oos,y1~log_cape,1950-01:2022-09,na,mean_error_hist_mean,0.003087667943935295
+A4_valuation_oos,y1~log_cape,1950-01:2022-09,na,share_months_model_closer,0.4284077892325315
+A4_valuation_oos,y1~log_cape,1950-01:2022-09,na,slope_first,-0.18374884100014088
+A4_valuation_oos,y1~log_cape,1950-01:2022-09,na,slope_last,-0.10086969295300463
+A4_valuation_oos,y1~log_cape,1950-01:1989-12,na,r2_oos,0.052662309575913224
+A4_valuation_oos,y1~log_cape,1950-01:1989-12,na,n_forecasts,480
+A4_valuation_oos,y1~log_cape,1950-01:1989-12,na,rmse_model,0.16580609962736567
+A4_valuation_oos,y1~log_cape,1950-01:1989-12,na,rmse_hist_mean,0.17035233667731842
+A4_valuation_oos,y1~log_cape,1950-01:1989-12,na,mean_error_model,0.006741017135040539
+A4_valuation_oos,y1~log_cape,1950-01:1989-12,na,mean_error_hist_mean,0.002606438253452975
+A4_valuation_oos,y1~log_cape,1950-01:1989-12,na,share_months_model_closer,0.5125
+A4_valuation_oos,y1~log_cape,1950-01:1989-12,na,slope_first,-0.18374884100014088
+A4_valuation_oos,y1~log_cape,1950-01:1989-12,na,slope_last,-0.17106999640542694
+A4_valuation_oos,y1~log_cape,1990-01:2022-09,na,r2_oos,-0.17922973716790902
+A4_valuation_oos,y1~log_cape,1990-01:2022-09,na,n_forecasts,393
+A4_valuation_oos,y1~log_cape,1990-01:2022-09,na,rmse_model,0.17235351453018813
+A4_valuation_oos,y1~log_cape,1990-01:2022-09,na,rmse_hist_mean,0.15871608139880267
+A4_valuation_oos,y1~log_cape,1990-01:2022-09,na,mean_error_model,0.07299682978786286
+A4_valuation_oos,y1~log_cape,1990-01:2022-09,na,mean_error_hist_mean,0.0036754293979594965
+A4_valuation_oos,y1~log_cape,1990-01:2022-09,na,share_months_model_closer,0.3256997455470738
+A4_valuation_oos,y1~log_cape,1990-01:2022-09,na,slope_first,-0.17100873353435225
+A4_valuation_oos,y1~log_cape,1990-01:2022-09,na,slope_last,-0.10086969295300463
+A4_valuation_oos,y1~log_dy,1950-01:2022-09,na,r2_oos,-0.09491268678004738
+A4_valuation_oos,y1~log_dy,1950-01:2022-09,na,n_forecasts,873
+A4_valuation_oos,y1~log_dy,1950-01:2022-09,na,rmse_model,0.17287829889195794
+A4_valuation_oos,y1~log_dy,1950-01:2022-09,na,rmse_hist_mean,0.16521548000639186
+A4_valuation_oos,y1~log_dy,1950-01:2022-09,na,mean_error_model,0.06432417019261645
+A4_valuation_oos,y1~log_dy,1950-01:2022-09,na,mean_error_hist_mean,0.003087667943935295
+A4_valuation_oos,y1~log_dy,1950-01:2022-09,na,share_months_model_closer,0.4020618556701031
+A4_valuation_oos,y1~log_dy,1950-01:2022-09,na,slope_first,0.25078488228065715
+A4_valuation_oos,y1~log_dy,1950-01:2022-09,na,slope_last,0.07010432045881415
+A4_valuation_oos,y1~log_dy,1950-01:1989-12,na,r2_oos,0.0627285568345346
+A4_valuation_oos,y1~log_dy,1950-01:1989-12,na,n_forecasts,480
+A4_valuation_oos,y1~log_dy,1950-01:1989-12,na,rmse_model,0.16492283346302375
+A4_valuation_oos,y1~log_dy,1950-01:1989-12,na,rmse_hist_mean,0.17035233667731842
+A4_valuation_oos,y1~log_dy,1950-01:1989-12,na,mean_error_model,0.04596173762305707
+A4_valuation_oos,y1~log_dy,1950-01:1989-12,na,mean_error_hist_mean,0.002606438253452975
+A4_valuation_oos,y1~log_dy,1950-01:1989-12,na,share_months_model_closer,0.48333333333333334
+A4_valuation_oos,y1~log_dy,1950-01:1989-12,na,slope_first,0.25078488228065715
+A4_valuation_oos,y1~log_dy,1950-01:1989-12,na,slope_last,0.20939394622224497
+A4_valuation_oos,y1~log_dy,1990-01:2022-09,na,r2_oos,-0.31671846947037063
+A4_valuation_oos,y1~log_dy,1990-01:2022-09,na,n_forecasts,393
+A4_valuation_oos,y1~log_dy,1990-01:2022-09,na,rmse_model,0.18212409058567997
+A4_valuation_oos,y1~log_dy,1990-01:2022-09,na,rmse_hist_mean,0.15871608139880267
+A4_valuation_oos,y1~log_dy,1990-01:2022-09,na,mean_error_model,0.08675156875085695
+A4_valuation_oos,y1~log_dy,1990-01:2022-09,na,mean_error_hist_mean,0.0036754293979594965
+A4_valuation_oos,y1~log_dy,1990-01:2022-09,na,share_months_model_closer,0.30279898218829515
+A4_valuation_oos,y1~log_dy,1990-01:2022-09,na,slope_first,0.2089170400163385
+A4_valuation_oos,y1~log_dy,1990-01:2022-09,na,slope_last,0.07010432045881415
+A4_valuation_oos,y1~ey,1950-01:2022-09,na,r2_oos,0.011040748935297717
+A4_valuation_oos,y1~ey,1950-01:2022-09,na,n_forecasts,873
+A4_valuation_oos,y1~ey,1950-01:2022-09,na,rmse_model,0.16430089726268723
+A4_valuation_oos,y1~ey,1950-01:2022-09,na,rmse_hist_mean,0.16521548000639186
+A4_valuation_oos,y1~ey,1950-01:2022-09,na,mean_error_model,0.01346420529768993
+A4_valuation_oos,y1~ey,1950-01:2022-09,na,mean_error_hist_mean,0.003087667943935295
+A4_valuation_oos,y1~ey,1950-01:2022-09,na,share_months_model_closer,0.4856815578465063
+A4_valuation_oos,y1~ey,1950-01:2022-09,na,slope_first,0.4223607308130131
+A4_valuation_oos,y1~ey,1950-01:2022-09,na,slope_last,0.7406526568555758
+A4_valuation_oos,y1~ey,1950-01:1989-12,na,r2_oos,0.03967518609969001
+A4_valuation_oos,y1~ey,1950-01:1989-12,na,n_forecasts,480
+A4_valuation_oos,y1~ey,1950-01:1989-12,na,rmse_model,0.16693875505680641
+A4_valuation_oos,y1~ey,1950-01:1989-12,na,rmse_hist_mean,0.17035233667731842
+A4_valuation_oos,y1~ey,1950-01:1989-12,na,mean_error_model,0.00043388104123804895
+A4_valuation_oos,y1~ey,1950-01:1989-12,na,mean_error_hist_mean,0.002606438253452975
+A4_valuation_oos,y1~ey,1950-01:1989-12,na,share_months_model_closer,0.56875
+A4_valuation_oos,y1~ey,1950-01:1989-12,na,slope_first,0.4223607308130131
+A4_valuation_oos,y1~ey,1950-01:1989-12,na,slope_last,0.9961491675447058
+A4_valuation_oos,y1~ey,1990-01:2022-09,na,r2_oos,-0.029248731162138775
+A4_valuation_oos,y1~ey,1990-01:2022-09,na,n_forecasts,393
+A4_valuation_oos,y1~ey,1990-01:2022-09,na,rmse_model,0.16102047469351327
+A4_valuation_oos,y1~ey,1990-01:2022-09,na,rmse_hist_mean,0.15871608139880267
+A4_valuation_oos,y1~ey,1990-01:2022-09,na,mean_error_model,0.02937910515289833
+A4_valuation_oos,y1~ey,1990-01:2022-09,na,mean_error_hist_mean,0.0036754293979594965
+A4_valuation_oos,y1~ey,1990-01:2022-09,na,share_months_model_closer,0.3842239185750636
+A4_valuation_oos,y1~ey,1990-01:2022-09,na,slope_first,0.9966189345740999
+A4_valuation_oos,y1~ey,1990-01:2022-09,na,slope_last,0.7406526568555758
+A4_valuation_oos,y1~fed_spread,1950-01:2022-09,na,r2_oos,0.0016825812787019112
+A4_valuation_oos,y1~fed_spread,1950-01:2022-09,na,n_forecasts,873
+A4_valuation_oos,y1~fed_spread,1950-01:2022-09,na,rmse_model,0.16507642725307167
+A4_valuation_oos,y1~fed_spread,1950-01:2022-09,na,rmse_hist_mean,0.16521548000639186
+A4_valuation_oos,y1~fed_spread,1950-01:2022-09,na,mean_error_model,0.025930618309824946
+A4_valuation_oos,y1~fed_spread,1950-01:2022-09,na,mean_error_hist_mean,0.003087667943935295
+A4_valuation_oos,y1~fed_spread,1950-01:2022-09,na,share_months_model_closer,0.49713631156930127
+A4_valuation_oos,y1~fed_spread,1950-01:2022-09,na,slope_first,0.4502615036271408
+A4_valuation_oos,y1~fed_spread,1950-01:2022-09,na,slope_last,0.6540746139648171
+A4_valuation_oos,y1~fed_spread,1950-01:1989-12,na,r2_oos,0.02123160774791022
+A4_valuation_oos,y1~fed_spread,1950-01:1989-12,na,n_forecasts,480
+A4_valuation_oos,y1~fed_spread,1950-01:1989-12,na,rmse_model,0.16853420745530698
+A4_valuation_oos,y1~fed_spread,1950-01:1989-12,na,rmse_hist_mean,0.17035233667731842
+A4_valuation_oos,y1~fed_spread,1950-01:1989-12,na,mean_error_model,0.030773665864821352
+A4_valuation_oos,y1~fed_spread,1950-01:1989-12,na,mean_error_hist_mean,0.002606438253452975
+A4_valuation_oos,y1~fed_spread,1950-01:1989-12,na,share_months_model_closer,0.5479166666666667
+A4_valuation_oos,y1~fed_spread,1950-01:1989-12,na,slope_first,0.4502615036271408
+A4_valuation_oos,y1~fed_spread,1950-01:1989-12,na,slope_last,0.812957674055726
+A4_valuation_oos,y1~fed_spread,1990-01:2022-09,na,r2_oos,-0.025823463569801586
+A4_valuation_oos,y1~fed_spread,1990-01:2022-09,na,n_forecasts,393
+A4_valuation_oos,y1~fed_spread,1990-01:2022-09,na,rmse_model,0.1607523189833254
+A4_valuation_oos,y1~fed_spread,1990-01:2022-09,na,rmse_hist_mean,0.15871608139880267
+A4_valuation_oos,y1~fed_spread,1990-01:2022-09,na,mean_error_model,0.020015445723569794
+A4_valuation_oos,y1~fed_spread,1990-01:2022-09,na,mean_error_hist_mean,0.0036754293979594965
+A4_valuation_oos,y1~fed_spread,1990-01:2022-09,na,share_months_model_closer,0.4351145038167939
+A4_valuation_oos,y1~fed_spread,1990-01:2022-09,na,slope_first,0.8092286801405597
+A4_valuation_oos,y1~fed_spread,1990-01:2022-09,na,slope_last,0.6540746139648171
+A4_valuation_resid_1990_2013,y10~log_cape,1990-01,na,cape,17.05
+A4_valuation_resid_1990_2013,y10~log_cape,1990-01,na,actual_y10,0.14957948186985748
+A4_valuation_resid_1990_2013,y10~log_cape,1990-01,na,fitted_insample,0.05877854957165485
+A4_valuation_resid_1990_2013,y10~log_cape,1990-01,na,resid_insample,0.09080093229820263
+A4_valuation_resid_1990_2013,y10~log_cape,1990-01,na,oos_forecast,0.04411478900661625
+A4_valuation_resid_1990_2013,y10~log_cape,1990-01,na,oos_error,0.10546469286324123
+A4_valuation_resid_1990_2013,y10~log_cape,1990-01,na,hist_mean_forecast,0.06158681262125459
+A4_valuation_resid_1990_2013,y10~log_cape,1991-01,na,cape,15.61
+A4_valuation_resid_1990_2013,y10~log_cape,1991-01,na,actual_y10,0.1464911248005598
+A4_valuation_resid_1990_2013,y10~log_cape,1991-01,na,fitted_insample,0.06502694107120313
+A4_valuation_resid_1990_2013,y10~log_cape,1991-01,na,resid_insample,0.08146418372935668
+A4_valuation_resid_1990_2013,y10~log_cape,1991-01,na,oos_forecast,0.052268117906631606
+A4_valuation_resid_1990_2013,y10~log_cape,1991-01,na,oos_error,0.09422300689392821
+A4_valuation_resid_1990_2013,y10~log_cape,1991-01,na,hist_mean_forecast,0.06199199610004401
+A4_valuation_resid_1990_2013,y10~log_cape,1992-01,na,cape,19.77
+A4_valuation_resid_1990_2013,y10~log_cape,1992-01,na,actual_y10,0.10068838924166146
+A4_valuation_resid_1990_2013,y10~log_cape,1992-01,na,fitted_insample,0.04829719847216438
+A4_valuation_resid_1990_2013,y10~log_cape,1992-01,na,resid_insample,0.05239119076949708
+A4_valuation_resid_1990_2013,y10~log_cape,1992-01,na,oos_forecast,0.030366060176907406
+A4_valuation_resid_1990_2013,y10~log_cape,1992-01,na,oos_error,0.07032232906475405
+A4_valuation_resid_1990_2013,y10~log_cape,1992-01,na,hist_mean_forecast,0.062532093457779
+A4_valuation_resid_1990_2013,y10~log_cape,1993-01,na,cape,20.32
+A4_valuation_resid_1990_2013,y10~log_cape,1993-01,na,actual_y10,0.06892055442254996
+A4_valuation_resid_1990_2013,y10~log_cape,1993-01,na,fitted_insample,0.04635410297345971
+A4_valuation_resid_1990_2013,y10~log_cape,1993-01,na,resid_insample,0.022566451449090252
+A4_valuation_resid_1990_2013,y10~log_cape,1993-01,na,oos_forecast,0.027722960370493543
+A4_valuation_resid_1990_2013,y10~log_cape,1993-01,na,oos_error,0.04119759405205642
+A4_valuation_resid_1990_2013,y10~log_cape,1993-01,na,hist_mean_forecast,0.06320137430138774
+A4_valuation_resid_1990_2013,y10~log_cape,1994-01,na,cape,21.41
+A4_valuation_resid_1990_2013,y10~log_cape,1994-01,na,actual_y10,0.08469888550467819
+A4_valuation_resid_1990_2013,y10~log_cape,1994-01,na,fitted_insample,0.04265397133999868
+A4_valuation_resid_1990_2013,y10~log_cape,1994-01,na,resid_insample,0.04204491416467951
+A4_valuation_resid_1990_2013,y10~log_cape,1994-01,na,oos_forecast,0.02282056524670334
+A4_valuation_resid_1990_2013,y10~log_cape,1994-01,na,oos_error,0.06187832025797485
+A4_valuation_resid_1990_2013,y10~log_cape,1994-01,na,hist_mean_forecast,0.06361806562307086
+A4_valuation_resid_1990_2013,y10~log_cape,1995-01,na,cape,20.22
+A4_valuation_resid_1990_2013,y10~log_cape,1995-01,na,actual_y10,0.08966415363816105
+A4_valuation_resid_1990_2013,y10~log_cape,1995-01,na,fitted_insample,0.04670345028053727
+A4_valuation_resid_1990_2013,y10~log_cape,1995-01,na,resid_insample,0.04296070335762378
+A4_valuation_resid_1990_2013,y10~log_cape,1995-01,na,oos_forecast,0.02815556391021684
+A4_valuation_resid_1990_2013,y10~log_cape,1995-01,na,oos_error,0.06150858972794421
+A4_valuation_resid_1990_2013,y10~log_cape,1995-01,na,hist_mean_forecast,0.0640465066479691
+A4_valuation_resid_1990_2013,y10~log_cape,1996-01,na,cape,24.76
+A4_valuation_resid_1990_2013,y10~log_cape,1996-01,na,actual_y10,0.0661546870657077
+A4_valuation_resid_1990_2013,y10~log_cape,1996-01,na,fitted_insample,0.0323598548856803
+A4_valuation_resid_1990_2013,y10~log_cape,1996-01,na,resid_insample,0.033794832180027407
+A4_valuation_resid_1990_2013,y10~log_cape,1996-01,na,oos_forecast,0.00911546984805428
+A4_valuation_resid_1990_2013,y10~log_cape,1996-01,na,oos_error,0.057039217217653426
+A4_valuation_resid_1990_2013,y10~log_cape,1996-01,na,hist_mean_forecast,0.06447671870793832
+A4_valuation_resid_1990_2013,y10~log_cape,1997-01,na,cape,28.33
+A4_valuation_resid_1990_2013,y10~log_cape,1997-01,na,actual_y10,0.05482087564075755
+A4_valuation_resid_1990_2013,y10~log_cape,1997-01,na,fitted_insample,0.022821979644362084
+A4_valuation_resid_1990_2013,y10~log_cape,1997-01,na,resid_insample,0.031998895996395466
+A4_valuation_resid_1990_2013,y10~log_cape,1997-01,na,oos_forecast,-0.00323549300679421
+A4_valuation_resid_1990_2013,y10~log_cape,1997-01,na,oos_error,0.05805636864755176
+A4_valuation_resid_1990_2013,y10~log_cape,1997-01,na,hist_mean_forecast,0.06484214343504863
+A4_valuation_resid_1990_2013,y10~log_cape,1998-01,na,cape,32.86
+A4_valuation_resid_1990_2013,y10~log_cape,1998-01,na,actual_y10,0.024993227029100673
+A4_valuation_resid_1990_2013,y10~log_cape,1998-01,na,fitted_insample,0.012318013470863698
+A4_valuation_resid_1990_2013,y10~log_cape,1998-01,na,resid_insample,0.012675213558236975
+A4_valuation_resid_1990_2013,y10~log_cape,1998-01,na,oos_forecast,-0.016056275345985083
+A4_valuation_resid_1990_2013,y10~log_cape,1998-01,na,oos_error,0.041049502375085756
+A4_valuation_resid_1990_2013,y10~log_cape,1998-01,na,hist_mean_forecast,0.06530490766305362
+A4_valuation_resid_1990_2013,y10~log_cape,1999-01,na,cape,40.58
+A4_valuation_resid_1990_2013,y10~log_cape,1999-01,na,actual_y10,-0.04413015248468122
+A4_valuation_resid_1990_2013,y10~log_cape,1999-01,na,fitted_insample,-0.0026247968882284756
+A4_valuation_resid_1990_2013,y10~log_cape,1999-01,na,resid_insample,-0.04150535559645274
+A4_valuation_resid_1990_2013,y10~log_cape,1999-01,na,oos_forecast,-0.03461987444996817
+A4_valuation_resid_1990_2013,y10~log_cape,1999-01,na,oos_error,-0.009510278034713049
+A4_valuation_resid_1990_2013,y10~log_cape,1999-01,na,hist_mean_forecast,0.06605716283245146
+A4_valuation_resid_1990_2013,y10~log_cape,2000-01,na,cape,43.77
+A4_valuation_resid_1990_2013,y10~log_cape,2000-01,na,actual_y10,-0.030323736382028232
+A4_valuation_resid_1990_2013,y10~log_cape,2000-01,na,fitted_insample,-0.007983417836019358
+A4_valuation_resid_1990_2013,y10~log_cape,2000-01,na,resid_insample,-0.022340318546008875
+A4_valuation_resid_1990_2013,y10~log_cape,2000-01,na,oos_forecast,-0.039035913263397615
+A4_valuation_resid_1990_2013,y10~log_cape,2000-01,na,oos_error,0.008712176881369382
+A4_valuation_resid_1990_2013,y10~log_cape,2000-01,na,hist_mean_forecast,0.06679615200748301
+A4_valuation_resid_1990_2013,y10~log_cape,2001-01,na,cape,36.98
+A4_valuation_resid_1990_2013,y10~log_cape,2001-01,na,actual_y10,-0.008180990222711015
+A4_valuation_resid_1990_2013,y10~log_cape,2001-01,na,fitted_insample,0.003953555573466883
+A4_valuation_resid_1990_2013,y10~log_cape,2001-01,na,resid_insample,-0.012134545796177898
+A4_valuation_resid_1990_2013,y10~log_cape,2001-01,na,oos_forecast,-0.021395392531169066
+A4_valuation_resid_1990_2013,y10~log_cape,2001-01,na,oos_error,0.01321440230845805
+A4_valuation_resid_1990_2013,y10~log_cape,2001-01,na,hist_mean_forecast,0.0675590050742301
+A4_valuation_resid_1990_2013,y10~log_cape,2002-01,na,cape,30.28
+A4_valuation_resid_1990_2013,y10~log_cape,2002-01,na,actual_y10,0.007892730142007531
+A4_valuation_resid_1990_2013,y10~log_cape,2002-01,na,fitted_insample,0.018108262949390996
+A4_valuation_resid_1990_2013,y10~log_cape,2002-01,na,resid_insample,-0.010215532807383465
+A4_valuation_resid_1990_2013,y10~log_cape,2002-01,na,oos_forecast,-0.0015145283600122017
+A4_valuation_resid_1990_2013,y10~log_cape,2002-01,na,oos_error,0.009407258502019733
+A4_valuation_resid_1990_2013,y10~log_cape,2002-01,na,hist_mean_forecast,0.06796294237874002
+A4_valuation_resid_1990_2013,y10~log_cape,2003-01,na,cape,22.9
+A4_valuation_resid_1990_2013,y10~log_cape,2003-01,na,actual_y10,0.04744039538584022
+A4_valuation_resid_1990_2013,y10~log_cape,2003-01,na,fitted_insample,0.03788978701598206
+A4_valuation_resid_1990_2013,y10~log_cape,2003-01,na,resid_insample,0.00955060836985816
+A4_valuation_resid_1990_2013,y10~log_cape,2003-01,na,oos_forecast,0.02434215755528124
+A4_valuation_resid_1990_2013,y10~log_cape,2003-01,na,oos_error,0.023098237830558976
+A4_valuation_resid_1990_2013,y10~log_cape,2003-01,na,hist_mean_forecast,0.06808877224935142
+A4_valuation_resid_1990_2013,y10~log_cape,2004-01,na,cape,27.66
+A4_valuation_resid_1990_2013,y10~log_cape,2004-01,na,actual_y10,0.04534586039181421
+A4_valuation_resid_1990_2013,y10~log_cape,2004-01,na,fitted_insample,0.024516806470559482
+A4_valuation_resid_1990_2013,y10~log_cape,2004-01,na,resid_insample,0.020829053921254725
+A4_valuation_resid_1990_2013,y10~log_cape,2004-01,na,oos_forecast,0.008989198049701497
+A4_valuation_resid_1990_2013,y10~log_cape,2004-01,na,oos_error,0.03635666234211271
+A4_valuation_resid_1990_2013,y10~log_cape,2004-01,na,hist_mean_forecast,0.06813573035789149
+A4_valuation_resid_1990_2013,y10~log_cape,2005-01,na,cape,26.59
+A4_valuation_resid_1990_2013,y10~log_cape,2005-01,na,actual_y10,0.055616761259757785
+A4_valuation_resid_1990_2013,y10~log_cape,2005-01,na,fitted_insample,0.027310511978032165
+A4_valuation_resid_1990_2013,y10~log_cape,2005-01,na,resid_insample,0.02830624928172562
+A4_valuation_resid_1990_2013,y10~log_cape,2005-01,na,oos_forecast,0.013782508646717984
+A4_valuation_resid_1990_2013,y10~log_cape,2005-01,na,oos_error,0.0418342526130398
+A4_valuation_resid_1990_2013,y10~log_cape,2005-01,na,hist_mean_forecast,0.06829794374657239
+A4_valuation_resid_1990_2013,y10~log_cape,2006-01,na,cape,26.47
+A4_valuation_resid_1990_2013,y10~log_cape,2006-01,na,actual_y10,0.04446725232929927
+A4_valuation_resid_1990_2013,y10~log_cape,2006-01,na,fitted_insample,0.02763081055135802
+A4_valuation_resid_1990_2013,y10~log_cape,2006-01,na,resid_insample,0.016836441777941247
+A4_valuation_resid_1990_2013,y10~log_cape,2006-01,na,oos_forecast,0.015648411957993158
+A4_valuation_resid_1990_2013,y10~log_cape,2006-01,na,oos_error,0.02881884037130611
+A4_valuation_resid_1990_2013,y10~log_cape,2006-01,na,hist_mean_forecast,0.06833442114030075
+A4_valuation_resid_1990_2013,y10~log_cape,2007-01,na,cape,27.21
+A4_valuation_resid_1990_2013,y10~log_cape,2007-01,na,actual_y10,0.05093464092886024
+A4_valuation_resid_1990_2013,y10~log_cape,2007-01,na,fitted_insample,0.025678328775596032
+A4_valuation_resid_1990_2013,y10~log_cape,2007-01,na,resid_insample,0.02525631215326421
+A4_valuation_resid_1990_2013,y10~log_cape,2007-01,na,oos_forecast,0.014937234460607796
+A4_valuation_resid_1990_2013,y10~log_cape,2007-01,na,oos_error,0.035997406468252446
+A4_valuation_resid_1990_2013,y10~log_cape,2007-01,na,hist_mean_forecast,0.06824824204320451
+A4_valuation_resid_1990_2013,y10~log_cape,2008-01,na,cape,24.02
+A4_valuation_resid_1990_2013,y10~log_cape,2008-01,na,actual_y10,0.07849058872155457
+A4_valuation_resid_1990_2013,y10~log_cape,2008-01,na,fitted_insample,0.03450849413970147
+A4_valuation_resid_1990_2013,y10~log_cape,2008-01,na,resid_insample,0.04398209458185309
+A4_valuation_resid_1990_2013,y10~log_cape,2008-01,na,oos_forecast,0.026482587695883963
+A4_valuation_resid_1990_2013,y10~log_cape,2008-01,na,oos_error,0.0520080010256706
+A4_valuation_resid_1990_2013,y10~log_cape,2008-01,na,hist_mean_forecast,0.0680177371719114
+A4_valuation_resid_1990_2013,y10~log_cape,2009-01,na,cape,15.17
+A4_valuation_resid_1990_2013,y10~log_cape,2009-01,na,actual_y10,0.1199031000331876
+A4_valuation_resid_1990_2013,y10~log_cape,2009-01,na,fitted_insample,0.06705160949256345
+A4_valuation_resid_1990_2013,y10~log_cape,2009-01,na,resid_insample,0.05285149054062416
+A4_valuation_resid_1990_2013,y10~log_cape,2009-01,na,oos_forecast,0.06298850487566321
+A4_valuation_resid_1990_2013,y10~log_cape,2009-01,na,oos_error,0.056914595157524395
+A4_valuation_resid_1990_2013,y10~log_cape,2009-01,na,hist_mean_forecast,0.06738412663253382
+A4_valuation_resid_1990_2013,y10~log_cape,2010-01,na,cape,20.53
+A4_valuation_resid_1990_2013,y10~log_cape,2010-01,na,actual_y10,0.11568890665383291
+A4_valuation_resid_1990_2013,y10~log_cape,2010-01,na,fitted_insample,0.0456260360134054
+A4_valuation_resid_1990_2013,y10~log_cape,2010-01,na,resid_insample,0.07006287064042752
+A4_valuation_resid_1990_2013,y10~log_cape,2010-01,na,oos_forecast,0.03827984451573499
+A4_valuation_resid_1990_2013,y10~log_cape,2010-01,na,oos_error,0.07740906213809792
+A4_valuation_resid_1990_2013,y10~log_cape,2010-01,na,hist_mean_forecast,0.06648092525712054
+A4_valuation_resid_1990_2013,y10~log_cape,2011-01,na,cape,22.98
+A4_valuation_resid_1990_2013,y10~log_cape,2011-01,na,actual_y10,0.11734989723698352
+A4_valuation_resid_1990_2013,y10~log_cape,2011-01,na,fitted_insample,0.03764283801061638
+A4_valuation_resid_1990_2013,y10~log_cape,2011-01,na,resid_insample,0.07970705922636714
+A4_valuation_resid_1990_2013,y10~log_cape,2011-01,na,oos_forecast,0.02888830274282106
+A4_valuation_resid_1990_2013,y10~log_cape,2011-01,na,oos_error,0.08846159449416247
+A4_valuation_resid_1990_2013,y10~log_cape,2011-01,na,hist_mean_forecast,0.0657143950797224
+A4_valuation_resid_1990_2013,y10~log_cape,2012-01,na,cape,21.21
+A4_valuation_resid_1990_2013,y10~log_cape,2012-01,na,actual_y10,0.13126524129176587
+A4_valuation_resid_1990_2013,y10~log_cape,2012-01,na,fitted_insample,0.04331857082673571
+A4_valuation_resid_1990_2013,y10~log_cape,2012-01,na,resid_insample,0.08794667046503016
+A4_valuation_resid_1990_2013,y10~log_cape,2012-01,na,oos_forecast,0.035396442842977105
+A4_valuation_resid_1990_2013,y10~log_cape,2012-01,na,oos_error,0.09586879844878876
+A4_valuation_resid_1990_2013,y10~log_cape,2012-01,na,hist_mean_forecast,0.06519506322251623
+A4_valuation_resid_1990_2013,y10~log_cape,2013-01,na,cape,21.9
+A4_valuation_resid_1990_2013,y10~log_cape,2013-01,na,actual_y10,0.0951355801015421
+A4_valuation_resid_1990_2013,y10~log_cape,2013-01,na,fitted_insample,0.0410515870041043
+A4_valuation_resid_1990_2013,y10~log_cape,2013-01,na,resid_insample,0.054083993097437805
+A4_valuation_resid_1990_2013,y10~log_cape,2013-01,na,oos_forecast,0.03299018075832061
+A4_valuation_resid_1990_2013,y10~log_cape,2013-01,na,oos_error,0.0621453993432215
+A4_valuation_resid_1990_2013,y10~log_cape,2013-01,na,hist_mean_forecast,0.06492458801883848
+A4_valuation_resid_1990_2013,y10~log_cape,2013-09,na,cape,23.44
+A4_valuation_resid_1990_2013,y10~log_cape,2013-09,na,actual_y10,0.09418123826585822
+A4_valuation_resid_1990_2013,y10~log_cape,2013-09,na,fitted_insample,0.03623935495003083
+A4_valuation_resid_1990_2013,y10~log_cape,2013-09,na,resid_insample,0.05794188331582739
+A4_valuation_resid_1990_2013,y10~log_cape,2013-09,na,oos_forecast,0.027805216113751696
+A4_valuation_resid_1990_2013,y10~log_cape,2013-09,na,oos_error,0.06637602215210653
+A4_valuation_resid_1990_2013,y10~log_cape,2013-09,na,hist_mean_forecast,0.06485500416075461
+A4_valuation_resid_1990_2013,y10~log_cape,1990-01:1999-12,na,mean_resid_insample,0.0304031015080603
+A4_valuation_resid_1990_2013,y10~log_cape,1990-01:1999-12,na,share_positive_resid,0.85
+A4_valuation_resid_1990_2013,y10~log_cape,1990-01:1999-12,na,mean_oos_error,0.05239658380206688
+A4_valuation_resid_1990_2013,y10~log_cape,1990-01:1999-12,na,mean_cape,25.293666666666663
+A4_valuation_resid_1990_2013,y10~log_cape,2000-01:2009-12,na,mean_resid_insample,0.01932074203741139
+A4_valuation_resid_1990_2013,y10~log_cape,2000-01:2009-12,na,share_positive_resid,0.75
+A4_valuation_resid_1990_2013,y10~log_cape,2000-01:2009-12,na,mean_oos_error,0.033307727624678235
+A4_valuation_resid_1990_2013,y10~log_cape,2000-01:2009-12,na,mean_cape,26.672916666666666
+A4_valuation_resid_1990_2013,y10~log_cape,2009-01:2013-09,na,mean_resid_insample,0.06850783450574097
+A4_valuation_resid_1990_2013,y10~log_cape,2009-01:2013-09,na,share_positive_resid,1.0
+A4_valuation_resid_1990_2013,y10~log_cape,2009-01:2013-09,na,mean_oos_error,0.07589606367541477
+A4_valuation_resid_1990_2013,y10~log_cape,2009-01:2013-09,na,mean_cape,20.607017543859648
+A4_valuation_resid_1990_2013,y10~log_cape,1990-01:2013-09,na,mean_resid_insample,0.03200437208923951
+A4_valuation_resid_1990_2013,y10~log_cape,1990-01:2013-09,na,share_positive_resid,0.8315789473684211
+A4_valuation_resid_1990_2013,y10~log_cape,1990-01:2013-09,na,mean_oos_error,0.0484118954715688
+A4_valuation_resid_1990_2013,y10~log_cape,1990-01:2013-09,na,mean_cape,25.289543859649125
+A4_valuation_resid_1990_2013,y10~log_cape,1881-01:2013-09,na,insample_fit_intercept,0.2596135933417347
+A4_valuation_resid_1990_2013,y10~log_cape,1881-01:2013-09,na,insample_fit_slope,-0.07081255552191229
+A4_valuation_fedmodel,y1~fed_spread,full 1881-01:2022-09,na,n_obs,1701
+A4_valuation_fedmodel,y1~fed_spread,full 1881-01:2022-09,na,slope,0.6556931969334743
+A4_valuation_fedmodel,y1~fed_spread,full 1881-01:2022-09,na,slope_nw_t,1.5144725979275193
+A4_valuation_fedmodel,y1~fed_spread,full 1881-01:2022-09,na,r2,0.012091570370762583
+A4_valuation_fedmodel,y1~fed_spread,pre-1965 1881-01:1964-12,na,n_obs,1008
+A4_valuation_fedmodel,y1~fed_spread,pre-1965 1881-01:1964-12,na,slope,0.9650122298771809
+A4_valuation_fedmodel,y1~fed_spread,pre-1965 1881-01:1964-12,na,slope_nw_t,1.4299420229445285
+A4_valuation_fedmodel,y1~fed_spread,pre-1965 1881-01:1964-12,na,r2,0.015577526062432567
+A4_valuation_fedmodel,y1~fed_spread,post-1965 1965-01:2022-09,na,n_obs,693
+A4_valuation_fedmodel,y1~fed_spread,post-1965 1965-01:2022-09,na,slope,0.31444854800334143
+A4_valuation_fedmodel,y1~fed_spread,post-1965 1965-01:2022-09,na,slope_nw_t,0.44561882525365126
+A4_valuation_fedmodel,y1~fed_spread,post-1965 1965-01:2022-09,na,r2,0.0017682265248707418
+A4_valuation_fedmodel,y1~fed_spread,1965-1999(y1)/1965-1989(10y) 1965-01:1999-12,na,n_obs,420
+A4_valuation_fedmodel,y1~fed_spread,1965-1999(y1)/1965-1989(10y) 1965-01:1999-12,na,slope,-0.964592685354055
+A4_valuation_fedmodel,y1~fed_spread,1965-1999(y1)/1965-1989(10y) 1965-01:1999-12,na,slope_nw_t,-1.2029824934406024
+A4_valuation_fedmodel,y1~fed_spread,1965-1999(y1)/1965-1989(10y) 1965-01:1999-12,na,r2,0.014918899205284109
+A4_valuation_fedmodel,y1~ey,full 1881-01:2022-09,na,n_obs,1701
+A4_valuation_fedmodel,y1~ey,full 1881-01:2022-09,na,slope,0.7730199423365345
+A4_valuation_fedmodel,y1~ey,full 1881-01:2022-09,na,slope_nw_t,1.5085318632499745
+A4_valuation_fedmodel,y1~ey,full 1881-01:2022-09,na,r2,0.01218465663274404
+A4_valuation_fedmodel,y1~ey,pre-1965 1881-01:1964-12,na,n_obs,1008
+A4_valuation_fedmodel,y1~ey,pre-1965 1881-01:1964-12,na,slope,0.8893695425135633
+A4_valuation_fedmodel,y1~ey,pre-1965 1881-01:1964-12,na,slope_nw_t,1.1396818286270303
+A4_valuation_fedmodel,y1~ey,pre-1965 1881-01:1964-12,na,r2,0.01205524135620517
+A4_valuation_fedmodel,y1~ey,post-1965 1965-01:2022-09,na,n_obs,693
+A4_valuation_fedmodel,y1~ey,post-1965 1965-01:2022-09,na,slope,0.5149751911763712
+A4_valuation_fedmodel,y1~ey,post-1965 1965-01:2022-09,na,slope_nw_t,0.7879597904967611
+A4_valuation_fedmodel,y1~ey,post-1965 1965-01:2022-09,na,r2,0.007375324115294957
+A4_valuation_fedmodel,y1~ey,1965-1999(y1)/1965-1989(10y) 1965-01:1999-12,na,n_obs,420
+A4_valuation_fedmodel,y1~ey,1965-1999(y1)/1965-1989(10y) 1965-01:1999-12,na,slope,0.2801577482334796
+A4_valuation_fedmodel,y1~ey,1965-1999(y1)/1965-1989(10y) 1965-01:1999-12,na,slope_nw_t,0.39762176027690616
+A4_valuation_fedmodel,y1~ey,1965-1999(y1)/1965-1989(10y) 1965-01:1999-12,na,r2,0.002399628672958065
+A4_valuation_fedmodel,y1~log_cape,full 1881-01:2022-09,na,n_obs,1701
+A4_valuation_fedmodel,y1~log_cape,full 1881-01:2022-09,na,slope,-0.10338879777552441
+A4_valuation_fedmodel,y1~log_cape,full 1881-01:2022-09,na,slope_nw_t,-2.941988096965708
+A4_valuation_fedmodel,y1~log_cape,full 1881-01:2022-09,na,r2,0.048473924367318566
+A4_valuation_fedmodel,y1~log_cape,pre-1965 1881-01:1964-12,na,n_obs,1008
+A4_valuation_fedmodel,y1~log_cape,pre-1965 1881-01:1964-12,na,slope,-0.1779157602652339
+A4_valuation_fedmodel,y1~log_cape,pre-1965 1881-01:1964-12,na,slope_nw_t,-2.7414202028280967
+A4_valuation_fedmodel,y1~log_cape,pre-1965 1881-01:1964-12,na,r2,0.07989248111718061
+A4_valuation_fedmodel,y1~log_cape,post-1965 1965-01:2022-09,na,n_obs,693
+A4_valuation_fedmodel,y1~log_cape,post-1965 1965-01:2022-09,na,slope,-0.05193256630818075
+A4_valuation_fedmodel,y1~log_cape,post-1965 1965-01:2022-09,na,slope_nw_t,-1.2411801886884177
+A4_valuation_fedmodel,y1~log_cape,post-1965 1965-01:2022-09,na,r2,0.019750893938880965
+A4_valuation_fedmodel,y1~log_cape,1965-1999(y1)/1965-1989(10y) 1965-01:1999-12,na,n_obs,420
+A4_valuation_fedmodel,y1~log_cape,1965-1999(y1)/1965-1989(10y) 1965-01:1999-12,na,slope,-0.00359866306845897
+A4_valuation_fedmodel,y1~log_cape,1965-1999(y1)/1965-1989(10y) 1965-01:1999-12,na,slope_nw_t,-0.06832823587906932
+A4_valuation_fedmodel,y1~log_cape,1965-1999(y1)/1965-1989(10y) 1965-01:1999-12,na,r2,9.31188677240069e-05
+A4_valuation_fedmodel,y10~fed_spread,full 1881-01:2013-09,na,n_obs,1593
+A4_valuation_fedmodel,y10~fed_spread,full 1881-01:2013-09,na,slope,0.5111260332477682
+A4_valuation_fedmodel,y10~fed_spread,full 1881-01:2013-09,na,slope_nw_t,1.6462580207351978
+A4_valuation_fedmodel,y10~fed_spread,full 1881-01:2013-09,na,r2,0.11074185266122716
+A4_valuation_fedmodel,y10~fed_spread,pre-1965 1881-01:1964-12,na,n_obs,1008
+A4_valuation_fedmodel,y10~fed_spread,pre-1965 1881-01:1964-12,na,slope,1.0083338118353342
+A4_valuation_fedmodel,y10~fed_spread,pre-1965 1881-01:1964-12,na,slope_nw_t,5.783888406202445
+A4_valuation_fedmodel,y10~fed_spread,pre-1965 1881-01:1964-12,na,r2,0.3204087917847148
+A4_valuation_fedmodel,y10~fed_spread,post-1965 1965-01:2013-09,na,n_obs,585
+A4_valuation_fedmodel,y10~fed_spread,post-1965 1965-01:2013-09,na,slope,0.19788990430542863
+A4_valuation_fedmodel,y10~fed_spread,post-1965 1965-01:2013-09,na,slope_nw_t,0.3675981076329398
+A4_valuation_fedmodel,y10~fed_spread,post-1965 1965-01:2013-09,na,r2,0.0058946163510200655
+A4_valuation_fedmodel,y10~fed_spread,1965-1999(y1)/1965-1989(10y) 1965-01:1989-12,na,n_obs,300
+A4_valuation_fedmodel,y10~fed_spread,1965-1999(y1)/1965-1989(10y) 1965-01:1989-12,na,slope,-0.4251623102646834
+A4_valuation_fedmodel,y10~fed_spread,1965-1999(y1)/1965-1989(10y) 1965-01:1989-12,na,slope_nw_t,-0.6144090595995687
+A4_valuation_fedmodel,y10~fed_spread,1965-1999(y1)/1965-1989(10y) 1965-01:1989-12,na,r2,0.02177868234543745
+A4_valuation_fedmodel,y10~ey,full 1881-01:2013-09,na,n_obs,1593
+A4_valuation_fedmodel,y10~ey,full 1881-01:2013-09,na,slope,0.8988413317525947
+A4_valuation_fedmodel,y10~ey,full 1881-01:2013-09,na,slope_nw_t,4.715398764360572
+A4_valuation_fedmodel,y10~ey,full 1881-01:2013-09,na,r2,0.23090919429555357
+A4_valuation_fedmodel,y10~ey,pre-1965 1881-01:1964-12,na,n_obs,1008
+A4_valuation_fedmodel,y10~ey,pre-1965 1881-01:1964-12,na,slope,1.005488108114742
+A4_valuation_fedmodel,y10~ey,pre-1965 1881-01:1964-12,na,slope_nw_t,5.325648163403993
+A4_valuation_fedmodel,y10~ey,pre-1965 1881-01:1964-12,na,r2,0.2902874054047039
+A4_valuation_fedmodel,y10~ey,post-1965 1965-01:2013-09,na,n_obs,585
+A4_valuation_fedmodel,y10~ey,post-1965 1965-01:2013-09,na,slope,0.7906051860795197
+A4_valuation_fedmodel,y10~ey,post-1965 1965-01:2013-09,na,slope_nw_t,3.0714983265418074
+A4_valuation_fedmodel,y10~ey,post-1965 1965-01:2013-09,na,r2,0.1595056203586489
+A4_valuation_fedmodel,y10~ey,1965-1999(y1)/1965-1989(10y) 1965-01:1989-12,na,n_obs,300
+A4_valuation_fedmodel,y10~ey,1965-1999(y1)/1965-1989(10y) 1965-01:1989-12,na,slope,1.3994643494593901
+A4_valuation_fedmodel,y10~ey,1965-1999(y1)/1965-1989(10y) 1965-01:1989-12,na,slope_nw_t,2.8070260653486234
+A4_valuation_fedmodel,y10~ey,1965-1999(y1)/1965-1989(10y) 1965-01:1989-12,na,r2,0.36922946397359746
+A4_valuation_fedmodel,y10~log_cape,full 1881-01:2013-09,na,n_obs,1593
+A4_valuation_fedmodel,y10~log_cape,full 1881-01:2013-09,na,slope,-0.07081255552191229
+A4_valuation_fedmodel,y10~log_cape,full 1881-01:2013-09,na,slope_nw_t,-5.911670587473668
+A4_valuation_fedmodel,y10~log_cape,full 1881-01:2013-09,na,r2,0.2915377362148738
+A4_valuation_fedmodel,y10~log_cape,pre-1965 1881-01:1964-12,na,n_obs,1008
+A4_valuation_fedmodel,y10~log_cape,pre-1965 1881-01:1964-12,na,slope,-0.08216314145384217
+A4_valuation_fedmodel,y10~log_cape,pre-1965 1881-01:1964-12,na,slope_nw_t,-6.619351811126451
+A4_valuation_fedmodel,y10~log_cape,pre-1965 1881-01:1964-12,na,r2,0.3209918830802556
+A4_valuation_fedmodel,y10~log_cape,post-1965 1965-01:2013-09,na,n_obs,585
+A4_valuation_fedmodel,y10~log_cape,post-1965 1965-01:2013-09,na,slope,-0.0679234310614527
+A4_valuation_fedmodel,y10~log_cape,post-1965 1965-01:2013-09,na,slope_nw_t,-5.168177642061366
+A4_valuation_fedmodel,y10~log_cape,post-1965 1965-01:2013-09,na,r2,0.28148224166656644
+A4_valuation_fedmodel,y10~log_cape,1965-1999(y1)/1965-1989(10y) 1965-01:1989-12,na,n_obs,300
+A4_valuation_fedmodel,y10~log_cape,1965-1999(y1)/1965-1989(10y) 1965-01:1989-12,na,slope,-0.12860515104675868
+A4_valuation_fedmodel,y10~log_cape,1965-1999(y1)/1965-1989(10y) 1965-01:1989-12,na,slope_nw_t,-5.259045181524034
+A4_valuation_fedmodel,y10~log_cape,1965-1999(y1)/1965-1989(10y) 1965-01:1989-12,na,r2,0.5255249571742102
+A4_valuation_fedmodel,rel10~fed_spread,full 1881-01:2013-09,na,n_obs,1593
+A4_valuation_fedmodel,rel10~fed_spread,full 1881-01:2013-09,na,slope,0.7899707226305782
+A4_valuation_fedmodel,rel10~fed_spread,full 1881-01:2013-09,na,slope_nw_t,3.2715726824055675
+A4_valuation_fedmodel,rel10~fed_spread,full 1881-01:2013-09,na,r2,0.27487530407296257
+A4_valuation_fedmodel,rel10~fed_spread,pre-1965 1881-01:1964-12,na,n_obs,1008
+A4_valuation_fedmodel,rel10~fed_spread,pre-1965 1881-01:1964-12,na,slope,1.1945083075738745
+A4_valuation_fedmodel,rel10~fed_spread,pre-1965 1881-01:1964-12,na,slope_nw_t,5.752074287648318
+A4_valuation_fedmodel,rel10~fed_spread,pre-1965 1881-01:1964-12,na,r2,0.39170796152035914
+A4_valuation_fedmodel,rel10~fed_spread,post-1965 1965-01:2013-09,na,n_obs,585
+A4_valuation_fedmodel,rel10~fed_spread,post-1965 1965-01:2013-09,na,slope,0.8942029263191875
+A4_valuation_fedmodel,rel10~fed_spread,post-1965 1965-01:2013-09,na,slope_nw_t,2.148068431577782
+A4_valuation_fedmodel,rel10~fed_spread,post-1965 1965-01:2013-09,na,r2,0.17962230585608363
+A4_valuation_fedmodel,rel10~fed_spread,1965-1999(y1)/1965-1989(10y) 1965-01:1989-12,na,n_obs,300
+A4_valuation_fedmodel,rel10~fed_spread,1965-1999(y1)/1965-1989(10y) 1965-01:1989-12,na,slope,0.40641575944097746
+A4_valuation_fedmodel,rel10~fed_spread,1965-1999(y1)/1965-1989(10y) 1965-01:1989-12,na,slope_nw_t,0.9454791278127193
+A4_valuation_fedmodel,rel10~fed_spread,1965-1999(y1)/1965-1989(10y) 1965-01:1989-12,na,r2,0.054638515886325845
+A4_valuation_fedmodel,rel10~ey,full 1881-01:2013-09,na,n_obs,1593
+A4_valuation_fedmodel,rel10~ey,full 1881-01:2013-09,na,slope,0.8591940933693455
+A4_valuation_fedmodel,rel10~ey,full 1881-01:2013-09,na,slope_nw_t,3.4720733668419794
+A4_valuation_fedmodel,rel10~ey,full 1881-01:2013-09,na,r2,0.21923791907285273
+A4_valuation_fedmodel,rel10~ey,pre-1965 1881-01:1964-12,na,n_obs,1008
+A4_valuation_fedmodel,rel10~ey,pre-1965 1881-01:1964-12,na,slope,1.0728208761482056
+A4_valuation_fedmodel,rel10~ey,pre-1965 1881-01:1964-12,na,slope_nw_t,4.5346256477120885
+A4_valuation_fedmodel,rel10~ey,pre-1965 1881-01:1964-12,na,r2,0.2878836725959628
+A4_valuation_fedmodel,rel10~ey,post-1965 1965-01:2013-09,na,n_obs,585
+A4_valuation_fedmodel,rel10~ey,post-1965 1965-01:2013-09,na,slope,0.4864518137129112
+A4_valuation_fedmodel,rel10~ey,post-1965 1965-01:2013-09,na,slope_nw_t,1.6109542240209138
+A4_valuation_fedmodel,rel10~ey,post-1965 1965-01:2013-09,na,r2,0.09011895622773747
+A4_valuation_fedmodel,rel10~ey,1965-1999(y1)/1965-1989(10y) 1965-01:1989-12,na,n_obs,300
+A4_valuation_fedmodel,rel10~ey,1965-1999(y1)/1965-1989(10y) 1965-01:1989-12,na,slope,0.6861661967720663
+A4_valuation_fedmodel,rel10~ey,1965-1999(y1)/1965-1989(10y) 1965-01:1989-12,na,slope_nw_t,1.7736696121817177
+A4_valuation_fedmodel,rel10~ey,1965-1999(y1)/1965-1989(10y) 1965-01:1989-12,na,r2,0.24370645889101228
+A4_valuation_fedmodel,rel10~log_cape,full 1881-01:2013-09,na,n_obs,1593
+A4_valuation_fedmodel,rel10~log_cape,full 1881-01:2013-09,na,slope,-0.06009232437693219
+A4_valuation_fedmodel,rel10~log_cape,full 1881-01:2013-09,na,slope_nw_t,-3.4889354827248864
+A4_valuation_fedmodel,rel10~log_cape,full 1881-01:2013-09,na,r2,0.21815752424946744
+A4_valuation_fedmodel,rel10~log_cape,pre-1965 1881-01:1964-12,na,n_obs,1008
+A4_valuation_fedmodel,rel10~log_cape,pre-1965 1881-01:1964-12,na,slope,-0.07149089189349528
+A4_valuation_fedmodel,rel10~log_cape,pre-1965 1881-01:1964-12,na,slope_nw_t,-3.0494674956877557
+A4_valuation_fedmodel,rel10~log_cape,pre-1965 1881-01:1964-12,na,r2,0.21170430783345484
+A4_valuation_fedmodel,rel10~log_cape,post-1965 1965-01:2013-09,na,n_obs,585
+A4_valuation_fedmodel,rel10~log_cape,post-1965 1965-01:2013-09,na,slope,-0.047040094402739145
+A4_valuation_fedmodel,rel10~log_cape,post-1965 1965-01:2013-09,na,slope_nw_t,-2.2650173097597937
+A4_valuation_fedmodel,rel10~log_cape,post-1965 1965-01:2013-09,na,r2,0.20147815502272826
+A4_valuation_fedmodel,rel10~log_cape,1965-1999(y1)/1965-1989(10y) 1965-01:1989-12,na,n_obs,300
+A4_valuation_fedmodel,rel10~log_cape,1965-1999(y1)/1965-1989(10y) 1965-01:1989-12,na,slope,-0.05731185370971475
+A4_valuation_fedmodel,rel10~log_cape,1965-1999(y1)/1965-1989(10y) 1965-01:1989-12,na,slope_nw_t,-2.005451634592916
+A4_valuation_fedmodel,rel10~log_cape,1965-1999(y1)/1965-1989(10y) 1965-01:1989-12,na,r2,0.28655055853755307
+A4_valuation_fedmodel,"corr(E/P, GS10)",1881-01:1964-12,na,corr,-0.059120523680925824
+A4_valuation_fedmodel,mean_fed_spread,1881-01:1964-12,na,mean,0.04395827874915376
+A4_valuation_fedmodel,"corr(E/P, GS10)",1965-01:1999-12,na,corr,0.7032926532514583
+A4_valuation_fedmodel,mean_fed_spread,1965-01:1999-12,na,mean,-0.004666716111153107
+A4_valuation_fedmodel,"corr(E/P, GS10)",2000-01:2023-06,na,corr,-0.11715321187673669
+A4_valuation_fedmodel,mean_fed_spread,2000-01:2023-06,na,mean,0.012758727179502296
+A4_valuation_fedmodel,"corr(E/P, GS10)",1965-01:2023-06,na,corr,0.7196583114141953
+A4_valuation_fedmodel,mean_fed_spread,1965-01:2023-06,na,mean,0.0023332482876571824
+A4_valuation_fedmodel,"corr(E/P, GS10)",1881-01:2023-06,na,corr,0.20810731128425153
+A4_valuation_fedmodel,mean_fed_spread,1881-01:2023-06,na,mean,0.026870108349170956
+A4_valuation_latest,y10~log_cape,2023-09,na,x_value,3.4278393126085764
+A4_valuation_latest,y10~log_cape,2023-09,na,implied_10y_real_return_insample,0.016879531697446243
+A4_valuation_latest,y10~log_dy,2023-06,na,x_value,-4.146972097896046
+A4_valuation_latest,y10~log_dy,2023-06,na,implied_10y_real_return_insample,0.02793494989635209
+A4_valuation_latest,y10~ey,2023-06,na,x_value,0.04169262476571959
+A4_valuation_latest,y10~ey,2023-06,na,implied_10y_real_return_insample,0.03780564927517677
+A4_valuation_latest,y10~fed_spread,2023-06,na,x_value,0.004192624765719591
+A4_valuation_latest,y10~fed_spread,2023-06,na,implied_10y_real_return_insample,0.054690955352496885
+A4_valuation_latest,price_change_since_last_cape,2023-09:2026-09,na,value,0.6983615197408193
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),gross,cagr,0.07818787644668657
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),gross,vol,0.12939326488377315
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),gross,sharpe,0.37307060958679916
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),gross,mean_excess_ann,0.048322283055365955
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),gross,total_return,21749.183417050786
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),gross,n_periods,1592
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),gross,max_dd,-0.6969047841726833
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),gross,dd_peak,1931-03
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),gross,dd_trough,1932-06
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),gross,dd_recovery,1936-01
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),gross,time_in_market,0.7211055276381909
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),gross,switches_per_year,0.30150753768844224
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),gross,turnover_per_year,0.30150753768844224
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),gross,cagr_minus_bh,-0.01823058804146882
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),gross,sharpe_minus_bh,-0.09053853372337461
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),gross,bh_cagr,0.09641846448815539
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),gross,bh_sharpe,0.4636091433101738
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),gross,bh_max_dd,-0.8175983465052695
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),futures_5bp,cagr,0.07802477416498865
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),futures_5bp,vol,0.12940446906367375
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),futures_5bp,sharpe,0.37187638320313154
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),futures_5bp,mean_excess_ann,0.04817152928652172
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),futures_5bp,total_return,21316.99591952159
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),futures_5bp,n_periods,1592
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),futures_5bp,max_dd,-0.6969047841726834
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),futures_5bp,dd_peak,1931-03
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),futures_5bp,dd_trough,1932-06
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),futures_5bp,dd_recovery,1936-01
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),futures_5bp,time_in_market,0.7211055276381909
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),futures_5bp,switches_per_year,0.30150753768844224
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),futures_5bp,turnover_per_year,0.30150753768844224
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),futures_5bp,cagr_minus_bh,-0.018393690323166734
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),futures_5bp,sharpe_minus_bh,-0.09173276010704223
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),futures_5bp,bh_cagr,0.09641846448815539
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),futures_5bp,bh_sharpe,0.4636091433101738
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),futures_5bp,bh_max_dd,-0.8175983465052695
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),kis_50bp,cagr,0.07655427087098632
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),kis_50bp,vol,0.1295308101847958
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),kis_50bp,sharpe,0.36106612673080085
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),kis_50bp,mean_excess_ann,0.04681474536692374
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),kis_50bp,total_return,17785.881398577494
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),kis_50bp,n_periods,1592
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),kis_50bp,max_dd,-0.6978545237435847
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),kis_50bp,dd_peak,1930-10
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),kis_50bp,dd_trough,1932-06
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),kis_50bp,dd_recovery,1936-01
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),kis_50bp,time_in_market,0.7211055276381909
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),kis_50bp,switches_per_year,0.30150753768844224
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),kis_50bp,turnover_per_year,0.30150753768844224
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),kis_50bp,cagr_minus_bh,-0.019864193617169068
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),kis_50bp,sharpe_minus_bh,-0.10254301657937293
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),kis_50bp,bh_cagr,0.09641846448815539
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),kis_50bp,bh_sharpe,0.4636091433101738
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),kis_50bp,bh_max_dd,-0.8175983465052695
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),gross,cagr,0.07712930044975685
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),gross,vol,0.1279733896471119
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),gross,sharpe,0.36887792401037955
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),gross,mean_excess_ann,0.04725373134161093
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),gross,total_return,23858.99110114402
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),gross,n_periods,1628
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),gross,max_dd,-0.6969047841726833
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),gross,dd_peak,1931-03
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),gross,dd_trough,1932-06
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),gross,dd_recovery,1936-01
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),gross,time_in_market,0.7051597051597052
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),gross,switches_per_year,0.29484029484029484
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),gross,turnover_per_year,0.29484029484029484
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),gross,cagr_minus_bh,-0.02172383225768426
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),gross,sharpe_minus_bh,-0.11231121319302367
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),gross,bh_cagr,0.09885313270744112
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),gross,bh_sharpe,0.4811891372034032
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),gross,bh_max_dd,-0.8175983465052695
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,cagr,0.07696996118032717
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,vol,0.12798435547232218
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,sharpe,0.36769742023031404
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,mean_excess_ann,0.04710631119419077
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,total_return,23384.880623666922
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,n_periods,1628
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,max_dd,-0.6969047841726834
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,dd_peak,1931-03
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,dd_trough,1932-06
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,dd_recovery,1936-01
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,time_in_market,0.7051597051597052
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,switches_per_year,0.29484029484029484
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,turnover_per_year,0.29484029484029484
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,cagr_minus_bh,-0.021883171527113943
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,sharpe_minus_bh,-0.11349171697308919
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,bh_cagr,0.09885313270744112
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,bh_sharpe,0.4811891372034032
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,bh_max_dd,-0.8175983465052695
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,cagr,0.07553336050542692
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,vol,0.12810827930037438
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,sharpe,0.3570112513610419
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,mean_excess_ann,0.04577952986740945
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,total_return,19511.24151767217
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,n_periods,1628
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,max_dd,-0.6978545237435847
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,dd_peak,1930-10
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,dd_trough,1932-06
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,dd_recovery,1936-01
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,time_in_market,0.7051597051597052
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,switches_per_year,0.29484029484029484
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,turnover_per_year,0.29484029484029484
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,cagr_minus_bh,-0.0233197722020142
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,sharpe_minus_bh,-0.12417788584236134
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,bh_cagr,0.09885313270744112
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,bh_sharpe,0.4811891372034032
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,bh_max_dd,-0.8175983465052695
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,gross,cagr,0.08962747823114658
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,gross,vol,0.09931413968092898
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,gross,sharpe,0.4688274396728072
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,gross,mean_excess_ann,0.04668477076543878
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,gross,total_return,560.3787221393953
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,gross,n_periods,885
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,gross,max_dd,-0.44736951843583417
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,gross,dd_peak,2008-05
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,gross,dd_trough,2009-03
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,gross,dd_recovery,2011-02
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,gross,time_in_market,0.607909604519774
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,gross,switches_per_year,0.37966101694915255
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,gross,turnover_per_year,0.37966101694915255
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,gross,cagr_minus_bh,-0.02363994279809356
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,gross,sharpe_minus_bh,-0.11537134950445344
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,gross,bh_cagr,0.11326742102924015
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,gross,bh_sharpe,0.5841987891772606
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,gross,bh_max_dd,-0.49038885962735457
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,futures_5bp,cagr,0.08942078431495504
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,futures_5bp,vol,0.09932557140341315
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,futures_5bp,sharpe,0.46687742629738554
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,futures_5bp,mean_excess_ann,0.04649494025696421
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,futures_5bp,total_return,552.5790882037062
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,futures_5bp,n_periods,885
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,futures_5bp,max_dd,-0.44736951843583417
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,futures_5bp,dd_peak,2008-05
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,futures_5bp,dd_trough,2009-03
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,futures_5bp,dd_recovery,2011-02
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,futures_5bp,time_in_market,0.607909604519774
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,futures_5bp,switches_per_year,0.37966101694915255
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,futures_5bp,turnover_per_year,0.37966101694915255
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,futures_5bp,cagr_minus_bh,-0.023846636714285108
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,futures_5bp,sharpe_minus_bh,-0.1173213628798751
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,futures_5bp,bh_cagr,0.11326742102924015
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,futures_5bp,bh_sharpe,0.5841987891772606
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,futures_5bp,bh_max_dd,-0.49038885962735457
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,kis_50bp,cagr,0.0875576436855261
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,kis_50bp,vol,0.09947003440423656
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,kis_50bp,sharpe,0.4491567030864548
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,kis_50bp,mean_excess_ann,0.04478646568069302
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,kis_50bp,total_return,486.92831982238766
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,kis_50bp,n_periods,885
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,kis_50bp,max_dd,-0.4473695184358343
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,kis_50bp,dd_peak,2008-05
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,kis_50bp,dd_trough,2009-03
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,kis_50bp,dd_recovery,2011-02
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,kis_50bp,time_in_market,0.607909604519774
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,kis_50bp,switches_per_year,0.37966101694915255
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,kis_50bp,turnover_per_year,0.37966101694915255
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,kis_50bp,cagr_minus_bh,-0.025709777343714046
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,kis_50bp,sharpe_minus_bh,-0.13504208609080587
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,kis_50bp,bh_cagr,0.11326742102924015
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,kis_50bp,bh_sharpe,0.5841987891772606
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950-01:2023-09,kis_50bp,bh_max_dd,-0.49038885962735457
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,gross,cagr,0.05609320271724294
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,gross,vol,0.07844520061392621
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,gross,sharpe,0.3209274032931704
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,gross,mean_excess_ann,0.025218422035464618
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,gross,total_return,5.30885941514247
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,gross,n_periods,405
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,gross,max_dd,-0.44736951843583417
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,gross,dd_peak,2008-05
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,gross,dd_trough,2009-03
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,gross,dd_recovery,2011-02
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,gross,time_in_market,0.32592592592592595
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,gross,switches_per_year,0.5333333333333333
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,gross,turnover_per_year,0.5333333333333333
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,gross,cagr_minus_bh,-0.04476255801153717
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,gross,sharpe_minus_bh,-0.25761945958824894
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,gross,bh_cagr,0.10085576072878011
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,gross,bh_sharpe,0.5785468628814193
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,gross,bh_max_dd,-0.4903888596273547
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,futures_5bp,cagr,0.055813228584601804
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,futures_5bp,vol,0.0784401957578388
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,futures_5bp,sharpe,0.3175572993106572
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,futures_5bp,mean_excess_ann,0.02495175536879795
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,futures_5bp,total_return,5.252656844300279
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,futures_5bp,n_periods,405
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,futures_5bp,max_dd,-0.44736951843583417
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,futures_5bp,dd_peak,2008-05
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,futures_5bp,dd_trough,2009-03
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,futures_5bp,dd_recovery,2011-02
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,futures_5bp,time_in_market,0.32592592592592595
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,futures_5bp,switches_per_year,0.5333333333333333
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,futures_5bp,turnover_per_year,0.5333333333333333
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,futures_5bp,cagr_minus_bh,-0.045042532144178304
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,futures_5bp,sharpe_minus_bh,-0.26098956357076214
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,futures_5bp,bh_cagr,0.10085576072878011
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,futures_5bp,bh_sharpe,0.5785468628814193
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,futures_5bp,bh_max_dd,-0.4903888596273547
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,kis_50bp,cagr,0.05329052856929617
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,kis_50bp,vol,0.078468418236597
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,kis_50bp,sharpe,0.2869366454962141
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,kis_50bp,mean_excess_ann,0.02255175536879795
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,kis_50bp,total_return,4.767678429444213
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,kis_50bp,n_periods,405
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,kis_50bp,max_dd,-0.4473695184358343
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,kis_50bp,dd_peak,2008-05
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,kis_50bp,dd_trough,2009-03
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,kis_50bp,dd_recovery,2011-02
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,kis_50bp,time_in_market,0.32592592592592595
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,kis_50bp,switches_per_year,0.5333333333333333
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,kis_50bp,turnover_per_year,0.5333333333333333
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,kis_50bp,cagr_minus_bh,-0.04756523215948394
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,kis_50bp,sharpe_minus_bh,-0.2916102173852052
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,kis_50bp,bh_cagr,0.10085576072878011
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,kis_50bp,bh_sharpe,0.5785468628814193
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990-01:2023-09,kis_50bp,bh_max_dd,-0.4903888596273547
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1890s,gross,avg_exposure,0.6574074074074074
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1900s,gross,avg_exposure,0.8083333333333333
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1910s,gross,avg_exposure,1.0
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1920s,gross,avg_exposure,0.825
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1930s,gross,avg_exposure,0.8666666666666667
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1940s,gross,avg_exposure,1.0
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1950s,gross,avg_exposure,1.0
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1960s,gross,avg_exposure,0.38333333333333336
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1970s,gross,avg_exposure,1.0
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1980s,gross,avg_exposure,1.0
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),1990s,gross,avg_exposure,0.4583333333333333
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),2000s,gross,avg_exposure,0.21666666666666667
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),2010s,gross,avg_exposure,0.4083333333333333
+A4_valuation_timing_rule,VAL_OUT90 (cash if CAPE > expanding 90th pct),2020s,gross,avg_exposure,0.024691358024691357
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),gross,cagr,0.0857143343170359
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),gross,vol,0.1289676074356068
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),gross,sharpe,0.428035702128462
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),gross,mean_excess_ann,0.05527474436375486
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),gross,total_return,54734.091269657416
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),gross,n_periods,1592
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),gross,max_dd,-0.7570357859178121
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),gross,dd_peak,1929-09
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),gross,dd_trough,1932-06
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),gross,dd_recovery,1936-10
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),gross,time_in_market,0.8055904522613065
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),gross,switches_per_year,0.3768844221105528
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),gross,turnover_per_year,0.19221105527638194
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),gross,cagr_minus_bh,-0.010704130171119486
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),gross,sharpe_minus_bh,-0.035573441181711796
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),gross,bh_cagr,0.09641846448815539
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),gross,bh_sharpe,0.4636091433101738
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),gross,bh_max_dd,-0.8175983465052695
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),futures_5bp,cagr,0.08560993685241702
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),futures_5bp,vol,0.12897204210018534
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),futures_5bp,sharpe,0.4272788172827281
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),futures_5bp,mean_excess_ann,0.05517863883611668
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),futures_5bp,total_return,54040.25712574469
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),futures_5bp,n_periods,1592
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),futures_5bp,max_dd,-0.7571009580976686
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),futures_5bp,dd_peak,1929-09
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),futures_5bp,dd_trough,1932-06
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),futures_5bp,dd_recovery,1936-10
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),futures_5bp,time_in_market,0.8055904522613065
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),futures_5bp,switches_per_year,0.3768844221105528
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),futures_5bp,turnover_per_year,0.19221105527638194
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),futures_5bp,cagr_minus_bh,-0.010808527635738363
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),futures_5bp,sharpe_minus_bh,-0.03633032602744568
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),futures_5bp,bh_cagr,0.09641846448815539
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),futures_5bp,bh_sharpe,0.4636091433101738
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),futures_5bp,bh_max_dd,-0.8175983465052695
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),kis_50bp,cagr,0.08466958764348953
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),kis_50bp,vol,0.12902039294680756
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),kis_50bp,sharpe,0.4204414337160294
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),kis_50bp,mean_excess_ann,0.054313689087372954
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),kis_50bp,total_return,48171.23696599757
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),kis_50bp,n_periods,1592
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),kis_50bp,max_dd,-0.7576875077163752
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),kis_50bp,dd_peak,1929-09
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),kis_50bp,dd_trough,1932-06
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),kis_50bp,dd_recovery,1936-10
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),kis_50bp,time_in_market,0.8055904522613065
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),kis_50bp,switches_per_year,0.3768844221105528
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),kis_50bp,turnover_per_year,0.19221105527638194
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),kis_50bp,cagr_minus_bh,-0.011748876844665856
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),kis_50bp,sharpe_minus_bh,-0.0431677095941444
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),kis_50bp,bh_cagr,0.09641846448815539
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),kis_50bp,bh_sharpe,0.4636091433101738
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2023-09 (CAPE observed),kis_50bp,bh_max_dd,-0.8175983465052695
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),gross,cagr,0.08646081035526487
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),gross,vol,0.12778940223087923
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),gross,sharpe,0.4370133834182348
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),gross,mean_excess_ann,0.05591897286279922
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),gross,total_return,76895.7923930479
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),gross,n_periods,1628
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),gross,max_dd,-0.7570357859178121
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),gross,dd_peak,1929-09
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),gross,dd_trough,1932-06
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),gross,dd_recovery,1936-10
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),gross,time_in_market,0.7988329238329238
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),gross,switches_per_year,0.3685503685503686
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),gross,turnover_per_year,0.18796068796068796
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),gross,cagr_minus_bh,-0.012392322352176244
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),gross,sharpe_minus_bh,-0.044175753785168415
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),gross,bh_cagr,0.09885313270744112
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),gross,bh_sharpe,0.4811891372034032
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),gross,bh_max_dd,-0.8175983465052695
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,cagr,0.08635865113488284
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,vol,0.12779381223765005
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,sharpe,0.43626590252900593
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,mean_excess_ann,0.05582499251881887
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,total_return,75921.03161560054
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,n_periods,1628
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,max_dd,-0.7571009580976686
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,dd_peak,1929-09
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,dd_trough,1932-06
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,dd_recovery,1936-10
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,time_in_market,0.7988329238329238
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,switches_per_year,0.3685503685503686
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,turnover_per_year,0.18796068796068796
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,cagr_minus_bh,-0.01249448157255828
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,sharpe_minus_bh,-0.044923234674397294
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,bh_cagr,0.09885313270744112
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,bh_sharpe,0.4811891372034032
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,bh_max_dd,-0.8175983465052695
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,cagr,0.08543845288238217
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,vol,0.12784183630092583
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,sharpe,0.42951264387676474
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,mean_excess_ann,0.05497916942299578
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,total_return,67675.70280905347
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,n_periods,1628
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,max_dd,-0.7576875077163752
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,dd_peak,1929-09
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,dd_trough,1932-06
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,dd_recovery,1936-10
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,time_in_market,0.7988329238329238
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,switches_per_year,0.3685503685503686
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,turnover_per_year,0.18796068796068796
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,cagr_minus_bh,-0.01341467982505895
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,sharpe_minus_bh,-0.051676493326638484
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,bh_cagr,0.09885313270744112
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,bh_sharpe,0.4811891372034032
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,bh_max_dd,-0.8175983465052695
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,gross,cagr,0.09713257584669566
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,gross,vol,0.09791544470251981
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,gross,sharpe,0.5441477641222542
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,gross,mean_excess_ann,0.05346567723068755
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,gross,total_return,930.342410654472
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,gross,n_periods,885
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,gross,max_dd,-0.4231185418789024
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,gross,dd_peak,2007-10
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,gross,dd_trough,2009-03
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,gross,dd_recovery,2011-02
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,gross,time_in_market,0.7333333333333333
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,gross,switches_per_year,0.37966101694915255
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,gross,turnover_per_year,0.19661016949152543
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,gross,cagr_minus_bh,-0.01613484518254449
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,gross,sharpe_minus_bh,-0.04005102505500646
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,gross,bh_cagr,0.11326742102924015
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,gross,bh_sharpe,0.5841987891772606
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,gross,bh_max_dd,-0.49038885962735457
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,futures_5bp,cagr,0.09702513990502437
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,futures_5bp,vol,0.09791749694807743
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,futures_5bp,sharpe,0.5431439919683231
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,futures_5bp,mean_excess_ann,0.05336737214594179
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,futures_5bp,total_return,923.6402350654806
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,futures_5bp,n_periods,885
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,futures_5bp,max_dd,-0.4232992570032571
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,futures_5bp,dd_peak,2007-10
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,futures_5bp,dd_trough,2009-03
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,futures_5bp,dd_recovery,2011-02
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,futures_5bp,time_in_market,0.7333333333333333
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,futures_5bp,switches_per_year,0.37966101694915255
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,futures_5bp,turnover_per_year,0.19661016949152543
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,futures_5bp,cagr_minus_bh,-0.016242281124215774
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,futures_5bp,sharpe_minus_bh,-0.041054797208937566
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,futures_5bp,bh_cagr,0.11326742102924015
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,futures_5bp,bh_sharpe,0.5841987891772606
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,futures_5bp,bh_max_dd,-0.49038885962735457
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,kis_50bp,cagr,0.09605740185979283
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,kis_50bp,vol,0.0979476789128914
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,kis_50bp,sharpe,0.5340471351752443
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,kis_50bp,mean_excess_ann,0.05248262638322992
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,kis_50bp,total_return,865.374819725476
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,kis_50bp,n_periods,885
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,kis_50bp,max_dd,-0.424925693122448
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,kis_50bp,dd_peak,2007-10
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,kis_50bp,dd_trough,2009-03
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,kis_50bp,dd_recovery,2011-05
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,kis_50bp,time_in_market,0.7333333333333333
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,kis_50bp,switches_per_year,0.37966101694915255
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,kis_50bp,turnover_per_year,0.19661016949152543
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,kis_50bp,cagr_minus_bh,-0.01721001916944731
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,kis_50bp,sharpe_minus_bh,-0.05015165400201638
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,kis_50bp,bh_cagr,0.11326742102924015
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,kis_50bp,bh_sharpe,0.5841987891772606
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950-01:2023-09,kis_50bp,bh_max_dd,-0.49038885962735457
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,gross,cagr,0.07086765456743271
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,gross,vol,0.08180492836041793
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,gross,sharpe,0.48149741602065227
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,gross,mean_excess_ann,0.03946256928942174
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,gross,total_return,9.082849436779743
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,gross,n_periods,405
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,gross,max_dd,-0.42311854187890263
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,gross,dd_peak,2007-10
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,gross,dd_trough,2009-03
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,gross,dd_recovery,2011-02
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,gross,time_in_market,0.5654320987654321
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,gross,switches_per_year,0.4148148148148148
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,gross,turnover_per_year,0.2222222222222222
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,gross,cagr_minus_bh,-0.029988106161347394
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,gross,sharpe_minus_bh,-0.09704944686076705
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,gross,bh_cagr,0.10085576072878011
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,gross,bh_sharpe,0.5785468628814193
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,gross,bh_max_dd,-0.4903888596273547
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,futures_5bp,cagr,0.07074739552315146
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,futures_5bp,vol,0.08182247720471417
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,futures_5bp,sharpe,0.4800397578021197
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,futures_5bp,mean_excess_ann,0.03935145817831062
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,futures_5bp,total_return,9.044704176048661
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,futures_5bp,n_periods,405
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,futures_5bp,max_dd,-0.423299257003257
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,futures_5bp,dd_peak,2007-10
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,futures_5bp,dd_trough,2009-03
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,futures_5bp,dd_recovery,2011-02
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,futures_5bp,time_in_market,0.5654320987654321
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,futures_5bp,switches_per_year,0.4148148148148148
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,futures_5bp,turnover_per_year,0.2222222222222222
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,futures_5bp,cagr_minus_bh,-0.03010836520562865
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,futures_5bp,sharpe_minus_bh,-0.0985071050792996
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,futures_5bp,bh_cagr,0.10085576072878011
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,futures_5bp,bh_sharpe,0.5785468628814193
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,futures_5bp,bh_max_dd,-0.4903888596273547
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,kis_50bp,cagr,0.06966410983149385
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,kis_50bp,vol,0.08199700328325535
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,kis_50bp,sharpe,0.4668545144166501
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,kis_50bp,mean_excess_ann,0.03835145817831062
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,kis_50bp,total_return,8.707347336896513
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,kis_50bp,n_periods,405
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,kis_50bp,max_dd,-0.4249256931224481
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,kis_50bp,dd_peak,2007-10
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,kis_50bp,dd_trough,2009-03
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,kis_50bp,dd_recovery,2011-05
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,kis_50bp,time_in_market,0.5654320987654321
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,kis_50bp,switches_per_year,0.4148148148148148
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,kis_50bp,turnover_per_year,0.2222222222222222
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,kis_50bp,cagr_minus_bh,-0.03119165089728626
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,kis_50bp,sharpe_minus_bh,-0.11169234846476922
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,kis_50bp,bh_cagr,0.10085576072878011
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,kis_50bp,bh_sharpe,0.5785468628814193
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990-01:2023-09,kis_50bp,bh_max_dd,-0.4903888596273547
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1890s,gross,avg_exposure,0.7731481481481481
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1900s,gross,avg_exposure,0.8083333333333333
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1910s,gross,avg_exposure,1.0
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1920s,gross,avg_exposure,0.8958333333333334
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1930s,gross,avg_exposure,0.8875
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1940s,gross,avg_exposure,1.0
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1950s,gross,avg_exposure,0.9083333333333333
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1960s,gross,avg_exposure,0.5916666666666667
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1970s,gross,avg_exposure,1.0
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1980s,gross,avg_exposure,1.0
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",1990s,gross,avg_exposure,0.5958333333333333
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",2000s,gross,avg_exposure,0.5625
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",2010s,gross,avg_exposure,0.5625
+A4_valuation_timing_rule,"VAL_HALF80 (0.5x if CAPE > expanding 80th pct; QUANTGEN [0.5,1] overlay)",2020s,gross,avg_exposure,0.5
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),gross,cagr,0.08792371639174523
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),gross,vol,0.13339669259154716
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),gross,sharpe,0.4335429592447837
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),gross,mean_excess_ann,0.057914407568590474
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),gross,total_return,71678.27695273656
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),gross,n_periods,1592
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),gross,max_dd,-0.7570357859178121
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),gross,dd_peak,1929-09
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),gross,dd_trough,1932-06
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),gross,dd_recovery,1936-09
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),gross,time_in_market,0.8605527638190955
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),gross,switches_per_year,0.30150753768844224
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),gross,turnover_per_year,0.15452261306532664
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),gross,cagr_minus_bh,-0.008494748096410154
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),gross,sharpe_minus_bh,-0.030066184065390078
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),gross,bh_cagr,0.09641846448815539
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),gross,bh_sharpe,0.4636091433101738
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),gross,bh_max_dd,-0.8175983465052695
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),futures_5bp,cagr,0.08783999569654499
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),futures_5bp,vol,0.1333983039311795
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),futures_5bp,sharpe,0.43296039083734716
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),futures_5bp,mean_excess_ann,0.05783714626205781
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),futures_5bp,total_return,70950.17632705078
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),futures_5bp,n_periods,1592
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),futures_5bp,max_dd,-0.7571009580976684
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),futures_5bp,dd_peak,1929-09
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),futures_5bp,dd_trough,1932-06
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),futures_5bp,dd_recovery,1936-09
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),futures_5bp,time_in_market,0.8605527638190955
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),futures_5bp,switches_per_year,0.30150753768844224
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),futures_5bp,turnover_per_year,0.15452261306532664
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),futures_5bp,cagr_minus_bh,-0.008578468791610394
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),futures_5bp,sharpe_minus_bh,-0.030648752472826613
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),futures_5bp,bh_cagr,0.09641846448815539
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),futures_5bp,bh_sharpe,0.4636091433101738
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),futures_5bp,bh_max_dd,-0.8175983465052695
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),kis_50bp,cagr,0.0870858144510347
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),kis_50bp,vol,0.13341947419415007
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),kis_50bp,sharpe,0.4276964641310486
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),kis_50bp,mean_excess_ann,0.05714179450326384
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),kis_50bp,total_return,64713.44956003743
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),kis_50bp,n_periods,1592
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),kis_50bp,max_dd,-0.7576875077163753
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),kis_50bp,dd_peak,1929-09
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),kis_50bp,dd_trough,1932-06
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),kis_50bp,dd_recovery,1936-09
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),kis_50bp,time_in_market,0.8605527638190955
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),kis_50bp,switches_per_year,0.30150753768844224
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),kis_50bp,turnover_per_year,0.15452261306532664
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),kis_50bp,cagr_minus_bh,-0.009332650037120693
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),kis_50bp,sharpe_minus_bh,-0.03591267917912516
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),kis_50bp,bh_cagr,0.09641846448815539
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),kis_50bp,bh_sharpe,0.4636091433101738
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2023-09 (CAPE observed),kis_50bp,bh_max_dd,-0.8175983465052695
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),gross,cagr,0.08862277316074829
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),gross,vol,0.1321598700105084
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),gross,sharpe,0.4420243777739416
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),gross,mean_excess_ann,0.05850026513681537
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),gross,total_return,100700.51251896993
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),gross,n_periods,1628
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),gross,max_dd,-0.7570357859178121
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),gross,dd_peak,1929-09
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),gross,dd_trough,1932-06
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),gross,dd_recovery,1936-09
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),gross,time_in_market,0.8525798525798526
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),gross,switches_per_year,0.29484029484029484
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),gross,turnover_per_year,0.1511056511056511
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),gross,cagr_minus_bh,-0.010230359546692824
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),gross,sharpe_minus_bh,-0.039164759429461626
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),gross,bh_cagr,0.09885313270744112
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),gross,bh_sharpe,0.4811891372034032
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),gross,bh_max_dd,-0.8175983465052695
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,cagr,0.08854085110740195
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,vol,0.13216148367896133
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,sharpe,0.44144914992723294
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,mean_excess_ann,0.05842471231126255
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,total_return,99677.6110976719
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,n_periods,1628
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,max_dd,-0.7571009580976684
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,dd_peak,1929-09
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,dd_trough,1932-06
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,dd_recovery,1936-09
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,time_in_market,0.8525798525798526
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,switches_per_year,0.29484029484029484
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,turnover_per_year,0.1511056511056511
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,cagr_minus_bh,-0.010312281600039164
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,sharpe_minus_bh,-0.039739987276170285
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,bh_cagr,0.09885313270744112
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,bh_sharpe,0.4811891372034032
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),futures_5bp,bh_max_dd,-0.8175983465052695
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,cagr,0.08780286628349687
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,vol,0.13218259201447247
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,sharpe,0.43625093412923444
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,mean_excess_ann,0.057744736881287104
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,total_return,90915.69488833423
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,n_periods,1628
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,max_dd,-0.7576875077163753
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,dd_peak,1929-09
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,dd_trough,1932-06
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,dd_recovery,1936-09
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,time_in_market,0.8525798525798526
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,switches_per_year,0.29484029484029484
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,turnover_per_year,0.1511056511056511
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,cagr_minus_bh,-0.011050266423944244
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,sharpe_minus_bh,-0.04493820307416879
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,bh_cagr,0.09885313270744112
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,bh_sharpe,0.4811891372034032
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1891-02:2026-09 (last CAPE state held after 2023-09),kis_50bp,bh_max_dd,-0.8175983465052695
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,gross,cagr,0.10208372517280062
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,gross,vol,0.10471565528102576
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,gross,sharpe,0.5583419032548806
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,gross,mean_excess_ann,0.05870099874015921
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,gross,total_return,1297.1531871953632
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,gross,n_periods,885
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,gross,max_dd,-0.46004454637019465
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,gross,dd_peak,2007-10
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,gross,dd_trough,2009-03
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,gross,dd_recovery,2012-02
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,gross,time_in_market,0.803954802259887
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,gross,switches_per_year,0.37966101694915255
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,gross,turnover_per_year,0.19661016949152543
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,gross,cagr_minus_bh,-0.011183695856439524
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,gross,sharpe_minus_bh,-0.025856885922380002
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,gross,bh_cagr,0.11326742102924015
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,gross,bh_sharpe,0.5841987891772606
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,gross,bh_max_dd,-0.49038885962735457
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,futures_5bp,cagr,0.10197616719132463
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,futures_5bp,vol,0.1047159502359601
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,futures_5bp,sharpe,0.5574109977179688
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,futures_5bp,mean_excess_ann,0.05860269365541344
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,futures_5bp,total_return,1287.8426416280413
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,futures_5bp,n_periods,885
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,futures_5bp,max_dd,-0.46018167835601986
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,futures_5bp,dd_peak,2007-10
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,futures_5bp,dd_trough,2009-03
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,futures_5bp,dd_recovery,2012-02
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,futures_5bp,time_in_market,0.803954802259887
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,futures_5bp,switches_per_year,0.37966101694915255
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,futures_5bp,turnover_per_year,0.19661016949152543
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,futures_5bp,cagr_minus_bh,-0.011291253837915516
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,futures_5bp,sharpe_minus_bh,-0.026787791459291888
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,futures_5bp,bh_cagr,0.11326742102924015
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,futures_5bp,bh_sharpe,0.5841987891772606
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,futures_5bp,bh_max_dd,-0.49038885962735457
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,kis_50bp,cagr,0.10100733400889617
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,kis_50bp,vol,0.10472955986766326
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,kis_50bp,sharpe,0.5489752418813338
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,kis_50bp,mean_excess_ann,0.05771794789270158
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,kis_50bp,total_return,1206.8920622783965
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,kis_50bp,n_periods,885
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,kis_50bp,max_dd,-0.46141586622844577
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,kis_50bp,dd_peak,2007-10
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,kis_50bp,dd_trough,2009-03
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,kis_50bp,dd_recovery,2012-02
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,kis_50bp,time_in_market,0.803954802259887
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,kis_50bp,switches_per_year,0.37966101694915255
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,kis_50bp,turnover_per_year,0.19661016949152543
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,kis_50bp,cagr_minus_bh,-0.01226008702034398
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,kis_50bp,sharpe_minus_bh,-0.035223547295926805
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,kis_50bp,bh_cagr,0.11326742102924015
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,kis_50bp,bh_sharpe,0.5841987891772606
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950-01:2023-09,kis_50bp,bh_max_dd,-0.49038885962735457
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,gross,cagr,0.07955702346801186
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,gross,vol,0.09150409536221937
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,gross,sharpe,0.5279561755472312
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,gross,mean_excess_ann,0.048437948930860605
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,gross,total_return,12.244591520821807
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,gross,n_periods,405
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,gross,max_dd,-0.46004454637019465
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,gross,dd_peak,2007-10
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,gross,dd_trough,2009-03
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,gross,dd_recovery,2012-02
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,gross,time_in_market,0.662962962962963
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,gross,switches_per_year,0.5333333333333333
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,gross,turnover_per_year,0.2814814814814815
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,gross,cagr_minus_bh,-0.021298737260768252
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,gross,sharpe_minus_bh,-0.050590687334188145
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,gross,bh_cagr,0.10085576072878011
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,gross,bh_sharpe,0.5785468628814193
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,gross,bh_max_dd,-0.4903888596273547
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,futures_5bp,cagr,0.07940659191910093
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,futures_5bp,vol,0.09149823969449206
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,futures_5bp,sharpe,0.5264562753070223
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,futures_5bp,mean_excess_ann,0.04829720819011986
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,futures_5bp,total_return,12.182445253295194
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,futures_5bp,n_periods,405
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,futures_5bp,max_dd,-0.46018167835601953
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,futures_5bp,dd_peak,2007-10
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,futures_5bp,dd_trough,2009-03
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,futures_5bp,dd_recovery,2012-02
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,futures_5bp,time_in_market,0.662962962962963
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,futures_5bp,switches_per_year,0.5333333333333333
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,futures_5bp,turnover_per_year,0.2814814814814815
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,futures_5bp,cagr_minus_bh,-0.021449168809679175
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,futures_5bp,sharpe_minus_bh,-0.052090587574396996
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,futures_5bp,bh_cagr,0.10085576072878011
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,futures_5bp,bh_sharpe,0.5785468628814193
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,futures_5bp,bh_max_dd,-0.4903888596273547
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,kis_50bp,cagr,0.07805178490874476
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,kis_50bp,vol,0.09146389011712533
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,kis_50bp,sharpe,0.5128460426450367
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,kis_50bp,mean_excess_ann,0.0470305415234532
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,kis_50bp,total_return,11.635349961739836
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,kis_50bp,n_periods,405
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,kis_50bp,max_dd,-0.46141586622844555
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,kis_50bp,dd_peak,2007-10
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,kis_50bp,dd_trough,2009-03
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,kis_50bp,dd_recovery,2012-02
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,kis_50bp,time_in_market,0.662962962962963
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,kis_50bp,switches_per_year,0.5333333333333333
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,kis_50bp,turnover_per_year,0.2814814814814815
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,kis_50bp,cagr_minus_bh,-0.02280397582003535
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,kis_50bp,sharpe_minus_bh,-0.06570082023638257
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,kis_50bp,bh_cagr,0.10085576072878011
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,kis_50bp,bh_sharpe,0.5785468628814193
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990-01:2023-09,kis_50bp,bh_max_dd,-0.4903888596273547
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1890s,gross,avg_exposure,0.8287037037037037
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1900s,gross,avg_exposure,0.9041666666666667
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1910s,gross,avg_exposure,1.0
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1920s,gross,avg_exposure,0.9125
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1930s,gross,avg_exposure,0.9333333333333333
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1940s,gross,avg_exposure,1.0
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1950s,gross,avg_exposure,1.0
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1960s,gross,avg_exposure,0.6916666666666667
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1970s,gross,avg_exposure,1.0
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1980s,gross,avg_exposure,1.0
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),1990s,gross,avg_exposure,0.7291666666666666
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),2000s,gross,avg_exposure,0.6083333333333333
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),2010s,gross,avg_exposure,0.7041666666666667
+A4_valuation_timing_rule,VAL_HALF90 (0.5x if CAPE > expanding 90th pct),2020s,gross,avg_exposure,0.5123456790123457
+A4_valuation_latest,cape,2023-09,na,value,30.81
+A4_valuation_latest,cape_percentile_1881_2023,2023-09,na,value,0.9480443666082895

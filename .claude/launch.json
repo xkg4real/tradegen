@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "quantgen-web",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [".claude/run_web.py"],
+      "port": 8552,
+      "autoPort": true
+    },
+    {
+      "name": "godseye-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--prefix",
+        "C:/Users/whydi/OneDrive/Desktop/GODSEYE"
+      ],
+      "port": 4173
+    }
+  ]
+}

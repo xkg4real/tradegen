@@ -1,0 +1,882 @@
+"""Live paper-trading engine: data, probability model, simulated accounts, two rule sets.
+
+The engine is clock-driven: `Engine.step(now, closes)` sees only 1-minute closes stamped
+at or before `now` (the caller truncates), so the same code runs live and in replay.
+"""
+from __future__ import annotations
+
+import hashlib
+import json
+import math
+import os
+import sys
+import warnings
+from dataclasses import asdict, dataclass, field
+from datetime import date, datetime, time, timedelta, timezone
+from functools import lru_cache
+from pathlib import Path
+from zoneinfo import ZoneInfo
+
+import numpy as np
+import pandas as pd
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from core.quant.instruments import cost_per_side  # noqa: E402
+from paper_live import config as C  # noqa: E402
+
+warnings.filterwarnings("ignore")
+OUT = Path(__file__).resolve().parent / ("out" if C.PROFILE == "base" else f"out_{C.PROFILE}")
+
+
+def config_sha() -> str:
+    """config.py plus the inputs it reads from QUANTGEN: costs (table, commission, tick tables) and the LSE, US
+    and KRX session hours, holidays and half days."""
+    from core import calendars, markets
+    from core.quant import instruments as I
+
+    sess = {c: dict(tz=markets.get(c).session.tz, windows=markets.get(c).session.windows,
+                    holidays=sorted(calendars.get(c).holidays), special=calendars.get(c).special,
+                    covers=calendars.coverage(c)) for c in C.MARKET_FOR_VENUE.values()}
+    h = hashlib.sha256((Path(__file__).parent / "config.py").read_bytes())
+    h.update(json.dumps(dict(costs=C.COST_CLASS_BP, commission_bp=I.COMMISSION_BP, ticks=I.TICK_TABLES, sessions=sess),
+                        sort_keys=True, default=str).encode())
+    return h.hexdigest()[:16]
+
+
+def all_tickers() -> list[str]:
+    return list(C.UNIVERSE) + list(C.INVERSE_ETFS)
+
+
+# ----------------------------------------------------------------------------- data
+# Yahoo keeps 1-minute bars ~30 days and 5-minute bars ~60 days, so every download that results depend on is
+# frozen here (wide CSV per pull, sha256 in MANIFEST.json) and later runs of the same step read the frozen copy.
+DATA = OUT / "data"
+
+
+def run_tag() -> str:
+    return C.WINDOW_START_UTC.strftime("%Y%m%d")
+
+
+# ----------------------------------------------------------------------------- trial ledger
+# Every configuration run here is a trial of its rule's family in QUANTGEN's ledger (core.quant.gate_ledger,
+# ~/.nextgen/macro/ledgers/<family>.jsonl), so a later card in that family deflates its Sharpe by every
+# configuration tried, these included. C3 rows carry market US/KR, apart from the daily CRYPTO rows. While
+# QUANTGEN is not under git the rows are UNVERSIONED, so a later card's step 3 is refused until the owner
+# anchors the repository, rather than deflated.
+RULE_FAMILY = {"trend": "C3", "lazyowen": "LAZYOWEN", "quantgen": "QG-TACTICAL", "core": "QG-CORE"}
+_NOT_CONFIG = {"WINDOW_START_UTC", "WINDOW_END_UTC", "HYPOTHESES", "ACCOUNTS", "LOWCOST_BP"}   # LOWCOST: grid sensitivity
+
+
+def trial_params(spec: dict) -> dict:
+    """What decides a spec's trades, with overrides resolved (a grid variant equal to a live account is the same
+    configuration): its rule dict merged with the spec's overrides, kappa and bar/hysteresis where they apply,
+    and every upper-case setting of config.py except the clock window, the hypotheses and the account list."""
+    rule = {"trend": C.TREND, "lazyowen": C.L, "quantgen": C.Q, "core": C.CORE}[spec["rules"]]
+    rule = {**rule, **spec.get({"lazyowen": "L", "quantgen": "Q"}.get(spec["rules"], ""), {})}
+    out = dict(spec={k: v for k, v in spec.items() if k in ("rules", "costs", "prob", "gate_mult")}, rule=rule,
+               config={k: v for k, v in vars(C).items() if k.isupper() and k not in _NOT_CONFIG})
+    if spec["rules"] == "lazyowen" and spec.get("prob") == "naive":
+        out["kappa"] = spec.get("kappa", C.NAIVE_KAPPA)
+    if spec["rules"] == "trend":
+        out["bar_min"], out["hysteresis"] = spec.get("bar", 5), spec.get("hyst", 0.2)
+    return json.loads(json.dumps(out, default=str, sort_keys=True))
+
+
+def rule_digest(spec: dict) -> str:
+    """The rule a pre-registered test is about: trial_params plus the engine's code. Any change to either is a
+    different rule, so a frozen hypothesis cannot be scored on it."""
+    h = hashlib.sha256(json.dumps(trial_params(spec), sort_keys=True).encode())
+    h.update(Path(__file__).read_bytes())
+    return h.hexdigest()[:16]
+
+
+def register_trials(specs, *, span, script: str, run_kind: str = "trial", ledger_dir=None) -> list:
+    """One ledger row per account or grid spec; a configuration already there is the same trial (nothing is
+    appended). Raises on a broken ledger chain, before anything runs. A configuration keeps the span it was first
+    registered with, so paper_live passes one span at every call site, ("2026-07-01", "9999-12-31"): from the
+    earliest pull, open-ended because these accounts keep running."""
+    import config as QC
+    from core.quant import gate_ledger as GL
+
+    d = Path(ledger_dir) if ledger_dir else QC.macro_dir() / "ledgers"
+    out = []
+    for spec in specs:
+        fam = RULE_FAMILY[spec["rules"]]
+        row = dict(rule=fam, params=trial_params(spec), timing_class="COMPLIANT",
+                   span=[str(span[0])[:10], str(span[1])[:10]], market={"base": "US", "krx": "KR"}.get(C.PROFILE, C.PROFILE),
+                   run_utc=pd.Timestamp.now(tz="UTC").strftime("%Y-%m-%dT%H:%M:%SZ"), phase="research",
+                   run_kind=run_kind, run_utc_anchor=GL.repo_anchor(), source=f"paper_live {spec['name']}")
+        out.append(GL.register_trial(GL.family_ledger(fam, d), row, script=script))
+    return out
+
+
+def closes_from_frame(df: pd.DataFrame, tickers) -> dict[str, pd.Series]:
+    """yfinance frame (ticker, field columns) -> {ticker: UTC-indexed Close series, bar-start stamps}."""
+    out: dict[str, pd.Series] = {}
+    for t in tickers:
+        try:
+            s = df[t]["Close"].dropna().astype(float)
+        except (KeyError, TypeError):
+            continue
+        if len(s) == 0:
+            continue
+        ix = pd.DatetimeIndex(s.index)
+        s.index = ix.tz_localize("UTC") if ix.tz is None else ix.tz_convert("UTC")
+        out[t] = s[~s.index.duplicated(keep="last")].sort_index()
+    return out
+
+
+def _manifest() -> dict:
+    p = DATA / "MANIFEST.json"
+    return json.loads(p.read_text()) if p.exists() else {}
+
+
+def save_bars(bars: dict[str, pd.Series], name: str, **meta) -> Path:
+    DATA.mkdir(parents=True, exist_ok=True)
+    path, tmp = DATA / f"{name}.csv.gz", DATA / f"{name}.csv.gz.tmp"
+    pd.DataFrame(bars).sort_index().to_csv(tmp, index_label="ts_utc", float_format="%.17g",
+                                           compression={"method": "gzip", "mtime": 0})
+    man = _manifest()
+    man[name] = dict(file=path.name, sha256=hashlib.sha256(tmp.read_bytes()).hexdigest(), tickers=sorted(bars),
+                     rows=int(sum(len(s) for s in bars.values())),
+                     first=str(min(s.index[0] for s in bars.values())) if bars else None,
+                     last=str(max(s.index[-1] for s in bars.values())) if bars else None,
+                     saved_utc=pd.Timestamp.now(tz="UTC").isoformat(timespec="seconds"), **meta)
+    mtmp = DATA / "MANIFEST.json.tmp"
+    mtmp.write_text(json.dumps(man, indent=1, default=str))
+    os.replace(tmp, path)            # the csv only appears once its manifest row is ready
+    os.replace(mtmp, DATA / "MANIFEST.json")
+    return path
+
+
+def load_bars(name: str) -> dict[str, pd.Series]:
+    path, row = DATA / f"{name}.csv.gz", _manifest().get(name)
+    if row is None:
+        raise RuntimeError(f"{path} has no MANIFEST.json entry (interrupted save?); delete it to pull again")
+    if row["sha256"] != hashlib.sha256(path.read_bytes()).hexdigest():
+        raise RuntimeError(f"{path} does not match its MANIFEST.json sha256; refusing a changed snapshot")
+    df = pd.read_csv(path, index_col="ts_utc", float_precision="round_trip")
+    df.index = pd.to_datetime(df.index, utc=True)
+    return {t: df[t].dropna().astype(float) for t in df.columns}
+
+
+def download(tickers: list[str], *, interval: str, period: str | None = None, start=None, end=None,
+             snapshot: str | None = None) -> dict[str, pd.Series]:
+    """Yahoo closes per ticker. With `snapshot`, a frozen copy of that name is read if it exists; otherwise a
+    complete pull (every ticker returned) is saved under it, and an incomplete one is used but not frozen."""
+    if snapshot and (DATA / f"{snapshot}.csv.gz").exists():
+        bars = load_bars(snapshot)
+        missing = [t for t in tickers if t not in bars]
+        if missing:
+            raise RuntimeError(f"snapshot {snapshot} has no bars for {missing}")
+        return {t: bars[t] for t in tickers}
+    import yfinance as yf
+
+    df = yf.download(tickers, period=period, start=start, end=end, interval=interval, group_by="ticker",
+                     auto_adjust=True, progress=False, threads=True)
+    out = closes_from_frame(df, tickers)
+    if snapshot and len(out) == len(set(tickers)):
+        save_bars(out, snapshot, source="yfinance", interval=interval, period=period, start=start, end=end)
+    elif snapshot:
+        print(f"WARNING: Yahoo returned no bars for {sorted(set(tickers) - set(out))}; "
+              f"{snapshot} not frozen, the next run pulls again", flush=True)
+    return out
+
+
+def live_closes(period: str = "5d") -> dict[str, pd.Series]:
+    """1-minute closes with the last (possibly in-progress) bar dropped, stamped at bar END."""
+    raw = download(all_tickers(), period=period, interval="1m")
+    out = {}
+    for t, s in raw.items():
+        s = s.iloc[:-1]
+        s.index = s.index + pd.Timedelta(minutes=1)
+        out[t] = s
+    return out
+
+
+def window_closes(snapshot: str | None = None) -> dict[str, pd.Series]:
+    """1-minute closes for the session window's dates (plus a day either side), stamped at bar END. By explicit
+    dates, not period="1d", so a post-session step sees the session's own bars on whatever day it runs."""
+    start = (C.WINDOW_START_UTC - timedelta(days=1)).date()
+    end = (C.WINDOW_END_UTC + timedelta(days=2)).date()
+    raw = download(all_tickers(), interval="1m", start=start, end=end, snapshot=snapshot)
+    return {t: s.set_axis(s.index + pd.Timedelta(minutes=1)) for t, s in raw.items()}
+
+
+def garch_sigmas(tickers: list[str]) -> dict[str, dict]:
+    """Annualised next-session sigma per ticker from QUANTGEN's GARCH(1,1)-t (fallback SMA20)."""
+    from core.quant.garch import fit_garch
+    from core.quant import vol_estimators as VE
+    from core.quant import risk_layer as RL
+
+    daily = download(tickers, period="2y", interval="1d")   # no snapshot: sigmas.json and PREREG.json freeze the result
+    out = {}
+    for t in tickers:
+        s = daily.get(t)
+        if s is None or len(s) < 120:
+            out[t] = dict(sigma_ann=float("nan"), source="missing")
+            continue
+        logr = np.log(s).diff().dropna().to_numpy()
+        simp = s.pct_change().dropna().to_numpy()
+        sma = float(RL.sma_vol(simp, 20))
+        try:
+            fit = fit_garch(logr, dist="t", profile=False)
+            ok, why = VE.fit_ok(fit)
+            if ok and np.isfinite(fit.cond_vol_last):
+                out[t] = dict(sigma_ann=float(fit.cond_vol_last), source="garch_t", sma20=sma,
+                              nu=float(fit.nu), persistence=float(fit.persistence))
+                continue
+            out[t] = dict(sigma_ann=sma, source=f"sma20 ({why})", sma20=sma)
+        except Exception as e:  # noqa: BLE001
+            out[t] = dict(sigma_ann=sma, source=f"sma20 (garch error {e})", sma20=sma)
+    return out
+
+
+# ----------------------------------------------------------------------------- features
+def five_min(s: pd.Series) -> pd.Series:
+    return s.resample("5min", label="right", closed="right").last().dropna()
+
+
+def ewma_sigma5(s5: pd.Series) -> pd.Series:
+    """Causal EWMA sigma of 5-minute log returns, intra-session returns only."""
+    r = np.log(s5).diff()
+    gap = s5.index.to_series().diff() > pd.Timedelta(minutes=10)
+    r[gap] = np.nan
+    var = (r ** 2).ewm(halflife=C.EWMA_HALFLIFE_BARS, min_periods=30, ignore_na=True).mean()
+    return np.sqrt(var).ffill()
+
+
+def feature_row(s: pd.Series, now: pd.Timestamp) -> dict | None:
+    s = s[s.index <= now]
+    if len(s) < 40:
+        return None
+    ts, px = s.index[-1], float(s.iloc[-1])
+    sig5 = ewma_sigma5(five_min(s))
+    if len(sig5) == 0 or not np.isfinite(sig5.iloc[-1]) or sig5.iloc[-1] <= 0:
+        return None
+    sigma5 = float(sig5.iloc[-1])
+    z = {}
+    for w in C.FEATURE_WINDOWS:
+        target = ts - pd.Timedelta(minutes=w)
+        prior = s[s.index <= target]
+        if len(prior) == 0 or prior.index[-1] < target - pd.Timedelta(minutes=10):
+            return None  # window crosses a session gap: feature undefined
+        z[w] = float(np.clip(math.log(px / float(prior.iloc[-1])) / (sigma5 * math.sqrt(w / 5)), -4, 4))
+    bars_last_hour = int((s.index > ts - pd.Timedelta(minutes=60)).sum())
+    return dict(bar_ts=ts, px=px, sigma5=sigma5, z60=z[60], z15=z[15], bars_last_hour=bars_last_hour,
+                stale_min=(now - ts).total_seconds() / 60.0)
+
+
+def trend_state(s1: pd.Series) -> dict:
+    """QUANTGEN card C3 rule (core.quant.strategies.crypto_trend) on 5-minute closes, plus its raw vote."""
+    from core.quant import strategies as S
+
+    s5 = five_min(s1)
+    if len(s5) < C.TREND["min_bars"]:
+        return dict(trend_ok=False, trend_bars=int(len(s5)))
+    px = s5.to_numpy(float)
+    w = S.crypto_trend(px)
+    on = float(np.asarray(w).reshape(len(px), -1)[-1, 0])
+    votes = [np.sign(px[-1] - px[-1 - k]) for k in (7, 14, 21, 28)]
+    votes += [np.sign(px[-1] - px[-n:].mean()) for n in (10, 20, 50, 100, 200)]
+    return dict(trend_ok=True, trend_on=on, trend_vote=float(np.mean(votes)), trend_bars=int(len(s5)),
+                trend_bar_ts=str(s5.index[-1]))
+
+
+# ----------------------------------------------------------------------------- model
+def sigmoid(x):
+    return 1.0 / (1.0 + np.exp(-x))
+
+
+def fit_logit(X: np.ndarray, y: np.ndarray, l2: float = C.LOGIT_L2, iters: int = 50, intercept: bool = True):
+    Xc = np.column_stack([np.ones(len(X)) if intercept else np.zeros(len(X)), X])
+    b = np.zeros(Xc.shape[1])
+    pen = np.eye(Xc.shape[1]) * l2
+    pen[0, 0] = 0.0 if intercept else 1.0
+    for _ in range(iters):
+        p = sigmoid(Xc @ b)
+        W = p * (1 - p)
+        H = Xc.T @ (Xc * W[:, None]) + pen
+        g = Xc.T @ (y - p) - pen @ b
+        step = np.linalg.solve(H, g)
+        b = b + step
+        if np.max(np.abs(step)) < 1e-8:
+            break
+    p = sigmoid(Xc @ b)
+    H = Xc.T @ (Xc * (p * (1 - p))[:, None]) + pen
+    se = np.sqrt(np.diag(np.linalg.inv(H)))
+    return b, se
+
+
+@dataclass
+class Model:
+    coef: dict  # group -> [b0, b_z60, b_z15]
+
+    def prob(self, group: str, z60: float, z15: float) -> float:
+        b = self.coef[group]
+        p = float(sigmoid(b[0] + b[1] * z60 + b[2] * z15))
+        return float(np.clip(p, *C.P_CLIP))
+
+    def save(self, path: Path, extra: dict | None = None):
+        path.write_text(json.dumps(dict(coef=self.coef, **(extra or {})), indent=1))
+
+    @classmethod
+    def load(cls, path: Path) -> "Model":
+        return cls(coef=json.loads(path.read_text())["coef"])
+
+
+# ----------------------------------------------------------------------------- sessions
+@lru_cache(maxsize=None)
+def _market_bounds(code: str, day: date) -> tuple[pd.Timestamp, pd.Timestamp]:
+    """UTC open and close of QUANTGEN market `code` on local date `day`; open == close on a closed day."""
+    from core import calendars, markets
+
+    if calendars.is_trading_day(code, day) is False:      # None (outside coverage) falls back to regular hours
+        d = pd.Timestamp(day, tz="UTC")
+        return d, d
+    m = markets.get(code)
+    tz = m.session.tz
+    wins = m.windows_for(datetime.combine(day, time(12)).replace(tzinfo=ZoneInfo(tz)))
+    utc = lambda t: pd.Timestamp(datetime.combine(day, t)).tz_localize(tz).tz_convert("UTC")
+    return utc(wins[0][0]), utc(wins[-1][1])
+
+
+def session_bounds(venue: str, now: pd.Timestamp):
+    """The venue's session on now's UTC date (for LSE, US and KRX that is also the exchange's local date)."""
+    code = C.MARKET_FOR_VENUE.get(venue)
+    if code is not None:
+        return _market_bounds(code, now.normalize().date())
+    (h0, m0), (h1, m1) = C.SESSIONS_UTC[venue]
+    d = now.normalize()
+    return d + pd.Timedelta(hours=h0, minutes=m0), d + pd.Timedelta(hours=h1, minutes=m1)
+
+
+def minutes_to_close(venue: str, now: pd.Timestamp) -> float:
+    o, c = session_bounds(venue, now)
+    if now < o or now >= c:
+        return -1.0
+    return (c - now).total_seconds() / 60.0
+
+
+# ----------------------------------------------------------------------------- accounts
+@dataclass
+class Position:
+    key: str            # signal instrument
+    traded: str         # ticker actually bought/sold (inverse ETF for ETF shorts)
+    direction: int      # +1 long the signal instrument, -1 short it
+    side_sign: int      # sign applied to the traded ticker's return
+    notional: float     # USD at entry
+    entry_px: float
+    entry_fx: float
+    entry_time: str
+    entry_p: float
+    sigma_h: float      # 60-minute sigma (fraction) at entry
+    entry_cost: float
+    exit_plan: str
+    entry_bar_ts: str
+    entry_stale_min: float
+    cost_bp: float = 0.0
+
+
+@dataclass
+class Account:
+    name: str
+    rules: str = "quantgen"
+    cost_table: str = "COST_CLASS_BP"
+    prob: str = "cal"
+    cash: float = C.START_EQUITY        # start equity + realised net P&L (costs included)
+    peak: float = C.START_EQUITY
+    halted: bool = False
+    halt_reason: str = ""
+    positions: dict = field(default_factory=dict)
+    costs_paid: float = 0.0
+    n_fills: int = 0
+    gate_mult: float | None = None      # shared cost gate in Engine._open; None = off
+
+
+def make_account(spec: dict) -> Account:
+    return Account(spec["name"], spec["rules"], spec["costs"], spec["prob"], gate_mult=spec.get("gate_mult"))
+
+
+def sigma_h_from_ann(sigma_ann: float, venue: str) -> float:
+    """60-minute sigma (fraction) from an annualised daily sigma, scaled by the venue's session length."""
+    return sigma_ann / math.sqrt(252) * math.sqrt(C.HORIZON_MIN / C.SESSION_MIN.get(venue, 1380))
+
+
+def expected_move(p: float, sigma_h: float) -> float:
+    """Average gain of a call right with probability p on a move of size sigma_h: |2p-1| x E|move|,
+    with E|move| = sigma_h * sqrt(2/pi) for a normal move. No probability (NaN) = a perfect call."""
+    conviction = abs(2 * p - 1) if math.isfinite(p) else 1.0
+    return conviction * sigma_h * math.sqrt(2 / math.pi)
+
+
+def traded_return(pos: Position, px: float, fx: float, usd_base: bool) -> float:
+    if usd_base:
+        return 1.0 - pos.entry_px / px
+    return (px * fx) / (pos.entry_px * pos.entry_fx) - 1.0
+
+
+class Engine:
+    def __init__(self, model: Model, sigmas: dict, out_dir: Path, *, mode: str = "live"):
+        self.model, self.sigmas, self.mode = model, sigmas, mode
+        self.out = out_dir
+        self.out.mkdir(parents=True, exist_ok=True)
+        self.accounts = {a["name"]: make_account(a) for a in C.ACCOUNTS}
+        self.last_decision = {a["name"]: None for a in C.ACCOUNTS}
+        self.sha = config_sha()
+        self.core_cut = {}
+        self.exited_this_step: set = set()
+        self.state_path = self.out / "state.json"
+        if self.state_path.exists():
+            self._load_state()
+
+    # -- persistence
+    def _load_state(self):
+        st = json.loads(self.state_path.read_text())
+        if st.get("sha") != self.sha:   # a finished run's state would bring back its accounts and settings
+            raise SystemExit(f"{self.state_path} was written under config {st.get('sha')}, now {self.sha}; "
+                             f"start this run in a fresh directory")
+        for n, a in st["accounts"].items():
+            pos = a.pop("positions")
+            acc = Account(**a)
+            for k, p in pos.items():
+                acc.positions[k] = Position(**p)
+            self.accounts[n] = acc
+        self.last_decision = st.get("last_decision", self.last_decision)
+        self.core_cut = st.get("core_cut", {})
+
+    def _save_state(self):
+        st = dict(sha=self.sha, accounts={}, last_decision=self.last_decision, core_cut=self.core_cut)
+        for n, a in self.accounts.items():
+            d = asdict(a)
+            d["positions"] = {k: asdict(p) for k, p in a.positions.items()}
+            st["accounts"][n] = d
+        tmp = self.state_path.with_suffix(".tmp")
+        tmp.write_text(json.dumps(st, indent=1, default=str))
+        tmp.replace(self.state_path)
+
+    def _append(self, name: str, row: dict):
+        with open(self.out / name, "a", encoding="utf-8") as f:
+            f.write(json.dumps(row, default=str) + "\n")
+
+    # -- pricing helpers
+    def _quote(self, closes, ticker, now):
+        s = closes.get(ticker)
+        if s is None:
+            return None
+        s = s[s.index <= now]
+        if len(s) == 0:
+            return None
+        return float(s.iloc[-1]), s.index[-1], (now - s.index[-1]).total_seconds() / 60.0
+
+    def _fx(self, closes, key, now) -> float:
+        ccy = C.UNIVERSE.get(key, {}).get("quote_ccy")
+        if ccy in C.FX_FOR:
+            fx_t, inv = C.FX_FOR[ccy]
+            q = self._quote(closes, fx_t, now)
+            return (1.0 / q[0] if inv else q[0]) if q else float("nan")
+        return 1.0
+
+    def _mark(self, acc: Account, closes, now):
+        unreal, gross = 0.0, 0.0
+        for p in acc.positions.values():
+            q = self._quote(closes, p.traded, now)
+            if q is None:
+                continue
+            r = traded_return(p, q[0], self._fx(closes, p.key, now), C.UNIVERSE[p.key].get("usd_base", False))
+            if not math.isfinite(r):
+                r = 0.0  # review fix: an unpriceable mark counts as flat, never as NaN
+            unreal += p.side_sign * p.notional * r
+            gross += abs(p.notional * (1 + r))
+        return acc.cash + unreal, gross
+
+    # -- fills
+    @staticmethod
+    def _bp(acc, meta, price: float | None = None) -> float:
+        """Cost per side (bp) from QUANTGEN's table; NaN for a class it cannot cost (the fill is refused).
+        KRX ETFs pay QUANTGEN's max(table, commission + half a tick / price) at the traded price."""
+        bp = getattr(C, acc.cost_table).get(meta["cost"], float("nan"))
+        if meta["cost"] == "krx_etf" and price is not None and math.isfinite(price) and price > 0:
+            bp = max(bp, cost_per_side("KRX_ETF_line", price).bp)
+        return bp
+
+    def _refuse(self, acc, key, traded, now, verdict, **extra):
+        self._append("decisions.jsonl", dict(t=now, account=acc.name, key=key, traded=traded, stage="fill",
+                                             verdict=verdict, **extra))
+        return False
+
+    def _open(self, acc, key, direction, notional, f, closes, now, p, sigma_h, plan, reason):
+        meta = C.UNIVERSE[key]
+        traded, side_sign = key, direction
+        if direction < 0 and meta["short"] not in ("direct",):
+            traded, side_sign = meta["short"], +1
+        q = self._quote(closes, traded, now)
+        if q is None or q[2] > C.MAX_STALENESS_MIN:
+            return False
+        fx = self._fx(closes, key, now)
+        if not (math.isfinite(notional) and math.isfinite(fx) and math.isfinite(q[0])):
+            return False  # review fix: never book a fill with a NaN size, price or FX rate
+        bp = self._bp(acc, meta, q[0])
+        if not math.isfinite(bp):
+            return self._refuse(acc, key, traded, now, "no_cost_row", cost_class=meta["cost"])
+        if acc.gate_mult is not None:
+            if not math.isfinite(sigma_h):   # trend rows without features: same sigma, from the daily fit
+                sigma_h = sigma_h_from_ann(self.sigmas.get(key, {}).get("sigma_ann", float("nan")), meta["venue"])
+            exp_move, rt_cost = expected_move(p, sigma_h), 2 * bp * 1e-4
+            if not exp_move > acc.gate_mult * rt_cost:   # also refuses a NaN expected move
+                return self._refuse(acc, key, traded, now, "cost_gate", exp_move_bp=round(exp_move * 1e4, 2),
+                                    rt_cost_bp=round(rt_cost * 1e4, 2), gate_mult=acc.gate_mult)
+        cost = notional * bp * 1e-4
+        pos = Position(key, traded, direction, side_sign, notional, q[0], fx,
+                       str(now), p, sigma_h, cost, plan, str(q[1]), q[2], bp)
+        acc.positions[key] = pos
+        acc.cash -= cost
+        acc.costs_paid += cost
+        acc.n_fills += 1
+        self._append("fills.jsonl", dict(account=acc.name, action="OPEN", time=now, key=key, traded=traded,
+                                         direction=direction, notional=round(notional, 4), price=q[0],
+                                         bar_ts=q[1], stale_min=round(q[2], 2), cost=round(cost, 5), p=round(p, 4),
+                                         sigma_h=sigma_h, exit_plan=plan, reason=reason, sha=self.sha))
+        return True
+
+    def _close(self, acc, key, closes, now, reason):
+        pos: Position = acc.positions[key]
+        meta = C.UNIVERSE[key]
+        q = self._quote(closes, pos.traded, now)
+        if q is None:
+            return False
+        r = traded_return(pos, q[0], self._fx(closes, key, now), meta.get("usd_base", False))
+        if not math.isfinite(r):
+            return False  # review fix: keep the position rather than book a NaN P&L
+        self.exited_this_step.add((acc.name, key))
+        pnl_gross = pos.side_sign * pos.notional * r
+        exit_value = abs(pos.notional * (1 + r))
+        cost = exit_value * pos.cost_bp * 1e-4
+        acc.cash += pnl_gross - cost
+        acc.costs_paid += cost
+        acc.n_fills += 1
+        del acc.positions[key]
+        hold = (now - pd.Timestamp(pos.entry_time)).total_seconds() / 60.0
+        row = dict(account=acc.name, key=key, name=meta["name"], traded=pos.traded, direction=pos.direction,
+                   notional=round(pos.notional, 4), entry_time=pos.entry_time, exit_time=str(now),
+                   hold_min=round(hold, 1), entry_px=pos.entry_px, exit_px=q[0], exit_bar_ts=str(q[1]),
+                   exit_stale_min=round(q[2], 2), ret_traded=r, pnl_gross=pnl_gross,
+                   cost=pos.entry_cost + cost, pnl_net=pnl_gross - pos.entry_cost - cost,
+                   entry_p=pos.entry_p, exit_reason=reason, exit_plan=pos.exit_plan, sha=self.sha)
+        self._append("fills.jsonl", dict(account=acc.name, action="CLOSE", time=now, key=key, traded=pos.traded,
+                                         price=q[0], bar_ts=q[1], stale_min=round(q[2], 2), cost=round(cost, 5),
+                                         reason=reason, pnl_gross=round(pnl_gross, 5), sha=self.sha))
+        self._append("trades.jsonl", row)
+        return True
+
+    # -- signals snapshot shared by both accounts
+    def signals(self, closes, now) -> dict:
+        out = {}
+        for key, meta in C.UNIVERSE.items():
+            s = closes.get(key)
+            fr = feature_row(s, now) if s is not None else None
+            sig = self.sigmas.get(key, {}).get("sigma_ann", float("nan"))
+            row = dict(key=key, group=meta["group"], venue=meta["venue"], sigma_ann=sig,
+                       mins_to_close=minutes_to_close(meta["venue"], now))
+            if fr is None or not np.isfinite(sig):
+                row.update(ok=False, why="no_features" if fr is None else "no_sigma")
+            else:
+                p = self.model.prob(meta["group"], fr["z60"], fr["z15"])
+                p_naive = float(np.clip(0.5 * (1 + math.erf(C.NAIVE_KAPPA * fr["z60"] / math.sqrt(2))), *C.P_CLIP))
+                sigma_h = sigma_h_from_ann(sig, meta["venue"])
+                row.update(ok=True, p=p, p_naive=p_naive, sigma_h=sigma_h, **{k: v for k, v in fr.items()})
+                if fr["stale_min"] > C.MAX_STALENESS_MIN:
+                    row.update(ok=False, why="stale")
+                elif row["mins_to_close"] <= 0:
+                    row.update(ok=False, why="session_closed")
+            if s is not None:
+                row.update(trend_state(s[s.index <= now]))
+            out[key] = row
+        return out
+
+    # -- rule sets
+    def _exits_common(self, acc, sig, closes, now, final: bool):
+        for key in list(acc.positions):
+            pos = acc.positions[key]
+            meta = C.UNIVERSE[key]
+            if final:
+                self._close(acc, key, closes, now, "window_end")
+                continue
+            mtc = minutes_to_close(meta["venue"], now)
+            if 0 <= mtc <= 6 or (mtc < 0 and meta["venue"] in C.CASH_VENUES):
+                self._close(acc, key, closes, now, "session_close")
+                continue
+            if (now - pd.Timestamp(pos.entry_time)).total_seconds() / 60.0 >= C.HORIZON_MIN - 0.5:
+                self._close(acc, key, closes, now, "horizon_60m")
+
+    def step_quantgen(self, acc, sig, closes, now, final=False):
+        P = C.Q
+        eq, gross = self._mark(acc, closes, now)
+        acc.peak = max(acc.peak, eq)
+        dd = eq / acc.peak - 1.0
+        if not acc.halted and dd <= P["hard_stop"]:
+            acc.halted, acc.halt_reason = True, f"hard stop {dd:.2%}"
+            for k in list(acc.positions):
+                self._close(acc, k, closes, now, "hard_stop")
+        self._exits_common(acc, sig, closes, now, final)
+        for key in list(acc.positions):
+            pos, s = acc.positions[key], sig.get(key, {})
+            q = self._quote(closes, pos.traded, now)
+            if q is None:
+                continue
+            r = traded_return(pos, q[0], self._fx(closes, key, now), C.UNIVERSE[key].get("usd_base", False))
+            if pos.side_sign * r <= -P["stop_sigma"] * pos.sigma_h:
+                self._close(acc, key, closes, now, "stop_2sigma")
+            elif s.get("ok") and pos.direction * (s["p"] - 0.5) < -P["flip_exit_pp"]:
+                self._close(acc, key, closes, now, "signal_flip")
+        if final or acc.halted:
+            return
+        ladder = 1.0
+        for lvl, mult in P["ladder"]:
+            if dd <= lvl:
+                ladder = min(ladder, mult)
+        eq, gross = self._mark(acc, closes, now)
+        if not math.isfinite(eq):
+            return
+        cands = []
+        for key, s in sig.items():
+            if key in acc.positions or not s.get("ok") or (acc.name, key) in self.exited_this_step:
+                continue
+            meta = C.UNIVERSE[key]
+            edge = s["p"] - 0.5
+            direction = 1 if edge > 0 else -1
+            why = None
+            if abs(edge) < P["min_edge_pp"]:
+                why = "edge<2pp"
+            elif direction < 0 and meta["short"] is None:
+                why = "no_short_route"
+            elif s["mins_to_close"] < P["min_minutes_to_close"]:
+                why = "near_close"
+            exp_move = expected_move(s["p"], s["sigma_h"])
+            rt_cost = 2 * self._bp(acc, meta) * 1e-4
+            if why is None and not math.isfinite(rt_cost):
+                why = "no_cost_row"
+            elif why is None and exp_move <= P["cost_gate_mult"] * rt_cost:
+                why = "cost_gate"
+            self._append("decisions.jsonl", dict(t=now, account=acc.name, key=key, p=round(s["p"], 4),
+                                                 exp_move_bp=round(exp_move * 1e4, 2), rt_cost_bp=rt_cost * 1e4,
+                                                 verdict=why or "CANDIDATE"))
+            if why is None:
+                cands.append((exp_move - rt_cost, key, direction, s))
+        cands.sort(reverse=True)
+        for net, key, direction, s in cands:
+            if len(acc.positions) >= P["max_positions"]:
+                break
+            w = min(P["max_weight"], (P["vol_target_ann"] / P["slots"]) / s["sigma_ann"])
+            w *= min(1.0, abs(s["p"] - 0.5) / P["conviction_full"]) * ladder
+            notional = w * eq
+            room = P["gross_cap"] * eq - gross
+            notional = min(notional, room)
+            if notional < 1.0:
+                continue
+            plan = (f"exit at 60m horizon, or 2-sigma stop ({2 * s['sigma_h']:.4%} adverse), or p crosses 0.5 "
+                    f"by >2pp against, or session close/window end")
+            if self._open(acc, key, direction, notional, None, closes, now, s["p"], s["sigma_h"], plan,
+                          f"p={s['p']:.3f} exp_net={net * 1e4:.1f}bp w={w:.3f} ladder={ladder}"):
+                gross += notional
+
+    def step_lazyowen(self, acc, sig, closes, now, final=False):
+        P = C.L
+        pk = "p" if acc.prob == "cal" else "p_naive"
+        sig = {k: (dict(v, p=v[pk]) if v.get("ok") else v) for k, v in sig.items()}
+        eq, gross = self._mark(acc, closes, now)
+        acc.peak = max(acc.peak, eq)
+        dd = eq / acc.peak - 1.0
+        if not acc.halted and dd <= P["halt_drawdown"]:
+            acc.halted, acc.halt_reason = True, f"-40% from peak ({dd:.2%})"
+            for k in list(acc.positions):
+                self._close(acc, k, closes, now, "halt_drawdown")
+        self._exits_common(acc, sig, closes, now, final)
+        for key in list(acc.positions):
+            pos, s = acc.positions[key], sig.get(key, {})
+            if s.get("ok"):
+                edge_now = pos.direction * (s["p"] - 0.5)
+                edge_entry = abs(pos.entry_p - 0.5)
+                if edge_now <= edge_entry - P["decay_exit_pp"]:
+                    self._close(acc, key, closes, now, "edge_decay_5pp")
+        if final or acc.halted:
+            return
+        eq, gross = self._mark(acc, closes, now)
+        if not math.isfinite(eq):
+            return
+        cands = []
+        for key, s in sig.items():
+            if key in acc.positions or not s.get("ok") or (acc.name, key) in self.exited_this_step:
+                continue
+            meta = C.UNIVERSE[key]
+            edge = s["p"] - 0.5
+            direction = 1 if edge > 0 else -1
+            why = None
+            if abs(edge) < P["edge_pp"]:
+                why = "edge<8pp"
+            elif s["bars_last_hour"] < P["min_bars_last_hour"]:
+                why = "illiquid"
+            elif s["mins_to_close"] < P["min_minutes_to_close"]:
+                why = "ends<2h"
+            elif self._bp(acc, meta) * 1e-4 > P["max_slippage"]:
+                why = "slippage>3%"
+            elif direction < 0 and meta["short"] is None:
+                why = "no_short_route"
+            self._append("decisions.jsonl", dict(t=now, account=acc.name, key=key, p=round(s["p"], 4),
+                                                 verdict=why or "CANDIDATE"))
+            if why is None:
+                cands.append((abs(edge), key, direction, s))
+        cands.sort(reverse=True)
+        for edge, key, direction, s in cands:
+            if len(acc.positions) >= P["max_positions"]:
+                break
+            q = max(s["p"], 1 - s["p"])        # probability of the side we take
+            b = 1.0                            # 60-minute up/down event priced at 50c -> b = (1-P)/P = 1
+            f_full = (b * q - (1 - q)) / b
+            f = f_full / 2 if P["half_kelly"] else f_full
+            if f <= 0:
+                continue
+            stake = min(f, P["max_stake"]) * eq
+            plan = ("event resolves at 60m (close); exit earlier if fair prob moves 5pp against entry, "
+                    "session close, or window end")
+            self._open(acc, key, direction, stake, None, closes, now, s["p"], s["sigma_h"], plan,
+                       f"p={s['p']:.3f} full_kelly={f_full:.3f} half={f:.3f} stake={min(f, P['max_stake']):.3f}")
+
+    def step_trend(self, acc, sig, closes, now, final=False):
+        """QUANTGEN C3 trend rule on 5-minute bars: hold while on, exit when off; vol-target sizing."""
+        P = C.TREND
+        eq, gross = self._mark(acc, closes, now)
+        acc.peak = max(acc.peak, eq)
+        dd = eq / acc.peak - 1.0
+        if not acc.halted and dd <= P["hard_stop"]:
+            acc.halted, acc.halt_reason = True, f"hard stop {dd:.2%}"
+            for k in list(acc.positions):
+                self._close(acc, k, closes, now, "hard_stop")
+        for key in list(acc.positions):
+            meta, s = C.UNIVERSE[key], sig.get(key, {})
+            mtc = minutes_to_close(meta["venue"], now)
+            if final:
+                self._close(acc, key, closes, now, "window_end")
+            elif 0 <= mtc <= 6 or (mtc < 0 and meta["venue"] in C.CASH_VENUES):
+                self._close(acc, key, closes, now, "session_close")
+            elif s.get("trend_ok") and s.get("trend_on", 1.0) < 0.5:
+                self._close(acc, key, closes, now, "trend_off")
+        if final or acc.halted:
+            return
+        ladder = 1.0
+        for lvl, mult in P["ladder"]:
+            if dd <= lvl:
+                ladder = min(ladder, mult)
+        eq, gross = self._mark(acc, closes, now)
+        if not math.isfinite(eq):
+            return
+        cands = []
+        for key, s in sig.items():
+            if key in acc.positions or (acc.name, key) in self.exited_this_step:
+                continue
+            why = None
+            if not s.get("trend_ok"):
+                why = "warmup"
+            elif s.get("trend_on", 0.0) < 0.5:
+                why = "trend_off"
+            elif not s.get("ok") and s.get("why") != "no_features":
+                why = s.get("why")
+            elif s.get("mins_to_close", -1) < P["min_minutes_to_close"]:
+                why = "near_close"
+            q = self._quote(closes, key, now)
+            if why is None and (q is None or q[2] > C.MAX_STALENESS_MIN):
+                why = "stale"
+            self._append("decisions.jsonl", dict(t=now, account=acc.name, key=key, trend_on=s.get("trend_on"),
+                                                 vote=s.get("trend_vote"), verdict=why or "CANDIDATE"))
+            if why is None:
+                cands.append((s.get("trend_vote", 0.0), key, s))
+        cands.sort(reverse=True)
+        for vote, key, s in cands:
+            w = min(P["max_weight"], (P["vol_target_ann"] / P["slots"]) / s["sigma_ann"]) * ladder
+            notional = min(w * eq, P["gross_cap"] * eq - gross)
+            if notional < 1.0:
+                continue
+            plan = "exit when the C3 trend rule turns off, at session close, or at window end; -15% hard stop"
+            if self._open(acc, key, +1, notional, None, closes, now, float("nan"), s.get("sigma_h", float("nan")),
+                          plan, f"C3 trend on, vote={vote:+.2f}, w={w:.3f}, ladder={ladder}"):
+                gross += notional
+
+    def step_core(self, acc, sig, closes, now, final=False):
+        """QUANTGEN core: inverse GARCH-t vol risk budget over long risk-premium sleeves, no timing."""
+        P = C.CORE
+        eq, gross = self._mark(acc, closes, now)
+        acc.peak = max(acc.peak, eq)
+        dd = eq / acc.peak - 1.0
+        if final:
+            for k in list(acc.positions):
+                self._close(acc, k, closes, now, "window_end")
+            return
+        if not acc.halted and dd <= C.Q["hard_stop"]:
+            acc.halted, acc.halt_reason = True, f"hard stop {dd:.2%}"
+            for k in list(acc.positions):
+                self._close(acc, k, closes, now, "hard_stop")
+        if acc.halted:
+            return
+        ladder = 1.0
+        for lvl, mult in C.Q["ladder"]:
+            if dd <= lvl:
+                ladder = min(ladder, mult)
+        if ladder < 1.0 and acc.positions and not self.core_cut.get(acc.name):
+            for k in list(acc.positions):
+                self._close(acc, k, closes, now, "ladder_cut")
+            self.core_cut[acc.name] = True
+            eq, gross = self._mark(acc, closes, now)
+        sig_ann = {k: self.sigmas[k]["sigma_ann"] for k in P["sleeves"]
+                   if np.isfinite(self.sigmas.get(k, {}).get("sigma_ann", np.nan))}
+        sleeves = [k for k in P["sleeves"] if k in sig_ann]
+        inv = np.array([1.0 / sig_ann[k] for k in sleeves])
+        w = inv / inv.sum()
+        s = np.array([sig_ann[k] for k in sleeves])
+        cov = np.outer(w * s, w * s)
+        diag = float(np.sum(np.diag(cov)))
+        port_var = diag + P["avg_corr"] * (float(cov.sum()) - diag)
+        scale = min(P["gross_cap"], P["vol_target_ann"] / math.sqrt(port_var)) * ladder
+        targets = dict(zip(sleeves, w * scale))
+        for k in sleeves:
+            if k in acc.positions:
+                continue
+            q = self._quote(closes, k, now)
+            if q is None or q[2] > C.MAX_STALENESS_MIN or minutes_to_close(C.UNIVERSE[k]["venue"], now) <= 0:
+                continue
+            notional = min(targets[k] * eq, P["gross_cap"] * eq - gross)
+            if notional < 1.0:
+                continue
+            plan = "hold to window end (strategic risk budget); ladder -8%/-12% halves, -15% hard stop"
+            if self._open(acc, k, +1, notional, None, closes, now, float("nan"), float("nan"), plan,
+                          f"inverse-vol weight {targets[k]:.3f} (sigma_ann {sig_ann[k]:.3f}, "
+                          f"port vol est {math.sqrt(port_var) * scale:.3f})"):
+                gross += notional
+
+    # -- one clock tick
+    def step(self, now: pd.Timestamp, closes: dict, *, final: bool = False):
+        sig = self.signals(closes, now)
+        self._append("signals.jsonl", dict(t=now, sig={k: {kk: (round(vv, 6) if isinstance(vv, float) else vv)
+                                                           for kk, vv in v.items()} for k, v in sig.items()}))
+        did = []
+        fns = {"quantgen": (self.step_quantgen, C.Q["cadence_min"]), "lazyowen": (self.step_lazyowen, C.L["cadence_min"]),
+               "core": (self.step_core, C.CORE["cadence_min"]), "trend": (self.step_trend, C.TREND["cadence_min"])}
+        for name, acc in self.accounts.items():
+            step_fn, cad = fns[acc.rules]
+            last = self.last_decision.get(name)
+            # review fix: decide once per cadence slot (was elapsed >= cad-20 s, which skipped late ticks)
+            due = final or last is None or now.floor(f"{cad}min") > pd.Timestamp(last).floor(f"{cad}min")
+            if due:
+                self.exited_this_step = set()
+                step_fn(acc, sig, closes, now, final=final)
+                self.last_decision[name] = str(now)
+                did.append(name)
+        for name, acc in self.accounts.items():
+            eq, gross = self._mark(acc, closes, now)
+            self._append("equity.jsonl", dict(t=now, account=name, equity=round(eq, 5), cash=round(acc.cash, 5),
+                                              gross=round(gross, 4), n_pos=len(acc.positions),
+                                              costs=round(acc.costs_paid, 5), halted=acc.halted, decided=name in did))
+        self._save_state()
+        return sig

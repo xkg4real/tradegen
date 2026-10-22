@@ -1,0 +1,47 @@
+{
+ "card_id": "M_C8_ethbtc",
+ "kind": "model",
+ "hypothesis": "ln(ETH/BTC) is mean-reverting (null expected)",
+ "rules": {},
+ "universe": {
+  "pair": "ETHUSDT / BTCUSDT"
+ },
+ "data": {
+  "n": 3327
+ },
+ "costs": {},
+ "protocol": {},
+ "trials": {
+  "N_planned": 1,
+  "N_total": 1,
+  "ledger": []
+ },
+ "seed": 11,
+ "stats": {
+  "n": 3327,
+  "half_life_days": 337.165405791097,
+  "z_2y": 0.29699443413081134,
+  "last_ratio": 0.03207916937038417
+ },
+ "tests": {
+  "adf_p": 0.1359283482610784
+ },
+ "decision": "REJECT",
+ "decision_reason": "no rejection of a unit root (the expected null)",
+ "revise_target": "closed: the ratio has trended for years",
+ "lines": [
+  "ADF p = 0.136, half-life 337 days over 3327 days: no rejection of a unit root (the expected null)."
+ ],
+ "decay_haircut": {
+  "factor": 0.6,
+  "source": "McLean-Pontiff 2016 26-58%"
+ },
+ "created": "2026-09-27",
+ "author": "QUANTGEN validation gate",
+ "results_file": "docs/asset_expansion/results.csv",
+ "results_md5": "ca757e25f508b588cb2f361719ec83cd",
+ "citations": [
+  "MTSA Ch. 5–6",
+  "Shreve II Ex. 4.4.10 p. 150 (PDF 166)"
+ ]
+}

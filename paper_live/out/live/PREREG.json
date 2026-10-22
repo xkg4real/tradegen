@@ -1,0 +1,124 @@
+{
+ "config_sha": "ffbdfc4d489bcaf2",
+ "frozen_utc": "2026-10-07T12:01:41.006458+00:00",
+ "window": [
+  "2026-10-07 11:42:00+00:00",
+  "2026-10-07 16:42:00+00:00"
+ ],
+ "accounts": [
+  {
+   "name": "QG-TREND",
+   "rules": "trend",
+   "costs": "COST_CLASS_BP",
+   "prob": "cal"
+  },
+  {
+   "name": "QG-TACTICAL",
+   "rules": "quantgen",
+   "costs": "COST_CLASS_BP",
+   "prob": "cal"
+  },
+  {
+   "name": "QG-CORE",
+   "rules": "core",
+   "costs": "COST_CLASS_BP",
+   "prob": "cal"
+  },
+  {
+   "name": "LAZYOWEN-CAL",
+   "rules": "lazyowen",
+   "costs": "COST_CLASS_BP",
+   "prob": "cal"
+  },
+  {
+   "name": "LAZYOWEN-NAIVE",
+   "rules": "lazyowen",
+   "costs": "COST_CLASS_BP",
+   "prob": "naive"
+  }
+ ],
+ "model": {
+  "coef": {
+   "equity": [
+    0.0,
+    -0.006968725250849529,
+    -0.016017539198141622
+   ],
+   "rates": [
+    0.0,
+    0.06290637884242381,
+    -0.047077524660344275
+   ],
+   "commod": [
+    0.0,
+    0.03700318932584239,
+    -0.001177126030425449
+   ],
+   "fx": [
+    0.0,
+    -0.016349767981305625,
+    -0.07093066671135036
+   ]
+  },
+  "sha": "ffbdfc4d489bcaf2",
+  "fitted_on": "2026-07-14..2026-10-07"
+ },
+ "sigmas": {
+  "ES=F": 0.12608547494331765,
+  "NQ=F": 0.1721737279502662,
+  "RTY=F": 0.1827546807963807,
+  "ZN=F": 0.048145937439094864,
+  "ZB=F": 0.09154642381417037,
+  "GC=F": 0.21072878387046287,
+  "CL=F": 0.3781370764833954,
+  "EURUSD=X": 0.05356548062471397,
+  "GBPUSD=X": 0.056182240010447686,
+  "USDJPY=X": 0.07806988685728546,
+  "AUDUSD=X": 0.0735462142915843,
+  "ISF.L": 0.09904652563322473,
+  "HSBA.L": 0.3245088900484707,
+  "SHEL.L": 0.19814394630765111,
+  "AZN.L": 0.2467385356629241,
+  "SPY": 0.1182386518702159,
+  "QQQ": 0.1577238226143001,
+  "IWM": 0.1809468861416993,
+  "TLT": 0.1028092897053797,
+  "IEF": 0.05672202354496263,
+  "HYG": 0.04202287909683348,
+  "GLD": 0.2181397043940642,
+  "USO": 0.4218780711439107,
+  "SH": 0.11796399318633646,
+  "PSQ": 0.15935403760587782,
+  "RWM": 0.1829857843307353,
+  "TBF": 0.10366299131214428
+ },
+ "sigma_sources": {
+  "ES=F": "garch_t",
+  "NQ=F": "garch_t",
+  "RTY=F": "garch_t",
+  "ZN=F": "garch_t",
+  "ZB=F": "garch_t",
+  "GC=F": "garch_t",
+  "CL=F": "garch_t",
+  "EURUSD=X": "garch_t",
+  "GBPUSD=X": "garch_t",
+  "USDJPY=X": "garch_t",
+  "AUDUSD=X": "garch_t",
+  "ISF.L": "garch_t",
+  "HSBA.L": "garch_t",
+  "SHEL.L": "garch_t",
+  "AZN.L": "garch_t",
+  "SPY": "garch_t",
+  "QQQ": "garch_t",
+  "IWM": "garch_t",
+  "TLT": "garch_t",
+  "IEF": "garch_t",
+  "HYG": "garch_t",
+  "GLD": "garch_t",
+  "USO": "garch_t",
+  "SH": "garch_t",
+  "PSQ": "garch_t",
+  "RWM": "garch_t",
+  "TBF": "garch_t"
+ }
+}

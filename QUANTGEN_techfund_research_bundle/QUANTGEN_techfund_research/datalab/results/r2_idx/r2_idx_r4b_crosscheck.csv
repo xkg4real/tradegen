@@ -1,0 +1,13 @@
+item,ours,r4b,gap,tol,within
+dMDD vs S 1x (pp),4.42809134390727,4.4,0.0280913,0.5,True
+dMDD vs S 2x (pp),4.398125321286539,4.4,-0.00187468,0.5,True
+tail-exposure ratio,0.8176236264266878,0.82,-0.00237637,0.02,True
+dSR vs S,0.0017008597639582845,0.001,0.00070086,0.01,True
+PW block on d^2 (sessions),101,101,0,5,True
+p_ni at the PW block,0.205,0.21,-0.005,0.03,True
+p_ni at 10-session blocks,0.238,0.24,-0.002,0.03,True
+episodes positive (of 9),3,3,0,0,True
+largest episode share (Jul-2026),0.5905081879948352,0.59,0.000508188,0.02,True
+share of years positive,0.7272727272727273,0.73,-0.00272727,0.01,True
+plateau share,0.625,0.63,-0.005,0.01,True
+verdict,INSUFFICIENT DATA (inconclusive),INSUFFICIENT DATA (inconclusive),,,True

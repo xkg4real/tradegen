@@ -1,0 +1,110 @@
+\documentclass[11pt]{article}
+\usepackage{amsmath,amssymb,booktabs,geometry}
+\geometry{margin=2.5cm}
+\title{The likelihood-ratio statistic of the Quant Lab's GARCH(1,1)-$t$ fit}
+\author{QUANTGEN, \texttt{core/quant/garch.py}}
+\date{2026-09-21}
+
+\begin{document}
+\maketitle
+
+\section*{The two models}
+
+Both models share the return and variance equations and differ only in the law of the innovation $z_t$:
+\begin{align}
+  r_t &= \mu + \varepsilon_t, \qquad \varepsilon_t = \sigma_t z_t, \\
+  \sigma_t^2 &= \omega + \alpha\,\varepsilon_{t-1}^2 + \beta\,\sigma_{t-1}^2,
+  \qquad \sigma_1^2 = \widehat{\operatorname{Var}}(\varepsilon).
+\end{align}
+Under the normal model $z_t \sim \mathcal N(0,1)$; under the $t$ model $z_t$ is a Student-$t$ with $\nu$ degrees of freedom scaled to unit variance. The tail is fitted through
+\begin{equation}
+  \eta = \frac{1}{\nu}, \qquad \eta \in [0,\,0.4],
+\end{equation}
+so that $\eta = 0$ \emph{is} the normal model and $\eta = 0.4$ is $\nu = 2.5$.
+
+\section*{The two log-likelihoods}
+
+For $T$ daily returns,
+\begin{align}
+  \ell_N(\omega,\alpha,\beta)
+    &= \sum_{t=1}^{T}\Bigl[-\tfrac12\ln(2\pi) - \tfrac12\ln\sigma_t^2 - \frac{\varepsilon_t^2}{2\sigma_t^2}\Bigr], \\[4pt]
+  \ell_t(\omega,\alpha,\beta,\eta)
+    &= \sum_{t=1}^{T}\Bigl[c(\nu) - \tfrac12\ln\sigma_t^2
+       - \frac{\nu+1}{2}\ln\!\Bigl(1 + \frac{\varepsilon_t^2}{(\nu-2)\,\sigma_t^2}\Bigr)\Bigr],
+       \qquad \nu = 1/\eta, \\[4pt]
+  c(\nu) &= \ln\Gamma\!\Bigl(\frac{\nu+1}{2}\Bigr) - \ln\Gamma\!\Bigl(\frac{\nu}{2}\Bigr)
+            - \tfrac12\ln\bigl(\pi(\nu-2)\bigr).
+\end{align}
+The $(\nu-2)$ inside the logarithm is the unit-variance scaling of the $t$. As $\eta \to 0$ ($\nu \to \infty$),
+\begin{equation}
+  \frac{\nu+1}{2}\ln\!\Bigl(1 + \frac{\varepsilon_t^2}{(\nu-2)\sigma_t^2}\Bigr) \longrightarrow \frac{\varepsilon_t^2}{2\sigma_t^2},
+  \qquad c(\nu) \longrightarrow -\tfrac12\ln(2\pi),
+\end{equation}
+so $\ell_t(\omega,\alpha,\beta,0) = \ell_N(\omega,\alpha,\beta)$ term by term: the $t$ model contains the normal. (Above $\nu = 10^4$ the code evaluates $c(\nu)$ by the Stirling expansion $\ln\Gamma(x+\tfrac12)-\ln\Gamma(x) = \tfrac12\ln x - \tfrac{1}{8x} + O(x^{-3})$ with $x=\nu/2$, because the two $\ln\Gamma$ terms cancel catastrophically there.)
+
+\section*{The likelihood-ratio statistic}
+
+\begin{equation}
+  \mathrm{LR} \;=\; 2\Bigl[\max_{\omega,\alpha,\beta,\eta}\ell_t(\omega,\alpha,\beta,\eta)
+                      \;-\; \max_{\omega,\alpha,\beta}\ell_N(\omega,\alpha,\beta)\Bigr]
+  \;=\; 2\bigl[\ell_t(\hat\omega_t,\hat\alpha_t,\hat\beta_t,\hat\eta) - \ell_N(\hat\omega_N,\hat\alpha_N,\hat\beta_N)\bigr].
+\end{equation}
+Each model is maximised separately, so the statistic compares the best $t$ against the best normal, not the two laws at common parameters. Because $\ell_t(\cdot,0) = \ell_N(\cdot)$ pointwise,
+\begin{equation}
+  \max_{\omega,\alpha,\beta,\eta}\ell_t \;\ge\; \max_{\omega,\alpha,\beta}\ell_t(\cdot,0) \;=\; \max_{\omega,\alpha,\beta}\ell_N
+  \quad\Longrightarrow\quad \mathrm{LR} \ge 0 .
+\end{equation}
+The former cap $\nu \le 30$ removed the point $\eta = 0$ from the $t$ model's parameter space, which is why the statistic could come out negative.
+
+\section*{Null distribution and the critical value}
+
+Under normal innovations the null $\eta = 0$ lies on the boundary of $[0, 0.4]$, so Wilks' $\chi^2_1$ result does not apply. Asymptotically (Self and Liang, 1987),
+\begin{equation}
+  \mathrm{LR} \;\xrightarrow{d}\; \tfrac12\,\delta_0 + \tfrac12\,\chi^2_1 ,
+\end{equation}
+a point mass at zero (the fit lands exactly on the normal) mixed equally with a $\chi^2_1$. Hence
+\begin{equation}
+  \Pr(\mathrm{LR} > 2.706) = \tfrac12\Pr(\chi^2_1 > 2.706) = 0.05, \qquad
+  \Pr(\mathrm{LR} > 3.841) = \tfrac12\Pr(\chi^2_1 > 3.841) = 0.025 ,
+\end{equation}
+so the 5\% line is $2.706$ (\texttt{LR\_5PCT}); the $\chi^2_1$ value $3.841$ is the 2.5\% point of the correct null. The mixture assumes $\alpha$ and $\beta$ interior, which is why the tile is greyed when $\alpha$ sits at its bound.
+
+\section*{Related quantities}
+
+\begin{equation}
+  \mathrm{AIC} = 2k - 2\ell, \quad k_t = 4,\; k_N = 3
+  \qquad\Longrightarrow\qquad \mathrm{AIC}_N - \mathrm{AIC}_t = \mathrm{LR} - 2 ;
+\end{equation}
+\begin{equation}
+  \text{persistence } \alpha+\beta, \qquad
+  \text{unconditional variance } \frac{\omega}{1-\alpha-\beta}, \qquad
+  \text{half-life } \frac{\ln\tfrac12}{\ln(\alpha+\beta)} .
+\end{equation}
+
+\section*{Symbols}
+
+\begin{center}
+\begin{tabular}{@{}lll@{}}
+\toprule
+Symbol & Meaning & Worked AAPL fit (primer) \\
+\midrule
+$r_t$ & daily log return $\ln(P_t/P_{t-1})$ & $T = 503$ returns \\
+$\mu$ & mean daily return, fixed at the sample mean (not fitted) & $+0.072\%$ per day \\
+$\varepsilon_t$ & the surprise $r_t - \mu$ & \\
+$\sigma_t^2$ & conditional variance assigned to day $t$ & today $31.3\%$ annualised \\
+$\omega$ & variance floor, daily units & $7.44\times10^{-5}$ \\
+$\alpha$ & reaction to yesterday's squared surprise & $0.176$ \\
+$\beta$ & memory of yesterday's variance & $0.655$ \\
+$\alpha+\beta$ & persistence & $0.831$ \\
+$z_t$ & innovation, mean $0$, variance $1$ & \\
+$\nu$ & tail parameter of the $t$; smaller is fatter & $3.1$ \\
+$\eta = 1/\nu$ & the fitted tail parameter on $[0, 0.4]$; $0$ is the normal & $0.32$ \\
+$c(\nu)$ & normalising constant of the unit-variance $t$ density & \\
+$\Gamma$ & the gamma function & \\
+$\ell_t,\ \ell_N$ & maximised log-likelihoods & $1389.5$ and $1347.3$ \\
+$\mathrm{LR}$ & twice the gain from the tail parameter & $84.4$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\end{document}

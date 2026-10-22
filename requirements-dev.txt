@@ -1,0 +1,8 @@
+# Tools used to generate shipped data, never imported by the application.
+#   python pkg_tools/generate_calendars.py --to 2027
+exchange_calendars>=4.13
+
+# Builds docs/QUANTGEN_Models_Primer.pdf (python docs/build_models_primer.py); never imported by the app.
+reportlab>=4.0
+pypdf>=4.0
+pypdfium2>=4.0

@@ -1,0 +1,387 @@
+{
+ "source": "research_notes/QUANTGEN v2 integration map/tf_goldens_amendments.md section B",
+ "r3": "QUANTGEN_techfund_research_bundle/QUANTGEN_techfund_research/research_notes/R3_TF_neural_link.md",
+ "caveat": "All lab numbers are in-sample computations on price returns without dividends, not runs of QUANTGEN's gate. Proposals pending owner confirmation; nothing here is an input to exposure (coordinator rulings 3.7-3.9).",
+ "items": [
+  {
+   "id": "CA-01",
+   "wrong_number": "Korean 1-month reversal \"-2.95%/month (t -3.77)\" as a spread",
+   "correct_value": "Fama-MacBeth slope on r(-1), Jan-1999..Feb-2021: about -0.30% next month per +10% last month. Spreads: EW quintiles 0.52%/month gross (2001-26), 0.08% (2020-26), negative net; KRX EW deciles 1999-2021 +1.41% gross, +0.20% net 35; VW ex-microcap deciles 1996-04..2026-09 +0.57% gross (t 0.9), -0.68% net 35 (R3:1244)",
+   "carried_in_v2": "SPEC:684, SPEC:1727 already label −2.950 \"a regression slope, not a strategy return\"; backlog :1121, :1647 same. **Already corrected.**",
+   "r3_lines": [
+    "1244"
+   ],
+   "brief_line": 226
+  },
+  {
+   "id": "CA-02",
+   "wrong_number": "Korean momentum \"-6.13%/month in high-turnover stocks\"",
+   "correct_value": "Not reproduced: +1.43%/month (t 3.26) all caps, +1.66% (t 4.50) ex-bottom-20% (KRX 2000-07..2019-06, adjusted); sign appears only with unadjusted closes (-11.37%, t -5.42); long-only high-turnover winners lag -11.57%/yr (t -4.18) (R3:1245)",
+   "carried_in_v2": "none",
+   "r3_lines": [
+    "1245"
+   ],
+   "brief_line": 227
+  },
+  {
+   "id": "CA-03",
+   "wrong_number": "KR-ISS long-only net IR 0.84 (P3)",
+   "correct_value": "0.48-0.54 full sample net 35; 0.35-0.38 in 2017-26; about 0 at 70 bp (R3:1246)",
+   "carried_in_v2": "none",
+   "r3_lines": [
+    "1246"
+   ],
+   "brief_line": 228
+  },
+  {
+   "id": "CA-04",
+   "wrong_number": "Ilmanen per-factor OOS haircuts value -49%, momentum -23%, multifactor -18% (macro R-15, §7 `prior_haircuts`, §13 N-60)",
+   "correct_value": "Only a 30% average OOS drop is verifiable; use planning haircuts 0.5 / 0.3 / 0.75 and measured local decay (GOV-8) (R3:1247)",
+   "carried_in_v2": "**YES:** SPEC:703, SPEC:1738, SPEC:4329 `prior_haircuts: {value: 0.49, momentum: 0.23, carry: 0.25, defensive: 0.0, multifactor: 0.18}`, SPEC:6440 (\"priors use the factor-specific figures\"); macro report :170 → XS-05",
+   "r3_lines": [
+    "1247"
+   ],
+   "brief_line": 229
+  },
+  {
+   "id": "CA-05",
+   "wrong_number": "Average anomaly \"8 bp/month net\"",
+   "correct_value": "4 bp/month (204 anomalies; Chen-Velikov 2023) (R3:1248)",
+   "carried_in_v2": "none",
+   "r3_lines": [
+    "1248"
+   ],
+   "brief_line": 230
+  },
+  {
+   "id": "CA-06",
+   "wrong_number": "Step-8 false pass \"36-38% at 8-10 years\" (P4)",
+   "correct_value": "23.8% (KOSPI bootstrap), 29.5% (iid), 31.2% (sign-flip) at true Sharpe 0, 10 years; joint 2+3+5+8 0.5% (R3:1249)",
+   "carried_in_v2": "none (v2.0 has its own G-PWR-02, SPEC:5973)",
+   "r3_lines": [
+    "1249"
+   ],
+   "brief_line": 231
+  },
+  {
+   "id": "CA-07",
+   "wrong_number": "\"18 OOS years for Sharpe 0.4\" (P1); \"IR 0.3 needs 18 years\" (E4)",
+   "correct_value": "50%-power horizon: Sharpe 0.4 → 15.8 y (50%), 40.3 y (80%) at step 2; step 5 about 50 y for 80% (R3:1250)",
+   "carried_in_v2": "none",
+   "r3_lines": [
+    "1250"
+   ],
+   "brief_line": 232
+  },
+  {
+   "id": "CA-08",
+   "wrong_number": "Jeon-Byun \"max drawdown -23.7% vs -74.1%\"",
+   "correct_value": "Worst monthly returns, not drawdowns (R3:1251)",
+   "carried_in_v2": "none",
+   "r3_lines": [
+    "1251"
+   ],
+   "brief_line": 233
+  },
+  {
+   "id": "CA-09",
+   "wrong_number": "P4 \"SE 0.188\" (Sharpe 1.5, 60 months)",
+   "correct_value": "Annualised SE about 0.47 (R3:1252)",
+   "carried_in_v2": "none",
+   "r3_lines": [
+    "1252"
+   ],
+   "brief_line": 234
+  },
+  {
+   "id": "CA-10",
+   "wrong_number": "Volume-filtered weekly reversal 0.44%/week (P2), 0.03%/week (P6)",
+   "correct_value": "-0.05 to +0.31%/week gross (2001-26); 0.14-0.26 top-500; always negative net (-0.92 to -1.33%/week net 35) (R3:1253)",
+   "carried_in_v2": "none",
+   "r3_lines": [
+    "1253"
+   ],
+   "brief_line": 235
+  },
+  {
+   "id": "CA-11",
+   "wrong_number": "Corwin-Schultz KRX spreads 39-79 bp",
+   "correct_value": "22-57 bp (cap buckets) or 99-117 bp (negatives zeroed), Jan-2024..Sep-2026; not a calibration source (R3:1254)",
+   "carried_in_v2": "none",
+   "r3_lines": [
+    "1254"
+   ],
+   "brief_line": 236
+  },
+  {
+   "id": "CA-12",
+   "wrong_number": "\"Samsung + SK hynix = 55.5% of KOSPI\" (undated; macro R-07) and \"22% at end-2023\"",
+   "correct_value": "Always date + denominator. CR-07: 53.71% (2026-09-29), 59.69% peak (2026-06-25), 29.29% (2023-12-28); 2026-09-29 alternatives 50.82% / 52.59% / 53.96%; end-2023 26.88% / 27.79%, not 22%; MSCI Korea free float Aug-2026 60.8% (R3:1255)",
+   "carried_in_v2": "**YES:** SPEC:1588 \"The pair was 55.5% of KOSPI market cap (22% at end-2023)\"; SPEC:6310 \"55.5% reported in 2026\"; SPEC:6407 \"Pair 55.5% of KOSPI\"; macro report :49 → XS-06",
+   "r3_lines": [
+    "1255"
+   ],
+   "brief_line": 237
+  },
+  {
+   "id": "CA-13",
+   "wrong_number": "Korea 52-week high \"+0.34%/month net (t 2.31)\"",
+   "correct_value": "+0.33% (t 2.14) from 2001-03; +0.13% (t 0.81) from 1996-03; state the start (R3:1256)",
+   "carried_in_v2": "none",
+   "r3_lines": [
+    "1256"
+   ],
+   "brief_line": 238
+  },
+  {
+   "id": "CA-14",
+   "wrong_number": "Korea 12-7 momentum \"net-35 Sharpe 0.54\"",
+   "correct_value": "0.60 (deciles, from 2001); 0.19-0.20 from 1996; -0.01 in 2016-26; negative at 70 bp after 2010 (R3:1257)",
+   "carried_in_v2": "none",
+   "r3_lines": [
+    "1257"
+   ],
+   "brief_line": 239
+  },
+  {
+   "id": "CA-15",
+   "wrong_number": "CAPE 1-year OOS R2 \"-2.4% (1950-) / -11.1% (1990-)\"",
+   "correct_value": "-4.8% / -16.5% (prof chair), -4% / -18% (US lab); all negative (R3:1258)",
+   "carried_in_v2": "none",
+   "r3_lines": [
+    "1258"
+   ],
+   "brief_line": 240
+  },
+  {
+   "id": "CA-16",
+   "wrong_number": "P6 VW low-risk tilt \"-20.3 points in 2025\"",
+   "correct_value": "Single-signal VW top quintiles lost 35-40 points in 2025 (R3:1259)",
+   "carried_in_v2": "none",
+   "r3_lines": [
+    "1259"
+   ],
+   "brief_line": 241
+  },
+  {
+   "id": "CA-17",
+   "wrong_number": "\"US 12-1 momentum Sharpe 0.02 since 2008\"",
+   "correct_value": "-0.16 for 2008..2017-03 (French WML; local file ends 2017-03); not verifiable to 2026 (R3:1260)",
+   "carried_in_v2": "**YES:** SPEC:684 \"US 12-1 SR 0.33 since 1990, 0.02 since 2008\"",
+   "r3_lines": [
+    "1260"
+   ],
+   "brief_line": 242
+  },
+  {
+   "id": "CA-18",
+   "wrong_number": "\"ChatGPT strategy unprofitable at 20 bp\"",
+   "correct_value": "20 bp round trip (10 bp per side) (R3:1261)",
+   "carried_in_v2": "none",
+   "r3_lines": [
+    "1261"
+   ],
+   "brief_line": 243
+  },
+  {
+   "id": "CA-19",
+   "wrong_number": "\"Trend following 2010-18: 0.4%/yr\"",
+   "correct_value": "Excess over T-bills (AQR 2019); total return 1.6%/yr (R3:1262)",
+   "carried_in_v2": "none",
+   "r3_lines": [
+    "1262"
+   ],
+   "brief_line": 244
+  },
+  {
+   "id": "CA-20",
+   "wrong_number": "Dynamic momentum \"roughly quadruples\" Sharpe",
+   "correct_value": "\"Approximately doubles\": JFE Table 7 0.682 → 1.041 → 1.194; static WML 0.71 (R3:1263)",
+   "carried_in_v2": "SPEC:6405, SPEC:6439 carry the correct 0.682 → 1.041 → 1.194. **Already corrected.**",
+   "r3_lines": [
+    "1263"
+   ],
+   "brief_line": 245
+  },
+  {
+   "id": "CA-21",
+   "wrong_number": "Step 9 as \"x 0.4\" (R2 KR gate column g9 = 0.4 x diff, B1/F4 +1.23%/yr)",
+   "correct_value": "Expected live Sharpe = 0.6 x OOS (\"take 40% off\"); B1/F4 0.6 x 3.08% = +1.85%/yr (R3:1264)",
+   "carried_in_v2": "v2.0 consistent: `live_sharpe_multiplier: 0.60` (SPEC:476, 2579, 2608, 4596, 4768); `CODE:core/quant/validate.py:57` `\"haircut\": 0.6`. **Wrong value lives only in `LAB:results/r2_kr/r2_kr_excl_gate.csv` column `g9_haircut_ann_diff`/`g9_haircut_ir`.**",
+   "r3_lines": [
+    "1264"
+   ],
+   "brief_line": 246
+  },
+  {
+   "id": "CA-22",
+   "wrong_number": "KOSPI 24-month return \"+235%\" on 2026-06-22",
+   "correct_value": "+227% (daily) / +222% (month-end) (R3:1265)",
+   "carried_in_v2": "none",
+   "r3_lines": [
+    "1265"
+   ],
+   "brief_line": 247
+  },
+  {
+   "id": "CA-23",
+   "wrong_number": "KOSPI on 2025-03-31 \"-2.93%\"",
+   "correct_value": "-3.00% (R3:1266; GV-215)",
+   "carried_in_v2": "none",
+   "r3_lines": [
+    "1266"
+   ],
+   "brief_line": 248
+  },
+  {
+   "id": "CA-24",
+   "wrong_number": "MTUM IT weight \"54.3%\" (2026-06-30 factsheet)",
+   "correct_value": "53.22%; 54.3% is the 2026-09-29 page (R3:1267)",
+   "carried_in_v2": "none",
+   "r3_lines": [
+    "1267"
+   ],
+   "brief_line": 249
+  },
+  {
+   "id": "CA-25",
+   "wrong_number": "Korean top-500 12-1 WML Sharpe 0.43 EW (E5)",
+   "correct_value": "EW 0.26-0.30 gross / 0.04-0.07 net 35 (deciles, 2000-26); VW 0.44-0.48 / 0.28-0.30; 2016-26 EW net -0.13, VW 0.30 (0.02 with 5% cap); July 2026 -30.0% EW / -29.8% VW (R3:1268)",
+   "carried_in_v2": "none",
+   "r3_lines": [
+    "1268"
+   ],
+   "brief_line": 250
+  },
+  {
+   "id": "CA-26",
+   "wrong_number": "Bounding trend to [0.5, 1] \"keeps about half the protection\"",
+   "correct_value": "PC-1 vs own S rises +11.3 → +13.0 / +15.4 pp; absolute max DD -27.7% → -36.2% / -29.4% (R3:1269; section 11.4)",
+   "carried_in_v2": "none",
+   "r3_lines": [
+    "1269"
+   ],
+   "brief_line": 251
+  },
+  {
+   "id": "CA-27",
+   "wrong_number": "D-M gate protects Korean momentum crashes",
+   "correct_value": "3 onsets since 2000 (2001-01-04, 2008-10-31, 2020-03-20), 4.1% of days; 9 onsets 1996-2026; off on 2026-06-22 (R3:1270)",
+   "carried_in_v2": "SPEC:1541 \"Untested on KRX stock data\" — consistent",
+   "r3_lines": [
+    "1270"
+   ],
+   "brief_line": 252
+  },
+  {
+   "id": "CA-28",
+   "wrong_number": "Insider buys \"82 bp/month\" as a long-only 126-day overlay",
+   "correct_value": "Long-short, one-month hold, five-factor alpha 82 bp VW (t 2.15) / 180 bp EW (t 6.07), 1986-2007 (R3:1271)",
+   "carried_in_v2": "none",
+   "r3_lines": [
+    "1271"
+   ],
+   "brief_line": 253
+  },
+  {
+   "id": "CA-29",
+   "wrong_number": "GS high-beta momentum basket \"-37% in July 2026\"",
+   "correct_value": "Unverified; only \"worst month since November 2000\" verifiable (R3:1272)",
+   "carried_in_v2": "none",
+   "r3_lines": [
+    "1272"
+   ],
+   "brief_line": 254
+  },
+  {
+   "id": "CA-30",
+   "wrong_number": "KOSPI crash 2026-06-22..07-30 \"-38.0%\"",
+   "correct_value": "-38.61% (R3:1273; GV-435)",
+   "carried_in_v2": "v2.0 prints −38.6% (SPEC:1567, 6407, 6441) — consistent",
+   "r3_lines": [
+    "1273"
+   ],
+   "brief_line": 255
+  },
+  {
+   "id": "CA-31",
+   "wrong_number": "Korean low-turnover momentum long-only excess \"+2.9%\"",
+   "correct_value": "+2.9% (E7 universe, 2015-24); -0.1% (ALL, 2015-24); +9.69%/yr (t 2.77; ALL 1996-2026 net 35) (R3:1274)",
+   "carried_in_v2": "none",
+   "r3_lines": [
+    "1274"
+   ],
+   "brief_line": 256
+  },
+  {
+   "id": "CA-32",
+   "wrong_number": "\"Korean low volatility is a crash hedge\"",
+   "correct_value": "Beta 0.63 (EW) / 0.74 (VW); vs S_beta max DD worse by 7.1-22.4 pp, tail ratio 0.97-0.99 (R3:1275)",
+   "carried_in_v2": "none",
+   "r3_lines": [
+    "1275"
+   ],
+   "brief_line": 257
+  },
+  {
+   "id": "CA-33",
+   "wrong_number": "KOSPI trend protection as a full-sample property",
+   "correct_value": "Concentrated in 1997-2001: multi-speed sleeve REJECT from 2011/2016 starts (PC-1 -3.5 / -2.9 pp); VT20 alone PASS from every start 1996-2006 (+4.4 to +11.6 pp) (R3:1276)",
+   "carried_in_v2": "SPEC:1703-1705 KOSPI trend context only — consistent",
+   "r3_lines": [
+    "1276"
+   ],
+   "brief_line": 258
+  },
+  {
+   "id": "CA-34",
+   "wrong_number": "Nominal sizes of steps 2 and 5 with 10-session blocks",
+   "correct_value": "Step 2 false pass 6.9-8.0% (nominal 5%); step 5 12.8-13.7% (nominal 10%) (R3:1277)",
+   "carried_in_v2": "none; `CODE:core/quant/validate.py:54` still `\"block\": 10` (XS-11)",
+   "r3_lines": [
+    "1277"
+   ],
+   "brief_line": 259
+  },
+  {
+   "id": "CA-35",
+   "wrong_number": "Vol-scaled sizing \"+0.1 to +0.3 Sharpe on nearly every strategy\"",
+   "correct_value": "Robust only for momentum: Korean reversal EW net -0.29 → -0.59 scaled; KOSPI VT20 long-only 0.38 vs S 0.40 (R3:1278)",
+   "carried_in_v2": "SPEC:700 already \"MODIFY — Robust only for momentum\". **Already corrected.**",
+   "r3_lines": [
+    "1278"
+   ],
+   "brief_line": 260
+  },
+  {
+   "id": "CA-36",
+   "wrong_number": "AQMIX as evidence of a 1.2-Sharpe trend book",
+   "correct_value": "10-year 5.44% vs T-bills 2.42%, vol 9.96%: Sharpe about 0.30 (R3:1279)",
+   "carried_in_v2": "none",
+   "r3_lines": [
+    "1279"
+   ],
+   "brief_line": 261
+  },
+  {
+   "id": "CA-37",
+   "wrong_number": "KRX limit-up event return \"-308 bp\" (chair first pass)",
+   "correct_value": "Chair's benchmark error; E7's -394 / -579 bp stand (R3:1280; GV-197)",
+   "carried_in_v2": "none",
+   "r3_lines": [
+    "1280"
+   ],
+   "brief_line": 262
+  },
+  {
+   "id": "CA-38",
+   "wrong_number": "US single-index trend weight 3 (prior; macro R-14)",
+   "correct_value": "At 50 bp all multi-speed cells REJECT (PC-1 -10.7 pp); at 5 bp INSUFFICIENT DATA (+14.7 pp, 53-56% of the benefit from the GFC) (R3:1281)",
+   "carried_in_v2": "**YES:** SPEC:699 \"US 3 (keep)\", SPEC:1724 R-15 US TS trend `3` → XS-09",
+   "r3_lines": [
+    "1281"
+   ],
+   "brief_line": 263
+  }
+ ]
+}

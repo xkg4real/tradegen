@@ -1,0 +1,132 @@
+{
+ "card_id": "S_V3_fx_momentum",
+ "kind": "strategy",
+ "hypothesis": "Cross-sectional FX momentum (1-1 and 3-1) on G10+KRW earns a positive net return with t > 2 after 2010",
+ "rules": {
+  "grid": [
+   {
+    "formation_months": 1
+   },
+   {
+    "formation_months": 3
+   }
+  ],
+  "cost_bps_per_leg": 10.0
+ },
+ "universe": {
+  "pairs": [
+   "EURUSD",
+   "USDJPY",
+   "GBPUSD",
+   "AUDUSD",
+   "USDCAD",
+   "USDCHF",
+   "USDKRW"
+  ],
+  "venue": "fx (read-only; KRX 통화선물 for execution)"
+ },
+ "data": {
+  "sessions": 2145,
+  "start": "2018-06-29",
+  "end": "2026-09-25",
+  "source": "FRED H.10 / Yahoo, OECD short rates"
+ },
+ "costs": {
+  "cost_bps": 10.0
+ },
+ "protocol": {
+  "w_is": 756,
+  "w_oos": 126,
+  "min_is": 504
+ },
+ "trials": {
+  "N_planned": 2,
+  "N_total": 2,
+  "ledger": []
+ },
+ "seed": 11,
+ "stats": {
+  "sr_oos": -0.5915693452572112,
+  "se_lo": 0.4295035302256735,
+  "ci90": [
+   -1.2505738822156416,
+   0.06946726707179163
+  ],
+  "sr_is": -0.8345559197285103,
+  "oos_is": 0.7088432677461024,
+  "dsr": 0.062252040090913154,
+  "pbo": 0.34654234654234656,
+  "pbo_slope": -0.7632489591267836,
+  "prob_loss_oos": 0.9999222999223,
+  "sr_stress": -0.8918873869272799,
+  "turnover_annual": 11.982443306510607,
+  "n_trades": 65,
+  "n_sessions": 1367,
+  "years_positive": 0.16666666666666666,
+  "n_years": 6,
+  "max_year_share": 0.21985425547465387,
+  "plateau": 0.0,
+  "edge": false,
+  "regime": {
+   "high_vol": -1.3192154282199224,
+   "low_vol": 0.39507613721965334,
+   "up_market": -0.2568650780490664,
+   "down_market": -0.9953876845747827
+  },
+  "total_return": -0.21303802453883403,
+  "max_drawdown": -0.2963084860085782,
+  "haircut_sr": -0.3549416071543267,
+  "bench_sr": 0.4714228597583299,
+  "n_trials": 2,
+  "n_configs": 2,
+  "bench_diff": -1.0629922050155411,
+  "bench_p": 0.9895,
+  "bench_ci": [
+   -1.793851487491127,
+   -0.27384341941718277
+  ],
+  "bench_mdd": -0.10902329155509982,
+  "decision": "REJECT",
+  "reason": "deflated Sharpe below 0.95",
+  "revise_target": "the sleeve set or the cost model, not the rule: the benchmark is as good",
+  "carry_basket_sharpe": 0.37117401859886123,
+  "corr_with_carry": 0.08933645032744433
+ },
+ "tests": {
+  "dsr": 0.062252040090913154,
+  "pbo": 0.34654234654234656,
+  "ci90": [
+   -1.2505738822156416,
+   0.06946726707179163
+  ]
+ },
+ "decision": "REJECT",
+ "decision_reason": "deflated Sharpe below 0.95",
+ "revise_target": "the sleeve set or the cost model, not the rule: the benchmark is as good",
+ "lines": [
+  "Out-of-sample Sharpe -0.59 over 1,367 sessions (6 years); Lo standard error 0.43; 90 % block-bootstrap interval -1.25 to 0.07: fails (the interval must exclude zero).",
+  "Deflated Sharpe 0.06 after 2 trials: fails (needs ≥ 0.95).",
+  "Probability of backtest overfitting 0.35 is reported only: with 2 configurations the CSCV rank is too coarse (needs ≥ 8); the over-search check uses the share of splits where the in-sample winner loses out of sample, 1.00: fails (needs ≤ 0.1).",
+  "Out-of-sample over in-sample Sharpe 0.71: passes (needs ≥ 0.5).",
+  "Against the benchmark (Sharpe 0.47): difference -1.06, paired block-bootstrap 90 % interval -1.79 to -0.27, one-sided p 0.99: fails (the claim 'beats the benchmark' needs p ≤ 0.1); max drawdown -30% against the benchmark's -11% (reported, not gated).",
+  "Positive in 17% of calendar years: fails (needs ≥ 60%); largest year carries 22% of the P&L.",
+  "Sharpe at 2× costs -0.89: fails (must stay positive); turnover 12.0× equity per year.",
+  "Parameter plateau 0% of neighbours keep half the Sharpe, not on a grid edge: fails.",
+  "65 position changes out of sample: fails (needs ≥ 100).",
+  "Regime split (Sharpe): high-vol -1.32 / low-vol 0.40, up -0.26 / down -1.00.",
+  "Expected live Sharpe after the McLean–Pontiff haircut: -0.35."
+ ],
+ "decay_haircut": {
+  "factor": 0.6,
+  "source": "McLean-Pontiff 2016 26-58%"
+ },
+ "created": "2026-09-27",
+ "author": "QUANTGEN validation gate",
+ "results_file": "docs/asset_expansion/results.csv",
+ "results_md5": "ca757e25f508b588cb2f361719ec83cd",
+ "citations": [
+  "Menkhoff, Sarno, Schmeling & Schrimpf 2012 JFE 106",
+  "RN→FH §6.9 p. 17",
+  "ECON302 Ch1 slides 9–17"
+ ]
+}

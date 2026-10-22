@@ -1,0 +1,319 @@
+sleeve,control,window,cum_return_net35
+LS_EW (ALL quintiles),static,2008-06..2009-03 GFC,-0.182768
+LS_EW (ALL quintiles),static,2009-03..2009-05 post-GFC rebound (D&M crash months),-0.132274
+LS_EW (ALL quintiles),static,2020-02-17..03-19 COVID crash,-0.0193448
+LS_EW (ALL quintiles),static,2020-03-20..06-30 COVID rebound,-0.0023873
+LS_EW (ALL quintiles),static,2026-01-02..06-22 melt-up,0.364581
+LS_EW (ALL quintiles),static,2026-06-22..07-30 crash,-0.247703
+LS_EW (ALL quintiles),static,2026-07-31..09-29 after crash,0.187973
+LS_EW (ALL quintiles),static,Jul-2026 calendar month,-0.175917
+LS_EW (ALL quintiles),"VS (own vol, 12%, cap 1)",2008-06..2009-03 GFC,-0.145644
+LS_EW (ALL quintiles),"VS (own vol, 12%, cap 1)",2009-03..2009-05 post-GFC rebound (D&M crash months),-0.0776432
+LS_EW (ALL quintiles),"VS (own vol, 12%, cap 1)",2020-02-17..03-19 COVID crash,-0.0184254
+LS_EW (ALL quintiles),"VS (own vol, 12%, cap 1)",2020-03-20..06-30 COVID rebound,-0.00821822
+LS_EW (ALL quintiles),"VS (own vol, 12%, cap 1)",2026-01-02..06-22 melt-up,0.264171
+LS_EW (ALL quintiles),"VS (own vol, 12%, cap 1)",2026-06-22..07-30 crash,-0.125479
+LS_EW (ALL quintiles),"VS (own vol, 12%, cap 1)",2026-07-31..09-29 after crash,0.0710656
+LS_EW (ALL quintiles),"VS (own vol, 12%, cap 1)",Jul-2026 calendar month,-0.0880509
+LS_EW (ALL quintiles),"static at same avg exposure as VS (own vol, 12%, cap 1) (0.82)",2008-06..2009-03 GFC,-0.150739
+LS_EW (ALL quintiles),"static at same avg exposure as VS (own vol, 12%, cap 1) (0.82)",2009-03..2009-05 post-GFC rebound (D&M crash months),-0.108999
+LS_EW (ALL quintiles),"static at same avg exposure as VS (own vol, 12%, cap 1) (0.82)",2020-02-17..03-19 COVID crash,-0.01574
+LS_EW (ALL quintiles),"static at same avg exposure as VS (own vol, 12%, cap 1) (0.82)",2020-03-20..06-30 COVID rebound,-0.00142425
+LS_EW (ALL quintiles),"static at same avg exposure as VS (own vol, 12%, cap 1) (0.82)",2026-01-02..06-22 melt-up,0.292
+LS_EW (ALL quintiles),"static at same avg exposure as VS (own vol, 12%, cap 1) (0.82)",2026-06-22..07-30 crash,-0.206606
+LS_EW (ALL quintiles),"static at same avg exposure as VS (own vol, 12%, cap 1) (0.82)",2026-07-31..09-29 after crash,0.152467
+LS_EW (ALL quintiles),"DM gate (KOSPI, floor 0.5)",2008-06..2009-03 GFC,-0.0742891
+LS_EW (ALL quintiles),"DM gate (KOSPI, floor 0.5)",2009-03..2009-05 post-GFC rebound (D&M crash months),-0.0673145
+LS_EW (ALL quintiles),"DM gate (KOSPI, floor 0.5)",2020-02-17..03-19 COVID crash,-0.0193448
+LS_EW (ALL quintiles),"DM gate (KOSPI, floor 0.5)",2020-03-20..06-30 COVID rebound,0.00209163
+LS_EW (ALL quintiles),"DM gate (KOSPI, floor 0.5)",2026-01-02..06-22 melt-up,0.364581
+LS_EW (ALL quintiles),"DM gate (KOSPI, floor 0.5)",2026-06-22..07-30 crash,-0.247703
+LS_EW (ALL quintiles),"DM gate (KOSPI, floor 0.5)",2026-07-31..09-29 after crash,0.187973
+LS_EW (ALL quintiles),"DM gate (KOSPI, floor 0.5)",Jul-2026 calendar month,-0.175917
+LS_EW (ALL quintiles),"static at same avg exposure as DM gate (KOSPI, floor 0.5) (0.95)",2008-06..2009-03 GFC,-0.174178
+LS_EW (ALL quintiles),"static at same avg exposure as DM gate (KOSPI, floor 0.5) (0.95)",2009-03..2009-05 post-GFC rebound (D&M crash months),-0.126024
+LS_EW (ALL quintiles),"static at same avg exposure as DM gate (KOSPI, floor 0.5) (0.95)",2020-02-17..03-19 COVID crash,-0.0183677
+LS_EW (ALL quintiles),"static at same avg exposure as DM gate (KOSPI, floor 0.5) (0.95)",2020-03-20..06-30 COVID rebound,-0.00210421
+LS_EW (ALL quintiles),"static at same avg exposure as DM gate (KOSPI, floor 0.5) (0.95)",2026-01-02..06-22 melt-up,0.344699
+LS_EW (ALL quintiles),"static at same avg exposure as DM gate (KOSPI, floor 0.5) (0.95)",2026-06-22..07-30 crash,-0.236772
+LS_EW (ALL quintiles),"static at same avg exposure as DM gate (KOSPI, floor 0.5) (0.95)",2026-07-31..09-29 after crash,0.178329
+LS_EW (ALL quintiles),VS x DM,2008-06..2009-03 GFC,-0.054685
+LS_EW (ALL quintiles),VS x DM,2009-03..2009-05 post-GFC rebound (D&M crash months),-0.03923
+LS_EW (ALL quintiles),VS x DM,2020-02-17..03-19 COVID crash,-0.0184254
+LS_EW (ALL quintiles),VS x DM,2020-03-20..06-30 COVID rebound,-0.00125642
+LS_EW (ALL quintiles),VS x DM,2026-01-02..06-22 melt-up,0.264171
+LS_EW (ALL quintiles),VS x DM,2026-06-22..07-30 crash,-0.125479
+LS_EW (ALL quintiles),VS x DM,2026-07-31..09-29 after crash,0.0710656
+LS_EW (ALL quintiles),VS x DM,Jul-2026 calendar month,-0.0880509
+LS_EW (ALL quintiles),static at same avg exposure as VS x DM (0.79),2008-06..2009-03 GFC,-0.14595
+LS_EW (ALL quintiles),static at same avg exposure as VS x DM (0.79),2009-03..2009-05 post-GFC rebound (D&M crash months),-0.105525
+LS_EW (ALL quintiles),static at same avg exposure as VS x DM (0.79),2020-02-17..03-19 COVID crash,-0.0152097
+LS_EW (ALL quintiles),static at same avg exposure as VS x DM (0.79),2020-03-20..06-30 COVID rebound,-0.00130163
+LS_EW (ALL quintiles),static at same avg exposure as VS x DM (0.79),2026-01-02..06-22 melt-up,0.281502
+LS_EW (ALL quintiles),static at same avg exposure as VS x DM (0.79),2026-06-22..07-30 crash,-0.20038
+LS_EW (ALL quintiles),static at same avg exposure as VS x DM (0.79),2026-07-31..09-29 after crash,0.147263
+LS_VW (ALL quintiles),static,2008-06..2009-03 GFC,-0.292975
+LS_VW (ALL quintiles),static,2009-03..2009-05 post-GFC rebound (D&M crash months),-0.321394
+LS_VW (ALL quintiles),static,2020-02-17..03-19 COVID crash,0.111711
+LS_VW (ALL quintiles),static,2020-03-20..06-30 COVID rebound,-0.12396
+LS_VW (ALL quintiles),static,2026-01-02..06-22 melt-up,1.76788
+LS_VW (ALL quintiles),static,2026-06-22..07-30 crash,-0.40288
+LS_VW (ALL quintiles),static,2026-07-31..09-29 after crash,0.158962
+LS_VW (ALL quintiles),static,Jul-2026 calendar month,-0.253211
+LS_VW (ALL quintiles),"VS (own vol, 12%, cap 1)",2008-06..2009-03 GFC,-0.0556319
+LS_VW (ALL quintiles),"VS (own vol, 12%, cap 1)",2009-03..2009-05 post-GFC rebound (D&M crash months),-0.0860453
+LS_VW (ALL quintiles),"VS (own vol, 12%, cap 1)",2020-02-17..03-19 COVID crash,0.0712818
+LS_VW (ALL quintiles),"VS (own vol, 12%, cap 1)",2020-03-20..06-30 COVID rebound,-0.078545
+LS_VW (ALL quintiles),"VS (own vol, 12%, cap 1)",2026-01-02..06-22 melt-up,0.436133
+LS_VW (ALL quintiles),"VS (own vol, 12%, cap 1)",2026-06-22..07-30 crash,-0.105228
+LS_VW (ALL quintiles),"VS (own vol, 12%, cap 1)",2026-07-31..09-29 after crash,0.0352933
+LS_VW (ALL quintiles),"VS (own vol, 12%, cap 1)",Jul-2026 calendar month,-0.0596428
+LS_VW (ALL quintiles),"static at same avg exposure as VS (own vol, 12%, cap 1) (0.53)",2008-06..2009-03 GFC,-0.152131
+LS_VW (ALL quintiles),"static at same avg exposure as VS (own vol, 12%, cap 1) (0.53)",2009-03..2009-05 post-GFC rebound (D&M crash months),-0.180156
+LS_VW (ALL quintiles),"static at same avg exposure as VS (own vol, 12%, cap 1) (0.53)",2020-02-17..03-19 COVID crash,0.0580477
+LS_VW (ALL quintiles),"static at same avg exposure as VS (own vol, 12%, cap 1) (0.53)",2020-03-20..06-30 COVID rebound,-0.0655513
+LS_VW (ALL quintiles),"static at same avg exposure as VS (own vol, 12%, cap 1) (0.53)",2026-01-02..06-22 melt-up,0.730648
+LS_VW (ALL quintiles),"static at same avg exposure as VS (own vol, 12%, cap 1) (0.53)",2026-06-22..07-30 crash,-0.229474
+LS_VW (ALL quintiles),"static at same avg exposure as VS (own vol, 12%, cap 1) (0.53)",2026-07-31..09-29 after crash,0.0921056
+LS_VW (ALL quintiles),"DM gate (KOSPI, floor 0.5)",2008-06..2009-03 GFC,-0.0818112
+LS_VW (ALL quintiles),"DM gate (KOSPI, floor 0.5)",2009-03..2009-05 post-GFC rebound (D&M crash months),-0.171607
+LS_VW (ALL quintiles),"DM gate (KOSPI, floor 0.5)",2020-02-17..03-19 COVID crash,0.111711
+LS_VW (ALL quintiles),"DM gate (KOSPI, floor 0.5)",2020-03-20..06-30 COVID rebound,-0.0663366
+LS_VW (ALL quintiles),"DM gate (KOSPI, floor 0.5)",2026-01-02..06-22 melt-up,1.76788
+LS_VW (ALL quintiles),"DM gate (KOSPI, floor 0.5)",2026-06-22..07-30 crash,-0.40288
+LS_VW (ALL quintiles),"DM gate (KOSPI, floor 0.5)",2026-07-31..09-29 after crash,0.158962
+LS_VW (ALL quintiles),"DM gate (KOSPI, floor 0.5)",Jul-2026 calendar month,-0.253211
+LS_VW (ALL quintiles),"static at same avg exposure as DM gate (KOSPI, floor 0.5) (0.95)",2008-06..2009-03 GFC,-0.278511
+LS_VW (ALL quintiles),"static at same avg exposure as DM gate (KOSPI, floor 0.5) (0.95)",2009-03..2009-05 post-GFC rebound (D&M crash months),-0.307672
+LS_VW (ALL quintiles),"static at same avg exposure as DM gate (KOSPI, floor 0.5) (0.95)",2020-02-17..03-19 COVID crash,0.106097
+LS_VW (ALL quintiles),"static at same avg exposure as DM gate (KOSPI, floor 0.5) (0.95)",2020-03-20..06-30 COVID rebound,-0.117953
+LS_VW (ALL quintiles),"static at same avg exposure as DM gate (KOSPI, floor 0.5) (0.95)",2026-01-02..06-22 melt-up,1.63934
+LS_VW (ALL quintiles),"static at same avg exposure as DM gate (KOSPI, floor 0.5) (0.95)",2026-06-22..07-30 crash,-0.386355
+LS_VW (ALL quintiles),"static at same avg exposure as DM gate (KOSPI, floor 0.5) (0.95)",2026-07-31..09-29 after crash,0.152842
+LS_VW (ALL quintiles),VS x DM,2008-06..2009-03 GFC,0.0125682
+LS_VW (ALL quintiles),VS x DM,2009-03..2009-05 post-GFC rebound (D&M crash months),-0.0436741
+LS_VW (ALL quintiles),VS x DM,2020-02-17..03-19 COVID crash,0.0712818
+LS_VW (ALL quintiles),VS x DM,2020-03-20..06-30 COVID rebound,-0.0420903
+LS_VW (ALL quintiles),VS x DM,2026-01-02..06-22 melt-up,0.436133
+LS_VW (ALL quintiles),VS x DM,2026-06-22..07-30 crash,-0.105228
+LS_VW (ALL quintiles),VS x DM,2026-07-31..09-29 after crash,0.0352933
+LS_VW (ALL quintiles),VS x DM,Jul-2026 calendar month,-0.0596428
+LS_VW (ALL quintiles),static at same avg exposure as VS x DM (0.51),2008-06..2009-03 GFC,-0.147302
+LS_VW (ALL quintiles),static at same avg exposure as VS x DM (0.51),2009-03..2009-05 post-GFC rebound (D&M crash months),-0.174961
+LS_VW (ALL quintiles),static at same avg exposure as VS x DM (0.51),2020-02-17..03-19 COVID crash,0.0562289
+LS_VW (ALL quintiles),static at same avg exposure as VS x DM (0.51),2020-03-20..06-30 COVID rebound,-0.0635338
+LS_VW (ALL quintiles),static at same avg exposure as VS x DM (0.51),2026-01-02..06-22 melt-up,0.702289
+LS_VW (ALL quintiles),static at same avg exposure as VS x DM (0.51),2026-06-22..07-30 crash,-0.22297
+LS_VW (ALL quintiles),static at same avg exposure as VS x DM (0.51),2026-07-31..09-29 after crash,0.0895207
+LO_EW excess (Q5 vs EW univ),static,2008-06..2009-03 GFC,-0.130895
+LO_EW excess (Q5 vs EW univ),static,2009-03..2009-05 post-GFC rebound (D&M crash months),-0.0416449
+LO_EW excess (Q5 vs EW univ),static,2020-02-17..03-19 COVID crash,-0.0332814
+LO_EW excess (Q5 vs EW univ),static,2020-03-20..06-30 COVID rebound,0.0426336
+LO_EW excess (Q5 vs EW univ),static,2026-01-02..06-22 melt-up,0.187614
+LO_EW excess (Q5 vs EW univ),static,2026-06-22..07-30 crash,-0.194522
+LO_EW excess (Q5 vs EW univ),static,2026-07-31..09-29 after crash,0.151599
+LO_EW excess (Q5 vs EW univ),static,Jul-2026 calendar month,-0.136046
+LO_EW excess (Q5 vs EW univ),"VS (own vol, 12%, cap 1)",2008-06..2009-03 GFC,-0.130895
+LO_EW excess (Q5 vs EW univ),"VS (own vol, 12%, cap 1)",2009-03..2009-05 post-GFC rebound (D&M crash months),-0.0416449
+LO_EW excess (Q5 vs EW univ),"VS (own vol, 12%, cap 1)",2020-02-17..03-19 COVID crash,-0.0332814
+LO_EW excess (Q5 vs EW univ),"VS (own vol, 12%, cap 1)",2020-03-20..06-30 COVID rebound,0.0426336
+LO_EW excess (Q5 vs EW univ),"VS (own vol, 12%, cap 1)",2026-01-02..06-22 melt-up,0.177881
+LO_EW excess (Q5 vs EW univ),"VS (own vol, 12%, cap 1)",2026-06-22..07-30 crash,-0.137255
+LO_EW excess (Q5 vs EW univ),"VS (own vol, 12%, cap 1)",2026-07-31..09-29 after crash,0.0814451
+LO_EW excess (Q5 vs EW univ),"VS (own vol, 12%, cap 1)",Jul-2026 calendar month,-0.0961856
+LO_EW excess (Q5 vs EW univ),"static at same avg exposure as VS (own vol, 12%, cap 1) (0.96)",2008-06..2009-03 GFC,-0.126194
+LO_EW excess (Q5 vs EW univ),"static at same avg exposure as VS (own vol, 12%, cap 1) (0.96)",2009-03..2009-05 post-GFC rebound (D&M crash months),-0.0400582
+LO_EW excess (Q5 vs EW univ),"static at same avg exposure as VS (own vol, 12%, cap 1) (0.96)",2020-02-17..03-19 COVID crash,-0.0319729
+LO_EW excess (Q5 vs EW univ),"static at same avg exposure as VS (own vol, 12%, cap 1) (0.96)",2020-03-20..06-30 COVID rebound,0.0408773
+LO_EW excess (Q5 vs EW univ),"static at same avg exposure as VS (own vol, 12%, cap 1) (0.96)",2026-01-02..06-22 melt-up,0.179601
+LO_EW excess (Q5 vs EW univ),"static at same avg exposure as VS (own vol, 12%, cap 1) (0.96)",2026-06-22..07-30 crash,-0.187411
+LO_EW excess (Q5 vs EW univ),"static at same avg exposure as VS (own vol, 12%, cap 1) (0.96)",2026-07-31..09-29 after crash,0.145241
+LO_EW excess (Q5 vs EW univ),"DM gate (KOSPI, floor 0.5)",2008-06..2009-03 GFC,-0.084797
+LO_EW excess (Q5 vs EW univ),"DM gate (KOSPI, floor 0.5)",2009-03..2009-05 post-GFC rebound (D&M crash months),-0.0217553
+LO_EW excess (Q5 vs EW univ),"DM gate (KOSPI, floor 0.5)",2020-02-17..03-19 COVID crash,-0.0332814
+LO_EW excess (Q5 vs EW univ),"DM gate (KOSPI, floor 0.5)",2020-03-20..06-30 COVID rebound,0.0235204
+LO_EW excess (Q5 vs EW univ),"DM gate (KOSPI, floor 0.5)",2026-01-02..06-22 melt-up,0.187614
+LO_EW excess (Q5 vs EW univ),"DM gate (KOSPI, floor 0.5)",2026-06-22..07-30 crash,-0.194522
+LO_EW excess (Q5 vs EW univ),"DM gate (KOSPI, floor 0.5)",2026-07-31..09-29 after crash,0.151599
+LO_EW excess (Q5 vs EW univ),"DM gate (KOSPI, floor 0.5)",Jul-2026 calendar month,-0.136046
+LO_EW excess (Q5 vs EW univ),"static at same avg exposure as DM gate (KOSPI, floor 0.5) (0.95)",2008-06..2009-03 GFC,-0.125112
+LO_EW excess (Q5 vs EW univ),"static at same avg exposure as DM gate (KOSPI, floor 0.5) (0.95)",2009-03..2009-05 post-GFC rebound (D&M crash months),-0.039694
+LO_EW excess (Q5 vs EW univ),"static at same avg exposure as DM gate (KOSPI, floor 0.5) (0.95)",2020-02-17..03-19 COVID crash,-0.0316725
+LO_EW excess (Q5 vs EW univ),"static at same avg exposure as DM gate (KOSPI, floor 0.5) (0.95)",2020-03-20..06-30 COVID rebound,0.0404739
+LO_EW excess (Q5 vs EW univ),"static at same avg exposure as DM gate (KOSPI, floor 0.5) (0.95)",2026-01-02..06-22 melt-up,0.177766
+LO_EW excess (Q5 vs EW univ),"static at same avg exposure as DM gate (KOSPI, floor 0.5) (0.95)",2026-06-22..07-30 crash,-0.185771
+LO_EW excess (Q5 vs EW univ),"static at same avg exposure as DM gate (KOSPI, floor 0.5) (0.95)",2026-07-31..09-29 after crash,0.143785
+LO_EW excess (Q5 vs EW univ),VS x DM,2008-06..2009-03 GFC,-0.084797
+LO_EW excess (Q5 vs EW univ),VS x DM,2009-03..2009-05 post-GFC rebound (D&M crash months),-0.0217553
+LO_EW excess (Q5 vs EW univ),VS x DM,2020-02-17..03-19 COVID crash,-0.0332814
+LO_EW excess (Q5 vs EW univ),VS x DM,2020-03-20..06-30 COVID rebound,0.0235204
+LO_EW excess (Q5 vs EW univ),VS x DM,2026-01-02..06-22 melt-up,0.177881
+LO_EW excess (Q5 vs EW univ),VS x DM,2026-06-22..07-30 crash,-0.137255
+LO_EW excess (Q5 vs EW univ),VS x DM,2026-07-31..09-29 after crash,0.0814451
+LO_EW excess (Q5 vs EW univ),VS x DM,Jul-2026 calendar month,-0.0961856
+LO_EW excess (Q5 vs EW univ),static at same avg exposure as VS x DM (0.92),2008-06..2009-03 GFC,-0.120931
+LO_EW excess (Q5 vs EW univ),static at same avg exposure as VS x DM (0.92),2009-03..2009-05 post-GFC rebound (D&M crash months),-0.0382903
+LO_EW excess (Q5 vs EW univ),static at same avg exposure as VS x DM (0.92),2020-02-17..03-19 COVID crash,-0.0305147
+LO_EW excess (Q5 vs EW univ),static at same avg exposure as VS x DM (0.92),2020-03-20..06-30 COVID rebound,0.0389183
+LO_EW excess (Q5 vs EW univ),static at same avg exposure as VS x DM (0.92),2026-01-02..06-22 melt-up,0.170709
+LO_EW excess (Q5 vs EW univ),static at same avg exposure as VS x DM (0.92),2026-06-22..07-30 crash,-0.179427
+LO_EW excess (Q5 vs EW univ),static at same avg exposure as VS x DM (0.92),2026-07-31..09-29 after crash,0.138183
+LO_VW excess (Q5 vs VW univ),static,2008-06..2009-03 GFC,-0.120789
+LO_VW excess (Q5 vs VW univ),static,2009-03..2009-05 post-GFC rebound (D&M crash months),-0.105416
+LO_VW excess (Q5 vs VW univ),static,2020-02-17..03-19 COVID crash,0.0364701
+LO_VW excess (Q5 vs VW univ),static,2020-03-20..06-30 COVID rebound,-0.00189
+LO_VW excess (Q5 vs VW univ),static,2026-01-02..06-22 melt-up,0.368346
+LO_VW excess (Q5 vs VW univ),static,2026-06-22..07-30 crash,-0.0862745
+LO_VW excess (Q5 vs VW univ),static,2026-07-31..09-29 after crash,0.0276402
+LO_VW excess (Q5 vs VW univ),static,Jul-2026 calendar month,-0.052929
+LO_VW excess (Q5 vs VW univ),"VS (own vol, 12%, cap 1)",2008-06..2009-03 GFC,-0.089846
+LO_VW excess (Q5 vs VW univ),"VS (own vol, 12%, cap 1)",2009-03..2009-05 post-GFC rebound (D&M crash months),-0.0729169
+LO_VW excess (Q5 vs VW univ),"VS (own vol, 12%, cap 1)",2020-02-17..03-19 COVID crash,0.0364701
+LO_VW excess (Q5 vs VW univ),"VS (own vol, 12%, cap 1)",2020-03-20..06-30 COVID rebound,-0.00189
+LO_VW excess (Q5 vs VW univ),"VS (own vol, 12%, cap 1)",2026-01-02..06-22 melt-up,0.347281
+LO_VW excess (Q5 vs VW univ),"VS (own vol, 12%, cap 1)",2026-06-22..07-30 crash,-0.0719787
+LO_VW excess (Q5 vs VW univ),"VS (own vol, 12%, cap 1)",2026-07-31..09-29 after crash,0.021876
+LO_VW excess (Q5 vs VW univ),"VS (own vol, 12%, cap 1)",Jul-2026 calendar month,-0.0440967
+LO_VW excess (Q5 vs VW univ),"static at same avg exposure as VS (own vol, 12%, cap 1) (0.85)",2008-06..2009-03 GFC,-0.10316
+LO_VW excess (Q5 vs VW univ),"static at same avg exposure as VS (own vol, 12%, cap 1) (0.85)",2009-03..2009-05 post-GFC rebound (D&M crash months),-0.0902572
+LO_VW excess (Q5 vs VW univ),"static at same avg exposure as VS (own vol, 12%, cap 1) (0.85)",2020-02-17..03-19 COVID crash,0.0311193
+LO_VW excess (Q5 vs VW univ),"static at same avg exposure as VS (own vol, 12%, cap 1) (0.85)",2020-03-20..06-30 COVID rebound,-0.00148214
+LO_VW excess (Q5 vs VW univ),"static at same avg exposure as VS (own vol, 12%, cap 1) (0.85)",2026-01-02..06-22 melt-up,0.307639
+LO_VW excess (Q5 vs VW univ),"static at same avg exposure as VS (own vol, 12%, cap 1) (0.85)",2026-06-22..07-30 crash,-0.0739268
+LO_VW excess (Q5 vs VW univ),"static at same avg exposure as VS (own vol, 12%, cap 1) (0.85)",2026-07-31..09-29 after crash,0.0237233
+LO_VW excess (Q5 vs VW univ),"DM gate (KOSPI, floor 0.5)",2008-06..2009-03 GFC,-0.0402857
+LO_VW excess (Q5 vs VW univ),"DM gate (KOSPI, floor 0.5)",2009-03..2009-05 post-GFC rebound (D&M crash months),-0.0532851
+LO_VW excess (Q5 vs VW univ),"DM gate (KOSPI, floor 0.5)",2020-02-17..03-19 COVID crash,0.0364701
+LO_VW excess (Q5 vs VW univ),"DM gate (KOSPI, floor 0.5)",2020-03-20..06-30 COVID rebound,-0.000976056
+LO_VW excess (Q5 vs VW univ),"DM gate (KOSPI, floor 0.5)",2026-01-02..06-22 melt-up,0.368346
+LO_VW excess (Q5 vs VW univ),"DM gate (KOSPI, floor 0.5)",2026-06-22..07-30 crash,-0.0862745
+LO_VW excess (Q5 vs VW univ),"DM gate (KOSPI, floor 0.5)",2026-07-31..09-29 after crash,0.0276402
+LO_VW excess (Q5 vs VW univ),"DM gate (KOSPI, floor 0.5)",Jul-2026 calendar month,-0.052929
+LO_VW excess (Q5 vs VW univ),"static at same avg exposure as DM gate (KOSPI, floor 0.5) (0.95)",2008-06..2009-03 GFC,-0.114902
+LO_VW excess (Q5 vs VW univ),"static at same avg exposure as DM gate (KOSPI, floor 0.5) (0.95)",2009-03..2009-05 post-GFC rebound (D&M crash months),-0.100363
+LO_VW excess (Q5 vs VW univ),"static at same avg exposure as DM gate (KOSPI, floor 0.5) (0.95)",2020-02-17..03-19 COVID crash,0.0346824
+LO_VW excess (Q5 vs VW univ),"static at same avg exposure as DM gate (KOSPI, floor 0.5) (0.95)",2020-03-20..06-30 COVID rebound,-0.00174822
+LO_VW excess (Q5 vs VW univ),"static at same avg exposure as DM gate (KOSPI, floor 0.5) (0.95)",2026-01-02..06-22 melt-up,0.347788
+LO_VW excess (Q5 vs VW univ),"static at same avg exposure as DM gate (KOSPI, floor 0.5) (0.95)",2026-06-22..07-30 crash,-0.0821605
+LO_VW excess (Q5 vs VW univ),"static at same avg exposure as DM gate (KOSPI, floor 0.5) (0.95)",2026-07-31..09-29 after crash,0.0263371
+LO_VW excess (Q5 vs VW univ),VS x DM,2008-06..2009-03 GFC,-0.0237786
+LO_VW excess (Q5 vs VW univ),VS x DM,2009-03..2009-05 post-GFC rebound (D&M crash months),-0.0367745
+LO_VW excess (Q5 vs VW univ),VS x DM,2020-02-17..03-19 COVID crash,0.0364701
+LO_VW excess (Q5 vs VW univ),VS x DM,2020-03-20..06-30 COVID rebound,-0.000976056
+LO_VW excess (Q5 vs VW univ),VS x DM,2026-01-02..06-22 melt-up,0.347281
+LO_VW excess (Q5 vs VW univ),VS x DM,2026-06-22..07-30 crash,-0.0719787
+LO_VW excess (Q5 vs VW univ),VS x DM,2026-07-31..09-29 after crash,0.021876
+LO_VW excess (Q5 vs VW univ),VS x DM,Jul-2026 calendar month,-0.0440967
+LO_VW excess (Q5 vs VW univ),static at same avg exposure as VS x DM (0.81),2008-06..2009-03 GFC,-0.0982684
+LO_VW excess (Q5 vs VW univ),static at same avg exposure as VS x DM (0.81),2009-03..2009-05 post-GFC rebound (D&M crash months),-0.0860367
+LO_VW excess (Q5 vs VW univ),static at same avg exposure as VS x DM (0.81),2020-02-17..03-19 COVID crash,0.0296358
+LO_VW excess (Q5 vs VW univ),static at same avg exposure as VS x DM (0.81),2020-03-20..06-30 COVID rebound,-0.00137784
+LO_VW excess (Q5 vs VW univ),static at same avg exposure as VS x DM (0.81),2026-01-02..06-22 melt-up,0.291243
+LO_VW excess (Q5 vs VW univ),static at same avg exposure as VS x DM (0.81),2026-06-22..07-30 crash,-0.0704852
+LO_VW excess (Q5 vs VW univ),static at same avg exposure as VS x DM (0.81),2026-07-31..09-29 after crash,0.0226286
+E5 top500 D10-D1 EW,static,2008-06..2009-03 GFC,-0.244916
+E5 top500 D10-D1 EW,static,2009-03..2009-05 post-GFC rebound (D&M crash months),-0.262056
+E5 top500 D10-D1 EW,static,2020-02-17..03-19 COVID crash,0.059582
+E5 top500 D10-D1 EW,static,2020-03-20..06-30 COVID rebound,-0.00393109
+E5 top500 D10-D1 EW,static,2026-01-02..06-22 melt-up,0.313885
+E5 top500 D10-D1 EW,static,2026-06-22..07-30 crash,-0.421283
+E5 top500 D10-D1 EW,static,2026-07-31..09-29 after crash,0.35407
+E5 top500 D10-D1 EW,static,Jul-2026 calendar month,-0.303596
+E5 top500 D10-D1 EW,"VS (own vol, 12%, cap 1)",2008-06..2009-03 GFC,-0.14147
+E5 top500 D10-D1 EW,"VS (own vol, 12%, cap 1)",2009-03..2009-05 post-GFC rebound (D&M crash months),-0.102601
+E5 top500 D10-D1 EW,"VS (own vol, 12%, cap 1)",2020-02-17..03-19 COVID crash,0.0305244
+E5 top500 D10-D1 EW,"VS (own vol, 12%, cap 1)",2020-03-20..06-30 COVID rebound,-0.00213832
+E5 top500 D10-D1 EW,"VS (own vol, 12%, cap 1)",2026-01-02..06-22 melt-up,0.124176
+E5 top500 D10-D1 EW,"VS (own vol, 12%, cap 1)",2026-06-22..07-30 crash,-0.141312
+E5 top500 D10-D1 EW,"VS (own vol, 12%, cap 1)",2026-07-31..09-29 after crash,0.077159
+E5 top500 D10-D1 EW,"VS (own vol, 12%, cap 1)",Jul-2026 calendar month,-0.0943254
+E5 top500 D10-D1 EW,"static at same avg exposure as VS (own vol, 12%, cap 1) (0.55)",2008-06..2009-03 GFC,-0.137858
+E5 top500 D10-D1 EW,"static at same avg exposure as VS (own vol, 12%, cap 1) (0.55)",2009-03..2009-05 post-GFC rebound (D&M crash months),-0.152292
+E5 top500 D10-D1 EW,"static at same avg exposure as VS (own vol, 12%, cap 1) (0.55)",2020-02-17..03-19 COVID crash,0.0332034
+E5 top500 D10-D1 EW,"static at same avg exposure as VS (own vol, 12%, cap 1) (0.55)",2020-03-20..06-30 COVID rebound,0.00087335
+E5 top500 D10-D1 EW,"static at same avg exposure as VS (own vol, 12%, cap 1) (0.55)",2026-01-02..06-22 melt-up,0.171367
+E5 top500 D10-D1 EW,"static at same avg exposure as VS (own vol, 12%, cap 1) (0.55)",2026-06-22..07-30 crash,-0.255349
+E5 top500 D10-D1 EW,"static at same avg exposure as VS (own vol, 12%, cap 1) (0.55)",2026-07-31..09-29 after crash,0.189542
+E5 top500 D10-D1 EW,"DM gate (KOSPI, floor 0.5)",2008-06..2009-03 GFC,-0.133259
+E5 top500 D10-D1 EW,"DM gate (KOSPI, floor 0.5)",2009-03..2009-05 post-GFC rebound (D&M crash months),-0.138091
+E5 top500 D10-D1 EW,"DM gate (KOSPI, floor 0.5)",2020-02-17..03-19 COVID crash,0.059582
+E5 top500 D10-D1 EW,"DM gate (KOSPI, floor 0.5)",2020-03-20..06-30 COVID rebound,0.00342181
+E5 top500 D10-D1 EW,"DM gate (KOSPI, floor 0.5)",2026-01-02..06-22 melt-up,0.313885
+E5 top500 D10-D1 EW,"DM gate (KOSPI, floor 0.5)",2026-06-22..07-30 crash,-0.421283
+E5 top500 D10-D1 EW,"DM gate (KOSPI, floor 0.5)",2026-07-31..09-29 after crash,0.35407
+E5 top500 D10-D1 EW,"DM gate (KOSPI, floor 0.5)",Jul-2026 calendar month,-0.303596
+E5 top500 D10-D1 EW,"static at same avg exposure as DM gate (KOSPI, floor 0.5) (0.95)",2008-06..2009-03 GFC,-0.233388
+E5 top500 D10-D1 EW,"static at same avg exposure as DM gate (KOSPI, floor 0.5) (0.95)",2009-03..2009-05 post-GFC rebound (D&M crash months),-0.250533
+E5 top500 D10-D1 EW,"static at same avg exposure as DM gate (KOSPI, floor 0.5) (0.95)",2020-02-17..03-19 COVID crash,0.0566988
+E5 top500 D10-D1 EW,"static at same avg exposure as DM gate (KOSPI, floor 0.5) (0.95)",2020-03-20..06-30 COVID rebound,-0.00316316
+E5 top500 D10-D1 EW,"static at same avg exposure as DM gate (KOSPI, floor 0.5) (0.95)",2026-01-02..06-22 melt-up,0.298105
+E5 top500 D10-D1 EW,"static at same avg exposure as DM gate (KOSPI, floor 0.5) (0.95)",2026-06-22..07-30 crash,-0.404622
+E5 top500 D10-D1 EW,"static at same avg exposure as DM gate (KOSPI, floor 0.5) (0.95)",2026-07-31..09-29 after crash,0.335495
+E5 top500 D10-D1 EW,VS x DM,2008-06..2009-03 GFC,-0.0824541
+E5 top500 D10-D1 EW,VS x DM,2009-03..2009-05 post-GFC rebound (D&M crash months),-0.0522752
+E5 top500 D10-D1 EW,VS x DM,2020-02-17..03-19 COVID crash,0.0305244
+E5 top500 D10-D1 EW,VS x DM,2020-03-20..06-30 COVID rebound,0.000902557
+E5 top500 D10-D1 EW,VS x DM,2026-01-02..06-22 melt-up,0.124176
+E5 top500 D10-D1 EW,VS x DM,2026-06-22..07-30 crash,-0.141312
+E5 top500 D10-D1 EW,VS x DM,2026-07-31..09-29 after crash,0.077159
+E5 top500 D10-D1 EW,VS x DM,Jul-2026 calendar month,-0.0943254
+E5 top500 D10-D1 EW,static at same avg exposure as VS x DM (0.54),2008-06..2009-03 GFC,-0.133119
+E5 top500 D10-D1 EW,static at same avg exposure as VS x DM (0.54),2009-03..2009-05 post-GFC rebound (D&M crash months),-0.147278
+E5 top500 D10-D1 EW,static at same avg exposure as VS x DM (0.54),2020-02-17..03-19 COVID crash,0.0320523
+E5 top500 D10-D1 EW,static at same avg exposure as VS x DM (0.54),2020-03-20..06-30 COVID rebound,0.000970564
+E5 top500 D10-D1 EW,static at same avg exposure as VS x DM (0.54),2026-01-02..06-22 melt-up,0.165259
+E5 top500 D10-D1 EW,static at same avg exposure as VS x DM (0.54),2026-06-22..07-30 crash,-0.247394
+E5 top500 D10-D1 EW,static at same avg exposure as VS x DM (0.54),2026-07-31..09-29 after crash,0.182642
+E5 top500 D10-D1 VW,static,2008-06..2009-03 GFC,-0.429579
+E5 top500 D10-D1 VW,static,2009-03..2009-05 post-GFC rebound (D&M crash months),-0.410421
+E5 top500 D10-D1 VW,static,2020-02-17..03-19 COVID crash,0.0905172
+E5 top500 D10-D1 VW,static,2020-03-20..06-30 COVID rebound,0.166238
+E5 top500 D10-D1 VW,static,2026-01-02..06-22 melt-up,2.31129
+E5 top500 D10-D1 VW,static,2026-06-22..07-30 crash,-0.479279
+E5 top500 D10-D1 VW,static,2026-07-31..09-29 after crash,0.236518
+E5 top500 D10-D1 VW,static,Jul-2026 calendar month,-0.303361
+E5 top500 D10-D1 VW,"VS (own vol, 12%, cap 1)",2008-06..2009-03 GFC,-0.129732
+E5 top500 D10-D1 VW,"VS (own vol, 12%, cap 1)",2009-03..2009-05 post-GFC rebound (D&M crash months),-0.108529
+E5 top500 D10-D1 VW,"VS (own vol, 12%, cap 1)",2020-02-17..03-19 COVID crash,0.0435215
+E5 top500 D10-D1 VW,"VS (own vol, 12%, cap 1)",2020-03-20..06-30 COVID rebound,0.0680142
+E5 top500 D10-D1 VW,"VS (own vol, 12%, cap 1)",2026-01-02..06-22 melt-up,0.353564
+E5 top500 D10-D1 VW,"VS (own vol, 12%, cap 1)",2026-06-22..07-30 crash,-0.0993358
+E5 top500 D10-D1 VW,"VS (own vol, 12%, cap 1)",2026-07-31..09-29 after crash,0.0407887
+E5 top500 D10-D1 VW,"VS (own vol, 12%, cap 1)",Jul-2026 calendar month,-0.0534508
+E5 top500 D10-D1 VW,"static at same avg exposure as VS (own vol, 12%, cap 1) (0.40)",2008-06..2009-03 GFC,-0.183222
+E5 top500 D10-D1 VW,"static at same avg exposure as VS (own vol, 12%, cap 1) (0.40)",2009-03..2009-05 post-GFC rebound (D&M crash months),-0.181746
+E5 top500 D10-D1 VW,"static at same avg exposure as VS (own vol, 12%, cap 1) (0.40)",2020-02-17..03-19 COVID crash,0.0355661
+E5 top500 D10-D1 VW,"static at same avg exposure as VS (own vol, 12%, cap 1) (0.40)",2020-03-20..06-30 COVID rebound,0.0681827
+E5 top500 D10-D1 VW,"static at same avg exposure as VS (own vol, 12%, cap 1) (0.40)",2026-01-02..06-22 melt-up,0.639574
+E5 top500 D10-D1 VW,"static at same avg exposure as VS (own vol, 12%, cap 1) (0.40)",2026-06-22..07-30 crash,-0.215234
+E5 top500 D10-D1 VW,"static at same avg exposure as VS (own vol, 12%, cap 1) (0.40)",2026-07-31..09-29 after crash,0.105873
+E5 top500 D10-D1 VW,"DM gate (KOSPI, floor 0.5)",2008-06..2009-03 GFC,-0.230461
+E5 top500 D10-D1 VW,"DM gate (KOSPI, floor 0.5)",2009-03..2009-05 post-GFC rebound (D&M crash months),-0.225409
+E5 top500 D10-D1 VW,"DM gate (KOSPI, floor 0.5)",2020-02-17..03-19 COVID crash,0.0905172
+E5 top500 D10-D1 VW,"DM gate (KOSPI, floor 0.5)",2020-03-20..06-30 COVID rebound,0.0894697
+E5 top500 D10-D1 VW,"DM gate (KOSPI, floor 0.5)",2026-01-02..06-22 melt-up,2.31129
+E5 top500 D10-D1 VW,"DM gate (KOSPI, floor 0.5)",2026-06-22..07-30 crash,-0.479279
+E5 top500 D10-D1 VW,"DM gate (KOSPI, floor 0.5)",2026-07-31..09-29 after crash,0.236518
+E5 top500 D10-D1 VW,"DM gate (KOSPI, floor 0.5)",Jul-2026 calendar month,-0.303361
+E5 top500 D10-D1 VW,"static at same avg exposure as DM gate (KOSPI, floor 0.5) (0.95)",2008-06..2009-03 GFC,-0.411444
+E5 top500 D10-D1 VW,"static at same avg exposure as DM gate (KOSPI, floor 0.5) (0.95)",2009-03..2009-05 post-GFC rebound (D&M crash months),-0.393985
+E5 top500 D10-D1 VW,"static at same avg exposure as DM gate (KOSPI, floor 0.5) (0.95)",2020-02-17..03-19 COVID crash,0.0860462
+E5 top500 D10-D1 VW,"static at same avg exposure as DM gate (KOSPI, floor 0.5) (0.95)",2020-03-20..06-30 COVID rebound,0.158654
+E5 top500 D10-D1 VW,"static at same avg exposure as DM gate (KOSPI, floor 0.5) (0.95)",2026-01-02..06-22 melt-up,2.13543
+E5 top500 D10-D1 VW,"static at same avg exposure as DM gate (KOSPI, floor 0.5) (0.95)",2026-06-22..07-30 crash,-0.460705
+E5 top500 D10-D1 VW,"static at same avg exposure as DM gate (KOSPI, floor 0.5) (0.95)",2026-07-31..09-29 after crash,0.227665
+E5 top500 D10-D1 VW,VS x DM,2008-06..2009-03 GFC,-0.0619884
+E5 top500 D10-D1 VW,VS x DM,2009-03..2009-05 post-GFC rebound (D&M crash months),-0.0554126
+E5 top500 D10-D1 VW,VS x DM,2020-02-17..03-19 COVID crash,0.0435215
+E5 top500 D10-D1 VW,VS x DM,2020-03-20..06-30 COVID rebound,0.0362316
+E5 top500 D10-D1 VW,VS x DM,2026-01-02..06-22 melt-up,0.353564
+E5 top500 D10-D1 VW,VS x DM,2026-06-22..07-30 crash,-0.0993358
+E5 top500 D10-D1 VW,VS x DM,2026-07-31..09-29 after crash,0.0407887
+E5 top500 D10-D1 VW,VS x DM,Jul-2026 calendar month,-0.0534508
+E5 top500 D10-D1 VW,static at same avg exposure as VS x DM (0.38),2008-06..2009-03 GFC,-0.177409
+E5 top500 D10-D1 VW,static at same avg exposure as VS x DM (0.38),2009-03..2009-05 post-GFC rebound (D&M crash months),-0.176166
+E5 top500 D10-D1 VW,static at same avg exposure as VS x DM (0.38),2020-02-17..03-19 COVID crash,0.0343865
+E5 top500 D10-D1 VW,static at same avg exposure as VS x DM (0.38),2020-03-20..06-30 COVID rebound,0.0659731
+E5 top500 D10-D1 VW,static at same avg exposure as VS x DM (0.38),2026-01-02..06-22 melt-up,0.613738
+E5 top500 D10-D1 VW,static at same avg exposure as VS x DM (0.38),2026-06-22..07-30 crash,-0.208674
+E5 top500 D10-D1 VW,static at same avg exposure as VS x DM (0.38),2026-07-31..09-29 after crash,0.102595

@@ -1,0 +1,17 @@
+item,value
+CR-07 share on 2026-09-29,0.537062
+CR-07 first session > 0.45 in 2026,2026-05-06
+CR-07 share on first session > 0.45,0.470159
+CR-07 2026 peak date,2026-06-25
+CR-07 2026 peak share,0.596875
+CR-07 sessions > 0.45 in 2026 (to 2026-09-29),99
+sessions in 2026 file (to 2026-09-29),181
+alt_pair_common_over_all_lines: first session > 0.45 in 2026,2026-05-07
+alt_pair_common_over_all_lines: 2026 peak date / share,2026-06-25 / 0.571082
+alt_pair_common_over_all_lines: sessions > 0.45 in 2026,98
+alt_pair_common_over_common_only: first session > 0.45 in 2026,2026-05-06
+alt_pair_common_over_common_only: 2026 peak date / share,2026-06-25 / 0.588825
+alt_pair_common_over_common_only: sessions > 0.45 in 2026,99
+alt_pair_incl_pref_over_common_plus_pref: first session > 0.45 in 2026,2026-05-06
+alt_pair_incl_pref_over_common_plus_pref: 2026 peak date / share,2026-06-25 / 0.599477
+alt_pair_incl_pref_over_common_plus_pref: sessions > 0.45 in 2026,99

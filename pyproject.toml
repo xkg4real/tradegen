@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "quantgen"
+version = "2.0.0"
+description = "QUANTGEN — personal quant trading application: rates, bonds, FX, structured products, equities, and AI analysis"
+requires-python = ">=3.10"
+dependencies = [
+  "flet[all]==0.85.2",
+  "pyyaml>=6.0",
+  "requests>=2.31",
+  "python-dotenv>=1.0", "tzdata>=2024.1; sys_platform == 'win32'",
+  "numpy>=1.26", "pandas>=2.1", "scipy>=1.11", "matplotlib>=3.8", "gs-quant>=1.0",
+  "yfinance>=0.2", "pandas-datareader>=0.10",
+]
+
+[tool.setuptools]
+py-modules = ["main", "config"]
+
+[tool.setuptools.packages.find]
+include = ["core*", "data*", "ui*"]
+exclude = ["_legacy*", "tests*", "qa*"]
+
+[tool.flet]
+app = { module = "main", path = "." }
+
+[tool.flet.icon]
+default = "assets/icon.png"
+windows = "assets/icon.ico"
+web = "assets/icon_192.png"

@@ -1,0 +1,18 @@
+Follow-up runs (2026-09-21), same prototype (b1_experiment.py definitions), not part of b1_results.json.
+
+1. Where the eta fit lands on 120 null (normal-innovation GARCH, 500 obs) series, seeds 1000..1119:
+   eta < 1e-8 : 18.3%   (LR of those: max 0.062)
+   eta < 1e-6 : 53.3%   (LR of those: max 0.084)   <- tolerance-aware count of "eta = 0"
+   eta < 1e-4 : 53.3%
+   eta < 1e-3 : 57.5%   (max LR 0.397)
+   eta < 1e-2 : 62.5%   (nu > 100)
+   eta >= 1e-2 (nu <= 100): 37.5%, LR median 0.64, min 0.070
+   LR <= 1e-6: 20.8%;  LR < 0.01: 54.2%;  LR < 0.1: 63.3%
+   Reading: about half the null fits sit at eta = 0 (the asymptotic mixture puts 1/2 there); the
+   "24% at zero" in b1_results.json counted LR < 1e-6 and is a tolerance artefact. The LR gain of
+   fits at eta = 0 (up to 0.084) is the eta fit improving omega/alpha/beta over the app's normal fit,
+   not tail evidence.
+
+2. Fit time on 20 t-innovation series (500 obs), same machine:
+   current fit_garch (t 3 starts + normal 3 starts): 50 ms per fit
+   eta prototype (normal 3 starts + t 4 starts):     62 ms per fit   -> +24%

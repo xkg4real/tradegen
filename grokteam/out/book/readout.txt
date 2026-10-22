@@ -1,0 +1,11 @@
+== cal 2025-01-15T00:00 .. 2025-12-31T23:00 (EXPLORATORY): 5545 events, 5545 with data, model skipped 0.5% {'basis': 29}
+   skill_raw: log loss model 0.3803 vs market 0.3679, Brier 0.1168 vs 0.1148, DM t 6.10 p1 1.000 -> FAIL (5504 events)
+   PRED-GATED      0/    0 filled  hit nan  net/$ +nan [+nan, +nan]  p nan holm 1.000  stress +nan  MDE nan  N* None  $1,000 -> 1000.00 (min 1000.00)  NO-BETS
+   PRED-LIT8    1015/ 1315 filled  hit 0.516  net/$ -0.0149 [-0.0863, +0.0564]  p 0.636 holm 1.000  stress -0.0751  MDE 0.1181  N* 141477  $1,000 -> 817.35 (min 817.35)  REJECT
+   PRED-FLB     1448/ 2557 filled  hit 0.919  net/$ -0.0142 [-0.0260, -0.0024]  p 0.975 holm 1.000  stress -0.0283  MDE 0.0201  N* 5823  $1,000 -> 819.67 (min 819.67)  REJECT
+== eval 2026-01-01T00:00 .. 2026-10-22T03:00 (EXPLORATORY): 6790 events, 6790 with data, model skipped 0.0% {}
+   skill_raw: log loss model 0.3652 vs market 0.3555, Brier 0.1125 vs 0.1105, DM t 8.96 p1 1.000 -> FAIL (6779 events)
+   skill_cal: log loss model 0.3663 vs market 0.3555, Brier 0.1130 vs 0.1105, DM t 10.59 p1 1.000 -> FAIL (6779 events)
+   PRED-GATED   2427/ 2478 filled  hit 0.901  net/$ +0.0188 [+0.0089, +0.0287]  p 0.001 holm 0.004  stress +0.0001  MDE 0.0176  N* 7530  $1,000 -> 14678.70 (min 968.16)  REJECT
+   PRED-LIT8    2223/ 2227 filled  hit 0.454  net/$ -0.0288 [-0.0871, +0.0294]  p 0.795 holm 1.000  stress -0.0950  MDE 0.0854  N* 162095  $1,000 -> 826.56 (min 826.56)  REJECT
+   PRED-FLB     5396/ 5542 filled  hit 0.933  net/$ -0.0003 [-0.0056, +0.0051]  p 0.535 holm 1.000  stress -0.0145  MDE 0.0092  N* 4559  $1,000 -> 821.51 (min 821.51)  INCONCLUSIVE

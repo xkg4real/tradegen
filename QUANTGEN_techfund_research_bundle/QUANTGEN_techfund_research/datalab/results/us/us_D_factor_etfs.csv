@@ -1,0 +1,36 @@
+test,series,period,cost_level,metric,value
+D_factor_etfs,SPY,2025-10-01:2026-10-01,na,one_year_return_spliced,0.15239661289336603
+D_factor_etfs,SPY,2025-09-30:2025-12-31,na,quarter_return_spliced,0.026651987079179262
+D_factor_etfs,SPY,2025-12-31:2026-03-31,na,quarter_return_spliced,-0.04370587636659029
+D_factor_etfs,SPY,2026-03-31:2026-06-30,na,quarter_return_spliced,0.1512345321807702
+D_factor_etfs,SPY,2026-06-30:2026-09-30,na,quarter_return_spliced,0.021238105513000427
+D_factor_etfs,MTUM,2025-10-01:2026-10-01,na,one_year_return_spliced,0.2598419080263281
+D_factor_etfs,MTUM,2025-09-30:2025-12-31,na,quarter_return_spliced,-0.021297892939330598
+D_factor_etfs,MTUM,2025-12-31:2026-03-31,na,quarter_return_spliced,-0.04036945093368749
+D_factor_etfs,MTUM,2026-03-31:2026-06-30,na,quarter_return_spliced,0.4300959834323619
+D_factor_etfs,MTUM,2026-06-30:2026-09-30,na,quarter_return_spliced,-0.07435168325595864
+D_factor_etfs,QUAL,2025-10-01:2026-10-01,na,one_year_return_spliced,0.14892300971275985
+D_factor_etfs,QUAL,2025-09-30:2025-12-31,na,quarter_return_spliced,0.02431662472905649
+D_factor_etfs,QUAL,2025-12-31:2026-03-31,na,quarter_return_spliced,-0.03222308439890498
+D_factor_etfs,QUAL,2026-03-31:2026-06-30,na,quarter_return_spliced,0.1460360899547264
+D_factor_etfs,QUAL,2026-06-30:2026-09-30,na,quarter_return_spliced,0.012805940017373452
+D_factor_etfs,USMV,2025-10-01:2026-10-01,na,one_year_return_spliced,0.04413024592148651
+D_factor_etfs,USMV,2025-09-30:2025-12-31,na,quarter_return_spliced,-0.006200316159753805
+D_factor_etfs,USMV,2025-12-31:2026-03-31,na,quarter_return_spliced,-0.011027306897667621
+D_factor_etfs,USMV,2026-03-31:2026-06-30,na,quarter_return_spliced,0.043371033162370676
+D_factor_etfs,USMV,2026-06-30:2026-09-30,na,quarter_return_spliced,0.010159661256777808
+D_factor_etfs,IWM,2025-10-01:2026-10-01,na,one_year_return_spliced,0.15930802341229922
+D_factor_etfs,IWM,2025-09-30:2025-12-31,na,quarter_return_spliced,0.020769823090397432
+D_factor_etfs,IWM,2025-12-31:2026-03-31,na,quarter_return_spliced,0.009266943662039173
+D_factor_etfs,IWM,2026-03-31:2026-06-30,na,quarter_return_spliced,0.21437300458624087
+D_factor_etfs,IWM,2026-06-30:2026-09-30,na,quarter_return_spliced,-0.07508740652500234
+D_factor_etfs,MTUM-SPY,2025-10-01:2026-10-01,na,relative_return_vs_SPY,0.10744529513296208
+D_factor_etfs,MTUM/SPY,2025-10-01:2026-10-01,na,relative_wealth_ratio_minus_1,0.09323638574673976
+D_factor_etfs,QUAL-SPY,2025-10-01:2026-10-01,na,relative_return_vs_SPY,-0.0034736031806061884
+D_factor_etfs,QUAL/SPY,2025-10-01:2026-10-01,na,relative_wealth_ratio_minus_1,-0.0030142427891078905
+D_factor_etfs,USMV-SPY,2025-10-01:2026-10-01,na,relative_return_vs_SPY,-0.10826636697187952
+D_factor_etfs,USMV/SPY,2025-10-01:2026-10-01,na,relative_wealth_ratio_minus_1,-0.09394887642028993
+D_factor_etfs,IWM-SPY,2025-10-01:2026-10-01,na,relative_return_vs_SPY,0.006911410518933181
+D_factor_etfs,IWM/SPY,2025-10-01:2026-10-01,na,relative_wealth_ratio_minus_1,0.0059974234925772585
+D_factor_etfs,VLUE,2025-10-01:2026-10-01,na,one_year_return_spliced,unavailable (Stocklake: history_not_found)
+D_factor_etfs,ALL,flag,na,data_warning,"Stocklake splice: adjusted closes to mid-Jun-2026, raw closes after; volume units change 2026-07-21/22; returns approximate"

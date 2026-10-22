@@ -1,0 +1,788 @@
+# QUANTGEN v2.0 series registry (M1; R-19 rules 1 and 5; spec section 4.2; rulings section 2).
+# Shipped, read-only. Loaded by core/ficc/contracts.py:load_registry, which refuses: an acting binding without a
+# contract, an acting/forward_sim binding without a `books` key (`books: []` = dormant, allowed), a group name used as
+# a series id, a group or range-group member that does not exist, and a binding that differs from the rules store's
+# `data_contracts.roles` entry (the store governs; this file must be a literal copy).
+# Bare book kinds (`recommended`, `specification`) mean that kind's book in the series' market (L1105).
+version: "2.0.0"
+read_only: true
+
+# Publication schedules (schedule_id -> rule; time/tz are the published instant; "calendar" names the holiday set).
+schedules:
+  KRX_CLOSE:    {calendar: KRX,   rule: close_print_bound,            market: KR}
+  NYSE_CLOSE:   {calendar: NYSE,  rule: close_print_bound,            market: US}
+  JP_CLOSE:     {calendar: JPX,   rule: close_print_bound,            market: JP}
+  CN_CLOSE:     {calendar: SSE,   rule: close_print_bound,            market: CN}
+  HK_CLOSE:     {calendar: HKEX,  rule: close_print_bound,            market: HK}
+  TW_CLOSE:     {calendar: TWSE,  rule: close_print_bound,            market: TW}
+  FRED_H15:     {calendar: FED,   rule: next_fed_business_day_after_obs, time: "16:15", tz: America/New_York}
+  H10:          {calendar: FED,   rule: monday_after_week_else_next_fed_business_day, time: "16:15", tz: America/New_York}
+  TREASURY_PAR: {calendar: SIFMA, rule: on_obs_date_logged_posting_time, time: "18:00", tz: America/New_York}
+  VIXCLS:       {calendar: CBOE,  rule: on_obs_date,                  time: "16:15", tz: America/New_York}
+  BLS:          {calendar: BLS,   rule: release_calendar,             time: "08:30", tz: America/New_York}
+  BEA:          {calendar: BEA,   rule: release_calendar,             time: "08:30", tz: America/New_York}
+  ECOS_1530:    {calendar: ECOS,  rule: on_obs_date_value_proxy,      time: "15:30", tz: Asia/Seoul, close_1500_until: "2016-08-01"}
+  KODEX_PDF:    {calendar: KRX,   rule: next_krx_session,             time: "08:00", tz: Asia/Seoul}
+  LIVE_QUOTE:   {calendar: venue, rule: quote_stamp_le_decision}
+  AS_POSTED:    {calendar: source, rule: first_seen_retrieval}
+  DERIVED:      {calendar: inputs, rule: latest_input_available_at}
+
+# Consumer -> kind (F-10). A consumer not listed here is not a context consumer: pit_value raises for it.
+consumers:
+  R-03: acting_exposure
+  R-04: acting_exposure
+  R-06: acting_exposure
+  R-07: acting_exposure
+  R-25: acting_exposure
+  nav: acting_exposure
+  R-28_R-29: forward_sim
+  nav_fx: forward_sim
+  nav_fx_backtests: forward_sim
+  corr63: risk_model
+  corr63_backtests: risk_model
+  korea_covariance: risk_model
+  hedge_state: risk_model
+  R-08: context
+  R-11_refusal_book: context
+  R-12_refusal_book: context
+  R-13: context
+  R-16: context
+  context_log: context
+  display: context
+  R-22: history
+  card_harness: history
+
+# Primary official-close channels and whether the close field is verified (F-4: the KIS field is UNVERIFIED until the
+# M1-01 quote-field check is recorded; KIS daily rows are stamped vendor_close until a signed revision flips this).
+primary_sources:
+  KRX: verified
+  KIS: unverified
+
+groups:
+  ASIA_INDEX_CLOSES: [NIKKEI225_CLOSE, SHANGHAI_CLOSE, HSI_CLOSE, TAIEX_CLOSE]
+  KRX_MARKET_CAPS_005930_000660_KOSPI: [KRX_005930_MARKET_CAP, KRX_000660_MARKET_CAP, KOSPI_TOTAL_MARKET_CAP]
+  NON_KR_INDEX_MONTH_END_CLOSES: [SPX_MONTH_END_CLOSE, NIKKEI225_MONTH_END_CLOSE, HSI_MONTH_END_CLOSE, DAX_MONTH_END_CLOSE,
+                                  FTSE100_MONTH_END_CLOSE, TAIEX_MONTH_END_CLOSE]
+  NAV_LINE_CLOSES: [KRX_069500_OFFICIAL_CLOSE]
+
+range_groups:
+  US_TREASURY: {unit: pct, range: [-1, 20], members: [DGS10, DGS2, DGS30, DTB3, UST_PAR_10Y, T10Y3M, T10Y2Y]}
+  KR_CALL_CD:  {unit: pct, range: [-1, 40], members: [BOK_CALL_RATE, KR_CD91]}
+
+# Group-level bindings (verbatim from data_contracts.roles; apply to every member).
+group_bindings:
+  ASIA_INDEX_CLOSES: [{role: risk_model, consumer: korea_covariance, action: risk_model_covariance}]
+  KRX_MARKET_CAPS_005930_000660_KOSPI: [{role: acting_exposure, books: [recommended, specification]}]
+  NON_KR_INDEX_MONTH_END_CLOSES: [{role: forward_sim, books: ["forward_sim:R-28"]}]
+  NAV_LINE_CLOSES: [{role: acting_exposure, consumer: nav, books: [recommended, specification], halt_after_consecutive_decisions: 3},
+                    {role: forward_sim, consumer: nav, books: ["forward_sim:R-28", "forward_sim:R-29"]}]
+
+defaults: &defaults
+  grace_publication_bdays: 1
+  release_event_type: null
+  adjustment_basis: null
+  bindings: []
+  contract: {dtype: float, decimals: 4}
+
+_krx_close: &krx_close
+  <<: *defaults
+  source: KRX
+  sources: [KRX, KIS, Yahoo]
+  frequency: daily
+  obs_calendar: KRX
+  market: KR
+  schedule: KRX_CLOSE
+  publication_schedule: {calendar: KRX, time: close_print_bound, tz: Asia/Seoul}
+  obs_date_tz: Asia/Seoul
+  timing_class: live
+  production_channel: "KRX marketplace / KIS"
+  history_channel: "KRX official closes"
+  obs_kind: close
+  unit: index_points
+  tolerance: {index_bp: 1}
+  contract: {dtype: float, unit: index_points, decimals: 2}
+
+_nyse_close: &nyse_close
+  <<: *defaults
+  source: KIS
+  sources: [KIS, FMP, Yahoo]
+  frequency: daily
+  obs_calendar: NYSE
+  market: US
+  schedule: NYSE_CLOSE
+  publication_schedule: {calendar: NYSE, time: close_print_bound, tz: America/New_York}
+  obs_date_tz: America/New_York
+  timing_class: live
+  production_channel: "KIS quotes"
+  history_channel: "FMP EOD; Yahoo secondary"
+  obs_kind: close
+  unit: index_points
+  tolerance: {index_bp: 1}
+  contract: {dtype: float, unit: index_points, decimals: 2}
+
+_fred_h15: &fred_h15
+  <<: *defaults
+  source: FRED
+  sources: [FRED]
+  channel: "H.15"
+  frequency: daily
+  obs_calendar: FED
+  market: US
+  schedule: FRED_H15
+  publication_schedule: {calendar: FED, time: "16:15", tz: America/New_York}
+  obs_date_tz: America/New_York
+  timing_class: publication
+  production_channel: FRED
+  history_channel: FRED
+  obs_kind: release
+  unit: pct
+  contract: {dtype: float, unit: pct, decimals: 2}
+
+_fred_h10: &fred_h10
+  <<: *defaults
+  source: FRED
+  sources: [FRED]
+  channel: "H.10"
+  frequency: daily
+  obs_calendar: FED
+  market: US
+  schedule: H10
+  publication_schedule: {calendar: FED, time: "16:15", tz: America/New_York}
+  obs_date_tz: America/New_York
+  timing_class: publication
+  production_channel: FRED
+  history_channel: FRED
+  obs_kind: release
+  unit: level
+  contract: {dtype: float, unit: level, decimals: 4}
+
+_fred_monthly: &fred_monthly
+  <<: *defaults
+  source: FRED
+  sources: [ALFRED, FRED]
+  channel: "FRED + ALFRED vintages (output_type=4 first release)"
+  frequency: monthly
+  obs_calendar: BLS
+  market: US
+  schedule: BLS
+  publication_schedule: {calendar: BLS, time: "08:30", tz: America/New_York}
+  release_event_type: BLS_RELEASE
+  obs_date_tz: America/New_York
+  timing_class: publication
+  production_channel: FRED
+  history_channel: ALFRED
+  obs_kind: release
+  unit: index
+  monthly_index: first_day_of_reference_month
+  contract: {dtype: float, unit: index, decimals: 3}
+
+_as_posted: &as_posted
+  <<: *defaults
+  source: FRED
+  sources: [FRED]
+  frequency: daily
+  obs_calendar: FED
+  market: US
+  schedule: AS_POSTED
+  publication_schedule: {calendar: source, time: first_seen, tz: UTC}
+  obs_date_tz: America/New_York
+  timing_class: publication
+  production_channel: FRED
+  history_channel: FRED
+  obs_kind: release
+  unit: level
+
+series:
+  # ---------------------------------------------------------------- Korea (L1405-1418)
+  KOSPI_OFFICIAL_CLOSE:
+    <<: *krx_close
+    channel: "KRX idx/krx_dd_trd CLSPRC_IDX; KIS U/0001 bstp_nmix_prpr (UNVERIFIED)"
+    abs_daily_return_max: 0.30
+    bindings: [{role: acting_exposure, books: [specification]}]   # + recommended while verdict_filter admits R-06 KR
+  KOSPI200_OFFICIAL_CLOSE:
+    <<: *krx_close
+    channel: "KRX idx/krx_dd_trd; KIS U/2001 (UNVERIFIED)"
+    abs_daily_return_max: 0.30
+  KRX_005930_OFFICIAL_CLOSE:
+    <<: *krx_close
+    unit: KRW
+    adjustment_basis: raw_official_close_plus_effective_dated_corporate_action_factors
+    tolerance: {stock: exact}
+    contract: {dtype: float, unit: KRW, decimals: 0}
+  KRX_000660_OFFICIAL_CLOSE:
+    <<: *krx_close
+    unit: KRW
+    adjustment_basis: raw_official_close_plus_effective_dated_corporate_action_factors
+    tolerance: {stock: exact}
+    contract: {dtype: float, unit: KRW, decimals: 0}
+  KRX_069500_OFFICIAL_CLOSE:
+    <<: *krx_close
+    unit: KRW
+    adjustment_basis: raw_official_close_plus_effective_dated_corporate_action_factors
+    tolerance: {stock: exact}
+    contract: {dtype: float, unit: KRW, decimals: 0}
+  KRX_005930_MARKET_CAP:
+    <<: *krx_close
+    unit: KRW
+    contract: {dtype: float, unit: KRW, decimals: 0}
+  KRX_000660_MARKET_CAP:
+    <<: *krx_close
+    unit: KRW
+    contract: {dtype: float, unit: KRW, decimals: 0}
+  KOSPI_TOTAL_MARKET_CAP:
+    <<: *krx_close
+    unit: KRW
+    contract: {dtype: float, unit: KRW, decimals: 0}
+  KRX_OHLCV:
+    <<: *krx_close
+    channel: "KIS inquire-daily-itemchartprice OHLCV (open-quality flag: open == prior close)"
+    obs_kind: bar
+    unit: KRW
+    contract: {dtype: float, unit: KRW, decimals: 0}
+  KODEX200_PDF:
+    <<: *defaults
+    source: KIS
+    sources: [KIS, KRX]
+    channel: "KIS etfetn inquire-component-stock-price (basket as published)"
+    frequency: daily
+    obs_calendar: KRX
+    market: KR
+    schedule: KODEX_PDF
+    publication_schedule: {calendar: KRX, time: "08:00", tz: Asia/Seoul}
+    obs_date_tz: Asia/Seoul
+    timing_class: publication
+    production_channel: KIS
+    history_channel: KIS
+    obs_kind: release
+    unit: weight
+    carry_last_basket: true
+    contract: {dtype: float, unit: weight, decimals: 6}
+    bindings: [{role: acting_exposure, books: [recommended, specification], halt_after_consecutive_decisions: 5}]
+  KOSPI_NET_BUY_FOREIGN:
+    <<: *defaults
+    source: KIS
+    sources: [KIS]
+    channel: "KIS investor-trade-by-stock-daily (preliminary intraday figures stamped with their own time)"
+    frequency: daily
+    obs_calendar: KRX
+    market: KR
+    schedule: AS_POSTED
+    publication_schedule: {calendar: KRX, time: after_close, tz: Asia/Seoul}
+    obs_date_tz: Asia/Seoul
+    timing_class: publication
+    production_channel: KIS
+    history_channel: KIS
+    obs_kind: release
+    unit: KRW
+    bindings: [{role: context}]
+  KOSPI_NET_BUY_INSTITUTION:
+    <<: *defaults
+    source: KIS
+    sources: [KIS]
+    frequency: daily
+    obs_calendar: KRX
+    market: KR
+    schedule: AS_POSTED
+    publication_schedule: {calendar: KRX, time: after_close, tz: Asia/Seoul}
+    obs_date_tz: Asia/Seoul
+    timing_class: publication
+    production_channel: KIS
+    history_channel: KIS
+    obs_kind: release
+    unit: KRW
+    bindings: [{role: context}]
+  KOSPI_NET_BUY_INDIVIDUAL:
+    <<: *defaults
+    source: KIS
+    sources: [KIS]
+    frequency: daily
+    obs_calendar: KRX
+    market: KR
+    schedule: AS_POSTED
+    publication_schedule: {calendar: KRX, time: after_close, tz: Asia/Seoul}
+    obs_date_tz: Asia/Seoul
+    timing_class: publication
+    production_channel: KIS
+    history_channel: KIS
+    obs_kind: release
+    unit: KRW
+    bindings: [{role: context}]
+  ECOS_1530_CLOSE:
+    <<: *defaults
+    source: ECOS
+    sources: [ECOS]
+    channel: "ECOS 731Y003/0000003"
+    frequency: daily
+    obs_calendar: ECOS
+    market: KR
+    schedule: ECOS_1530
+    publication_schedule: {calendar: ECOS, time: "15:30", tz: Asia/Seoul}
+    obs_date_tz: Asia/Seoul
+    timing_class: value_proxy
+    production_channel: ECOS
+    history_channel: ECOS
+    obs_kind: release
+    unit: KRW_per_USD
+    fx_regime_recorded: true
+    contract: {dtype: float, unit: KRW_per_USD, decimals: 2}
+    bindings: [{role: context, consumer: R-11_refusal_book},
+               {role: forward_sim, consumer: nav_fx_backtests, books: ["forward_sim:R-29"]}]
+  USDKRW_1530_SNAPSHOT:
+    <<: *defaults
+    source: KIS
+    sources: [KIS]
+    channel: "KIS live (timestamped 15:30:00 KST snapshot from 2026-07-06)"
+    frequency: daily
+    obs_calendar: KRX
+    market: KR
+    schedule: LIVE_QUOTE
+    publication_schedule: {calendar: venue, time: "15:30:00", tz: Asia/Seoul}
+    obs_date_tz: Asia/Seoul
+    timing_class: live
+    production_channel: KIS
+    history_channel: ECOS_1530_CLOSE
+    obs_kind: quote_snapshot
+    unit: KRW_per_USD
+    contract: {dtype: float, unit: KRW_per_USD, decimals: 2}
+    bindings: [{role: context, consumer: R-11_refusal_book},
+               {role: forward_sim, consumer: nav_fx, books: ["forward_sim:R-29"]}]
+  DEXKOUS:
+    <<: *fred_h10
+    channel: "H.10 noon New York buying rate"
+    unit: KRW_per_USD
+    production_reads: false            # data.usdkrw.production_reads_dexkous: false (T-H10-01)
+    contract: {dtype: float, unit: KRW_per_USD, decimals: 2}
+    bindings: [{role: context}]
+  BOK_BASE_RATE:
+    <<: *defaults
+    source: ECOS
+    sources: [ECOS]
+    frequency: event
+    obs_calendar: ECOS
+    market: KR
+    schedule: AS_POSTED
+    publication_schedule: {calendar: ECOS, time: release_timestamp, tz: Asia/Seoul}
+    release_event_type: BOK_RATE_DECISION
+    obs_date_tz: Asia/Seoul
+    timing_class: publication
+    production_channel: ECOS
+    history_channel: ECOS
+    obs_kind: release
+    unit: pct
+    bindings: [{role: context}]
+  KR_CPI:
+    <<: *defaults
+    source: KOSIS
+    sources: [KOSIS, ECOS]
+    frequency: monthly
+    obs_calendar: ECOS
+    market: KR
+    schedule: AS_POSTED
+    publication_schedule: {calendar: KOSIS, time: release_timestamp, tz: Asia/Seoul}
+    obs_date_tz: Asia/Seoul
+    timing_class: publication
+    production_channel: KOSIS
+    history_channel: KOSIS
+    obs_kind: release
+    unit: index
+    monthly_index: first_day_of_reference_month
+    bindings: [{role: context}]
+  BOK_CALL_RATE:
+    <<: *defaults
+    source: ECOS
+    sources: [ECOS]
+    channel: "ECOS statistic code and item: OWNER input before the M7 freeze"
+    frequency: daily
+    obs_calendar: ECOS
+    market: KR
+    schedule: AS_POSTED
+    publication_schedule: {calendar: ECOS, time: release_timestamp, tz: Asia/Seoul}
+    obs_date_tz: Asia/Seoul
+    timing_class: publication
+    production_channel: ECOS
+    history_channel: ECOS
+    obs_kind: release
+    unit: pct
+    contract: {dtype: float, unit: pct, decimals: 2}
+    bindings: [{role: history}]
+  KR_CD91:
+    <<: *defaults
+    source: ECOS
+    sources: [ECOS]
+    frequency: daily
+    obs_calendar: ECOS
+    market: KR
+    schedule: AS_POSTED
+    publication_schedule: {calendar: ECOS, time: release_timestamp, tz: Asia/Seoul}
+    obs_date_tz: Asia/Seoul
+    timing_class: publication
+    production_channel: ECOS
+    history_channel: ECOS
+    obs_kind: release
+    unit: pct
+    contract: {dtype: float, unit: pct, decimals: 2}
+    bindings: [{role: context}]
+  VKOSPI:
+    <<: *defaults
+    source: KRX
+    sources: [KRX]
+    frequency: daily
+    obs_calendar: KRX
+    market: KR
+    schedule: KRX_CLOSE
+    publication_schedule: {calendar: KRX, time: close_print_bound, tz: Asia/Seoul}
+    obs_date_tz: Asia/Seoul
+    timing_class: live
+    production_channel: KRX
+    history_channel: KRX
+    obs_kind: close
+    unit: vol_pct
+    never_a_sizing_input: true         # section 10 item 30
+    bindings: [{role: context}]
+  KOSPI200_MFIV_1530:
+    <<: *defaults
+    source: KRX
+    sources: [KRX]
+    channel: "Derivatives page MFIV snapshot stamped live"
+    frequency: daily
+    obs_calendar: KRX
+    market: KR
+    schedule: LIVE_QUOTE
+    publication_schedule: {calendar: venue, time: "15:30:00", tz: Asia/Seoul}
+    obs_date_tz: Asia/Seoul
+    timing_class: live
+    production_channel: KRX
+    history_channel: KRX
+    obs_kind: quote_snapshot
+    unit: vol_pct
+    never_a_sizing_input: true
+    bindings: [{role: context}]
+
+  # ---------------------------------------------------------------- United States (L1420-1440)
+  US_SLEEVE_OFFICIAL_CLOSE:
+    <<: *nyse_close
+    unit: USD
+    bindings: [{role: acting_exposure, books: []}]      # dormant while sleeves.US.line = none (D5)
+  SPX_OFFICIAL_CLOSE:
+    <<: *nyse_close
+    abs_daily_return_max: 0.30
+    bindings: [{role: forward_sim, consumer: R-28_R-29, books: ["forward_sim:R-28", "forward_sim:R-29"]},
+               {role: risk_model, consumer: corr63},
+               {role: risk_model, consumer: korea_covariance, action: risk_model_covariance}]
+  SOX_CLOSE:
+    <<: *nyse_close
+    bindings: [{role: risk_model, consumer: korea_covariance, action: risk_model_covariance}]
+  VIXCLS:
+    <<: *defaults
+    source: FRED
+    sources: [FRED, Yahoo]
+    channel: "FRED re-posting of the Cboe 16:15 ET close (logged last_updated live; declared lag in history)"
+    frequency: daily
+    obs_calendar: CBOE
+    market: US
+    schedule: VIXCLS
+    publication_schedule: {calendar: CBOE, time: "16:15", tz: America/New_York}
+    obs_date_tz: America/New_York
+    timing_class: publication
+    production_channel: "FRED (logged posting time; usable no earlier than the US close of D+1 until 20 sessions are logged, F-21)"
+    history_channel: FRED
+    obs_kind: release
+    unit: vol_pct
+    range: [5, 150]
+    contract: {dtype: float, unit: vol_pct, decimals: 2}
+    bindings: [{role: context, consumer: R-08}, {role: context, consumer: R-13}, {role: context, consumer: context_log}]
+  VXVCLS:
+    <<: *defaults
+    source: FRED
+    sources: [FRED, Yahoo]
+    frequency: daily
+    obs_calendar: CBOE
+    market: US
+    schedule: VIXCLS
+    publication_schedule: {calendar: CBOE, time: "16:15", tz: America/New_York}
+    obs_date_tz: America/New_York
+    timing_class: publication
+    production_channel: FRED
+    history_channel: FRED
+    obs_kind: release
+    unit: vol_pct
+    range: [5, 150]
+    bindings: [{role: context}]
+  US10Y_KIS_QUOTE:
+    <<: *defaults
+    source: KIS
+    sources: [KIS]
+    channel: "KIS overseas-chart I/Y0202 (candidate; stamped <= the US close)"
+    frequency: daily
+    obs_calendar: NYSE
+    market: US
+    schedule: LIVE_QUOTE
+    publication_schedule: {calendar: venue, time: le_decision, tz: America/New_York}
+    obs_date_tz: America/New_York
+    timing_class: live
+    production_channel: KIS
+    history_channel: "TREASURY_PAR; DGS10"
+    obs_kind: quote_snapshot
+    unit: pct
+    contract: {dtype: float, unit: pct, decimals: 3}
+    bindings: [{role: risk_model, consumer: corr63}, {role: context, consumer: R-12_refusal_book}]
+  DGS10:
+    <<: *fred_h15
+    strict_lag_bdays: 2
+    bindings: [{role: risk_model, consumer: corr63_backtests}, {role: context, consumer: R-12_refusal_book}]
+  UST_PAR_10Y:
+    <<: *defaults
+    source: Treasury
+    sources: [Treasury]
+    channel: "Treasury par yield (first-seen posting time logged)"
+    frequency: daily
+    obs_calendar: SIFMA
+    market: US
+    schedule: TREASURY_PAR
+    publication_schedule: {calendar: SIFMA, time: "18:00", tz: America/New_York}
+    obs_date_tz: America/New_York
+    timing_class: publication
+    production_channel: Treasury
+    history_channel: Treasury
+    obs_kind: release
+    unit: pct
+    contract: {dtype: float, unit: pct, decimals: 2}
+    bindings: [{role: history}]
+  "^TNX":
+    <<: *defaults
+    source: Yahoo
+    sources: [Yahoo]
+    frequency: daily
+    obs_calendar: NYSE
+    market: US
+    schedule: NYSE_CLOSE
+    publication_schedule: {calendar: NYSE, time: close_print_bound, tz: America/New_York}
+    obs_date_tz: America/New_York
+    timing_class: value_proxy
+    production_channel: null
+    history_channel: Yahoo
+    obs_kind: close
+    unit: pct
+    bindings: [{role: history}]
+  DFII10:  {<<: *fred_h15, unit: pct, bindings: [{role: context}]}
+  T10YIE:  {<<: *fred_h15, unit: pct, bindings: [{role: context}]}
+  T5YIFR:  {<<: *fred_h15, unit: pct, bindings: [{role: context}]}
+  DGS2:    {<<: *fred_h15, bindings: [{role: context}]}
+  DGS30:   {<<: *fred_h15, bindings: [{role: context}]}
+  DTB3:    {<<: *fred_h15, bindings: [{role: history}]}
+  T10Y3M:  {<<: *fred_h15, unit: pct, bindings: [{role: context}]}
+  T10Y2Y:  {<<: *fred_h15, unit: pct, bindings: [{role: context}]}
+  THREEFYTP10:
+    <<: *as_posted
+    channel: "Kim-Wright term premium (never mixed with ACM)"
+    unit: pct
+    bindings: [{role: context}]
+  "^MOVE":
+    <<: *defaults
+    source: Yahoo
+    sources: [Yahoo]
+    frequency: daily
+    obs_calendar: NYSE
+    market: US
+    schedule: NYSE_CLOSE
+    publication_schedule: {calendar: NYSE, time: close_print_bound, tz: America/New_York}
+    obs_date_tz: America/New_York
+    timing_class: live
+    production_channel: Yahoo
+    history_channel: Yahoo
+    obs_kind: close
+    unit: level
+    bindings: [{role: context}]
+  DTWEXBGS:
+    <<: *fred_h10
+    channel: "H.10 broad dollar index"
+    never_acting: true                 # L1886
+    bindings: [{role: context}]
+  USD_LIVE_PROXY:
+    <<: *defaults
+    source: Yahoo
+    sources: [Yahoo]
+    channel: "DX-Y.NYB quote snapshot stamped <= the decision instant (default, named before M2)"
+    ticker: DX-Y.NYB
+    frequency: daily
+    obs_calendar: NYSE
+    market: US
+    schedule: LIVE_QUOTE
+    publication_schedule: {calendar: venue, time: le_decision, tz: America/New_York}
+    obs_date_tz: America/New_York
+    timing_class: live
+    production_channel: Yahoo
+    history_channel: DTWEXBGS
+    obs_kind: quote_snapshot
+    unit: level
+    contract: {dtype: float, unit: level, decimals: 3}
+    bindings: [{role: risk_model}]
+  DEXJPUS: {<<: *fred_h10, unit: JPY_per_USD, bindings: [{role: context}]}
+  BAMLH0A0HYM2: {<<: *as_posted, channel: "ICE BofA HY OAS (about 1-day lag)", unit: pct, bindings: [{role: context}]}
+  BAA10Y: {<<: *as_posted, channel: "Baa minus 10y", unit: pct, bindings: [{role: context}]}
+  DCOILBRENTEU: {<<: *as_posted, channel: "EIA Brent spot", unit: USD_per_bbl, bindings: [{role: context}]}
+  "BZ=F":
+    <<: *defaults
+    source: Yahoo
+    sources: [Yahoo]
+    channel: "ICE Brent front month (roll days flagged and excluded from returns)"
+    frequency: daily
+    obs_calendar: NYSE
+    market: US
+    schedule: NYSE_CLOSE
+    publication_schedule: {calendar: NYSE, time: close_print_bound, tz: America/New_York}
+    obs_date_tz: America/New_York
+    timing_class: live
+    production_channel: Yahoo
+    history_channel: Yahoo
+    obs_kind: close
+    unit: USD_per_bbl
+    roll_days: ["2026-04-01"]
+    bindings: [{role: context}]
+  PCEPILFE:
+    <<: *fred_monthly
+    obs_calendar: BEA
+    schedule: BEA
+    publication_schedule: {calendar: BEA, time: "08:30", tz: America/New_York}
+    release_event_type: BEA_RELEASE
+    read_as_of_vintage: true
+    bindings: [{role: risk_model}]
+  PCEPI:    {<<: *fred_monthly, obs_calendar: BEA, schedule: BEA, release_event_type: BEA_RELEASE, bindings: [{role: context}]}
+  CPIAUCSL: {<<: *fred_monthly, missing_months: ["2025-10-01"], bindings: [{role: context}]}
+  CPILFESL: {<<: *fred_monthly, missing_months: ["2025-10-01"], bindings: [{role: context}]}
+  UNRATE:   {<<: *fred_monthly, unit: pct, missing_months: ["2025-10-01"], bindings: [{role: context}]}
+  SAHMREALTIME: {<<: *fred_monthly, unit: pct, channel: "FRED (in-house Sahm is the derived series; vendor value across the gap is vendor_derived_across_gap)", bindings: [{role: context}]}
+  PAYEMS:   {<<: *fred_monthly, unit: thousands, bindings: [{role: context}]}
+  ICSA:     {<<: *fred_monthly, frequency: weekly, unit: count, bindings: [{role: context}]}
+  FEDFUNDS: {<<: *as_posted, unit: pct, bindings: [{role: context}]}
+  DFEDTARU: {<<: *as_posted, unit: pct, release_event_type: FOMC_STATEMENT, bindings: [{role: context}]}
+  USEPUINDXD: {<<: *as_posted, unit: level, bindings: [{role: context}]}
+  US_RF:
+    <<: *as_posted
+    source: French
+    sources: [French, FRED]
+    channel: "French daily RF as posted; or FRED DTB3 accrued act_365"
+    unit: pct
+    bindings: [{role: history}]
+
+  # ---------------------------------------------------------------- Other (L1442-1449)
+  NIKKEI225_CLOSE:
+    <<: *defaults
+    source: KIS
+    sources: [KIS, Yahoo]
+    frequency: daily
+    obs_calendar: JPX
+    market: JP
+    schedule: JP_CLOSE
+    publication_schedule: {calendar: JPX, time: close_print_bound, tz: Asia/Tokyo}
+    obs_date_tz: Asia/Tokyo
+    timing_class: live
+    production_channel: KIS
+    history_channel: Yahoo
+    obs_kind: close
+    unit: index_points
+  SHANGHAI_CLOSE:
+    <<: *defaults
+    source: KIS
+    sources: [KIS, Yahoo]
+    frequency: daily
+    obs_calendar: SSE
+    market: CN
+    schedule: CN_CLOSE
+    publication_schedule: {calendar: SSE, time: close_print_bound, tz: Asia/Shanghai}
+    obs_date_tz: Asia/Shanghai
+    timing_class: live
+    production_channel: KIS
+    history_channel: Yahoo
+    obs_kind: close
+    unit: index_points
+  HSI_CLOSE:
+    <<: *defaults
+    source: KIS
+    sources: [KIS, Yahoo]
+    frequency: daily
+    obs_calendar: HKEX
+    market: HK
+    schedule: HK_CLOSE
+    publication_schedule: {calendar: HKEX, time: close_print_bound, tz: Asia/Hong_Kong}
+    obs_date_tz: Asia/Hong_Kong
+    timing_class: live
+    production_channel: KIS
+    history_channel: Yahoo
+    obs_kind: close
+    unit: index_points
+  TAIEX_CLOSE:
+    <<: *defaults
+    source: KIS
+    sources: [KIS, Yahoo]
+    frequency: daily
+    obs_calendar: TWSE
+    market: TW
+    schedule: TW_CLOSE
+    publication_schedule: {calendar: TWSE, time: close_print_bound, tz: Asia/Taipei}
+    obs_date_tz: Asia/Taipei
+    timing_class: live
+    production_channel: KIS
+    history_channel: Yahoo
+    obs_kind: close
+    unit: index_points
+  SPX_MONTH_END_CLOSE:       {<<: *nyse_close, frequency: month_end, session_date_rule: last_session_of_month}
+  NIKKEI225_MONTH_END_CLOSE: {<<: *defaults, source: KIS, sources: [KIS, Yahoo], frequency: month_end, obs_calendar: JPX, market: JP, schedule: JP_CLOSE, publication_schedule: {calendar: JPX, time: close_print_bound, tz: Asia/Tokyo}, obs_date_tz: Asia/Tokyo, timing_class: live, production_channel: KIS, history_channel: Yahoo, obs_kind: close, unit: index_points, session_date_rule: last_session_of_month}
+  HSI_MONTH_END_CLOSE:       {<<: *defaults, source: KIS, sources: [KIS, Yahoo], frequency: month_end, obs_calendar: HKEX, market: HK, schedule: HK_CLOSE, publication_schedule: {calendar: HKEX, time: close_print_bound, tz: Asia/Hong_Kong}, obs_date_tz: Asia/Hong_Kong, timing_class: live, production_channel: KIS, history_channel: Yahoo, obs_kind: close, unit: index_points, session_date_rule: last_session_of_month}
+  DAX_MONTH_END_CLOSE:       {<<: *defaults, source: Yahoo, sources: [Yahoo], frequency: month_end, obs_calendar: XETRA, market: DE, schedule: AS_POSTED, publication_schedule: {calendar: XETRA, time: close, tz: Europe/Berlin}, obs_date_tz: Europe/Berlin, timing_class: live, production_channel: Yahoo, history_channel: Yahoo, obs_kind: close, unit: index_points, session_date_rule: last_session_of_month}
+  FTSE100_MONTH_END_CLOSE:   {<<: *defaults, source: Yahoo, sources: [Yahoo], frequency: month_end, obs_calendar: LSE, market: GB, schedule: AS_POSTED, publication_schedule: {calendar: LSE, time: close, tz: Europe/London}, obs_date_tz: Europe/London, timing_class: live, production_channel: Yahoo, history_channel: Yahoo, obs_kind: close, unit: index_points, session_date_rule: last_session_of_month}
+  TAIEX_MONTH_END_CLOSE:     {<<: *defaults, source: KIS, sources: [KIS, Yahoo], frequency: month_end, obs_calendar: TWSE, market: TW, schedule: TW_CLOSE, publication_schedule: {calendar: TWSE, time: close_print_bound, tz: Asia/Taipei}, obs_date_tz: Asia/Taipei, timing_class: live, production_channel: KIS, history_channel: Yahoo, obs_kind: close, unit: index_points, session_date_rule: last_session_of_month}
+  MOM_PAPER_LS_SERIES:
+    <<: *defaults
+    source: derived
+    sources: [derived]
+    channel: "R-03 paper long/short series (M4)"
+    frequency: daily
+    obs_calendar: NYSE
+    market: US
+    schedule: DERIVED
+    publication_schedule: {calendar: inputs, time: latest_input, tz: UTC}
+    obs_date_tz: America/New_York
+    timing_class: live
+    production_channel: derived
+    history_channel: derived
+    obs_kind: derived
+    unit: return
+    contract: {dtype: float, unit: return, decimals: 6}
+    bindings: [{role: acting_exposure, books: [specification]}]   # + recommended while verdict_filter admits R-03
+  DM_MKT_RET_24M:
+    <<: *defaults
+    source: derived
+    sources: [derived]
+    channel: "R-04 (M4)"
+    frequency: monthly
+    obs_calendar: NYSE
+    market: US
+    schedule: DERIVED
+    publication_schedule: {calendar: inputs, time: latest_input, tz: UTC}
+    obs_date_tz: America/New_York
+    timing_class: live
+    production_channel: derived
+    history_channel: derived
+    obs_kind: derived
+    unit: return
+    contract: {dtype: float, unit: return, decimals: 6}
+    bindings: [{role: acting_exposure, books: [specification]}]
+  DM_MKT_VOL_126:
+    <<: *defaults
+    source: derived
+    sources: [derived]
+    channel: "R-04 (M4)"
+    frequency: daily
+    obs_calendar: NYSE
+    market: US
+    schedule: DERIVED
+    publication_schedule: {calendar: inputs, time: latest_input, tz: UTC}
+    obs_date_tz: America/New_York
+    timing_class: live
+    production_channel: derived
+    history_channel: derived
+    obs_kind: derived
+    unit: vol
+    contract: {dtype: float, unit: vol, decimals: 6}
+    bindings: [{role: acting_exposure, books: [specification]}]

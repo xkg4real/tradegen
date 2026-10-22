@@ -1,0 +1,56 @@
+{
+ "card_id": "S_B2_pca_fly",
+ "kind": "strategy",
+ "hypothesis": "The PCA-neutral 2-5-10 butterfly mean-reverts and its 2σ rule earns more than twice its cost per trade",
+ "rules": {},
+ "universe": {
+  "curve": "US Treasury 2/5/10y (FRED)"
+ },
+ "data": {
+  "sessions": 6290,
+  "start": "2001-07-31",
+  "end": "2026-09-24"
+ },
+ "costs": {},
+ "protocol": {},
+ "trials": {
+  "N_planned": 1,
+  "N_total": 1,
+  "ledger": []
+ },
+ "seed": 11,
+ "stats": {
+  "weights": [
+   -0.5213818734443725,
+   1.0,
+   -0.5869716696334896
+  ],
+  "n_trades": 38,
+  "hit_rate": 0.39473684210526316,
+  "mean_pnl_per_trade_bp": -3.8157157751797084,
+  "half_life": 104.34264874439029
+ },
+ "tests": {
+  "adf_p": 0.007627369973407901
+ },
+ "decision": "REVISE",
+ "decision_reason": "see lines",
+ "revise_target": null,
+ "lines": [
+  "Fly = -0.52·2y + 5y + -0.59·10y (bp), PCA-neutral to level and slope; ADF p = 0.008, half-life 104 sessions (gate: p < 0.05, < 120).",
+  "38 trades at |z| > 2: hit rate 39%, mean -3.8 bp per trade against 2 bp of round-trip cost (gate: > 55 %, > 2× cost, ≥ 30 trades)."
+ ],
+ "decay_haircut": {
+  "factor": 0.6,
+  "source": "McLean-Pontiff 2016 26-58%"
+ },
+ "created": "2026-09-27",
+ "author": "QUANTGEN validation gate",
+ "results_file": "docs/asset_expansion/results.csv",
+ "results_md5": "ca757e25f508b588cb2f361719ec83cd",
+ "citations": [
+  "Litterman & Scheinkman 1991 JFI 1",
+  "Lay §7.1 p. 397, §7.5 pp. 426–433",
+  "MTSA §5.3.2 p. 170"
+ ]
+}

@@ -1,0 +1,33 @@
+{
+ "market": "SGX",
+ "timezone": "Asia/Singapore",
+ "source": {
+  "library": "exchange_calendars",
+  "version": "4.13.2",
+  "calendar": "XSES",
+  "generated": "2026-08-18"
+ },
+ "covers": {
+  "from": "2026-01-01",
+  "to": "2026-12-31"
+ },
+ "regular": {
+  "open": "09:00",
+  "close": "17:00",
+  "break_start": null,
+  "break_end": null
+ },
+ "holidays": [
+  "2026-01-01",
+  "2026-02-17",
+  "2026-02-18",
+  "2026-04-03",
+  "2026-05-01",
+  "2026-05-27",
+  "2026-06-01",
+  "2026-08-10",
+  "2026-11-09",
+  "2026-12-25"
+ ],
+ "special_sessions": {}
+}

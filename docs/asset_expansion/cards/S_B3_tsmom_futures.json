@@ -1,0 +1,228 @@
+{
+ "card_id": "S_B3_tsmom_futures",
+ "kind": "strategy",
+ "hypothesis": "MOP time-series momentum (12-month sign, 40 %/σ sizing, long/short) on ten Yahoo continuous futures earns a positive net Sharpe out of sample after 2009 (caveat: Yahoo's roll treatment is undocumented)",
+ "rules": {
+  "family": "tsmom",
+  "grid": [
+   {
+    "lookback": 63,
+    "vol_target_ann": 0.2,
+    "cap": 1.0,
+    "step": 21,
+    "long_only": false
+   },
+   {
+    "lookback": 63,
+    "vol_target_ann": 0.2,
+    "cap": 1.0,
+    "step": 42,
+    "long_only": false
+   },
+   {
+    "lookback": 63,
+    "vol_target_ann": 0.4,
+    "cap": 1.0,
+    "step": 21,
+    "long_only": false
+   },
+   {
+    "lookback": 63,
+    "vol_target_ann": 0.4,
+    "cap": 1.0,
+    "step": 42,
+    "long_only": false
+   },
+   {
+    "lookback": 126,
+    "vol_target_ann": 0.2,
+    "cap": 1.0,
+    "step": 21,
+    "long_only": false
+   },
+   {
+    "lookback": 126,
+    "vol_target_ann": 0.2,
+    "cap": 1.0,
+    "step": 42,
+    "long_only": false
+   },
+   {
+    "lookback": 126,
+    "vol_target_ann": 0.4,
+    "cap": 1.0,
+    "step": 21,
+    "long_only": false
+   },
+   {
+    "lookback": 126,
+    "vol_target_ann": 0.4,
+    "cap": 1.0,
+    "step": 42,
+    "long_only": false
+   },
+   {
+    "lookback": 252,
+    "vol_target_ann": 0.2,
+    "cap": 1.0,
+    "step": 21,
+    "long_only": false
+   },
+   {
+    "lookback": 252,
+    "vol_target_ann": 0.2,
+    "cap": 1.0,
+    "step": 42,
+    "long_only": false
+   },
+   {
+    "lookback": 252,
+    "vol_target_ann": 0.4,
+    "cap": 1.0,
+    "step": 21,
+    "long_only": false
+   },
+   {
+    "lookback": 252,
+    "vol_target_ann": 0.4,
+    "cap": 1.0,
+    "step": 42,
+    "long_only": false
+   }
+  ],
+  "cost_bps_per_side": 5.0,
+  "embargo": 21
+ },
+ "universe": {
+  "symbols": [
+   "ZF=F",
+   "ZN=F",
+   "ZB=F",
+   "GC=F",
+   "SI=F",
+   "CL=F",
+   "NG=F",
+   "ZC=F",
+   "ZS=F",
+   "HG=F"
+  ],
+  "venue": "futures"
+ },
+ "data": {
+  "sessions": 6412,
+  "start": "2001-01-02",
+  "end": "2026-09-25",
+  "source": "Yahoo adjusted close unless stated"
+ },
+ "costs": {
+  "cost_bps": 5.0,
+  "stress_multiplier": 2.0
+ },
+ "protocol": {
+  "w_is": 756,
+  "w_oos": 126,
+  "min_is": 504,
+  "ci_level": 0.9,
+  "bootstrap_B": 2000,
+  "block": 10
+ },
+ "trials": {
+  "N_planned": 12,
+  "N_total": 12,
+  "ledger": []
+ },
+ "seed": 11,
+ "stats": {
+  "sr_oos": 0.08219602094448719,
+  "se_lo": 0.2114923972517728,
+  "ci90": [
+   -0.26578779510130707,
+   0.42931818423261364
+  ],
+  "sr_is": 0.6274913927758192,
+  "oos_is": 0.13099147158159183,
+  "dsr": 0.2704828132000432,
+  "pbo": 0.10295260295260296,
+  "pbo_slope": -0.8473832910094127,
+  "prob_loss_oos": 0.06915306915306915,
+  "sr_stress": 0.060522374977054906,
+  "turnover_annual": 3.2645562891273987,
+  "n_trades": 174,
+  "n_sessions": 5634,
+  "years_positive": 0.6086956521739131,
+  "n_years": 23,
+  "max_year_share": 0.13932749074930412,
+  "plateau": 0.6666666666666666,
+  "edge": true,
+  "total_return": 0.07786384880296282,
+  "max_drawdown": -0.39509753366175115,
+  "haircut_sr": 0.049317612566692315,
+  "bench_sr": 0.5823673765425568,
+  "n_trials": 12,
+  "n_configs": 12,
+  "bench_diff": -0.5001713555980696,
+  "bench_p": 0.97,
+  "bench_ci": [
+   -0.9284471213612372,
+   -0.06234287352115996
+  ],
+  "bench_mdd": -0.39930497552385413,
+  "decision": "REJECT",
+  "reason": "deflated Sharpe below 0.95",
+  "revise_target": "the sleeve set or the cost model, not the rule: the benchmark is as good",
+  "regime": {
+   "high_vol": 0.5257240460496064,
+   "low_vol": -0.4179678777417803,
+   "up_market": 0.19890346239930984,
+   "down_market": -0.11623602974146786
+  },
+  "chosen_last": {
+   "lookback": 252,
+   "vol_target_ann": 0.2,
+   "cap": 1.0,
+   "step": 42,
+   "long_only": false
+  },
+  "bench_sharpe": 0.5823673765425568,
+  "walk_forward": "IS 756 / OOS 126 / embargo 21; 45 origins; 12 configs",
+  "seconds": 10.2
+ },
+ "tests": {
+  "dsr": 0.2704828132000432,
+  "pbo": 0.10295260295260296,
+  "ci90": [
+   -0.26578779510130707,
+   0.42931818423261364
+  ],
+  "sr_stress": 0.060522374977054906
+ },
+ "decision": "REJECT",
+ "decision_reason": "deflated Sharpe below 0.95",
+ "revise_target": "the sleeve set or the cost model, not the rule: the benchmark is as good",
+ "lines": [
+  "Out-of-sample Sharpe 0.08 over 5,634 sessions (23 years); Lo standard error 0.21; 90 % block-bootstrap interval -0.27 to 0.43: fails (the interval must exclude zero).",
+  "Deflated Sharpe 0.27 after 12 trials: fails (needs ≥ 0.95).",
+  "Probability of backtest overfitting 0.10 over the 12-config grid; the in-sample winner loses out of sample in 7% of the splits: passes (PBO ≤ 0.05, or ≤ 10% losing splits because near-identical configurations put PBO at 0.5 by construction; rejected when PBO > 0.2 and the winner also loses).",
+  "Out-of-sample over in-sample Sharpe 0.13: fails (needs ≥ 0.5).",
+  "Against the benchmark (Sharpe 0.58): difference -0.50, paired block-bootstrap 90 % interval -0.93 to -0.06, one-sided p 0.97: fails (the claim 'beats the benchmark' needs p ≤ 0.1); max drawdown -40% against the benchmark's -40% (reported, not gated).",
+  "Positive in 61% of calendar years: passes (needs ≥ 60%); largest year carries 14% of the P&L.",
+  "Sharpe at 2× costs 0.06: passes (must stay positive); turnover 3.3× equity per year.",
+  "Parameter plateau 67% of neighbours keep half the Sharpe, on a grid edge: fails.",
+  "174 position changes out of sample: passes (needs ≥ 100).",
+  "Regime split (Sharpe): high-vol 0.53 / low-vol -0.42, up 0.20 / down -0.12.",
+  "Expected live Sharpe after the McLean–Pontiff haircut: 0.05."
+ ],
+ "decay_haircut": {
+  "factor": 0.6,
+  "source": "McLean-Pontiff 2016 26-58%"
+ },
+ "created": "2026-09-27",
+ "author": "QUANTGEN validation gate",
+ "results_file": "docs/asset_expansion/results.csv",
+ "results_md5": "ca757e25f508b588cb2f361719ec83cd",
+ "citations": [
+  "Moskowitz, Ooi & Pedersen 2012 JFE 104 eq. (1), (5)",
+  "Primer §1.3 p. 7",
+  "MTSA §8.2.2 p. 294"
+ ]
+}

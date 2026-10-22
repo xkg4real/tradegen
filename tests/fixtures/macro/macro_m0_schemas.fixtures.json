@@ -1,0 +1,31 @@
+[
+ {
+  "file": "schema_examples.json",
+  "md5": "dde27bf98dc2eee40db2320755cc86e3",
+  "source": "SPEC section 6 examples and the section 8.4 header, transcribed (placeholders kept)",
+  "tests": [
+   "T-SCHEMA-01",
+   "T-SCHEMA-02",
+   "T-SCHEMA-03",
+   "T-REPRO-01a"
+  ],
+  "synthetic": false,
+  "seed": null,
+  "licence": "council spec",
+  "owner": "package A (schemas)"
+ },
+ {
+  "file": "card_results_synthetic.json",
+  "md5": "88c693695d67c0e59a43f02cf3439cde",
+  "source": "spec_M0_schemas.md C.9: schema-shaped fillers, not results (never displayed)",
+  "tests": [
+   "T-SCHEMA-02",
+   "T-SCHEMA-03",
+   "T-REPRO-01a"
+  ],
+  "synthetic": true,
+  "seed": 11,
+  "licence": "n/a (synthetic)",
+  "owner": "package A (schemas)"
+ }
+]

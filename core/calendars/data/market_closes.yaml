@@ -1,0 +1,53 @@
+file_id: market_closes
+version: 0.1.0-draft
+status: UNSIGNED DRAFT - refused at load (R-20 rule 6, T-CAL-01); every KR/US acting input fails closed and every book stays
+  DISARMED until the owner verifies and signs
+covers:
+  from: '2015-01-01'
+  to: '2027-12-31'
+coverage_calendar: WEEKDAYS
+signed_off_by: null
+signed_utc: null
+md5: null
+how_to_sign: verify every row against its official source, fill source_url and signed_off_by on every row, set signed_off_by
+  / signed_utc at file level, set md5 to the content md5 printed by `python -m core.calendars.store`, and add the matching
+  MANIFEST.yaml row with a new test id
+unverified:
+- all three close times are 'today' values; effective dating before 2015 is absent
+owner_must_sign:
+- SSE, HKEX, TWSE close times effective-dated from the exchange notices (section 9.5)
+rows:
+- effective_from: '2015-01-01'
+  effective_to: null
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  kind: close
+  market: CN
+  open_local: 09:30
+  close_local: '15:00'
+  tz: Asia/Shanghai
+  unverified: 'UNVERIFIED: SSE 15:00 CST today (spec L2023, L1338 ''standard hours; UNVERIFIED in QF2''); earlier eras from
+    the SSE notices'
+- effective_from: '2015-01-01'
+  effective_to: null
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  kind: close
+  market: HK
+  open_local: 09:30
+  close_local: '16:00'
+  tz: Asia/Hong_Kong
+  unverified: 'UNVERIFIED: HKEX 16:00 HKT today; closing auction and half-day 12:00 closes from the HKEX notices'
+- effective_from: '2015-01-01'
+  effective_to: null
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  kind: close
+  market: TW
+  open_local: 09:00
+  close_local: '13:30'
+  tz: Asia/Taipei
+  unverified: 'UNVERIFIED: TWSE 13:30 TST today; earlier hours from the TWSE notices'

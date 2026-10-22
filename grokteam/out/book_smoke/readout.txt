@@ -1,0 +1,5 @@
+== eval 2026-10-20T12:00 .. 2026-10-22T03:00 (EXPLORATORY): 37 events, 37 with data, model skipped 24.3% {'basis': 9}
+   skill_raw: log loss model 0.3647 vs market 0.3861, Brier 0.1130 vs 0.1164, DM t -0.98 p1 0.169 -> FAIL (28 events)
+   PRED-GATED      0/    0 filled  hit nan  net/$ +nan [+nan, +nan]  p nan holm 1.000  stress +nan  MDE nan  N* None  $1,000 -> 1000.00 (min 1000.00)  INVALID
+   PRED-LIT8      16/   16 filled  hit 0.750  net/$ +0.2703 [+nan, +nan]  p nan holm 1.000  stress +0.2145  MDE 0.4982  N* 39717  $1,000 -> 1271.03 (min 897.91)  INVALID
+   PRED-FLB       35/   35 filled  hit 0.943  net/$ +0.0158 [+nan, +nan]  p nan holm 1.000  stress +0.0009  MDE 0.1085  N* 4123  $1,000 -> 1025.69 (min 947.35)  INCONCLUSIVE

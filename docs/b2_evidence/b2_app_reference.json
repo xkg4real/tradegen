@@ -1,0 +1,164 @@
+{
+ "recovery_3000": {
+  "omega": 2.2326495027085755e-06,
+  "alpha": 0.0718422094877183,
+  "beta": 0.9098251243927996,
+  "nu": 6.033892480580845,
+  "loglik": 9653.381476275823,
+  "se": {
+   "omega": 5.723269032961012e-07,
+   "alpha": 0.010227041871780066,
+   "beta": 0.011685025737868717,
+   "eta": 0.017463118612983303,
+   "persistence": 0.006465498240611057
+  },
+  "se_note": "",
+  "eta_interval": [
+   0.1332550973805457,
+   0.20118011772356117
+  ],
+  "nu_interval": [
+   4.97067012046432,
+   7.5044033561000045
+  ],
+  "half_life": 37.4617616990872,
+  "half_life_interval": [
+   22.00772490905799,
+   122.10596428783285
+  ],
+  "interval_at_bound": [],
+  "at_bound": [],
+  "lr": 173.9697931373339,
+  "note": "GARCH(1,1)-t on 3000 sessions, mu fixed at +0.002%/day: alpha=0.072\u00b10.010 beta=0.910\u00b10.012 persistence=0.982\u00b10.006 nu=6.0 (5.0 to 7.5); no guardrail hit."
+ },
+ "gbm_demo": {
+  "omega": 4.580876775600244e-06,
+  "alpha": 0.0,
+  "beta": 0.9908135295410863,
+  "nu": 514.540251558904,
+  "loglik": 1205.0808481914823,
+  "se": {},
+  "se_note": "the information matrix is not positive definite at the optimum",
+  "eta_interval": [
+   0.0,
+   0.09193579239772966
+  ],
+  "nu_interval": [
+   10.877156479750914,
+   Infinity
+  ],
+  "half_life": 75.10593959303888,
+  "half_life_interval": null,
+  "interval_at_bound": [],
+  "at_bound": [
+   "alpha"
+  ],
+  "lr": 0.002263294583372044,
+  "note": "GARCH(1,1)-t on 503 sessions, mu fixed at -0.084%/day: alpha=0.000 beta=0.991 persistence=0.991 nu=514.5 (10.9 to normal); normal innovations (nu = 515 > 100); alpha at bound; standard errors undefined: the information matrix is not positive definite at the optimum."
+ },
+ "t3_500": {
+  "omega": 5.310701187280221e-07,
+  "alpha": 0.04606792181548149,
+  "beta": 0.9482188682374754,
+  "nu": 2.7423774309425397,
+  "loglik": 2072.8116621523595,
+  "se": {
+   "omega": 4.620528491226706e-07,
+   "alpha": 0.02432038287033811,
+   "beta": 0.02991396903919887,
+   "eta": 0.04822944536762384,
+   "persistence": 0.023554012905340167
+  },
+  "se_note": "",
+  "eta_interval": [
+   0.273337525464983,
+   0.4
+  ],
+  "nu_interval": [
+   2.5,
+   3.65848047500565
+  ],
+  "half_life": 120.97669234511031,
+  "half_life_interval": [
+   13.011391554928755,
+   Infinity
+  ],
+  "interval_at_bound": [
+   "alpha",
+   "beta",
+   "persistence",
+   "nu"
+  ],
+  "at_bound": [],
+  "lr": 141.82090854906528,
+  "note": "GARCH(1,1)-t on 500 sessions, mu fixed at -0.011%/day: alpha=0.046\u00b10.024 beta=0.948\u00b10.030 persistence=0.994\u00b10.024 nu=2.7 (2.5 to 3.7); 95% interval reaches a bound: alpha, beta, nu; persistence interval reaches 1."
+ },
+ "t6_500": {
+  "omega": 8.049959402801662e-06,
+  "alpha": 0.06190398123229936,
+  "beta": 0.8804310185369565,
+  "nu": 5.169796301489022,
+  "loglik": 1556.8326876061071,
+  "se": {
+   "omega": 4.398445168389849e-06,
+   "alpha": 0.027550742566358317,
+   "beta": 0.047706549600275226,
+   "eta": 0.045483839715967714,
+   "persistence": 0.03477361090752041
+  },
+  "se_note": "",
+  "eta_interval": [
+   0.11192964847503772,
+   0.290090351665717
+  ],
+  "nu_interval": [
+   3.4472018605856323,
+   8.934183334123643
+  ],
+  "half_life": 11.670236516149798,
+  "half_life_interval": [
+   5.154698541524692,
+   Infinity
+  ],
+  "interval_at_bound": [
+   "persistence"
+  ],
+  "at_bound": [],
+  "lr": 29.23990257483956,
+  "note": "GARCH(1,1)-t on 500 sessions, mu fixed at +0.006%/day: alpha=0.062\u00b10.028 beta=0.880\u00b10.048 persistence=0.942\u00b10.035 nu=5.2 (3.4 to 8.9); persistence interval reaches 1."
+ },
+ "t6_500_seed7012": {
+  "omega": 1.6298047919720482e-06,
+  "alpha": 0.0914355379871481,
+  "beta": 0.894950717475139,
+  "nu": 4.984666762734484,
+  "loglik": 1643.5717297950077,
+  "se": {
+   "omega": 8.09966304302443e-07,
+   "alpha": 0.02885396334270815,
+   "beta": 0.026508430067672985,
+   "eta": 0.04205488689553827,
+   "persistence": 0.015106144967395029
+  },
+  "se_note": "",
+  "eta_interval": [
+   0.1270510704016197,
+   0.2819212056444518
+  ],
+  "nu_interval": [
+   3.5470903925586983,
+   7.870850649576673
+  ],
+  "half_life": 50.56788273888953,
+  "half_life_interval": [
+   15.688061249241066,
+   Infinity
+  ],
+  "interval_at_bound": [
+   "persistence"
+  ],
+  "at_bound": [],
+  "lr": 63.057069046717515,
+  "note": "GARCH(1,1)-t on 500 sessions, mu fixed at +0.081%/day: alpha=0.091\u00b10.029 beta=0.895\u00b10.027 persistence=0.986\u00b10.015 nu=5.0 (3.5 to 7.9); persistence interval reaches 1."
+ }
+}

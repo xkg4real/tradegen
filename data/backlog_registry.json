@@ -1,0 +1,2816 @@
+{
+ "as_of": "2026-10-02",
+ "source": "QUANTGEN_Quant_Council_2026-10-03/claude_code/QUANTGEN_MACRO_BACKLOG.md",
+ "digest": "research_notes/QUANTGEN v2 integration map/council_backlog.md sections B, A.4, A.6, D",
+ "note": "Read-only display registry; frozen snapshot of the backlog as of 2026-10-02; acting is false on every row. Owner-decision rows carry the rules-store key only: the value in force is owner_decisions.D<n> in data/macro/rules_v2.0.0.json. Two priority scales (backlog P1-P3, council P0-P2) are never merged.",
+ "collections": {
+  "status_board": [
+   {
+    "item_id": "BL-S01",
+    "collection": "status_board",
+    "class": "S",
+    "status": "RETIRED",
+    "priority": "none",
+    "title": "USD/KRW leg (S1): 20-day dlog > +3% → Korea gross × 0.75",
+    "settling_test": "none: REJECT on 54 strict-H.10 / 74 value onsets; ECOS rerun is a P3 formality",
+    "settling_test_ids": [],
+    "blocking_data": [
+     "BL-D13"
+    ],
+    "spec_refs": [
+     "R-11"
+    ],
+    "spec_refs_text": "R-11",
+    "council_items": [
+     "QF2-A8",
+     "QF2-M8",
+     "QF4-A3",
+     "QF3-A24"
+    ],
+    "lives_in": "§6.7 #30; R-11 RETIRED: labelled display-only refusal book",
+    "source_lines": "L184; 1658–1688",
+    "acting": false
+   },
+   {
+    "item_id": "BL-S02",
+    "collection": "status_board",
+    "class": "S",
+    "status": "RETIRED",
+    "priority": "none",
+    "title": "US rates-stress leg (S2): 10y +40 bp/20d → US duration-sensitive gross × 0.5",
+    "settling_test": "none: REJECT on 71 onsets at every timing; reopen only as a lower-turnover card",
+    "settling_test_ids": [],
+    "blocking_data": [
+     "BL-D14"
+    ],
+    "spec_refs": [
+     "R-12"
+    ],
+    "spec_refs_text": "R-12",
+    "council_items": [
+     "QF2-A7",
+     "QF2-M7",
+     "QF3-A24",
+     "QF4-A18"
+    ],
+    "lives_in": "§6.7 #31; R-12 RETIRED: labelled display-only refusal book",
+    "source_lines": "L185; 1689–1718",
+    "acting": false
+   },
+   {
+    "item_id": "BL-C01",
+    "collection": "status_board",
+    "class": "C",
+    "status": "OPEN",
+    "priority": "P2",
+    "title": "Daniel–Moskowitz floor 0 / 0.25 / 0.5",
+    "settling_test": "lowest floor with ex-top-spell ΔSR > 0 (one-sided 90%) in ≥ 3 of 5 samples; single-spell = INSUFFICIENT",
+    "settling_test_ids": [],
+    "blocking_data": [],
+    "spec_refs": [
+     "R-04"
+    ],
+    "spec_refs_text": "R-04 (DEMOTED, spec book, floor 0.5)",
+    "council_items": [
+     "QF5-A3",
+     "QF5-M6"
+    ],
+    "lives_in": "informs only R-04's floor in the specification book",
+    "source_lines": "L481–505",
+    "acting": false
+   },
+   {
+    "item_id": "BL-C02",
+    "collection": "status_board",
+    "class": "C",
+    "status": "OPEN",
+    "priority": "P1",
+    "title": "Should reversal be blocked in fast stress?",
+    "settling_test": "block if stress-day cost > gross stress-day edge (measured all-in OR 35 bp, never the sum); REVISE of reversal card's stress subsample",
+    "settling_test_ids": [],
+    "blocking_data": [
+     "BL-D03"
+    ],
+    "spec_refs": [
+     "R-26",
+     "R-27",
+     "R-05"
+    ],
+    "spec_refs_text": "R-26 stress-cost line (reported, not gated); R-27 fills; R-05",
+    "council_items": [
+     "QF1-A5",
+     "A7",
+     "A12",
+     "A13",
+     "A25"
+    ],
+    "lives_in": "waits on milestone-1 KIS quote check",
+    "source_lines": "L507–526",
+    "acting": false
+   },
+   {
+    "item_id": "BL-C03",
+    "collection": "status_board",
+    "class": "C",
+    "status": "OPEN",
+    "priority": "P3",
+    "title": "Role of credit spreads",
+    "settling_test": "Tier A ≥ 30 onsets; ΔMDD ≤ 0; deflated ΔSR ≥ 0; benefit not concentrated 1990–2007",
+    "settling_test_ids": [],
+    "blocking_data": [
+     "BL-D07"
+    ],
+    "spec_refs": [],
+    "spec_refs_text": null,
+    "council_items": [],
+    "lives_in": null,
+    "source_lines": "L528–552",
+    "acting": false
+   },
+   {
+    "item_id": "BL-C04",
+    "collection": "status_board",
+    "class": "C",
+    "status": "RESOLVED",
+    "priority": "resolved",
+    "title": "Vol-estimator speed and implied-vol input",
+    "settling_test": "ST-03 (R-30 staged gate); ST-09 for implied vol",
+    "settling_test_ids": [
+     "ST-03",
+     "ST-09"
+    ],
+    "blocking_data": [
+     "BL-D12",
+     "BL-D27"
+    ],
+    "spec_refs": [
+     "R-30",
+     "R-06",
+     "R-13"
+    ],
+    "spec_refs_text": "R-30, R-06, R-13",
+    "council_items": [
+     "QF6-M1",
+     "M2",
+     "A1–A4",
+     "A15",
+     "A19",
+     "A20",
+     "QF7-M2",
+     "A22",
+     "X-PX1-N6",
+     "QF6-M6"
+    ],
+    "lives_in": "R-30 (COMB challenger; SMA20 acting); R-13 (implied vol context)",
+    "source_lines": "L554–618",
+    "acting": false
+   },
+   {
+    "item_id": "BL-C05",
+    "collection": "status_board",
+    "class": "C",
+    "status": "OPEN",
+    "priority": "P2",
+    "title": "Korea discrete local flags and time-stops",
+    "settling_test": "(a) conditional time-stop protective card 2016–25 + forward, 2026 ≤ 50%; (b) absolute vs scale-free flags KOSPI/TAIEX/Nikkei 2015–26",
+    "settling_test_ids": [],
+    "blocking_data": [
+     "BL-D03"
+    ],
+    "spec_refs": [
+     "R-10",
+     "R-27",
+     "R-21",
+     "R-22",
+     "R-34"
+    ],
+    "spec_refs_text": "R-10 (no gross rule), R-27, R-21, R-22, R-34",
+    "council_items": [
+     "QF1-A14"
+    ],
+    "lives_in": "R-10 keeps no gross rule; R-27 prices stress-day fills",
+    "source_lines": "L620–644",
+    "acting": false
+   },
+   {
+    "item_id": "BL-C06",
+    "collection": "status_board",
+    "class": "C",
+    "status": "OPEN",
+    "priority": "P1",
+    "title": "Foreign/institutional flows informative for KOSPI?",
+    "settling_test": "sign and t of foreign-flow coefficient before/after May-2026 on open-to-close",
+    "settling_test_ids": [],
+    "blocking_data": [
+     "BL-D01"
+    ],
+    "spec_refs": [
+     "R-13"
+    ],
+    "spec_refs_text": "R-13 context_log",
+    "council_items": [],
+    "lives_in": "logging from day one; never acts",
+    "source_lines": "L646–667",
+    "acting": false
+   },
+   {
+    "item_id": "BL-C07",
+    "collection": "status_board",
+    "class": "C",
+    "status": "OPEN",
+    "priority": "(a) P2, (b) P2, (c) P3",
+    "title": "Rate- and inflation-conditioned de-risking beyond S2",
+    "settling_test": "(a) pooled KOSPI/TAIEX/Nikkei trial, 2022 ≤ 50%; (b) locked 2027+ holdout, paired ΔSR excludes 0 in high-inflation cell; (c) joint model over S2",
+    "settling_test_ids": [],
+    "blocking_data": [],
+    "spec_refs": [
+     "R-18"
+    ],
+    "spec_refs_text": "R-18 trigger (i) governs (b)",
+    "council_items": [],
+    "lives_in": null,
+    "source_lines": "L669–701",
+    "acting": false
+   },
+   {
+    "item_id": "BL-C08",
+    "collection": "status_board",
+    "class": "C",
+    "status": "OPEN",
+    "priority": "P3",
+    "title": "Duration-sensitive tilts under real-rate shocks",
+    "settling_test": "one cell on ΔDFII10 +50 bp/63d, holdout 2023–26; tilt ≤ 1.0",
+    "settling_test_ids": [],
+    "blocking_data": [],
+    "spec_refs": [],
+    "spec_refs_text": null,
+    "council_items": [],
+    "lives_in": null,
+    "source_lines": "L703–719",
+    "acting": false
+   },
+   {
+    "item_id": "BL-C09",
+    "collection": "status_board",
+    "class": "C",
+    "status": "OPEN",
+    "priority": "P3",
+    "title": "Policy-communication state variables",
+    "settling_test": "(a) 30-min TIPS/nominal; (b) Jarociński–Karadi; (c) pooled surprises hit rate ≥ 65%",
+    "settling_test_ids": [],
+    "blocking_data": [
+     "BL-D05",
+     "BL-D06"
+    ],
+    "spec_refs": [],
+    "spec_refs_text": null,
+    "council_items": [],
+    "lives_in": "log only",
+    "source_lines": "L721–741",
+    "acting": false
+   },
+   {
+    "item_id": "BL-C10",
+    "collection": "status_board",
+    "class": "C",
+    "status": "RESOLVED",
+    "priority": "resolved",
+    "title": "Trend axis with hysteresis for market gross",
+    "settling_test": "ST-02",
+    "settling_test_ids": [
+     "ST-02"
+    ],
+    "blocking_data": [],
+    "spec_refs": [
+     "R-28"
+    ],
+    "spec_refs_text": "R-28",
+    "council_items": [
+     "QF5-A10",
+     "QF5-M2",
+     "QF5-A8",
+     "X-PX2-N1"
+    ],
+    "lives_in": "R-28 FORWARD-SIM (US/non-Korean); Korea CONTEXT-ONLY; band = logged trial",
+    "source_lines": "L743–793",
+    "acting": false
+   },
+   {
+    "item_id": "BL-C11",
+    "collection": "status_board",
+    "class": "C",
+    "status": "OPEN",
+    "priority": "P3",
+    "title": "Oil-shock event rule scaling KOSPI gross",
+    "settling_test": "event study 1988–2026; vol-adjusted forward drawdown falls in ≥ 3 of 4 importer episodes",
+    "settling_test_ids": [],
+    "blocking_data": [
+     "BL-D11"
+    ],
+    "spec_refs": [],
+    "spec_refs_text": null,
+    "council_items": [],
+    "lives_in": null,
+    "source_lines": "L795–816",
+    "acting": false
+   },
+   {
+    "item_id": "BL-C12",
+    "collection": "status_board",
+    "class": "C",
+    "status": "CLOSED",
+    "priority": "closed",
+    "title": "Separate evidence tier for prior-backed effects",
+    "settling_test": "resolved: holdout 1 of 3 regions → uniform hurdle",
+    "settling_test_ids": [],
+    "blocking_data": [],
+    "spec_refs": [
+     "R-23"
+    ],
+    "spec_refs_text": "R-23",
+    "council_items": [
+     "QF3-A18",
+     "QF5-A2",
+     "QF5-M6"
+    ],
+    "lives_in": "R-23 step 3",
+    "source_lines": "L818–838",
+    "acting": false
+   },
+   {
+    "item_id": "BL-C13",
+    "collection": "status_board",
+    "class": "C",
+    "status": "OPEN",
+    "priority": "P3",
+    "title": "Yen shock → block new Japanese exporter longs",
+    "settling_test": "forward once a Japan sleeve exists",
+    "settling_test_ids": [],
+    "blocking_data": [],
+    "spec_refs": [],
+    "spec_refs_text": null,
+    "council_items": [],
+    "lives_in": null,
+    "source_lines": "L840–851",
+    "acting": false
+   },
+   {
+    "item_id": "BL-C14",
+    "collection": "status_board",
+    "class": "C",
+    "status": "OPEN",
+    "priority": "P3",
+    "title": "Pre-emptive positioning-based crowding cut",
+    "settling_test": "ST-07 (BL-C14 leg)",
+    "settling_test_ids": [
+     "ST-07"
+    ],
+    "blocking_data": [
+     "BL-D08",
+     "BL-D02"
+    ],
+    "spec_refs": [
+     "R-13"
+    ],
+    "spec_refs_text": "R-13 logs inputs",
+    "council_items": [
+     "QF4-A23",
+     "QF4-M8"
+    ],
+    "lives_in": "context",
+    "source_lines": "L853–873",
+    "acting": false
+   },
+   {
+    "item_id": "BL-O01",
+    "collection": "status_board",
+    "class": "O",
+    "status": "OPEN",
+    "priority": "P2",
+    "title": "Verify regional cross-sectional momentum priors",
+    "settling_test": "Japan prior 0 → 1 only if post-2016 vol-scaled Sharpe CI excludes 0",
+    "settling_test_ids": [],
+    "blocking_data": [],
+    "spec_refs": [
+     "R-15"
+    ],
+    "spec_refs_text": "R-15",
+    "council_items": [
+     "QF5-M4",
+     "QF4-M5"
+    ],
+    "lives_in": "re-scoped to admissibility",
+    "source_lines": "L879–895",
+    "acting": false
+   },
+   {
+    "item_id": "BL-O02",
+    "collection": "status_board",
+    "class": "O",
+    "status": "OPEN",
+    "priority": "P3",
+    "title": "Momentum new-entry size-down on decision days",
+    "settling_test": "forward-sim event-day P&L t ≤ −2 → × 0.5–0.7",
+    "settling_test_ids": [],
+    "blocking_data": [],
+    "spec_refs": [],
+    "spec_refs_text": null,
+    "council_items": [],
+    "lives_in": null,
+    "source_lines": "L897–911",
+    "acting": false
+   },
+   {
+    "item_id": "BL-O03",
+    "collection": "status_board",
+    "class": "O",
+    "status": "OPEN",
+    "priority": "P2",
+    "title": "Korean supply screens that exclude names",
+    "settling_test": "event studies 2010–2026, ≥ 30 events, paired-bootstrap share ≥ 0.95",
+    "settling_test_ids": [],
+    "blocking_data": [
+     "BL-D15",
+     "BL-D16"
+    ],
+    "spec_refs": [],
+    "spec_refs_text": null,
+    "council_items": [],
+    "lives_in": null,
+    "source_lines": "L913–937",
+    "acting": false
+   },
+   {
+    "item_id": "BL-O04",
+    "collection": "status_board",
+    "class": "O",
+    "status": "OPEN",
+    "priority": "P3",
+    "title": "Buyback-and-cancel eligibility feature",
+    "settling_test": "≥ 30 events with DART timestamps",
+    "settling_test_ids": [],
+    "blocking_data": [
+     "BL-D16"
+    ],
+    "spec_refs": [],
+    "spec_refs_text": null,
+    "council_items": [],
+    "lives_in": null,
+    "source_lines": "L939–945",
+    "acting": false
+   },
+   {
+    "item_id": "BL-O05",
+    "collection": "status_board",
+    "class": "O",
+    "status": "OPEN",
+    "priority": "P3",
+    "title": "Political/geopolitical shock flag, exposure cut only",
+    "settling_test": "episodes THAAD 2017, NK 2017, Dec-2024, Apr-2025",
+    "settling_test_ids": [],
+    "blocking_data": [],
+    "spec_refs": [],
+    "spec_refs_text": null,
+    "council_items": [],
+    "lives_in": null,
+    "source_lines": "L947–953",
+    "acting": false
+   },
+   {
+    "item_id": "BL-O06",
+    "collection": "status_board",
+    "class": "O",
+    "status": "OPEN",
+    "priority": "P3",
+    "title": "Stock-level microstructure",
+    "settling_test": "none named (candidates only)",
+    "settling_test_ids": [],
+    "blocking_data": [
+     "BL-D03"
+    ],
+    "spec_refs": [
+     "R-27"
+    ],
+    "spec_refs_text": "R-27 bar convention",
+    "council_items": [],
+    "lives_in": null,
+    "source_lines": "L955–968",
+    "acting": false
+   },
+   {
+    "item_id": "BL-O07",
+    "collection": "status_board",
+    "class": "O",
+    "status": "OPEN",
+    "priority": "P3",
+    "title": "Factor momentum trailing 12-month sign as gate",
+    "settling_test": "de-risk only (≥ 0.5) on five families",
+    "settling_test_ids": [],
+    "blocking_data": [],
+    "spec_refs": [],
+    "spec_refs_text": null,
+    "council_items": [
+     "QF5-A25 (CONFIRMED)"
+    ],
+    "lives_in": null,
+    "source_lines": "L970–976",
+    "acting": false
+   },
+   {
+    "item_id": "BL-O08",
+    "collection": "status_board",
+    "class": "O",
+    "status": "OWNER-DECISION",
+    "priority": "P3",
+    "title": "Calm-state reversal down-weight",
+    "settling_test": "ST-11",
+    "settling_test_ids": [
+     "ST-11"
+    ],
+    "blocking_data": [
+     "BL-D03"
+    ],
+    "spec_refs": [
+     "§1.6",
+     "R-05"
+    ],
+    "spec_refs_text": "§1.6 D3; R-05",
+    "council_items": [
+     "QF5-M10",
+     "QF5-A13"
+    ],
+    "lives_in": "D3",
+    "source_lines": "L978–1002",
+    "acting": false
+   },
+   {
+    "item_id": "BL-O09",
+    "collection": "status_board",
+    "class": "O",
+    "status": "OPEN",
+    "priority": "P3",
+    "title": "Re-run macro priors on real-time vintages",
+    "settling_test": "ALFRED re-runs (Sahm, probit, Taylor)",
+    "settling_test_ids": [],
+    "blocking_data": [
+     "BL-D04",
+     "BL-D19"
+    ],
+    "spec_refs": [
+     "R-13"
+    ],
+    "spec_refs_text": "R-13 (first print, current, vintage date)",
+    "council_items": [
+     "QF2-M6",
+     "QF2-A19",
+     "QF7-A24"
+    ],
+    "lives_in": "vintage storage moved to R-13",
+    "source_lines": "L1004–1014",
+    "acting": false
+   },
+   {
+    "item_id": "BL-O10",
+    "collection": "status_board",
+    "class": "O",
+    "status": "OPEN",
+    "priority": "P3",
+    "title": "KOSPI–China partial correlation",
+    "settling_test": "risk-model research",
+    "settling_test_ids": [],
+    "blocking_data": [],
+    "spec_refs": [],
+    "spec_refs_text": null,
+    "council_items": [],
+    "lives_in": null,
+    "source_lines": "L1016–1022",
+    "acting": false
+   },
+   {
+    "item_id": "BL-O11",
+    "collection": "status_board",
+    "class": "O",
+    "status": "OPEN",
+    "priority": "P3",
+    "title": "Dollar gate for EM/Asia momentum",
+    "settling_test": "pre-register one definition, OOS",
+    "settling_test_ids": [],
+    "blocking_data": [],
+    "spec_refs": [],
+    "spec_refs_text": null,
+    "council_items": [],
+    "lives_in": null,
+    "source_lines": "L1024–1034",
+    "acting": false
+   },
+   {
+    "item_id": "BL-O12",
+    "collection": "status_board",
+    "class": "O",
+    "status": "OPEN",
+    "priority": "P2",
+    "title": "E5's system-level limits (simulated-book)",
+    "settling_test": "none (limits to implement in `core/quant/risk`)",
+    "settling_test_ids": [],
+    "blocking_data": [],
+    "spec_refs": [
+     "R-07",
+     "R-26",
+     "§3.8"
+    ],
+    "spec_refs_text": "R-07, R-26, spec §3.8",
+    "council_items": [],
+    "lives_in": null,
+    "source_lines": "L1036–1052",
+    "acting": false
+   },
+   {
+    "item_id": "BL-O13",
+    "collection": "status_board",
+    "class": "O",
+    "status": "OPEN",
+    "priority": "P3",
+    "title": "Stock–bond regime variable, JPY hedge",
+    "settling_test": "ST-08 for turbulence",
+    "settling_test_ids": [
+     "ST-08"
+    ],
+    "blocking_data": [],
+    "spec_refs": [
+     "R-09"
+    ],
+    "spec_refs_text": "R-09",
+    "council_items": [
+     "X-EX1-N6"
+    ],
+    "lives_in": "risk model only",
+    "source_lines": "L1054–1060",
+    "acting": false
+   },
+   {
+    "item_id": "BL-O14",
+    "collection": "status_board",
+    "class": "O",
+    "status": "OPEN",
+    "priority": "P3",
+    "title": "Other professor items (NTFS tilt, change-point exit, ACM vs KW)",
+    "settling_test": "none; BOCPD logged only",
+    "settling_test_ids": [],
+    "blocking_data": [
+     "BL-D18"
+    ],
+    "spec_refs": [
+     "R-18",
+     "R-33"
+    ],
+    "spec_refs_text": "R-18 research log; R-33",
+    "council_items": [
+     "QF7-M4"
+    ],
+    "lives_in": "change-point exit → context log",
+    "source_lines": "L1062–1070",
+    "acting": false
+   },
+   {
+    "item_id": "BL-U01",
+    "collection": "status_board",
+    "class": "U",
+    "status": "OPEN",
+    "priority": "P1",
+    "title": "Korea leverage / flow / semis-cycle state",
+    "settling_test": "ST-07 (BL-U01 leg)",
+    "settling_test_ids": [
+     "ST-07"
+    ],
+    "blocking_data": [
+     "BL-D01",
+     "BL-D02",
+     "BL-D10"
+    ],
+    "spec_refs": [
+     "R-13"
+    ],
+    "spec_refs_text": "R-13 logs inputs",
+    "council_items": [
+     "QF1-M5",
+     "QF4-M8",
+     "QF1-A22",
+     "A23"
+    ],
+    "lives_in": "most important open item",
+    "source_lines": "L1076–1113",
+    "acting": false
+   },
+   {
+    "item_id": "BL-U02",
+    "collection": "status_board",
+    "class": "U",
+    "status": "OPEN",
+    "priority": "P1",
+    "title": "Korea factor priors",
+    "settling_test": "gate PASS per family card net of 35 bp + tax",
+    "settling_test_ids": [],
+    "blocking_data": [
+     "BL-D03"
+    ],
+    "spec_refs": [
+     "R-15"
+    ],
+    "spec_refs_text": "R-15 (Korea reversal prior 1 UNVERIFIED)",
+    "council_items": [
+     "QF5-A14",
+     "QF5-A8"
+    ],
+    "lives_in": null,
+    "source_lines": "L1115–1134",
+    "acting": false
+   },
+   {
+    "item_id": "BL-U03",
+    "collection": "status_board",
+    "class": "U",
+    "status": "OPEN",
+    "priority": "P2",
+    "title": "Macro-surprise |z| → next-open volatility",
+    "settling_test": "first step: QF7-A28 DM test on squared gap (runnable now); then t ≥ 2 on both measures and |z|-scaled forecast beats SMA20",
+    "settling_test_ids": [],
+    "blocking_data": [
+     "BL-D05"
+    ],
+    "spec_refs": [
+     "R-10"
+    ],
+    "spec_refs_text": "R-10 measurement",
+    "council_items": [
+     "QF7-A28"
+    ],
+    "lives_in": null,
+    "source_lines": "L1136–1151",
+    "acting": false
+   },
+   {
+    "item_id": "BL-U04",
+    "collection": "status_board",
+    "class": "U",
+    "status": "CLOSED",
+    "priority": "closed",
+    "title": "Overnight information on KOSPI open-to-close",
+    "settling_test": "tested; gap as gap/volatility input only; do not reopen SOX gate",
+    "settling_test_ids": [],
+    "blocking_data": [],
+    "spec_refs": [],
+    "spec_refs_text": null,
+    "council_items": [
+     "QF1-A11",
+     "QF2-A9"
+    ],
+    "lives_in": null,
+    "source_lines": "L1153–1158",
+    "acting": false
+   },
+   {
+    "item_id": "BL-U05",
+    "collection": "status_board",
+    "class": "U",
+    "status": "OPEN",
+    "priority": "P3",
+    "title": "Drivers for markets without a sleeve",
+    "settling_test": "untested",
+    "settling_test_ids": [],
+    "blocking_data": [
+     "BL-D09"
+    ],
+    "spec_refs": [],
+    "spec_refs_text": null,
+    "council_items": [],
+    "lives_in": null,
+    "source_lines": "L1160–1166",
+    "acting": false
+   },
+   {
+    "item_id": "BL-U06",
+    "collection": "status_board",
+    "class": "U",
+    "status": "OPEN",
+    "priority": "P3",
+    "title": "Crypto microstructure",
+    "settling_test": "untested",
+    "settling_test_ids": [],
+    "blocking_data": [],
+    "spec_refs": [
+     "R-17"
+    ],
+    "spec_refs_text": "R-17 crypto clock",
+    "council_items": [
+     "QF2-M9"
+    ],
+    "lives_in": "sleeve not built",
+    "source_lines": "L1168–1174",
+    "acting": false
+   },
+   {
+    "item_id": "BL-U07",
+    "collection": "status_board",
+    "class": "U",
+    "status": "OPEN",
+    "priority": "P3",
+    "title": "Why the gold level broke",
+    "settling_test": "context only",
+    "settling_test_ids": [],
+    "blocking_data": [
+     "BL-D20"
+    ],
+    "spec_refs": [],
+    "spec_refs_text": null,
+    "council_items": [],
+    "lives_in": null,
+    "source_lines": "L1176–1182",
+    "acting": false
+   },
+   {
+    "item_id": "BL-G01",
+    "collection": "status_board",
+    "class": "G",
+    "status": "MOVED",
+    "priority": "moved (residual P2)",
+    "title": "B5 volatility-gate dependency",
+    "settling_test": "residual: publish `docs/vol_backtest.py` + seed; B5 rerun SPY/KODEX 200 2016–26 (QF6-A25)",
+    "settling_test_ids": [],
+    "blocking_data": [],
+    "spec_refs": [
+     "R-30",
+     "R-16"
+    ],
+    "spec_refs_text": "R-30 Stage 1; R-16 envelope",
+    "council_items": [
+     "QF6-A20",
+     "QF6-A25",
+     "QF6-M1",
+     "X-PX1-N6"
+    ],
+    "lives_in": "R-30 (M3)",
+    "source_lines": "L1277–1321",
+    "acting": false
+   },
+   {
+    "item_id": "BL-G02",
+    "collection": "status_board",
+    "class": "G",
+    "status": "MOVED",
+    "priority": "moved (council P0)",
+    "title": "Protective-card harness",
+    "settling_test": "gate-acceptance test (I-08)",
+    "settling_test_ids": [],
+    "blocking_data": [],
+    "spec_refs": [
+     "R-21",
+     "R-22",
+     "R-23",
+     "R-24",
+     "R-34",
+     "M7"
+    ],
+    "spec_refs_text": "R-21, R-22, R-23, R-24, R-34; M7",
+    "council_items": [
+     "QF3-A5",
+     "M1",
+     "M2",
+     "M3",
+     "M7",
+     "M8",
+     "X-PX1-N2",
+     "N3",
+     "X-EX1-N4",
+     "QF2-M2",
+     "QF4-M6"
+    ],
+    "lives_in": "frozen before first card run",
+    "source_lines": "L1323–1354",
+    "acting": false
+   },
+   {
+    "item_id": "BL-G03",
+    "collection": "status_board",
+    "class": "G",
+    "status": "MOVED",
+    "priority": "moved",
+    "title": "Cost-aware vol-target cards",
+    "settling_test": "ST-01",
+    "settling_test_ids": [
+     "ST-01"
+    ],
+    "blocking_data": [
+     "BL-D23",
+     "BL-D26"
+    ],
+    "spec_refs": [
+     "R-29",
+     "R-26"
+    ],
+    "spec_refs_text": "R-29 (FORWARD-SIM), R-26",
+    "council_items": [
+     "QF1-A1",
+     "A10",
+     "M2",
+     "QF4-A2",
+     "A21",
+     "QF5-A23",
+     "QF6-A8",
+     "M5"
+    ],
+    "lives_in": null,
+    "source_lines": "L1356–1388",
+    "acting": false
+   },
+   {
+    "item_id": "BL-G04",
+    "collection": "status_board",
+    "class": "G",
+    "status": "OPEN",
+    "priority": "P3",
+    "title": "Timestamped USD/KRW history (= BL-D13)",
+    "settling_test": "ECOS 15:30 rerun: formality, cannot change REJECT",
+    "settling_test_ids": [],
+    "blocking_data": [
+     "BL-D13"
+    ],
+    "spec_refs": [
+     "R-11"
+    ],
+    "spec_refs_text": "R-11 refusal book",
+    "council_items": [
+     "QF2-A8",
+     "QF2-M8",
+     "QF4-A3"
+    ],
+    "lives_in": null,
+    "source_lines": "L1390–1408",
+    "acting": false
+   },
+   {
+    "item_id": "BL-G05",
+    "collection": "status_board",
+    "class": "G",
+    "status": "MOVED",
+    "priority": "moved",
+    "title": "Frozen fixtures for hermetic golden tests",
+    "settling_test": "T-FIX-01, T-PROV-01",
+    "settling_test_ids": [],
+    "blocking_data": [],
+    "spec_refs": [
+     "R-01",
+     "M1"
+    ],
+    "spec_refs_text": "R-01; M1",
+    "council_items": [
+     "QF4-A12",
+     "QF6-M11",
+     "QF1-A24"
+    ],
+    "lives_in": null,
+    "source_lines": "L1410–1435",
+    "acting": false
+   },
+   {
+    "item_id": "BL-G06",
+    "collection": "status_board",
+    "class": "G",
+    "status": "OPEN",
+    "priority": "P1",
+    "title": "Map the 18-indicator macro sheet",
+    "settling_test": "none (mapping task; blocks M6)",
+    "settling_test_ids": [],
+    "blocking_data": [],
+    "spec_refs": [
+     "R-13",
+     "R-18",
+     "R-33",
+     "§3.6"
+    ],
+    "spec_refs_text": "R-13, R-18, R-33; spec §3.6",
+    "council_items": [],
+    "lives_in": null,
+    "source_lines": "L1437–1447",
+    "acting": false
+   },
+   {
+    "item_id": "BL-G07",
+    "collection": "status_board",
+    "class": "G",
+    "status": "OPEN",
+    "priority": "P2",
+    "title": "Map the 6-component composite to families",
+    "settling_test": "none (tagging task)",
+    "settling_test_ids": [],
+    "blocking_data": [],
+    "spec_refs": [
+     "§3.7",
+     "R-15"
+    ],
+    "spec_refs_text": "spec §3.7; R-15",
+    "council_items": [],
+    "lives_in": null,
+    "source_lines": "L1449–1455",
+    "acting": false
+   },
+   {
+    "item_id": "BL-G08",
+    "collection": "status_board",
+    "class": "G",
+    "status": "OPEN",
+    "priority": "P3",
+    "title": "KOSPI200 futures as Korea market-gross instrument book",
+    "settling_test": "futures-line card on actual front-month data with declared roll calendar, after D5 notional",
+    "settling_test_ids": [],
+    "blocking_data": [
+     "BL-D24"
+    ],
+    "spec_refs": [
+     "R-26",
+     "R-06"
+    ],
+    "spec_refs_text": "R-26 granularity floor; R-06 KR futures line; D5",
+    "council_items": [
+     "X-EX2-N3"
+    ],
+    "lives_in": "rule moved",
+    "source_lines": "L1457–1486",
+    "acting": false
+   },
+   {
+    "item_id": "BL-G09",
+    "collection": "status_board",
+    "class": "G",
+    "status": "RECORD_ONLY",
+    "priority": "none",
+    "title": "Broker path: out of scope",
+    "settling_test": "none",
+    "settling_test_ids": [],
+    "blocking_data": [],
+    "spec_refs": [
+     "§3.10"
+    ],
+    "spec_refs_text": "spec §3.10",
+    "council_items": [],
+    "lives_in": null,
+    "source_lines": "L1488–1494",
+    "acting": false
+   }
+  ],
+  "council_queue": [
+   {
+    "item_id": "CQ-01",
+    "collection": "council_queue",
+    "class": "VALID-SHADOW",
+    "status": null,
+    "priority": "P1",
+    "title": "US 50 bp REJECT is an instrument fact; the futures-line card is registered separately",
+    "ledger_item": "QF1-A1",
+    "votes_P_E_Q": "AC/AC/AC",
+    "lab": "DLA-U2 PARTIALLY REPLICATED; DLA-U1 REPLICATED",
+    "focus": 12,
+    "settling_test": "ST-01",
+    "settling_test_ids": [
+     "ST-01"
+    ],
+    "blocking_data": [],
+    "spec_refs": [
+     "R-06",
+     "R-29"
+    ],
+    "council_items": [
+     "QF1-A1"
+    ],
+    "lives_in": "R-06 US relabel; R-29",
+    "source_lines": "L277",
+    "acting": false
+   },
+   {
+    "item_id": "CQ-02",
+    "collection": "council_queue",
+    "class": "VALID-SHADOW",
+    "status": null,
+    "priority": "P1",
+    "title": "US VT REJECT reflects the instrument book, not the rule",
+    "ledger_item": "QF4-A2",
+    "votes_P_E_Q": "AC/AC/AC",
+    "lab": "DLA-U2 PARTIALLY; DLA-U3, DLA-U1 REPLICATED",
+    "focus": 12,
+    "settling_test": "ST-01",
+    "settling_test_ids": [
+     "ST-01"
+    ],
+    "blocking_data": [],
+    "spec_refs": [
+     "R-06",
+     "R-29"
+    ],
+    "council_items": [
+     "QF4-A2"
+    ],
+    "lives_in": "R-06 US relabel; R-29",
+    "source_lines": "L278",
+    "acting": false
+   },
+   {
+    "item_id": "CQ-03",
+    "collection": "council_queue",
+    "class": "VALID-SHADOW",
+    "status": null,
+    "priority": "P1",
+    "title": "US 50 bp REJECT is instrument-specific",
+    "ledger_item": "QF5-A23",
+    "votes_P_E_Q": "AC/AC/AC",
+    "lab": "DLA-U1 REPLICATED",
+    "focus": 12,
+    "settling_test": "ST-01",
+    "settling_test_ids": [
+     "ST-01"
+    ],
+    "blocking_data": [],
+    "spec_refs": [
+     "R-06",
+     "R-29"
+    ],
+    "council_items": [
+     "QF5-A23"
+    ],
+    "lives_in": "R-06 US relabel; R-29",
+    "source_lines": "L279",
+    "acting": false
+   },
+   {
+    "item_id": "CQ-04",
+    "collection": "council_queue",
+    "class": "VALID-SHADOW",
+    "status": null,
+    "priority": "P1",
+    "title": "US VT at 50 bp: a slower or banded variant is a new card",
+    "ledger_item": "QF6-A8",
+    "votes_P_E_Q": "AC/AC/AC",
+    "lab": "DLA-U2, DLB-T1h PARTIALLY; DLA-U1 REPLICATED",
+    "focus": 12,
+    "settling_test": "ST-01",
+    "settling_test_ids": [
+     "ST-01"
+    ],
+    "blocking_data": [],
+    "spec_refs": [
+     "R-06",
+     "R-29"
+    ],
+    "council_items": [
+     "QF6-A8"
+    ],
+    "lives_in": "R-06 US; R-29",
+    "source_lines": "L280",
+    "acting": false
+   },
+   {
+    "item_id": "CQ-05",
+    "collection": "council_queue",
+    "class": "VALID-SHADOW",
+    "status": null,
+    "priority": "P1",
+    "title": "Trend axis wrongly filed as data-mined; the protective claim survives",
+    "ledger_item": "QF5-A10",
+    "votes_P_E_Q": "AC/AC/AC",
+    "lab": "DLB-T3a REPLICATED; DLB-T3c, T3f PARTIALLY",
+    "focus": 6,
+    "settling_test": "ST-02",
+    "settling_test_ids": [
+     "ST-02"
+    ],
+    "blocking_data": [],
+    "spec_refs": [
+     "R-28"
+    ],
+    "council_items": [
+     "QF5-A10"
+    ],
+    "lives_in": "R-28; BL-C10",
+    "source_lines": "L281",
+    "acting": false
+   },
+   {
+    "item_id": "CQ-06",
+    "collection": "council_queue",
+    "class": "VALID-SHADOW",
+    "status": null,
+    "priority": "P1",
+    "title": "Monthly SMA10m de-risk as a protective trend card",
+    "ledger_item": "QF5-M2",
+    "votes_P_E_Q": "AC/AC/AC",
+    "lab": "DLB-T3a, T3b, T3e REPLICATED; DLB-T3f PARTIALLY",
+    "focus": 6,
+    "settling_test": "ST-02",
+    "settling_test_ids": [
+     "ST-02"
+    ],
+    "blocking_data": [],
+    "spec_refs": [
+     "R-28"
+    ],
+    "council_items": [
+     "QF5-M2"
+    ],
+    "lives_in": "R-28; BL-C10",
+    "source_lines": "L282",
+    "acting": false
+   },
+   {
+    "item_id": "CQ-07",
+    "collection": "council_queue",
+    "class": "VALID-SHADOW",
+    "status": null,
+    "priority": "P1",
+    "title": "Range-based HAR and COMB as volatility challengers",
+    "ledger_item": "QF6-M2",
+    "votes_P_E_Q": "AC/AC/AC",
+    "lab": "DLB-T1d CORRECTED",
+    "focus": 11,
+    "settling_test": "ST-03",
+    "settling_test_ids": [
+     "ST-03"
+    ],
+    "blocking_data": [],
+    "spec_refs": [
+     "R-30"
+    ],
+    "council_items": [
+     "QF6-M2"
+    ],
+    "lives_in": "R-30",
+    "source_lines": "L283",
+    "acting": false
+   },
+   {
+    "item_id": "CQ-08",
+    "collection": "council_queue",
+    "class": "CONTESTED",
+    "status": null,
+    "priority": "P2",
+    "title": "Korean cross-asset futures trend sleeve",
+    "ledger_item": "QF5-M8",
+    "votes_P_E_Q": "D/D/D",
+    "lab": "not tested",
+    "focus": 3,
+    "settling_test": "ST-05",
+    "settling_test_ids": [
+     "ST-05"
+    ],
+    "blocking_data": [],
+    "spec_refs": [],
+    "council_items": [
+     "QF5-M8"
+    ],
+    "lives_in": "Backlog",
+    "source_lines": "L311",
+    "acting": false
+   },
+   {
+    "item_id": "CQ-09",
+    "collection": "council_queue",
+    "class": "CONTESTED",
+    "status": null,
+    "priority": "P2",
+    "title": "GMM regime scenarios for the Quant Lab",
+    "ledger_item": "QF5-M9",
+    "votes_P_E_Q": "D/D/D",
+    "lab": "not tested",
+    "focus": 6,
+    "settling_test": "ST-06",
+    "settling_test_ids": [
+     "ST-06"
+    ],
+    "blocking_data": [],
+    "spec_refs": [
+     "R-16"
+    ],
+    "council_items": [
+     "QF5-M9"
+    ],
+    "lives_in": "Backlog, behind R-16's replay library",
+    "source_lines": "L312",
+    "acting": false
+   },
+   {
+    "item_id": "CQ-10",
+    "collection": "council_queue",
+    "class": "CONTESTED",
+    "status": null,
+    "priority": "P2",
+    "title": "Jump-model regime engine (SJM λ = 50)",
+    "ledger_item": "QF7-M1",
+    "votes_P_E_Q": "D/R/D",
+    "lab": "DLB-T4c, T4e, T4f REPLICATED",
+    "focus": 6,
+    "settling_test": "ST-04",
+    "settling_test_ids": [
+     "ST-04"
+    ],
+    "blocking_data": [],
+    "spec_refs": [
+     "R-33"
+    ],
+    "council_items": [
+     "QF7-M1"
+    ],
+    "lives_in": "Backlog; nothing in SPEC v2.0 (R-33 prohibits a regime state, acting or displayed)",
+    "source_lines": "L313",
+    "acting": false
+   },
+   {
+    "item_id": "CQ-11",
+    "collection": "council_queue",
+    "class": "CONTEXT-ONLY",
+    "status": null,
+    "priority": "P2",
+    "title": "Leveraged-product AUM monitor as context only",
+    "ledger_item": "QF1-M5",
+    "votes_P_E_Q": "CX/CX/CX",
+    "lab": "not tested",
+    "focus": 7,
+    "settling_test": "ST-07",
+    "settling_test_ids": [
+     "ST-07"
+    ],
+    "blocking_data": [],
+    "spec_refs": [
+     "R-13"
+    ],
+    "council_items": [
+     "QF1-M5"
+    ],
+    "lives_in": "R-13; BL-U01 data",
+    "source_lines": "L331",
+    "acting": false
+   },
+   {
+    "item_id": "CQ-12",
+    "collection": "council_queue",
+    "class": "CONTEXT-ONLY",
+    "status": null,
+    "priority": "P2",
+    "title": "Crowding stays context; log margin debt and leveraged-ETF AUM",
+    "ledger_item": "QF4-A23",
+    "votes_P_E_Q": "c/c/c",
+    "lab": "not tested",
+    "focus": 7,
+    "settling_test": "ST-07",
+    "settling_test_ids": [
+     "ST-07"
+    ],
+    "blocking_data": [],
+    "spec_refs": [
+     "R-13"
+    ],
+    "council_items": [
+     "QF4-A23"
+    ],
+    "lives_in": "R-13; BL-C14",
+    "source_lines": "L332",
+    "acting": false
+   },
+   {
+    "item_id": "CQ-13",
+    "collection": "council_queue",
+    "class": "CONTEXT-ONLY",
+    "status": null,
+    "priority": "P2",
+    "title": "Korea leverage and crowding indicators as context",
+    "ledger_item": "QF4-M8",
+    "votes_P_E_Q": "CX/CX/CX",
+    "lab": "not tested",
+    "focus": 7,
+    "settling_test": "ST-07",
+    "settling_test_ids": [
+     "ST-07"
+    ],
+    "blocking_data": [],
+    "spec_refs": [
+     "R-13"
+    ],
+    "council_items": [
+     "QF4-M8"
+    ],
+    "lives_in": "R-13 context_log",
+    "source_lines": "L333",
+    "acting": false
+   },
+   {
+    "item_id": "CQ-14",
+    "collection": "council_queue",
+    "class": "CONTEXT-ONLY",
+    "status": null,
+    "priority": "P2",
+    "title": "Turbulence index as a stressed-covariance input",
+    "ledger_item": "QF5-M7",
+    "votes_P_E_Q": "CX/AC/CX",
+    "lab": "not tested",
+    "focus": 7,
+    "settling_test": "ST-08",
+    "settling_test_ids": [
+     "ST-08"
+    ],
+    "blocking_data": [],
+    "spec_refs": [
+     "R-13",
+     "R-09"
+    ],
+    "council_items": [
+     "QF5-M7"
+    ],
+    "lives_in": "R-13 display; R-09",
+    "source_lines": "L334",
+    "acting": false
+   },
+   {
+    "item_id": "CQ-15",
+    "collection": "council_queue",
+    "class": "CONTEXT-ONLY",
+    "status": null,
+    "priority": "P2",
+    "title": "Live-timed implied-vol inputs as context",
+    "ledger_item": "QF6-M6",
+    "votes_P_E_Q": "CX/CX/CX",
+    "lab": "not tested",
+    "focus": 5,
+    "settling_test": "ST-09",
+    "settling_test_ids": [
+     "ST-09"
+    ],
+    "blocking_data": [],
+    "spec_refs": [
+     "R-13",
+     "R-06"
+    ],
+    "council_items": [
+     "QF6-M6"
+    ],
+    "lives_in": "R-13; max(SMA20, IV) retired from R-06",
+    "source_lines": "L335",
+    "acting": false
+   },
+   {
+    "item_id": "CQ-16",
+    "collection": "council_queue",
+    "class": "CONTEXT-ONLY",
+    "status": null,
+    "priority": "P2",
+    "title": "Variance risk premium as context",
+    "ledger_item": "QF6-M10",
+    "votes_P_E_Q": "CX/CX/CX",
+    "lab": "not tested",
+    "focus": 5,
+    "settling_test": "none: context permanently",
+    "settling_test_ids": [],
+    "blocking_data": [],
+    "spec_refs": [
+     "R-13"
+    ],
+    "council_items": [
+     "QF6-M10"
+    ],
+    "lives_in": "R-13 context_log",
+    "source_lines": "L336",
+    "acting": false
+   },
+   {
+    "item_id": "CQ-17",
+    "collection": "council_queue",
+    "class": "CONTEXT-ONLY",
+    "status": null,
+    "priority": "P2",
+    "title": "BOCPD change-point flag for scale breaks",
+    "ledger_item": "QF7-M4",
+    "votes_P_E_Q": "AC/D/AC",
+    "lab": "not tested",
+    "focus": 4,
+    "settling_test": "none: log only",
+    "settling_test_ids": [],
+    "blocking_data": [],
+    "spec_refs": [
+     "R-18"
+    ],
+    "council_items": [
+     "QF7-M4"
+    ],
+    "lives_in": "R-18 research log",
+    "source_lines": "L337",
+    "acting": false
+   },
+   {
+    "item_id": "CQ-18",
+    "collection": "council_queue",
+    "class": "CONTEXT-ONLY",
+    "status": null,
+    "priority": "P2",
+    "title": "Curriculum-based reading list for the owner",
+    "ledger_item": "QF7-M7",
+    "votes_P_E_Q": "AC/CX/AC",
+    "lab": "not tested",
+    "focus": 3,
+    "settling_test": "none (documentation)",
+    "settling_test_ids": [],
+    "blocking_data": [],
+    "spec_refs": [],
+    "council_items": [
+     "QF7-M7"
+    ],
+    "lives_in": "`docs/` reading list",
+    "source_lines": "L338",
+    "acting": false
+   },
+   {
+    "item_id": "CQ-19",
+    "collection": "council_queue",
+    "class": "CONTEXT-ONLY",
+    "status": null,
+    "priority": "P2",
+    "title": "KRW hedge credit as a display",
+    "ledger_item": "X-EX2-N6",
+    "votes_P_E_Q": "CX/CX/CX",
+    "lab": "not tested",
+    "focus": 4,
+    "settling_test": "none: display only",
+    "settling_test_ids": [],
+    "blocking_data": [],
+    "spec_refs": [
+     "R-09"
+    ],
+    "council_items": [
+     "X-EX2-N6"
+    ],
+    "lives_in": "R-09 display",
+    "source_lines": "L339",
+    "acting": false
+   },
+   {
+    "item_id": "CQ-20",
+    "collection": "council_queue",
+    "class": "OWNER-DECISION",
+    "status": null,
+    "priority": "P1",
+    "title": "The Korea pair-cap trigger was calibrated inside the regime it targets",
+    "ledger_item": "QF4-A10",
+    "votes_P_E_Q": "AC/AC/AC",
+    "lab": "not tested",
+    "focus": 5,
+    "settling_test": "ST-10",
+    "settling_test_ids": [
+     "ST-10"
+    ],
+    "blocking_data": [],
+    "spec_refs": [
+     "R-07"
+    ],
+    "council_items": [
+     "QF4-A10"
+    ],
+    "lives_in": "D1; R-07",
+    "source_lines": "L365",
+    "acting": false
+   },
+   {
+    "item_id": "CQ-21",
+    "collection": "council_queue",
+    "class": "OWNER-DECISION",
+    "status": null,
+    "priority": "P1",
+    "title": "Korean fund concentration rule as a template option",
+    "ledger_item": "X-EX2-N5",
+    "votes_P_E_Q": "AC/A/A",
+    "lab": "not tested",
+    "focus": 5,
+    "settling_test": "ST-10",
+    "settling_test_ids": [
+     "ST-10"
+    ],
+    "blocking_data": [],
+    "spec_refs": [
+     "R-07",
+     "R-27"
+    ],
+    "council_items": [
+     "X-EX2-N5"
+    ],
+    "lives_in": "D1; R-07; R-27 limit-lock flag (built)",
+    "source_lines": "L366",
+    "acting": false
+   },
+   {
+    "item_id": "CQ-22",
+    "collection": "council_queue",
+    "class": "OWNER-DECISION",
+    "status": null,
+    "priority": "P2",
+    "title": "Calm-state reversal down-weight (principle change)",
+    "ledger_item": "QF5-M10",
+    "votes_P_E_Q": "R/PC/PC",
+    "lab": "not tested",
+    "focus": 5,
+    "settling_test": "ST-11",
+    "settling_test_ids": [
+     "ST-11"
+    ],
+    "blocking_data": [],
+    "spec_refs": [],
+    "council_items": [
+     "QF5-M10"
+    ],
+    "lives_in": "D3; BL-O08 stays P3",
+    "source_lines": "L367",
+    "acting": false
+   }
+  ],
+  "settling_test": [
+   {
+    "item_id": "ST-01",
+    "collection": "settling_test",
+    "title": "US index-futures vol target, MACRO-R06-US-FUT (R-29)",
+    "question": "US index-futures vol target, MACRO-R06-US-FUT (R-29)",
+    "data": "Kenneth R. French daily Mkt-RF and RF (BL-D23; DL-A's fetch refused, HTTP 403). Futures book at 5 bp. Objective ≥ 15% S&P episodes",
+    "window": "1926-07 → 2026-08; decade-spaced starts; the 1990–2007 line is printed (≈ 0)",
+    "metric": "v2 CARD-P (R-21): PC-1′ (ΔES95 of 21- and 126-session returns vs S, one-sided stationary-bootstrap p ≤ 0.10, blocks ≥ 250 sessions), PC-2 with a CI, PC-3; judged under the blind v2 package",
+    "threshold": "PC-1′ holds at 1× and 2×, and the card passes at ≥ 80% of decade-spaced starts. Promotion to BUILD-AS-INSURANCE also needs a US sleeve in which one Micro ES (≈ ₩52m) is ≤ ~5% of declared notional (≈ ₩1bn), or another executable line the owner declares (D5)",
+    "owner": "Claude Code · M8 (R-29). Promotion: owner (D5)",
+    "blocking_data": [
+     "BL-D23"
+    ],
+    "spec_refs": [
+     "R-29",
+     "M8",
+     "R-29"
+    ],
+    "source_lines": "L261",
+    "acting": false
+   },
+   {
+    "item_id": "ST-02",
+    "collection": "settling_test",
+    "title": "Protective trend card, monthly SMA10m 0.5× (R-28)",
+    "question": "Protective trend card, monthly SMA10m 0.5× (R-28)",
+    "data": "French monthly US market (local, 1927+). Each non-Korean sleeve's own official closes. Pooled-onset rule declared before any run",
+    "window": "US 1927–2026; a PASS needs pre-1970 data (DLB-T3c). Each sleeve's longest history",
+    "metric": "Increment stacked on the vol target (ΔES and ΔMDD). v2 CARD-P at 5 and 50 bp. GJR-null percentile and snooping haircut printed. No Sharpe claim",
+    "threshold": "Increment ≥ 3 pp, plus a formal v2 PASS. Tier A via the pooled-onset rule (US alone 45 de-clustered onsets). BUILD-AS-INSURANCE only once such a sleeve exists",
+    "owner": "Claude Code · M8 (R-28). Sleeve: owner (D5)",
+    "blocking_data": [],
+    "spec_refs": [
+     "R-28",
+     "M8",
+     "R-28"
+    ],
+    "source_lines": "L262",
+    "acting": false
+   },
+   {
+    "item_id": "ST-03",
+    "collection": "settling_test",
+    "title": "COMB = ½(GJR-t + log-HAR-range) as estimator challenger (R-30)",
+    "question": "COMB = ½(GJR-t + log-HAR-range) as estimator challenger (R-30)",
+    "data": "KOSPI and US daily OHLC with open-quality flags. Range proxies: overnight² + Garman–Klass (KOSPI); Parkinson (US; ^GSPC opens unreliable before ~2008). Formal cards use KRX official closes",
+    "window": "OOS: 2001-01-02 → 2026-09 KOSPI (6,342 origins); 1995-01-03 → 2026-09 US (7,985 origins). 2016–26 and 2026 printed separately",
+    "metric": "R-30 staged gate. Stage 1: calibration at h = 21 (FHS exceedance, 21-day fan PIT, Christoffersen CC). Stage 2: 90% QLIKE MCS at h = 21. Stage 3: vol-of-vol, ΔMDD and PC-2, net of turnover at the declared book",
+    "threshold": "Passes Stage 1; inside the MCS; lowest vol-of-vol with ΔSR non-inferior (overlapping CIs are ties → simplest surviving model). Adopted on a card only as a counted revision passing the full v2 CARD-P. ETF and futures books only; fails closed to SMA20",
+    "owner": "Claude Code · M3 (R-30); card switch = counted revision at M7",
+    "blocking_data": [],
+    "spec_refs": [
+     "R-30",
+     "M3",
+     "R-30",
+     "M7"
+    ],
+    "source_lines": "L263",
+    "acting": false
+   },
+   {
+    "item_id": "ST-04",
+    "collection": "settling_test",
+    "title": "Jump-model regime engine (SJM, λ = 50)",
+    "question": "Jump-model regime engine (SJM, λ = 50)",
+    "data": "Official daily closes of S&P 500, STOXX50E, TWII (last two never used in design). λ ledger with ≥ 5 values",
+    "window": "2027–28, forward, pre-registered",
+    "metric": "SJM50 vs BAND200 vs VT15 at 50 bp: ΔMDD and turnover",
+    "threshold": "An SJM card may be proposed only if its ΔMDD ≥ the band's at no more turnover (ties → band). Korea excluded. **Nothing acts or is displayed in v2**",
+    "owner": "Claude Code: register in the family ledger now; forward books 2027–28",
+    "blocking_data": [],
+    "spec_refs": [],
+    "source_lines": "L264",
+    "acting": false
+   },
+   {
+    "item_id": "ST-05",
+    "collection": "settling_test",
+    "title": "Korean cross-asset futures trend sleeve",
+    "question": "Korean cross-asset futures trend sleeve",
+    "data": "KIS KOSPI 200, KTB 3y/10y and USD futures history (BL-D24, BL-D25), declared roll calendars. Professors' design: 1/3/12-month blend at 10% vol",
+    "window": "2006–26, at 5 bp",
+    "metric": "Correlation with KOSPI; ΔMDD of KOSPI plus the sleeve; sign in KOSPI bear markets",
+    "threshold": "Correlation < 0.3; ΔMDD ≥ 3 pp; positive in ≥ 3 of 5 KOSPI bears",
+    "owner": "Claude Code, after data acquired; verdict by the v2 gate",
+    "blocking_data": [
+     "BL-D24",
+     "BL-D25"
+    ],
+    "spec_refs": [],
+    "source_lines": "L265",
+    "acting": false
+   },
+   {
+    "item_id": "ST-06",
+    "collection": "settling_test",
+    "title": "GMM scenario regimes for the Quant Lab",
+    "question": "GMM scenario regimes for the Quant Lab",
+    "data": "Replay library with regime metadata (R-16, QF4-M9). GMM fits seeded and frozen",
+    "window": "2008–26",
+    "metric": "99% ES coverage of scenarios vs replays; label agreement across refits",
+    "threshold": "GMM beats replays on 99% ES coverage, with ≥ 90% label agreement across refits. **Never shown as a current regime**",
+    "owner": "Claude Code · M9 (R-16), after the replay library",
+    "blocking_data": [],
+    "spec_refs": [
+     "M9",
+     "R-16"
+    ],
+    "source_lines": "L266",
+    "acting": false
+   },
+   {
+    "item_id": "ST-07",
+    "collection": "settling_test",
+    "title": "Can the leverage, flow and crowding context ever act?",
+    "question": "Can the leverage, flow and crowding context ever act?",
+    "data": "KOFIA margin debt; KRX single-stock and index leveraged/inverse ETF AUM and value traded (BL-D02); investor flows (BL-D01); absorption ratio and turbulence",
+    "window": "Daily, 2015–2026 or from earliest available; the 16-Jul-2026 rule break is flagged",
+    "metric": "BL-U01: lead over KOSPI rv21, and Korea vol target's ΔMDD by episode. BL-C14: lead over own-factor vol, and increment to vol-scaled sizing",
+    "threshold": "BL-U01: leads rv21 by ≥ 5 days and improves VT20's ΔMDD in ≥ 3 Korean episodes, no episode above 50%; any multiplier needs ≥ 30 events and Tier B bounds [0.5, 1.0]. BL-C14: leads by ≥ 5 days in ≥ 3 of 5 episodes and adds to vol-scaled sizing",
+    "owner": "Claude Code · M6 (R-13 logging); tests BL-U01 and BL-C14",
+    "blocking_data": [
+     "BL-D02",
+     "BL-D01"
+    ],
+    "spec_refs": [
+     "M6",
+     "R-13"
+    ],
+    "source_lines": "L267",
+    "acting": false
+   },
+   {
+    "item_id": "ST-08",
+    "collection": "settling_test",
+    "title": "Turbulence as a stressed-covariance input",
+    "question": "Turbulence as a stressed-covariance input",
+    "data": "Turbulence and absorption ratio; the stock–bond-regime input (X-EX1-N6, R-09)",
+    "window": "**Not named by the council; declare it on the header**",
+    "metric": "**Not named; declare it on the header**",
+    "threshold": "Must beat the stock–bond-regime input in a pre-registered test. Until then display only, never a multiplier",
+    "owner": "Claude Code (R-09 risk model)",
+    "blocking_data": [],
+    "spec_refs": [
+     "R-09"
+    ],
+    "source_lines": "L268",
+    "acting": false
+   },
+   {
+    "item_id": "ST-09",
+    "collection": "settling_test",
+    "title": "Implied volatility as a sizing input",
+    "question": "Implied volatility as a sizing input",
+    "data": "VIX and VIX3M at 16:00 ET (BL-D29); KOSPI 200 model-free implied variance at 15:30 KST (BL-D27); VKOSPI history (BL-D12)",
+    "window": "About two years of logged KOSPI 200 option boards for the Korean test (QF6)",
+    "metric": "Only inside HAR-IV, and only through R-30's staged gate (as ST-03)",
+    "threshold": "HAR-IV must win the race. `max(SMA20, implied)` stays retired (§6.8 #34)",
+    "owner": "Claude Code · M3/M6 (R-30, R-13)",
+    "blocking_data": [
+     "BL-D29",
+     "BL-D27",
+     "BL-D12"
+    ],
+    "spec_refs": [
+     "M3",
+     "M6",
+     "R-30",
+     "R-13"
+    ],
+    "source_lines": "L269",
+    "acting": false
+   },
+   {
+    "item_id": "ST-10",
+    "collection": "settling_test",
+    "title": "D1: Korea concentration template",
+    "question": "D1: Korea concentration template",
+    "data": "n = 1 (July 2026). For information only: forward-simulated CARD-P books of the templates on KRX stock-level data (KIS), pre-registered episodes (QF4; EX2)",
+    "window": null,
+    "metric": null,
+    "threshold": "**No statistical settling test.** Template is risk appetite; one episode cannot choose",
+    "owner": "Owner (D1). Default in force: the spec's owner-decision registry",
+    "blocking_data": [],
+    "spec_refs": [],
+    "source_lines": "L270",
+    "acting": false
+   },
+   {
+    "item_id": "ST-11",
+    "collection": "settling_test",
+    "title": "D3: calm-state reversal down-weight",
+    "question": "D3: calm-state reversal down-weight",
+    "data": "KRX stock-level reversal (KIS, BL-D03), net of 35 bp plus the 0.20% sell tax. Calm = VIX ≤ 20",
+    "window": "2010–17 and 2018–26",
+    "metric": "Reversal at 0.5× in calm vs 1.0×",
+    "threshold": "One-sided p ≤ 0.10 in both sub-periods",
+    "owner": "Run: Claude Code. Decision: owner (D3). Council recommends keeping design principle P3",
+    "blocking_data": [
+     "BL-D03"
+    ],
+    "spec_refs": [],
+    "source_lines": "L271",
+    "acting": false
+   }
+  ],
+  "owner_decision": [
+   {
+    "item_id": "D1",
+    "collection": "owner_decision",
+    "title": "Korea concentration template",
+    "kind": "risk appetite",
+    "rules_key": "risk_layer.korea_caps.template",
+    "council_items": [
+     "QF4-A10",
+     "X-EX2-N5",
+     "QF4-M4"
+    ],
+    "items_text": "QF4-A10, X-EX2-N5 (CQ-20, CQ-21); QF4-M4",
+    "settling_test_ids": [
+     "ST-10"
+    ],
+    "source_lines": "L373–393",
+    "acting": false
+   },
+   {
+    "item_id": "D2",
+    "collection": "owner_decision",
+    "title": "Drawdown hard-stop level",
+    "kind": "risk appetite",
+    "rules_key": "risk_layer.drawdown.hard_stop.level",
+    "council_items": [
+     "QF4-M3"
+    ],
+    "items_text": "QF4-M3 (Resolution 6)",
+    "settling_test_ids": [],
+    "source_lines": "L395–406",
+    "acting": false
+   },
+   {
+    "item_id": "D3",
+    "collection": "owner_decision",
+    "title": "QF5-M10 calm-state reversal down-weight",
+    "kind": "principle change",
+    "rules_key": "families.reversal.calm_state_downweight",
+    "council_items": [
+     "QF5-M10",
+     "QF5-A13"
+    ],
+    "items_text": "QF5-M10 (CQ-22); BL-O08; QF5-A13",
+    "settling_test_ids": [
+     "ST-11"
+    ],
+    "source_lines": "L408–416",
+    "acting": false
+   },
+   {
+    "item_id": "D4",
+    "collection": "owner_decision",
+    "title": "Book-level false-demotion budget",
+    "kind": "risk appetite",
+    "rules_key": "monitoring.false_demotion_budget_per_year",
+    "council_items": [
+     "QF3-M5",
+     "QF5-M3",
+     "X-EX1-N3"
+    ],
+    "items_text": "QF3-M5, QF5-M3, X-EX1-N3",
+    "settling_test_ids": [],
+    "source_lines": "L418–427",
+    "acting": false
+   },
+   {
+    "item_id": "D5",
+    "collection": "owner_decision",
+    "title": "Whether, and on which line, to run a US sleeve",
+    "kind": "product choice",
+    "rules_key": "sleeves.US.line",
+    "council_items": [
+     "QF1-A1",
+     "QF4-A2",
+     "QF6-A8",
+     "QF5-M2"
+    ],
+    "items_text": "QF1-A1, QF4-A2, QF6-A8 (CQ-01..04), QF5-M2 (CQ-06)",
+    "settling_test_ids": [],
+    "source_lines": "L429–440",
+    "acting": false
+   },
+   {
+    "item_id": "D6",
+    "collection": "owner_decision",
+    "title": "CDaR-guard calibration",
+    "kind": "gate sub-point",
+    "rules_key": "gate.acceptance_test.cdar_guard.calibration",
+    "council_items": [
+     "X-EX1-N4"
+    ],
+    "items_text": "X-EX1-N4; Resolution 4's open sub-point (moot unless a negative control passes the gate-acceptance test)",
+    "settling_test_ids": [],
+    "source_lines": "L442–452",
+    "acting": false
+   }
+  ],
+  "data_acq": [
+   {
+    "item_id": "BL-D01",
+    "collection": "data_acq",
+    "new": false,
+    "title": "KRX investor-type daily net buys (foreign / institution / individual), lagged to t−1; intraday preliminary figures with timestamps",
+    "data": "KRX investor-type daily net buys (foreign / institution / individual), lagged to t−1; intraday preliminary figures with timestamps",
+    "source": "KIS Developers / KRX data portal",
+    "freq": "Daily (+ intraday prelim)",
+    "licence": "Not recorded",
+    "needed_by": "R-13 context_log (flows); BL-C06; BL-U01; ST-07",
+    "settling_test_ids": [
+     "ST-07"
+    ],
+    "spec_refs": [
+     "R-13"
+    ],
+    "priority": "P1",
+    "priority_text": "P1 log from day one",
+    "source_lines": "L1199–1236",
+    "acting": false
+   },
+   {
+    "item_id": "BL-D02",
+    "collection": "data_acq",
+    "new": false,
+    "title": "KOFIA margin debt; KRX single-stock and index leveraged/inverse ETF AUM, creations/redemptions, value traded, prices (single-stock ±2× listed 27 May 2026)",
+    "data": "KOFIA margin debt; KRX single-stock and index leveraged/inverse ETF AUM, creations/redemptions, value traded, prices (single-stock ±2× listed 27 May 2026)",
+    "source": "KRX / KOFIA / issuers",
+    "freq": "Daily",
+    "licence": "Not recorded; historical availability unknown — decides whether BL-U01 can be built before 2027",
+    "needed_by": "R-13; R-26 L/I instrument rules (QF6-M9); R-07 look-through × L; BL-U01; BL-C14; ST-07",
+    "settling_test_ids": [
+     "ST-07"
+    ],
+    "spec_refs": [
+     "R-13",
+     "R-26",
+     "R-07"
+    ],
+    "priority": "P1",
+    "priority_text": "P1",
+    "source_lines": "L1199–1236",
+    "acting": false
+   },
+   {
+    "item_id": "BL-D03",
+    "collection": "data_acq",
+    "new": false,
+    "title": "KIS stock-level OHLCV (KOSPI/KOSDAQ, survivorship-free); 1- or 5-minute bars (KOSPI, KOSPI 200, KODEX 200); level-1 quote snapshots with bid/ask and exchange vs receipt timestamps (069500, 005930 at 15:19:59 KST; KODEX 200 bid/ask and closing-auction expected price/imbalance on stress days). No fill logs",
+    "data": "KIS stock-level OHLCV (KOSPI/KOSDAQ, survivorship-free); 1- or 5-minute bars (KOSPI, KOSPI 200, KODEX 200); level-1 quote snapshots with bid/ask and exchange vs receipt timestamps (069500, 005930 at 15:19:59 KST; KODEX 200 bid/ask and closing-auction expected price/imbalance on stress days). No fill logs",
+    "source": "KIS Open API",
+    "freq": "Daily; intraday; snapshots",
+    "licence": "First milestone task: confirm KIS level-1 quote fields (QF1-A25)",
+    "needed_by": "BL-C02; BL-U02; BL-O06; ST-11 (D3); R-08 annotation; R-26 stress-cost line; R-27 fill model; R-10 measurement; HAR-RV challenger (R-30)",
+    "settling_test_ids": [
+     "ST-11"
+    ],
+    "spec_refs": [
+     "R-08",
+     "R-26",
+     "R-27",
+     "R-10",
+     "R-30"
+    ],
+    "priority": "P1",
+    "priority_text": "P1",
+    "source_lines": "L1199–1236",
+    "acting": false
+   },
+   {
+    "item_id": "BL-D04",
+    "collection": "data_acq",
+    "new": false,
+    "title": "ALFRED vintages: UNRATE, PAYEMS, GDPC1, GDPPOT, NROU, PCEPILFE, CPIAUCSL",
+    "data": "ALFRED vintages: UNRATE, PAYEMS, GDPC1, GDPPOT, NROU, PCEPILFE, CPIAUCSL",
+    "source": "ALFRED; FRED API `output_type=4` (initial release only) and `vintage_dates`",
+    "freq": "Per release",
+    "licence": "API limit 1,000–2,000 vintage dates per request",
+    "needed_by": "R-13 (first print + current + vintage date; QF2-M6); BL-O09",
+    "settling_test_ids": [],
+    "spec_refs": [
+     "R-13"
+    ],
+    "priority": "P1",
+    "priority_text": "P1 (cheap)",
+    "source_lines": "L1199–1236",
+    "acting": false
+   },
+   {
+    "item_id": "BL-D05",
+    "collection": "data_acq",
+    "new": false,
+    "title": "Consensus forecasts with survey-close timestamps (CPI, NFP, ISM)",
+    "data": "Consensus forecasts with survey-close timestamps (CPI, NFP, ISM)",
+    "source": "Licensed consensus feed",
+    "freq": "Per release",
+    "licence": "Licensed",
+    "needed_by": "BL-U03; BL-C09(c)",
+    "settling_test_ids": [],
+    "spec_refs": [],
+    "priority": "P2",
+    "priority_text": "P2",
+    "source_lines": "L1199–1236",
+    "acting": false
+   },
+   {
+    "item_id": "BL-D06",
+    "collection": "data_acq",
+    "new": false,
+    "title": "30-minute TIPS and nominal futures around CPI/FOMC, 2004–2026",
+    "data": "30-minute TIPS and nominal futures around CPI/FOMC, 2004–2026",
+    "source": "Intraday futures vendor",
+    "freq": "Intraday",
+    "licence": "Vendor",
+    "needed_by": "BL-C09(a)(b)",
+    "settling_test_ids": [],
+    "spec_refs": [],
+    "priority": "P3",
+    "priority_text": "P3",
+    "source_lines": "L1199–1236",
+    "acting": false
+   },
+   {
+    "item_id": "BL-D07",
+    "collection": "data_acq",
+    "new": false,
+    "title": "ICE BofA HY OAS from 1997",
+    "data": "ICE BofA HY OAS from 1997",
+    "source": "ICE",
+    "freq": "Daily",
+    "licence": "ICE licence (FRED copy starts 2023-10)",
+    "needed_by": "BL-C03",
+    "settling_test_ids": [],
+    "spec_refs": [],
+    "priority": "P3",
+    "priority_text": "P3",
+    "source_lines": "L1199–1236",
+    "acting": false
+   },
+   {
+    "item_id": "BL-D08",
+    "collection": "data_acq",
+    "new": false,
+    "title": "CFTC Commitments of Traders",
+    "data": "CFTC Commitments of Traders",
+    "source": "CFTC",
+    "freq": "Weekly",
+    "licence": "Not recorded",
+    "needed_by": "BL-C14; FX sleeve positioning leg",
+    "settling_test_ids": [],
+    "spec_refs": [],
+    "priority": "P3",
+    "priority_text": "P3",
+    "source_lines": "L1199–1236",
+    "acting": false
+   },
+   {
+    "item_id": "BL-D09",
+    "collection": "data_acq",
+    "new": false,
+    "title": "PMI (ISM / S&P Global)",
+    "data": "PMI (ISM / S&P Global)",
+    "source": "Licensed",
+    "freq": "Monthly",
+    "licence": "Licensed",
+    "needed_by": "BL-U05",
+    "settling_test_ids": [],
+    "spec_refs": [],
+    "priority": "P3",
+    "priority_text": "P3",
+    "source_lines": "L1199–1236",
+    "acting": false
+   },
+   {
+    "item_id": "BL-D10",
+    "collection": "data_acq",
+    "new": false,
+    "title": "TrendForce DRAM contract-price guide history (≈ 45 quarterly obs, 2015–26); AI-debt / new-issue-concession tracker",
+    "data": "TrendForce DRAM contract-price guide history (≈ 45 quarterly obs, 2015–26); AI-debt / new-issue-concession tracker",
+    "source": "TrendForce; build or scrape",
+    "freq": "Quarterly; event",
+    "licence": "Not recorded; AI-basket spreads need ICE/Bloomberg",
+    "needed_by": "BL-U01",
+    "settling_test_ids": [],
+    "spec_refs": [],
+    "priority": "P2",
+    "priority_text": "P2",
+    "source_lines": "L1199–1236",
+    "acting": false
+   },
+   {
+    "item_id": "BL-D11",
+    "collection": "data_acq",
+    "new": false,
+    "title": "Long front-month Brent futures (not continuous-adjusted); Dated Brent spot named separately",
+    "data": "Long front-month Brent futures (not continuous-adjusted); Dated Brent spot named separately",
+    "source": "Exchange / vendor",
+    "freq": "Daily",
+    "licence": "Not recorded",
+    "needed_by": "BL-C11",
+    "settling_test_ids": [],
+    "spec_refs": [],
+    "priority": "P3",
+    "priority_text": "P3",
+    "source_lines": "L1199–1236",
+    "acting": false
+   },
+   {
+    "item_id": "BL-D12",
+    "collection": "data_acq",
+    "new": false,
+    "title": "VKOSPI daily history; closes 15:45 KST after the 15:30 decision: use K−1 or a 15:30 live snapshot",
+    "data": "VKOSPI daily history; closes 15:45 KST after the 15:30 decision: use K−1 or a 15:30 live snapshot",
+    "source": "KRX Data Marketplace",
+    "freq": "Daily",
+    "licence": "Not recorded",
+    "needed_by": "ST-09 (HAR-IV via R-30); R-13 VRP; BL-C05",
+    "settling_test_ids": [
+     "ST-09"
+    ],
+    "spec_refs": [
+     "R-30",
+     "R-13"
+    ],
+    "priority": "P2",
+    "priority_text": "P2",
+    "source_lines": "L1199–1236",
+    "acting": false
+   },
+   {
+    "item_id": "BL-D13",
+    "collection": "data_acq",
+    "new": false,
+    "title": "BoK ECOS USD/KRW 15:30 close: 731Y003, item 0000003, daily 1990-03-02 → 2026-10-01; \"종가\" series (2024-07+). KRW input = timestamped 15:30:00 KST snapshot (versioned; 15:00 before Aug-2016). DEXKOUS labelled proxy only",
+    "data": "BoK ECOS USD/KRW 15:30 close: 731Y003, item 0000003, daily 1990-03-02 → 2026-10-01; \"종가\" series (2024-07+). KRW input = timestamped 15:30:00 KST snapshot (versioned; 15:00 before Aug-2016). DEXKOUS labelled proxy only",
+    "source": "BoK ECOS API (= BL-G04; new ECOS provider in `core/ficc/data`, proposed)",
+    "freq": "Daily",
+    "licence": "Free key",
+    "needed_by": "R-11 refusal book (P3 formality); R-09 `fx_hedge_credit` (X-EX2-N4)",
+    "settling_test_ids": [],
+    "spec_refs": [
+     "R-11",
+     "R-09"
+    ],
+    "priority": "P3",
+    "priority_text": "P3",
+    "source_lines": "L1199–1236",
+    "acting": false
+   },
+   {
+    "item_id": "BL-D14",
+    "collection": "data_acq",
+    "new": false,
+    "title": "US 10y: KIS US 10y quote with timestamps; U.S. Treasury daily par yield curve (\"at or near 3:30 PM\"; \"usually available … by 6:00 PM Eastern\"; \"may be delayed\") with logged posting time as history/EOD source; ^TNX live proxy; log both channels (Treasury, H.15)",
+    "data": "US 10y: KIS US 10y quote with timestamps; U.S. Treasury daily par yield curve (\"at or near 3:30 PM\"; \"usually available … by 6:00 PM Eastern\"; \"may be delayed\") with logged posting time as history/EOD source; ^TNX live proxy; log both channels (Treasury, H.15)",
+    "source": "KIS; U.S. Treasury; Yahoo",
+    "freq": "Daily",
+    "licence": "Treasury free (QF2-A7)",
+    "needed_by": "R-19 publication calendar (Treasury ≈ 18:00 ET); R-09 `hedge_state` (corr63 date-aligned); registry (QF2-M7); R-12 refusal-book display",
+    "settling_test_ids": [],
+    "spec_refs": [
+     "R-19",
+     "R-09",
+     "R-12"
+    ],
+    "priority": "P1",
+    "priority_text": "P1 posting-time logging starts now; needed before the Treasury channel is called compliant for 1990–2009",
+    "source_lines": "L1199–1236",
+    "acting": false
+   },
+   {
+    "item_id": "BL-D15",
+    "collection": "data_acq",
+    "new": false,
+    "title": "KOSPI200 constituent history 2010–26; MSCI Korea change history",
+    "data": "KOSPI200 constituent history 2010–26; MSCI Korea change history",
+    "source": "KRX / MSCI",
+    "freq": "Event",
+    "licence": "Not recorded",
+    "needed_by": "BL-O03",
+    "settling_test_ids": [],
+    "spec_refs": [],
+    "priority": "P2",
+    "priority_text": "P2",
+    "source_lines": "L1199–1236",
+    "acting": false
+   },
+   {
+    "item_id": "BL-D16",
+    "collection": "data_acq",
+    "new": false,
+    "title": "DART / KIND filings: rights offerings, listings, lock-ups, buybacks",
+    "data": "DART / KIND filings: rights offerings, listings, lock-ups, buybacks",
+    "source": "DART OpenAPI, KIND",
+    "freq": "Event",
+    "licence": "Not recorded",
+    "needed_by": "BL-O03, BL-O04",
+    "settling_test_ids": [],
+    "spec_refs": [],
+    "priority": "P2",
+    "priority_text": "P2",
+    "source_lines": "L1199–1236",
+    "acting": false
+   },
+   {
+    "item_id": "BL-D17",
+    "collection": "data_acq",
+    "new": false,
+    "title": "Korea CPI after 2023-11 (local copy ends there); BoK base-rate series",
+    "data": "Korea CPI after 2023-11 (local copy ends there); BoK base-rate series",
+    "source": "ECOS / KOSIS",
+    "freq": "Monthly; event",
+    "licence": "Not recorded",
+    "needed_by": "R-13 context log",
+    "settling_test_ids": [],
+    "spec_refs": [
+     "R-13"
+    ],
+    "priority": "P2",
+    "priority_text": "P2",
+    "source_lines": "L1199–1236",
+    "acting": false
+   },
+   {
+    "item_id": "BL-D18",
+    "collection": "data_acq",
+    "new": false,
+    "title": "ACM term premium",
+    "data": "ACM term premium",
+    "source": "NY Fed",
+    "freq": null,
+    "licence": null,
+    "needed_by": "BL-O14",
+    "settling_test_ids": [],
+    "spec_refs": [],
+    "priority": "P3",
+    "priority_text": "P3",
+    "source_lines": "L1199–1236",
+    "acting": false
+   },
+   {
+    "item_id": "BL-D19",
+    "collection": "data_acq",
+    "new": false,
+    "title": "SPF dispersion",
+    "data": "SPF dispersion",
+    "source": "Philadelphia Fed",
+    "freq": null,
+    "licence": null,
+    "needed_by": "BL-O09",
+    "settling_test_ids": [],
+    "spec_refs": [],
+    "priority": "P3",
+    "priority_text": "P3",
+    "source_lines": "L1199–1236",
+    "acting": false
+   },
+   {
+    "item_id": "BL-D20",
+    "collection": "data_acq",
+    "new": false,
+    "title": "WGC/IMF official gold purchases",
+    "data": "WGC/IMF official gold purchases",
+    "source": "WGC, IMF",
+    "freq": null,
+    "licence": null,
+    "needed_by": "BL-U07",
+    "settling_test_ids": [],
+    "spec_refs": [],
+    "priority": "P3",
+    "priority_text": "P3",
+    "source_lines": "L1199–1236",
+    "acting": false
+   },
+   {
+    "item_id": "BL-D21",
+    "collection": "data_acq",
+    "new": true,
+    "title": "KRX official daily closes: KOSPI from 1997-04 with Saturday sessions before 1998-12-12 included; KODEX 200 and constituents; timestamped. ETF iNAV at the close for R-27's LP-exempt check (KODEX pair residual > 30 bp flagged)",
+    "data": "KRX official daily closes: KOSPI from 1997-04 with Saturday sessions before 1998-12-12 included; KODEX 200 and constituents; timestamped. ETF iNAV at the close for R-27's LP-exempt check (KODEX pair residual > 30 bp flagged)",
+    "source": "KRX data marketplace, or KIS history loader (QF4 open: \"KIS / FMP / KRX marketplace\")",
+    "freq": "Daily",
+    "licence": "Not recorded",
+    "needed_by": "R-01 (official close primary; vendor secondary within 1 bp indices, exact stocks; QF2-M4); R-06 KR formal run (Level-2 tolerance vs vendor file); R-22 episodes; R-27",
+    "settling_test_ids": [],
+    "spec_refs": [
+     "R-01",
+     "R-06",
+     "R-22",
+     "R-27"
+    ],
+    "priority": "P1",
+    "priority_text": "P1 blocks R-06 KR formal run",
+    "source_lines": "L1199–1236",
+    "acting": false
+   },
+   {
+    "item_id": "BL-D22",
+    "collection": "data_acq",
+    "new": true,
+    "title": "Effective-dated calendars and regime tags. KRX: 15:00 close before 2016-08-01; CSAT-day close 07:30Z; first-trading-day 10:00 opens; Saturday sessions to 1998-12-12; lunch break to 2000-05; random end conditional until 2015-06-15, unconditional ≤ 30 s since; NXT 15:40–20:00 and KRX 16:00–20:00 after-markets (KRX from 2026-09-14). NYSE early closes; Fed and SIFMA holidays; Korean substitute holidays. Publication: H.15 16:15 ET on D+1; H.10 Mondays 16:15 ET or next business day after a Fed holiday; Treasury ≈ 18:00 ET; BLS 08:30 ET; BoK decision ≈ 09:50 KST, press ≈ 11:10 KST. Regime tags: price limits ±6% Apr-1995, ±8% Nov-1996, ±12% Mar-1998, ±15% Dec-1998, ±30% 15-Jun-2015; 1997 won peg; short-sale-ban regimes; sell tax 0.30 → 0.15 → 0.20%; no ETF before Oct-2002",
+    "data": "Effective-dated calendars and regime tags. KRX: 15:00 close before 2016-08-01; CSAT-day close 07:30Z; first-trading-day 10:00 opens; Saturday sessions to 1998-12-12; lunch break to 2000-05; random end conditional until 2015-06-15, unconditional ≤ 30 s since; NXT 15:40–20:00 and KRX 16:00–20:00 after-markets (KRX from 2026-09-14). NYSE early closes; Fed and SIFMA holidays; Korean substitute holidays. Publication: H.15 16:15 ET on D+1; H.10 Mondays 16:15 ET or next business day after a Fed holiday; Treasury ≈ 18:00 ET; BLS 08:30 ET; BoK decision ≈ 09:50 KST, press ≈ 11:10 KST. Regime tags: price limits ±6% Apr-1995, ±8% Nov-1996, ±12% Mar-1998, ±15% Dec-1998, ±30% 15-Jun-2015; 1997 won peg; short-sale-ban regimes; sell tax 0.30 → 0.15 → 0.20%; no ETF before Oct-2002",
+    "source": "KRX notices; Fed H.10/H.15; Treasury; BLS; SIFMA; KASI; `exchange_calendars` XKRX cross-check; press/broker notices",
+    "freq": "Effective-dated",
+    "licence": "`exchange_calendars` open source; rest not recorded",
+    "needed_by": "R-20; R-19; R-10; R-22 regime lines; T-AVAIL-01; T-CLOSE-02",
+    "settling_test_ids": [],
+    "spec_refs": [
+     "R-20",
+     "R-19",
+     "R-10",
+     "R-22"
+    ],
+    "priority": "P1",
+    "priority_text": "P1 (R-20 is P0, M1)",
+    "source_lines": "L1199–1236",
+    "acting": false
+   },
+   {
+    "item_id": "BL-D23",
+    "collection": "data_acq",
+    "new": true,
+    "title": "Kenneth R. French daily Mkt-RF and RF, 1926-07 → 2026-08",
+    "data": "Kenneth R. French daily Mkt-RF and RF, 1926-07 → 2026-08",
+    "source": "French Data Library",
+    "freq": "Daily",
+    "licence": "DL-A's fetch refused (HTTP 403); local daily files start 1990-01-02 (DLA-U6)",
+    "needed_by": "ST-01: R-29 settling run",
+    "settling_test_ids": [
+     "ST-01"
+    ],
+    "spec_refs": [
+     "R-29"
+    ],
+    "priority": "P1",
+    "priority_text": "P1 blocks ST-01",
+    "source_lines": "L1199–1236",
+    "acting": false
+   },
+   {
+    "item_id": "BL-D24",
+    "collection": "data_acq",
+    "new": true,
+    "title": "KOSPI 200 futures and mini: daily OHLC and settlement, front month, roll-adjusted with roll dates, back to 1996 if available",
+    "data": "KOSPI 200 futures and mini: daily OHLC and settlement, front month, roll-adjusted with roll dates, back to 1996 if available",
+    "source": "KRX / KIS",
+    "freq": "Daily",
+    "licence": "Not recorded",
+    "needed_by": "R-26 granularity floor and roll-cost line (QF1-A17); R-06 KR futures line (above notional floor only); BL-G08; ST-05",
+    "settling_test_ids": [
+     "ST-05"
+    ],
+    "spec_refs": [
+     "R-26",
+     "R-06"
+    ],
+    "priority": "P2",
+    "priority_text": "P2 (QF6 proposed P1; council made the line conditional on D5)",
+    "source_lines": "L1199–1236",
+    "acting": false
+   },
+   {
+    "item_id": "BL-D25",
+    "collection": "data_acq",
+    "new": true,
+    "title": "KTB 3y/10y futures and KRX USD futures, daily from 2006, with roll calendars",
+    "data": "KTB 3y/10y futures and KRX USD futures, daily from 2006, with roll calendars",
+    "source": "KIS (feed carries KOSPI200, KTB, USD futures; QF5)",
+    "freq": "Daily",
+    "licence": "Not recorded",
+    "needed_by": "ST-05 (QF5-M8); R-17 FX sleeve instrument",
+    "settling_test_ids": [
+     "ST-05"
+    ],
+    "spec_refs": [
+     "R-17"
+    ],
+    "priority": "P2",
+    "priority_text": "P2",
+    "source_lines": "L1199–1236",
+    "acting": false
+   },
+   {
+    "item_id": "BL-D26",
+    "collection": "data_acq",
+    "new": true,
+    "title": "US index futures (Micro E-mini ≈ ₩52m; E-mini): KIS quotes (to confirm) and CME front-month history with declared roll calendar",
+    "data": "US index futures (Micro E-mini ≈ ₩52m; E-mini): KIS quotes (to confirm) and CME front-month history with declared roll calendar",
+    "source": "KIS / CME",
+    "freq": "Daily",
+    "licence": "Not recorded",
+    "needed_by": "R-29 instrument book (D5 option (a)); R-26 roll-cost line",
+    "settling_test_ids": [],
+    "spec_refs": [
+     "R-29",
+     "R-26"
+    ],
+    "priority": "P2",
+    "priority_text": "P2: promotion waits on D5",
+    "source_lines": "L1199–1236",
+    "acting": false
+   },
+   {
+    "item_id": "BL-D27",
+    "collection": "data_acq",
+    "new": true,
+    "title": "KOSPI 200 option-board snapshots: own model-free implied variance and ATM/25Δ vols at 15:30 KST (`timing: live`)",
+    "data": "KOSPI 200 option-board snapshots: own model-free implied variance and ATM/25Δ vols at 15:30 KST (`timing: live`)",
+    "source": "KIS option board (Derivatives page reads it)",
+    "freq": "Daily (+ intraday optional)",
+    "licence": "\"Costs nothing\" (QF6)",
+    "needed_by": "R-13 live implied-vol (QF6-M6); VRP context (QF6-M10); R-16 implied mode; ST-09 (≈ 2 years needed)",
+    "settling_test_ids": [
+     "ST-09"
+    ],
+    "spec_refs": [
+     "R-13",
+     "R-16"
+    ],
+    "priority": "P1",
+    "priority_text": "P1 start logging now",
+    "source_lines": "L1199–1236",
+    "acting": false
+   },
+   {
+    "item_id": "BL-D28",
+    "collection": "data_acq",
+    "new": true,
+    "title": "KOSPI 200 options EOD: settlement prices, IV by strike/expiry, open interest",
+    "data": "KOSPI 200 options EOD: settlement prices, IV by strike/expiry, open interest",
+    "source": "KRX Data Marketplace",
+    "freq": "Daily",
+    "licence": "Not recorded",
+    "needed_by": "R-16 surface history/skew; MFIV reconstruction; short-vol card history",
+    "settling_test_ids": [],
+    "spec_refs": [
+     "R-16"
+    ],
+    "priority": "P2",
+    "priority_text": "P2",
+    "source_lines": "L1199–1236",
+    "acting": false
+   },
+   {
+    "item_id": "BL-D29",
+    "collection": "data_acq",
+    "new": true,
+    "title": "VIX and VIX3M live snapshots at 16:00 ET",
+    "data": "VIX and VIX3M live snapshots at 16:00 ET",
+    "source": "Cboe via licensed/delayed feed",
+    "freq": "Daily",
+    "licence": "Licensed or delayed",
+    "needed_by": "R-13 (QF6-M6); ST-09",
+    "settling_test_ids": [
+     "ST-09"
+    ],
+    "spec_refs": [
+     "R-13"
+    ],
+    "priority": "P2",
+    "priority_text": "P2",
+    "source_lines": "L1199–1236",
+    "acting": false
+   },
+   {
+    "item_id": "BL-D30",
+    "collection": "data_acq",
+    "new": true,
+    "title": "Daily ETF constituent baskets (PDF) for KODEX 200 and leveraged products",
+    "data": "Daily ETF constituent baskets (PDF) for KODEX 200 and leveraged products",
+    "source": "KIS or KRX (to confirm; QF4 open)",
+    "freq": "Daily",
+    "licence": "Not recorded",
+    "needed_by": "R-07 look-through caps (QF4-M4; leveraged × L)",
+    "settling_test_ids": [],
+    "spec_refs": [
+     "R-07"
+    ],
+    "priority": "P1",
+    "priority_text": "P1 (R-07 is P0, M5)",
+    "source_lines": "L1199–1236",
+    "acting": false
+   },
+   {
+    "item_id": "BL-D31",
+    "collection": "data_acq",
+    "new": true,
+    "title": "Korean call rate, daily, for the excess-return cash convention (Korean rates 16–25% in 1997–98: raw Sharpe with cash at 0 is not a Sharpe)",
+    "data": "Korean call rate, daily, for the excess-return cash convention (Korean rates 16–25% in 1997–98: raw Sharpe with cash at 0 is not a Sharpe)",
+    "source": "BoK ECOS (to verify)",
+    "freq": "Daily",
+    "licence": "Not recorded (ECOS key, as BL-D13)",
+    "needed_by": "R-22 excess returns; R-06 KR formal run",
+    "settling_test_ids": [],
+    "spec_refs": [
+     "R-22",
+     "R-06"
+    ],
+    "priority": "P1",
+    "priority_text": "P1 blocks R-06 KR convention (research files used the monthly CD rate from the end of its own month, PX2)",
+    "source_lines": "L1199–1236",
+    "acting": false
+   }
+  ],
+  "data_quality": [
+   {
+    "item_id": "DQ-01",
+    "collection": "data_quality",
+    "title": "`yahoo_daily/`, every Asian 2-Oct-2026 row",
+    "series": "`yahoo_daily/`, every Asian 2-Oct-2026 row",
+    "problem": "File written 10:56:46 KST mid-session; KOSPI \"close\" 6,943.66 was a ~10:30 KST print (volume 99,651 vs final 227,641); official 7,003.74 (+0.46%, not −0.40%); KOSDAQ 893.82 → 893.29; Samsung ₩273,750 → ₩276,000; SK hynix ₩1,832,000 → ₩1,841,000; Nikkei 68,219.06 → 68,309.46; TAIEX 48,223.71 → 48,475.74; HSI 23,938.95 → 23,945.02. v1.2 PIT audit accepted the row (available 01:30Z ≤ 06:30Z): nothing distinguished provisional from official",
+    "found_by": "QF1-A3, QF2-A1, QF4-A12, QF6-A12",
+    "control": "Patched (DQ-02). R-01: `value_status`, `session_date`, `retrieved_at_utc`, provisional-row guard. T-PROV-01: MissingInput at 10:31 KST; 7,003.74 at 16:00 KST. T-FIX-01 refuses a fixture whose last row was retrieved before official close + 10 min",
+    "blocking_data": [],
+    "source_lines": "L1248–1271",
+    "acting": false
+   },
+   {
+    "item_id": "DQ-02",
+    "collection": "data_quality",
+    "title": "The patch 2026-10-02 17:20 KST; log `quantgen_macro_data/results/QF0_data_patch_20261002.csv`",
+    "series": "The patch 2026-10-02 17:20 KST; log `quantgen_macro_data/results/QF0_data_patch_20261002.csv`",
+    "problem": "60 actions (55 on 2 Oct; 3 Oct: 3 duplicate-date drops, 2 provisional `yahoo_long` rows). 7 closes replaced in `yahoo_daily` (^KS11, ^KQ11, 005930.KS, 000660.KS, ^N225, ^TWII, ^HSI), 1 in `yahoo_long` (^HSI 23,936.93 → 23,945.02). Provisional 2-Oct bars of 24-hour instruments dropped (KRW=X, JPY=X, CNY=X, EURUSD=X, TWD=X, BTC-USD; `yahoo_long` KRW=X, JPY=X; 3 Oct CL=F 91.90, GC=F 4,211.0). Partial-month 2026-10 row dropped from 39 `yahoo_monthly` files (end 2026-09). Official closes from Yahoo `regularMarketTime`. Pre-patch in `_snapshots/` (`yahoo_daily_as_fetched_20261002_1056KST`, `yahoo_long_as_fetched_20261002_1555KST`, `yahoo_monthly_as_fetched_20261002_1056KST`)",
+    "found_by": "Patch log (`CATALOG.md`); DL-A §7",
+    "control": "Effects: 24 values corrected, 12 unchanged, no verdict changed. Examples: drawdown −23.2% (not −23.8%); close/200d 1.107 (not 1.098); rv20 28.8% (not 28.9%); vt at 2-Oct close 0.694 (`w_next` 0.691 → 0.694); G-KR-01 0.637; G-KR-02 0.641 / 0.638 / 0.609; §8.9 p_ni at 10-session blocks 0.246; pair share ≈ 53.6%; KRW=X ends 1 Oct at 1,356.84 (20-obs change −0.11%, not 1,360.63 / +0.38%), S1 flag OFF. **Not recomputed after the patch:** cap-1.5 VT Sharpe 0.534, SMA60 0.550, EWMA (hl 10) 0.607, EWMA at 35 bp 0.573, Korea stock-book 2× ΔSR −0.061, R-11 protective rows → rerun is a SPEC-REWRITE §9.3 item (TASK-M2-09). UNVERIFIED: Seoul Shinmun 2-Oct USD/KRW close 1,350.6. GC=F duplicated 1-Oct 4,177.2 provisional; patch keeps 4,202.3 (CL=F 92.87, DX-Y.NYB); A12 regenerated. Regenerate R4/R4b goldens on official closes before freezing fixtures",
+    "blocking_data": [],
+    "source_lines": "L1248–1271",
+    "acting": false
+   },
+   {
+    "item_id": "DQ-03",
+    "collection": "data_quality",
+    "title": "^GSPC opens (Yahoo)",
+    "series": "^GSPC opens (Yahoo)",
+    "problem": "Open = previous close on 41% of days: 97–100% 1996–2005, 25–78% 1990–95 and 2006–07, near 0 after 2008. Garman–Klass, Rogers–Satchell, Yang–Zhang invalid for the US index before ~2008; Parkinson unaffected. Not flagged in `QF0_yahoo_long_quality.csv`",
+    "found_by": "QF1 §4.8; QF6 §4.8; DL-B",
+    "control": "OHLC open-quality flags (QF6-M11; R-01). Use SPY for open-based US work. Tripped flag → R-30 range estimators fall back to SMA20",
+    "blocking_data": [],
+    "source_lines": "L1248–1271",
+    "acting": false
+   },
+   {
+    "item_id": "DQ-04",
+    "collection": "data_quality",
+    "title": "JPY=X (Yahoo)",
+    "series": "JPY=X (Yahoo)",
+    "problem": "Vendor error 2008-12-08 (+17.7%)",
+    "found_by": "QF5",
+    "control": "Add to QF0 quality table, exclude. FX OHLC unreliable: close only",
+    "blocking_data": [],
+    "source_lines": "L1248–1271",
+    "acting": false
+   },
+   {
+    "item_id": "DQ-05",
+    "collection": "data_quality",
+    "title": "069500.KS KODEX 200 (Yahoo)",
+    "series": "069500.KS KODEX 200 (Yahoo)",
+    "problem": "800-day hole 2007-02-08 → 2009-04-17 (GFC missing); 578 NaN-close rows dropped",
+    "found_by": "QF1-A24; `CATALOG.md`",
+    "control": "Listed in QF0 table. Formal Korea runs use KRX official closes (BL-D21)",
+    "blocking_data": [
+     "BL-D21"
+    ],
+    "source_lines": "L1248–1271",
+    "acting": false
+   },
+   {
+    "item_id": "DQ-06",
+    "collection": "data_quality",
+    "title": "000660.KS SK hynix (Yahoo)",
+    "series": "000660.KS SK hynix (Yahoo)",
+    "problem": "`adjclose` negative on 778 rows up to 2002-12-26; raw close has split jumps",
+    "found_by": "QF1-A24",
+    "control": "Never stored as a close (R-01)",
+    "blocking_data": [],
+    "source_lines": "L1248–1271",
+    "acting": false
+   },
+   {
+    "item_id": "DQ-07",
+    "collection": "data_quality",
+    "title": "KRX hourly bars (Yahoo, last ~730 days)",
+    "series": "KRX hourly bars (Yahoo, last ~730 days)",
+    "problem": "Closing auction missing: on 727 of 729 days last bar is 14:00–15:00; 15:00–15:30 absent; last-bar vs official close median 13.7 bp, p95 59 bp, max 205 bp (2026-06-23); Samsung median 26.5 bp, max 388 bp; CSAT days bars stop at 15:00",
+    "found_by": "QF2-A23; EX2",
+    "control": "R-27 bar convention: `bar_end` stamps, closing auction its own bar. A daily close is never derived from bars (R-01)",
+    "blocking_data": [],
+    "source_lines": "L1248–1271",
+    "acting": false
+   },
+   {
+    "item_id": "DQ-08",
+    "collection": "data_quality",
+    "title": "KOSPI before 1998-12-12 (Yahoo)",
+    "series": "KOSPI before 1998-12-12 (Yahoo)",
+    "problem": "Saturday sessions omitted; 1997–98 Monday returns span two sessions (Mon / Tue–Fri variance ratio 2.30 vs 1.33 / 1.15 / 1.11 later)",
+    "found_by": "EX2 (X-EX2-N1)",
+    "control": "R-20 regime tag `saturday_session`. Formal Korea runs use KRX official closes with Saturdays (BL-D21)",
+    "blocking_data": [
+     "BL-D21"
+    ],
+    "source_lines": "L1248–1271",
+    "acting": false
+   },
+   {
+    "item_id": "DQ-09",
+    "collection": "data_quality",
+    "title": "KRX price-limit regimes",
+    "series": "KRX price-limit regimes",
+    "problem": "±6% Apr-1995, ±8% Nov-1996, ±12% Mar-1998, ±15% Dec-1998, ±30% 15-Jun-2015",
+    "found_by": "EX2",
+    "control": "R-20 tag `price_limit`; per-regime lines on every long-sample card (R-22); regime metadata in R-16 replays",
+    "blocking_data": [],
+    "source_lines": "L1248–1271",
+    "acting": false
+   },
+   {
+    "item_id": "DQ-10",
+    "collection": "data_quality",
+    "title": "Other Korean structure breaks",
+    "series": "Other Korean structure breaks",
+    "problem": "Lunch break until May-2000; 15:00 close until 2016-08-01 (142 golden-sample sessions closed 06:00Z); random end conditional until 2015-06-15, ≤ 30 s since; CSAT close 07:30Z; 10:00 first-day opens; won pegged 914–915 until late Oct-1997; no ETF before Oct-2002; four short-sale-ban regimes; after-markets",
+    "found_by": "QF2-A12, A13; QF1-A4; EX2",
+    "control": "R-20 tags. T-CLOSE-02 tests special closes; KRX `available_at` bounded at 06:30:30Z. A vendor \"last\" after 15:30 is never stored as the close",
+    "blocking_data": [],
+    "source_lines": "L1248–1271",
+    "acting": false
+   },
+   {
+    "item_id": "DQ-11",
+    "collection": "data_quality",
+    "title": "^KS11 (Yahoo)",
+    "series": "^KS11 (Yahoo)",
+    "problem": "Flat zero-volume rows 2024-09-12, 2026-06-29 (29-Jun close valid 8,394.65, OHLC missing); no close on 2011-10-04, a real session",
+    "found_by": "QF1-A24; QF2 §4.5",
+    "control": "Flat rows dropped from OHLC statistics; R-01 never stores a flat zero-volume close",
+    "blocking_data": [],
+    "source_lines": "L1248–1271",
+    "acting": false
+   },
+   {
+    "item_id": "DQ-12",
+    "collection": "data_quality",
+    "title": "005930.KS Samsung (Yahoo)",
+    "series": "005930.KS Samsung (Yahoo)",
+    "problem": "Stale-carry rows (flat OHLC, zero volume) on 2020-03-09, 2020-03-12, 2017-09-26, 2022-01-26 + 10 more Jan–Mar 2022; 50:1 split already adjusted (2018-04-27 = 53,000); halt rows 2018-04-30 → 05-03 flat zero volume",
+    "found_by": "QF2 §4.5, §4.6",
+    "control": "QF2-M4 rejects stale-carry rows; corporate-action table flags halt rows (not zero returns)",
+    "blocking_data": [],
+    "source_lines": "L1248–1271",
+    "acting": false
+   },
+   {
+    "item_id": "DQ-13",
+    "collection": "data_quality",
+    "title": "252670.KS KODEX 200 Futures Inverse 2X",
+    "series": "252670.KS KODEX 200 Futures Inverse 2X",
+    "problem": "Traded ₩62–130 in 2026 (₩69): one tick 77–161 bp; returns quantised 1–1.45% on 42% of 2026 sessions; −99.3% over 2016–2026",
+    "found_by": "QF1-A6; QF6 §4.8",
+    "control": "R-26 tick floor (T-COST-02: 252670 at ₩69 charged ≥ 72 bp per side). Unusable as a return series without a tick-noise filter",
+    "blocking_data": [],
+    "source_lines": "L1248–1271",
+    "acting": false
+   },
+   {
+    "item_id": "DQ-14",
+    "collection": "data_quality",
+    "title": "Yahoo FX daily bars",
+    "series": "Yahoo FX daily bars",
+    "problem": "Stamped UK midnight: lag for KRX and US closes; FX and GC=F OHLC unreliable: close only",
+    "found_by": "QF5 §9",
+    "control": "R-19 / R-20 availability. KRW inputs = ECOS 15:30 close or 15:30:00 KST snapshot (Resolution 8; BL-D13)",
+    "blocking_data": [
+     "BL-D13"
+    ],
+    "source_lines": "L1248–1271",
+    "acting": false
+   },
+   {
+    "item_id": "DQ-15",
+    "collection": "data_quality",
+    "title": "DEXKOUS (H.10, noon NY)",
+    "series": "DEXKOUS (H.10, noon NY)",
+    "problem": "Differs from ECOS 15:30 by up to +5.8% (30-Dec-1997); prints on Seoul holidays (18-Dec-1997); onshore price frozen Sep–Oct 1997",
+    "found_by": "EX2 (X-EX2-N4)",
+    "control": "Labelled proxy only; any FX-based rule records the FX regime as metadata",
+    "blocking_data": [],
+    "source_lines": "L1248–1271",
+    "acting": false
+   },
+   {
+    "item_id": "DQ-16",
+    "collection": "data_quality",
+    "title": "Cross-market close times",
+    "series": "Cross-market close times",
+    "problem": "Nikkei close 15:00 → 15:30 JST on 2024-11-05 (= KRX close 06:30Z); Shanghai ≈ 16:00 KST and HKEX ≈ 17:00 KST close after KRX (UNVERIFIED)",
+    "found_by": "QF2-A21; QF5",
+    "control": "`usable_at` rule: usable only if official_close_utc(market, D) + buffer < decision_utc (R-19)",
+    "blocking_data": [],
+    "source_lines": "L1248–1271",
+    "acting": false
+   },
+   {
+    "item_id": "DQ-17",
+    "collection": "data_quality",
+    "title": "FRED SAHMCURRENT / SAHMREALTIME",
+    "series": "FRED SAHMCURRENT / SAHMREALTIME",
+    "problem": "Values span the missing Oct-2025 observation (SAHMCURRENT 0.25 for Oct-2025 with UNRATE missing; SAHMREALTIME Nov-2025 0.43 vs 0.35 current)",
+    "found_by": "QF2-A20",
+    "control": "R-13 computes Sahm in-house (gap → NaN); T-MISS-01",
+    "blocking_data": [],
+    "source_lines": "L1248–1271",
+    "acting": false
+   },
+   {
+    "item_id": "DQ-18",
+    "collection": "data_quality",
+    "title": "Research-dataset vintages",
+    "series": "Research-dataset vintages",
+    "problem": "French factor returns \"differ substantially depending on when the data were downloaded\"",
+    "found_by": "QF2-C14",
+    "control": "Every fixture hashed; golden values vintage-bound (R-01)",
+    "blocking_data": [],
+    "source_lines": "L1248–1271",
+    "acting": false
+   },
+   {
+    "item_id": "DQ-19",
+    "collection": "data_quality",
+    "title": "Narrative macro numbers",
+    "series": "Narrative macro numbers",
+    "problem": "Payroll revisions quoted at preliminary (−818k/−911k); finals −598k NSA (2024), −898k SA / −862k NSA (2025); 2025 payrolls 119.4k/month first prints vs 9.7k current",
+    "found_by": "QF2-A18, A19",
+    "control": "Erratum applied (§6.6); R-13 stores first release and final with vintage dates (BL-D04)",
+    "blocking_data": [
+     "BL-D04"
+    ],
+    "source_lines": "L1248–1271",
+    "acting": false
+   },
+   {
+    "item_id": "DQ-20",
+    "collection": "data_quality",
+    "title": "Press numbers typed by hand",
+    "series": "Press numbers typed by hand",
+    "problem": "JoongAng 6,917.35 for 1 Oct where points/percent imply 6,971.35",
+    "found_by": "QF2 §4.5",
+    "control": "Internal-consistency check (level, points, %) for any press number (QF2-M4)",
+    "blocking_data": [],
+    "source_lines": "L1248–1271",
+    "acting": false
+   },
+   {
+    "item_id": "DQ-21",
+    "collection": "data_quality",
+    "title": "Korean cash rate in research scripts",
+    "series": "Korean cash rate in research scripts",
+    "problem": "`qf5_common.rf_daily_kr` uses the monthly CD rate from the end of its own month (lag); CD rates monthly only",
+    "found_by": "PX2; QF5",
+    "control": "Daily call rate (BL-D31) for R-22 excess returns",
+    "blocking_data": [
+     "BL-D31"
+    ],
+    "source_lines": "L1248–1271",
+    "acting": false
+   },
+   {
+    "item_id": "DQ-22",
+    "collection": "data_quality",
+    "title": "Checked sound / UNVERIFIED",
+    "series": "Checked sound / UNVERIFIED",
+    "problem": "Sound: crash-day closes 4 Mar 2026 5,093.54; 23 Jun 8,203.84; 31 Jul 6,595.45; 5 Aug 2024 2,441.55; zero-return 2018-10-16 genuine (2,145.12). UNVERIFIED: Treasury 2026 par-yield row for 7 Jul (10y) looks like a fetch-tool transcription error; 4 of 5 checked dates match DGS10",
+    "found_by": "QF2 §4.5, §8",
+    "control": "No action for sound rows; Treasury row covered by posting-time and two-channel log (BL-D14)",
+    "blocking_data": [
+     "BL-D14"
+    ],
+    "source_lines": "L1248–1271",
+    "acting": false
+   }
+  ]
+ }
+}

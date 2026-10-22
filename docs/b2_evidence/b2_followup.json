@@ -1,0 +1,13 @@
+{
+ "gbm_demo_reason": "information matrix eigenvalues [-6.19429503e+00  6.15406699e+02  1.24070387e+03  4.17460066e+10] -> not positive definite",
+ "misspec_eta_mean": 0.13488763324313566,
+ "misspec_eta_bias": -0.031779033423531,
+ "misspec_eta_sd": 0.027862041959030564,
+ "t500_profile": {
+  "median_nu_low": 3.949596075212728,
+  "median_nu_high_finite": 11.902147581915937,
+  "share_upper_normal_cut192": 0.02,
+  "share_upper_normal_cut135": 0.0,
+  "coverage_eta": 0.93
+ }
+}

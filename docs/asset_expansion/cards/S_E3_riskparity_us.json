@@ -1,0 +1,166 @@
+{
+ "card_id": "S_E3_riskparity_us",
+ "kind": "strategy",
+ "hypothesis": "Equal-risk-contribution allocation across sleeves beats equal weight on Sharpe (unlevered; the 2022 stock-bond correlation regime is inside the sample)",
+ "rules": {
+  "family": "risk_parity",
+  "grid": [
+   {
+    "window": 125,
+    "step": 21
+   },
+   {
+    "window": 125,
+    "step": 63
+   },
+   {
+    "window": 250,
+    "step": 21
+   },
+   {
+    "window": 250,
+    "step": 63
+   },
+   {
+    "window": 500,
+    "step": 21
+   },
+   {
+    "window": 500,
+    "step": 63
+   },
+   {
+    "window": 750,
+    "step": 21
+   },
+   {
+    "window": 750,
+    "step": 63
+   }
+  ],
+  "cost_bps_per_side": 50.0,
+  "embargo": 63
+ },
+ "universe": {
+  "symbols": [
+   "SPY",
+   "TLT",
+   "GLD"
+  ],
+  "venue": "us"
+ },
+ "data": {
+  "sessions": 5489,
+  "start": "2004-12-01",
+  "end": "2026-09-25",
+  "source": "Yahoo adjusted close unless stated"
+ },
+ "costs": {
+  "cost_bps": 50.0,
+  "stress_multiplier": 2.0
+ },
+ "protocol": {
+  "w_is": 756,
+  "w_oos": 126,
+  "min_is": 504,
+  "ci_level": 0.9,
+  "bootstrap_B": 2000,
+  "block": 10
+ },
+ "trials": {
+  "N_planned": 8,
+  "N_total": 8,
+  "ledger": []
+ },
+ "seed": 11,
+ "stats": {
+  "sr_oos": 0.8921656902027266,
+  "se_lo": 0.23250430589904153,
+  "ci90": [
+   0.5128108772305098,
+   1.2744671921882862
+  ],
+  "sr_is": 1.0789652542330113,
+  "oos_is": 0.8268715667187335,
+  "dsr": 0.9998075377531361,
+  "pbo": 0.3463869463869464,
+  "pbo_slope": -0.9887965335795428,
+  "prob_loss_oos": 0.0,
+  "sr_stress": 0.8708508771486905,
+  "turnover_annual": 0.40380559311209774,
+  "n_trades": 142,
+  "n_sessions": 4669,
+  "years_positive": 0.8421052631578947,
+  "n_years": 19,
+  "max_year_share": 0.1072502047395868,
+  "plateau": 1.0,
+  "edge": true,
+  "total_return": 3.4381847687869183,
+  "max_drawdown": -0.23401733335386965,
+  "haircut_sr": 0.535299414121636,
+  "bench_sr": 0.8574229025702071,
+  "n_trials": 8,
+  "n_configs": 8,
+  "bench_diff": 0.03474278763251948,
+  "bench_p": 0.254,
+  "bench_ci": [
+   -0.05853358961532845,
+   0.12397478859750906
+  ],
+  "bench_mdd": -0.22736961813964973,
+  "decision": "REJECT",
+  "reason": "does not beat its benchmark (Sharpe difference +0.03, p 0.25)",
+  "revise_target": "the sleeve set or the cost model, not the rule: the benchmark is as good",
+  "regime": {
+   "high_vol": 0.6956927371849124,
+   "low_vol": 1.2248570191496109,
+   "up_market": 0.955339105283237,
+   "down_market": 0.7810157469720075
+  },
+  "chosen_last": {
+   "window": 125,
+   "step": 63
+  },
+  "bench_sharpe": 0.8574229025702071,
+  "walk_forward": "IS 756 / OOS 126 / embargo 63; 38 origins; 8 configs",
+  "seconds": 9.9
+ },
+ "tests": {
+  "dsr": 0.9998075377531361,
+  "pbo": 0.3463869463869464,
+  "ci90": [
+   0.5128108772305098,
+   1.2744671921882862
+  ],
+  "sr_stress": 0.8708508771486905
+ },
+ "decision": "REJECT",
+ "decision_reason": "does not beat its benchmark (Sharpe difference +0.03, p 0.25)",
+ "revise_target": "the sleeve set or the cost model, not the rule: the benchmark is as good",
+ "lines": [
+  "Out-of-sample Sharpe 0.89 over 4,669 sessions (19 years); Lo standard error 0.23; 90 % block-bootstrap interval 0.51 to 1.27: passes (the interval must exclude zero).",
+  "Deflated Sharpe 1.00 after 8 trials: passes (needs ≥ 0.95).",
+  "Probability of backtest overfitting 0.35 over the 8-config grid; the in-sample winner loses out of sample in 0% of the splits: passes (PBO ≤ 0.05, or ≤ 10% losing splits because near-identical configurations put PBO at 0.5 by construction; rejected when PBO > 0.2 and the winner also loses).",
+  "Out-of-sample over in-sample Sharpe 0.83: passes (needs ≥ 0.5).",
+  "Against the benchmark (Sharpe 0.86): difference +0.03, paired block-bootstrap 90 % interval -0.06 to +0.12, one-sided p 0.25: fails (the claim 'beats the benchmark' needs p ≤ 0.1); max drawdown -23% against the benchmark's -23% (reported, not gated).",
+  "Positive in 84% of calendar years: passes (needs ≥ 60%); largest year carries 11% of the P&L.",
+  "Sharpe at 2× costs 0.87: passes (must stay positive); turnover 0.4× equity per year.",
+  "Parameter plateau 100% of neighbours keep half the Sharpe, on a grid edge: fails.",
+  "142 position changes out of sample: passes (needs ≥ 100).",
+  "Regime split (Sharpe): high-vol 0.70 / low-vol 1.22, up 0.96 / down 0.78.",
+  "Expected live Sharpe after the McLean–Pontiff haircut: 0.54."
+ ],
+ "decay_haircut": {
+  "factor": 0.6,
+  "source": "McLean-Pontiff 2016 26-58%"
+ },
+ "created": "2026-09-27",
+ "author": "QUANTGEN validation gate",
+ "results_file": "docs/asset_expansion/results.csv",
+ "results_md5": "ca757e25f508b588cb2f361719ec83cd",
+ "citations": [
+  "Asness, Frazzini & Pedersen 2012 FAJ 68",
+  "BKM Ch. 7 slides 7-5 to 7-8",
+  "Boyd §4.4.1 p. 155"
+ ]
+}

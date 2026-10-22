@@ -1,0 +1,43 @@
+{
+ "n": 50,
+ "T": 1000,
+ "without_se": 0,
+ "reasons": [],
+ "wald_omega": 0.96,
+ "wald_alpha": 0.96,
+ "wald_beta": 0.96,
+ "wald_eta": 0.9,
+ "wald_persistence": 1.0,
+ "profile_eta": 0.9,
+ "profile_reaches_normal": 0.0,
+ "lr_le_5pct": 0.0,
+ "median_se": {
+  "omega": 1.0443051873351936e-06,
+  "alpha": 0.02107920509399605,
+  "beta": 0.025125279592790727,
+  "eta": 0.030472515660635375,
+  "persistence": 0.013318435806529284
+ },
+ "sd_estimates": {
+  "alpha": 0.018442946459701383,
+  "beta": 0.02385440342373933,
+  "eta": 0.034757126405864223
+ },
+ "median_nu_interval": [
+  4.34584018051053,
+  9.031976114713613
+ ],
+ "interval_at_bound_share": {
+  "alpha": 0.0,
+  "beta": 0.0,
+  "persistence": 0.84,
+  "nu": 0.0
+ },
+ "at_bound_share": {
+  "omega": 0.0,
+  "alpha": 0.0,
+  "beta": 0.0,
+  "nu": 0.0,
+  "stationarity": 0.04
+ }
+}

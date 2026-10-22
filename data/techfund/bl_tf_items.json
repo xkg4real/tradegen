@@ -1,0 +1,450 @@
+{
+ "source": "research_notes/QUANTGEN v2 integration map/tf_dnb_backlog.md section B",
+ "r3": "QUANTGEN_techfund_research_bundle/QUANTGEN_techfund_research/research_notes/R3_TF_neural_link.md",
+ "caveat": "All lab numbers are in-sample computations on price returns without dividends, not runs of QUANTGEN's gate. Proposals pending owner confirmation; nothing here is an input to exposure (coordinator rulings 3.7-3.9).",
+ "items": [
+  {
+   "id": "BL-TF-01",
+   "g_ids": [
+    "G-39"
+   ],
+   "node": "TF-09",
+   "node_class": "CONTESTED",
+   "nodes_text": "TF-09 (CONTESTED L484-490)",
+   "item": "KRX per-name cost buckets calibrated on quotes (P4 8/15/30/50 bp non-tax vs P6 tiers vs 35 bp flat)",
+   "market": "KRX",
+   "status": "BACKLOG",
+   "settling_test": "\"Calibrate half-spread and impact on KIS quote snapshots (P4 D3 / DC-P6-05) by 20-day traded-value bucket; adopt only buckets >= 35 bp per side.\" (L489)",
+   "data_prerequisite_gate": "No KIS quote history (L487, L1333). Corwin-Schultz convention-sensitive: 22-57 bp (cap buckets) or 99-117 bp (negatives zeroed), Jan-2024..Sep-2026 (L486; CA-11 L1254). Gate n/a (calibration).",
+   "passes_when": "Binding floor: \"a bucket may raise a name's cost, never lower it below 35 bp\" (L484, L846, L818). Feeds GOV-7 cost header and INV-4 capacity (L804).",
+   "cite": "G-39 L846; TF-09 (CONTESTED L484-490)",
+   "r3_lines": [
+    "846",
+    "484-490"
+   ],
+   "acting": false,
+   "brief_line": 101
+  },
+  {
+   "id": "BL-TF-02",
+   "g_ids": [
+    "G-40"
+   ],
+   "node": "TF-14",
+   "node_class": "CORE-PROHIBITION",
+   "nodes_text": "TF-14 (CORE-PROHIBITION L367-372; DNB-TF-01)",
+   "item": "Daily-entry attention card (K-AF) and a 5-session no-new-long rule after locked limit-ups or volume spikes",
+   "market": "KRX",
+   "status": "BACKLOG (CR-06)",
+   "settling_test": "No §7 settling-test line (D-11). Register: \"a daily-entry test passing at 35/70 bp adds a 5-session no-new-long rule to INV-2\" (L847). OQ-12: \"Add the executives' five-session no-new-long window after locked limit-ups or volume spikes once BL-TF-02 tests it?\" (L1325).",
+   "data_prerequisite_gate": "Event effects -93 to -579 bp over 5-20 sessions (L847; GV-197..200 L1079-1082). Needs daily limit-state flags (L802). Not run.",
+   "passes_when": "Pass at 35/70 bp → INV-2 gains the 5-session window (owner, OQ-12). Never a monthly screen (DNB-TF-01).",
+   "cite": "G-40 L847; TF-14 (CORE-PROHIBITION L367-372; DNB-TF-01)",
+   "r3_lines": [
+    "847",
+    "367-372"
+   ],
+   "acting": false,
+   "brief_line": 102
+  },
+  {
+   "id": "BL-TF-03",
+   "g_ids": [
+    "G-41"
+   ],
+   "node": "TF-16",
+   "node_class": "CONTESTED",
+   "nodes_text": "TF-16 (CONTESTED L492-498)",
+   "item": "US low-vol DC9: alpha net of beta with FF5+Mom; S_beta comparator at 50 bp",
+   "market": "US",
+   "status": "BACKLOG (CR-01)",
+   "settling_test": "\"US: DC9 alpha net of beta with FF5+Mom and S_beta at 50 bp.\" (L497)",
+   "data_prerequisite_gate": "No US stock panel (L848). US low-beta tercile Sharpe 0.65 vs 0.41 (1954-2017, gross); USMV -5.9 pp/yr vs IVV (L494). Not run.",
+   "passes_when": "\"a US stock panel and a pass against S_beta at 50 bp\" (L848). US low-vol alpha 1, protective 1 (BACKLOG, vs S_beta) (L788). KR part is FS-3 (FORWARD-SIM descriptive), not backlog.",
+   "cite": "G-41 L848; TF-16 (CONTESTED L492-498)",
+   "r3_lines": [
+    "848",
+    "492-498"
+   ],
+   "acting": false,
+   "brief_line": 103
+  },
+  {
+   "id": "BL-TF-04",
+   "g_ids": [
+    "G-42"
+   ],
+   "node": "TF-23",
+   "node_class": "CONTESTED",
+   "nodes_text": "TF-23 (CONTESTED L508-514)",
+   "item": "52-week-high-neutral momentum and Samsung/SK hynix-capped momentum crash test on KRX",
+   "market": "KRX",
+   "status": "BACKLOG (CR-05)",
+   "settling_test": "\"52wH-neutral and Samsung/SK hynix-capped momentum on KRX with the 2026 crash replay (P2 DC-J); D-M extension only after R-04 leaves INSUFFICIENT DATA.\" (L513)",
+   "data_prerequisite_gate": "US 52wH-neutral WML* worst month -23.66% vs -74.06% (not a max drawdown; CA-08 L1251); untested on KRX (L510). Not run.",
+   "passes_when": "\"a KRX test with crash losses below the R-03-scaled book\" (L849). D-M gate (R-04 / MOM-2) stays SPEC BOOK ONLY (G-13 L810; XS-15 L1303).",
+   "cite": "G-42 L849; TF-23 (CONTESTED L508-514)",
+   "r3_lines": [
+    "849",
+    "508-514"
+   ],
+   "acting": false,
+   "brief_line": 104
+  },
+  {
+   "id": "BL-TF-05",
+   "g_ids": [
+    "G-43"
+   ],
+   "node": "TF-24",
+   "node_class": "CONTESTED",
+   "nodes_text": "TF-24 (CONTESTED L516-522)",
+   "item": "52-week high: one Tier A test inside FS-2 (quarterly rebalance variant), feature weight 1",
+   "market": "KRX",
+   "status": "BACKLOG",
+   "settling_test": "\"One pre-registered Tier A test inside the constrained-momentum card (start date fixed in the header), quarterly rebalance variant, 2x costs.\" (L521)",
+   "data_prerequisite_gate": "+0.33%/month (t 2.14) from 2001-03 but +0.13%/month (t 0.81) from 1996-03; +0.07 at 70 bp; 52wH L/S lost 20.6% after the 2026 crash (L518; CA-13 L1256). Not run as a card.",
+   "passes_when": "\"a pass inside FS-2 from both the 1996 and 2001 starts\" (L850). Weight stays 1 (feature), not the executives' 2 (L516, L522).",
+   "cite": "G-43 L850; TF-24 (CONTESTED L516-522)",
+   "r3_lines": [
+    "850",
+    "516-522"
+   ],
+   "acting": false,
+   "brief_line": 105
+  },
+  {
+   "id": "BL-TF-06",
+   "g_ids": [
+    "G-44"
+   ],
+   "node": "TF-25",
+   "node_class": "ONE-SIDED",
+   "nodes_text": "TF-25 (ONE-SIDED L574-580)",
+   "item": "Crowding / comomentum sizing multiplier in [0.5, 1.0]",
+   "market": "all",
+   "status": "BACKLOG; CONTEXT display",
+   "settling_test": "\"A comomentum multiplier must beat R-03 out of sample on a pre-registered KRX/US sleeve; until then display only.\" (L579)",
+   "data_prerequisite_gate": "No Korean comomentum series computed (L576); VIX at 19 factor-crash onsets 12.9-25.8; GS record crowding Nov-2023 followed by further outperformance (L576).",
+   "passes_when": "\"beating R-03 out of sample\" (L851). R-08 is not counted as factor-crash protection (XS-14 L1302; G-60 L872).",
+   "cite": "G-44 L851; TF-25 (ONE-SIDED L574-580)",
+   "r3_lines": [
+    "851",
+    "574-580"
+   ],
+   "acting": false,
+   "brief_line": 106
+  },
+  {
+   "id": "BL-TF-07",
+   "g_ids": [
+    "G-45"
+   ],
+   "node": "TF-29",
+   "node_class": "CONTESTED",
+   "nodes_text": "TF-29 (CONTESTED L524-530)",
+   "item": "US stock-level 12-1 momentum as an R-03-scaled composite leg, weight 1",
+   "market": "US",
+   "status": "BACKLOG",
+   "settling_test": "\"Run R-03-scaled US momentum as a composite leg at 50 bp per side on an FMP universe once a US stock panel exists.\" (L529)",
+   "data_prerequisite_gate": "French WML Sharpe 0.36 (1990-2017/03), -0.16 (2008-2017/03); NMV 1.33%/month gross -> 0.68 net; MTUM +2.1 pp/yr vs IVV with -15.2 / -17.2 pp lags (L526). No US stock sleeve.",
+   "passes_when": "\"a US stock panel and a pass at 50 bp as an R-03-scaled composite leg\" (L852). Final weight 1 (professors) vs macro R-15 \"2 if vol-scaled + D-M\" = Conflict, owner OQ-06 (XS-16 L1304; L1319).",
+   "cite": "G-45 L852; TF-29 (CONTESTED L524-530)",
+   "r3_lines": [
+    "852",
+    "524-530"
+   ],
+   "acting": false,
+   "brief_line": 107
+  },
+  {
+   "id": "BL-TF-08",
+   "g_ids": [
+    "G-46"
+   ],
+   "node": "TF-34",
+   "node_class": "CORE-PROHIBITION",
+   "nodes_text": "TF-34 (CORE-PROHIBITION L395-400; DNB-TF-05)",
+   "item": "US single-index trend / VT on a futures-cost instrument (5 bp)",
+   "market": "US",
+   "status": "BACKLOG (CR-02)",
+   "settling_test": "No §7 line. Register: \"pooled markets for sufficiency\" (L853); CR-02: \"US single-index trend at 50 bp per side is REJECT, futures cost only, BACKLOG\" (L30).",
+   "data_prerequisite_gate": "At 5 bp: PC-1 +3.8 to +14.7 pp, INSUFFICIENT (53-56% of benefit from the GFC) (L397, L853). INSUFFICIENT DATA.",
+   "passes_when": "Sufficiency via pooled markets (L853). Macro already carries this as R-29 MACRO-R06-US-FUT, a new card settled on 1926+ history (MS L6211, L6222; backlog ST-01). Weight: protective 1 at futures cost (L788; XS-09 L1297).",
+   "cite": "G-46 L853; TF-34 (CORE-PROHIBITION L395-400; DNB-TF-05)",
+   "r3_lines": [
+    "853",
+    "395-400"
+   ],
+   "acting": false,
+   "brief_line": 108
+  },
+  {
+   "id": "BL-TF-09",
+   "g_ids": [
+    "G-47"
+   ],
+   "node": "TF-35",
+   "node_class": "UNTESTED",
+   "nodes_text": "TF-35 (UNTESTED L638-644)",
+   "item": "Diversified futures trend book: B3 re-registered with >= 25 markets, fixed multi-speed ensemble, diversifier claim",
+   "market": "futures",
+   "status": "BACKLOG",
+   "settling_test": "\"Continuous-futures panel for >= 25 markets, fixed multi-speed ensemble, diversifier claim vs cash plus portfolio uplift; gate-class approval.\" (L643)",
+   "data_prerequisite_gate": "No local futures panel (L641, L1334). 67 markets 1880-2013 net Sharpe 0.77 after 2/20; trend excess 6.3%/yr (2000-09) vs 0.4%/yr over T-bills (2010-18; CA-19 L1262); B3 OOS Sharpe 0.08; AQMIX 10-year Sharpe ~0.30 (CA-36 L1279) (L640). Old B3 registration REJECT.",
+   "passes_when": "\"gate-class approval and a futures panel\" (L854). Prior alpha ~0.0-0.3 after 2009, not \"0.4-0.8 per asset, ~1.0 diversified\" (L638). Yahoo continuous-futures returns across rolls are a macro data shortcut (MS item 19).",
+   "cite": "G-47 L854; TF-35 (UNTESTED L638-644)",
+   "r3_lines": [
+    "854",
+    "638-644"
+   ],
+   "acting": false,
+   "brief_line": 109
+  },
+  {
+   "id": "BL-TF-10",
+   "g_ids": [
+    "G-35",
+    "G-37"
+   ],
+   "node": "TF-36",
+   "node_class": "UNTESTED",
+   "nodes_text": "TF-36 (UNTESTED L646-652); TF-37 (CONTESTED L540-546)",
+   "item": "(a) KR-VQ composite (value + profitability + net issuance), OpenDART PIT, weight 2 BUILD-candidate; (b) Korean value and quality individual weights 1 each until a PIT test",
+   "market": "KRX",
+   "status": "BACKLOG (CR-04)",
+   "settling_test": "(a) \"Build the OpenDART PIT store (statements from BY2015, rcept_dt + 1), then test the pre-registered composite at 35/70 bp, EW and capped VW, split at 2024-02-26; expect INSUFFICIENT DATA or REVISE.\" (L651). (b) \"OpenDART PIT test; value may rise to 2-3 only after a PIT pass that survives the 2024-02-26 split.\" (L545)",
+   "data_prerequisite_gate": "No KR fundamentals locally (L649, L1332). Kang 2002-15 (gross, in sample): HML 1.05%/month (t 3.41), RMWq 0.65 (t 2.75), CMA 0.66 (t 3.57); 2000-19 replication: value 69.2%, profitability 5.0% (L648). OpenDART statements only from BY2015 (L806). Expected INSUFFICIENT DATA / REVISE.",
+   "passes_when": "\"OpenDART PIT store built and tested\" (L842); \"PIT pass surviving the 2024-02-26 split\" (L844). On pass → SPEC §TF-6 FUND-1 (L652). Net issuance (KRX-only) already built as SCR-2 (L648).",
+   "cite": "G-35 L842; G-37 L844; TF-36 (UNTESTED L646-652); TF-37 (CONTESTED L540-546)",
+   "r3_lines": [
+    "842",
+    "844",
+    "646-652",
+    "540-546"
+   ],
+   "acting": false,
+   "brief_line": 110
+  },
+  {
+   "id": "BL-TF-11",
+   "g_ids": [
+    "G-38"
+   ],
+   "node": "TF-38",
+   "node_class": "CONTESTED",
+   "nodes_text": "TF-38 (CONTESTED L548-554)",
+   "item": "Korean earnings-announcement drift, DART-timestamped, weight 1",
+   "market": "KRX",
+   "status": "BACKLOG (CR-04)",
+   "settling_test": "\"DART-timestamped test: CAR[-1,+1] sign, entry at rcept_dt + 1 session, top two size terciles, must pass at 2x costs; then 2.\" (L553)",
+   "data_prerequisite_gate": "Shin et al. 2002Q4-2017Q4: 60-day drift 4.80% (t 9.35), gross; ~2.9%/yr cost at 35 bp if fully turned over. Chair proxy 2006-2026 (gross): positive events -1.34% over 60 days (t -4.2), negative -2.68% (t -7.6) (L550). Not run.",
+   "passes_when": "\"pass at 2x costs in the top two size terciles -> 2\" (L845). D-M gate never extends to earnings-momentum sleeves (L513; XS-15).",
+   "cite": "G-38 L845; TF-38 (CONTESTED L548-554)",
+   "r3_lines": [
+    "845",
+    "548-554"
+   ],
+   "acting": false,
+   "brief_line": 111
+  },
+  {
+   "id": "BL-TF-12",
+   "g_ids": [
+    "G-36"
+   ],
+   "node": "TF-43",
+   "node_class": "UNTESTED",
+   "nodes_text": "TF-43 (UNTESTED L654-660)",
+   "item": "US-VQ composite (value + profitability + investment + issuance; value only inside it; combined with momentum at sleeve level), weight 2 BUILD-candidate",
+   "market": "US",
+   "status": "BACKLOG (CR-04)",
+   "settling_test": "\"EDGAR acceptance + 1 session PIT store and FMP prices; sector-neutral, banded; 15+ years of XBRL; expect REVISE first.\" (L659)",
+   "data_prerequisite_gate": "No US fundamentals locally (L657). NMV 1963-2012 gross -> net: value + profitability 0.82 -> 0.77%/month (t 4.82); investment 0.56 -> 0.46 (t 3.60); net issuance 0.57 -> 0.37 (t 2.43); expected net L/S Sharpe after decay at 50 bp 0.42 (0.37 at 2x; 0.17 after the 60% haircut); US HML -0.23 (2010-18) (L656). Expected REVISE.",
+   "passes_when": "\"FMP/EDGAR PIT store\" (L843). On pass → SPEC §TF-6 FUND-2 (L660). Quality inside it is a composite leg at 2, never a hedge (DNB-TF-08).",
+   "cite": "G-36 L843; TF-43 (UNTESTED L654-660)",
+   "r3_lines": [
+    "843",
+    "654-660"
+   ],
+   "acting": false,
+   "brief_line": 112
+  },
+  {
+   "id": "BL-TF-13",
+   "g_ids": [
+    "G-48"
+   ],
+   "node": "TF-46",
+   "node_class": "ONE-SIDED",
+   "nodes_text": "TF-46 (ONE-SIDED L598-604)",
+   "item": "US opportunistic insider purchases (DC10: buys-only, long-only, ~126-day hold) and an IPO-age exclusion screen",
+   "market": "US",
+   "status": "BACKLOG",
+   "settling_test": "\"DC10 (buys-only, long-only, 126 days, EDGAR acceptance timing) and the IPO screen with the first US stock card.\" (L603)",
+   "data_prerequisite_gate": "Cohen-Malloy-Pomorski 1986-2007: 82 bp/month VW (t 2.15), 180 bp EW (t 6.07), but long-short, one-month hold, five-factor alpha (CA-28 L1271); Ritter 1980-2024 IPOs -20.5% vs market, -8.9% style-adjusted over 3 years (2011-24: -24.7% / -16.4%) (L600). Not run.",
+   "passes_when": "\"EDGAR Form 4 and a US panel; DC10 pass as a long-only buys-only test\" (L855). Weights: insiders 0 (BACKLOG); IPO-age screen 2* (inactive, one-sided) (L788).",
+   "cite": "G-48 L855; TF-46 (ONE-SIDED L598-604)",
+   "r3_lines": [
+    "855",
+    "598-604"
+   ],
+   "acting": false,
+   "brief_line": 113
+  },
+  {
+   "id": "BL-TF-14",
+   "g_ids": [
+    "G-49"
+   ],
+   "node": "TF-05",
+   "node_class": "CORE-LINK",
+   "nodes_text": "TF-05 (CORE-LINK L160-165)",
+   "item": "Korean event cards (treasury-share cancellation, buybacks, Value-up disclosures)",
+   "market": "KRX",
+   "status": "BACKLOG",
+   "settling_test": "No §7 line (D-11). Node: \"regime-dependent event cards are INSUFFICIENT DATA until about 2028\" (L160). Register: \"about 5 years of post-reform event history\" (L856, L807).",
+   "data_prerequisite_gate": "Value-up plans +1.5% day 0, ~+1% retained (L162); 32 months of post-reform data (L856). INSUFFICIENT DATA until ~2028.",
+   "passes_when": "Post-reform history ~5 years. Flags (DATA-5) are BUILD NOW and \"may only exclude or scale <= 1.0\" (L160, L807).",
+   "cite": "G-49 L856; TF-05 (CORE-LINK L160-165)",
+   "r3_lines": [
+    "856",
+    "160-165"
+   ],
+   "acting": false,
+   "brief_line": 114
+  },
+  {
+   "id": "BL-TF-15",
+   "g_ids": [
+    "G-59"
+   ],
+   "node": "TF-49",
+   "node_class": "ONE-SIDED",
+   "nodes_text": "TF-49 (ONE-SIDED L606-611)",
+   "item": "Data paths for markets without one (Japan, Taiwan, China A, India, broad EM, Europe)",
+   "market": "other",
+   "status": "BACKLOG (data paths); weights CONTEXT",
+   "settling_test": "\"Add a data path per market; until then the rows are priors only.\" (L610)",
+   "data_prerequisite_gate": "Japan WML Sharpe 0.067 static, 0.416 dynamic; China A 1-month reversal CAPM alpha 1.49%/month (2000-16), momentum 0.04%/month (t 0.11, 2008-20) (L608). No data path.",
+   "passes_when": "\"a data path per market\" (L871). Priors table L777-784 (section C). No register row carries BL-TF-15 (D-12).",
+   "cite": "— (G-59 L871 is the CONTEXT row); TF-49 (ONE-SIDED L606-611)",
+   "r3_lines": [
+    "871",
+    "606-611"
+   ],
+   "acting": false,
+   "brief_line": 115
+  },
+  {
+   "id": "BL-TF-16",
+   "g_ids": [
+    "G-50"
+   ],
+   "node": "TF-52",
+   "node_class": "ONE-SIDED",
+   "nodes_text": "TF-52 (ONE-SIDED L613-619)",
+   "item": "Tiered t-hurdles: Tier A (single-configuration replication of a published, internationally replicated anomaly) t >= 2.0; new signals t >= 3.0 plus SPA; > 100 configurations or TradingView-sourced t >= 3.4-3.8",
+   "market": "all",
+   "status": "BACKLOG (owner; tightening)",
+   "settling_test": "\"Owner adopts or declines; it only tightens the gate.\" (L618) = OQ-10 (L1323).",
+   "data_prerequisite_gate": "Harvey-Liu-Zhu 316 factors, t 3.39-3.78 by 2012; Hou-Xue-Zhang 64% of 447 anomalies insignificant at 5%, 85% at t = 3; deflated Sharpe implies required t 3.17 (9 configs) and 3.67 (27) (L615). n/a (governance).",
+   "passes_when": "\"owner adoption (a tightening only)\" (L857); allowed under CR-08 (L54, L619). Not adopted today (L56).",
+   "cite": "G-50 L857; TF-52 (ONE-SIDED L613-619)",
+   "r3_lines": [
+    "857",
+    "613-619"
+   ],
+   "acting": false,
+   "brief_line": 116
+  },
+  {
+   "id": "BL-TF-17",
+   "g_ids": [
+    "G-51"
+   ],
+   "node": "TF-62",
+   "node_class": "ONE-SIDED",
+   "nodes_text": "TF-62 (ONE-SIDED L621-627)",
+   "item": "One point-in-time feature library of price primitives (trend/position, short-term reversal, range volatility, abnormal volume, 52-week high, MA distance, capital-gains overhang); every variant counted as a trial",
+   "market": "all",
+   "status": "BACKLOG",
+   "settling_test": "\"Owner decides scope; features enter only through pre-registered cards.\" (L626)",
+   "data_prerequisite_gate": "KRX L/S correlation clusters 1996-2026: low-risk (VOL-TURN 0.90), trend (PMA200-HIGH52 0.88), contrarian (RSI-%B 0.95, REV-RSI 0.92) (L623). Executives: <= 4-5 features per card (L625, L858).",
+   "passes_when": "\"built when a card needs a primitive; every variant counts as a trial\" (L858) in the GOV-2 trial registry (L813).",
+   "cite": "G-51 L858; TF-62 (ONE-SIDED L621-627)",
+   "r3_lines": [
+    "858",
+    "621-627"
+   ],
+   "acting": false,
+   "brief_line": 117
+  },
+  {
+   "id": "BL-TF-18",
+   "g_ids": [
+    "G-52"
+   ],
+   "node": "TF-64",
+   "node_class": "UNTESTED",
+   "nodes_text": "TF-64 (UNTESTED L662-668)",
+   "item": "Gradient boosting / small neural nets as shadow combiners (non-gating)",
+   "market": "all",
+   "status": "BACKLOG (CR-11)",
+   "settling_test": "\"Shadow runs only after L0/L1 exist; never enter displayed exposure.\" (L667)",
+   "data_prerequisite_gate": "Gu-Kelly-Xiu 1987-2016 (gross): NN3 R2 0.40% vs OLS-3 0.16%; VW L/S Sharpe 1.35 vs 0.61; gains concentrate in microcaps and high turnover (L664); \"nets about 0 at 1-month after 2004\" (L859). Not run.",
+   "passes_when": "\"a shadow run beating L0/L1 net of costs over >= 252 sessions\" (L859). L0 = ML-1 equal-weight z-score composite (G-28 L825); L1 = FS-4 ridge / Fama-MacBeth challenger (G-33 L835). Macro item 29 (maintained ML challenger pipeline, harm_E) bars a KEPT ML vol-state challenger (MS L6200) — see D-16.",
+   "cite": "G-52 L859; TF-64 (UNTESTED L662-668)",
+   "r3_lines": [
+    "859",
+    "662-668"
+   ],
+   "acting": false,
+   "brief_line": 118
+  },
+  {
+   "id": "BL-TF-19",
+   "g_ids": [
+    "G-53"
+   ],
+   "node": "TF-69",
+   "node_class": "ONE-SIDED",
+   "nodes_text": "TF-69 (ONE-SIDED L629-634)",
+   "item": "CTREND-lite crypto technical composite (long-only vs BTC, 10/20 bp) and a down-only funding/basis multiplier in [0.5, 1]",
+   "market": "crypto",
+   "status": "BACKLOG (CR-10)",
+   "settling_test": "\"Local crypto panel (Upbit/Binance/CoinGecko) with point-in-time universe; long-only vs BTC at 10/20 bp.\" (L633)",
+   "data_prerequisite_gate": "CTREND numbers UNVERIFIABLE (V101); crypto carry averaged > 10%/yr, peaked near 60%, and predicts price declines (BIS WP 1087, V102) (L631). \"no local crypto data\" (L860) — see D-17.",
+   "passes_when": "\"a local crypto panel and a pass at 10/20 bp\" (L860). Multiplier shape must be down-only in [0.5, 1] (never above 1.0; MS item 2).",
+   "cite": "G-53 L860; TF-69 (ONE-SIDED L629-634)",
+   "r3_lines": [
+    "860",
+    "629-634"
+   ],
+   "acting": false,
+   "brief_line": 119
+  },
+  {
+   "id": "BL-TF-20",
+   "g_ids": [
+    "G-54"
+   ],
+   "node": "TF-70",
+   "node_class": "CONTESTED",
+   "nodes_text": "TF-70 (CONTESTED L564-570; DNB-TF-17)",
+   "item": "One pre-registered USD/KRW slow-trend test at FX cost (10 bp per side)",
+   "market": "FX",
+   "status": "BACKLOG (weight 0)",
+   "settling_test": "\"One pre-registered USD/KRW slow-trend test at 10 bp per side.\" (L569)",
+   "data_prerequisite_gate": "Prior QUANTGEN V3 FX card REJECT (OOS -0.59) (L861); \"slow trend least decayed\" (L861).",
+   "passes_when": "\"one pre-registered USD/KRW slow-trend card passing at 10 bp\" (L861). Until then FX trend weight 0 (L570; DNB-TF-17).",
+   "cite": "G-54 L861; TF-70 (CONTESTED L564-570; DNB-TF-17)",
+   "r3_lines": [
+    "861",
+    "564-570"
+   ],
+   "acting": false,
+   "brief_line": 120
+  }
+ ]
+}

@@ -1,0 +1,54 @@
+test,series,period,cost_level,metric,value
+validation,"daily_signals_use_only_data_up_to_t (322 variants x 5 cut dates, future prices perturbed)",,na,result,PASS
+validation,"daily_signals_use_only_data_up_to_t (322 variants x 5 cut dates, future prices perturbed)",,na,detail,variants changed: 0
+validation,daily_position_t_equals_signal_t_minus_1,,na,result,PASS
+validation,daily_first_return_is_t_plus_1,,na,result,PASS
+validation,daily_first_return_is_t_plus_1,,na,detail,0.0127667 vs 0.0127667
+validation,daily_eval_window_has_no_undefined_signals,,na,result,PASS
+validation,"daily_pure_window_rules_independent_of_start_date (SMA, SMA cross, TSMOM)",,na,result,PASS
+validation,"daily_pure_window_rules_independent_of_start_date (SMA, SMA cross, TSMOM)",,na,detail,flips 0 over 95 variants
+validation,daily_path_dependent_rules_converge_within_1y_of_eval_start,,na,result,PASS
+validation,daily_path_dependent_rules_converge_within_1y_of_eval_start,,na,detail,4 of 227 path-dependent variants differ at some date; total flips 96 of 1247819; last flip at eval day 23
+validation,monthly_signals_use_only_data_up_to_t (future Shiller prices perturbed),,na,result,PASS
+validation,monthly_position_t_equals_signal_t_minus_1,,na,result,PASS
+validation,valuation_oos_training_ends_at_t_minus_horizon,,na,result,PASS
+validation,valuation_oos_training_ends_at_t_minus_horizon,,na,detail,"origin 1950-01, last training start 1940-01"
+validation,french_arch_first_month_is_1926-07,,na,result,PASS
+validation,french_arch_first_month_is_1926-07,,na,detail,1926-07
+validation,french_arch_last_month_is_2018-11,,na,result,PASS
+validation,french_arch_last_month_is_2018-11,,na,detail,2018-11
+validation,french_arch_months_contiguous,,na,result,PASS
+validation,french_arch_months_contiguous,,na,detail,1109 months
+validation,french_MktRF_1987-10_equals_-23.24%,,na,result,PASS
+validation,french_MktRF_1987-10_equals_-23.24%,,na,detail,-23.24%
+validation,french_MktRF_2008-09_equals_-9.24%,,na,result,PASS
+validation,french_MktRF_2008-09_equals_-9.24%,,na,detail,-9.24%
+validation,french_MktRF_2008-10_equals_-17.23%,,na,result,PASS
+validation,french_MktRF_2008-10_equals_-17.23%,,na,detail,-17.23%
+validation,french_MktRF_1929-10_equals_-20.12%,,na,result,PASS
+validation,french_MktRF_1929-10_equals_-20.12%,,na,detail,-20.12%
+validation,linearmodels_french_units_are_decimals,,na,result,PASS
+validation,linearmodels_french_units_are_decimals,,na,detail,-0.2324
+validation,linearmodels_french_range_1949-01_2017-03,,na,result,PASS
+validation,french_vintages_agree_on_MktRF (max abs diff < 0.05pp),,na,result,PASS
+validation,french_vintages_agree_on_MktRF (max abs diff < 0.05pp),,na,detail,0.030pp
+validation,french_Mom_2009-04_crash,,na,result,PASS
+validation,french_Mom_2009-04_crash,,na,detail,-0.3458
+validation,spy_no_split_like_jumps (|daily ret| < 15%),,na,result,PASS
+validation,spy_no_split_like_jumps (|daily ret| < 15%),,na,detail,max |ret| 0.1131 on 2008-10-13
+validation,spy_ohlc_consistent,,na,result,PASS
+validation,spy_to_spx_ratio_within_3pct (no split/scale break),,na,result,PASS
+validation,spy_to_spx_ratio_within_3pct (no split/scale break),,na,detail,range 0.9930..1.0215
+validation,spy_vs_spx_largest_daily_ratio_moves,,na,detail,2008-09-30:0.0221; 2008-09-29:0.0212; 2008-12-19:0.0133; 2008-10-09:0.0090
+validation,"sp500_arch_adjclose_equals_close (price index, dividends NOT included)",,na,result,PASS
+validation,spy_row_count_and_volume_plausible,,na,result,PASS
+validation,spy_row_count_and_volume_plausible,,na,detail,5849 rows; volume 1.44e+06..7.92e+08; file lacks a trailing newline (harmless)
+validation,spy_calendar_gaps_over_4_days,,na,detail,2001-09-17:7d; 2007-01-03:5d; 2012-10-31:5d
+validation,shiller_zeros_treated_as_missing,,na,result,PASS
+validation,vix_range_plausible,,na,result,PASS
+validation,vix_range_plausible,,na,detail,9.14..82.69
+validation,spa_reproducible_with_seed_20261002,,na,result,PASS
+validation,spa_reproducible_with_seed_20261002,,na,detail,p_stud_consistent 0.58
+validation,replica_spa_matches_arch_spa (non-studentized p-values),,na,result,PASS
+validation,replica_spa_matches_arch_spa (non-studentized p-values),,na,detail,"arch {'p_consistent': 0.58, 'p_lower': 0.43, 'p_upper': 0.6133333333333333} vs replica 0.58,0.43,0.6133333333333333"
+validation,summary,,na,n_fail,0

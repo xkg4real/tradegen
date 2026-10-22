@@ -1,0 +1,95 @@
+"""Run the live paper session until WINDOW_END_UTC, then flatten every account.
+
+    python -m paper_live.run_live            # live loop (resumes from out/live/state.json)
+    python -m paper_live.run_live --dry      # one tick into out/dry/, then exit
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import time
+import traceback
+
+import pandas as pd
+
+from paper_live import config as C
+from paper_live.engine import OUT, Engine, Model, all_tickers, config_sha, garch_sigmas, live_closes
+
+
+def log(out, msg):
+    line = f"{pd.Timestamp.now(tz='UTC').isoformat(timespec='seconds')} {msg}"
+    print(line, flush=True)
+    with open(out / "run.log", "a", encoding="utf-8") as f:
+        f.write(line + "\n")
+
+
+def fetch(out, tries=4):
+    for i in range(tries):
+        try:
+            t0 = time.time()
+            closes = live_closes()
+            if len(closes) < len(all_tickers()) * 0.6:
+                raise RuntimeError(f"only {len(closes)} tickers returned")
+            return closes, time.time() - t0
+        except Exception as e:  # noqa: BLE001
+            log(out, f"fetch error (try {i + 1}): {e!r}")
+            time.sleep(15 * (i + 1))
+    return None, None
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--dry", action="store_true")
+    args = ap.parse_args()
+    out = OUT / ("dry" if args.dry else "live")
+    out.mkdir(parents=True, exist_ok=True)
+
+    sig_path = out / "sigmas.json"
+    if sig_path.exists():
+        sigmas = json.loads(sig_path.read_text())
+    else:
+        sigmas = garch_sigmas(all_tickers())
+        sig_path.write_text(json.dumps(sigmas, indent=1))
+    model = Model.load(OUT / "model.json")
+    eng = Engine(model, sigmas, out, mode="dry" if args.dry else "live")
+    prereg = out / "PREREG.json"
+    if not prereg.exists():
+        prereg.write_text(json.dumps(dict(
+            config_sha=config_sha(), frozen_utc=pd.Timestamp.now(tz="UTC").isoformat(),
+            window=[str(C.WINDOW_START_UTC), str(C.WINDOW_END_UTC)], accounts=C.ACCOUNTS,
+            model=json.loads((OUT / "model.json").read_text()),
+            sigmas={k: v.get("sigma_ann") for k, v in sigmas.items()},
+            sigma_sources={k: v.get("source") for k, v in sigmas.items()}), indent=1, default=str))
+    log(out, f"start sha={config_sha()} accounts={list(eng.accounts)}")
+
+    end = pd.Timestamp(C.WINDOW_END_UTC)
+    while True:
+        now = pd.Timestamp.now(tz="UTC")
+        final = now >= end
+        closes, secs = fetch(out)
+        if closes is None:
+            log(out, "no data this tick; retry in 60 s")
+            if final:
+                time.sleep(60)
+                continue
+            time.sleep(60)
+            continue
+        now = pd.Timestamp.now(tz="UTC").floor("s")
+        try:
+            eng.step(now, closes, final=final)
+            eqs = {n: round(eng._mark(a, closes, now)[0], 3) for n, a in eng.accounts.items()}
+            npos = {n: len(a.positions) for n, a in eng.accounts.items()}
+            log(out, f"tick fetch={secs:.1f}s equity={eqs} positions={npos}{' FINAL' if final else ''}")
+        except Exception:  # noqa: BLE001
+            log(out, "step error:\n" + traceback.format_exc())
+        (out / "heartbeat.txt").write_text(now.isoformat())
+        if final or args.dry:
+            break
+        nxt = (pd.Timestamp.now(tz="UTC").floor("5min") + pd.Timedelta(minutes=5, seconds=30))
+        nxt = min(nxt, end + pd.Timedelta(seconds=5))
+        time.sleep(max(5.0, (nxt - pd.Timestamp.now(tz="UTC")).total_seconds()))
+    log(out, "session complete")
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,371 @@
+{
+ "sha": "ffbdfc4d489bcaf2",
+ "built_utc": "2026-10-07T12:01:01.465645+00:00",
+ "seconds": 4.8,
+ "n_rows": 191273,
+ "first": "2026-07-14",
+ "last": "2026-10-07",
+ "train_dates": "2026-07-14..2026-09-23",
+ "test_dates": "2026-09-24..2026-10-07",
+ "note": "SEs are naive (overlapping 60m targets on a 5m grid inflate t-stats ~3.5x); use the hourly non-overlapping se for the trigger subsets",
+ "coef_train": {
+  "equity": [
+   0.0,
+   -0.007166593453330535,
+   -0.016923151021712077
+  ],
+  "rates": [
+   0.0,
+   0.05168828700631041,
+   -0.06114547597594035
+  ],
+  "commod": [
+   0.0,
+   0.023289898441909252,
+   -0.002198141874604979
+  ],
+  "fx": [
+   0.0,
+   -0.0034703265984520845,
+   -0.0773196794956817
+  ]
+ },
+ "coef_full": {
+  "equity": [
+   0.0,
+   -0.006968725250849529,
+   -0.016017539198141622
+  ],
+  "rates": [
+   0.0,
+   0.06290637884242381,
+   -0.047077524660344275
+  ],
+  "commod": [
+   0.0,
+   0.03700318932584239,
+   -0.001177126030425449
+  ],
+  "fx": [
+   0.0,
+   -0.016349767981305625,
+   -0.07093066671135036
+  ]
+ },
+ "se_full_naive": {
+  "equity": [
+   0.0,
+   0.009693004686711137,
+   0.009797838448882759
+  ],
+  "rates": [
+   0.0,
+   0.01428761380013318,
+   0.014348005641907139
+  ],
+  "commod": [
+   0.0,
+   0.01346265294666305,
+   0.013594130691574788
+  ],
+  "fx": [
+   0.0,
+   0.010145301210023945,
+   0.009859037990135124
+  ]
+ },
+ "oos_test": {
+  "equity": {
+   "n": 11659,
+   "auc": 0.5017499019460394,
+   "brier": 0.24998827341685945,
+   "brier_coinflip": 0.25,
+   "mean_p": 0.5000886080187771,
+   "base_rate": 0.47679903936872803,
+   "trig2pp": {
+    "n": 64,
+    "n_hourly": 1,
+    "hit": 0.65625,
+    "mean_bp": 12.756077439430094,
+    "se_bp_hourly": null,
+    "mean_bp_hourly": 10.366723748166152
+   },
+   "trig8pp": {
+    "n": 0,
+    "n_hourly": 0,
+    "hit": null,
+    "mean_bp": null,
+    "se_bp_hourly": null,
+    "mean_bp_hourly": null
+   }
+  },
+  "rates": {
+   "n": 5838,
+   "auc": 0.5116014448949502,
+   "brier": 0.24996351399788394,
+   "brier_coinflip": 0.25,
+   "mean_p": 0.4993453961024574,
+   "base_rate": 0.46471394313120934,
+   "trig2pp": {
+    "n": 728,
+    "n_hourly": 58,
+    "hit": 0.49038461538461536,
+    "mean_bp": -0.06473118964101272,
+    "se_bp_hourly": 2.3302837346451013,
+    "mean_bp_hourly": 2.1510576336866727
+   },
+   "trig8pp": {
+    "n": 0,
+    "n_hourly": 0,
+    "hit": null,
+    "mean_bp": null,
+    "se_bp_hourly": null,
+    "mean_bp_hourly": null
+   }
+  },
+  "commod": {
+   "n": 5807,
+   "auc": 0.531187695069886,
+   "brier": 0.24976987406601248,
+   "brier_coinflip": 0.25,
+   "mean_p": 0.4998232807909084,
+   "base_rate": 0.5000861029791631,
+   "trig2pp": {
+    "n": 15,
+    "n_hourly": 0,
+    "hit": 0.4666666666666667,
+    "mean_bp": -0.8746579924950476,
+    "se_bp_hourly": null,
+    "mean_bp_hourly": null
+   },
+   "trig8pp": {
+    "n": 0,
+    "n_hourly": 0,
+    "hit": null,
+    "mean_bp": null,
+    "se_bp_hourly": null,
+    "mean_bp_hourly": null
+   }
+  },
+  "fx": {
+   "n": 10236,
+   "auc": 0.5210388675929322,
+   "brier": 0.24964855092477858,
+   "brier_coinflip": 0.25,
+   "mean_p": 0.5002801494557012,
+   "base_rate": 0.4795818679171551,
+   "trig2pp": {
+    "n": 2209,
+    "n_hourly": 177,
+    "hit": 0.5423268447261205,
+    "mean_bp": 0.8120635424806565,
+    "se_bp_hourly": 0.8119367396839552,
+    "mean_bp_hourly": 1.0176277538995577
+   },
+   "trig8pp": {
+    "n": 3,
+    "n_hourly": 2,
+    "hit": 0.3333333333333333,
+    "mean_bp": -3.7225013756157392,
+    "se_bp_hourly": null,
+    "mean_bp_hourly": 1.6836449748781162
+   }
+  }
+ },
+ "oos_test_window_hours": {
+  "equity": {
+   "n": 4317,
+   "auc": 0.48870887686102954,
+   "brier": 0.2500821264355023,
+   "brier_coinflip": 0.25,
+   "mean_p": 0.4999535537900311,
+   "base_rate": 0.4834375723882326,
+   "trig2pp": {
+    "n": 54,
+    "n_hourly": 0,
+    "hit": 0.6851851851851852,
+    "mean_bp": 15.369141464912238,
+    "se_bp_hourly": null,
+    "mean_bp_hourly": null
+   },
+   "trig8pp": {
+    "n": 0,
+    "n_hourly": 0,
+    "hit": null,
+    "mean_bp": null,
+    "se_bp_hourly": null,
+    "mean_bp_hourly": null
+   }
+  },
+  "rates": {
+   "n": 2023,
+   "auc": 0.4803097677815729,
+   "brier": 0.25045330970539026,
+   "brier_coinflip": 0.25,
+   "mean_p": 0.49875736843127777,
+   "base_rate": 0.3499752842313396,
+   "trig2pp": {
+    "n": 485,
+    "n_hourly": 34,
+    "hit": 0.465979381443299,
+    "mean_bp": -0.33385208543445427,
+    "se_bp_hourly": 3.7136821829750173,
+    "mean_bp_hourly": 5.072162592049871
+   },
+   "trig8pp": {
+    "n": 0,
+    "n_hourly": 0,
+    "hit": null,
+    "mean_bp": null,
+    "se_bp_hourly": null,
+    "mean_bp_hourly": null
+   }
+  },
+  "commod": {
+   "n": 1816,
+   "auc": 0.4940800909577899,
+   "brier": 0.2501555624642176,
+   "brier_coinflip": 0.25,
+   "mean_p": 0.49973925803749447,
+   "base_rate": 0.480726872246696,
+   "trig2pp": {
+    "n": 3,
+    "n_hourly": 0,
+    "hit": 0.3333333333333333,
+    "mean_bp": -28.986461063457647,
+    "se_bp_hourly": null,
+    "mean_bp_hourly": null
+   },
+   "trig8pp": {
+    "n": 0,
+    "n_hourly": 0,
+    "hit": null,
+    "mean_bp": null,
+    "se_bp_hourly": null,
+    "mean_bp_hourly": null
+   }
+  },
+  "fx": {
+   "n": 2554,
+   "auc": 0.5443012945475282,
+   "brier": 0.24860841019139704,
+   "brier_coinflip": 0.25,
+   "mean_p": 0.5006365724342331,
+   "base_rate": 0.44831636648394674,
+   "trig2pp": {
+    "n": 839,
+    "n_hourly": 73,
+    "hit": 0.567342073897497,
+    "mean_bp": 1.090715088535872,
+    "se_bp_hourly": 1.3262458458642852,
+    "mean_bp_hourly": 0.8703292153643158
+   },
+   "trig8pp": {
+    "n": 0,
+    "n_hourly": 0,
+    "hit": null,
+    "mean_bp": null,
+    "se_bp_hourly": null,
+    "mean_bp_hourly": null
+   }
+  }
+ },
+ "in_sample_train": {
+  "equity": {
+   "n": 53643,
+   "auc": 0.5030212249428434,
+   "brier": 0.24997558482612933,
+   "brier_coinflip": 0.25,
+   "mean_p": 0.4999580886931687,
+   "base_rate": 0.509721678504185,
+   "trig2pp": {
+    "n": 259,
+    "n_hourly": 23,
+    "hit": 0.5212355212355212,
+    "mean_bp": 11.519782792606932,
+    "se_bp_hourly": 5.554053292777236,
+    "mean_bp_hourly": 0.5229973073077115
+   },
+   "trig8pp": {
+    "n": 0,
+    "n_hourly": 0,
+    "hit": null,
+    "mean_bp": null,
+    "se_bp_hourly": null,
+    "mean_bp_hourly": null
+   }
+  },
+  "rates": {
+   "n": 25469,
+   "auc": 0.5104802569546577,
+   "brier": 0.24983450148215258,
+   "brier_coinflip": 0.25,
+   "mean_p": 0.499539556836203,
+   "base_rate": 0.4583218815030036,
+   "trig2pp": {
+    "n": 2697,
+    "n_hourly": 212,
+    "hit": 0.5398591027067111,
+    "mean_bp": 0.8544838550029554,
+    "se_bp_hourly": 0.8167939362838296,
+    "mean_bp_hourly": 2.2683236265344866
+   },
+   "trig8pp": {
+    "n": 3,
+    "n_hourly": 1,
+    "hit": 1.0,
+    "mean_bp": 10.414974600890314,
+    "se_bp_hourly": null,
+    "mean_bp_hourly": 19.911825665777766
+   }
+  },
+  "commod": {
+   "n": 25519,
+   "auc": 0.5121238656424343,
+   "brier": 0.24997085601044836,
+   "brier_coinflip": 0.25,
+   "mean_p": 0.5002159878845441,
+   "base_rate": 0.5049570907950939,
+   "trig2pp": {
+    "n": 96,
+    "n_hourly": 13,
+    "hit": 0.4166666666666667,
+    "mean_bp": -3.3542526949409384,
+    "se_bp_hourly": 17.078142090974133,
+    "mean_bp_hourly": -26.707765731207076
+   },
+   "trig8pp": {
+    "n": 0,
+    "n_hourly": 0,
+    "hit": null,
+    "mean_bp": null,
+    "se_bp_hourly": null,
+    "mean_bp_hourly": null
+   }
+  },
+  "fx": {
+   "n": 53102,
+   "auc": 0.5239111481396194,
+   "brier": 0.2496647112041194,
+   "brier_coinflip": 0.25,
+   "mean_p": 0.5000537398511063,
+   "base_rate": 0.5059696433279349,
+   "trig2pp": {
+    "n": 11524,
+    "n_hourly": 950,
+    "hit": 0.5236896910794863,
+    "mean_bp": 0.02134437049476207,
+    "se_bp_hourly": 0.3898219315089854,
+    "mean_bp_hourly": 1.3875617666272824
+   },
+   "trig8pp": {
+    "n": 40,
+    "n_hourly": 1,
+    "hit": 0.575,
+    "mean_bp": 2.3360370692651427,
+    "se_bp_hourly": null,
+    "mean_bp_hourly": 2.1270415340307856
+   }
+  }
+ }
+}

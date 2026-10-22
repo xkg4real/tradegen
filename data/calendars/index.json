@@ -1,0 +1,207 @@
+{
+ "covers": {
+  "from": "2026-01-01",
+  "to": "2027-12-31"
+ },
+ "generated": "2026-08-18",
+ "markets": {
+  "KRX": {
+   "calendar": "XKRX",
+   "covers": {
+    "from": "2026-01-01",
+    "to": "2027-12-31"
+   },
+   "holidays": 29,
+   "special_sessions": 2
+  },
+  "US": {
+   "calendar": "XNYS",
+   "covers": {
+    "from": "2026-01-01",
+    "to": "2027-12-31"
+   },
+   "holidays": 20,
+   "special_sessions": 3
+  },
+  "LSE": {
+   "calendar": "XLON",
+   "covers": {
+    "from": "2026-01-01",
+    "to": "2027-12-31"
+   },
+   "holidays": 16,
+   "special_sessions": 4
+  },
+  "XETRA": {
+   "calendar": "XETR",
+   "covers": {
+    "from": "2026-01-01",
+    "to": "2027-12-31"
+   },
+   "holidays": 12,
+   "special_sessions": 2
+  },
+  "EURONEXT_PA": {
+   "calendar": "XPAR",
+   "covers": {
+    "from": "2026-01-01",
+    "to": "2027-12-31"
+   },
+   "holidays": 8,
+   "special_sessions": 4
+  },
+  "EURONEXT_AS": {
+   "calendar": "XAMS",
+   "covers": {
+    "from": "2026-01-01",
+    "to": "2027-12-31"
+   },
+   "holidays": 8,
+   "special_sessions": 4
+  },
+  "BIT": {
+   "calendar": "XMIL",
+   "covers": {
+    "from": "2026-01-01",
+    "to": "2027-12-31"
+   },
+   "holidays": 12,
+   "special_sessions": 0
+  },
+  "BME": {
+   "calendar": "XMAD",
+   "covers": {
+    "from": "2026-01-01",
+    "to": "2027-12-31"
+   },
+   "holidays": 8,
+   "special_sessions": 4
+  },
+  "SIX": {
+   "calendar": "XSWX",
+   "covers": {
+    "from": "2026-01-01",
+    "to": "2027-12-31"
+   },
+   "holidays": 17,
+   "special_sessions": 0
+  },
+  "OMX_ST": {
+   "calendar": "XSTO",
+   "covers": {
+    "from": "2026-01-01",
+    "to": "2027-12-31"
+   },
+   "holidays": 18,
+   "special_sessions": 10
+  },
+  "OSE": {
+   "calendar": "XOSL",
+   "covers": {
+    "from": "2026-01-01",
+    "to": "2027-12-31"
+   },
+   "holidays": 18,
+   "special_sessions": 2
+  },
+  "TSE": {
+   "calendar": "XTKS",
+   "covers": {
+    "from": "2026-01-01",
+    "to": "2027-12-31"
+   },
+   "holidays": 36,
+   "special_sessions": 0
+  },
+  "HKEX": {
+   "calendar": "XHKG",
+   "covers": {
+    "from": "2026-01-01",
+    "to": "2027-12-31"
+   },
+   "holidays": 27,
+   "special_sessions": 6
+  },
+  "SSE": {
+   "calendar": "XSHG",
+   "covers": {
+    "from": "2026-01-01",
+    "to": "2026-12-31"
+   },
+   "holidays": 19,
+   "special_sessions": 0
+  },
+  "SZSE": {
+   "calendar": "XSHG",
+   "covers": {
+    "from": "2026-01-01",
+    "to": "2026-12-31"
+   },
+   "holidays": 19,
+   "special_sessions": 0
+  },
+  "TWSE": {
+   "calendar": "XTAI",
+   "covers": {
+    "from": "2026-01-01",
+    "to": "2027-12-31"
+   },
+   "holidays": 33,
+   "special_sessions": 0
+  },
+  "SGX": {
+   "calendar": "XSES",
+   "covers": {
+    "from": "2026-01-01",
+    "to": "2026-12-31"
+   },
+   "holidays": 10,
+   "special_sessions": 0
+  },
+  "NSE": {
+   "calendar": "XBOM",
+   "covers": {
+    "from": "2026-01-01",
+    "to": "2026-12-31"
+   },
+   "holidays": 16,
+   "special_sessions": 0
+  },
+  "ASX": {
+   "calendar": "XASX",
+   "covers": {
+    "from": "2026-01-01",
+    "to": "2027-12-31"
+   },
+   "holidays": 14,
+   "special_sessions": 4
+  },
+  "TSX": {
+   "calendar": "XTSE",
+   "covers": {
+    "from": "2026-01-01",
+    "to": "2027-12-31"
+   },
+   "holidays": 20,
+   "special_sessions": 2
+  },
+  "B3": {
+   "calendar": "BVMF",
+   "covers": {
+    "from": "2026-01-01",
+    "to": "2027-12-31"
+   },
+   "holidays": 26,
+   "special_sessions": 2
+  },
+  "BMV": {
+   "calendar": "XMEX",
+   "covers": {
+    "from": "2026-01-01",
+    "to": "2027-12-31"
+   },
+   "holidays": 18,
+   "special_sessions": 0
+  }
+ }
+}

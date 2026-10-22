@@ -1,0 +1,69 @@
+test,item,value,passed,note
+V0,codes with non-zero last character whose name carries a preferred/new-share marker (sample years),1127 of 1144 (98.5%),True,sample: 001795 대한제당(1우); 005725 흥아타이어(1우); 000997 동부하이텍2우B; 001049 제일제당(3우B); 017555 수산중공업(1우); 009835 한화솔루션우; 002795 태평양(1우); 033855 로패스우; 002741 동양화학(1신); 017211 코닉스1; 005936 삼성전자(우선1신); 026962 동서2신
+V0,non-zero-ending codes without marker (listed for inspection),025981 피.엠.케이1; 017211 코닉스1; 017302 코리아데이타시스템(2; 017301 코리아데이타시스템(1; 007091 대동신금1; 006347 대원전선1; 022061 삼성투신증권1; 032151 제은금고1; 011321 적고1; 030971 주은리스1; 023771 써-니상사1; 007641 한솔신금1; 024811 이티아이1; 025921 우경철강1; 007721 국제종건1; 024081 신화실크1; 000327 디피아이홀딩스2B,True,
+V0,common-share codes (last char 0) whose name looks preferred,0,True,
+V1,2005-12-02 073010 케이에스피,r=-0.8800% close/prev-1=-0.8850% diff=-0.00496%,True,prev 2005-12-01 5650 -> 5600
+V1,2004-10-04 009140 경인전자,r=-2.3300% close/prev-1=-2.3320% diff=-0.00196%,True,prev 2004-10-01 7290 -> 7120
+V1,2011-06-29 039010 현대통신,r=-4.0400% close/prev-1=-4.0404% diff=-0.00040%,True,prev 2011-06-28 2475 -> 2375
+V1,2022-08-30 086390 유니테스트,r=0.7900% close/prev-1=0.7874% diff=-0.00260%,True,prev 2022-08-29 19050 -> 19200
+V1,2002-12-13 064520 바른전자,r=-5.1200% close/prev-1=-5.1163% diff=+0.00372%,True,prev 2002-12-12 4300 -> 4080
+V1,2015-05-19 065710 서호전기,r=0.3300% close/prev-1=0.3272% diff=-0.00285%,True,prev 2015-05-18 9170 -> 9200
+V1,2008-07-31 039990 코아정보,r=-2.6100% close/prev-1=-2.6087% diff=+0.00130%,True,prev 2008-07-30 575 -> 560
+V1,2019-10-04 060720 KH바텍,r=-0.4600% close/prev-1=-0.4587% diff=+0.00128%,True,prev 2019-10-02 10900 -> 10850
+V1,2019-12-02 006880 신송홀딩스,r=0.8600% close/prev-1=0.8589% diff=-0.00110%,True,prev 2019-11-29 4075 -> 4110
+V1,2026-08-28 351330 이삭엔지니어링,r=0.8500% close/prev-1=0.8463% diff=-0.00374%,True,prev 2026-08-27 3545 -> 3575
+V1b,share of kept returns with |Close/prevClose-1 - r| > 0.5%,"12,186 of 13,949,140 = 0.0874%",True,"these are KRX base-price adjustments (splits, rights, dividends-in-stock); r is the adjusted one"
+V3,portfolio returns on or before the first formation day,0 non-NaN values,True,
+V3,MOM_12_1 ALL EW Q5 period after 1999-05-31 recomputed from t+1..t_next,hand 0.037901 vs engine 0.037901,True,
+V3,MOM_12_1 ALL EW Q5 period after 2000-06-30 recomputed from t+1..t_next,hand -0.146638 vs engine -0.146638,True,
+V3,"REV_1M at formation t equals exp(CL[t]-CL[t-21])-1 (uses the close of t, nothing later)",max abs diff 9.17e-08,True,
+V4,stocks outside the universe assigned to a quintile,0,True,
+V4,assignment reproduced from universe-only average ranks,0 mismatches in 8049 formations,True,
+V4,formations with an empty quintile,0,True,
+V4,formations using the seeded tie-break (tie block would shrink a quintile below 10%),"3 of 8052: MAX_1M/all 1, MAX_1M/large 2",True,MAX_1M ties at the daily price limit in 1997-98
+V4,formations where a quintile share deviates > 2 pp from 20% (tied signal values),"15 of 8052: MAX_1M/all 8, MAX_1M/large 7",True,
+V4,SIZE breakpoints: universe vs all listed stocks (last formation),universe [25.01 27.25] vs all [24.25 26.76],True,
+V5,SMA200 index position at t recomputed on prices truncated at t (50 random days),0 mismatches,True,
+V5,family rule positions recomputed on truncated prices (7 rules),7/7 identical,True,
+V2,universe membership identical at 231 month-ends <= 2015-06-30 (full vs truncated data),0 mismatches,True,
+V2,signal MOM_12_1 identical (eligible universe),"max rel diff 0.00e+00, NaN mismatches 0",True,
+V2,signal MOM_6_1 identical (eligible universe),"max rel diff 0.00e+00, NaN mismatches 0",True,
+V2,signal REV_1M identical (eligible universe),"max rel diff 0.00e+00, NaN mismatches 0",True,
+V2,signal HIGH52 identical (eligible universe),"max rel diff 0.00e+00, NaN mismatches 0",True,
+V2,signal VOL_3M identical (eligible universe),"max rel diff 0.00e+00, NaN mismatches 0",True,
+V2,signal MAX_1M identical (eligible universe),"max rel diff 0.00e+00, NaN mismatches 0",True,
+V2,signal TURN_1M identical (eligible universe),"max rel diff 0.00e+00, NaN mismatches 0",True,
+V2,signal SIZE identical (eligible universe),"max rel diff 0.00e+00, NaN mismatches 0",True,
+V2,signal PMA200 identical (eligible universe),"max rel diff 0.00e+00, NaN mismatches 0",True,
+V2,signal BBPCTB identical (eligible universe),"max rel diff 0.00e+00, NaN mismatches 0",True,
+V2,signal RSI14 identical (eligible universe),"max rel diff 0.00e+00, NaN mismatches 0",True,
+V6,SPA p-values reproduced with seed 20261002,"{'lower': np.float64(0.737), 'consistent': np.float64(0.8805), 'upper': np.float64(0.8905)}",True,
+V6,sha256 kr_crosschecks.csv,5a0ab75a42efe5e836893c008fb4adbbf756726bfad4ea07e26af519efaea8af,True,
+V6,sha256 kr_data_profile.csv,f0e9753df1c1315d8c509f678d7bbba7f7d094f1447f06d7daacd83e40ab7aef,True,
+V6,sha256 kr_delisting_exposure_monthly.csv,550e66a30a1cc090b81f32cf3f1d4993f7aa7506babc6f94dbdb330229553e16,True,
+V6,sha256 kr_delisting_exposure_monthly_strict.csv,285398b5558961e671c4e6f302a17f1497e114237e3bff22b45a125622e81f5d,True,
+V6,sha256 kr_delisting_exposure_weekly.csv,7dba7da123256ae3b1243bbb43f964d7ef626b0f721b246081e73efa6e936bd6,True,
+V6,sha256 kr_delisting_exposure_weekly_strict.csv,be8495baeae3985caf39b11a3785bca1632f5574e5e9e319b7bce72b99a5e9ee,True,
+V6,sha256 kr_disappearances.csv,63158a2149a956935d029a74172330d5c427c2009851a76e595876c30c5af16f,True,
+V6,sha256 kr_disappearances_strict.csv,847f0cc9c70e3913af6d5a7df90e147079ab8402273023b10261b5a7c6dda390,True,
+V6,sha256 kr_event_windows.csv,a222472f0ce8f7d732be25642e2e94b895347719cedef80dd080252d456f4d84,True,
+V6,sha256 kr_event_windows_strict.csv,405e5e03ef1a2483fdad164b21c7992e6aeed2a5f9f46cc70b14ea013b6f365d,True,
+V6,sha256 kr_index_sanity.csv,966daeafd93ebbb37fdfcd4074807da84641a6059c4e12345f003cde5815ac03,True,
+V6,sha256 kr_index_spa.csv,6df708aad42c5de8e2cf41397abb08db6f06d498b6423fe19503cda8392c9cbc,True,
+V6,sha256 kr_index_spa_family.csv,9142257353204fec92dbaa9543a3068fdc1bae1f156e8638bd4eaccfbd708eb1,True,
+V6,sha256 kr_index_timing.csv,51575bfbeb3ce2c12002ee47d62d584fdb8a0f3459f5e35aaf8eda9f39948ef4,True,
+V6,sha256 kr_index_timing_events.csv,56254873a392b69253d5cd80fa00d0013323b37dcd2670360993fc5629e8b02c,True,
+V6,sha256 kr_key_numbers.csv,d84f452fc457e7e58b6282b71a0553d438aced17ebbff226386b0830f7dcdf6d,True,
+V6,sha256 kr_ls_correlation_ALL_EW.csv,e0ced4251d76d812e31faa7c777fd7708e47ff0ff012f47a8f4ec80b9b9f2397,True,
+V6,sha256 kr_ls_correlation_ALL_EW_strict.csv,ac966d877a0da91a73b3827df463d9fe41023500e43eae141b684f72215f0ca0,True,
+V6,sha256 kr_ls_correlation_ALL_VW.csv,ec8be11cf332b57c876604dffcc117e1cea3bf4de0ffd2840404475dd4fc8fa2,True,
+V6,sha256 kr_ls_correlation_ALL_VW_strict.csv,726545ddfda565b6d5300067da81d5115c2e44455f986321db605c396d520019,True,
+V6,sha256 kr_ls_correlations.csv,01f1574cb8461c94ba05ec7599a8fe10c97eb0adad21acfdd783a9be4df90eb7,True,
+V6,sha256 kr_ls_correlations_strict.csv,df7ee5b4122ff528474311b71b2cccc59c5352e41dd066b39b72b4623d63f1f6,True,
+V6,sha256 kr_return_flags_events.csv,f08aef3172953be6ab8f5ae280a9992677176cb5166fba4a8e803478eb82c1c1,True,
+V6,sha256 kr_return_flags_summary.csv,beaf8f1b37234296a3b56e858dcedd3af469bfc4063f87c673aeb4737bac070e,True,
+V6,sha256 kr_return_flags_totals.csv,5146b6d1547b2261ab5254c239f56606ebc598419f4515212b4f3edcbeba8321,True,
+V6,sha256 kr_signal_stats_long.csv,686db1beb19fdd25f553dc15ca13df4e198ecb9790b2e198ecb107f7206a2387,True,
+V6,sha256 kr_signal_stats_long_strict.csv,d68c8c57fec9a696ec3b65f602c91715e8d19b6021ed1317cb0b4d156911d378,True,
+V6,sha256 kr_universe_counts.csv,f1f59a45217139cbd1b182c59fd874187b94ff078f864484aeb6062906a51624,True,
+V6,sha256 kr_universe_counts_strict.csv,aa5588d9eb7b576f40d77ccae2ce5a19e1f9b7fecc718d5d82796d0ac7e5197b,True,

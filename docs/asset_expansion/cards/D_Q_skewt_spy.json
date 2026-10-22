@@ -1,0 +1,76 @@
+{
+ "card_id": "D_Q_skewt_spy",
+ "kind": "distribution",
+ "hypothesis": "GJR-GARCH(1,1) skew-t one-day-ahead fans on SPY are calibrated (Kupiec/Christoffersen/PIT) and beat EWMA on QLIKE",
+ "rules": {},
+ "universe": {
+  "symbol": "SPY"
+ },
+ "data": {
+  "sessions": 3704,
+  "start": "2012-01-03",
+  "end": "2026-09-25",
+  "window": 504
+ },
+ "costs": {},
+ "protocol": {},
+ "trials": {
+  "N_planned": 1,
+  "N_total": 1,
+  "ledger": []
+ },
+ "seed": 11,
+ "stats": {
+  "model": "gjr_skewt",
+  "n_origins": 3199,
+  "exceed95": 0.05220381369177868,
+  "exceed99": 0.012191309784307595,
+  "coverage90": 0.8971553610503282,
+  "qlike_model": 1.5952642057860336,
+  "qlike_ewma": 1.7043564113052976,
+  "dm_t": -4.201738194361782,
+  "dm_p": 2.648733526208916e-05,
+  "nonconv_share": 0.0,
+  "stationarity_share": 0.1838074398249453,
+  "traffic": "green",
+  "median_gamma": 0.2740998687124844,
+  "median_lambda": -0.18993710449470616
+ },
+ "tests": {
+  "kupiec95_p": 0.5700268092339584,
+  "kupiec99_p": 0.22847749600292538,
+  "cc_p": 0.8468354247087487,
+  "pit_ks_p": 0.07088611337166328,
+  "berkowitz_p": 0.22006017344667952
+ },
+ "decision": "REVISE",
+ "decision_reason": "pit failed",
+ "revise_target": "shape: see the histogram diagnosis",
+ "lines": [
+  "The fan said a 5 % day would happen 5 % of the time; it happened 5.2% of the time over 3,199 origins, 0.6 standard errors from target (Kupiec p = 0.57): passes.",
+  "1 % days happened 1.22% of the time (Kupiec p = 0.23); Basel traffic light over the last 250 days: green.",
+  "Exceptions cluster? Christoffersen independence p = 0.92, conditional coverage p = 0.85: passes.",
+  "The 90 % band covered 89.7% of outcomes (target 90 % ± 1.1%): passes.",
+  "PIT calibration: KS p = 0.07, chi-square p = 0.00, Berkowitz p = 0.22; histogram flat; correlogram flags: k=1 lag=20: +0.04, k=2 lag=1: -0.06, k=4 lag=1: -0.05: fails.",
+  "Solver failed to converge at 0.0% of origins: passes.",
+  "QLIKE GJR-GARCH(1,1) skew-t 1.595 vs EWMA(0.94) 1.704: Diebold–Mariano t -4.20 (negative favours the model; the crypto gate needs p < 0.10).",
+  "Fitted ν: median 7.2; 0% of refits effectively normal; the persistence sat on the stationarity guardrail (near-integrated variance) at 18% of origins; median leverage γ 0.274; median skew λ -0.190 (negative = longer left tail)."
+ ],
+ "decay_haircut": {
+  "factor": 0.6,
+  "source": "McLean-Pontiff 2016 26-58%"
+ },
+ "created": "2026-09-27",
+ "author": "QUANTGEN validation gate",
+ "results_file": "docs/asset_expansion/results.csv",
+ "results_md5": "ca757e25f508b588cb2f361719ec83cd",
+ "citations": [
+  "Primer §6.3–6.4, §7.7",
+  "ARCHITECTURE_REVIEW B5",
+  "Berkeley Lec 8 §3 (coverage, PIT)",
+  "Kupiec 1995; Christoffersen 1998",
+  "Glosten, Jagannathan & Runkle 1993 JF 48",
+  "ARCHITECTURE_REVIEW B8",
+  "Hansen 1994 IER 35 (skewed t)"
+ ]
+}

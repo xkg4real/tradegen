@@ -1,0 +1,22 @@
+# macro_daily (section 3.9, L1191-1245; R-35). Data only: read by core/skills/pipeline.load_pipeline, run by
+# core/skills/macro_daily (in-process, headless). Never routed through core/skills/workflows.py or the Flet page.
+# "skill" = an in-process function; "gate" = an automatic check (fail-closed / HALT side effects), never a human pause.
+# Acting steps = macro.pit_snapshot through verdict_filter (L1240-1241).
+name: macro_daily
+runs: [after_close: KRX, after_close: NYSE]   # decision_utc = close_print_bound_utc (R-20); start >= close_print_bound_utc + 10 min
+run_mode: live                                # live | backtest | replay
+steps:
+  - skill: macro.pit_snapshot          # data.ingest attempt (retries_min 1/5/15/60 as a schedule record), knowledge_utc pinned once,
+                                       #   contracts read for every registry binding at decision_utc (value_status, session checks)
+  - gate: data_ok                      # by role and book (R-19 rule 4): acting fails closed and counts for its bound books only;
+                                       #   forward_sim fails that book; risk_model sets hedge_credit_off; context is labelled
+  - skill: macro.lag_audit             # independent of pit_value; acting violation -> OPS HALT (operator re-arm) of the fed books
+  - skill: macro.vol_and_overlays      # vt, vs, dm, hedge_state, look-through caps, ladder; composition by min()
+  - skill: macro.build_artifacts       # macro_state, overlay_decision, context_log, event_calendar; always written
+  - gate: bounds_ok                    # schema 2.0 + P2 bounds + exposure basis + min() recomputed from the recorded factors
+  - gate: verdict_filter               # PASS (RECOMMENDATION / BUILD_AS_INSURANCE) and INVARIANT_STEP only; verdict integrity (i)-(iii)
+  - skill: macro.engine_feed           # recommended and specification books only; atomic per book; blocked after an acting error
+  - skill: macro.forward_books         # FORWARD-SIM (R-28, R-29) and refusal (R-11, R-12) evaluators; display only
+  - skill: macro.forward_monitor       # R-25 alarms; an error queues the decision for the next successful run
+  - skill: macro.brief                 # open owner decisions and actions; computed numbers only
+  - skill: macro.run_record            # the runner's epilogue: counters once per book, run_log.jsonl row (also on error)

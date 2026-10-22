@@ -1,0 +1,219 @@
+2026-08-03 {'QG-TREND': -5.04, 'QG-TACTICAL': 0.0, 'QG-CORE': np.float64(1.17), 'LAZYOWEN-CAL': 0.0, 'LAZYOWEN-NAIVE': -2.15}
+2026-08-04 {'QG-TREND': -2.2, 'QG-TACTICAL': 0.0, 'QG-CORE': np.float64(0.42), 'LAZYOWEN-CAL': 0.0, 'LAZYOWEN-NAIVE': -4.79}
+2026-08-05 {'QG-TREND': 0.18, 'QG-TACTICAL': 0.0, 'QG-CORE': np.float64(1.49), 'LAZYOWEN-CAL': 0.0, 'LAZYOWEN-NAIVE': -2.72}
+2026-08-06 {'QG-TREND': -7.13, 'QG-TACTICAL': 0.0, 'QG-CORE': np.float64(-1.23), 'LAZYOWEN-CAL': 0.0, 'LAZYOWEN-NAIVE': -2.27}
+2026-08-07 {'QG-TREND': -8.06, 'QG-TACTICAL': 0.0, 'QG-CORE': np.float64(-0.9), 'LAZYOWEN-CAL': 0.0, 'LAZYOWEN-NAIVE': -2.89}
+2026-08-10 {'QG-TREND': -0.09, 'QG-TACTICAL': 0.0, 'QG-CORE': np.float64(-0.15), 'LAZYOWEN-CAL': 0.0, 'LAZYOWEN-NAIVE': -2.69}
+2026-08-11 {'QG-TREND': -4.73, 'QG-TACTICAL': 0.0, 'QG-CORE': np.float64(-1.31), 'LAZYOWEN-CAL': -0.03, 'LAZYOWEN-NAIVE': -2.62}
+2026-08-12 {'QG-TREND': -1.74, 'QG-TACTICAL': 0.0, 'QG-CORE': np.float64(0.39), 'LAZYOWEN-CAL': 0.0, 'LAZYOWEN-NAIVE': -2.84}
+2026-08-13 {'QG-TREND': -5.09, 'QG-TACTICAL': 0.0, 'QG-CORE': np.float64(-1.91), 'LAZYOWEN-CAL': -0.05, 'LAZYOWEN-NAIVE': -2.09}
+2026-08-14 {'QG-TREND': -3.39, 'QG-TACTICAL': 0.0, 'QG-CORE': np.float64(-0.42), 'LAZYOWEN-CAL': 0.0, 'LAZYOWEN-NAIVE': -2.94}
+2026-08-18 {'QG-TREND': -9.0, 'QG-TACTICAL': 0.0, 'QG-CORE': np.float64(-3.53), 'LAZYOWEN-CAL': 0.0, 'LAZYOWEN-NAIVE': -0.49}
+2026-08-19 {'QG-TREND': -1.6, 'QG-TACTICAL': 0.0, 'QG-CORE': np.float64(1.64), 'LAZYOWEN-CAL': -0.15, 'LAZYOWEN-NAIVE': -4.41}
+2026-08-20 {'QG-TREND': -4.52, 'QG-TACTICAL': 0.0, 'QG-CORE': np.float64(-0.83), 'LAZYOWEN-CAL': 0.0, 'LAZYOWEN-NAIVE': -4.05}
+2026-08-21 {'QG-TREND': -4.25, 'QG-TACTICAL': 0.0, 'QG-CORE': np.float64(-0.09), 'LAZYOWEN-CAL': 0.0, 'LAZYOWEN-NAIVE': -4.62}
+2026-08-24 {'QG-TREND': -6.62, 'QG-TACTICAL': 0.0, 'QG-CORE': np.float64(-0.44), 'LAZYOWEN-CAL': 0.0, 'LAZYOWEN-NAIVE': -4.85}
+2026-08-25 {'QG-TREND': -4.77, 'QG-TACTICAL': 0.0, 'QG-CORE': np.float64(0.15), 'LAZYOWEN-CAL': 0.0, 'LAZYOWEN-NAIVE': -3.28}
+2026-08-26 {'QG-TREND': -4.88, 'QG-TACTICAL': 0.0, 'QG-CORE': np.float64(-0.12), 'LAZYOWEN-CAL': -0.19, 'LAZYOWEN-NAIVE': -3.41}
+2026-08-27 {'QG-TREND': -5.32, 'QG-TACTICAL': 0.0, 'QG-CORE': np.float64(0.71), 'LAZYOWEN-CAL': -0.04, 'LAZYOWEN-NAIVE': -2.72}
+2026-08-28 {'QG-TREND': -2.89, 'QG-TACTICAL': 0.0, 'QG-CORE': np.float64(-0.21), 'LAZYOWEN-CAL': -0.04, 'LAZYOWEN-NAIVE': -3.01}
+2026-08-31 {'QG-TREND': -4.46, 'QG-TACTICAL': 0.0, 'QG-CORE': np.float64(1.65), 'LAZYOWEN-CAL': -0.06, 'LAZYOWEN-NAIVE': -3.29}
+2026-09-01 {'QG-TREND': -5.85, 'QG-TACTICAL': 0.0, 'QG-CORE': np.float64(-0.46), 'LAZYOWEN-CAL': 0.0, 'LAZYOWEN-NAIVE': -5.03}
+2026-09-02 {'QG-TREND': -4.63, 'QG-TACTICAL': 0.0, 'QG-CORE': np.float64(0.01), 'LAZYOWEN-CAL': -0.12, 'LAZYOWEN-NAIVE': -1.8}
+2026-09-03 {'QG-TREND': -3.14, 'QG-TACTICAL': 0.0, 'QG-CORE': np.float64(-0.33), 'LAZYOWEN-CAL': -0.08, 'LAZYOWEN-NAIVE': -2.89}
+2026-09-04 {'QG-TREND': -1.34, 'QG-TACTICAL': 0.0, 'QG-CORE': np.float64(1.64), 'LAZYOWEN-CAL': -0.06, 'LAZYOWEN-NAIVE': -2.26}
+2026-09-07 {'QG-TREND': -5.04, 'QG-TACTICAL': 0.0, 'QG-CORE': np.float64(-1.54), 'LAZYOWEN-CAL': 0.0, 'LAZYOWEN-NAIVE': -1.92}
+2026-09-08 {'QG-TREND': -4.64, 'QG-TACTICAL': 0.0, 'QG-CORE': np.float64(-1.71), 'LAZYOWEN-CAL': -0.17, 'LAZYOWEN-NAIVE': -2.88}
+2026-09-09 {'QG-TREND': -4.24, 'QG-TACTICAL': 0.0, 'QG-CORE': np.float64(0.22), 'LAZYOWEN-CAL': 0.0, 'LAZYOWEN-NAIVE': -3.72}
+2026-09-10 {'QG-TREND': -3.86, 'QG-TACTICAL': 0.0, 'QG-CORE': np.float64(1.18), 'LAZYOWEN-CAL': -0.04, 'LAZYOWEN-NAIVE': -3.02}
+2026-09-11 {'QG-TREND': -3.93, 'QG-TACTICAL': 0.0, 'QG-CORE': np.float64(0.25), 'LAZYOWEN-CAL': 0.0, 'LAZYOWEN-NAIVE': -3.41}
+2026-09-14 {'QG-TREND': -5.58, 'QG-TACTICAL': 0.0, 'QG-CORE': np.float64(-0.43), 'LAZYOWEN-CAL': 0.0, 'LAZYOWEN-NAIVE': -4.49}
+2026-09-15 {'QG-TREND': -1.89, 'QG-TACTICAL': 0.0, 'QG-CORE': np.float64(-3.49), 'LAZYOWEN-CAL': -0.08, 'LAZYOWEN-NAIVE': -1.55}
+2026-09-16 {'QG-TREND': -2.56, 'QG-TACTICAL': 0.0, 'QG-CORE': np.float64(1.62), 'LAZYOWEN-CAL': 0.0, 'LAZYOWEN-NAIVE': -2.23}
+2026-09-17 {'QG-TREND': -3.1, 'QG-TACTICAL': 0.0, 'QG-CORE': np.float64(-0.78), 'LAZYOWEN-CAL': 0.0, 'LAZYOWEN-NAIVE': -3.24}
+2026-09-18 {'QG-TREND': -2.01, 'QG-TACTICAL': 0.0, 'QG-CORE': np.float64(-0.12), 'LAZYOWEN-CAL': -0.12, 'LAZYOWEN-NAIVE': -2.59}
+2026-09-21 {'QG-TREND': -3.22, 'QG-TACTICAL': 0.0, 'QG-CORE': np.float64(0.07), 'LAZYOWEN-CAL': 0.0, 'LAZYOWEN-NAIVE': -2.95}
+2026-09-22 {'QG-TREND': -1.85, 'QG-TACTICAL': 0.0, 'QG-CORE': np.float64(-1.02), 'LAZYOWEN-CAL': -0.18, 'LAZYOWEN-NAIVE': -2.65}
+2026-09-23 {'QG-TREND': -3.19, 'QG-TACTICAL': 0.0, 'QG-CORE': np.float64(-1.21), 'LAZYOWEN-CAL': 0.0, 'LAZYOWEN-NAIVE': -2.45}
+2026-09-28 {'QG-TREND': -5.72, 'QG-TACTICAL': 0.0, 'QG-CORE': np.float64(-2.49), 'LAZYOWEN-CAL': 0.0, 'LAZYOWEN-NAIVE': -2.98}
+2026-09-29 {'QG-TREND': -5.96, 'QG-TACTICAL': 0.0, 'QG-CORE': np.float64(1.0), 'LAZYOWEN-CAL': -0.1, 'LAZYOWEN-NAIVE': -3.63}
+2026-09-30 {'QG-TREND': -6.97, 'QG-TACTICAL': 0.0, 'QG-CORE': np.float64(0.31), 'LAZYOWEN-CAL': -0.14, 'LAZYOWEN-NAIVE': -2.26}
+2026-10-01 {'QG-TREND': 2.12, 'QG-TACTICAL': 0.0, 'QG-CORE': np.float64(2.5), 'LAZYOWEN-CAL': 0.0, 'LAZYOWEN-NAIVE': -1.59}
+2026-10-02 {'QG-TREND': -3.76, 'QG-TACTICAL': 0.0, 'QG-CORE': np.float64(2.32), 'LAZYOWEN-CAL': 0.0, 'LAZYOWEN-NAIVE': -2.22}
+2026-10-06 {'QG-TREND': -5.79, 'QG-TACTICAL': 0.0, 'QG-CORE': np.float64(-0.63), 'LAZYOWEN-CAL': 0.0, 'LAZYOWEN-NAIVE': -2.91}
+2026-10-07 {'QG-TREND': -4.89, 'QG-TACTICAL': 0.0, 'QG-CORE': np.float64(-1.7), 'LAZYOWEN-CAL': 0.0, 'LAZYOWEN-NAIVE': -3.79}
+2026-10-08 {'QG-TREND': -5.53, 'QG-TACTICAL': 0.0, 'QG-CORE': np.float64(-1.52), 'LAZYOWEN-CAL': -0.09, 'LAZYOWEN-NAIVE': -2.22}
+{
+ "n_days": 45,
+ "first": "2026-08-03",
+ "last": "2026-10-08",
+ "test_from": "2026-09-29",
+ "seconds": 168.6,
+ "sha": "fd50c3194378dc74",
+ "accounts": {
+  "QG-TREND": {
+   "all": {
+    "days": 45,
+    "mean": -4.048013732777863,
+    "median": -4.4555995410569835,
+    "sd": 2.1612169267015373,
+    "t": -12.56463490801726,
+    "win_days": 0.044444444444444446,
+    "flat_days": 0.0,
+    "worst": -9.003081167387563,
+    "best": 2.12472477950638,
+    "trades_per_day": 29.955555555555556,
+    "costs_per_day": 3.7073582036625603,
+    "gross_per_day": -0.3406555291153612
+   },
+   "oos_logit": {
+    "days": 7,
+    "mean": -4.39699565164569,
+    "median": -5.533747955594549,
+    "sd": 3.0413707353887367,
+    "t": -3.8250374657464956,
+    "win_days": 0.14285714285714285,
+    "flat_days": 0.0,
+    "worst": -6.971814878968644,
+    "best": 2.12472477950638,
+    "trades_per_day": 31.0,
+    "costs_per_day": 3.980757642766171,
+    "gross_per_day": -0.4162380088795911
+   }
+  },
+  "QG-TACTICAL": {
+   "all": {
+    "days": 45,
+    "mean": 0.0,
+    "median": 0.0,
+    "sd": 0.0,
+    "t": null,
+    "win_days": 0.0,
+    "flat_days": 1.0,
+    "worst": 0.0,
+    "best": 0.0,
+    "trades_per_day": 0.0,
+    "costs_per_day": 0.0,
+    "gross_per_day": 0.0
+   },
+   "oos_logit": {
+    "days": 7,
+    "mean": 0.0,
+    "median": 0.0,
+    "sd": 0.0,
+    "t": null,
+    "win_days": 0.0,
+    "flat_days": 1.0,
+    "worst": 0.0,
+    "best": 0.0,
+    "trades_per_day": 0.0,
+    "costs_per_day": 0.0,
+    "gross_per_day": 0.0
+   }
+  },
+  "QG-CORE": {
+   "all": {
+    "days": 45,
+    "mean": -0.2182234307100594,
+    "median": -0.15397973956856958,
+    "sd": 1.361414294284574,
+    "t": -1.0752695062761919,
+    "win_days": 0.4222222222222222,
+    "flat_days": 0.0,
+    "worst": -3.5288022969257327,
+    "best": 2.5035113786969987,
+    "trades_per_day": 5.955555555555556,
+    "costs_per_day": 0.40617733690591457,
+    "gross_per_day": 0.18795390619586907
+   },
+   "oos_logit": {
+    "days": 7,
+    "mean": 0.3275417919574092,
+    "median": 0.31240405575061914,
+    "sd": 1.7129403378017412,
+    "t": 0.5059102797543331,
+    "win_days": 0.5714285714285714,
+    "flat_days": 0.0,
+    "worst": -1.6963027005217555,
+    "best": 2.5035113786969987,
+    "trades_per_day": 6.0,
+    "costs_per_day": 0.41259089997040366,
+    "gross_per_day": 0.7401326919278398
+   }
+  },
+  "LAZYOWEN-CAL": {
+   "all": {
+    "days": 45,
+    "mean": -0.03881486587706225,
+    "median": 0.0,
+    "sd": 0.058324133509602805,
+    "t": -4.46432754758499,
+    "win_days": 0.0,
+    "flat_days": 0.6,
+    "worst": -0.19348127748236266,
+    "best": 0.0,
+    "trades_per_day": 0.6222222222222222,
+    "costs_per_day": 0.03733312449685418,
+    "gross_per_day": -0.0014817413802204853
+   },
+   "oos_logit": {
+    "days": 7,
+    "mean": -0.04783316403632755,
+    "median": 0.0,
+    "sd": 0.06183513448862189,
+    "t": -2.046646417252771,
+    "win_days": 0.0,
+    "flat_days": 0.5714285714285714,
+    "worst": -0.14333602976302018,
+    "best": 0.0,
+    "trades_per_day": 0.7142857142857143,
+    "costs_per_day": 0.0428454718774482,
+    "gross_per_day": -0.004987692158897702
+   }
+  },
+  "LAZYOWEN-NAIVE": {
+   "all": {
+    "days": 45,
+    "mean": -2.950722961171855,
+    "median": -2.8915072121525327,
+    "sd": 0.9506968128496415,
+    "t": -20.820571926099188,
+    "win_days": 0.0,
+    "flat_days": 0.0,
+    "worst": -5.028875798311844,
+    "best": -0.4891610313903243,
+    "trades_per_day": 53.977777777777774,
+    "costs_per_day": 2.888770763691026,
+    "gross_per_day": -0.06195219748092503
+   },
+   "oos_logit": {
+    "days": 7,
+    "mean": -2.6595121857689117,
+    "median": -2.2630037393405473,
+    "sd": 0.8136231647128547,
+    "t": -8.648239329289074,
+    "win_days": 0.0,
+    "flat_days": 0.0,
+    "worst": -3.7875176455712563,
+    "best": -1.587455980376319,
+    "trades_per_day": 53.857142857142854,
+    "costs_per_day": 2.623031757617757,
+    "gross_per_day": -0.03648042815132237
+   }
+  }
+ },
+ "benchmarks_usd_on_500": {
+  "EW_ALL_BH": {
+   "mean": -0.16819599221308124,
+   "sd": 2.4613358286646427,
+   "worst": -7.897903856493712,
+   "best": 6.813148080436297
+  },
+  "ES_BH": {
+   "mean": 0.12910844248139644,
+   "sd": 0.8391497248123546,
+   "worst": -2.3817186997103224,
+   "best": 1.8998441153545986
+  }
+ }
+}

@@ -1,0 +1,68 @@
+{"t": "2026-10-07 12:16:31+00:00", "account": "QG-TREND", "key": "ES=F", "trend_on": 0.0, "vote": -0.5555555555555556, "verdict": "trend_off"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "QG-TREND", "key": "NQ=F", "trend_on": 0.0, "vote": -0.5555555555555556, "verdict": "trend_off"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "QG-TREND", "key": "RTY=F", "trend_on": 0.0, "vote": -0.7777777777777778, "verdict": "trend_off"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "QG-TREND", "key": "ZN=F", "trend_on": 0.0, "vote": -0.3333333333333333, "verdict": "trend_off"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "QG-TREND", "key": "ZB=F", "trend_on": 0.0, "vote": -0.5555555555555556, "verdict": "trend_off"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "QG-TREND", "key": "GC=F", "trend_on": 1.0, "vote": 0.5555555555555556, "verdict": "CANDIDATE"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "QG-TREND", "key": "CL=F", "trend_on": 0.0, "vote": -1.0, "verdict": "trend_off"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "QG-TREND", "key": "EURUSD=X", "trend_on": 0.0, "vote": -1.0, "verdict": "trend_off"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "QG-TREND", "key": "GBPUSD=X", "trend_on": 0.0, "vote": -1.0, "verdict": "trend_off"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "QG-TREND", "key": "USDJPY=X", "trend_on": 0.0, "vote": -0.7777777777777778, "verdict": "trend_off"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "QG-TREND", "key": "AUDUSD=X", "trend_on": 0.0, "vote": -1.0, "verdict": "trend_off"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "QG-TREND", "key": "ISF.L", "trend_on": 0.0, "vote": -0.1111111111111111, "verdict": "trend_off"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "QG-TREND", "key": "HSBA.L", "trend_on": 0.0, "vote": -0.1111111111111111, "verdict": "trend_off"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "QG-TREND", "key": "SHEL.L", "trend_on": 1.0, "vote": 0.5555555555555556, "verdict": "CANDIDATE"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "QG-TREND", "key": "AZN.L", "trend_on": 1.0, "vote": 1.0, "verdict": "CANDIDATE"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "QG-TREND", "key": "SPY", "trend_on": 0.0, "vote": -0.5555555555555556, "verdict": "trend_off"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "QG-TREND", "key": "QQQ", "trend_on": 0.0, "vote": -0.7777777777777778, "verdict": "trend_off"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "QG-TREND", "key": "IWM", "trend_on": 0.0, "vote": -0.3333333333333333, "verdict": "trend_off"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "QG-TREND", "key": "TLT", "trend_on": 0.0, "vote": -0.7777777777777778, "verdict": "trend_off"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "QG-TREND", "key": "IEF", "trend_on": 0.0, "vote": -0.5555555555555556, "verdict": "trend_off"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "QG-TREND", "key": "HYG", "trend_on": 1.0, "vote": 1.0, "verdict": "stale"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "QG-TREND", "key": "GLD", "trend_on": 1.0, "vote": -0.1111111111111111, "verdict": "stale"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "QG-TREND", "key": "USO", "trend_on": 1.0, "vote": 1.0, "verdict": "stale"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "QG-TACTICAL", "key": "ES=F", "p": 0.494, "exp_move_bp": 0.16, "rt_cost_bp": 10.0, "verdict": "edge<2pp"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "QG-TACTICAL", "key": "NQ=F", "p": 0.4922, "exp_move_bp": 0.28, "rt_cost_bp": 10.0, "verdict": "edge<2pp"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "QG-TACTICAL", "key": "RTY=F", "p": 0.4957, "exp_move_bp": 0.17, "rt_cost_bp": 10.0, "verdict": "edge<2pp"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "QG-TACTICAL", "key": "ZN=F", "p": 0.4683, "exp_move_bp": 0.32, "rt_cost_bp": 10.0, "verdict": "cost_gate"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "QG-TACTICAL", "key": "ZB=F", "p": 0.4592, "exp_move_bp": 0.77, "rt_cost_bp": 10.0, "verdict": "cost_gate"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "QG-TACTICAL", "key": "GC=F", "p": 0.5045, "exp_move_bp": 0.2, "rt_cost_bp": 10.0, "verdict": "edge<2pp"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "QG-TACTICAL", "key": "CL=F", "p": 0.501, "exp_move_bp": 0.08, "rt_cost_bp": 10.0, "verdict": "edge<2pp"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "QG-TACTICAL", "key": "EURUSD=X", "p": 0.539, "exp_move_bp": 0.45, "rt_cost_bp": 20.0, "verdict": "cost_gate"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "QG-TACTICAL", "key": "GBPUSD=X", "p": 0.5448, "exp_move_bp": 0.53, "rt_cost_bp": 20.0, "verdict": "cost_gate"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "QG-TACTICAL", "key": "USDJPY=X", "p": 0.4857, "exp_move_bp": 0.19, "rt_cost_bp": 20.0, "verdict": "edge<2pp"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "QG-TACTICAL", "key": "AUDUSD=X", "p": 0.5091, "exp_move_bp": 0.14, "rt_cost_bp": 20.0, "verdict": "edge<2pp"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "QG-TACTICAL", "key": "ISF.L", "p": 0.4971, "exp_move_bp": 0.1, "rt_cost_bp": 100.0, "verdict": "edge<2pp"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "QG-TACTICAL", "key": "HSBA.L", "p": 0.4899, "exp_move_bp": 1.07, "rt_cost_bp": 100.0, "verdict": "edge<2pp"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "QG-TACTICAL", "key": "SHEL.L", "p": 0.5021, "exp_move_bp": 0.15, "rt_cost_bp": 100.0, "verdict": "edge<2pp"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "QG-TACTICAL", "key": "AZN.L", "p": 0.4992, "exp_move_bp": 0.07, "rt_cost_bp": 100.0, "verdict": "edge<2pp"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "LAZYOWEN-CAL", "key": "ES=F", "p": 0.494, "verdict": "edge<8pp"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "LAZYOWEN-CAL", "key": "NQ=F", "p": 0.4922, "verdict": "edge<8pp"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "LAZYOWEN-CAL", "key": "RTY=F", "p": 0.4957, "verdict": "edge<8pp"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "LAZYOWEN-CAL", "key": "ZN=F", "p": 0.4683, "verdict": "edge<8pp"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "LAZYOWEN-CAL", "key": "ZB=F", "p": 0.4592, "verdict": "edge<8pp"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "LAZYOWEN-CAL", "key": "GC=F", "p": 0.5045, "verdict": "edge<8pp"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "LAZYOWEN-CAL", "key": "CL=F", "p": 0.501, "verdict": "edge<8pp"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "LAZYOWEN-CAL", "key": "EURUSD=X", "p": 0.539, "verdict": "edge<8pp"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "LAZYOWEN-CAL", "key": "GBPUSD=X", "p": 0.5448, "verdict": "edge<8pp"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "LAZYOWEN-CAL", "key": "USDJPY=X", "p": 0.4857, "verdict": "edge<8pp"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "LAZYOWEN-CAL", "key": "AUDUSD=X", "p": 0.5091, "verdict": "edge<8pp"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "LAZYOWEN-CAL", "key": "ISF.L", "p": 0.4971, "verdict": "edge<8pp"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "LAZYOWEN-CAL", "key": "HSBA.L", "p": 0.4899, "verdict": "edge<8pp"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "LAZYOWEN-CAL", "key": "SHEL.L", "p": 0.5021, "verdict": "edge<8pp"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "LAZYOWEN-CAL", "key": "AZN.L", "p": 0.4992, "verdict": "edge<8pp"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "LAZYOWEN-NAIVE", "key": "ES=F", "p": 0.344, "verdict": "CANDIDATE"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "LAZYOWEN-NAIVE", "key": "NQ=F", "p": 0.5599, "verdict": "edge<8pp"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "LAZYOWEN-NAIVE", "key": "RTY=F", "p": 0.3706, "verdict": "CANDIDATE"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "LAZYOWEN-NAIVE", "key": "ZN=F", "p": 0.5, "verdict": "edge<8pp"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "LAZYOWEN-NAIVE", "key": "ZB=F", "p": 0.3552, "verdict": "CANDIDATE"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "LAZYOWEN-NAIVE", "key": "GC=F", "p": 0.609, "verdict": "CANDIDATE"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "LAZYOWEN-NAIVE", "key": "CL=F", "p": 0.5095, "verdict": "edge<8pp"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "LAZYOWEN-NAIVE", "key": "EURUSD=X", "p": 0.2149, "verdict": "CANDIDATE"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "LAZYOWEN-NAIVE", "key": "GBPUSD=X", "p": 0.1874, "verdict": "CANDIDATE"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "LAZYOWEN-NAIVE", "key": "USDJPY=X", "p": 0.337, "verdict": "CANDIDATE"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "LAZYOWEN-NAIVE", "key": "AUDUSD=X", "p": 0.2449, "verdict": "CANDIDATE"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "LAZYOWEN-NAIVE", "key": "ISF.L", "p": 0.5873, "verdict": "CANDIDATE"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "LAZYOWEN-NAIVE", "key": "HSBA.L", "p": 0.5384, "verdict": "edge<8pp"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "LAZYOWEN-NAIVE", "key": "SHEL.L", "p": 0.5628, "verdict": "edge<8pp"}
+{"t": "2026-10-07 12:16:31+00:00", "account": "LAZYOWEN-NAIVE", "key": "AZN.L", "p": 0.6185, "verdict": "CANDIDATE"}

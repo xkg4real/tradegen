@@ -1,0 +1,17 @@
+test,item,value,passed,note
+W0,round-1 reproduction checks (r2_kr_02),26/26,True,MOM_12_1 LS EW gross ann_mean: 0.09337 vs 0.09337; MOM_12_1 LS EW gross sharpe: 0.4472 vs 0.4472; MOM_12_1 LS EW gross nw_t: 2.666 vs 2.666
+W1,round-2 formation arrays recomputed from data truncated at 2008-06-30 (400 random codes),"1,657,600/1,657,600 identical",True,
+W1,round-2 formation arrays recomputed from data truncated at 2015-06-30 (400 random codes),"2,598,400/2,598,400 identical",True,
+W1,round-2 formation arrays recomputed from data truncated at 2026-06-30 (400 random codes),"4,076,800/4,076,800 identical",True,
+W2,period returns recomputed by hand from days t+1..t_next (12 random periods),max abs error 0.00e+00,True,
+W2,same recomputation including day t differs (test has power),all differ,True,
+W2,book series are missing on and before the first formation close,True,True,
+W3,filter flags assigned outside the ALL universe (all 44 definitions),0,True,
+W3,quintiles unchanged when non-members get extreme signal values; none assigned outside,True,True,
+W3,"quintile sizes = 20% +- 1 name (TURN_1M, VOL_3M, MOM_12_1; 25 random formations)",True,True,
+W3,top-200 (B3) and MOM 12-1 top quintile (B4) are subsets of the ALL universe,"True, True",True,
+W3,F4 composite unchanged when non-members get extreme inputs,True,True,
+W4,"filtered and unfiltered books: identical non-missing days, first day = formation+1, last = 2026-09-29",180/180 books,True,
+W4,"rebalance dates shared by construction (one formation calendar, Panel.fidx)",366 formations,True,1996-03-30..2026-08-31
+W5,bootstrap and CSCV reproducible with fixed seeds,p 0.4803/0.4803; PBO 0.1918/0.1918,True,
+W6,E7 exact construction reproduces E7's printed long-only excess (all/high/low),"all -4.50% vs -4.4%, high -11.20% vs -10.9%, low +2.93% vs +3.1%",True,

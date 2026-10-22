@@ -1,0 +1,39 @@
+test,what,passed,detail
+V1,KOSPI: weights at t unchanged when prices after t are perturbed,True,"265/265 spec x cut-date pairs (53 specs, 5 cuts)"
+V1b,KOSPI: the same test detects a planted look-ahead rule,True,5/5 cut dates
+V1,SPY: weights at t unchanged when prices after t are perturbed,True,"265/265 spec x cut-date pairs (53 specs, 5 cuts)"
+V1b,SPY: the same test detects a planted look-ahead rule,True,5/5 cut dates
+V2,weight decided at the close of t earns only r_{t+1},True,[ 0.   -0.    0.03  0.   -0.    0.  ]
+V2b,cost = c x |dw| charged on the earning day; initial entry not charged,True,[0. 0. 0. 0. 0. 0.]
+V2c,engine held weight = decided weight lagged one session (KOSPI SMA200),True,7518 sessions compared
+V3,macro spec 9.3 KOSPI VT20 golden values on the rebuilt KOSPI (2016-01-04..2026-09-29),True,"30/30 within Level-1 tolerance, 30/30 within Level-2"
+V4,R4b's Korea VT20 protective card (spec 8.9) reproduced by this harness,True,12/12 items within tolerance; verdict INSUFFICIENT DATA (inconclusive)
+V5,bootstrap p-values identical on re-run (seed 11),True,"pc3_p_ni=0.0070, pc3_p_ni_block10=0.0085, o_step5_p_block10=0.0480, pc3_dsr_ci90_lo=0.0047, o_step2_sr_ci90_lo=0.3290"
+V5b,gate simulation identical on re-run; per-path seeds reproduce a subset,True,"rerun identical=True, subset identical=True"
+V6,E1's Shiller 12-month-sign table reproduced (rounding tolerance),True,1927-01..1991-12: R/V 0.82 vs 0.66; 1992-01..2014-12: R/V 1.32 vs 0.81; 2015-01..2026-09: R/V 1.02 vs 1.16
+V7,"iid-normal simulated pass rates vs analytic normal approximations (steps 2, 3, 5)",True,share of 880 cells within 3 MC SE: 0.993; max abs gap 0.044
+V7b,iid-normal step-8 pass rates vs the lognormal-binomial formula,True,max abs gap 0.034
+V8,results/r2_idx_averaging_autocorr.csv,True,cfcb1ca3dc9cd1eb19d9cc119388525b40a9465092d0747ccb015d41e4be4d80
+V8,results/r2_idx_averaging_bias.csv,True,0a8847838ccdb481fa96b6baed30bfc50423e27f4440a568637a314fa26bdcff
+V8,results/r2_idx_averaging_meta.csv,True,d07de524678d66384bdbfd1060bc0fc6a5a0251d2cb2ffde844197fca0a6d9c0
+V8,results/r2_idx_averaging_rules.csv,True,3d4e2f804be1242cd296a8d40f178ec92add6b083ebbf19e3a043c30ac3a7b84
+V8,results/r2_idx_claims.csv,True,e8a4341764bb6d2fafd9b38e3b9674498b16fdaac02a7c09b6467c4bbee70b67
+V8,results/r2_idx_e1_checks.csv,True,18e13f489f571904ffe2b4d7a2663874a4e7438d00ed55455d7be73f0e8a37e3
+V8,results/r2_idx_e3_checks.csv,True,9f3d791211b5f8df7925ad47b169b636868893de692e1b9e3d4587bfc9e53c40
+V8,results/r2_idx_gate_power_years.csv,True,ffebbd46ebfa12b08ab3a7c6749c1001464589d2bb783a946ec5420a227ba3c2
+V8,results/r2_idx_gate_sim.csv,True,ceac6a5d6ff6a75235139c1203461cfd2a4708785d6d7f56cec45a134fff9bdb
+V8,results/r2_idx_gate_source_diagnostics.csv,True,5047b1b8c40be1a9c1c9d0865890a8fd7142a4c550224a3ef2efcbdb01d92604
+V8,results/r2_idx_gate_step5_calibration.csv,True,8a1754e8a9a85ef1b62e49f89a8b2eafd8baf0c8f267ae1637699acc1b3103c8
+V8,results/r2_idx_golden_values.csv,True,d735bddec0091fbf52354639272fdb0c4650cbe91ef4474a8b611837392792d8
+V8,results/r2_idx_key_numbers.csv,True,c5a84c9b81e98a09ffd628d0f5e965f561bc202747b2b2e6b910abad173d29dd
+V8,results/r2_idx_outperformance.csv,True,8dbb526caee5142e7ba7cfa8c18c5b0dbc43748d52b9f387bfed211c339563a9
+V8,results/r2_idx_overlay_vs_sleeve.csv,True,b49b7bc0394f725d83fb8661c3c01a621755412de3dd69da531beb74c0d62fe1
+V8,results/r2_idx_plateau_neighbours.csv,True,0b0bc4ef57b6c10c918601d4a00082a398b5c8b22dde8119bc3496f9737ba97c
+V8,results/r2_idx_protective_episodes.csv,True,8634311f42c89e04360523b0e8dcccc841436ef278bac4ec332ac492a270cfbc
+V8,results/r2_idx_protective_scorecard.csv,True,f795782d35e6c7f95d918c7ebc3550be708fae0251842419150913514876a149
+V8,results/r2_idx_r4b_crosscheck.csv,True,9674f239270697742c930e3fa5fa620f5cc2c9ba2b99d830a2cc7196131816bf
+V8,results/r2_idx_start_date_sensitivity.csv,True,10cefe6b48f025781ca754928e9bd1b01031c22d0bae1d6638f72c89d17323ec
+V8,results/r2_idx_windows.csv,True,a1d00ac7d81534eb5683226ebbdfaaa8115896bb8e398e6c5a871a91e3f6ed72
+V8,charts/r2_idx_chart_a_kospi_2024_2026.json,True,b553892f1c97db8e07b298309fd96c6bc70ffd12ed3002b7e6e6a7ae63b91caf
+V8,charts/r2_idx_chart_b_scorecard.json,True,79ee00dfd0813576f51076b319c2fbaa701b6d73d8cbdbde16e288428ee1a23a
+V8,charts/r2_idx_chart_c_gate_pass_rates.json,True,dc1f77532fd0b9b5fade941402042ac4799b04d48f65110e0c7ff9469921498a

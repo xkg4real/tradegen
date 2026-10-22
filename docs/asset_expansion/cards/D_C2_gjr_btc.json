@@ -1,0 +1,74 @@
+{
+ "card_id": "D_C2_gjr_btc",
+ "kind": "distribution",
+ "hypothesis": "GJR-GARCH(1,1)-t one-day-ahead fans on BTC-USD are calibrated (Kupiec/Christoffersen/PIT) and beat EWMA on QLIKE",
+ "rules": {},
+ "universe": {
+  "symbol": "BTC-USD"
+ },
+ "data": {
+  "sessions": 4392,
+  "start": "2014-09-17",
+  "end": "2026-09-25",
+  "window": 730
+ },
+ "costs": {},
+ "protocol": {},
+ "trials": {
+  "N_planned": 1,
+  "N_total": 1,
+  "ledger": []
+ },
+ "seed": 11,
+ "stats": {
+  "model": "gjr_t",
+  "n_origins": 3661,
+  "exceed95": 0.05736137667304015,
+  "exceed99": 0.011199125921879268,
+  "coverage90": 0.8833652007648184,
+  "qlike_model": 1.9768065684110865,
+  "qlike_ewma": 2.0400338245545244,
+  "dm_t": -1.903639201639361,
+  "dm_p": 0.056957189624133084,
+  "nonconv_share": 0.0,
+  "stationarity_share": 0.745697896749522,
+  "traffic": "green",
+  "median_gamma": 0.0
+ },
+ "tests": {
+  "kupiec95_p": 0.045618871492381856,
+  "kupiec99_p": 0.47432963315356347,
+  "cc_p": 0.005879345276837413,
+  "pit_ks_p": 0.04450894338281419,
+  "berkowitz_p": 0.10946514609973376
+ },
+ "decision": "REVISE",
+ "decision_reason": "tails, clustering, coverage, pit failed",
+ "revise_target": "tails too thin: t innovations, a lower ν floor, or the GJR leverage term",
+ "lines": [
+  "The fan said a 5 % day would happen 5 % of the time; it happened 5.7% of the time over 3,661 origins, 2.0 standard errors from target (Kupiec p = 0.05): fails.",
+  "1 % days happened 1.12% of the time (Kupiec p = 0.47); Basel traffic light over the last 250 days: green.",
+  "Exceptions cluster? Christoffersen independence p = 0.01, conditional coverage p = 0.01: fails.",
+  "The 90 % band covered 88.3% of outcomes (target 90 % ± 1.0%): fails.",
+  "PIT calibration: KS p = 0.04, chi-square p = 0.00, Berkowitz p = 0.11; histogram flat; correlogram flags: k=2 lag=1: +0.04, k=3 lag=1: +0.04, k=4 lag=1: +0.04: fails.",
+  "Solver failed to converge at 0.0% of origins: passes.",
+  "QLIKE GJR-GARCH(1,1)-t 1.977 vs EWMA(0.94) 2.040: Diebold–Mariano t -1.90 (negative favours the model; the crypto gate needs p < 0.10).",
+  "Fitted ν: median 3.1; 0% of refits effectively normal; the persistence sat on the stationarity guardrail (near-integrated variance) at 75% of origins; median leverage γ 0.000."
+ ],
+ "decay_haircut": {
+  "factor": 0.6,
+  "source": "McLean-Pontiff 2016 26-58%"
+ },
+ "created": "2026-09-27",
+ "author": "QUANTGEN validation gate",
+ "results_file": "docs/asset_expansion/results.csv",
+ "results_md5": "ca757e25f508b588cb2f361719ec83cd",
+ "citations": [
+  "Primer §6.3–6.4, §7.7",
+  "ARCHITECTURE_REVIEW B5",
+  "Berkeley Lec 8 §3 (coverage, PIT)",
+  "Kupiec 1995; Christoffersen 1998",
+  "Glosten, Jagannathan & Runkle 1993 JF 48",
+  "ARCHITECTURE_REVIEW B8"
+ ]
+}

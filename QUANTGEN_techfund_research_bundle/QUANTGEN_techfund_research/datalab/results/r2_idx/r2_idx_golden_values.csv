@@ -1,0 +1,31 @@
+item,ours,spec,gap,level1_tol,level2_tol,within_level1,within_level2
+VT20 Sharpe (gross),0.632912,0.638,-0.00508832,0.01,0.03,True,True
+Buy-and-hold Sharpe,0.628449,0.634,-0.0055507,0.01,0.03,True,True
+VT20 max DD (gross),-0.369951,-0.368,-0.00195148,0.01,0.02,True,True
+Buy-and-hold max DD,-0.440493,-0.439,-0.00149288,0.01,0.02,True,True
+VT20 average exposure,0.925543,0.925,0.000543175,0.02,0.02,True,True
+Static S max DD,-0.414532,-0.413,-0.00153219,0.01,0.02,True,True
+"dMDD VT20 vs S, gross (pp)",4.45807,4.5,-0.0419291,1,1.5,True,True
+VT20 Sharpe net 3 bp,0.63015,0.635,-0.00484984,0.01,0.03,True,True
+VT20 Sharpe net 6 bp,0.627388,0.632,-0.00461188,0.01,0.03,True,True
+"dMDD VT20 vs S, net 3 bp (pp)",4.42809,4.4,0.0280913,1,1.5,True,True
+dSR VT20 - buy-and-hold (gross),0.00446238,0.004,0.000462376,0.01,0.03,True,True
+window Jul-2026 crash: VT20,-0.122403,-0.122,-0.000403008,0.01,0.02,True,True
+window Jul-2026 crash: buy-and-hold,-0.386055,-0.386,-5.46144e-05,0.01,0.02,True,True
+window Mar-2026: VT20,-0.0790501,-0.079,-5.01363e-05,0.01,0.02,True,True
+window Mar-2026: buy-and-hold,-0.198845,-0.199,0.000154975,0.01,0.02,True,True
+window Aug-2024: VT20,-0.0787701,-0.079,0.000229868,0.01,0.02,True,True
+window Aug-2024: buy-and-hold,-0.0545658,-0.055,0.000434176,0.01,0.02,True,True
+window Apr-2025: VT20,-0.116741,-0.117,0.000258553,0.01,0.02,True,True
+window Apr-2025: buy-and-hold,-0.120084,-0.12,-8.3965e-05,0.01,0.02,True,True
+window 2020 crash: VT20,-0.258208,-0.258,-0.000207945,0.01,0.02,True,True
+window 2020 crash: buy-and-hold,-0.340536,-0.341,0.000464365,0.01,0.02,True,True
+window 2020 rebound: VT20,0.258351,0.259,-0.000648534,0.01,0.02,True,True
+window 2020 rebound: buy-and-hold,0.498039,0.499,-0.000960779,0.01,0.02,True,True
+window H1-2026: VT20,0.517037,0.517,3.71107e-05,0.01,0.02,True,True
+window H1-2026: buy-and-hold,1.01075,1.011,-0.000245938,0.01,0.02,True,True
+window 30 Jul-30 Sep 2026: VT20,0.0618557,0.059,0.00285569,0.01,0.02,True,True
+window 30 Jul-30 Sep 2026: buy-and-hold,0.228234,0.222,0.00623388,0.01,0.02,True,True
+VT20 weight earning on 2026-06-22,0.302503,0.3024,0.000103036,0.02,0.02,True,True
+VT20 weight earning on 2026-06-23,0.330984,0.3309,8.38442e-05,0.02,0.02,True,True
+VT20 weight earning on 2026-07-30,0.248497,0.2484,9.73055e-05,0.02,0.02,True,True

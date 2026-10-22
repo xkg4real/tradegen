@@ -1,0 +1,66 @@
+{
+ "card_id": "M_O1_board_today",
+ "kind": "model",
+ "hypothesis": "The app's Black-76 inversion, parity checks, SVI and MFIV reconcile with the live KOSPI200 board (candidate O1/O5/O6, today's snapshot)",
+ "rules": {},
+ "universe": {
+  "board": "KOSPI200 202610"
+ },
+ "data": {
+  "as_of": "2026-09-27T03:34",
+  "source": "KIS display_board_callput"
+ },
+ "costs": {},
+ "protocol": {},
+ "trials": {
+  "N_planned": 1,
+  "N_total": 1,
+  "ledger": []
+ },
+ "seed": 11,
+ "stats": {
+  "expiry": "2026-10-08",
+  "T_days": 15.0,
+  "session": "2026-09-23",
+  "live_quotes": false,
+  "forward": 1121.0513860510093,
+  "atm_iv": 0.395373872232595,
+  "mfiv": 0.3767015458416404,
+  "svi_rmse": 2.0918468679972766,
+  "svi_rho": 0.0313069157713758,
+  "svi_min_g": 0.7709064256448068,
+  "rnd_integral": 1.000004229987543,
+  "n_points": 80,
+  "parity_within": NaN,
+  "cd91": 0.0321
+ },
+ "tests": {
+  "iv_median_gap": 2.21661226752925,
+  "iv_p90_gap": 2.947976198716012,
+  "butterfly_violations": 0
+ },
+ "decision": "REVISE",
+ "decision_reason": "market closed at capture: last prints of 2026-09-23 only; run during a session (09:00–15:45 KST)",
+ "revise_target": "re-run during the session",
+ "lines": [
+  "Expiry 2026-10-08 (T = 15 days from the last session 2026-09-23), CD 91d 3.21%, parity-implied forward 1121.05 (K₀ 1120.0); 80 strikes on the board, 80 calls / 80 puts; captured with the market closed: last prints of different moments, no quotes, so the parity, butterfly and reconciliation checks below are indicative only.",
+  "Black-76 inversion of 80 OTM last prints within ±15 % of F vs KIS IV: median gap 2.22 vol pts, 90th pct 2.95 (gate: ≤ 0.5 and ≤ 1.5).",
+  "Put–call parity within half the summed spread on nan% of near strikes (gate ≥ 95 %); butterfly violations calls 0 / puts 0, vertical 0 / 0.",
+  "SVI: RMSE 2.09 vol pts (2.09 within |k| ≤ 0.15), ρ +0.03, min g(k) +0.771 (arbitrage-free).",
+  "ATM implied vol 39.5%; model-free implied vol 37.7% from 80 strikes; RND integrates to 1.000 with mean +0.00% vs F."
+ ],
+ "decay_haircut": {
+  "factor": 0.6,
+  "source": "McLean-Pontiff 2016 26-58%"
+ },
+ "created": "2026-09-27",
+ "author": "QUANTGEN validation gate",
+ "results_file": "docs/asset_expansion/results.csv",
+ "results_md5": "ca757e25f508b588cb2f361719ec83cd",
+ "citations": [
+  "Shreve II §4.5.4–4.5.6 pp. 158–162 (PDF 174–178)",
+  "Gatheral & Jacquier 2014 QF 14",
+  "Cboe VIX methodology pp. 7–9",
+  "RN→FH p. 19"
+ ]
+}

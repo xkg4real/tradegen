@@ -1,0 +1,276 @@
+{
+ "lede": "From 21:01 to 01:42 KST five paper accounts of $500 each ran against CME futures, FX, LSE shares and ETFs, and NYSE/Nasdaq ETFs on live, partly delayed prices. Three of them traded; two never found a trade their rules allowed. Together they lost $17.32 of $2,500 (−0.69%). Transaction costs were $15.91 of that loss. Before costs, no account made or lost more than $1.44.",
+ "verdict": [
+  "<b>Net results.</b> QG-TREND −$10.27 (−2.05%), LAZYOWEN-NAIVE −$7.05 (−1.41%), QG-CORE −$0.01, QG-TACTICAL and LAZYOWEN-CAL $0.00 because neither traded. For comparison, an equal-weight buy-and-hold basket of all 23 instruments lost $0.32, and $500 of SPY bought at the NYSE open made $0.37.",
+  "<b>No predictive skill showed up anywhere.</b> Before costs the three active accounts made −$1.44, +$0.49 and −$0.46. The 49-session replay and the 14-variant stress grid agree: gross P&amp;L is zero for every rule set and variant (every |t| ≤ 1.1).",
+  "<b>QUANTGEN's refusal machinery is the part that worked.</b> The cost gate turned down 137 candidates; the best expected 60-minute move among them was 2.2 bp against a 10–100 bp round trip (the best of the night, 3.8 bp, was a USO short with no route to trade). In the replay the same model without the gate loses $3.87 a session.",
+  "<b>QUANTGEN's only gate-passing rule does not survive the move to 5-minute bars.</b> QG-TREND made 25 trades, won 2, and paid $8.82 in costs, $6.40 of it on nine LSE round trips. Tonight was worse than 84% of its replayed sessions.",
+  "<b>LAZYOWEN's money management held; its edge rule did not.</b> No stake exceeded 6%, there were never more than 5 positions, and the worst drawdown was −1.4%. Fed overconfident odds, the 8 pp entry and 5 pp exit rules churned 70 trades with an average hold of 20 minutes; 59 of the 70 exits were edge-decay exits.",
+  "<b>Five hours cannot validate a model.</b> QUANTGEN had no paper, mock or forward trading record before tonight (its order book held zero fills and its forward-record queue was empty). Read it as an end-to-end pipeline test with one clear finding: at this horizon and these costs, turnover decides the result."
+ ],
+ "qa": [
+  [
+   "Had QUANTGEN been backtested or paper-traded before tonight?",
+   "Backtested on daily bars only: 34 cards, 5 PASS, 11 REVISE, 18 REJECT, and the only trading passes are Bitcoin trend rules. There is no paper, mock-account or forward trading record anywhere in the repository, the engine state or your Gmail and Notion, and its macro overlay has never been run. Tonight adds a 49-session intraday replay, a 14-variant stress grid and this live session."
+  ],
+  [
+   "Is the model 'perfected'?",
+   "Not on its own record and not on tonight's. Its validated strengths are risk control and honest refusal, not market prediction."
+  ],
+  [
+   "What was the net profit?",
+   "−$17.32 on $2,500. The three QUANTGEN accounts lost $10.28 on $1,500; the two LAZYOWEN ports lost $7.05 on $1,000."
+  ],
+  [
+   "Was tonight unusual?",
+   "No. Every active account landed inside its replay range: QG-TREND at the 16th percentile, LAZYOWEN-NAIVE at the 12th, QG-CORE at the 71st."
+  ]
+ ],
+ "eqNote": "QG-TREND steps down at each LSE and ETF round trip (50 bp per side). LAZYOWEN-NAIVE bleeds steadily from churn. QG-CORE moves with its futures basket and finishes flat after $0.50 of costs. The dashed line is the equal-weight buy-and-hold basket with no costs. Hover for values.",
+ "replayNote": "Each dot is one replayed session from Jul 29 to Oct 6, run with the same rules, the same 20:42–01:42 KST clock window and live-like feed delays. The diamond is tonight. QG-TREND averages −$7.60 a session and lost in 48 of 49; LAZYOWEN-NAIVE averages −$5.66 and lost in all 49; QG-CORE averages −$0.63. QG-TACTICAL and LAZYOWEN-CAL sit near $0 because they almost never trade.",
+ "good": [
+  [
+   "The cost gate saved QG-TACTICAL",
+   "138 candidates cleared the 2 pp probability floor. The cost gate refused 137 of them (the largest expected 60-minute move among those was 2.2 bp against a round trip of at least 10 bp), and the last, a USO short, had no route to trade. In the replay, the same model with the gate removed loses $3.87 a session (t −22)."
+  ],
+  [
+   "Bond futures carried QG-CORE",
+   "The inverse-volatility weights put 54% of the basket in 10y and 30y Treasury futures, and bonds rallied (ZB +0.37%, TLT +0.49% over the window). ZB made $0.31 (the best single trade of the session) and ZN $0.17, offsetting oil (−$0.33) and the Russell 2000 (−$0.22). Gross +$0.49 beat the equal-weight basket's −$0.32, but costs took all of it, and over 49 sessions this mode averages −$0.63."
+  ],
+  [
+   "Futures were the cheapest place to be wrong",
+   "QG-TREND's nine CME trades lost $0.54; its nine LSE trades lost $7.44. The replay says the same: −$0.50 a session on CME against −$2.53 on LSE and −$3.15 on NYSE ETFs."
+  ],
+  [
+   "Hard limits and pre-written exits worked as controls",
+   "All 12 controls passed on the full population, one with a documented exception (the pre-patch re-entry) and the kill switches on design only because nothing came near them: every entry had an exit plan, no LAZYOWEN stake exceeded 6%, QUANTGEN never exceeded 1.0× gross, no fill used a quote older than 25 minutes, and the books reconcile to the cent."
+  ],
+  [
+   "The review caught a real defect before it cost anything",
+   "Adversarial review found that one missing GBPUSD quote would have made an account's cash NaN for the rest of the night. It was patched and regression-tested at 21:17 KST, and positions resumed from saved state."
+  ]
+ ],
+ "bad": [
+  [
+   "Worst asset in QG-TREND: Shell (SHEL.L); across all accounts, ISF.L (−$3.51)",
+   "Four round trips lost $3.03: $0.52 of market loss and $2.51 of costs. Shell fell 0.97% in the window (in dollars) while the trend vote crossed both hysteresis bands within single 5-minute bars, so the rule bought, sold and bought again. In the replay SHEL.L loses $0.62 a session with a 2% hit rate."
+  ],
+  [
+   "The costliest trade: iShares FTSE 100 (ISF.L)",
+   "A $125.69 position, the account's largest equity holding, paid $1.26 in round-trip cost on a 35-minute hold and lost $1.53 net, the worst trade of the session. Each 50 bp leg was 2.3 times the fund's 1σ hourly move. Its two trades lost $2.93, and in the replay QG-TREND lost on all 61 of its ISF.L trades. With LAZYOWEN-NAIVE's two trades (−$0.59), ISF.L lost $3.51 across accounts, $3.10 of it costs: the worst asset of the session."
+  ],
+  [
+   "Oil was the worst market",
+   "USO fell 1.68% and WTI futures 1.26% in the window. QG-CORE's oil sleeve lost $0.33 with a worst point of −1.95% of notional, and QG-TREND's USO trade lost $0.68 on a 42%-volatility instrument."
+  ],
+  [
+   "Overconfident odds churn",
+   "LAZYOWEN-NAIVE entered at a mean claimed edge of 23.8 pp. Its 10 NYSE ETF trades lost $2.99, of which $2.97 was cost. Only 6 of 70 trades reached their 60-minute resolution."
+  ],
+  [
+   "The inverse-ETF short route is uneconomic intraday",
+   "The one short through RWM (inverse Russell 2000) lost $0.34, of which $0.30 was cost. At 50 bp per side a cash account cannot short ETFs for minutes."
+  ]
+ ],
+ "cmpNote": "LAZYOWEN is a Korean guide (lazyowen.com, published 2026-10-06) to a Grok bot that paper-trades Polymarket prediction markets from a $50 virtual balance. Polymarket is blocked in Korea and prices binary events, so its edge source cannot be ported; its money-management rules can. Two accounts ran those rules on tonight's markets: one fed QUANTGEN's calibrated probability, one fed an overconfident momentum probability that plays the part of Grok's self-rated fair odds.",
+ "compare": [
+  [
+   "Loop",
+   "Every 10 minutes",
+   "LAZYOWEN accounts every 10 minutes; QUANTGEN accounts every 5 minutes",
+   "Same"
+  ],
+  [
+   "Universe",
+   "Up to 1,000 binary prediction markets; skip liquidity under $5,000 or resolution within 2 hours",
+   "23 instruments on 4 venues: 7 CME futures, 4 FX pairs, 4 LSE names, 8 NYSE/Nasdaq ETFs (plus 4 inverse ETFs for shorts)",
+   "Different worlds: a 62¢ contract is a probability; an ETF price is not"
+  ],
+  [
+   "Edge source",
+   "Grok reads settlement rules and X reactions and states a fair probability",
+   "A logistic model of the next 60 minutes, calibrated on 60 days of 5-minute bars, intercept fixed at zero (QUANTGEN's drift rule)",
+   "Neither is verified. The guide says Grok cannot check its own odds; QUANTGEN's model scored AUC 0.50–0.53 out of sample"
+  ],
+  [
+   "Entry threshold",
+   "Fair probability at least 8 pp away from the market price",
+   "Same 8 pp, with the market price of a 60-minute up/down event taken as 50%",
+   "In liquid markets a calibrated 8 pp edge almost never appears (0 to 3 signals per asset group in the 12-date out-of-sample window)"
+  ],
+  [
+   "Sizing",
+   "Half Kelly, capped at 6% of the balance per trade",
+   "Half Kelly with b = 1, capped at 6%; QUANTGEN accounts size by GARCH-t volatility with gross exposure capped at 1.0×",
+   "LAZYOWEN's cap binds on every trade; on SPY the 6% stake puts about 0.02% of equity at risk per hour (1σ)"
+  ],
+  [
+   "Concurrent positions",
+   "At most 5",
+   "LAZYOWEN accounts at most 5; QG-TACTICAL at most 6; QG-TREND has no position cap, only the 1.0× gross cap (it peaked at 6); QG-CORE only the 1.0× gross cap (it held its 7 sleeves)",
+   "The caps held all night; gross stayed within 0.1% of 1.0× after marking drift"
+  ],
+  [
+   "Exit",
+   "Written before entry; close when the gap disappears or fair odds move 5 pp",
+   "Written into every entry fill and trade record; 60-minute resolution, 5 pp edge decay, session close, 01:42 flatten",
+   "Pre-written exits worked as a control; the 5 pp decay rule caused heavy churn with noisy odds"
+  ],
+  [
+   "Kill switch",
+   "Stop and report at −40% from peak",
+   "LAZYOWEN accounts −40%; QUANTGEN as ported halves new risk at −8% (the −12% step is also 0.5×; QUANTGEN's R-31 block on new entries at −12% was not ported) and hard-stops at −15%",
+   "Neither fired; the worst drawdown was −2.05% (QG-TREND)"
+  ],
+  [
+   "Costs",
+   "Slippage check only (at most 3%)",
+   "QUANTGEN's pre-registered table: 50 bp per side for US ETFs (KIS overseas; QUANTGEN has no LSE row, so LSE fills were charged the same 50 bp as a proxy), 5 bp futures, 10 bp FX, charged on every fill",
+   "Costs were most of every loss and turned QG-CORE's +$0.49 gross into −$0.01; QG-TREND and LAZYOWEN-NAIVE were negative even before costs"
+  ],
+  [
+   "Track record",
+   "Creator's claim: $50 to $5,273 in 48 hours (+10,446%); the guide also records a fall to $11 (−78%) before a switch to weather markets",
+   "None before tonight. Tonight: the three QUANTGEN accounts −$10.28 on $1,500, the two LAZYOWEN ports −$7.05 on $1,000. Replay: 49 sessions, every active account negative on average.",
+   "The guide's +10,446% is the creator's unverified claim and cannot be reproduced from the guide. Under the same costs and markets, both frameworks lost money tonight."
+  ]
+ ],
+ "evidence": [
+  [
+   "Asset-expansion validation gate, 34 strategy and model cards on daily bars (run of record 2026-09-27)",
+   "5 PASS · 11 REVISE · 18 REJECT. The only trading-signal passes are the C3 crypto trend rule on BTC-USD and KRW-BTC. Every equity, rates, FX and futures strategy was rejected or sent back.",
+   "docs/asset_expansion/results.md, manifest.json"
+  ],
+  [
+   "CRY-1 re-check of the C3 crypto trend pass",
+   "Binance BTCUSDT fails against a volatility-scaled control; after 2024-01-10 it trails buy-and-hold (ΔSR −0.049); the ETH replication fails. The pass stands by ruling D-24, not on new evidence.",
+   "docs/techfund/cry1_*.json"
+  ],
+  [
+   "Drift study, 17 instruments, 2005–2026",
+   "The trailing two-year mean has correlation −0.01 with the next year's return and loses to a zero-drift forecast at every horizon; no drift estimator beats zero significantly.",
+   "docs/drift_study/"
+  ],
+  [
+   "GARCH-t volatility fan (the app's default model)",
+   "Rejected on SPY and KODEX 200 because its out-of-sample PIT calibration fails at the 1% level; the 5% left tail is also breached on 6.6–6.8% of days (Kupiec p 0.00006).",
+   "docs/asset_expansion/results.md"
+  ],
+  [
+   "Macro overlay (Quant Council spec v2.0, built as modules M0–M10)",
+   "Every card NOT RUN. The gate package is not frozen, the repository is not under git, calendars are unsigned and 104 reference-data tests cannot run.",
+   "README.md, sprint_logs/S9.md"
+  ],
+  [
+   "Test suite",
+   "684 of 805 pass, 0 fail, 121 not run. The tests check code correctness, causality and read-only safety, not profitability.",
+   "qa/acceptance_results.json"
+  ],
+  [
+   "Paper, mock-account or forward trading",
+   "None anywhere: the engine's order book holds zero fills, the forward-record queue is empty, and no KIS mock-account session was ever run. Gmail and Notion hold no trading record either.",
+   "~/.nextgen/trading/engine.json; enterprise search"
+  ],
+  [
+   "Intraday validation",
+   "None before tonight. The gate needs 756/126-session walk-forward windows and at least 100 trades on daily bars, so it cannot score a five-hour session.",
+   "core/quant/validate.py"
+  ]
+ ],
+ "impl": [
+  "<b>Put the cost gate in front of every rule family.</b> QG-TACTICAL's test (expected move must beat round-trip cost) is the only component that took a losing rule to zero, by refusing every trade. Slower bars and a less overconfident opinion probability (κ 0.25, about 48 instead of 62 entries a session) also cut losses in the grid, but every such variant stayed negative; no variant changed the Kelly fraction. Apply it to C3 trend and to any LAZYOWEN-style rule before an order is allowed.",
+  "<b>Route short-horizon risk to futures only.</b> Replay losses per session for QG-TREND: CME −$0.50, FX −$1.43, LSE −$2.53, NYSE ETFs −$3.15. Hold ETF or LSE exposure for days, never minutes, while the KIS cost is 50 bp per side.",
+  "<b>Keep C3 on daily bars, where it was validated.</b> Slowing it intraday helps but does not fix it: 30-minute bars with 0.4 hysteresis cut the replay loss from −$7.60 to −$2.95 a session, and gross stays at zero.",
+  "<b>Add a cooldown after an exit.</b> Five- to thirty-five-minute Shell and FTSE round trips lost 1.1–1.3% of notional each, 1.0% of it in costs. Blocking re-entry on the same instrument for one full decision bar would have removed 3 of those 6 trades.",
+  "<b>Stop pricing fills on delayed feeds.</b> Yahoo's LSE quotes ran about 16 minutes late and CME about 10. QUANTGEN's KIS client already quotes overseas prices; use a broker feed like that for fills, or treat delayed venues as signal-only.",
+  "<b>Require a calibration record before any probability can size a trade.</b> With calibrated odds the 8 pp gate never fired (largest edge 6.3 pp); with uncalibrated odds it fired 193 times and lost. Make out-of-sample calibration (Brier, AUC, PIT) a gate input, the way QUANTGEN already gates its volatility fans on PIT and Christoffersen tests.",
+  "<b>Run QUANTGEN's own gate on any intraday rule before it trades.</b> That gate asks for at least 100 trades, survival at 2× costs, 504 in-sample sessions and five out-of-sample years, which means years of intraday history from KIS or a vendor; Yahoo serves only about a week of 1-minute bars.",
+  "<b>Close the review's open items and version the run.</b> Fit GARCH on completed sessions only, keep zero-return rows in calibration, fix the USD/JPY exposure formula, and put QUANTGEN and paper_live under git so the config and engine hashes map to commits.",
+  "<b>Replace five-hour tests with a forward record.</b> A daily paper record through QUANTGEN's forward-record module (R-25), which reviews itself on monthly to 12-month windows, would measure what the gate actually validates."
+ ],
+ "amend": [
+  [
+   "20:55–21:01",
+   "Calibration before the start: the first intraday model's intercept was a 60-day drift (bonds had fallen), which QUANTGEN's own drift study rejects. Refit with the intercept fixed at zero; the refit was written at 21:01:01, 40 seconds before the live start."
+  ],
+  [
+   "21:00",
+   "Accounts set before the start: with a calibrated probability neither the cost gate nor the 8 pp rule would let anything trade, so QG-TREND (QUANTGEN's only gate-passing rule family), QG-CORE (no-timing basket) and LAZYOWEN-NAIVE (overconfident odds) were added. All parameters frozen in config.py, hash ffbdfc4d489bcaf2."
+  ],
+  [
+   "21:01:41",
+   "Live start. Five $500 accounts."
+  ],
+  [
+   "21:15:32",
+   "One pre-patch defect fired: LAZYOWEN-NAIVE closed its 30y T-Bond short on edge decay and reopened the same short in the same step (about $0.03 of extra cost). Left in the ledger as executed."
+  ],
+  [
+   "21:17:06",
+   "Restart after an adversarial code review (4 lenses, 2 skeptics per finding). Fixed: a missing quote could turn an account's cash into NaN; same-step re-entry; a cadence check that skipped decision cycles; an unchecked final flatten. config.py unchanged; positions resumed from state.json."
+  ]
+ ],
+ "limits": [
+  [
+   "Five hours is not evidence",
+   "A session has 59 five-minute marks and 102 closed trades across three accounts (70 in the busiest). QUANTGEN's own gate needs at least 100 trades and five out-of-sample years. Tonight is a forward smoke test of the whole pipeline, not a validation of the model."
+  ],
+  [
+   "Delayed data, simulated fills",
+   "Yahoo's CME feed runs about 10 minutes late and its LSE feed about 16 minutes late. Every fill used the last observed 1-minute close plus QUANTGEN's per-side cost; no order touched a market."
+  ],
+  [
+   "Synthetic notional for futures and FX",
+   "A $500 account cannot hold a CME contract. Futures and FX positions are dollar exposures (CFD-style) capped by the 1.0× gross limit; ETF shorts go through 1x inverse ETFs because a cash account cannot short."
+  ],
+  [
+   "Replay is context, not proof",
+   "The 49-session replay uses 5-minute bars, today's GARCH volatility on past days, and Yahoo's 60-day limit. The intraday model is out of sample on only the last 9 of the 49 replayed sessions."
+  ],
+  [
+   "Skills that could not run",
+   "S&P Global tear-sheet, funding-digest and earnings preview need the spglobal connector, which is not authorized in this session. /ultrareview is user-triggered and billed, so I could not launch it; you can run /code-review ultra on paper_live. /verify and /batch are not installed skills."
+  ]
+ ],
+ "foot": [
+  "Code: QUANTGEN/paper_live (config.py, engine.py, calibrate.py, replay.py, grid.py, analyze.py, report.py). Ledgers: paper_live/out/live (fills, trades, equity, decisions, signals, AMENDMENTS.md).",
+  "Comparison source: 게으른 빌더 (lazyowen.com), Grok $50 auto-trading agent guide, published 2026-10-06.",
+  "Paper trading only. No order reached a broker or an exchange. Not investment advice. Built 2026-10-08 KST; corrected 2026-10-20."
+ ],
+ "errataTitle": "Corrected edition, 2026-10-20",
+ "errataIntro": "This edition corrects the report first published on 2026-10-08. The session's trades, P&amp;L and costs are unchanged. What changed:",
+ "errata": [
+  [
+   "Benchmarks.",
+   "The equal-weight basket lost $0.32, not $0.26. Over the full window ZB rose 0.37% (not 0.43%), TLT 0.49% (0.50%), USO fell 1.68% (1.73%), WTI 1.26% (1.25%) and Shell 0.97% (0.96%). The first analysis stopped at 16:32 UTC, before CME's delayed bars for the last ten minutes arrived; it now uses the frozen 1-minute prices of the whole window."
+  ],
+  [
+   "Replay percentiles.",
+   "Ties now count as half. QG-TACTICAL, which traded neither live nor in any replayed session, sits at the 50th percentile (was 0th); LAZYOWEN-CAL at the 56th (was 12th)."
+  ],
+  [
+   "Drawdowns.",
+   "Measured from the $500 start, so the opening trades' costs count: QG-TREND −2.05% (was −1.94%), LAZYOWEN-NAIVE −1.41% (−1.39%)."
+  ],
+  [
+   "Worst asset and trades.",
+   "Shell was the worst asset within QG-TREND; across all accounts it was the iShares FTSE 100 ETF (ISF.L), −$3.51 over four trades, $3.10 of it costs. Its 21:55 trade (−$1.53) was the session's worst trade; QG-CORE's 30-year T-Bond hold (+$0.31) was the best."
+  ],
+  [
+   "Grid wording.",
+   "No grid variant changed the Kelly fraction; the κ 0.25 variant cut losses because it entered less often."
+  ],
+  [
+   "Position caps and controls.",
+   "QG-TREND had no position cap (it reached 6 positions), and the paper ladder did not port QUANTGEN's R-31 block on new entries at −12%."
+  ],
+  [
+   "LSE costs.",
+   "QUANTGEN has no LSE cost row; LSE fills were charged the US 50 bp row as a proxy."
+  ],
+  [
+   "LSE excursions.",
+   "Worst and best excursions of the 14 LSE trades are now in US dollars at each bar's GBP/USD rate; the first edition showed them in pounds, unconverted."
+  ]
+ ]
+}

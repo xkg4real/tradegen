@@ -1,0 +1,433 @@
+file_id: holidays_SIFMA
+version: 0.1.0-draft
+status: UNSIGNED DRAFT - refused at load (R-20 rule 6, T-CAL-01); every KR/US acting input fails closed and every book stays
+  DISARMED until the owner verifies and signs
+covers:
+  from: '2025-01-01'
+  to: '2027-12-31'
+coverage_calendar: SIFMA
+signed_off_by: null
+signed_utc: null
+md5: null
+how_to_sign: verify every row against its official source, fill source_url and signed_off_by on every row, set signed_off_by
+  / signed_utc at file level, set md5 to the content md5 printed by `python -m core.calendars.store`, and add the matching
+  MANIFEST.yaml row with a new test id
+unverified:
+- full closes = federal holidays + Good Friday; 14:00 early closes by the usual SIFMA pattern; all to confirm
+owner_must_sign:
+- SIFMA holiday recommendations 2015 .. 2027
+rows:
+- effective_from: '2025-01-01'
+  effective_to: '2025-01-01'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  date: '2025-01-01'
+  kind: closed
+  name: New Year's Day
+  unverified: 'UNVERIFIED: derived by the statutory holiday rule, not read from the publisher''s schedule; owner confirms'
+- effective_from: '2025-01-20'
+  effective_to: '2025-01-20'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  date: '2025-01-20'
+  kind: closed
+  name: Birthday of Martin Luther King, Jr.
+  unverified: 'UNVERIFIED: derived by the statutory holiday rule, not read from the publisher''s schedule; owner confirms'
+- effective_from: '2025-02-17'
+  effective_to: '2025-02-17'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  date: '2025-02-17'
+  kind: closed
+  name: Washington's Birthday
+  unverified: 'UNVERIFIED: derived by the statutory holiday rule, not read from the publisher''s schedule; owner confirms'
+- effective_from: '2025-04-18'
+  effective_to: '2025-04-18'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  date: '2025-04-18'
+  kind: closed
+  name: Good Friday (bond market closed)
+  unverified: 'UNVERIFIED: derived by the statutory holiday rule, not read from the publisher''s schedule; owner confirms'
+- effective_from: '2025-05-26'
+  effective_to: '2025-05-26'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  date: '2025-05-26'
+  kind: closed
+  name: Memorial Day
+  unverified: 'UNVERIFIED: derived by the statutory holiday rule, not read from the publisher''s schedule; owner confirms'
+- effective_from: '2025-06-19'
+  effective_to: '2025-06-19'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  date: '2025-06-19'
+  kind: closed
+  name: Juneteenth National Independence Day
+  unverified: 'UNVERIFIED: derived by the statutory holiday rule, not read from the publisher''s schedule; owner confirms'
+- effective_from: '2025-07-04'
+  effective_to: '2025-07-04'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  date: '2025-07-04'
+  kind: closed
+  name: Independence Day
+  unverified: 'UNVERIFIED: derived by the statutory holiday rule, not read from the publisher''s schedule; owner confirms'
+- effective_from: '2025-09-01'
+  effective_to: '2025-09-01'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  date: '2025-09-01'
+  kind: closed
+  name: Labor Day
+  unverified: 'UNVERIFIED: derived by the statutory holiday rule, not read from the publisher''s schedule; owner confirms'
+- effective_from: '2025-10-13'
+  effective_to: '2025-10-13'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  date: '2025-10-13'
+  kind: closed
+  name: Columbus Day
+  unverified: 'UNVERIFIED: derived by the statutory holiday rule, not read from the publisher''s schedule; owner confirms'
+- effective_from: '2025-11-11'
+  effective_to: '2025-11-11'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  date: '2025-11-11'
+  kind: closed
+  name: Veterans Day
+  unverified: 'UNVERIFIED: derived by the statutory holiday rule, not read from the publisher''s schedule; owner confirms'
+- effective_from: '2025-11-27'
+  effective_to: '2025-11-27'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  date: '2025-11-27'
+  kind: closed
+  name: Thanksgiving Day
+  unverified: 'UNVERIFIED: derived by the statutory holiday rule, not read from the publisher''s schedule; owner confirms'
+- effective_from: '2025-12-25'
+  effective_to: '2025-12-25'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  date: '2025-12-25'
+  kind: closed
+  name: Christmas Day
+  unverified: 'UNVERIFIED: derived by the statutory holiday rule, not read from the publisher''s schedule; owner confirms'
+- effective_from: '2026-01-01'
+  effective_to: '2026-01-01'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  date: '2026-01-01'
+  kind: closed
+  name: New Year's Day
+  unverified: 'UNVERIFIED: derived by the statutory holiday rule, not read from the publisher''s schedule; owner confirms'
+- effective_from: '2026-01-19'
+  effective_to: '2026-01-19'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  date: '2026-01-19'
+  kind: closed
+  name: Birthday of Martin Luther King, Jr.
+  unverified: 'UNVERIFIED: derived by the statutory holiday rule, not read from the publisher''s schedule; owner confirms'
+- effective_from: '2026-02-16'
+  effective_to: '2026-02-16'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  date: '2026-02-16'
+  kind: closed
+  name: Washington's Birthday
+  unverified: 'UNVERIFIED: derived by the statutory holiday rule, not read from the publisher''s schedule; owner confirms'
+- effective_from: '2026-04-03'
+  effective_to: '2026-04-03'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  date: '2026-04-03'
+  kind: closed
+  name: Good Friday (bond market closed)
+  unverified: 'UNVERIFIED: derived by the statutory holiday rule, not read from the publisher''s schedule; owner confirms'
+- effective_from: '2026-05-25'
+  effective_to: '2026-05-25'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  date: '2026-05-25'
+  kind: closed
+  name: Memorial Day
+  unverified: 'UNVERIFIED: derived by the statutory holiday rule, not read from the publisher''s schedule; owner confirms'
+- effective_from: '2026-06-19'
+  effective_to: '2026-06-19'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  date: '2026-06-19'
+  kind: closed
+  name: Juneteenth National Independence Day
+  unverified: 'UNVERIFIED: derived by the statutory holiday rule, not read from the publisher''s schedule; owner confirms'
+- effective_from: '2026-07-03'
+  effective_to: '2026-07-03'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  date: '2026-07-03'
+  kind: closed
+  name: Independence Day
+  unverified: 'UNVERIFIED: derived by the statutory holiday rule, not read from the publisher''s schedule; owner confirms'
+- effective_from: '2026-09-07'
+  effective_to: '2026-09-07'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  date: '2026-09-07'
+  kind: closed
+  name: Labor Day
+  unverified: 'UNVERIFIED: derived by the statutory holiday rule, not read from the publisher''s schedule; owner confirms'
+- effective_from: '2026-10-12'
+  effective_to: '2026-10-12'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  date: '2026-10-12'
+  kind: closed
+  name: Columbus Day
+  unverified: 'UNVERIFIED: derived by the statutory holiday rule, not read from the publisher''s schedule; owner confirms'
+- effective_from: '2026-11-11'
+  effective_to: '2026-11-11'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  date: '2026-11-11'
+  kind: closed
+  name: Veterans Day
+  unverified: 'UNVERIFIED: derived by the statutory holiday rule, not read from the publisher''s schedule; owner confirms'
+- effective_from: '2026-11-26'
+  effective_to: '2026-11-26'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  date: '2026-11-26'
+  kind: closed
+  name: Thanksgiving Day
+  unverified: 'UNVERIFIED: derived by the statutory holiday rule, not read from the publisher''s schedule; owner confirms'
+- effective_from: '2026-12-25'
+  effective_to: '2026-12-25'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  date: '2026-12-25'
+  kind: closed
+  name: Christmas Day
+  unverified: 'UNVERIFIED: derived by the statutory holiday rule, not read from the publisher''s schedule; owner confirms'
+- effective_from: '2027-01-01'
+  effective_to: '2027-01-01'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  date: '2027-01-01'
+  kind: closed
+  name: New Year's Day
+  unverified: 'UNVERIFIED: derived by the statutory holiday rule, not read from the publisher''s schedule; owner confirms'
+- effective_from: '2027-01-18'
+  effective_to: '2027-01-18'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  date: '2027-01-18'
+  kind: closed
+  name: Birthday of Martin Luther King, Jr.
+  unverified: 'UNVERIFIED: derived by the statutory holiday rule, not read from the publisher''s schedule; owner confirms'
+- effective_from: '2027-02-15'
+  effective_to: '2027-02-15'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  date: '2027-02-15'
+  kind: closed
+  name: Washington's Birthday
+  unverified: 'UNVERIFIED: derived by the statutory holiday rule, not read from the publisher''s schedule; owner confirms'
+- effective_from: '2027-03-26'
+  effective_to: '2027-03-26'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  date: '2027-03-26'
+  kind: closed
+  name: Good Friday (bond market closed)
+  unverified: 'UNVERIFIED: derived by the statutory holiday rule, not read from the publisher''s schedule; owner confirms'
+- effective_from: '2027-05-31'
+  effective_to: '2027-05-31'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  date: '2027-05-31'
+  kind: closed
+  name: Memorial Day
+  unverified: 'UNVERIFIED: derived by the statutory holiday rule, not read from the publisher''s schedule; owner confirms'
+- effective_from: '2027-06-18'
+  effective_to: '2027-06-18'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  date: '2027-06-18'
+  kind: closed
+  name: Juneteenth National Independence Day
+  unverified: 'UNVERIFIED: derived by the statutory holiday rule, not read from the publisher''s schedule; owner confirms'
+- effective_from: '2027-07-05'
+  effective_to: '2027-07-05'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  date: '2027-07-05'
+  kind: closed
+  name: Independence Day
+  unverified: 'UNVERIFIED: derived by the statutory holiday rule, not read from the publisher''s schedule; owner confirms'
+- effective_from: '2027-09-06'
+  effective_to: '2027-09-06'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  date: '2027-09-06'
+  kind: closed
+  name: Labor Day
+  unverified: 'UNVERIFIED: derived by the statutory holiday rule, not read from the publisher''s schedule; owner confirms'
+- effective_from: '2027-10-11'
+  effective_to: '2027-10-11'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  date: '2027-10-11'
+  kind: closed
+  name: Columbus Day
+  unverified: 'UNVERIFIED: derived by the statutory holiday rule, not read from the publisher''s schedule; owner confirms'
+- effective_from: '2027-11-11'
+  effective_to: '2027-11-11'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  date: '2027-11-11'
+  kind: closed
+  name: Veterans Day
+  unverified: 'UNVERIFIED: derived by the statutory holiday rule, not read from the publisher''s schedule; owner confirms'
+- effective_from: '2027-11-25'
+  effective_to: '2027-11-25'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  date: '2027-11-25'
+  kind: closed
+  name: Thanksgiving Day
+  unverified: 'UNVERIFIED: derived by the statutory holiday rule, not read from the publisher''s schedule; owner confirms'
+- effective_from: '2027-12-24'
+  effective_to: '2027-12-24'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  date: '2027-12-24'
+  kind: closed
+  name: Christmas Day
+  unverified: 'UNVERIFIED: derived by the statutory holiday rule, not read from the publisher''s schedule; owner confirms'
+- effective_from: '2025-07-03'
+  effective_to: '2025-07-03'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  date: '2025-07-03'
+  kind: early_close
+  close_local: '14:00'
+  name: SIFMA early close recommendation
+  unverified: 'UNVERIFIED: derived by the statutory holiday rule, not read from the publisher''s schedule; owner confirms'
+- effective_from: '2025-11-28'
+  effective_to: '2025-11-28'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  date: '2025-11-28'
+  kind: early_close
+  close_local: '14:00'
+  name: day after Thanksgiving
+  unverified: 'UNVERIFIED: derived by the statutory holiday rule, not read from the publisher''s schedule; owner confirms'
+- effective_from: '2025-12-24'
+  effective_to: '2025-12-24'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  date: '2025-12-24'
+  kind: early_close
+  close_local: '14:00'
+  name: SIFMA early close recommendation
+  unverified: 'UNVERIFIED: derived by the statutory holiday rule, not read from the publisher''s schedule; owner confirms'
+- effective_from: '2025-12-31'
+  effective_to: '2025-12-31'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  date: '2025-12-31'
+  kind: early_close
+  close_local: '14:00'
+  name: SIFMA early close recommendation
+  unverified: 'UNVERIFIED: derived by the statutory holiday rule, not read from the publisher''s schedule; owner confirms'
+- effective_from: '2026-11-27'
+  effective_to: '2026-11-27'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  date: '2026-11-27'
+  kind: early_close
+  close_local: '14:00'
+  name: day after Thanksgiving
+  unverified: 'UNVERIFIED: derived by the statutory holiday rule, not read from the publisher''s schedule; owner confirms'
+- effective_from: '2026-12-24'
+  effective_to: '2026-12-24'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  date: '2026-12-24'
+  kind: early_close
+  close_local: '14:00'
+  name: SIFMA early close recommendation
+  unverified: 'UNVERIFIED: derived by the statutory holiday rule, not read from the publisher''s schedule; owner confirms'
+- effective_from: '2026-12-31'
+  effective_to: '2026-12-31'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  date: '2026-12-31'
+  kind: early_close
+  close_local: '14:00'
+  name: SIFMA early close recommendation
+  unverified: 'UNVERIFIED: derived by the statutory holiday rule, not read from the publisher''s schedule; owner confirms'
+- effective_from: '2027-11-26'
+  effective_to: '2027-11-26'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  date: '2027-11-26'
+  kind: early_close
+  close_local: '14:00'
+  name: day after Thanksgiving
+  unverified: 'UNVERIFIED: derived by the statutory holiday rule, not read from the publisher''s schedule; owner confirms'
+- effective_from: '2027-12-31'
+  effective_to: '2027-12-31'
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  date: '2027-12-31'
+  kind: early_close
+  close_local: '14:00'
+  name: SIFMA early close recommendation
+  unverified: 'UNVERIFIED: derived by the statutory holiday rule, not read from the publisher''s schedule; owner confirms'

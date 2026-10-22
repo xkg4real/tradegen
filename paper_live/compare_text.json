@@ -1,0 +1,122 @@
+{
+ "title": "QUANTGEN live paper test 2: KOSPI hours",
+ "subtitle": "Run 2: 2026-10-12, 10:19–15:20 KST (KRX to the closing auction, plus CME futures and FX). Compared with Run 1: 2026-10-07, 21:01–01:42 KST (US/UK markets and FICC). Same five $500 accounts and account rules; the engine gained a currency translator and KRX session hours. Simulated fills on Yahoo prices.",
+ "summary": [
+  "The five accounts lost <b>$7.47 of $2,500 (−0.30%)</b>, against $17.32 (−0.69%) in Run 1. Almost all of the improvement is cheaper trading, not better prediction: costs fell from $15.91 to $5.56, while P&amp;L before costs was −$1.91, slightly worse than Run 1's −$1.41. The average cost per trade fell from $0.156 to $0.062 because QUANTGEN's own KRX ETF rate is 3 bp a side, against 50 bp for US ETFs and LSE shares bought through KIS.",
+  "The same two accounts lost the most, now in the other order (LAZYOWEN-NAIVE first, QG-TREND second), QG-TACTICAL again refused every trade (104 cost-gate refusals; the best expected move was 4.1 bp), and QG-CORE moved with its markets. Korean shares fell during the window (KODEX KOSDAQ150 −1.52%, Samsung Electronics −1.52%), so the risk-budgeted basket, which ended flat in Run 1, lost $1.08. LAZYOWEN-CAL made its first trade of either run."
+ ],
+ "setup": [
+  [
+   "Session",
+   "20:42–01:42 KST: LSE afternoon, NYSE open to midday, CME, FX",
+   "10:20–15:20 KST: KRX continuous session to the closing auction, CME and FX in Asian hours"
+  ],
+  [
+   "Universe",
+   "23: 7 CME futures, 4 FX pairs, 4 LSE names, 8 NYSE/Nasdaq ETFs, plus 4 US inverse ETFs for shorts",
+   "18: 5 KRX ETFs, 4 KOSPI stocks, 5 CME futures, 4 FX pairs incl. USD/KRW, plus 3 KRX inverse ETFs for shorts"
+  ],
+  [
+   "Costs per side (QUANTGEN table)",
+   "US ETFs 50 bp (LSE charged the same as a proxy; QUANTGEN has no LSE row), futures 5 bp, FX 10 bp",
+   "KRX ETFs 3 bp, KRX stocks 35 bp, futures 5 bp, FX 10 bp"
+  ],
+  [
+   "Currency",
+   "USD; LSE prices translated from GBP",
+   "USD; KRX prices translated from KRW at USD/KRW"
+  ],
+  [
+   "Data delay",
+   "CME about 10 min, LSE about 16 min; stale-quote gate 25 min",
+   "CME about 10 min, KRX about 20 min; stale-quote gate raised to 30 min"
+  ],
+  [
+   "Intraday model",
+   "Zero-drift logistic fitted on Jul 14 – Oct 7 bars; out-of-sample AUC 0.50–0.53",
+   "Same procedure refitted on Jul 13 – Oct 12 bars; out-of-sample AUC 0.49–0.54"
+  ],
+  [
+   "QG-CORE basket",
+   "7 CME futures (ES, NQ, RTY, ZN, ZB, GC, CL)",
+   "KODEX 200, KODEX KOSDAQ150, KOSEF 10Y KTB, KODEX Gold, ES, ZN"
+  ],
+  [
+   "Code during the run",
+   "Patched and restarted at 21:17 after an adversarial review",
+   "No change during the run; a profile switch was added before the start and base-profile regression checks passed"
+  ]
+ ],
+ "equity_note": "P&amp;L against the $500 start, marked every 5 minutes (KST). Run 1's QG-TREND staircase came from 50 bp LSE and ETF round trips; in Run 2 most of its KRX trades were 3 bp ETFs and most of its $2.05 of costs came from FX and CME, so its line ends at −$2.17 instead of −$10.27. The dashed line is the equal-weight buy-and-hold basket of each run's universe, with no costs: −$0.32 in Run 1 and −$1.13 in Run 2.",
+ "differences": [
+  [
+   "Venue cost drove the gap.",
+   "QG-TREND lost $2.17 instead of $10.27, with 16 trades instead of 25; its costs fell from $8.82 to $2.05. Its four KRX trades (three ETFs and one KB Financial share trade) cost $0.46 in total, against $6.40 for nine LSE trades in Run 1. The costliest venue is now FX: two EUR/USD positions of about $175 paid $0.70 at 10 bp a side."
+  ],
+  [
+   "The market leg turned against QG-CORE.",
+   "Its basket moved from seven CME futures to KRX ETFs plus ES and ZN. KOSDAQ150 (−$0.56) and KODEX 200 (−$0.25) lost as Korean shares fell, and the 10-year KTB ETF (+$0.27) partly offset them. Net −$1.08, at the 24th percentile of its KRX replay."
+  ],
+  [
+   "LAZYOWEN-CAL finally traded.",
+   "In its out-of-sample window the refitted FX model reached the 8 pp edge 108 times (3 times in Run 1). Live, it bought AUD/USD at p = 0.58 and exited on edge decay 20 minutes later: $0.00 before costs, $0.06 of cost."
+  ],
+  [
+   "Inverse ETFs became a real short route.",
+   "LAZYOWEN-NAIVE shorted 13 times through KODEX Inverse, KODEX KOSDAQ150 Futures Inverse and KODEX USD Futures Inverse (once in Run 1, through RWM). These trades lost $0.76, $0.53 of it before costs. The flat 3 bp rate understates QUANTGEN's own tick-floor cost on low-priced inverse ETFs (about 6–12 bp), by roughly $0.36 across these trades."
+  ],
+  [
+   "Korean single stocks are the expensive corner.",
+   "At 35 bp a side, LAZYOWEN-NAIVE's three KOSPI stock trades (Samsung Electronics, SK hynix, KB Financial) lost $1.11, of which $0.63 was cost."
+  ],
+  [
+   "Churn is unchanged.",
+   "LAZYOWEN-NAIVE again exited 57 of 67 trades on the 5 pp edge-decay rule, with an average hold of 22 minutes."
+  ],
+  [
+   "The system ran cleanly.",
+   "There was no change during the run (Run 1 was patched at 21:17 KST). One download dropped the KODEX Gold ETF at 13:30; the carry-forward added after Run 1's review kept the books valid. All 12 controls passed, none with an exception."
+  ]
+ ],
+ "replay_intro": "Each run's rules were replayed over recent sessions in the same clock window, with live-like delays (KRX 20 minutes). Replay losses are smaller in the KRX window for QG-TREND, QG-CORE and LAZYOWEN-NAIVE. For QG-TREND and LAZYOWEN-NAIVE the improvement matches the cost cut; QG-CORE's is mostly market P&amp;L. LAZYOWEN-CAL's small loss grew (−$0.01 to −$0.04 a session) because it traded more often. P&amp;L before costs stays at zero within noise in both (the largest |t| across the 14 KRX grid variants is 1.8).",
+ "lessons": [
+  [
+   "Confirmed: there is no predictive edge.",
+   "P&amp;L before costs was −$1.41 and −$1.91 in the two sessions, and every replay and grid variant is flat before costs. Changing markets did not change this."
+  ],
+  [
+   "Confirmed: turnover times cost decides the result, and the cost gate is the component that works.",
+   "Without its gate, QG-TACTICAL loses $2.40 a session in the KRX replay ($3.87 in Run 1's)."
+  ],
+  [
+   "New: venue choice matters about as much as the best parameter.",
+   "Moving the same rules from 50 bp venues to 3 bp KRX ETFs cut the live loss by 57% and the replay losses of QG-TREND and LAZYOWEN-NAIVE by about half. For QG-TREND, slower bars matter even more: 30-minute bars cut the KRX replay loss from −$4.05 to −$1.58 a session (−$1.48 with hysteresis also raised to 0.4), but never above zero."
+  ],
+  [
+   "Next.",
+   "For a Korean account, route short-horizon risk to KRX ETFs and KOSPI 200 futures, which QUANTGEN's KIS layer already quotes. Keep single stocks and large FX tickets out of short-horizon rules, charge inverse ETFs QUANTGEN's tick-floor cost, and translate KRW at each price bar's own time."
+  ]
+ ],
+ "limits": "Two five-hour sessions are two data points, not a validation; QUANTGEN's own gate needs 100+ trades over years. Fills used Yahoo's last 1-minute close (KRX about 20 minutes late, CME about 10), so the 15:20 flatten priced KRX at roughly 15:00 quotes. KRW was translated at the current USD/KRW rather than at each price bar's time, which adds about 7 bp of noise per leg on average (up to about 18 bp). Futures and FX are CFD-style synthetic exposures; a $500 cash account cannot hold a CME contract.",
+ "footer": "Files: QUANTGEN/paper_live/out_krx (Run 2 ledgers, replay, grid, analysis) and out/ (Run 1). Run 2 used PAPER_PROFILE=krx; the base profile is unchanged. Paper trading only; no order reached a broker. Built 2026-10-12 KST; corrected 2026-10-20.",
+ "errataTitle": "Corrected edition, 2026-10-20",
+ "errataIntro": "This edition corrects the report first published on 2026-10-12. Both sessions' trades, P&amp;L and costs are unchanged. What changed:",
+ "errata": [
+  [
+   "Benchmarks.",
+   "The equal-weight basket lost $1.13 on Oct 12 (was $1.09) and $0.32 on Oct 7 (was $0.26). The first analyses missed CME prices before midnight New York (Oct 12) and after 16:32 UTC (Oct 7); they now use the frozen 1-minute prices of the whole window. KODEX KOSDAQ150 fell 1.52% (was 1.48%) and Samsung Electronics 1.52% (was 1.32%)."
+  ],
+  [
+   "Replay percentiles.",
+   "Ties now count as half: QG-TACTICAL, which never traded, sits at the 50th percentile in both runs (was 0th); LAZYOWEN-CAL on Oct 7 at the 56th (was 12th)."
+  ],
+  [
+   "Currency timing.",
+   "Translating KRW at the fill's clock time instead of the price bar's time adds about 7 bp per leg on average, up to about 18 bp (was 'about 8, up to about 15')."
+  ],
+  [
+   "Added.",
+   "The best, worst and riskiest trades and the worst asset, which the first edition did not give, are in a new section before Limits."
+  ]
+ ]
+}

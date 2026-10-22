@@ -1,0 +1,178 @@
+file_id: publication_schedules
+version: 0.1.0-draft
+status: UNSIGNED DRAFT - refused at load (R-20 rule 6, T-CAL-01); every KR/US acting input fails closed and every book stays
+  DISARMED until the owner verifies and signs
+covers:
+  from: '1995-01-01'
+  to: '2027-12-31'
+coverage_calendar: WEEKDAYS
+signed_off_by: null
+signed_utc: null
+md5: null
+how_to_sign: verify every row against its official source, fill source_url and signed_off_by on every row, set signed_off_by
+  / signed_utc at file level, set md5 to the content md5 printed by `python -m core.calendars.store`, and add the matching
+  MANIFEST.yaml row with a new test id
+unverified:
+- VIXCLS_FRED declared lag
+- KODEX200_PDF instant
+- BLS/BEA release dates
+owner_must_sign:
+- the two M1 measurements (FRED VIX posting lag over 20 sessions; KODEX 200 basket instant)
+- BLS and BEA release calendars
+rows:
+- effective_from: null
+  effective_to: null
+  source_url: 'spec L1299 / time.publication.H15: ''16:15 ET on the next Fed business day'''
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  schedule_id: H15
+  rule: next_bday_after_obs
+  calendar: FED
+  time: '16:15'
+  tz: America/New_York
+- effective_from: null
+  effective_to: null
+  source_url: spec L1301 / time.publication.H10
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  schedule_id: H10
+  rule: monday_after_week
+  calendar: FED
+  time: '16:15'
+  tz: America/New_York
+- effective_from: null
+  effective_to: null
+  source_url: 'spec L1300 / time.publication.TREASURY_PAR: ''usually by 18:00 ET on D''; the logged posting time is available_at'
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  schedule_id: TREASURY_PAR
+  rule: same_day
+  calendar: SIFMA
+  time: '18:00'
+  tz: America/New_York
+  log_posting_time: true
+- effective_from: null
+  effective_to: null
+  source_url: spec L1297 / time.publication.BLS
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  schedule_id: BLS
+  rule: release_calendar
+  calendar: FED
+  time: 08:30
+  tz: America/New_York
+  unverified: 'release dates: owner supplies the BLS schedule (release_dates)'
+- effective_from: null
+  effective_to: null
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  schedule_id: BEA
+  rule: release_calendar
+  calendar: FED
+  time: 08:30
+  tz: America/New_York
+  unverified: 'release dates: owner supplies the BEA schedule'
+- effective_from: null
+  effective_to: null
+  source_url: spec L1302 / time.publication.VIXCLS official_close 16:15 ET (value timing; labelled)
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  schedule_id: VIXCLS_CBOE
+  rule: same_day
+  calendar: CBOE
+  time: '16:15'
+  tz: America/New_York
+- effective_from: null
+  effective_to: null
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  schedule_id: VIXCLS_FRED
+  rule: channel_posting_time
+  calendar: NYSE
+  time: '16:15'
+  tz: America/New_York
+  declared_lag_bdays: 1
+  declared_time: 09:00
+  unverified: 'UNVERIFIED declared lag: usable from the US close of D+1, never D (brief F-23) until the 20-session FRED last_updated
+    measurement (TASK-M1-23, OWNER)'
+- effective_from: null
+  effective_to: '2016-07-31'
+  source_url: spec L1305 / time.publication.ECOS_USDKRW close_1500_until 2016-08-01
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  schedule_id: ECOS_USDKRW
+  rule: same_day
+  calendar: ECOS
+  time: '15:00'
+  tz: Asia/Seoul
+- effective_from: '2016-08-01'
+  effective_to: null
+  source_url: 'spec L1305: 15:30 KST close; a timestamped 15:30:00 snapshot from 2026-07-06'
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  schedule_id: ECOS_USDKRW
+  rule: same_day
+  calendar: ECOS
+  time: '15:30'
+  tz: Asia/Seoul
+- effective_from: null
+  effective_to: null
+  source_url: null
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  schedule_id: KODEX200_PDF
+  rule: next_bday_after_obs
+  calendar: KRX
+  time: 08:00
+  tz: Asia/Seoul
+  unverified: 'default, judgment (spec L1411): 08:00 KST on the next KRX session until measured (TASK-M1-23, OWNER)'
+- effective_from: null
+  effective_to: null
+  source_url: 'spec L1852: a market close is published at its close-print bound (R-20)'
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  schedule_id: MARKET_CLOSE_KR
+  rule: market_close
+  market: KR
+- effective_from: null
+  effective_to: null
+  source_url: 'spec L1852: a market close is published at its close-print bound (R-20)'
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  schedule_id: MARKET_CLOSE_US
+  rule: market_close
+  market: US
+- effective_from: null
+  effective_to: null
+  source_url: 'spec L1852: a market close is published at its close-print bound (R-20)'
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  schedule_id: MARKET_CLOSE_JP
+  rule: market_close
+  market: JP
+- effective_from: null
+  effective_to: null
+  source_url: 'spec L1852: a market close is published at its close-print bound (R-20)'
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  schedule_id: MARKET_CLOSE_CN
+  rule: market_close
+  market: CN
+- effective_from: null
+  effective_to: null
+  source_url: 'spec L1852: a market close is published at its close-print bound (R-20)'
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  schedule_id: MARKET_CLOSE_HK
+  rule: market_close
+  market: HK
+- effective_from: null
+  effective_to: null
+  source_url: 'spec L1852: a market close is published at its close-print bound (R-20)'
+  retrieved_at_utc: '2026-10-06T00:00:00Z'
+  signed_off_by: null
+  schedule_id: MARKET_CLOSE_TW
+  rule: market_close
+  market: TW

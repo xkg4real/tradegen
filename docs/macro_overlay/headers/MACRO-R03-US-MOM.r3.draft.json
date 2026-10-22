@@ -1,0 +1,111 @@
+{
+ "N_raw_at_registration": null,
+ "benchmarks": [
+  "buy_and_hold",
+  "overlay_off",
+  "static_same_avg_exposure",
+  "ewma_derisk"
+ ],
+ "build_status_on_pass": "BUILD_NOW",
+ "card_id": "MACRO-R03-US-MOM",
+ "cash_convention": {
+  "cash_series": "US_RF",
+  "returns": "excess"
+ },
+ "checks": "gate_package_2.0.0",
+ "claim": "own-vol scaling of the momentum sleeve outperforms the same sleeve unscaled (L1515, L1526)",
+ "claim_type": "outperformance",
+ "class": "CARD-O",
+ "comparator": "overlay_off",
+ "costs": {
+  "floor": "tick_floor",
+  "per_side": "read_from_gate",
+  "stress": 2.0,
+  "stress_line": "printed"
+ },
+ "created_utc": null,
+ "data": {
+  "history_file": null,
+  "source": "MOM_PAPER_LS_SERIES",
+  "value_status": "official_close"
+ },
+ "data_span": {
+  "end": "2026-10-01",
+  "start": null
+ },
+ "episode_rule_version": "1",
+ "estimator": "sd126",
+ "family_id": "R-03",
+ "fill_model": "NYSE_moc",
+ "gate_package_md5": null,
+ "gate_package_version": "2.0.0",
+ "header_md5": null,
+ "history_first_close": null,
+ "hypothesis": "scaling the sleeve budget by 0.12 / sigma126 raises its net Sharpe vs the unscaled sleeve",
+ "instrument_book": "US_shares_KIS",
+ "label": "indicative PASS; step 3 borderline",
+ "ledger_hash_at_registration": null,
+ "mechanism": "second-moment scaling of the sleeve budget; no directional signal",
+ "midpoint_halves": {
+  "require": "no_reject",
+  "split": "calendar_midpoint",
+  "split_date": null
+ },
+ "nav_fx": {
+  "conversion_instant": null,
+  "history": "ECOS_1530_CLOSE",
+  "role": "acting_exposure",
+  "series": "USDKRW_1530_SNAPSHOT"
+ },
+ "no_trade_band": 0.0,
+ "notional_nav": null,
+ "outcomes": {
+  "INSUFFICIENT_DATA": "specification_book",
+  "PASS": "recommended book through verdict_filter with the step-3-borderline flag",
+  "REJECT": "specification_book"
+ },
+ "parameters": {
+  "apply_to": "sleeve_budget",
+  "cap": 1.0,
+  "floor": 0.0,
+  "min_obs": 126,
+  "series": "paper_unit_gross_long_short",
+  "target_ann": 0.12,
+  "vs": "min(1, (0.12/sigma126)^2)",
+  "window": 126
+ },
+ "primary_oos_line": "full_span",
+ "printed_lines": [
+  "exec_variants_ABC",
+  "overnight_intraday",
+  "turnover_by_regime",
+  "stress_cost_line",
+  "with_risk_layer"
+ ],
+ "rebalance": "daily",
+ "regime_lines": "from_R20_tags",
+ "revision": 3,
+ "rule": "vs = min(1, (0.12 / sigma126(t))^2)",
+ "rule_id": "R-03-US-VS12",
+ "searched_parameters": [],
+ "seed": 11,
+ "start_band": {
+  "require": {
+   "no_reject": true,
+   "pass_share_min": "2/3"
+  },
+  "shape": "default",
+  "starts": 33,
+  "step": "month"
+ },
+ "tier": "A",
+ "timing": {
+  "decision": "close_t_earn_t_plus_1",
+  "inputs": {
+   "MOM": {
+    "series": "MOM_PAPER_LS_SERIES",
+    "value_status": "official_close"
+   }
+  }
+ }
+}

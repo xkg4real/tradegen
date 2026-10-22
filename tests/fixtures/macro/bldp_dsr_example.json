@@ -1,0 +1,20 @@
+{
+  "fixture": "F30 bldp_dsr_example.json",
+  "golden": "G-DSR-01",
+  "tests": ["T-DSR-01", "G-DSR-01"],
+  "source": "Bailey and Lopez de Prado (2014) worked example, mapped as spec L2522",
+  "kind": "synthetic; paper inputs, not data; exempt_post_close",
+  "mapping": {
+    "sr_annual": 2.5,
+    "periods_per_year": 250,
+    "T": 1250,
+    "skew": -3.0,
+    "kurtosis": 10.0,
+    "sr_trials_variance_annual": 0.5,
+    "delta_sr_per_period": "sr_annual / sqrt(periods_per_year)",
+    "se_obs": "sqrt((1 + 3*SR + 9/4*SR^2) / (T - 1))   (= sqrt((1 - skew*SR + (kurtosis-1)/4*SR^2) / (T - 1)) at skew -3, kurtosis 10)",
+    "se_null_hurdle": "sqrt(sr_trials_variance_annual / periods_per_year) * e(N)   (e(N) = core.quant.validate.expected_max_sharpe(N, 1.0))",
+    "dsr": "Phi((SR - SE_null_hurdle) / SE_obs)"
+  },
+  "expected": {"46": 0.9505, "100": 0.9004}
+}

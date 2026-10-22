@@ -1,0 +1,3259 @@
+{
+  "version": "2.0.0",
+  "as_of": "2026-10-02",
+  "read_only": true,
+  "owner_decisions": {
+    "D1": {
+      "key": "risk_layer.korea_caps.template",
+      "value": "msci_25_50",
+      "default": "msci_25_50",
+      "options": [
+        "domestic_max10_or_weight",
+        "msci_25_50",
+        "pair_35"
+      ],
+      "status": "default",
+      "effective_from": null,
+      "rationale": null,
+      "refs": []
+    },
+    "D2": {
+      "key": "risk_layer.drawdown.hard_stop.level",
+      "value": -0.15,
+      "default": -0.15,
+      "options": [
+        -0.15,
+        "-1.5*sigma_book"
+      ],
+      "status": "default",
+      "effective_from": null,
+      "rationale": null,
+      "refs": [
+        "cards.R-31_step_down.hard_stop_level"
+      ]
+    },
+    "D3": {
+      "key": "families.reversal.calm_state_downweight",
+      "value": "not_adopted",
+      "default": "not_adopted",
+      "options": [
+        "not_adopted",
+        "reopen_after_krx_net_test"
+      ],
+      "status": "default",
+      "effective_from": null,
+      "rationale": null,
+      "refs": []
+    },
+    "D4": {
+      "key": "monitoring.false_demotion_budget_per_year",
+      "value": 0.1,
+      "default": 0.1,
+      "options": [
+        "tighten_only_le_0p10"
+      ],
+      "status": "default",
+      "effective_from": null,
+      "rationale": null,
+      "refs": []
+    },
+    "D5": {
+      "key": "sleeves.US.line",
+      "value": "none",
+      "default": "none",
+      "options": [
+        "CME_micro_ES",
+        "KRX_listed_SP500_ETF",
+        "none"
+      ],
+      "status": "pending",
+      "effective_from": null,
+      "rationale": null,
+      "refs": [
+        "instruments.us_line_choice",
+        "cards.R-28_trend_axis.us_sleeve",
+        "cards.R-29_US_FUT.us_sleeve_and_line"
+      ]
+    },
+    "D6": {
+      "key": "gate.acceptance_test.cdar_guard.calibration",
+      "value": "lowest_placebo_false_pass_rule",
+      "default": "lowest_placebo_false_pass_rule",
+      "options": [
+        "lowest_placebo_false_pass_rule",
+        "professors_bootstrap_one_sided_5pct",
+        "executives_placebo_p10_margin",
+        "qf_blind_margin"
+      ],
+      "status": "default",
+      "effective_from": null,
+      "rationale": null,
+      "refs": []
+    }
+  },
+  "time": {
+    "storage_tz": "UTC",
+    "decision": "close_t_earn_t_plus_1",
+    "calendars": "effective_dated",
+    "decision_instant": "close_print_bound_utc",
+    "markets": {
+      "KR": {
+        "tz": "Asia/Seoul",
+        "session": "calendars.KR",
+        "scheduled_close_utc": "calendar_lookup",
+        "close_print_bound_utc": "calendar_lookup",
+        "session_rules": "calendars.KR",
+        "regime_tags": "calendars.regime_tags_file",
+        "open_no_entry_minutes": 30
+      },
+      "US": {
+        "tz": "America/New_York",
+        "session": [
+          "09:30",
+          "16:00"
+        ],
+        "decision_utc": "close_print_bound_utc",
+        "session_rules": "calendars.US"
+      },
+      "CRYPTO": {
+        "tz": "UTC",
+        "decision_utc": "00:00:00Z of d+1",
+        "venue_declared": true,
+        "annualisation_days": 365
+      }
+    },
+    "cross_tz_rule": "us_dated_D_usable_for_KR_close_K_iff_D_le_K_minus_1_and_available_at_le_decision",
+    "cross_market_rule": "data_contracts.cross_market",
+    "business_days": {
+      "publication": "fed_sifma_calendar",
+      "decision": "exchange_calendar"
+    },
+    "publication": {
+      "H15": {
+        "posted": "16:15 ET on the next Fed business day"
+      },
+      "H10": {
+        "posted": "Monday 16:15 ET; next business day if Monday is a Federal holiday"
+      },
+      "TREASURY_PAR": {
+        "posted": "usually by 18:00 ET on D",
+        "log_posting_time": true,
+        "us_close_decision_bdays": 1
+      },
+      "VIXCLS": {
+        "official_close": "16:15 ET",
+        "us_close_decision_bdays": 1
+      },
+      "BLS": {
+        "posted": "08:30 ET"
+      },
+      "ECOS_USDKRW": {
+        "close_kst": "15:30",
+        "close_1500_until": "2016-08-01",
+        "snapshot_1530_from": "2026-07-06"
+      }
+    }
+  },
+  "calendars": {
+    "KR": {
+      "close_kst": [
+        {
+          "to": "2016-07-31",
+          "time": "15:00"
+        },
+        {
+          "from": "2016-08-01",
+          "time": "15:30"
+        }
+      ],
+      "closing_call_kst": [
+        {
+          "to": "2016-07-31",
+          "window": [
+            "14:50",
+            "15:00"
+          ]
+        },
+        {
+          "from": "2016-08-01",
+          "window": [
+            "15:20",
+            "15:30"
+          ]
+        }
+      ],
+      "random_end": [
+        {
+          "to": "2015-06-14",
+          "kind": "conditional",
+          "print_tolerance_s": 30,
+          "triggered_extensions": "from_krx_notice"
+        },
+        {
+          "from": "2015-06-15",
+          "kind": "unconditional",
+          "max_s": 30
+        }
+      ],
+      "csat_session_kst": [
+        {
+          "to": "2016-07-31",
+          "window": [
+            "10:00",
+            "16:00"
+          ]
+        },
+        {
+          "from": "2016-08-01",
+          "window": [
+            "10:00",
+            "16:30"
+          ]
+        }
+      ],
+      "csat_closing_call_kst": [
+        {
+          "to": "2016-07-31",
+          "window": "from_krx_notice"
+        },
+        {
+          "from": "2016-08-01",
+          "window": [
+            "16:20",
+            "16:30"
+          ]
+        }
+      ],
+      "first_trading_day_open_kst": "10:00",
+      "saturday_sessions_before": "1998-12-12",
+      "saturday_session_close_kst": "from_krx_notice",
+      "excluded_sessions": [
+        {
+          "venue": "NXT",
+          "window_kst": [
+            "15:40",
+            "20:00"
+          ]
+        },
+        {
+          "venue": "KRX_after_market",
+          "from": "2026-09-14",
+          "window_kst": [
+            "16:00",
+            "20:00"
+          ]
+        }
+      ]
+    },
+    "US": {
+      "close_et": "16:00",
+      "early_close_et": "13:00",
+      "holiday_set": "NYSE",
+      "tz": "America/New_York",
+      "close_print_bound_s": 30
+    },
+    "JP": {
+      "close_jst": [
+        {
+          "to": "2024-11-04",
+          "time": "15:00"
+        },
+        {
+          "from": "2024-11-05",
+          "time": "15:30"
+        }
+      ],
+      "close_print_bound_s": 0
+    },
+    "CN": {
+      "close_cst": "from_sse_notices",
+      "close_print_bound_s": 0
+    },
+    "HK": {
+      "close_hkt": "from_hkex_notices",
+      "close_print_bound_s": 0
+    },
+    "TW": {
+      "close_tst": "from_twse_notices",
+      "close_print_bound_s": 0
+    },
+    "holiday_sets": [
+      "KRX",
+      "NYSE",
+      "FED",
+      "SIFMA",
+      "CBOE",
+      "CME",
+      "JPX",
+      "SSE",
+      "HKEX",
+      "TWSE",
+      "ECOS"
+    ],
+    "regime_tags_file": "core/calendars/data/kr_regime_tags.yaml",
+    "change_control": {
+      "owner_sign_off": "required",
+      "test_per_change": "required"
+    },
+    "coverage": {
+      "min_sessions_ahead": 60,
+      "warn_at_sessions_left": 60,
+      "page_at_sessions_left": 20,
+      "outside_coverage": "OPS_HALT"
+    }
+  },
+  "data": {
+    "store": {
+      "append_only": true,
+      "bitemporal": true,
+      "as_of_reads": true,
+      "snapshot_id": "md5_of_visible_content_hashes"
+    },
+    "knowledge_utc": {
+      "pinned_once_per_run": true,
+      "defaults_to_now": false,
+      "written_to_every_artifact": true
+    },
+    "run_mode": {
+      "values": [
+        "live",
+        "backtest",
+        "replay"
+      ],
+      "selects": [
+        "production_channel",
+        "history_channel"
+      ]
+    },
+    "value_status_rank": [
+      "official_close",
+      "revised",
+      "first_release",
+      "vendor_close",
+      "vendor_derived",
+      "vendor_derived_across_gap",
+      "live_snapshot",
+      "provisional_intraday"
+    ],
+    "vendor_close_in_backtests": "only_if_card_header_declares_the_vendor_as_data_source",
+    "ingest": {
+      "trigger": [
+        "pit_snapshot",
+        "publication_schedule"
+      ],
+      "retries_min": [
+        1,
+        5,
+        15,
+        60
+      ],
+      "decision_deadline": "next_session_open_minus_30min",
+      "dedupe_key": [
+        "series_id",
+        "obs_date",
+        "vintage",
+        "source",
+        "value",
+        "value_status"
+      ],
+      "first_seen_is_retrieved_at": true,
+      "fetch_log": "fetch_log.jsonl",
+      "rows_mutated": "never",
+      "posting_time_pollers": {
+        "TREASURY_PAR": "17:30-21:00 ET every 5 min",
+        "FRED_REPOSTS": "last_updated"
+      }
+    },
+    "value_status_required_for_close_inputs": "official_close",
+    "require_session_match": true,
+    "reject_rows_retrieved_before_close_plus_minutes": 10,
+    "reconciliation": {
+      "primary": [
+        "KIS",
+        "KRX"
+      ],
+      "secondary": "vendor",
+      "tol_index_bp": 1,
+      "tol_stock": "exact",
+      "on_mismatch": "disputed_use_official_and_alert",
+      "auto_correct": false
+    },
+    "stale_carry_flag": "flat_ohlc_zero_volume_on_session_day",
+    "daily_close_from_bars": "forbidden",
+    "bars": {
+      "stamp": "bar_end",
+      "closing_auction_own_bar": true,
+      "available_at": "bar_end_plus_latency"
+    },
+    "open_quality_flag": "open_equals_prior_close",
+    "fixtures": {
+      "post_close_only": true,
+      "min_minutes_after_close": 10,
+      "md5_per_file": true
+    },
+    "fail_closed_on_missing_acting_input": true,
+    "synthetic_for_acting_inputs": "forbidden",
+    "interpolate": false,
+    "monthly_lag_method": "calendar",
+    "vintages": {
+      "source": "alfred",
+      "store_first_release": true,
+      "store_latest": true
+    },
+    "derived_series_in_house": [
+      "sahm",
+      "yoy",
+      "taylor_range"
+    ],
+    "named_series_required": true,
+    "brent_series": {
+      "spot": "DCOILBRENTEU",
+      "futures": "BZ=F"
+    },
+    "usdkrw": {
+      "input": [
+        "ECOS_1530_CLOSE",
+        "USDKRW_1530_SNAPSHOT"
+      ],
+      "proxy": "DEXKOUS",
+      "proxy_timing": "H10_publication",
+      "production_reads_dexkous": false,
+      "record_fx_regime": true
+    },
+    "us10y": {
+      "production": "US10Y_KIS_QUOTE",
+      "history": [
+        "TREASURY_PAR",
+        "DGS10"
+      ],
+      "dgs10_strict_lag_bdays": 2,
+      "treasury_lag_bdays": 1,
+      "live_proxy_history": "^TNX"
+    }
+  },
+  "data_contracts": {
+    "staleness_rule": "schedule_aware",
+    "grace_publication_bdays": 1,
+    "source_exceptions": "core/calendars/data/source_skipped.yaml",
+    "on_failure": {
+      "acting_exposure": {
+        "action": "fail_closed",
+        "alert": true,
+        "halt_after_consecutive_decisions": 2,
+        "scope": "bound_books",
+        "book_counter_halt_after": 2
+      },
+      "risk_model": {
+        "action": "conservative_default",
+        "set": {
+          "hedge_credit_off": true
+        },
+        "hedge_failure_from": "USD_LIVE_PROXY",
+        "operator_alert_after_missed_releases": 2,
+        "halt": "never",
+        "also_on": "hedge_state_exception"
+      },
+      "context": {
+        "action": "label_stale"
+      },
+      "forward_sim": {
+        "action": "fail_closed_that_book",
+        "alert": true,
+        "halt": "never"
+      },
+      "history": {
+        "action": "refuse_card_if_span_not_covered",
+        "alert": true,
+        "read_by_weight_decisions": false
+      },
+      "risk_model_covariance": {
+        "action": "carry_last_valid_terms_stale_then_drop",
+        "carry_max_decisions": 5,
+        "alert": true,
+        "halt": "never",
+        "sets_hedge_credit_off": false
+      },
+      "not_failures": [
+        "warmup_before_first_armed_decision",
+        "disputed"
+      ]
+    },
+    "cross_market": {
+      "rule": "close_print_bound_utc(m, D) + buffer < decision_utc",
+      "buffer_s": 60
+    },
+    "ranges": {
+      "abs_daily_return_max": {
+        "KOSPI": 0.3
+      },
+      "VIXCLS": [
+        5,
+        150
+      ],
+      "yields_pct": {
+        "US_TREASURY": [
+          -1,
+          20
+        ],
+        "KR_CALL_CD": [
+          -1,
+          40
+        ]
+      }
+    },
+    "roles": {
+      "KOSPI_OFFICIAL_CLOSE": {
+        "role": "acting_exposure",
+        "books": [
+          "specification"
+        ]
+      },
+      "US_SLEEVE_OFFICIAL_CLOSE": {
+        "role": "acting_exposure",
+        "books": []
+      },
+      "NAV_LINE_CLOSES": [
+        {
+          "role": "acting_exposure",
+          "consumer": "nav",
+          "books": [
+            "recommended",
+            "specification"
+          ],
+          "halt_after_consecutive_decisions": 3
+        },
+        {
+          "role": "forward_sim",
+          "consumer": "nav",
+          "books": [
+            "forward_sim:R-28",
+            "forward_sim:R-29"
+          ]
+        }
+      ],
+      "SPX_OFFICIAL_CLOSE": [
+        {
+          "role": "forward_sim",
+          "consumer": "R-28_R-29",
+          "books": [
+            "forward_sim:R-28",
+            "forward_sim:R-29"
+          ]
+        },
+        {
+          "role": "risk_model",
+          "consumer": "corr63"
+        },
+        {
+          "role": "risk_model",
+          "consumer": "korea_covariance",
+          "action": "risk_model_covariance"
+        }
+      ],
+      "SOX_CLOSE": {
+        "role": "risk_model",
+        "consumer": "korea_covariance",
+        "action": "risk_model_covariance"
+      },
+      "KODEX200_PDF": {
+        "role": "acting_exposure",
+        "books": [
+          "recommended",
+          "specification"
+        ],
+        "halt_after_consecutive_decisions": 5
+      },
+      "KRX_MARKET_CAPS_005930_000660_KOSPI": {
+        "role": "acting_exposure",
+        "books": [
+          "recommended",
+          "specification"
+        ]
+      },
+      "MOM_PAPER_LS_SERIES": {
+        "role": "acting_exposure",
+        "books": [
+          "specification"
+        ]
+      },
+      "DM_MKT_RET_24M": {
+        "role": "acting_exposure",
+        "books": [
+          "specification"
+        ]
+      },
+      "DM_MKT_VOL_126": {
+        "role": "acting_exposure",
+        "books": [
+          "specification"
+        ]
+      },
+      "NON_KR_INDEX_MONTH_END_CLOSES": {
+        "role": "forward_sim",
+        "books": [
+          "forward_sim:R-28"
+        ]
+      },
+      "USD_LIVE_PROXY": "risk_model",
+      "PCEPILFE": "risk_model",
+      "US10Y_KIS_QUOTE": [
+        {
+          "role": "risk_model",
+          "consumer": "corr63"
+        },
+        {
+          "role": "context",
+          "consumer": "R-12_refusal_book"
+        }
+      ],
+      "DGS10": [
+        {
+          "role": "risk_model",
+          "consumer": "corr63_backtests"
+        },
+        {
+          "role": "context",
+          "consumer": "R-12_refusal_book"
+        }
+      ],
+      "ASIA_INDEX_CLOSES": {
+        "role": "risk_model",
+        "consumer": "korea_covariance",
+        "action": "risk_model_covariance"
+      },
+      "DTWEXBGS": "context",
+      "DEXKOUS": "context",
+      "ECOS_1530_CLOSE": [
+        {
+          "role": "context",
+          "consumer": "R-11_refusal_book"
+        },
+        {
+          "role": "forward_sim",
+          "consumer": "nav_fx_backtests",
+          "books": [
+            "forward_sim:R-29"
+          ]
+        }
+      ],
+      "USDKRW_1530_SNAPSHOT": [
+        {
+          "role": "context",
+          "consumer": "R-11_refusal_book"
+        },
+        {
+          "role": "forward_sim",
+          "consumer": "nav_fx",
+          "books": [
+            "forward_sim:R-29"
+          ]
+        }
+      ],
+      "BOK_CALL_RATE": "history",
+      "US_RF": "history"
+    },
+    "unscheduled_delay": "event_status_delayed"
+  },
+  "overlay": {
+    "floor": 0.5,
+    "cap": 1.0,
+    "combine": "min",
+    "floor_vs_vt_outside_halted": 0.5,
+    "zero_only_in": [
+      "risk_layer",
+      "book_HALTED"
+    ],
+    "books": [
+      "recommended",
+      "specification",
+      "forward_sim_per_card",
+      "refusal_display_only"
+    ],
+    "recommended_dispositions": [
+      "RECOMMENDATION",
+      "BUILD_AS_INSURANCE",
+      "INVARIANT_STEP"
+    ],
+    "stack_card": {
+      "when_de_risk_factors_ge": 2,
+      "class": "CARD-P",
+      "spec": "§8.7"
+    }
+  },
+  "base_weights": {
+    "cross_market": {
+      "method": "inverse_vol",
+      "returns": "weekly",
+      "cov_acting": "ewma_0.97",
+      "cov_printed": "ledoit_wolf_156w",
+      "spans": "markets_with_sleeves"
+    },
+    "family": {
+      "admissible_if": {
+        "prior_min": 1,
+        "card_verdict_not": "REJECT"
+      },
+      "weight": "one_over_K",
+      "range_prior": "lower_bound",
+      "no_registered_prior": "not_admissible",
+      "not_run_admissible_except": [
+        "ts_trend"
+      ],
+      "reject_reweight": "logged_governance_event"
+    },
+    "tilt_requires_family_card_pass": true
+  },
+  "vol_target": {
+    "KR": {
+      "estimator": "sma",
+      "window": 20,
+      "target_ann": 0.2,
+      "cap": 1.0,
+      "cap_permanent": true,
+      "exposure_basis": "total",
+      "instrument_book": "KRX_ETF_line",
+      "notional_nav": {
+        "ref": "sleeves.KR.notional_nav"
+      },
+      "rebalance": "daily",
+      "no_trade_band": 0.0,
+      "fill_model": "KRX_close_auction",
+      "card": {
+        "card_id": "MACRO-R06-KR-ETF",
+        "build_status_on_pass": "BUILD_AS_INSURANCE",
+        "conditions": "see_R-06_card_korea",
+        "forward_record": "falsification_only"
+      }
+    },
+    "US": {
+      "estimator": "sma",
+      "window": 20,
+      "target_ann": 0.15,
+      "cap": 1.0,
+      "cap_permanent": true,
+      "exposure_basis": "total",
+      "registered_card": {
+        "instrument_book": "US_shares_KIS",
+        "verdict": "REJECT",
+        "label": "REJECT (instrument: US shares via KIS, 50 bp, daily)",
+        "rerun": false
+      },
+      "futures_card": "cards.R-29_US_FUT"
+    },
+    "other_markets": {
+      "estimator": "sma",
+      "window": 20,
+      "target_ann": null,
+      "cap": 1.0
+    },
+    "estimator_gate": {
+      "acting_default": "sma20",
+      "challenger": {
+        "name": "comb",
+        "definition": "0.5*(gjr_t + log_har_range)",
+        "books_allowed": [
+          "KRX_ETF_line",
+          "KOSPI200_futures",
+          "mini_KOSPI200_futures",
+          "CME_micro_ES"
+        ],
+        "books_refused": [
+          "KRX_stock_book"
+        ]
+      },
+      "fit": {
+        "window": "expanding",
+        "min_years": 10,
+        "refit_every_origins": 21
+      },
+      "range_proxy": {
+        "KR": "overnight_sq_plus_garman_klass",
+        "US": "parkinson"
+      },
+      "stage1": {
+        "horizon_days": 21,
+        "tests": [
+          "fhs_var_exceedance_h21",
+          "fan_pit_h21",
+          "christoffersen_cc"
+        ],
+        "printed": [
+          "kupiec_1d",
+          "cc_1d_95_99",
+          "es975_z2"
+        ]
+      },
+      "stage2": {
+        "loss": "qlike",
+        "mcs_level": 0.9,
+        "stat": "T_max",
+        "block": "max(10, 2h)",
+        "resamples": 2000,
+        "seed": 11,
+        "mse_mcs": "printed"
+      },
+      "stage3": {
+        "objective": "min_vol_of_vol_rolling63",
+        "eligibility": [
+          "dSR_noninferior_vs_sma20_delta_0p10",
+          "dMDD_vs_sma20_ge_0",
+          "pc2_le_0p90"
+        ],
+        "ties": "overlapping_bootstrap_ci",
+        "tie_break": "simplest_surviving",
+        "complexity_order": [
+          "sma20",
+          "ewma094",
+          "ewma097",
+          "garch_t",
+          "gjr_t",
+          "log_har_range",
+          "comb"
+        ]
+      },
+      "switch": {
+        "counted_revision": true,
+        "full_v2_card_p": true
+      },
+      "fallback_to_sma20": {
+        "gjr_bounds": {
+          "persistence_max": 0.9999,
+          "nu": [
+            2,
+            100
+          ]
+        },
+        "open_quality_max_share": 0.05,
+        "flat_range_max_share": 0.05,
+        "window_sessions": 252
+      },
+      "incumbent_calibration": {
+        "name": "B5",
+        "var_level": 0.05,
+        "band": "+-2 binomial SE",
+        "min_origins": 200,
+        "pit": "chi2_10_bins",
+        "pit_p_min": 0.01
+      }
+    },
+    "annualisation_days": 252,
+    "sigma": {
+      "returns": "simple",
+      "ddof": 1,
+      "mean_adjusted": true,
+      "stale_carry_days": "excluded_window_extends"
+    },
+    "warmup": {
+      "min_valid_returns": 20,
+      "value": 1.0,
+      "status": "warmup",
+      "counts_as_failure": false,
+      "only_before_first_armed_decision": true,
+      "after_armed": "MissingInput",
+      "degenerate_sigma": "MissingInput"
+    },
+    "display_labels": {
+      "rel": {
+        "method": "trailing_756_quartiles"
+      },
+      "abs": {
+        "method": "expanding_full_history_quartiles",
+        "min_years": 10
+      },
+      "values": [
+        "calm",
+        "normal",
+        "elevated",
+        "stressed"
+      ],
+      "filtered_only": true,
+      "acts": false,
+      "per_label_coverage": "reported",
+      "scoring": "tick_loss"
+    },
+    "logged_alt_estimators": [
+      "asymmetric_slow_cut_fast_restore"
+    ]
+  },
+  "families": {
+    "momentum": {
+      "own_vol_scale": {
+        "window": 126,
+        "target_ann": 0.12,
+        "cap": 1.0,
+        "floor": 0.0,
+        "min_obs": 126,
+        "exposure_basis": "active",
+        "series": "paper_unit_gross_long_short",
+        "apply_to": "sleeve_budget",
+        "revisions": {
+          "2": {
+            "target": "expanding_median_sigma126",
+            "min_obs": 252
+          },
+          "3": {
+            "vs": "min(1, (0.12/sigma126)^2)"
+          }
+        }
+      },
+      "dm_gate": {
+        "market_return_months": 24,
+        "market_vol_window": 126,
+        "vol_quantile": 0.6667,
+        "quantile_min_obs": 252,
+        "multiplier": 0.5,
+        "exposure_basis": "active",
+        "books": [
+          "specification"
+        ],
+        "label": "step 3 FAIL",
+        "a_provisional_route": "closed",
+        "pooled_revision": "none"
+      }
+    },
+    "reversal": {
+      "overlay": "fixed_1.0",
+      "intraday_leg": false,
+      "calm_state_downweight": "not_adopted"
+    },
+    "quality": {
+      "overlay": "fixed_1.0"
+    },
+    "flow": {
+      "overlay": "fixed_1.0"
+    },
+    "ts_trend": {
+      "signal": "sign_12_1",
+      "rebalance": "monthly",
+      "vol_window_months": 12,
+      "target_ann": 0.15,
+      "cap": 1.0,
+      "overlay_exempt": true,
+      "card": {
+        "class": "CARD-O",
+        "claim": "diversification",
+        "instrument_book": "multi_line"
+      }
+    }
+  },
+  "weights_prior": "see_R-15",
+  "prior_haircuts": {
+    "value": 0.49,
+    "momentum": 0.23,
+    "carry": 0.25,
+    "defensive": 0.0,
+    "multifactor": 0.18
+  },
+  "risk_layer": {
+    "korea_caps": {
+      "lookthrough": {
+        "source": "daily_etf_pdf",
+        "leveraged_multiplier": "L"
+      },
+      "template": "msci_25_50",
+      "templates": {
+        "msci_25_50": {
+          "single_name_max": 0.225,
+          "names_above": 0.045,
+          "aggregate_max": 0.45,
+          "review": [
+            "quarterly",
+            "on_breach"
+          ],
+          "breach_single_name": 0.25,
+          "breach_aggregate": 0.5
+        },
+        "domestic_max10_or_weight": {
+          "single_name_max": "max(0.10, market_cap_weight)"
+        },
+        "pair_35": {
+          "pair_max_share_of_sleeve_nav": 0.35
+        }
+      },
+      "active_single_name_cap_nav": 0.05,
+      "active_bound": "0.05 / (s_i - b_capped_i) for every name with s_i > b_capped_i",
+      "semis_max_share_of_sleeve_nav": 0.5,
+      "report_by_book": true,
+      "meet_cap_order": [
+        "lower_etf_line_weight",
+        "ex_pair_basket_only_if_owner_and_stock_card_pass_and_limit_lock_flags"
+      ],
+      "report": [
+        "pair_lookthrough_share",
+        "pair_risk_contribution"
+      ]
+    },
+    "drawdown": {
+      "reference": "whole_book_nav",
+      "composition": "min",
+      "steps": "cards.R-31_step_down",
+      "hard_stop": {
+        "level": -0.15,
+        "alt": "-1.5*sigma_book",
+        "reference": "hwm_since_last_rearm",
+        "action": "book_HALTED",
+        "class": "RISK",
+        "scope": "own_book_nav",
+        "rearm": "automatic",
+        "rearm_refused_sessions": 10,
+        "rearm_calendar": "book_primary_market",
+        "rearm_resets": [
+          "hwm_hard",
+          "ref_step"
+        ],
+        "post_rearm_cap": 0.5,
+        "post_rearm_sessions": 10,
+        "post_rearm_cap_in_min": true,
+        "idempotent_while_halted": true,
+        "log": "governance_review_event",
+        "protection_claim": false
+      }
+    },
+    "halt_scope": "per_book",
+    "halted_triggers": {
+      "RISK": [
+        "hard_stop",
+        "risk_limit_breach"
+      ],
+      "OPS": [
+        "lag_audit_violation",
+        "acting_field_schema_or_bounds_failure",
+        "acting_input_fail_closed_beyond_declared_misses",
+        "feed_heartbeat_loss_60s",
+        "acting_risk_layer_exception",
+        "whole_book_nav_unavailable_gt_2_decisions",
+        "calendar_coverage",
+        "operator_kill",
+        "acting_step_error_beyond_limit"
+      ]
+    },
+    "heartbeat": {
+      "loss_s": 60,
+      "blocks_new_intraday_entries": "immediately",
+      "auto_rearm_after_restored_min": 5
+    },
+    "ops_rearm": {
+      "when": "cause_cleared",
+      "operator_required_after": [
+        "lag_audit_violation",
+        "acting_field_schema_or_bounds_failure"
+      ],
+      "reference_reset": false,
+      "post_rearm_cap": false
+    },
+    "never_halt_on": [
+      "risk_model_input_stale_or_failing",
+      "hedge_state_exception",
+      "context_input_stale",
+      "disputed_input",
+      "warmup_input_before_first_armed_decision",
+      "input_bound_only_to_other_books",
+      "display_or_context_field_validation_failure",
+      "context_log_or_event_calendar_validation_failure"
+    ],
+    "korea_covariance_extra": [
+      "SHANGHAI",
+      "HSI",
+      "TAIEX",
+      "NIKKEI"
+    ],
+    "hedge_state": {
+      "core_pce_yoy_threshold": 0.03,
+      "corr_window": 63,
+      "corr_threshold": 0.0,
+      "corr_pairs": "date_aligned",
+      "lag": "statistic_not_leg",
+      "stale_input": "hedge_credit_off",
+      "exception": "hedge_credit_off",
+      "usd_input": "USD_LIVE_PROXY",
+      "reasons_field": "flags.hedge_reasons",
+      "hedge_failure_daily": {
+        "equity_ret_lt": -0.015,
+        "usd_ret_lt": 0.0
+      },
+      "hedge_failure_weekly": {
+        "equity_ret_lt": -0.02,
+        "usd_ret_lt": 0.0
+      },
+      "fx_hedge_credit": {
+        "display_only": true,
+        "window_weeks": 26,
+        "credit_if_corr_lt": 0.0
+      },
+      "stressed_covariance_from_turbulence": "only_after_preregistered_win"
+    }
+  },
+  "annotations": {
+    "vix_ts": {
+      "condition": "VIXCLS >= VXVCLS",
+      "threshold": 1.0,
+      "tuned": false,
+      "clearing": "raw_parity_flag",
+      "action": "annotate_only",
+      "request_kis_spread_snapshots": true,
+      "from": "first decision after the 16:15 ET VIX close",
+      "switch_budget_per_year": 14.0
+    }
+  },
+  "events": {
+    "us_cpi_nfp": {
+      "block_new_intraday_entries_et": [
+        "08:25",
+        "10:00"
+      ],
+      "resume_et": "10:00"
+    },
+    "us_leaky_releases_pre_minutes": 30,
+    "fomc": {
+      "block_new_intraday_entries_et": [
+        "13:45",
+        "15:00"
+      ],
+      "resume_rule": "VIX<pre14 else 15:30",
+      "pre_fomc_long": false
+    },
+    "bok_decision": {
+      "kospi200_futures_block_kst": [
+        "09:45",
+        "10:15"
+      ],
+      "equity_daily_change": "none"
+    },
+    "bok_press_conference": {
+      "kospi200_futures_block_kst": [
+        "11:00",
+        "11:45"
+      ],
+      "equity_daily_change": "none"
+    },
+    "kr_open": {
+      "block_first_session_minutes": 30,
+      "window_kst": [
+        "09:00",
+        "09:30"
+      ],
+      "late_open_window_kst": [
+        "10:00",
+        "10:30"
+      ],
+      "late_open_days": [
+        "first_trading_day_of_year",
+        "csat"
+      ]
+    },
+    "kr_open_gap_event_types": [
+      "US_CPI",
+      "US_NFP",
+      "FOMC",
+      "HYPERSCALER_EARNINGS"
+    ],
+    "multi_session_gap": {
+      "tag": "gap_sessions",
+      "gap_sessions_min": 0,
+      "var_display_scale": "sqrt(max(n_us, 1))",
+      "report_separately": true,
+      "gross_rule": false
+    },
+    "sidecar_cb": {
+      "block_new_entries_minutes_after_cb_reopen": 30,
+      "quotes_during_halt": "indicative",
+      "gross_cut": false
+    },
+    "daily_book_blackouts": false,
+    "tags_change_weights": false
+  },
+  "fill_model": {
+    "KRX": {
+      "snapshot": "closing_call_start_minus_1min",
+      "snapshot_kst_since_2016-08-01": "15:19",
+      "fill": "official_close",
+      "random_end_max_s": 30,
+      "fallback": "post_close_session_UNVERIFIED",
+      "limit_price": "tick_rounded_toward_prev_close",
+      "etf": {
+        "flag": "LP_exempt_auction",
+        "inav_residual_flag_bp": 30
+      },
+      "limit_lock": "non_fillable_at_close"
+    },
+    "NYSE": {
+      "snapshot_et": "15:50",
+      "fill": "official_close_moc_equivalent"
+    },
+    "KOSPI200_futures": {
+      "trades_until_kst": "15:45",
+      "expiry_day_stop_kst": "15:20"
+    },
+    "bars": {
+      "stamp": "bar_end_utc",
+      "closing_auction_bar": "separate",
+      "available_at": "bar_end + latency",
+      "daily_close_from_bars": "forbidden"
+    }
+  },
+  "instruments": {
+    "cost_floor": {
+      "formula": "max(table_rate, commission + 0.5*tick/price + tax_side)",
+      "commission_bp": 1.4,
+      "lower_than_table": "forbidden"
+    },
+    "li_etf": {
+      "max_tick_bp_of_price": 10,
+      "cost_class": "KRX_LI_ETF",
+      "lookthrough_multiplier": "L",
+      "eligibility_rules": "metadata"
+    },
+    "header_required": [
+      "instrument_book",
+      "rebalance",
+      "no_trade_band",
+      "notional_nav",
+      "fill_model",
+      "nav_fx_if_non_krw"
+    ],
+    "notional_source": "sleeves.<market>.notional_nav",
+    "no_trade_band": {
+      "allowed_values": [
+        0.0,
+        0.1
+      ],
+      "allowed_books": [
+        "KRX_stock_book",
+        "US_shares_KIS"
+      ],
+      "tuned": false
+    },
+    "futures_granularity": {
+      "max_contract_share_of_sleeve": 0.05,
+      "contract_notional_krw": {
+        "KOSPI200": 280000000.0,
+        "mini_KOSPI200": 56000000.0,
+        "CME_micro_ES": 52000000.0,
+        "as_of": "2026-10-02",
+        "use": "header_check_only"
+      }
+    },
+    "market_scalar_on_stock_book": "refused",
+    "us_shares_50bp": "single_names_only",
+    "printed_lines": [
+      "exec_variants_ABC",
+      "overnight_intraday",
+      "turnover_by_regime",
+      "stress_cost_line",
+      "roll_cost",
+      "ban_period_basis"
+    ],
+    "stress_line": {
+      "multiplier": "clip(sigma20/sigma_median, 1, 5)",
+      "etf_close_extra_bp_if_abs_ret_ge_3pct": 10,
+      "gated": false
+    },
+    "us_line_choice": {
+      "ref": "sleeves.US.line"
+    }
+  },
+  "refusal_books": {
+    "S1_krw": {
+      "lookback_obs": 20,
+      "threshold_dlog": 0.03,
+      "multiplier": 0.75,
+      "target": "KR_market_gross",
+      "one_sided": true,
+      "verdict": "REJECT",
+      "regate_queue": false
+    },
+    "S2_rates": {
+      "lookback_obs": 20,
+      "threshold_pp": 0.4,
+      "multiplier": 0.5,
+      "target": "US_duration_sensitive_gross",
+      "excludes": [
+        "momentum",
+        "ls_factor_sleeves",
+        "KR"
+      ],
+      "verdict": "REJECT",
+      "regate_queue": false
+    }
+  },
+  "cards": {
+    "R-28_trend_axis": {
+      "rule": {
+        "signal": "month_end_close_below_sma10m",
+        "multiplier_below": 0.5,
+        "multiplier_above": 1.0,
+        "decided": "month_end_close",
+        "applies": "next_month",
+        "composition": "min",
+        "exposure_basis": "total"
+      },
+      "claim": "slow-bear protection via the volatility state",
+      "judged": {
+        "incremental_on": "vol_targeted_book",
+        "comparator": "S_of_VT_book",
+        "claim_line_stacked_dMDD_min_pp": 3.0,
+        "claim_line_failure": "cap_INSUFFICIENT"
+      },
+      "pooling": {
+        "decluster_gap_months": 10,
+        "indices": [
+          "SPX",
+          "N225",
+          "HSI",
+          "DAX",
+          "FTSE100",
+          "TAIEX"
+        ],
+        "own_market_veto": true,
+        "declared_before_any_run": true
+      },
+      "markets_allowed": [
+        "US",
+        "other_non_korean"
+      ],
+      "markets_refused": [
+        "KR"
+      ],
+      "logged_trials_same_ledger": [
+        "BAND200"
+      ],
+      "status": "FORWARD_SIM",
+      "us_sleeve": {
+        "ref": "sleeves.US.line"
+      },
+      "instrument_book": "CME_micro_ES",
+      "rebalance": "monthly",
+      "no_trade_band": 0.0,
+      "notional_nav": {
+        "ref": "sleeves.US.notional_nav"
+      },
+      "fill_model": "NYSE_moc"
+    },
+    "R-29_US_FUT": {
+      "card_id": "MACRO-R06-US-FUT",
+      "family": "R-06",
+      "rule": {
+        "estimator": "sma",
+        "window": 20,
+        "target_ann": 0.15,
+        "cap": 1.0,
+        "floor": "none",
+        "rebalance": "daily",
+        "exposure_basis": "total"
+      },
+      "instrument_book": "CME_micro_ES",
+      "cost_class": "futures",
+      "no_trade_band": 0.0,
+      "notional_nav": {
+        "ref": "sleeves.US.notional_nav"
+      },
+      "nav_fx": {
+        "series": "USDKRW_1530_SNAPSHOT",
+        "history": "ECOS_1530_CLOSE"
+      },
+      "episodes": {
+        "theta": 0.15
+      },
+      "settling_run": {
+        "data": "FF_daily_MktRF_1926-07_to_2026-08",
+        "cost_bp": 5,
+        "pc1_prime_at": [
+          "1x",
+          "2x"
+        ],
+        "starts": "decade_spaced",
+        "pass_share_min": "from_band_shape",
+        "no_reject_at_any_start": true,
+        "no_reject_in_midpoint_halves": true,
+        "full_span_must_pass": true
+      },
+      "promotion": {
+        "requires": [
+          "us_sleeve_or_owner_line",
+          "settling_run_pass",
+          "v2_package_pass"
+        ]
+      },
+      "us_sleeve_and_line": {
+        "ref": "sleeves.US.line"
+      },
+      "logged_trials": [
+        "monthly_50bp",
+        "band_0p10_50bp"
+      ],
+      "status": "FORWARD_SIM"
+    },
+    "R-31_step_down": {
+      "steps": [
+        {
+          "dd": -0.08,
+          "mult": 0.5
+        },
+        {
+          "dd": -0.12,
+          "mult": 0.5,
+          "evaluator_block_new_entries": true
+        }
+      ],
+      "dwell_sessions": 21,
+      "step_reference": "running_peak_since_last_reset",
+      "hard_stop_reference_resets_at_dwell_end": false,
+      "composition": "min",
+      "denominator": "whole_book_nav",
+      "binding_share_threshold": 0.1,
+      "binding_share": {
+        "book": "recommended_without_steps",
+        "span": "declared_history",
+        "computed_at": [
+          "header_commit",
+          "composition_change"
+        ],
+        "window": "full_never_trailing",
+        "compare": "n_bind / n_sessions > 0.10",
+        "disposition_if_le": "INVARIANT_STEP"
+      },
+      "judged": {
+        "incremental_on": "declared_book_without_steps",
+        "comparator": "S"
+      },
+      "claim": "protection in persistent drawdowns; time-boxed; no Sharpe claim",
+      "hard_stop_level": {
+        "ref": "risk_layer.drawdown.hard_stop.level"
+      },
+      "status": "SPECIFICATION_BOOK"
+    }
+  },
+  "sleeves": {
+    "US": {
+      "line": "none",
+      "notional_nav": null
+    },
+    "KR": {
+      "notional_nav": null
+    }
+  },
+  "context_log": {
+    "probit": {
+      "alpha": -0.6045,
+      "beta": -0.7374,
+      "spread": "GS10 - TB3MS (bond-equivalent), monthly"
+    },
+    "taylor_family": {
+      "r_star": [
+        0.5,
+        1.0,
+        2.0
+      ],
+      "gap": [
+        "okun_2x",
+        "cbo"
+      ],
+      "a": [
+        0.5,
+        1.0
+      ],
+      "pi": "core_pce_yoy",
+      "pi_star": 2.0
+    },
+    "existing_sheet": {
+      "all_items_context_unless_acting": true,
+      "zscores": "causal_display_only",
+      "regime_read": "removed_if_regime_model_else_text_only"
+    },
+    "vintages_required": true,
+    "additions": [
+      "leverage_and_flow",
+      "vrp",
+      "live_implied_vol_snapshots",
+      "turbulence_and_absorption_ratio"
+    ]
+  },
+  "breaks": {
+    "policy_trigger": "official_framework_change",
+    "statistical_trigger": "log_only",
+    "scale_reanchor": "declared_events_only",
+    "bocpd": {
+      "hazard": "1/250",
+      "prior": "declared",
+      "log_only": true,
+      "displayed": false
+    },
+    "market_structure_log": true
+  },
+  "monitoring": {
+    "denominator": "whole_book_nav",
+    "operational_triggers": [
+      "lag_audit_violation",
+      "acting_param_edit_outside_revision",
+      "provisional_or_stale_input_reached_acting_decision",
+      "switches_gt_p99_poisson_negbin",
+      "operator_kill_of_forward_books",
+      "decision_gaps_gt_10pct_rolling_12m"
+    ],
+    "catastrophic": {
+      "card_p": {
+        "all_of": [
+          "fwd_dMDD_vs_S <= 0",
+          "fwd_dES95_21_vs_S <= 0",
+          "fwd_dSR_12m_vs_S < design_p2.5"
+        ],
+        "window_months": 12
+      },
+      "card_o": {
+        "any_of": [
+          "gap6m_comparator_minus_on_book_nav > 2 * sigma_design",
+          "fwd_dSR_12m_vs_comparator < design_p2.5"
+        ]
+      }
+    },
+    "cusum": {
+      "frequency": "monthly",
+      "k": 0.25,
+      "h": "bootstrap_calibrated",
+      "in_control_arl_years_min": 20
+    },
+    "false_demotion_budget_per_year": 0.1,
+    "false_demotion_budget_split": {
+      "rule": "equal_across_active_cards",
+      "fixed_at_record_start": true,
+      "recalibrated_on_new_card": false
+    },
+    "budget_check": {
+      "panel": "circular_shift",
+      "shifts": 20,
+      "min_offset_sessions": 252,
+      "short_sample": "floor_T_over_252_offsets",
+      "seed": 11
+    },
+    "cusum_calibration": {
+      "bootstrap": "stationary",
+      "resamples": 2000,
+      "seed": 11,
+      "mean_block_months": 12
+    },
+    "switch_model": {
+      "default": "poisson",
+      "negbin_if_lr_test_p_lt": 0.05
+    },
+    "demotion_verdict": {
+      "operational_or_integrity": "REVISE",
+      "catastrophic_or_cusum": "REJECT"
+    },
+    "lockout_scope": "family_x_market",
+    "nav_unavailable_ops_halt_after_decisions": 2,
+    "forward_record_can_raise_verdict": false,
+    "regate_up_only_on_new_history": {
+      "continuous": "new_objective_episode",
+      "discrete": "tier_onset_count"
+    },
+    "lockout_months_after_demotion": 6,
+    "bull_lag_alone_demotes": false
+  },
+  "gate": {
+    "package": {
+      "version": "2.0.0",
+      "definitions_md5": "written_at_freeze",
+      "acceptance_report_md5": "written_at_freeze",
+      "frozen_utc": "written_at_freeze",
+      "manifest": [
+        "gate_blocks_canonical_json",
+        "harness_source_files",
+        "acceptance_fixture_md5s",
+        "seeds"
+      ],
+      "anchor": "repository_commit_before_any_card_run",
+      "rehash_at_every_card_run": true,
+      "status": "NOT_FROZEN"
+    },
+    "frozen_before_first_card_run": true,
+    "card_classes": [
+      "CARD-O",
+      "CARD-P"
+    ],
+    "card_p_v2": {
+      "comparator": "S_same_average_exposure",
+      "pc1_prime": {
+        "horizons_sessions": [
+          21,
+          126
+        ],
+        "es_level": 0.95,
+        "overlapping": true,
+        "gate_cost": "1x",
+        "point_must_exceed": 0.0,
+        "p_max": 0.1,
+        "p_form": "uncentred_bootstrap_percentile",
+        "z_printed": true,
+        "bootstrap": "stationary",
+        "mean_block_sessions": 250,
+        "resamples": 2000,
+        "seed": 11,
+        "two_x": "revise_path",
+        "monthly_cards_horizons_months": [
+          1,
+          6
+        ]
+      },
+      "pc2": {
+        "tail_quantile": 0.05,
+        "ratio_max": 0.9,
+        "default_horizon": "daily",
+        "ci": "printed",
+        "horizon_matched": {
+          "adopt_if_placebo_false_pass_max": 0.1,
+          "placebos_per_card": 20,
+          "decided_in": "acceptance_test"
+        }
+      },
+      "pc3": {
+        "delta": 0.1,
+        "p_max": 0.1,
+        "p_ni": "max(p_block10, p_block_max21_PWpsi)",
+        "point_below_minus_delta": {
+          "at_1x": "REJECT",
+          "at_2x": "REVISE"
+        }
+      },
+      "pc4": {
+        "episodes": "objective_market_own",
+        "min_positive": 3,
+        "max_share": 0.5
+      },
+      "pc5": {
+        "years_positive_min": 0.6
+      },
+      "pc6": {
+        "neighbourhood": "moore_8_or_2_axis_neighbours",
+        "keep_share_min": 0.5
+      },
+      "pc6_axes": {
+        "vol_target": {
+          "window_mult": [
+            0.5,
+            1,
+            2
+          ],
+          "target_mult": [
+            0.75,
+            1,
+            1.25
+          ]
+        },
+        "threshold_rule": {
+          "threshold_mult": [
+            0.75,
+            1,
+            1.25
+          ],
+          "lookback_or_dwell_mult": [
+            0.5,
+            1,
+            2
+          ]
+        },
+        "monthly_trend_rule": {
+          "lookback_months": [
+            8,
+            10,
+            12
+          ]
+        }
+      },
+      "pc7": {
+        "discrete_min_onsets": 30,
+        "decluster_gap": "own_lookback",
+        "continuous_min_objective_episodes": 5,
+        "min_sessions": 882
+      },
+      "caps": {
+        "do_no_harm": "INSUFFICIENT_DATA",
+        "timing_fragile": "INSUFFICIENT_DATA",
+        "estimator_calibration_fail": "REVISE"
+      },
+      "underpowered": {
+        "applies_if_mde80_gt": 0.1,
+        "converts": [
+          "pc3_p_value"
+        ],
+        "never_waives": [
+          "pc1_prime",
+          "pc2",
+          "pc3_point"
+        ]
+      },
+      "gjr_null": {
+        "paths": 1000,
+        "seed": 11,
+        "mean": "constant"
+      }
+    },
+    "acceptance_test": {
+      "placebo": {
+        "construction": "circular_shift_of_multiplier",
+        "per_family": 300,
+        "per_family_false_pass_max": 0.1,
+        "tau_min_sessions": 252,
+        "per_card": 20,
+        "per_card_passes_max": 2,
+        "seed": 11,
+        "per_card_tau": "round(252 + k*(T - 504)/19), k = 0..19",
+        "pass": "pc1_prime_both_legs_1x_with_f",
+        "population": "drafted_card_p_headers",
+        "family_pooling": "own_series_300_per_card",
+        "on_excess": "acceptance_fails"
+      },
+      "negative_controls": [
+        "US_VT_5d_50bp",
+        "US_VT_10d_50bp",
+        "post_shock_day_0p5",
+        "post_shock_week_0p5",
+        "VT_sigma_lag_252"
+      ],
+      "controls_allowed_verdicts": [
+        "REJECT",
+        "INSUFFICIENT_DATA"
+      ],
+      "cdar_guard": {
+        "added_only_if_a_control_passes": true,
+        "calibration": "lowest_placebo_false_pass_rule",
+        "fixed_margin_minus_5pp": "withdrawn"
+      },
+      "attempts_log": {
+        "path": "gate/acceptance_runs.jsonl",
+        "append_only": true,
+        "hash_chain": "prev_row_md5",
+        "listed_in_report": true,
+        "counts_as": "package_trial",
+        "printed_beside_every_verdict": true
+      },
+      "redesign": {
+        "max_per_package_version": 1,
+        "changes_limited_to": "frozen_items_table",
+        "rationale_cites": [
+          "family_panels",
+          "negative_controls"
+        ],
+        "fresh_seeds_fixed_before_run": true,
+        "per_card_excess": "council_q5_only",
+        "failure_count": "across_all_2x_versions_never_reset",
+        "after_second_failure": "no_card_evaluated_under_v2_owner_notified"
+      }
+    },
+    "evaluation": {
+      "episode_rule": {
+        "name": "alternating_bear_bull",
+        "version": "1",
+        "prices": "own_official_closes",
+        "theta": {
+          "default": 0.2,
+          "KR": 0.2,
+          "US_SPX": 0.15
+        },
+        "low_vol_declared": [
+          "US_SPX"
+        ],
+        "others": {
+          "rule": "0.15 if long-run median SMA20 vol < 0.18 else 0.20",
+          "written_before_first_run": true
+        },
+        "window": "first_return_after_peak_close_to_trough",
+        "sep_2026": "asserted_not_an_episode"
+      },
+      "shock_type_table": "§8.6 named windows (printed only)",
+      "post_trough_window_sessions": 63,
+      "cost_episodes": {
+        "rebound_2009": [
+          "2009-03-09",
+          "2009-06-30"
+        ],
+        "rebound_2020": [
+          "2020-03-23",
+          "2020-06-08"
+        ],
+        "h1_2026": [
+          "2026-01-02",
+          "2026-06-30"
+        ]
+      },
+      "returns": "excess",
+      "cash": {
+        "KR": "BOK_CALL_RATE",
+        "US": "US_RF",
+        "other": "registry_before_first_run"
+      },
+      "cash_day_count": "act_365",
+      "cash_rate_date": "latest_rate_dated_on_or_before_previous_session",
+      "cash_units": {
+        "annual_rate": "act_365",
+        "per_period_return": "as_published"
+      },
+      "cash_read": "frozen_card_snapshot_available_at_recorded_never_filtered",
+      "start": "first_close_plus_estimator_warmup",
+      "history_start": {
+        "KR": "1997-04-01",
+        "default": "first_close_of_frozen_fixture"
+      },
+      "span_end": {
+        "drafted_cards": "data_cutoff",
+        "later_cards": "last_official_close_before_header_commit"
+      },
+      "data_cutoff": {
+        "KR": "2026-10-02",
+        "US": "2026-10-01"
+      },
+      "start_band_shapes": {
+        "default": {
+          "months": 33,
+          "step": "month",
+          "pass_share_min": "2/3"
+        },
+        "R-06_KR": {
+          "from": "1997-05",
+          "to": "1999-12",
+          "step": "month",
+          "starts": 32,
+          "pass_share_min": "2/3"
+        },
+        "decade_spaced": {
+          "min_span_years": 80,
+          "starts": "declared_start_then_january_of_each_decade",
+          "last_start_min_years_before_end": 10,
+          "pass_share_min": "4/5"
+        }
+      },
+      "stability_floor": {
+        "no_reject_at_any_band_start": true,
+        "pass_share_min": "from_band_shape",
+        "compare": "integer_counts",
+        "no_reject_in_midpoint_halves": true,
+        "applies_to_every_shape": true
+      },
+      "midpoint_halves": {
+        "split": "calendar_midpoint_of_fixed_span",
+        "split_date_in_header": true
+      },
+      "regime_lines": "from_R20_tags",
+      "primary_oos_line": "declare_on_card",
+      "risk_layer_in_card_books": {
+        "hard_stop": "excluded_printed",
+        "caps": "excluded_printed",
+        "except": "card_claim_concerns_them"
+      }
+    },
+    "step3": {
+      "ledger": {
+        "required": true,
+        "hash": "md5_canonical_json",
+        "research_phase_included": true,
+        "timing_class_required": true,
+        "family_id": "by_rule_QC_modules",
+        "filing_cluster_rho": 0.5,
+        "appended_by": "harness_only",
+        "hash_chain": "prev_row_md5",
+        "hash_at": [
+          "registration",
+          "run"
+        ]
+      },
+      "basis": "difference_series",
+      "n_gate": "max(N_clusters, N_equiv)",
+      "emax": {
+        "simulated_draws": 200000,
+        "seed": 11,
+        "below_2": "exact_integral",
+        "from_2": "bldp_closed_form"
+      },
+      "clusters": {
+        "linkage": "average",
+        "rho_min": 0.5
+      },
+      "variance": {
+        "default": "V_null",
+        "se_null": "median_lw_hac_of_family_trials",
+        "use_trials_if_independent_ge": 30,
+        "print_both": true
+      },
+      "card_o_bar": 0.95,
+      "card_p": {
+        "gated": false,
+        "selection_factor": "bonferroni_N_eff",
+        "factor_one_if": "config_fixed_before_any_run_on_span",
+        "overlap_rule": "any_overlap",
+        "computed_by": "step3",
+        "declared_on_header": "refused",
+        "print_both": [
+          "f_1",
+          "f_N_eff"
+        ],
+        "holm_across_variants": "printed"
+      },
+      "row_set": {
+        "unit": "distinct_configuration",
+        "key": [
+          "rule",
+          "params",
+          "estimator",
+          "window",
+          "cap",
+          "book",
+          "rebalance",
+          "timing_class",
+          "start_convention"
+        ],
+        "readings": [
+          "market_scoped",
+          "family_wide"
+        ],
+        "combine": "max",
+        "snapshot": "ledger_hash_at_registration",
+        "excludes": [
+          "own_run_rows",
+          "null_distribution_runs"
+        ]
+      },
+      "spec_versions": "publication_utc_listed_in_manifest",
+      "printed": [
+        "N_raw",
+        "N_hat_linear_eq9",
+        "N_clusters",
+        "N_equiv",
+        "N_eff",
+        "break_even_N",
+        "z_check_one_sided_2p50_le_8_cells",
+        "by_q_global",
+        "dsr_vs0",
+        "psr_vs_S"
+      ],
+      "forbidden": [
+        "kish_design_effect",
+        "revision_count_as_N"
+      ]
+    },
+    "stats": {
+      "bootstrap": {
+        "method": "ledoit_wolf_studentized_circular_block",
+        "null_centred": true,
+        "resamples": 2000,
+        "seed": 11,
+        "p_zero_print": "< 1/B",
+        "hac_p_printed": true
+      },
+      "block": {
+        "rule": "politis_white_on_influence_function",
+        "floor_sessions": 21,
+        "pc3_also_block_10": true
+      },
+      "se_ladder_blocks": [
+        10,
+        21,
+        63,
+        126,
+        250
+      ],
+      "power": {
+        "alpha_one_sided": 0.1,
+        "power": 0.8,
+        "mde_factor": 2.1232,
+        "deltas": [
+          0.05,
+          0.1
+        ],
+        "t_years": "sessions_over_252",
+        "se": "se_plateau"
+      },
+      "underpowered": {
+        "mde80_gt": 0.1,
+        "converts": [
+          "step5_p_value",
+          "pc3_p_value"
+        ]
+      },
+      "multiplicity": {
+        "p_source": "analytic_hac_lw",
+        "bootstrap_resamples_if_used": "20*M/alpha",
+        "by_q_from_global_ledger": true,
+        "one_sided_z": {
+          "le_8_cells": 2.5,
+          "bonferroni_120": 3.34
+        }
+      },
+      "pbo": {
+        "configs": "ledger_union_frozen_pc6_grid",
+        "min_configs": 10,
+        "cscv_blocks": 16,
+        "objective": {
+          "CARD_O": "paired_dSR_vs_off",
+          "CARD_P": "blockwise_dES95_21"
+        },
+        "winner_loses_share_gt": 0.1,
+        "reject_if": "PBO > 0.2 and winner_loses",
+        "null_calibration": "printed"
+      },
+      "lo_adjusted_sr": {
+        "lags": [
+          20,
+          "all"
+        ],
+        "printed": true,
+        "gated": false
+      },
+      "live_sharpe_multiplier": 0.6
+    },
+    "timing": {
+      "lags_sessions": [
+        -1,
+        0,
+        1,
+        2,
+        3
+      ],
+      "plus_publication_strict": true,
+      "honest_lag": 1,
+      "fragility_ratio_max": 0.5,
+      "sign_flip_by_lag": 2,
+      "consequence": {
+        "verdict_cap": "INSUFFICIENT_DATA",
+        "tier_cap": "B",
+        "require_live_timestamped_feed": true
+      },
+      "positive_control": {
+        "fixture": "KR_SOX_KRW_gate_B3",
+        "contents": "R4_B3_inputs_and_rule",
+        "look_ahead_premium_min": 0.2
+      },
+      "every_lag_in_family_ledger": true,
+      "lookahead_rows": {
+        "mode": "timing_probe",
+        "scope": [
+          "tests",
+          "r34_sandbox"
+        ],
+        "tag": "synthetic_lookahead",
+        "ledger_timing_class": "NON-COMPLIANT",
+        "production_writes": "forbidden"
+      }
+    },
+    "tiers": {
+      "A": {
+        "min_onsets_declustered": 30,
+        "decluster_gap": "own_lookback",
+        "min_stress_episodes_in_sample": 3,
+        "min_oos_episodes": 1,
+        "pooled_rule": "declare_before_any_market_is_run"
+      },
+      "A_provisional": "closed",
+      "B": {
+        "bounds": [
+          0.5,
+          1.0
+        ],
+        "external_params": true,
+        "verdict_from_backtest": "INSUFFICIENT_DATA",
+        "forward_record": "falsification_only"
+      },
+      "C": {
+        "allowed": false
+      }
+    },
+    "parameter_budget_searched": 8,
+    "stress_report_window": [
+      "2022-01-01",
+      "2026-10-02"
+    ],
+    "locked_holdout_start": "2027-01-01",
+    "costs": "read_from_gate",
+    "card_header_required": [
+      "instrument_book",
+      "notional_nav",
+      "rebalance",
+      "no_trade_band",
+      "fill_model",
+      "cash_convention",
+      "episode_rule_version",
+      "family_id",
+      "ledger_hash_at_registration",
+      "history_first_close",
+      "data_span"
+    ],
+    "card_result_required": [
+      "timing_profile",
+      "ledger_hash_at_run",
+      "selection_factor",
+      "results_md5"
+    ]
+  },
+  "do_not_build": {
+    "labels": [
+      "harm",
+      "null",
+      "inconclusive"
+    ],
+    "basis": {
+      "B": "qf3_bootstrap_class_or_share_lt_0.05",
+      "E": "item_evidence_provisional",
+      "G": "breaks_P0_P19_or_red_line"
+    },
+    "items": {
+      "1": "inconclusive_B",
+      "2": "harm_B",
+      "3": "inconclusive_B",
+      "4": "harm_E",
+      "5": "inconclusive_B",
+      "6": {
+        "curve_resteepening": "harm_B",
+        "real_rate": "null_B",
+        "credit_weights": "inconclusive_B",
+        "mom_under_rates_stress": "inconclusive_E",
+        "level_thresholds": "inconclusive_E"
+      },
+      "7": "null_E",
+      "8": "inconclusive_B",
+      "9": {
+        "forecasts_surveys_positioning": "inconclusive_E",
+        "crowding_cuts": "inconclusive_E",
+        "consensus_surprise_entries": "null_E"
+      },
+      "10": "inconclusive_E",
+      "11": {
+        "11a_ml_vol_state_classifiers": "harm_E",
+        "11b_range_log_har": "admitted",
+        "smoothed_regime_probabilities": "harm_G",
+        "unpenalised_hmm_ms_gates": "harm_E",
+        "complexity_rff_timing": "null_E",
+        "llm_text_pre_cutoff_backtests": "harm_G"
+      },
+      "12": {
+        "event_blackouts_24h_and_swing": "inconclusive_E",
+        "quad_witching_blackout": "null_E",
+        "expiry_close_fade": "inconclusive_E"
+      },
+      "13": "inconclusive_E",
+      "14": {
+        "rate_differential_models": "null_E",
+        "foreign_flow_rules": "inconclusive_E"
+      },
+      "15": "inconclusive_E",
+      "16": "inconclusive_E",
+      "17": "inconclusive_E",
+      "18": "harm_G",
+      "19": "harm_G",
+      "20": "inconclusive_E",
+      "21": "harm_G",
+      "22": "harm_G",
+      "23": "harm_G",
+      "24": "harm_G",
+      "25": "harm_G",
+      "26": "harm_G",
+      "27": {
+        "jump_model": "inconclusive_E",
+        "markov_switching": "harm_E",
+        "gmm_and_change_point_states": "inconclusive_E",
+        "prohibition": "binding_red_line_E1"
+      },
+      "28": "null_E",
+      "29": "harm_E",
+      "30": "harm_B",
+      "31": "harm_G",
+      "32": "harm_G",
+      "33": "harm_G",
+      "34": "harm_G",
+      "35": "harm_G",
+      "36": "harm_G",
+      "37": "inconclusive_E"
+    },
+    "refused_shapes": {
+      "order_path_or_broker_adapter": 21,
+      "multiplier_weight_or_cap_above_1": [
+        2,
+        8
+      ],
+      "composition_not_min": 31,
+      "regime_model_source_acting_or_displayed": [
+        11,
+        24,
+        27
+      ],
+      "smoothed_or_forward_looking_label": 24,
+      "ml_classifier_estimator_gate_or_label": [
+        11,
+        29
+      ],
+      "conformal_label_layer": 28,
+      "sizing_estimator_max_over_implied": 30,
+      "estimator_change_outside_r30_revision": 25,
+      "header_edit_after_results_md5": [
+        23,
+        32
+      ],
+      "krx_stock_book_on_market_gross_scalar": 33,
+      "pooled_or_a_provisional_tier_after_results": 34,
+      "forward_record_cited_as_validation": 35,
+      "kish_or_other_n_eff_rule": 36,
+      "r28_instance_market_kr": 37,
+      "recommended_book_reads_non_pass_multiplier": 22,
+      "value_timed_or_provisional_acting_input": [
+        19,
+        26
+      ]
+    },
+    "tf_items": [
+      {
+        "id": "DNB-TF-01",
+        "text": "An attention-fade screen (exclude names with a volume spike, locked limit-up or +50% run-up in the last 20 sessions) as a monthly exclusion screen or standalone card (E7 rank 1, weight 3).",
+        "label_proposed": "inconclusive_E",
+        "predicate": {
+          "text": "`tf.screen_id ∈ {F5, F8}`; or `kind ∈ {CARD-O}` ∧ `tf.rebalance == monthly` ∧ `tf.screen_features ∩ {volume_spike_20s, locked_limit_up_20s, runup_ge_50pct_20s} ≠ ∅`. Allowed: INV-2 (`kind == INVARIANT`, entry-day only).",
+          "scope": {
+            "exists": "tf"
+          },
+          "require": [],
+          "when": {
+            "any": [
+              {
+                "path": "tf.screen_id",
+                "in": [
+                  "F5",
+                  "F8"
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "path": "kind",
+                    "eq": "CARD-O"
+                  },
+                  {
+                    "path": "tf.rebalance",
+                    "eq": "monthly"
+                  },
+                  {
+                    "path": "tf.screen_features",
+                    "overlaps": [
+                      "volume_spike_20s",
+                      "locked_limit_up_20s",
+                      "runup_ge_50pct_20s"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "allow_list": [
+          {
+            "all": [
+              {
+                "path": "kind",
+                "eq": "INVARIANT"
+              },
+              {
+                "path": "tf.horizon_sessions",
+                "eq": 0
+              }
+            ]
+          }
+        ],
+        "r3_lines": [
+          "367-372",
+          "881",
+          "46"
+        ]
+      },
+      {
+        "id": "DNB-TF-02",
+        "text": "A low-volatility or low-beta tilt as a long-only alpha source in Korea (prior weight 2).",
+        "label_proposed": "null_E",
+        "predicate": {
+          "text": "`market == KR` ∧ `tf.signal_family ∈ {low_vol, low_beta}` ∧ `tf.role ∈ {alpha, protective}` ∧ `books ∩ {recommended, specification} ≠ ∅`. Allowed: `tf.role == screen_input` (SCR-1); `books == [forward_sim]` ∧ `tf.comparator == S_beta` (FS-3). Korea weights: alpha 0, protective 0 (L28, L786).",
+          "scope": {
+            "all": [
+              {
+                "exists": "tf"
+              },
+              {
+                "path": "market",
+                "eq": "KR"
+              }
+            ]
+          },
+          "require": [
+            "tf.signal_family",
+            "tf.role"
+          ],
+          "when": {
+            "all": [
+              {
+                "path": "tf.signal_family",
+                "in": [
+                  "low_vol",
+                  "low_beta"
+                ]
+              },
+              {
+                "path": "tf.role",
+                "in": [
+                  "alpha",
+                  "protective"
+                ]
+              },
+              {
+                "path": "books",
+                "overlaps": [
+                  "recommended",
+                  "specification"
+                ]
+              }
+            ]
+          }
+        },
+        "allow_list": [
+          {
+            "path": "tf.role",
+            "eq": "screen_input"
+          },
+          {
+            "all": [
+              {
+                "path": "books",
+                "eq": [
+                  "forward_sim"
+                ]
+              },
+              {
+                "path": "tf.comparator",
+                "eq": "S_beta"
+              }
+            ]
+          }
+        ],
+        "r3_lines": [
+          "374-379",
+          "880",
+          "26"
+        ]
+      },
+      {
+        "id": "DNB-TF-03",
+        "text": "Size (small minus big) as a usable return signal in Korea or the US.",
+        "label_proposed": "null_E",
+        "predicate": {
+          "text": "`tf.signal_family == size` ∧ `tf.role ∈ {alpha, protective, screen}`. Allowed: `tf.role ∈ {risk_control, attribution_factor}` (GOV-3 attribution block, L814).",
+          "scope": {
+            "exists": "tf"
+          },
+          "require": [
+            "tf.signal_family",
+            "tf.role"
+          ],
+          "when": {
+            "all": [
+              {
+                "path": "tf.signal_family",
+                "eq": "size"
+              },
+              {
+                "path": "tf.role",
+                "in": [
+                  "alpha",
+                  "protective",
+                  "screen"
+                ]
+              }
+            ]
+          }
+        },
+        "allow_list": [
+          {
+            "path": "tf.role",
+            "in": [
+              "risk_control",
+              "attribution_factor"
+            ]
+          }
+        ],
+        "r3_lines": [
+          "381-386",
+          "882"
+        ]
+      },
+      {
+        "id": "DNB-TF-04",
+        "text": "Raw Korean 12-1 momentum as a standalone stock card at 35 bp per side.",
+        "label_proposed": "null_E",
+        "predicate": {
+          "text": "`market == KR` ∧ `applies_to == momentum` ∧ `instrument_book == KRX_stock_book` ∧ `kind == CARD-O` ∧ NOT(FS-2 shape) where FS-2 shape = (`tf.exclusions ⊇ {F4} ∨ ⊇ {F1}`) ∧ `tf.vol_scale == R-03` ∧ `tf.name_cap <= 0.05` ∧ `tf.long_only == true` ∧ `books == [forward_sim]`. Also GOV-7 pre-gate: break-even 64 < 2 x 35 → REJECT before any trial (L818). SCR-3 rule: any KRX momentum or small-cap long-only sleeve excludes the highest-turnover quintile or the F4 names (G-03 L800).",
+          "scope": {
+            "all": [
+              {
+                "path": "market",
+                "eq": "KR"
+              },
+              {
+                "path": "applies_to",
+                "eq": "momentum"
+              },
+              {
+                "path": "instrument_book",
+                "eq": "KRX_stock_book"
+              },
+              {
+                "path": "kind",
+                "eq": "CARD-O"
+              }
+            ]
+          },
+          "require": [],
+          "when": null
+        },
+        "allow_list": [
+          {
+            "all": [
+              {
+                "path": "tf.exclusions",
+                "overlaps": [
+                  "F4",
+                  "F1"
+                ]
+              },
+              {
+                "path": "tf.vol_scale",
+                "eq": "R-03"
+              },
+              {
+                "path": "tf.name_cap",
+                "le": 0.05
+              },
+              {
+                "path": "tf.long_only",
+                "eq": true
+              },
+              {
+                "path": "books",
+                "eq": [
+                  "forward_sim"
+                ]
+              }
+            ]
+          }
+        ],
+        "r3_lines": [
+          "388-393",
+          "879",
+          "42"
+        ]
+      },
+      {
+        "id": "DNB-TF-05",
+        "text": "US single-index trend or volatility targeting on SPY as a protective card at QUANTGEN's 50 bp per side (prior US TS-mom weight 3).",
+        "label_proposed": {
+          "trend": "harm_E",
+          "vt15": "null_E"
+        },
+        "predicate": {
+          "text": "`market == US` ∧ `applies_to ∈ {ts_trend, market_gross}` ∧ `instrument_book == US_shares_KIS` (header cost 50 bp) ∧ `kind == CARD-P` ∧ `books ∩ {recommended, specification} ≠ ∅`. Weight: SPY trend alpha 0, protective 0 at 50 bp / 1 at futures cost; VT15 0 at 50 bp / 1 at futures cost (L788). A cost or instrument edit after `results_md5` exists is a separate refusal (MS L6243).",
+          "scope": {
+            "all": [
+              {
+                "path": "market",
+                "eq": "US"
+              },
+              {
+                "path": "applies_to",
+                "in": [
+                  "ts_trend",
+                  "market_gross"
+                ]
+              },
+              {
+                "path": "instrument_book",
+                "eq": "US_shares_KIS"
+              },
+              {
+                "path": "kind",
+                "eq": "CARD-P"
+              },
+              {
+                "path": "books",
+                "overlaps": [
+                  "recommended",
+                  "specification"
+                ]
+              }
+            ]
+          },
+          "require": [],
+          "when": null
+        },
+        "allow_list": [],
+        "r3_lines": [
+          "395-400",
+          "889",
+          "30"
+        ]
+      },
+      {
+        "id": "DNB-TF-06",
+        "text": "Korean foreign/institutional net buying as a close-to-close direction signal (prior weight 3 -> 1 logging).",
+        "label_proposed": "inconclusive_E",
+        "predicate": {
+          "text": "`inputs[i].source_kind == tf.investor_flow` ∧ `inputs[i].role ∈ {acting_exposure, direction}`; or any `output_range` / weight derived from a flow sign. Allowed: `role == context` logging with `timing == t-1_timestamped` (DATA-6).",
+          "scope": null,
+          "require": [],
+          "when": {
+            "any": [
+              {
+                "any_input": {
+                  "all": [
+                    {
+                      "path": "source_kind",
+                      "eq": "tf.investor_flow"
+                    },
+                    {
+                      "not": {
+                        "all": [
+                          {
+                            "path": "role",
+                            "eq": "context"
+                          },
+                          {
+                            "path": "timing",
+                            "eq": "t-1_timestamped"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "path": "tf.derived_from",
+                "eq": "flow_sign"
+              }
+            ]
+          }
+        },
+        "allow_list": [],
+        "r3_lines": [
+          "402-407",
+          "883",
+          "34",
+          "1289"
+        ]
+      },
+      {
+        "id": "DNB-TF-07",
+        "text": "Korean stock-level short-term reversal (daily, weekly or 1-month, with or without the 5d/20d volume filter) as an alpha card at 35 bp (prior weight 3).",
+        "label_proposed": "harm_E",
+        "predicate": {
+          "text": "`market == KR` ∧ `applies_to == reversal` ∧ `instrument_book == KRX_stock_book` ∧ `tf.horizon_sessions <= 21` ∧ `tf.role == alpha`. GOV-7 pre-gate: break-even 12.5/22.2 < 70 → REJECT. Allowed: `tf.role == screen_guard` ∧ `tf.rebalance == monthly` ∧ `books == [forward_sim]` (FS-5). Not covered (new card, DC-E2-09): `instrument_book ∈ {KRX_ETF_line, KOSPI200_futures, ...}` ∧ `tf.cost_bp_per_side <= 5`.",
+          "scope": {
+            "all": [
+              {
+                "path": "market",
+                "eq": "KR"
+              },
+              {
+                "path": "applies_to",
+                "eq": "reversal"
+              },
+              {
+                "path": "instrument_book",
+                "eq": "KRX_stock_book"
+              }
+            ]
+          },
+          "require": [
+            "tf.horizon_sessions",
+            "tf.role"
+          ],
+          "when": {
+            "all": [
+              {
+                "path": "tf.horizon_sessions",
+                "le": 21
+              },
+              {
+                "path": "tf.role",
+                "eq": "alpha"
+              }
+            ]
+          }
+        },
+        "allow_list": [
+          {
+            "all": [
+              {
+                "path": "tf.role",
+                "eq": "screen_guard"
+              },
+              {
+                "path": "tf.rebalance",
+                "eq": "monthly"
+              },
+              {
+                "path": "books",
+                "eq": [
+                  "forward_sim"
+                ]
+              }
+            ]
+          }
+        ],
+        "r3_lines": [
+          "409-414",
+          "878",
+          "34",
+          "1290-1292"
+        ]
+      },
+      {
+        "id": "DNB-TF-08",
+        "text": "Quality/profitability as \"the most consistent factor\" and a crash hedge (prior weight 3).",
+        "label_proposed": "harm_E",
+        "predicate": {
+          "text": "`applies_to == quality` ∧ (`tf.role ∈ {hedge, protective}` ∨ `kind == CARD-P` ∨ `tf.weight == 3`). Allowed: `tf.role == composite_leg` with `tf.weight <= 2` (US) / `<= 1` (KR).",
+          "scope": {
+            "any": [
+              {
+                "path": "applies_to",
+                "eq": "quality"
+              },
+              {
+                "path": "tf.signal_family",
+                "eq": "quality"
+              }
+            ]
+          },
+          "require": [],
+          "when": {
+            "any": [
+              {
+                "path": "tf.role",
+                "in": [
+                  "hedge",
+                  "protective"
+                ]
+              },
+              {
+                "path": "kind",
+                "eq": "CARD-P"
+              },
+              {
+                "path": "tf.prior_weight",
+                "ge": 3
+              },
+              {
+                "all": [
+                  {
+                    "path": "market",
+                    "eq": "KR"
+                  },
+                  {
+                    "path": "tf.prior_weight",
+                    "ge": 2
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "allow_list": [
+          {
+            "all": [
+              {
+                "path": "tf.role",
+                "eq": "composite_leg"
+              },
+              {
+                "not": {
+                  "path": "kind",
+                  "eq": "CARD-P"
+                }
+              },
+              {
+                "any": [
+                  {
+                    "all": [
+                      {
+                        "path": "market",
+                        "eq": "US"
+                      },
+                      {
+                        "path": "tf.prior_weight",
+                        "le": 2
+                      }
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "path": "market",
+                        "eq": "KR"
+                      },
+                      {
+                        "path": "tf.prior_weight",
+                        "le": 1
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "r3_lines": [
+          "416-421",
+          "885"
+        ]
+      },
+      {
+        "id": "DNB-TF-09",
+        "text": "US post-earnings drift and US corporate-event drifts (S&P inclusion, buybacks, SEOs, dividend initiation/omission, merger arbitrage) as standalone cards.",
+        "label_proposed": "inconclusive_E",
+        "predicate": {
+          "text": "`market == US` ∧ `tf.signal_family ∈ {pead, index_inclusion, buyback, seo, dividend_event, merger_arb}` ∧ `kind ∈ {CARD-O, CARD-P}`. Allowed: `tf.role ∈ {flag, confirmation_input}` with no own weight and no standalone book.",
+          "scope": {
+            "all": [
+              {
+                "path": "market",
+                "eq": "US"
+              },
+              {
+                "path": "tf.signal_family",
+                "in": [
+                  "pead",
+                  "index_inclusion",
+                  "buyback",
+                  "seo",
+                  "dividend_event",
+                  "merger_arb"
+                ]
+              }
+            ]
+          },
+          "require": [],
+          "when": {
+            "path": "kind",
+            "in": [
+              "CARD-O",
+              "CARD-P"
+            ]
+          }
+        },
+        "allow_list": [
+          {
+            "all": [
+              {
+                "path": "tf.role",
+                "in": [
+                  "flag",
+                  "confirmation_input"
+                ]
+              },
+              {
+                "not": {
+                  "exists": "tf.prior_weight"
+                }
+              },
+              {
+                "path": "books",
+                "eq": []
+              }
+            ]
+          }
+        ],
+        "r3_lines": [
+          "423-428",
+          "884",
+          "38"
+        ]
+      },
+      {
+        "id": "DNB-TF-10",
+        "text": "Product composites (CANSLIM/IBD, SEPA/VCP), factor-ETF rotation, sell-side recommendation/target/LTG levels and 13F cloning as acting signals.",
+        "label_proposed": "harm_E",
+        "predicate": {
+          "text": "`inputs[i].source_kind ∈ {tf.product_screen, tf.sell_side_level, tf.holdings_13f}` ∧ `inputs[i].role == acting_exposure`; or `tf.signal_family == factor_etf_rotation`. Allowed later: `source_kind == tf.estimate_revision` ∧ `timing == archive_timestamp` once DATA-4 archives exist, as a new card.",
+          "scope": null,
+          "require": [],
+          "when": {
+            "any": [
+              {
+                "any_input": {
+                  "all": [
+                    {
+                      "path": "source_kind",
+                      "in": [
+                        "tf.product_screen",
+                        "tf.sell_side_level",
+                        "tf.holdings_13f"
+                      ]
+                    },
+                    {
+                      "path": "role",
+                      "eq": "acting_exposure"
+                    }
+                  ]
+                }
+              },
+              {
+                "path": "tf.signal_family",
+                "eq": "factor_etf_rotation"
+              }
+            ]
+          }
+        },
+        "allow_list": [],
+        "r3_lines": [
+          "430-435",
+          "886"
+        ]
+      },
+      {
+        "id": "DNB-TF-11",
+        "text": "Market valuation (CAPE, the Fed model, forward P/E) as a usable 1-year timing signal.",
+        "label_proposed": "harm_E",
+        "predicate": {
+          "text": "`inputs[i].source_kind == tf.valuation_ratio` (CAPE, fed_model, fwd_pe) ∧ `inputs[i].role == acting_exposure` (any multiplier, gate or weight). Allowed: `kind == CONTEXT` ∧ `acting: false` with residual drift printed.",
+          "scope": null,
+          "require": [],
+          "when": {
+            "any_input": {
+              "all": [
+                {
+                  "path": "source_kind",
+                  "eq": "tf.valuation_ratio"
+                },
+                {
+                  "path": "role",
+                  "eq": "acting_exposure"
+                }
+              ]
+            }
+          }
+        },
+        "allow_list": [],
+        "r3_lines": [
+          "437-442",
+          "870",
+          "70"
+        ]
+      },
+      {
+        "id": "DNB-TF-12",
+        "text": "Classic technical indicators and rules (RSI, MACD, Bollinger, Donchian, golden/dead cross, candlesticks, Fibonacci, Elliott, chart patterns) and TradingView/CMT/retail-sourced strategies as signals in their own right (oscillators are not independent of short-term reversal).",
+        "label_proposed": "harm_E",
+        "predicate": {
+          "text": "`inputs[i].source_kind == tf.technical_indicator` (`tf.indicator ∈ {RSI, MACD, Bollinger, Donchian, MA_cross, candlestick, fibonacci, elliott, chart_pattern}`) ∨ `tf.source ∈ {tradingview, cmt, retail}`, with `role == acting_exposure`, unless the object is a NEW card with `tf.family_id` in the technical-rule family ledger ∧ `tf.family_gate ∈ {SPA, StepM}` declared before any run ∧ `tf.repaint_check == passed`. Oscillator cards are filed in the `reversal` family ledger (correlation 0.92 ≥ 0.5 cluster cut, MS L2440) and inherit DNB-TF-07.",
+          "scope": null,
+          "require": [],
+          "when": {
+            "any": [
+              {
+                "any_input": {
+                  "all": [
+                    {
+                      "path": "source_kind",
+                      "eq": "tf.technical_indicator"
+                    },
+                    {
+                      "path": "role",
+                      "eq": "acting_exposure"
+                    }
+                  ]
+                }
+              },
+              {
+                "all": [
+                  {
+                    "path": "tf.source",
+                    "in": [
+                      "tradingview",
+                      "cmt",
+                      "retail"
+                    ]
+                  },
+                  {
+                    "any_input": {
+                      "path": "role",
+                      "eq": "acting_exposure"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "allow_list": [
+          {
+            "all": [
+              {
+                "path": "kind",
+                "in": [
+                  "CARD-O",
+                  "CARD-P"
+                ]
+              },
+              {
+                "not": {
+                  "exists": "results_md5"
+                }
+              },
+              {
+                "path": "tf.family_ledger",
+                "eq": "technical_rule"
+              },
+              {
+                "exists": "tf.family_id"
+              },
+              {
+                "path": "tf.family_gate",
+                "in": [
+                  "SPA",
+                  "StepM"
+                ]
+              },
+              {
+                "path": "tf.repaint_check",
+                "eq": "passed"
+              }
+            ]
+          }
+        ],
+        "r3_lines": [
+          "444-449",
+          "887",
+          "70"
+        ]
+      },
+      {
+        "id": "DNB-TF-13",
+        "text": "Short-horizon technical trading at QUANTGEN costs: intraday rules (momentum, opening-range breakout, VWAP crosses, gaps, support/resistance) and KRX stock-level crosses, MA alignment (jeongbaeyeol), price-above-MA200 selection, limit-up chasing and volume-spike buying.",
+        "label_proposed": "harm_E",
+        "predicate": {
+          "text": "`tf.horizon_sessions < 1` (intraday) ∨ `tf.decision_time != close` ∨ `tf.fill != official_close` (INV-1 L801); or `market == KR` ∧ `instrument_book == KRX_stock_book` ∧ `tf.signal_family ∈ {ma_cross, ma_alignment, price_above_ma200, limit_up_chase, volume_spike_buy}`. GOV-7 pre-gate: break-even ~1-2 bp → REJECT (L888).",
+          "scope": {
+            "all": [
+              {
+                "exists": "tf"
+              },
+              {
+                "not": {
+                  "path": "kind",
+                  "eq": "INVARIANT"
+                }
+              }
+            ]
+          },
+          "require": [
+            "tf.horizon_sessions",
+            "tf.decision_time",
+            "tf.fill"
+          ],
+          "when": {
+            "any": [
+              {
+                "path": "tf.horizon_sessions",
+                "lt": 1
+              },
+              {
+                "not": {
+                  "path": "tf.decision_time",
+                  "eq": "close"
+                }
+              },
+              {
+                "not": {
+                  "path": "tf.fill",
+                  "eq": "official_close"
+                }
+              },
+              {
+                "all": [
+                  {
+                    "path": "market",
+                    "eq": "KR"
+                  },
+                  {
+                    "path": "instrument_book",
+                    "eq": "KRX_stock_book"
+                  },
+                  {
+                    "path": "tf.signal_family",
+                    "in": [
+                      "ma_cross",
+                      "ma_alignment",
+                      "price_above_ma200",
+                      "limit_up_chase",
+                      "volume_spike_buy"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "allow_list": [],
+        "r3_lines": [
+          "451-456",
+          "888"
+        ]
+      },
+      {
+        "id": "DNB-TF-14",
+        "text": "Deep price-pattern (chart-image CNN), order-book deep learning and LLM-news strategies.",
+        "label_proposed": {
+          "llm_pre_cutoff": "harm_G",
+          "cnn_orderbook": "inconclusive_E"
+        },
+        "predicate": {
+          "text": "`inputs[i].source_kind ∈ {tf.chart_image, tf.order_book, tf.llm_text}` with any role other than `research_log`; `estimator.kind == ml` is already refused (`ml_classifier_estimator_gate_or_label`, MS L4668); for `tf.llm_text`: `evidence.backtest_window_end > tf.model_training_cutoff` → refuse (P5).",
+          "scope": null,
+          "require": [],
+          "when": {
+            "any_input": {
+              "all": [
+                {
+                  "path": "source_kind",
+                  "in": [
+                    "tf.chart_image",
+                    "tf.order_book",
+                    "tf.llm_text"
+                  ]
+                },
+                {
+                  "not": {
+                    "path": "role",
+                    "eq": "research_log"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "allow_list": [],
+        "r3_lines": [
+          "458-463",
+          "890",
+          "66"
+        ]
+      },
+      {
+        "id": "DNB-TF-15",
+        "text": "Macro variables interacting with stock-level signals (macro x characteristic terms) in a combiner.",
+        "label_proposed": "harm_G",
+        "predicate": {
+          "text": "Any `tf.combiner.terms[]` of type `interaction(macro_series, characteristic)`; or an input with `source_kind == published_series` inside a composite whose `applies_to != market_gross` and whose role is not risk sizing. Macro inputs enter only as `output_range <= 1.0` multipliers composed by `min()` (MS L4694, L4697).",
+          "scope": null,
+          "require": [],
+          "when": {
+            "any": [
+              {
+                "path": "tf.combiner_terms",
+                "overlaps": [
+                  "interaction_macro_x_characteristic"
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "path": "tf.composite",
+                    "eq": true
+                  },
+                  {
+                    "not": {
+                      "path": "applies_to",
+                      "eq": "market_gross"
+                    }
+                  },
+                  {
+                    "any_input": {
+                      "all": [
+                        {
+                          "path": "source_kind",
+                          "eq": "published_series"
+                        },
+                        {
+                          "not": {
+                            "path": "role",
+                            "eq": "risk_model"
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "allow_list": [],
+        "r3_lines": [
+          "465-469",
+          "891",
+          "66"
+        ]
+      },
+      {
+        "id": "DNB-TF-16",
+        "text": "Crypto short-term reversal at weight 2 (prior design) → weight 0.",
+        "label_proposed": "inconclusive_E",
+        "predicate": {
+          "text": "`market == crypto` ∧ `applies_to == reversal` ∧ `tf.horizon_sessions <= 28` ∧ (`tf.weight > 0` ∨ `books ∩ {recommended, specification} ≠ ∅`).",
+          "scope": {
+            "all": [
+              {
+                "path": "market",
+                "eq": "CRYPTO"
+              },
+              {
+                "path": "applies_to",
+                "eq": "reversal"
+              }
+            ]
+          },
+          "require": [
+            "tf.horizon_sessions"
+          ],
+          "when": {
+            "all": [
+              {
+                "path": "tf.horizon_sessions",
+                "le": 28
+              },
+              {
+                "any": [
+                  {
+                    "path": "tf.prior_weight",
+                    "gt": 0
+                  },
+                  {
+                    "path": "books",
+                    "overlaps": [
+                      "recommended",
+                      "specification"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "allow_list": [],
+        "r3_lines": [
+          "471-476",
+          "892",
+          "62",
+          "1305"
+        ]
+      },
+      {
+        "id": "DNB-TF-17",
+        "text": "G10 FX technical rules at a weight above 0 (executives: FX trend 0-1).",
+        "label_proposed": "harm_E",
+        "predicate": {
+          "text": "`market == FX` ∧ (`inputs[i].source_kind == tf.technical_indicator` ∨ `tf.signal_family ∈ {fx_trend, fx_technical}`) ∧ (`tf.weight > 0` ∨ `books ∩ {recommended, specification} ≠ ∅`), except exactly one card registered as BL-TF-20 with `tf.pair == USDKRW` ∧ `tf.speed == slow` ∧ `tf.cost_bp_per_side == 10` ∧ `books == [forward_sim]`.",
+          "scope": {
+            "path": "market",
+            "eq": "FX"
+          },
+          "require": [],
+          "when": {
+            "all": [
+              {
+                "any": [
+                  {
+                    "any_input": {
+                      "path": "source_kind",
+                      "eq": "tf.technical_indicator"
+                    }
+                  },
+                  {
+                    "path": "tf.signal_family",
+                    "in": [
+                      "fx_trend",
+                      "fx_technical"
+                    ]
+                  }
+                ]
+              },
+              {
+                "any": [
+                  {
+                    "path": "tf.prior_weight",
+                    "gt": 0
+                  },
+                  {
+                    "path": "books",
+                    "overlaps": [
+                      "recommended",
+                      "specification"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "allow_list": [
+          {
+            "all": [
+              {
+                "path": "tf.backlog_id",
+                "eq": "BL-TF-20"
+              },
+              {
+                "path": "tf.pair",
+                "eq": "USDKRW"
+              },
+              {
+                "path": "tf.speed",
+                "eq": "slow"
+              },
+              {
+                "path": "tf.cost_bp_per_side",
+                "eq": 10
+              },
+              {
+                "path": "books",
+                "eq": [
+                  "forward_sim"
+                ]
+              }
+            ]
+          }
+        ],
+        "r3_lines": [
+          "564-570",
+          "893"
+        ]
+      }
+    ]
+  },
+  "reproducibility": {
+    "seed_study": 11,
+    "seed_research_bootstrap": 20261002,
+    "record": [
+      "git_hash",
+      "config_hash",
+      "data_snapshot_id",
+      "knowledge_utc",
+      "seed",
+      "results_md5",
+      "gate_package_version",
+      "gate_package_md5",
+      "ledger_hash_at_registration",
+      "ledger_hash_at_run"
+    ],
+    "determinism": {
+      "canonical_json": "sorted_keys_repr_floats_no_whitespace",
+      "volatile_fields": [
+        "generated_at_utc",
+        "git_hash"
+      ],
+      "rng": "numpy_pcg64_seedsequence_spawned_children",
+      "blas_threads": 1,
+      "relative_tol": 1e-12
+    }
+  }
+}

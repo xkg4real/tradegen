@@ -1,0 +1,2139 @@
+# QUANTGEN v2.0 — Claude Code task list (export of the Macro Integration Specification v2.0)
+
+| Field | Value |
+|---|---|
+| **Source** | `QUANTGEN_MACRO_INTEGRATION.md`, v2.0 (adversarial review complete: rounds 1–4; round 4 a confirmation, with two clarifications applied), 6,479 lines; module list `council/QC_modules.csv` (34 modules) plus R-05 (unchanged, not in the CSV) |
+| **Produced by** | the adversarial-spec skill's `export-tasks` step, 2026-10-03 |
+| **Tasks** | 129: M0 15, M1 23, M2 9, M3 5, M4 7, M5 15, M6 6, M7 30, M8 13, M9 4, M10 2 |
+| **By type** | task 115, spike 10, user-story 3, bug 1 |
+| **By priority** | high 91, medium 32, low 6 |
+| **Machine-readable copy** | `QUANTGEN_V2_TASKS.json` (same tasks, same order) |
+
+## How to use this list
+
+1. **Read the spec's Quick start first**, then §1 (P0–P19) and §10 (DO-NOT-BUILD v2). Do not read the spec front to back; per milestone, read only the sections its tasks cite, the §9 rows of their tests, §9.0b and, for golden values, §9.3.1 and §9.3.3.
+2. **Work one milestone at a time, in order M0 → M10.** Do not start M(k+1) until every exit test of M(k) passes in `tests/run_all.py`. Each acceptance criterion names its test id and `runs_from` (§9.0a); a clause that §9.0b defers is cited again in the later task where it joins, so it never blocks an earlier milestone. Dependencies point only to the same or an earlier milestone.
+3. **The gate package is frozen before any formal card runs (P11).** In M7, build R-21, R-22, R-23, R-24 and R-34, pass the pre-freeze harness tests, run the gate-acceptance test once (I-08; at most one bounded redesign) and md5-freeze `gate.package` (TASK-M7-01 … TASK-M7-17). Only then commit the formal headers and run any card (TASK-M7-18 onward). Nothing in the package changes after a card result has been seen; a change is a new package version re-run on every card.
+4. **Never build anything on the DO-NOT-BUILD list (§10)**: no multiplier or cap above 1.0, no product-composed stack, no regime-model state acting or displayed, no `max(SMA20, implied)` sizing, no ML vol-state classifier or maintained ML challenger, no conformal label layer, no stock book as a market-gross scalar, no venue switch after results, no Kish trial count, no forward record presented as validation, and no R-04, R-11, R-12, FORWARD-SIM or non-PASS multiplier in the recommended book. Rules-store validation refuses these shapes (TASK-M0-14); code review enforces the rest.
+5. **R-06 KR is expected to return INSUFFICIENT DATA on current evidence** (the computed selection factor f exceeds the 1.28 that PC-3 tolerates at the indicative p_ni 0.078). Record that verdict as a labelled specification-book control; it must not be rescued by changing a convention, window, cap, cash series, episode rule or ledger row set (R2-C1, TASK-M7-21).
+6. **QUANTGEN stays read-only, with no order path.** KIS is used for quotations only, every output is an artifact, a simulated-book entry, a costed backtest, a model card or a displayed recommendation, and T-RO-01 / T-RO-02 run on every pull request.
+7. **Owner decisions D1–D6:** implement the stated default (Quick start table, canonical) and flag it; a rule block holds `{ref: <key>}`, never a literal copy. Owner inputs (calendar sign-offs, credentials, notionals, the ECOS code of the call rate) are listed at the end.
+8. **Fields.** Priority maps the council priority of a task's highest-priority module: P0 → high, P1 → medium, P2 → low. R-05 has no council priority and is medium; TASK-M0-01 and TASK-M0-02 enforce the §1 principles without a council module of their own and are high; TASK-M8-07 is low because R-01 rule (7), deterministic replay, is council priority P2. Types: task (implementation), spike (measurement, data acquisition or pending recomputation), user-story (owner- or operator-facing behaviour), bug (a defect in the existing app: the ficc_cache served a pre-close row as the 2-Oct close). Paths marked proposed may be renamed; field names, parameters, bounds, formulas and test thresholds are binding. Where the spec is silent, take the conservative reading: no exposure change, specification book only, fail closed.
+
+## Milestone overview (build order M0 → M10)
+
+Exit-test counts come from §9.0a (each test counted once, at its runs_from; the goldens G-KR-L*, G-US-F*, G-PWR-*, G-TR-* and G-REF-* expanded). A rule's own acceptance-test table counts with the rule (§12).
+
+| Milestone | Tasks | task / spike / user-story / bug | Council modules of the milestone (Quick start) | Exit tests (runs_from = this milestone) |
+|---|---|---|---|---|
+| **M0** Scaffolding | 15 | 13 / 1 / 1 / 0 | R-26, R-32, R-33; the R-02 bounds | 14 |
+| **M1** Data layer | 23 | 20 / 2 / 0 / 1 | R-01, R-19, R-20 (+ the KIS quote check, in parallel) | 31 |
+| **M2** Risk layer | 9 | 8 / 1 / 0 / 0 | R-02, R-09; the R-06 sizing function | 17 |
+| **M3** Estimator harness | 5 | 5 / 0 / 0 / 0 | R-30 | 13 |
+| **M4** Factor sleeves | 7 | 6 / 1 / 0 / 0 | R-03 (sleeve-scale function), R-04 (specification book), R-05, R-15 | 12 |
+| **M5** Engine and events | 15 | 13 / 2 / 0 / 0 | R-07, R-08, R-10, R-27 | 17 |
+| **M6** Context and breaks | 6 | 4 / 1 / 1 / 0 | R-13, R-18 | 3 |
+| **M7** Cards (gate package built and frozen first) | 30 | 29 / 1 / 0 / 0 | R-21, R-22, R-23, R-24, R-34 (built and frozen first); then the formal headers of R-06 KR, R-03, R-14, R-31, R-28, R-29 and the runs of R-06 KR, R-03, R-14, R-31 | 75 |
+| **M8** Forward records and workflow | 13 | 11 / 1 / 1 / 0 | R-25, R-28, R-29 (FORWARD-SIM), R-11 and R-12 (retired), R-35 | 38 |
+| **M9** Quant Lab | 4 | 4 / 0 / 0 / 0 | R-16 | 2 |
+| **M10** Deferred (FX and crypto sleeves) | 2 | 2 / 0 / 0 / 0 | R-17 (when the sleeves exist) | 2 |
+
+---
+
+## M0 — Scaffolding
+
+**Exit tests whose runs_from is M0** (§9.0a; clauses deferred by §9.0b join later and are named in the tasks): `T-BASIS-01`, `T-BOOK-01`, `T-CAP-01`, `T-COST-02`, `T-COST-03`, `T-DNB-01`, `T-HERM-01`, `T-HERM-02`, `T-OWNER-01`, `T-REPRO-01a`, `T-RO-01`, `T-SCHEMA-01`, `T-SCHEMA-02`, `T-SCHEMA-03`.
+
+### TASK-M0-01 · Add the static read-only scan (no order path anywhere)
+
+**Type** task · **Priority** high · **Modules** R-33 · **Depends on** —
+
+- **Package / files:** tests/run_all.py; scans every package under core/, core/skills scripts and every workflow YAML; core/engine/orders reached only through the simulated order book API
+- **Spec sections and rules:** §1 P0 · §10 item 21 · §10.3 · §3.10 · Quick start (invariants)
+- **Owner decisions touched:** none
+
+**Description.** Write a static scan over the whole repository, including core/skills scripts and the commands of every workflow YAML, that fails on any order, cancel, withdrawal, deposit-address or transfer call and on any import of an order-submission client; list the forbidden symbols and AST patterns inside the test. Route every use of core/engine/orders through the simulated order book API only. Stamp read_only: true on every artifact writer from day one. Never add a broker execution adapter, even behind a flag: §3.10 records constraints, not a design.
+
+**Acceptance criteria**
+- `T-RO-01` (runs_from M0): The static scan finds no order, cancel, withdrawal, deposit-address or transfer call and no import of an order-submission client; core/engine/orders is reached only through the simulated order book API; every artifact has read_only: true.
+
+### TASK-M0-02 · Build the hermetic macro test harness and the test registry
+
+**Type** task · **Priority** high · **Modules** R-01, R-34 · **Depends on** —
+
+- **Package / files:** tests/run_all.py; tests/fixtures/macro/ (proposed); tests/reference/ (proposed); a test registry listing tier and runs_from per test (proposed)
+- **Spec sections and rules:** §9 (hermetic rule, test tiers, runs_from, verdicts near a threshold) · §9.0a · §9.0b · Quick start step 2
+- **Owner decisions touched:** none
+
+**Description.** Extend tests/run_all.py with a macro suite that patches every network touchpoint (FRED, Yahoo, KIS, FMP, ECOS, Treasury and any other provider) to raise and writes only to temporary copies of the rules store, the family ledgers and the artifact directory. Add a test registry in which every row names its tier (fast ≤ 10 min in total, golden ≤ 2 h, freeze) and its runs_from milestone, encoding the §9.0b clause-level deferrals so a milestone exit runs exactly the tests and clauses whose runs_from is that milestone or earlier. Make the freeze tier only re-verify md5s outside the M7 freeze job and formal card runs. Assert a verdict whose statistic lies within tolerance of its threshold as a class, never as a point.
+
+**Acceptance criteria**
+- `T-HERM-01` (runs_from M0): The macro test suite passes with all network touchpoints patched to raise.
+- `T-HERM-02` (runs_from M0): After tests/run_all.py, core/rules and every family ledger are byte-identical to their pre-run state; tests write only to temporary copies of the rules store, the ledgers and the artifact directory.
+
+### TASK-M0-03 · Create the fixture manifest and md5 verification
+
+**Type** task · **Priority** high · **Modules** R-01 · **Depends on** TASK-M0-02
+
+- **Package / files:** tests/fixtures/macro/MANIFEST.csv (proposed); fixture loader in tests/run_all.py
+- **Spec sections and rules:** §9.5 (fixture manifest) · Quick start step 5 · R-01 rule (5)
+- **Owner decisions touched:** none
+
+**Description.** Create MANIFEST.csv with one row per fixture: file, source (a path under /home/claude/quantgen_macro_data/ per its CATALOG.md, or under research_notes/…/council/), series, span, retrieved_at_utc, the value_status and available_at_source rule, md5, licence, owner and the tests that read it. Make the loader verify every md5 and refuse an unlisted file or a file without licence, owner and md5. Record each stochastic golden's seed, B and block rule. Leave generation of the golden-value fixtures to M1's exit (TASK-M1-22).
+
+**Acceptance criteria**
+- `T-HERM-01` (runs_from M0): The macro suite runs on manifest-listed, md5-verified fixtures only, with every network touchpoint patched to raise.
+
+### TASK-M0-04 · Define the §7.1 rule-object schema, validation engine and R-02 bounds
+
+**Type** task · **Priority** high · **Modules** R-33, R-02 · **Depends on** —
+
+- **Package / files:** core/rules (immutable model, validation, JSON store with edit history); core/rules/validation (proposed); shared bound assertions used by core/quant/signals and core/quant/risk
+- **Spec sections and rules:** §7.1 · §10.3 · R-02 rules (1), (3), (4) · P2 · P8 · §8.3 Tier C
+- **Owner decisions touched:** none
+
+**Description.** Map the §7.1 rule-object fields (rule_id, kind, output_range, exposure_basis, applies_to, composition, books[], inputs[] with source_kind, estimator, label_layer, instrument_book, market, card_id, tier, header_md5, results_md5, n_rule) onto core/rules' immutable model with no financial defaults. Implement validation as predicates over those fields: every refusal names the rule (and the §10 item and label where one applies), is logged in the store's edit history and writes nothing. Assert 0.5 ≤ overlay ≤ 1.0 and 0 ≤ vt, vs ≤ 1.0 at the schema, rules-store and code level (an output_range above 1.0 is Tier C and refused), require exposure_basis ∈ {active, total} on every multiplier, and reserve 0× for the risk layer and HALTED. Keep the edit history usable as the revision log that R-25 reads in M8.
+
+**Acceptance criteria**
+- `T-CAP-01` (runs_from M0; the "overlay layer cannot emit 0" clause joins at M2): Any overlay multiplier outside [0.5, 1.0], or any vt/vs > 1.0, fails schema validation and rules-store validation.
+- `T-BASIS-01` (runs_from M0; here as the rules-store predicate on §7.1 applies_to; runtime clauses at M4 and M7, S2 clause at M8): Every multiplier has exposure_basis; a vt rule on anything but market_gross, or any multiplier on ts_trend, is refused.
+
+### TASK-M0-05 · Write the v2.0.0 rules-store entries of §7
+
+**Type** task · **Priority** high · **Modules** R-02, R-26, R-33 · **Depends on** TASK-M0-04
+
+- **Package / files:** core/rules JSON store (one file with edit history); config.py (macro artifact directory)
+- **Spec sections and rules:** §7 (all blocks) · §0.3 step 4 · P10 · R-19…R-31 and R-34 config keys
+- **Owner decisions touched:** none
+
+**Description.** Write every §7 block into the store with explicit numbers (version 2.0.0, as_of 2026-10-02, read_only: true), reproducing the R-19…R-31 and R-34 config keys verbatim (calendars, data_contracts, vol_target.estimator_gate, fill_model, instruments, cards, monitoring, gate.card_p_v2, gate.acceptance_test, gate.evaluation, gate.step3, gate.stats, gate.timing, do_not_build, reproducibility) so later milestones read their parameters and never invent them. Keep costs out of the store: hold only the floor formula, instrument metadata and a reference to the gate's cost table. Add the macro artifact directory to config.py and keep decision times as calendar lookups (R-20), never constants. Where a rule block and the §7 listing differ, follow the rule and fix §7.
+
+**Acceptance criteria**
+- `T-CAP-01` (runs_from M0): Every stored block passes bounds validation: no multiplier, weight or vol-target cap above 1.0, no overlay outside [0.5, 1.0].
+- `T-HERM-02` (runs_from M0): The store is untouched by the test suite (byte-identical before and after tests/run_all.py).
+
+### TASK-M0-06 · Implement the owner-decision registry D1–D6 with {ref} resolution
+
+**Type** user-story · **Priority** high · **Modules** R-07, R-21, R-25, R-26, R-31 · **Depends on** TASK-M0-05, TASK-M0-07
+
+- **Package / files:** core/rules (owner_decisions registry, {ref} resolver, load-time refusal); governance_events.jsonl via TASK-M0-07
+- **Spec sections and rules:** Quick start owner-decision table (canonical) · §7 owner_decisions · §8.10 · C-8
+- **Owner decisions touched (implement the default, flag it):**
+  - D1 Korea concentration template — default MSCI 25/50 (single name ≤ 22.5% after the buffer; names above 4.5% ≤ 45% in aggregate; checked quarterly and on breach); key risk_layer.korea_caps.template
+  - D2 Drawdown hard-stop level — default −15% of book NAV from the high-water mark since the last re-arm; key risk_layer.drawdown.hard_stop.level
+  - D3 Calm-state reversal down-weight (QF5-M10) — default not adopted (P3 stands); key families.reversal.calm_state_downweight
+  - D4 Book-level false-demotion budget — default ≤ 10% a year across all statistical triggers, split equally across active cards, each split verified on a 20-shift placebo panel; key monitoring.false_demotion_budget_per_year
+  - D5 US sleeve and line — default no US sleeve until decided (R-28 and R-29 stay FORWARD-SIM and never enter the recommended book); key sleeves.US.line
+  - D6 CDaR-guard calibration — default the lowest-placebo-false-pass rule, frozen with the package now, applied only if a negative control passes; an owner ruling is accepted only before the first acceptance attempt; key gate.acceptance_test.cdar_guard.calibration
+
+**Description.** As the owner, I rule on D1–D6 in one place and every dependent rule block follows. Store owner_decisions.D<n> = {key, value, default, options, status, effective_from, rationale, refs} with exactly one canonical scalar key per decision holding the Quick-start default; resolve every {ref: <key>} at load, refuse a {ref} object with any other key and any literal copy that differs from its key. Make a ruling flip status to owner_set, re-resolve every reference and append an owner_ruling governance event; record the values in force in each card header at commit, check them only then, and give a dependent card (R-31 on D2) a counted revision before its next run. Never treat a ruling as an acting-parameter edit (it never demotes) or as a gate-package change.
+
+**Acceptance criteria**
+- `T-OWNER-01` (runs_from M0): Each D1–D6 canonical key exists and holds a scalar equal to owner_decisions.D<n>.value and every {ref} resolves to it; an owner edit flips status to owner_set, every reference resolves to the new value and the ruling is written to governance_events.jsonl; a differing literal copy is refused at load; a card header's owner_decisions is checked only at commit.
+
+### TASK-M0-07 · Build the hash-chained governance_events.jsonl appender
+
+**Type** task · **Priority** high · **Modules** R-32 · **Depends on** TASK-M0-08
+
+- **Package / files:** core/rules (appender, proposed); governance_events.jsonl; schema quantgen/governance_event.v2.0
+- **Spec sections and rules:** §6.6 · §3.8 · §3.9 (alert sinks)
+- **Owner decisions touched:** none
+
+**Description.** Implement an append-only writer for governance_events.jsonl whose every line validates against quantgen/governance_event.v2.0 and carries prev_row_md5 (null only on the first line). Support every kind of the enum (halt, rearm, book_state, demotion, package_freeze, package_redesign, header_commit, owner_ruling, calendar_change, notional_change, admissibility_reweight, binding_share_recompute, binding_change, record_reset, verdict_integrity) and every actor. Ship the chain verifier now; M8 wires it into app start (T-OBS-05).
+
+**Acceptance criteria**
+- `T-OWNER-01` (runs_from M0; its clause "the ruling is written to governance_events.jsonl" runs at M0 (§9.0b)): An owner ruling appends one valid, hash-chained governance event.
+- `T-SCHEMA-01` (runs_from M0): The §6.6 example line validates against quantgen/governance_event.v2.0.
+
+### TASK-M0-08 · Implement the JSON Schema 2.0 registry (§6)
+
+**Type** task · **Priority** high · **Modules** R-32 · **Depends on** —
+
+- **Package / files:** core/ficc/macro schemas (proposed): macro_state.v2.0, overlay_decision.v2.0, event_calendar.v2.0, context_log.v2.0, model_card_header.macro.v2.0, model_card.macro.v2.0, governance_event.v2.0
+- **Spec sections and rules:** §6 conventions · §6.1–§6.6 · R-32 · C-7
+- **Owner decisions touched:** none
+
+**Description.** Write the seven §6 schemas in JSON Schema draft 2020-12 and load them into one registry keyed by $id, with cross-schema $ref relative to the quantgen/ base. Apply the closed-object rule in the loader exactly as §6 states (additionalProperties: false except extras, maps, unevaluatedProperties schemas and the shared header field set). Require the common provenance fields (schema, schema_version "2.0", generated_at_utc, knowledge_utc, git_hash, config_hash, data_snapshot_id, read_only: true) wherever §6 says, and make every example in the spec validate after a typed sample replaces each <…> placeholder.
+
+**Acceptance criteria**
+- `T-SCHEMA-01` (runs_from M0): Every example in the spec (the §6 examples and the §8.4 header) validates against its schema; a missing required field fails; an undeclared field fails.
+
+### TASK-M0-09 · Implement the card schemas and validate_card_header
+
+**Type** task · **Priority** high · **Modules** R-32, R-22, R-23, R-24, R-26 · **Depends on** TASK-M0-08
+
+- **Package / files:** core/rules.validate_card_header; core/ficc/macro schemas model_card_header.macro.v2.0 and model_card.macro.v2.0
+- **Spec sections and rules:** §6.5 · §8.4 · R-32 · R-26 rule 3 · R-22/R-23/R-24 outputs
+- **Owner decisions touched:** none
+
+**Description.** Implement two schemas over one field set: the header (the §8.4 pre-registration) validated by validate_card_header at commit, and the card (header ∪ results) validated when written, both closed by unevaluatedProperties: false so a header carrying a result field (selection_factor, timing_profile, forward_record, stability results) is refused. Make header_md5 cover header fields only and results_md5 the result fields. Require every 2.0 field: family_id, ledger_hash_at_registration/at_run, N_raw, N_clusters, N_equiv, N_hat_linear, N_eff, V_null, selection_factor, the power block, timing_profile, instrument_book, rebalance, no_trade_band, notional_nav, nav_fx, cash_convention, history_first_close, data_span, start_band and midpoint_halves (acting long-sample cards), episode_rule_version, the stability results, gjr_null_pct and the reproducibility fields. Never add a Kish field.
+
+**Acceptance criteria**
+- `T-SCHEMA-02` (runs_from M0): model_card.macro validates only with family_id, ledger_hash_at_registration and ledger_hash_at_run, N_raw, N_clusters, N_equiv, N_hat_linear, N_eff, V_null, selection_factor, power {se_hac, se_blk250, se_plateau, mde80, power_at_0p05, power_at_0p10}, timing_profile, instrument_book, rebalance, no_trade_band, notional_nav, cash_convention, start_band, episode_rule_version, start_band_results, midpoint_halves_results, gjr_null_pct and the reproducibility fields; each removed in turn → refused; macro_state inputs carry value_status, session_date and provenance; context_log items carry series_id, vintage, retrieved_at_utc, value_status and stale.
+
+### TASK-M0-10 · Classify acting vs display fields and build the quarantine path
+
+**Type** task · **Priority** high · **Modules** R-32 · **Depends on** TASK-M0-08
+
+- **Package / files:** core/ficc/macro (artifact validator, proposed); <artifact_dir>/quarantine/
+- **Spec sections and rules:** R-32 (validation-failure scope, field classes) · §3.9 bounds_ok · C-1 · R2-C4
+- **Owner decisions touched:** none
+
+**Description.** Encode R-32's exhaustive field classes: the listed display properties of macro_state and overlay_decision (owner_decisions, alerts, annotations, refusal_books, forward_sim, the non-exposure and hedge flags, the vol display labels, reasons, refusal, non-acting inputs) and every other property acting, so an unclassified or later-added field is acting and fails closed. Return per artifact: acting-field errors (bounds_ok HALTs the described books from M8), display or context errors (write with extras.validation_errors and alert), and whole-artifact refusals for context_log, event_calendar and model_card (written only to <artifact_dir>/quarantine/ with errors, alerted, never a HALT). Build one synthetic artifact or card from each rule's Outputs list and fix §6 wherever a rule writes an undeclared field.
+
+**Acceptance criteria**
+- `T-SCHEMA-03` (runs_from M0): One synthetic artifact or card per rule, built from that rule's "Outputs and schema fields" list, validates against its §6 schema; a field a rule writes that its schema lacks fails the test.
+
+### TASK-M0-11 · Build the artifact writer and the reproducibility record
+
+**Type** task · **Priority** high · **Modules** R-32, R-01 · **Depends on** TASK-M0-05, TASK-M0-08
+
+- **Package / files:** core/ficc/macro artifact writer (proposed); config.py (artifact dir); core/rules reproducibility block
+- **Spec sections and rules:** §7 reproducibility · §6 conventions · R-01 rule (4)
+- **Owner decisions touched:** none
+
+**Description.** Write every artifact and card through one writer that records seed, git_hash, config_hash (hash of the rules-store state), data_snapshot_id, knowledge_utc, results_md5, gate_package_version and md5, and the ledger hashes, serialising canonical JSON (UTF-8, sorted keys, floats printed with repr, no insignificant whitespace). Treat generated_at_utc and git_hash as the only volatile fields for replay comparison. Stub data_snapshot_id until the M1 store provides it, and fix the RNG convention now: NumPy PCG64 seeded through SeedSequence with spawned child seeds and single-threaded BLAS.
+
+**Acceptance criteria**
+- `T-REPRO-01a` (runs_from M0): Every artifact and card records the seed, git_hash, config_hash, data_snapshot_id, knowledge_utc, the ledger hashes and results_md5.
+
+### TASK-M0-12 · Implement the tick-floor cost model and instrument metadata (R-26 rules 1–2)
+
+**Type** task · **Priority** high · **Modules** R-26 · **Depends on** TASK-M0-05
+
+- **Package / files:** core/rules (cost-table reference); core/markets instrument table (type, L, effective-dated tick_table, tax_side, cost_class, contract_multiplier, eligibility; proposed); core/quant/backtest.cost_per_side (proposed)
+- **Spec sections and rules:** P10 · R-26 rules 1–2 · §8.5 costs · §7 instruments
+- **Owner decisions touched:** none
+
+**Description.** Implement cost_per_side(instrument, date, price, side) = max(table_rate(cost_class), commission + 0.5·tick(P)/P + tax_side), reading the table rates from the gate (KRX ETF 3, KRX stock 35, US shares via KIS 50, crypto 10, futures 5, FX 10 bp per side; 2× stress) and never redefining them; use commission 1.4 bp until the owner confirms it and the 0.20% sell tax on stock sells in 2026 (ETFs exempt). Add the instrument table with an effective-dated tick table (ETF ₩1 below ₩2,000 and ₩5 at or above from 2023-12-11; earlier ticks from KRX notices) and the KRX_LI_ETF class (the KRX ETF table rate if the gate lacks the class; the tick floor governs). Make any header or schedule that lowers a cost raise; a declared schedule and the stress line may only raise a cost.
+
+**Acceptance criteria**
+- `T-COST-02` (runs_from M0): 252670 at ₩69 is charged ≥ 72 bp per side (73.9 bp with the 1.4 bp commission); KODEX 200 at ₩112,060 is charged the 3 bp table rate; the floor never lowers a table rate.
+- `T-COST-03` (runs_from M0): Lowering a cost in a card header raises; the stress line can only raise a cost.
+
+### TASK-M0-13 · Validate the R-26 header fields, the sleeve notional and the granularity floor
+
+**Type** task · **Priority** high · **Modules** R-26 · **Depends on** TASK-M0-09, TASK-M0-12
+
+- **Package / files:** core/rules.validate_card_header; core/rules sleeves.<market>.notional_nav (owner-signed, effective-dated) and sleeves.US.line
+- **Spec sections and rules:** R-26 rules 3–5 · §8.4 Book group · P10 · P15 · §10 items 23, 32, 33
+- **Owner decisions touched (implement the default, flag it):**
+  - D5 US sleeve and line — default no US sleeve until decided (R-28 and R-29 stay FORWARD-SIM and never enter the recommended book); key sleeves.US.line
+
+**Description.** Require instrument_book (the §6.5 enum, with instrument_lines[] for multi_line), rebalance ∈ {daily, weekly, monthly}, no_trade_band ∈ {0, 0.10} (0.10 only on KRX_stock_book and US_shares_KIS, declared ex ante), notional_nav read from sleeves.<market>.notional_nav (a card never declares its own), nav_fx for non-KRW books, fill_model and, for futures, roll_calendar. Refuse a futures line whose one contract (price × effective-dated multiplier × nav_fx at the commit) exceeds 5% of the sleeve notional (exactly 5% allowed), a header whose notional differs from the sleeve key at commit, and any stock book used as a market-gross scalar. Log a sleeve-notional change as a governance event that re-checks futures-line cards without reopening verdicts, and keep sleeves.US.line = none so no US market-gross line can be configured.
+
+**Acceptance criteria**
+- `T-BOOK-01` (runs_from M0; header clauses; the printed-line clause joins at M7): A card without instrument_book, rebalance, no_trade_band and notional_nav is refused; a futures line whose one contract exceeds 5% of the sleeve notional is refused (mini KOSPI200 ≈ ₩56m on a ₩0.1bn sleeve) and exactly 5% is allowed; a header whose notional_nav differs from sleeves.<market>.notional_nav at commit is refused; a stock book used as a market-gross scalar is refused.
+
+### TASK-M0-14 · Enforce the DO-NOT-BUILD list v2 in rules-store validation
+
+**Type** task · **Priority** medium · **Modules** R-33 · **Depends on** TASK-M0-04, TASK-M0-05
+
+- **Package / files:** core/rules/validation (do_not_build predicates); core/rules do_not_build block; docs/ (the archived ML-challenger harness, item 29)
+- **Spec sections and rules:** §10.1–§10.4 · §10.3 · R-33 · §7 do_not_build · §7.1
+- **Owner decisions touched:** none
+
+**Description.** Encode every §10.3 refused shape as a predicate over the §7.1 rule object: an order path or broker adapter; a multiplier or cap above 1; composition ≠ min; a regime_model source acting or displayed, or a smoothed or forward-looking label; an ml_classifier estimator, gate or label; a conformal label layer; max() over an implied-vol series; an estimator change outside an R-30 counted revision; a header edit after results_md5; a KRX stock book on a market-gross scalar; a pooled or A-provisional tier after results; a forward record cited as validation; Kish or any N rule other than max(N_clusters, N_equiv); an R-28 instance with market KR; a recommended book reading a non-PASS multiplier; a value-timed or provisional acting input. Store the label and basis of all 37 items with item 11 split (11a prohibited, 11b range log-HAR admitted, 11c variants), make each refusal name the item and label, and keep the ML-challenger harness in docs/ as the archived negative result.
+
+**Acceptance criteria**
+- `T-DNB-01` (runs_from M0): §10 item 11 is split; rules-store validation refuses a regime-model state (acting or displayed), a Mondrian conformal label layer, a maintained ML challenger pipeline, max(SMA20, implied) sizing, product-composed de-risk stacks, a venue switch after results and a stock book as a market-gross scalar; each §10 entry is labelled harm / null / inconclusive.
+
+### TASK-M0-15 · Bootstrap the book-level variants behind the §10 E labels (§9.4 item 7)
+
+**Type** spike · **Priority** medium · **Modules** R-33 · **Depends on** TASK-M0-14
+
+- **Package / files:** research scripts outside the repository (/home/claude/quantgen_macro_data/scripts; qf3_dnb_classes.py); core/rules do_not_build.items
+- **Spec sections and rules:** §9.4 item 7 · §10.1 (bases B and E)
+- **Owner decisions touched:** none
+
+**Description.** Bootstrap the book-level variant behind every §10 item labelled on basis E as qf3_dnb_classes.py does (63-day blocks, 1,000 resamples) and replace each E label with the resulting B label through a logged rules-store revision. Treat the results as pending recomputations until they are md5-frozen. Never let a label lift a prohibition: an item reopens only through a new card with new evidence (§8).
+
+**Acceptance criteria**
+- `T-DNB-01` (runs_from M0): Every §10 entry still carries exactly one label after the update, and every refused shape is still refused.
+
+---
+
+## M1 — Data layer
+
+**Exit tests whose runs_from is M1** (§9.0a; clauses deferred by §9.0b join later and are named in the tasks): `G-POST-01`, `T-AVAIL-01`, `T-BAR-01`, `T-BAR-02`, `T-CAL-01`, `T-CAL-02`, `T-CLOSE-01`, `T-CLOSE-02`, `T-FIX-01`, `T-H10-01`, `T-H10-02`, `T-H15-01`, `T-LAG-01`, `T-LAG-02`, `T-MISS-01`, `T-MISS-02`, `T-PRINT-01`, `T-PROV-01`, `T-REGIME-01`, `T-RO-02`, `T-ROLE-01`, `T-ROLE-02`, `T-SAT-01`, `T-SER-01`, `T-SER-02`, `T-STALE-01`, `T-SYN-01`, `T-TZ-01`, `T-TZ-02`, `T-VIX-01`, `T-XMKT-01`.
+
+### TASK-M1-01 · Run the KIS quote-field check first, in parallel (QF1-A25)
+
+**Type** spike · **Priority** high · **Modules** R-01, R-08, R-26, R-27 · **Depends on** TASK-M0-01, TASK-M0-02
+
+- **Package / files:** core/quant/history KIS provider client (e.g. kis_client.py); config.py (credentials env-only)
+- **Spec sections and rules:** Quick start "What to build first" · §12 M1 · R-01 failure modes · §8.10 settling test "KIS quote fields" · BL-C02 · BL-D03
+- **Owner decisions touched:** none
+
+**Description.** Start this before anything else in M1 and run it in parallel: pull KIS bid/ask for 069500 and 005930 at 15:19:59 KST on 20 sessions with the owner's credentials. Record the level-1 fields, exchange vs receipt timestamps, the market-division code and price field that return the KRX regular-session official close (not an NXT or integrated print), and whether the app key can trade. Without KIS access record "not run" and keep every dependent feature (R-27 snapshots, R-08 spread snapshots, the R-26 stress-line calibration) labelled UNVERIFIED; if the fields are missing, open BL-C02 for another quote source. Nothing else in M1, and not M1's exit, waits for it.
+
+**Acceptance criteria**
+- `T-RO-02` (runs_from M1; clause "whether the KIS app key can trade is checked in M1 … and recorded"): The trade capability of the app key is checked beside the quote-field check and recorded.
+- §12 M1: the KIS quote-check result (or "not run") is recorded.
+
+### TASK-M1-02 · Add the runtime read-only guard on the KIS client
+
+**Type** task · **Priority** high · **Modules** R-01, R-33 · **Depends on** TASK-M0-01
+
+- **Package / files:** config.py (frozen allowlist of KIS quotation endpoints); KIS provider client; Claude API caller
+- **Spec sections and rules:** §1 P0 · §9.1 T-RO-02 · §3.9 (Claude API never decides)
+- **Owner decisions touched:** none
+
+**Description.** Freeze an allowlist of KIS quotation endpoints in config.py and make the client raise before building any request to a trading or account path. Call the Claude API without tools and never parse its text in an acting module. Keep credentials env-only, as the existing runner does.
+
+**Acceptance criteria**
+- `T-RO-02` (runs_from M1; the "I-01 runs with the HTTP transport patched" clause joins at M8): The KIS client accepts only the allowlisted quotation endpoints and any trading or account path raises before a request is built; the Claude API is called without tools and its text is never parsed by an acting module.
+
+### TASK-M1-03 · Build effective-dated market clocks (decision_time_utc, close_print_bound_utc)
+
+**Type** task · **Priority** high · **Modules** R-20 · **Depends on** TASK-M0-05
+
+- **Package / files:** core/calendars (decision_time_utc, close_print_bound_utc, is_session, session, nyse_holiday); versioned files under core/calendars/data/ (proposed); core/markets (session metadata); config.py (decision constants become calendar lookups)
+- **Spec sections and rules:** R-20 rules 1–3 · §4.1 market clocks and decision time · §3.5 core/calendars
+- **Owner decisions touched:** none
+
+**Description.** Implement decision_time_utc (the scheduled close; API unchanged from v1.2) and close_print_bound_utc (the decision instant) as lookups over versioned calendar rows with effective_from/to, source, retrieved_at_utc and signed_off_by. Encode the KRX rules: 15:00 KST close to 2016-07-31 and 15:30 from 2016-08-01; closing calls; conditional random end to 2015-06-14 (30 s print tolerance plus notice extensions) and unconditional ≤ 30 s from 2015-06-15; CSAT 10:00–16:30 from 2016-08-01 (earlier window from the notice); 10:00 open on the first trading day; Saturday sessions before 1998-12-12 with their own close; lunch break to 2000-05; NXT and KRX after-market excluded. Encode NYSE through zoneinfo America/New_York with 13:00 ET early closes and a 30 s bound, and JP, CN, HK, TW close times with close_print_bound_s 0; raise NotASession on a non-session and replace every decision constant in config.py by a calendar lookup.
+
+**Acceptance criteria**
+- `T-CLOSE-01` (runs_from M1; the "workflow never starts before 06:40:30Z" clause joins at M8): decision_time_utc("KR", 2026-10-02) = 06:30Z and close_print_bound_utc = 06:30:30Z; a close printed 06:30:20Z is accepted and one available 06:31Z rejected; the US decision of 2026-10-01 is 20:00Z with bound 20:00:30Z; 2026-01-15 is 21:00Z (EST).
+- `T-CLOSE-02` (runs_from M1): KRX sessions before 2016-08-01 close 06:00Z and from then 06:30Z; bounds 06:00:30Z (2015-06-15 … 2016-07-29), 06:30:30Z after, close + 30 s before 2015-06-15; CSAT 2025-11-13 07:30Z / 07:30:30Z; ("KR", 2026-10-05) raises NotASession; US early closes 18:00Z (2026-11-27) and 17:00Z (2025-07-03); Saturday sessions before 1998-12-12 present.
+- `T-SAT-01` (runs_from M1): is_session("KR", d) is true for every non-holiday Saturday before 1998-12-12 and false from then on; a KOSPI fixture lacking those Saturdays fails the completeness check.
+
+### TASK-M1-04 · Implement regime_tags() from a signed Korean regime-tag file
+
+**Type** task · **Priority** high · **Modules** R-20 · **Depends on** TASK-M1-03
+
+- **Package / files:** core/calendars.regime_tags; core/calendars/data/kr_regime_tags.yaml (owner-signed)
+- **Spec sections and rules:** R-20 rules 4–5 · §8.6 (tags on episodes)
+- **Owner decisions touched:** none
+
+**Description.** Return the effective value of every tag for any date: price_limit (±6% Apr-1995, ±8% Nov-1996, ±12% Mar-1998, ±15% Dec-1998, ±30% from 2015-06-15), saturday_session, close_time_kst, closing_call, random_end, lunch_break, fx_regime (peg_1997 for 1997-09-22 → 1997-10-17), etf_available (from the Oct-2002 KODEX 200 listing), short_sale_ban spells, sell_tax_pct, tick_regime, letf_rules and usdkrw_onshore_hours. Take exact days from the official notices at sign-off and commit an expected-values file built from them. Raise for a date the file does not cover and refuse a card whose span it does not fully cover.
+
+**Acceptance criteria**
+- `T-REGIME-01` (runs_from M1): price_limit 0.08 (1997-06-02), 0.12 (1998-06-01), 0.15 (1999-06-01), 0.30 (2015-06-15); fx_regime peg_1997 on 1997-10-01; etf_available false on 2002-01-02; short_sale_ban true on 2024-06-03; sell_tax_pct 0.20 on 2026-10-02; every date 1995-01-01 … 2026-12-31 returns a full tag set equal to the committed expected-values file.
+
+### TASK-M1-05 · Enforce calendar change control and the 60-session coverage horizon
+
+**Type** task · **Priority** high · **Modules** R-20 · **Depends on** TASK-M1-03, TASK-M1-20
+
+- **Package / files:** core/calendars loader; alert sinks; core/engine/runtime (OPS HALT reason calendar_coverage)
+- **Spec sections and rules:** R-20 rule 6 and fail-closed behaviour · §7 calendars.coverage
+- **Owner decisions touched:** none
+
+**Description.** Refuse at load any calendar, regime-tag or publication-schedule file without signed_off_by, fail every acting input of that market closed, require one new test case per change, and log every calendar change as a governance event. Check coverage at every decision (≥ 60 sessions beyond the decision date; warn at 60 left, page at 20) and make a decision date outside coverage an OPS HALT with reason calendar_coverage, never a silent NotASession. Get the 2027 KRX, NYSE, Fed and SIFMA files signed before 2026-11-01.
+
+**Acceptance criteria**
+- `T-CAL-01` (runs_from M1): A calendar file without signed_off_by is refused at load and every KR acting input fails closed.
+- `T-CAL-02` (runs_from M1): Every calendar, regime-tag and publication-schedule file covers ≥ 60 sessions beyond the decision date; warn at 60, page at 20; a date outside coverage is an OPS HALT with reason calendar_coverage; the 2027 files are signed before 2026-11-01.
+
+### TASK-M1-06 · Implement publication calendars, event instants and the source-exception list
+
+**Type** task · **Priority** high · **Modules** R-19, R-20 · **Depends on** TASK-M1-03
+
+- **Package / files:** core/calendars (fed_business_day, sifma_status, publication_instant, next_expected_obs, add_publication_bdays); core/calendars/data/source_skipped.yaml (owner-signed, versioned)
+- **Spec sections and rules:** §4.1 event and publication times · R-19 rule 2 · R-20 rule 2 · §7 calendars.holiday_sets
+- **Owner decisions touched:** none
+
+**Description.** Keep the KRX, NYSE, FED, SIFMA, CBOE, CME, JPX, SSE, HKEX, TWSE and ECOS holiday sets separate (on Columbus and Veterans Day the NYSE is open and the Fed closed). Implement publication_instant and next_expected_obs per schedule: H.15 at 16:15 ET on the next Fed business day after D; H.10 on Monday 16:15 ET for the previous week (next Fed business day after a holiday Monday); Treasury par yields expected ~18:00 ET on D with the logged first-seen posting time as available_at; BLS 08:30 ET; BEA per calendar; VIX/VIX3M official close 16:15 ET (FRED channel: logged posting time); market closes at the close-print bound. Load the owner-signed source-exception list (Good-Friday bond closures, 2017-01-20, 2018-12-05, 2020-11-27, 2020-12-24, DC storm closures 2016-01-22 and 2018-03-02) so those dates create no expected observation, and map scheduled US events to KST and to the next KRX session (kr_open_gap_session).
+
+**Acceptance criteria**
+- `T-H15-01` (runs_from M1): DGS10 dated D is available 16:15 ET on the next Fed business day: Fri 2015-01-02 → KRX close Tue 2015-01-06 (not Mon); the Treasury channel with a logged posting time is usable +1 business day; the R4b strict-book state row holds (flag on in data dated 2026-09-23 earns from 2026-09-28).
+- `T-H10-02` (runs_from M1): DEXKOUS dated Fri 2026-09-25 is usable from the KRX close of Tue 2026-09-29; at the 2026-10-02 KRX close the latest usable DEXKOUS is dated 2026-09-25; the week of 2026-10-05 is usable from the KRX close of Wed 2026-10-14 (Columbus Day).
+- `T-VIX-01` (runs_from M1): VIX(D) read at its 16:15 ET close is not usable at the US close of D, and is usable at the US close of D+1 and the KRX close of K ≥ D+1; FRED VIXCLS(D) is usable from the first decision after the logged or declared FRED posting time.
+- `T-TZ-02` (runs_from M1): The 2026-09-16 FOMC statement (14:00 EDT) is 2026-09-17 03:00 KST, kr_open_gap_session 2026-09-17; the Sep NFP (2026-10-02 08:30 EDT) maps to kr_open_gap_session 2026-10-06.
+- `T-AVAIL-01` (runs_from M1): The golden availability table built from official calendars matches exactly (DGS10 Fri 2015-01-02 → KRX Tue 2015-01-06; DEXKOUS week of 2026-10-05 → KRX Wed 2026-10-14; DGS10 2026-10-09 → US close 2026-10-14; CSAT 2025-11-13 close 07:30Z) and fails on an injected registry error.
+
+### TASK-M1-07 · Implement the append-only bitemporal PIT store and the pinned knowledge time
+
+**Type** task · **Priority** high · **Modules** R-01 · **Depends on** TASK-M0-11
+
+- **Package / files:** core/ficc/data (PITValue v2, MissingInput, store, RunContext, data_snapshot_id; proposed inside the existing package); fetch_log.jsonl
+- **Spec sections and rules:** §3.5 core/ficc/data · §4.1 storage · R-01 rule (4) · §3.9 pit_snapshot
+- **Owner decisions touched:** none
+
+**Description.** Implement PITValue v2 and MissingInput exactly as §3.5 declares them and store rows append-only with obs_utc, available_at_utc and available_at_source, first-seen retrieved_at_utc, value_status, session_date, vintage and content_hash; corrections are new rows and rows are never mutated. Log unchanged-content fetches only in the append-only fetch_log.jsonl (series_id, fetch_utc, provider, status, content-hash digest). Pin knowledge_utc once per run in a RunContext{decision_utc, knowledge_utc, run_mode} (live: end of the pit_snapshot fetches; backtest: the card's snapshot; replay: the artifact's), never "now", and write it to every artifact. Compute data_snapshot_id as the md5 of the sorted content hashes visible at knowledge_utc, order-invariant and unchanged by a later correction.
+
+**Acceptance criteria**
+- `T-PROV-01` (runs_from M1): On the synthetic 2-Oct store fixture the read returns MissingInput("missing") at knowledge_utc 01:31Z, MissingInput("provisional_intraday") at 02:00Z and 7,003.74 [official_close] at 07:00Z.
+
+### TASK-M1-08 · Build the series registry with bindings, groups and channels
+
+**Type** task · **Priority** high · **Modules** R-19 · **Depends on** TASK-M0-05, TASK-M1-06
+
+- **Package / files:** series registry data file next to core/ficc/data (proposed)
+- **Spec sections and rules:** §4.2 (fields, role codes, Korea/US/Other tables) · R-19 rule 5 · §7 data_contracts.roles
+- **Owner decisions touched (implement the default, flag it):**
+  - D5 US sleeve and line — default no US sleeve until decided (R-28 and R-29 stay FORWARD-SIM and never enter the recommended book); key sleeves.US.line
+
+**Description.** Declare per series: series_id, source, channel, frequency, obs_calendar, publication_schedule {calendar, time, tz}, release_event_type, the obs_date time zone, grace_publication_bdays 1, bindings [{consumer, role, books}] with halt_after_consecutive_decisions (2; 5 for KODEX200_PDF; 3 for NAV_LINE_CLOSES), timing_class, production and history channels selected by run_mode, adjustment_basis, obs_kind, range checks and the cross-source tolerance. Register every §4.2 series and the R-19 rule-5 bindings verbatim (KOSPI_OFFICIAL_CLOSE bound to the specification book only; US_SLEEVE_OFFICIAL_CLOSE books: [] while D5 = none; SPX_OFFICIAL_CLOSE forward_sim, corr63 and covariance bindings; DTWEXBGS and DEXKOUS context; BOK_CALL_RATE and US_RF history), and declare the groups ASIA_INDEX_CLOSES, KRX_MARKET_CAPS_005930_000660_KOSPI, NON_KR_INDEX_MONTH_END_CLOSES and NAV_LINE_CLOSES and the range groups US_TREASURY and KR_CALL_CD. Refuse an acting or forward_sim binding without a books key (books: [] is valid) and name USD_LIVE_PROXY before M2 (default DX-Y.NYB, read as a quote snapshot stamped ≤ the decision instant).
+
+**Acceptance criteria**
+- `T-SER-02` (runs_from M1): Every series id referenced by the rules store, data_contracts.roles, card headers and §4.2 exists with a contract; group and range-group names resolve to existing members; a group name used as a series id fails; pit_value raises for a non-context consumer with no binding.
+- `T-ROLE-02` (runs_from M1; registration clauses; the corr63 clause joins at M2, the cash clause at M7, the FORWARD-SIM clause at M8): An acting or forward_sim binding without a books key is refused at registration; books: [] (US_SLEEVE_OFFICIAL_CLOSE while D5 = none) is valid and binds no book.
+- `T-H10-01` (runs_from M1): In run_mode = live, an attempt to read DEXKOUS for an acting or risk-model input raises; DEXKOUS is a labelled proxy only.
+
+### TASK-M1-09 · Implement per-series data contracts
+
+**Type** task · **Priority** high · **Modules** R-19 · **Depends on** TASK-M1-08
+
+- **Package / files:** core/ficc/data.contract(series_id) -> DataContract; contracts.yaml next to the registry (proposed)
+- **Spec sections and rules:** R-19 rule 1 · R-19 rule 4 (contract violations) · R-19 fail-closed
+- **Owner decisions touched:** none
+
+**Description.** Give every registered series a contract: dtype and unit (decimals in the core), range (|r_KOSPI| ≤ 30%, VIX ∈ [5, 150], US Treasury yields ∈ [−1, 20]%, Korean call and CD rates ∈ [−1, 40]%), monotone obs_date, publication schedule and grace, cross-source tolerance, role and failure action. Refuse registration of an acting input that has no contract. Treat a contract violation (out of range, schema error, non-monotone date, provisional row for a close-type input) as a missing input with its role's action.
+
+**Acceptance criteria**
+- `T-ROLE-02` (runs_from M1; contract clause): The Dec-1997 Korean call rate passes its contract (KR_CALL_CD range [−1, 40]%).
+- `T-SER-02` (runs_from M1): Every registered series id has a contract; an unknown id fails validation.
+
+### TASK-M1-10 · Implement pit_value() with the provisional-row guard and consumer bindings
+
+**Type** task · **Priority** high · **Modules** R-01, R-19 · **Depends on** TASK-M1-07, TASK-M1-08, TASK-M1-03
+
+- **Package / files:** core/ficc/data.pit_value
+- **Spec sections and rules:** §3.5 pit_value semantics · §4.1 value status and provisional-row guard · R-01 rules (1)–(2) · R-19 rule 5
+- **Owner decisions touched:** none
+
+**Description.** Implement pit_value(series_id, decision_utc, knowledge_utc, consumer, require_session) as an as-of read: visible rows have available_at_utc ≤ decision_utc and retrieved_at_utc ≤ knowledge_utc, and within one (series_id, obs_date) the row is chosen by value_status rank (official_close > revised > first_release > vendor_close > vendor_derived > vendor_derived_across_gap > live_snapshot > provisional_intraday), then source precedence, latest available_at, latest retrieved_at. Make require_session mandatory for close-type acting reads (raise without it), select among rows with obs_date == require_session (none → MissingInput("missing")), and return MissingInput("provisional_intraday") for any non-official status and MissingInput("session_mismatch") for a mis-dated row. Resolve the consumer's binding (role, books), raise for a non-context consumer without one but never for the nav consumer, and let a backtest read vendor_close only when its header declares that vendor.
+
+**Acceptance criteria**
+- `T-PROV-01` (runs_from M1): pit_value("KOSPI_OFFICIAL_CLOSE", decision_utc 2026-10-02T06:30:30Z, consumer "R-06", require_session 2026-10-02) returns MissingInput("missing") at knowledge 01:31Z, MissingInput("provisional_intraday") at 02:00Z and 7,003.74 [official_close] at 07:00Z.
+- `T-SER-02` (runs_from M1): pit_value raises when a consumer other than a context consumer reads a series it has no binding for.
+
+### TASK-M1-11 · Make official closes primary, reconcile against vendors and refuse bar-derived closes
+
+**Type** task · **Priority** high · **Modules** R-01 · **Depends on** TASK-M1-10, TASK-M1-01
+
+- **Package / files:** core/quant/history (official-close loader: KIS/KRX primary, Yahoo secondary); core/ficc/data (reconciliation, dispute log, alerts)
+- **Spec sections and rules:** §4.1 value status, closes not intraday prints, price convention · R-01 rule (3) · P18
+- **Owner decisions touched:** none
+
+**Description.** Stamp official_close only on the KRX regular-session close field of KIS (the field TASK-M1-01 identifies) or the KRX marketplace when retrieved ≥ close_print_bound_utc + 10 min; vendor daily rows retrieved later are vendor_close, quotes are live_snapshot (obs_kind quote_snapshot), and a vendor "last" after 15:30 KST is never a close. Reconcile like with like (index ≤ 1 bp; stocks exact on a declared adjustment_basis with corporate-action factors), mark mismatches disputed (official value used, dispute = true, alert, logged, never a failure, never auto-corrected) and a vendor row absent on a KRX session vendor_missing. Never store a bar-derived close, a circuit-breaker print or a flat-OHLC zero-volume row on a session day as a close (flag the last as stale carry), record whether loader closes are price or total-return (architecture finding A3), and flag OHLC opens equal to the prior close for the range estimators.
+
+**Acceptance criteria**
+- `T-BAR-01` (runs_from M1; the R-27 clause joins at M5): A bar-derived close or a flat-OHLC zero-volume row on a session day is never stored as a close; a two-source mismatch above 1 bp (index) or any mismatch (stock) is marked disputed, uses the official value and alerts; nothing is auto-corrected.
+- `T-BAR-02` (runs_from M1): A disputed official close returns a PITValue with dispute = true and status disputed, passes the provisional guard, alerts and increments no failure counter; a vendor row absent on a KRX session is vendor_missing.
+- `T-PRINT-01` (runs_from M1): The KOSPI close on 2026-03-09 is 5,251.87 (−5.96%); the intraday −8.11% is never stored as a close.
+
+### TASK-M1-12 · Stop the ficc_cache from serving pre-close rows to acting reads
+
+**Type** bug · **Priority** high · **Modules** R-01 · **Depends on** TASK-M1-07, TASK-M1-06
+
+- **Package / files:** ~/.nextgen/ficc_cache (becomes the PIT store's read-through cache); core/ficc/data ingest (data.ingest)
+- **Spec sections and rules:** §4.1 storage (cache rule) · R-01 evidence (the 2-Oct provisional row came from a pre-close file) · §3.9 pit_snapshot
+- **Owner decisions touched:** none
+
+**Description.** Fix the defect behind the 2-Oct data patch: the 6-hour cache served a file written at 10:56 KST (vendor row 6,943.66) as the close. Serve a cached value at a decision only if its retrieved_at_utc is later than the series' most recent due publication instant ≤ decision_utc (for a close-type series, later than close_print_bound_utc + 10 min of the decided session); otherwise re-fetch, and turn a failed re-fetch into MissingInput, never the cached row. Never cache derived values of acting inputs, and implement data.ingest (fetch at pit_snapshot and on each schedule, retry until the decision deadline, append only on content change). Add a regression case that replays the incident.
+
+**Acceptance criteria**
+- `T-PROV-01` (runs_from M1): With the 10:56 KST vendor row in the cache, the 2-Oct decision read returns MissingInput("provisional_intraday") at 11:00 KST and 7,003.74 [official_close] at 16:00 KST.
+
+### TASK-M1-13 · Store derived and monthly series as PIT records with calendar-offset arithmetic
+
+**Type** task · **Priority** high · **Modules** R-01 · **Depends on** TASK-M1-10
+
+- **Package / files:** core/ficc/data (derived records with lineage, monthly index, YoY and 3-month changes, in-house Sahm; ALFRED vintages)
+- **Spec sections and rules:** §4.1 storage (derived series) · §4.1 monthly series and vintages · R-01 rule (1)
+- **Owner decisions touched:** none
+
+**Description.** Store σ̂, rv20, YoY and 3-month changes, corr63, z-scores, the paper momentum series and contract notionals as obs_kind = derived records: available_at is the latest input available_at, value_status the weakest input status, content_hash covers the inputs; recompute on any input change, never serve from cache, and return MissingInput("provisional_intraday") for a derived acting value with any non-official close-type input. Key monthly series on the first day of the reference month and compute changes by calendar offset, never positional shift. Make every derived value that uses the missing Oct-2025 month as an endpoint or averaging-window member NaN and flagged, compute an endpoint change whose window merely contains it, and tag vendor values across the gap vendor_derived_across_gap. Store revised series with ALFRED vintages and first prints, labelling pre-vintage history pre_vintage_history.
+
+**Acceptance criteria**
+- `T-MISS-01` (runs_from M1): CPI YoY for Aug-2026 = 3.353% ± 0.01; the positional 3.713% is never produced; YoY for Oct-2025 and Oct-2026, MoM for Oct and Nov 2025 and Sahm's 3-month means are NaN and flagged; a vendor value across the gap is tagged vendor_derived_across_gap.
+
+### TASK-M1-14 · Name every series and handle futures rolls
+
+**Type** task · **Priority** high · **Modules** R-01, R-19 · **Depends on** TASK-M1-08
+
+- **Package / files:** core/ficc/data registry; core/quant/history (futures loader with a fixed roll calendar)
+- **Spec sections and rules:** §4.1 named series · §10 item 19
+- **Owner decisions touched:** none
+
+**Description.** Require an explicit series id for every read: Brent is DCOILBRENTEU or BZ=F, never "Brent". Flag futures roll days (e.g. BZ=F on 2026-04-01, −14.5%) and exclude them from return computations. Build futures books on a fixed roll calendar (the expiring KOSPI200 contract stops at 15:20 KST) and never compute continuous-contract returns across rolls.
+
+**Acceptance criteria**
+- `T-SER-01` (runs_from M1): An unnamed "Brent" raises; the BZ=F roll day 2026-04-01 (−14.5%) is flagged and excluded from return computations.
+
+### TASK-M1-15 · Reject synthetic data for acting inputs
+
+**Type** task · **Priority** high · **Modules** R-01 · **Depends on** TASK-M1-10
+
+- **Package / files:** core/ficc/data provider routing (explicit vs auto)
+- **Spec sections and rules:** §1 P5 (no synthetic acting input) · §0.3 routing rule
+- **Owner decisions touched:** none
+
+**Description.** Keep the routing rule: an explicit provider that fails raises, and only "auto" degrades to labelled synthetic data. Turn an auto-degraded or synthetic value for an acting input into MissingInput with status synthetic_rejected and fail_closed = true. Allow and label it for a context item.
+
+**Acceptance criteria**
+- `T-SYN-01` (runs_from M1): An auto provider degrading to labelled synthetic data for an acting input yields MissingInput, status "synthetic_rejected", fail_closed = true; the same provider for a context item is allowed and labelled.
+
+### TASK-M1-16 · Implement schedule-aware staleness
+
+**Type** task · **Priority** high · **Modules** R-19 · **Depends on** TASK-M1-06, TASK-M1-09, TASK-M1-10
+
+- **Package / files:** core/ficc/data (expected_available_utc, is_stale, pit_last); core/calendars.add_publication_bdays
+- **Spec sections and rules:** R-19 steps 2–3 (normative) · §4.1 staleness · §3.5 is_stale
+- **Owner decisions touched:** none
+
+**Description.** Implement is_stale exactly as R-19 step 3: take the latest visible record, d_next = next_expected_obs (skipping source-exception dates), due = publication_instant(series, d_next), deadline = due + one publication business day, and return Stale("missed_release") only when decision_utc > deadline (Stale("missing") with no record). Never measure staleness from the age of last_obs or from last_obs's own release; that reading flags H.10 stale on ~80% of decisions. Move or remove the expected instant through the release event's delayed or cancelled status, and if the publication calendar cannot be read fail every acting input closed and set every risk-model default, never falling back to observation-age staleness.
+
+**Acceptance criteria**
+- `T-STALE-01` (runs_from M1): Over decisions 2016-01-04 → 2026-09-25: DTWEXBGS and DEXKOUS stale on ≤ 1% of decisions (0.42–0.89% expected) and every hit's d_next is in the source-skipped list; with the list loaded those dates raise no flag; DGS10 strict ≤ 1% (0.33%); VIXCLS 0%; deleting one H.10 release flags the next decision after the grace; the last_obs-availability reading (≈ 80%) is not what the code does.
+- `G-STALE-01` (runs_from M1; reproduced by T-STALE-01): The staleness table reproduces: schedule-aware DTWEXBGS 0.89% / 0.80%, DEXKOUS 0.52% / 0.42%, DGS10 0.33% / 0.34%, VIXCLS 0%, against 100% / 98.6% under "1 trading day".
+
+### TASK-M1-17 · Implement role-based failure actions, counters and admission-derived bindings
+
+**Type** task · **Priority** high · **Modules** R-19 · **Depends on** TASK-M1-16, TASK-M1-20
+
+- **Package / files:** core/ficc/data.on_input_failure; core/engine/state (per-(book, series) input counters and per-book counters); core/engine/runtime
+- **Spec sections and rules:** R-19 rules 4–5 · §3.5 status-code map · §3.8 never-a-HALT list · §7 data_contracts.on_failure
+- **Owner decisions touched:** none
+
+**Description.** Map each MissingInput reason to its macro_state status and apply the role's action: acting_exposure → state carried, fail_closed = true, alert, input and book counters, OPS HALT of bound books only at the binding limit (2; KODEX basket 5; NAV lines 3) or book counter 2; risk_model → the conservative default for hedge_state (M2) with operator escalation after 2 missed releases, never a HALT; risk_model_covariance → carry the last valid terms labelled stale for ≤ 5 decisions, then drop and label, never setting hedge_credit_off; context → label stale; forward_sim → that FORWARD-SIM book fails closed, never another; history → refuse a card whose span is uncovered. Count neither warm-up before a book's first ARMED decision nor a disputed close as a failure. Derive each binding's book list at every decision from admissions without editing the roles entry, log each derived-binding change as a governance event, and refuse at load a book that reads a factor whose acting inputs are not bound to it.
+
+**Acceptance criteria**
+- `T-ROLE-01` (runs_from M1; the risk-model clause and "sets every risk-model default" join at M2): A stale acting input: miss 1 → fail closed; miss 2 → its bound books HALTED (OPS) and no other; a fresh decision resets the counter; two inputs bound to one book failing on alternate decisions HALT it at the 2nd; an unreadable publication calendar fails every acting input closed; a stale context input → label only.
+- `T-MISS-02` (runs_from M1; acting clauses; the risk_model and hedge_state/market_vol_target/compose clauses join at M2, concentration_bound/drawdown_ladder at M5): An acting input missing or stale → state unchanged, fail_closed = true, alert, no interpolation; the same failure for more than one decision → HALTED.
+
+### TASK-M1-18 · Implement cross-market and cross-time-zone availability
+
+**Type** task · **Priority** high · **Modules** R-19, R-20 · **Depends on** TASK-M1-03, TASK-M1-06
+
+- **Package / files:** core/ficc/data.usable_cross_market; core/calendars.usable_at
+- **Spec sections and rules:** §4.1 cross-time-zone rule · R-19 rule 6 · §7 data_contracts.cross_market
+- **Owner decisions touched:** none
+
+**Description.** Admit a close of market M dated D at a decision only if close_print_bound_utc(M, D) + 60 s < decision_utc, and a US- or NY-dated datum dated D at the KRX decision of K only if D ≤ K − 1 calendar day and available_at ≤ decision_utc. Implement usable_at(series_id, obs_date, market) as the first decision_utc that may use a datum, from the calendars and the registry. Never join same-date closes across asynchronous markets: covariances use synchronous or lagged returns only.
+
+**Acceptance criteria**
+- `T-XMKT-01` (runs_from M1): For non-CSAT dates ≥ 2024-11-05 the same-date TSE close is not usable at the KRX close; 2016-08-01 … 2024-11-04 it is; before 2016-08-01 it is not; on CSAT 2025-11-13 the TSE and Shanghai closes are usable at 07:30:30Z; the same-date TAIEX close is usable at every weekday KRX close and a same-date HKEX close never is.
+- `T-TZ-01` (runs_from M1): For the KOSPI return dated 2026-10-02 the latest usable US close is dated 2026-09-30 (2026-09-29 for 2026-10-01); NYSE closes map to 06:00 KST (EST) and 05:00 KST (EDT) the next day; pre-2007 DST: 2006-03-20 21:00Z, 2006-04-03 20:00Z.
+
+### TASK-M1-19 · Implement the independent lag audit and close stamping
+
+**Type** task · **Priority** high · **Modules** R-01, R-20 · **Depends on** TASK-M1-10, TASK-M1-18, TASK-M1-20
+
+- **Package / files:** core/ficc/data (lag audit; linter rejecting positional shift on gapped series); core/quant/backtest (LookAheadError); core/calendars
+- **Spec sections and rules:** R-01 rules (1), (6) and "On violation" · R-20 rule 3 · §3.9 macro.lag_audit
+- **Owner decisions touched:** none
+
+**Description.** Stamp an official close with obs_utc = decision_time_utc and available_at_utc = the logged exchange print time, else close_print_bound_utc (calendar_bound); a receipt time is only retrieved_at_utc, and a close printed after its bound fails closed with a calendar-review alert and is never re-stamped. Recompute usable_at for every acting and risk-model input independently of pit_value (available_at ≥ publication_instant, closes ≥ the scheduled close, every lineage input of a derived value, retrieved_at ≤ knowledge_utc, the R-01 status and session checks) and write the macro_state.lag_audit record. In backtests raise LookAheadError and invalidate any result the violation touches; at runtime HALT (OPS) the books the input feeds; treat a provisional row reaching an acting input the same way; reject positional shift on gapped series in the linter. Leave the timing_probe exception and the card-refusal clause to M7.
+
+**Acceptance criteria**
+- `T-LAG-01` (runs_from M1; the "refuses to write the card" clause and the timing_probe exception join at M7): A datum with available_at_utc > decision_utc in any acting input makes the backtest raise LookAheadError; at runtime the books it feeds go HALTED (OPS); a provisional row is treated the same way; the audit recomputes usable_at independently of pit_value.
+- `T-LAG-02` (runs_from M1; the vt clause joins at M2 and the timing_probe clause at M7): Positional shift on a series with gaps is rejected by the linter / audit.
+- `T-CLOSE-01` (runs_from M1): Quarantine boundary at close_print_bound_utc + 10 min: a KIS close row retrieved at 06:40:29Z is never official_close and one retrieved at 06:40:30Z is; an official close with no print time retrieved at 06:45Z is stored with available_at 06:30:30Z (calendar_bound).
+
+### TASK-M1-20 · Build the minimal per-book runtime with OPS HALT and automatic re-arm
+
+**Type** task · **Priority** high · **Modules** R-19, R-07 · **Depends on** TASK-M0-07
+
+- **Package / files:** core/engine/runtime (runtime_halt, runtime_rearm); core/engine/state
+- **Spec sections and rules:** §3.8 (runtime states, scope C-1, OPS class, book ids) · §12 M1 (R2-C6) · §3.5 core/engine hooks
+- **Owner decisions touched:** none
+
+**Description.** Create one runtime state per book id (recommended:<m>, specification:<m>, forward_sim:<rule>, refusal:<rule>, card:<id>:<on|off|S>) with DISARMED → ARMED automatic only from never-armed (every bound acting input fresh and past warm-up, calendars ≥ 60 sessions ahead, a committed header for card books) and ARMED → HALTED. Make runtime_halt(book_id, "OPS", reason) idempotent per cause with halt.causes[] ({class, reason_code, since_utc, rearm_mode, rearm_not_before, cleared_utc}) and top-level fields restating causes[0]; re-arm OPS automatically at the first decision where the cause has cleared (operator re-arm after a lag-audit violation or an acting-artifact schema failure), with no refusal window, reference reset or cap. Scope every HALT to the books whose own NAV, artifact or bound acting input failed (a global PIT-store, calendar or QuoteFeed failure HALTs every reading book, never "the engine") and log every HALT, re-arm and state change as a governance event. Leave the RISK class, the operator kill and the heartbeat to M5.
+
+**Acceptance criteria**
+- `T-ROLE-01` (runs_from M1; HALT clauses stay at M1 (§9.0b note)): An acting input failing on two consecutive decisions HALTs (OPS) exactly the books it is bound to; a fresh decision re-arms automatically.
+- `T-LAG-01` (runs_from M1; runtime clause): A runtime lag-audit violation HALTs (OPS) the books the input feeds and needs an operator re-arm.
+- `T-MISS-02` (runs_from M1; HALT clause): The same acting-input failure for more than one decision moves its bound books to HALTED.
+
+### TASK-M1-21 · Add the ECOS and Treasury par-yield providers and acquire the M1 data
+
+**Type** task · **Priority** high · **Modules** R-19, R-01, R-22 · **Depends on** TASK-M1-07, TASK-M1-08
+
+- **Package / files:** core/ficc/data providers: BoK ECOS (proposed) and US Treasury par yields with logged posting time (proposed); core/quant/history (KRX official closes); tests/fixtures/macro/MANIFEST.csv
+- **Spec sections and rules:** §3.4 module map (providers) · §4.2 Korea and US tables · §9.5 data-acquisition register
+- **Owner decisions touched:** none
+
+**Description.** Add a read-only ECOS provider (731Y003 item 0000003, the USD/KRW 15:30 close; BOK_CALL_RATE once the owner supplies its ECOS code and observation calendar) whose live reads stamp available_at inferred_from_retrieval and whose backfilled history is calendar_bound with timing value_proxy. Add the Treasury daily par-yield channel that logs its first-seen posting time. Acquire, with licence, owner and md5, the KRX official KOSPI daily closes from 1997-01-03 with the Saturday sessions and the JPX, SSE, HKEX, TWSE, CME and Cboe calendars, stamping backfilled history calendar_bound, never inferred_from_retrieval.
+
+**Acceptance criteria**
+- `T-H15-01` (runs_from M1; Treasury clause): The Treasury par-yield channel with a logged posting time is usable +1 business day.
+- `T-SAT-01` (runs_from M1; completeness clause): Every is_session date of the KRX official-close fixture has exactly one close row (the Monday / Tue–Fri variance ratio 2.30 in 1997–98 is printed).
+
+### TASK-M1-22 · Generate and md5-freeze the golden-value fixtures at M1's exit
+
+**Type** task · **Priority** high · **Modules** R-01 · **Depends on** TASK-M0-03, TASK-M1-11, TASK-M1-13, TASK-M1-19, TASK-M1-21
+
+- **Package / files:** tests/fixtures/macro/ (generated by QUANTGEN's data layer from /home/claude/quantgen_macro_data/); MANIFEST.csv
+- **Spec sections and rules:** Quick start step 5 · §9 hermetic rule · §9.5 · R-01 rule (5) · G-POST-01
+- **Owner decisions touched:** none
+
+**Description.** Generate the golden-value fixtures once, at M1's exit, through QUANTGEN's own data layer from the frozen reference files: values unchanged, provenance fields and value_status added, historical close-type vendor rows stamped calendar_bound, every file md5-listed with the tests that read it. Refuse any fixture with a close-type row retrieved before close_print_bound_utc + 10 min of its session or a publication-timed row retrieved before its publication_instant, and label the synthetic T-PROV-01 store file as exempt. Require any regeneration before the M7 freeze to reproduce the md5s or be logged as a fixture change naming the tests it re-baselines.
+
+**Acceptance criteria**
+- `T-FIX-01` (runs_from M1): A fixture any of whose close-type rows has retrieved_at_utc < close_print_bound_utc + 10 min, or any of whose publication-timed rows was retrieved before its publication_instant, is refused.
+- `G-POST-01` (runs_from M1; its M1 data rows; the other rows join at M2, M3, M5, M7 and M8 (§9.0b)): KOSPI close 2 Oct 7,003.74 and return +0.46%; drawdown −23.2% from the 9,114.55 peak; close / 200-day 1.107; Samsung / SK hynix ₩276,000 / ₩1,841,000; KRW=X 1,356.84 (1 Oct), 20-observation change −0.11%, provisional 2-Oct row dropped — all at Level-1 tolerance.
+
+### TASK-M1-23 · Run the M1 measurements (§9.4 item 13)
+
+**Type** spike · **Priority** high · **Modules** R-19, R-20, R-07 · **Depends on** TASK-M1-03, TASK-M1-08, TASK-M1-01
+
+- **Package / files:** core/calendars (close-print bounds); series registry (KODEX200_PDF expected_available_utc; VIXCLS history lag)
+- **Spec sections and rules:** §9.4 item 13 · §4.1 (M1 confirms both bounds) · §4.2 KODEX 200 and VIX rows
+- **Owner decisions touched:** none
+
+**Description.** Measure the KODEX 200 basket's publication instant beside the KIS quote check; until then keep expected_available_utc at 08:00 KST on the next KRX session, halt_after 5, and carry the last basket with its age printed. Confirm the KRX and NYSE 30 s close-print bounds against logged exchange print times, and log FRED's VIX posting time (last_updated) for 20 sessions to set the history lag in the registry. Enter every change as a signed calendar or registry revision with a new test case; never re-stamp a record.
+
+**Acceptance criteria**
+- `T-CAL-01` (runs_from M1): A changed bound or schedule enters only as a signed calendar version; an unsigned file is refused and KR acting inputs fail closed.
+
+---
+
+## M2 — Risk layer
+
+**Exit tests whose runs_from is M2** (§9.0a; clauses deferred by §9.0b join later and are named in the tasks): `G-KR-01`, `G-KR-02`, `G-KR-02b`, `G-KR-02c`, `G-KR-03`, `G-KR-04`, `G-KR-06`, `G-US-01`, `G-US-01b`, `G-US-01c`, `I-02`, `T-CAP-02`, `T-CORR-01`, `T-COST-01`, `T-HEDGE-01`, `T-LABEL-01`, `T-VT-01`.
+
+### TASK-M2-01 · Implement SMA20 σ̂ and market_vol_target() with per-book warm-up
+
+**Type** task · **Priority** high · **Modules** R-06 · **Depends on** TASK-M1-10, TASK-M1-17, TASK-M1-20
+
+- **Package / files:** core/quant/risk (exists: risk.py) — sma_vol, market_vol_target -> VTResult
+- **Spec sections and rules:** R-06 estimator, formula and parameters · §3.5 core/quant/risk · P2
+- **Owner decisions touched:** none
+
+**Description.** Compute σ̂ = stdev of the last 20 valid simple close-to-close returns (ddof = 1) × √252 through the close of t, excluding flagged stale-carry days and extending the window, and vt = min(1.0, target/σ̂) with KR 0.20 and US 0.15, cap 1.0 permanent, no floor, exposure_basis total; other markets must pre-register a target on their card. With fewer than 20 valid returns return insufficient_history, mapped per book to weight 1.0 "warmup" before that book's first ARMED decision and to MissingInput("missing") afterwards; a zero or non-finite σ̂ with 20 returns is MissingInput counting toward the HALT limit. Make an exception inside the function HALT (OPS) the books it feeds, and read KRX closes at close_print_bound_utc (06:30:30Z today).
+
+**Acceptance criteria**
+- `T-VT-01` (runs_from M2): With < 20 valid returns the status is insufficient_history → weight 1.0 "warmup" before the first ARMED decision; a stale-carry day is excluded and the window extends; σ̂ = 0 or non-finite → MissingInput; on an ARMED book a store truncated to 15 returns gives MissingInput("missing") counting toward the HALT limit; rv20 28.82% and vt 0.694 on 2 Oct.
+- `T-LAG-02` (runs_from M1; its vt clause runs from M2): Re-running with the input shifted one period earlier changes vt and trips T-LAG-01.
+- `T-MISS-02` (runs_from M1; its market_vol_target exception clause runs from M2): An exception in market_vol_target HALTs (OPS) the books it feeds.
+- `T-CAP-01` (runs_from M0): Any vt > 1.0 fails schema validation and rules-store validation (cap 1.0 permanent).
+
+### TASK-M2-02 · Add the relative and absolute volatility display labels
+
+**Type** task · **Priority** high · **Modules** R-06 · **Depends on** TASK-M2-01
+
+- **Package / files:** core/quant/risk (display_label_rel, display_label_abs); macro_state.vol display fields
+- **Spec sections and rules:** R-06 display labels · P19 · §10 items 24 and 28
+- **Owner decisions touched:** none
+
+**Description.** Label σ̂ against the quartiles of its own trailing 756 sessions (relative) and of its expanding ≥ 10-year history (absolute), causally from filtered, never smoothed, values; a value exactly on a quartile boundary takes the higher label. Keep both as display-only volatility labels, never regime states and never gating, and report per-label VaR coverage. Never add a conformal calibration layer on them.
+
+**Acceptance criteria**
+- `T-LABEL-01` (runs_from M2): Both labels on date t use only σ̂ through t; recomputing after appending future data changes no past label; KOSPI on 2026-10-02 is "elevated" (relative) and "stressed" (absolute); the US on 2026-10-01 is "normal" (relative).
+
+### TASK-M2-03 · Implement compose() and apply_overlays() by min() with the 0.5 × vt floor
+
+**Type** task · **Priority** high · **Modules** R-02 · **Depends on** TASK-M0-04, TASK-M2-01
+
+- **Package / files:** core/quant/risk.compose; core/quant/signals.apply_overlays; core/rules (combine ≠ min refused)
+- **Spec sections and rules:** §3.3 · R-02 rules (2)–(4) · P2 · §10 item 31
+- **Owner decisions touched:** none
+
+**Description.** Implement composed(m) = vt × min(1.0, overlay₁…ₖ, ladder, post_rearm_cap) and active_budget = base_weight × vs × min(1.0, family overlays), raising on any product-composed path. Assert composed ≥ 0.5 × vt on every non-HALTED day (written as a product so vt = 0 needs no division), applying the floor to composed and never to gross or final weights, so a concentration bound may take gross lower without a bounds failure. Log the binding factor whenever min() or a limit binds (overlay_decision.reasons), make the overlay layer unable to emit 0, and make an exception inside compose HALT (OPS) its books.
+
+**Acceptance criteria**
+- `T-CAP-02` (runs_from M2; the stack-card clause joins at M7): For 10,000 seeded draws (seed 11) of k ∈ {0…5}, overlays in [0.5, 1]^k, vt ∈ [0, 1], ladder and post-re-arm cap ∈ {1.0, 0.5}: composed = vt × min(1.0, overlays, ladder, cap) and composed ≥ 0.5 × vt on every non-HALTED day; 0.75 and 0.5 compose to 0.5 (never 0.375) with the binding factor logged; a product-composed path raises.
+- `T-CAP-01` (runs_from M0; its "overlay layer cannot emit 0" clause runs from M2): The overlay layer cannot emit 0.
+- `T-MISS-02` (runs_from M1; its compose exception clause runs from M2): An exception in compose HALTs (OPS) the books it feeds.
+
+### TASK-M2-04 · Implement hedge_state() with date-aligned corr63 (R-09)
+
+**Type** task · **Priority** medium · **Modules** R-09 · **Depends on** TASK-M1-10, TASK-M1-13, TASK-M1-17
+
+- **Package / files:** core/quant/risk.hedge_state
+- **Spec sections and rules:** R-09 · §3.6 risk-model inputs · R-19 rule 4 (risk_model) · §11 hedge state
+- **Owner decisions touched:** none
+
+**Description.** Read core PCE YoY (PCEPILFE through pit_value at the decision's knowledge_utc from ALFRED vintages), corr63 on date-aligned pairs (r_eq(D), −Δy(D)) for D ≤ the last usable 10y date (KIS quote live; DGS10 strict H.15 or Treasury par yields in backtests), the USD_LIVE_PROXY snapshot and SPX_OFFICIAL_CLOSE, all as risk_model bindings. Set hedge_credit_off = (core PCE ≥ 0.030) or (corr63 > 0) or (any input stale or failing) or (an exception inside hedge_state) with hedge_reasons ⊆ {ok, risk_model_input_stale, risk_model_exception, corr_positive, core_pce_ge_3}, and compute hedge_failure (daily and weekly, from the live proxy, never DTWEXBGS), classic_risk_off and the display-only fx_hedge_credit (no credit while the 26-week weekly KOSPI–ΔUSD/KRW correlation is ≥ 0). Never move any book to HALTED, raise an operator alert after two missed releases, and change no exposure.
+
+**Acceptance criteria**
+- `T-CORR-01` (runs_from M2): corr63 on date-aligned pairs reproduces +0.53 ± 0.01 at 2026-09-30; a series-lag implementation fails (−0.094).
+- `T-HEDGE-01` (runs_from M2; the built-macro_state assertion joins at M6): A risk-model input missing two expected releases sets hedge_credit_off = TRUE, alerts and HALTs no book; fx_hedge_credit changes no exposure; replaying a decision after a later core-PCE revision leaves its hedge_reasons unchanged.
+- `T-ROLE-01` (runs_from M1; its risk-model clause runs from M2): A stale risk-model input → hedge_credit_off = TRUE, alert, escalation after 2 missed releases, never HALTED however long it stays stale.
+- `T-ROLE-02` (runs_from M1; its corr63 clause runs from M2): The S&P close failing sets hedge_credit_off through its corr63 binding.
+- `T-MISS-02` (runs_from M1; its risk_model and hedge_state-exception clauses run from M2): A stale risk_model input or an exception in hedge_state → hedge_credit_off = TRUE and an alert, never HALTED.
+- §12 M2: §11's hedge_credit_off = TRUE with hedge_reasons [corr_positive, core_pce_ge_3] is reproduced; hedge_failure uses the live USD proxy's 1-day change.
+
+### TASK-M2-05 · Apply the hedge state in VaR, stress, optimiser inputs and the Korea covariance
+
+**Type** task · **Priority** high · **Modules** R-09, R-19 · **Depends on** TASK-M2-04
+
+- **Package / files:** core/quant/risk (VaR/CVaR, stress); core/quant/optimize (covariance inputs)
+- **Spec sections and rules:** R-09 effect · R-19 rule 4 (risk_model_covariance) · R-07 (7)
+- **Owner decisions touched:** none
+
+**Description.** When hedge_credit_off, use max(estimated corr, 0) between equity and bond or duration legs in VaR, stress, optimiser inputs and sizing; when hedge_failure, also remove USD/JPY-hedge credit; never change equity gross. Treat Korea gross as semiconductor exposure in the covariance and keep Nikkei, Shanghai, HSI, TAIEX and SOX in it on synchronous or lagged returns, carrying a failing series' last valid terms labelled stale for up to 5 decisions, then dropping it with a label, never setting hedge_credit_off. Print the covariance status in the displayed risk, and admit a turbulence-based stressed covariance only after a pre-registered win.
+
+**Acceptance criteria**
+- `T-HEDGE-01` (runs_from M2): A stale DTWEXBGS alone changes no hedge flag; with the live USD proxy and DTWEXBGS both stale, hedge_credit_off = TRUE, no acting component of the KR or US books fails closed, and vt is unchanged.
+
+### TASK-M2-06 · Build the costed golden harness and the research bootstrap
+
+**Type** task · **Priority** high · **Modules** R-26, R-06 · **Depends on** TASK-M0-12, TASK-M2-01
+
+- **Package / files:** core/quant/backtest (costed engine, research bootstrap)
+- **Spec sections and rules:** P10 · §9.3.1 construction rules · §8.5 costs
+- **Owner decisions touched:** none
+
+**Description.** Charge turnover |Δw| per side on the day the new weight earns (initial entry, buy-and-hold and S uncosted), rerun every result at 2×, and refuse a cost change in a card header. Build the research bootstrap behind the G-KR and G-US shares (circular, 63-day blocks, 1,000 resamples, seed 20261002) and the §9.3.1 conventions: simple returns; US = French Mkt-RF to 2026-08 spliced with ^GSPC for Sep-2026; Korea = ^KS11 price returns; a weight built through the close of t−1 earns the return of t; timing exceptions flagged.
+
+**Acceptance criteria**
+- `T-COST-01` (runs_from M2; the L/S both-legs clause joins at M4 and the 2×-for-every-card clause at M7): Turnover is charged at the pre-registered rate on the day the weight earns; changing the rate in a header raises; R4b reproduces: KOSPI VT20 at 35 bp SR 0.609 ± 0.01, US VT15 at 50 bp SR 0.505 ± 0.01.
+
+### TASK-M2-07 · Build v1.2-check mode and reference mode (§9.3.3)
+
+**Type** task · **Priority** high · **Modules** R-06, R-33 · **Depends on** TASK-M2-06
+
+- **Package / files:** core/quant/backtest (v1.2 checks; reference_only path); tests/reference/; docs/
+- **Spec sections and rules:** §9.3.3 · .v1.2_INTEGRATION_backup.md §8.7
+- **Owner decisions touched:** none
+
+**Description.** Implement v1.2-check mode with the v1.2 protective checks PC-1…PC-7 (PC-3 margin 0.10 with p_ni = max(p10, p_PW) from the percentile gate_boot, 2,000 resamples, seed 11, Bonferroni × the recorded configurations), raw returns with cash 0 (PX2's cash fixture only for T-EXCESS-01 and I-09) and the v1.2 verdict order; it reproduces goldens and never yields a verdict. Implement reference mode for configurations the store refuses (cap above 1, DM 0×, product stacks, the literal v1.2 ladder), reachable only from tests/reference/ or docs/ with reference_only=True, unimportable from core/, never entering a book, card or artifact.
+
+**Acceptance criteria**
+- `G-KR-06` (runs_from M2; reference mode, only once §9.4 item 2's rerun is md5-frozen): Cap-1.5 vol target Sharpe 0.534, max DD −46.2% (pre-patch R4).
+
+### TASK-M2-08 · Reproduce the Korea and US vol-target goldens and episode replays
+
+**Type** task · **Priority** high · **Modules** R-06 · **Depends on** TASK-M2-01, TASK-M2-06, TASK-M1-22
+
+- **Package / files:** tests (golden tier); core/quant/backtest
+- **Spec sections and rules:** §9.3.1 G-KR and G-US tables · G-POST-01 (M2 rows) · I-02 · §12 M2
+- **Owner decisions touched:** none
+
+**Description.** Reproduce G-KR-01…04, G-KR-02b/02c and G-US-01/01b/01c at Level-1 tolerance, gross and net, on the post-patch values, plus the M2 rows of G-POST-01 and its "unchanged" items. Replay the 2024-07-31 → 2024-08-09 and 2026-06-22 → 2026-07-30 Korea windows with the §8.6 return-date conventions. Leave G-US-01c's EWMA(0.94) challenger to M3 and G-KR-05/05s to M8.
+
+**Acceptance criteria**
+- `G-KR-01` (runs_from M2): Buy-and-hold Sharpe 0.637, max DD −43.9%.
+- `G-KR-02` (runs_from M2): VT20 Sharpe 0.641 / 0.638 (3 bp) / 0.609 (35 bp) / 0.635 (6 bp) / 0.576 (70 bp); max DD −36.8% gross.
+- `G-KR-02b` (runs_from M2): ΔSR vs buy-and-hold +0.004 (0.45) / −0.077 (0.06) / −0.123 (0.03) gross; −0.029 (0.36) at 35 bp.
+- `G-KR-02c` (runs_from M2): Static book at 0.925: max DD −41.3%; ΔMDD of VT20 +4.5 pp gross, +4.4 / +4.1 pp at 3 / 35 bp.
+- `G-KR-03` (runs_from M2): Window returns, e.g. Jul-2026 crash −12.2% vs −38.6%; 2020 crash −25.8% vs −34.1%; H1-2026 +51.7% vs +101.1%.
+- `G-KR-04` (runs_from M2): Weights 0.30 / 0.33 / 0.25 on 22 Jun / 23 Jun / 30 Jul 2026; 0.61 earning on 2 Oct; 0.694 decided at the 2-Oct close.
+- `G-US-01` (runs_from M2): Buy-and-hold 0.534 / −59.2% vs VT15 0.602 / −49.9% gross; 0.505 / −53.8% at 50 bp (ΔSR −0.028).
+- `G-US-01b` (runs_from M2): Static book at 0.890: max DD −54.0%; ΔMDD +4.1 / +0.2 / −3.4 pp gross / 50 / 100 bp.
+- `G-US-01c` (runs_from M2; its EWMA(0.94) challenger clause joins at M3): Challenger EWMA(0.94) Sharpe 0.605 / 0.520 / 0.434.
+- `G-POST-01` (runs_from M1; its M2 rows): rv20 28.8%, vt 0.694, G-KR-01 0.637, G-KR-02 and G-KR-02b post-patch values; the unchanged items (22 Jun / 23 Jun / 30 Jul / 2 Oct weights, the relative label and rv21, turnover 1.50, G-KR-02c, G-KR-02b gross and at 3 bp) reproduce.
+- `I-02` (runs_from M2): Korea vt weights and window returns over 2024-07-31 → 2024-08-09 and 2026-06-22 → 2026-07-30 match G-KR-03 and G-KR-04, gross and net.
+
+### TASK-M2-09 · Rerun the values DL-A did not recompute on the official close (§9.4 item 2)
+
+**Type** spike · **Priority** high · **Modules** R-06 · **Depends on** TASK-M2-07, TASK-M2-08
+
+- **Package / files:** core/quant/backtest (v1.2 conventions; reference mode for the cap-1.5 line); tests (golden tier)
+- **Spec sections and rules:** §9.4 item 2 · §9.3.1 (pre-patch R4/R4b labels) · §9.0a M2 row (G-KR-06)
+- **Owner decisions touched:** none
+
+**Description.** Rerun on the 2-Oct official close every value still labelled pre-patch R4/R4b: the cap-1.5 VT Sharpe 0.534 (G-KR-06, reference mode), SMA60 0.550, EWMA (half-life 10) 0.607, EWMA at 35 bp 0.573 and the Korea stock-book 2× ΔSR −0.061. md5-freeze each result as a golden and drop its pre-patch label; until then keep the label and never invent a value. G-KR-06 joins M2's exit, in reference mode, only after this rerun is frozen.
+
+**Acceptance criteria**
+- `G-KR-06` (runs_from M2; reference mode; joins M2's exit once this rerun is md5-frozen): The cap-1.5 reference line is recomputed on the official close and frozen; it never enters a book, card or artifact.
+
+---
+
+## M3 — Estimator harness
+
+**Exit tests whose runs_from is M3** (§9.0a; clauses deferred by §9.0b join later and are named in the tasks): `G-B5-01`, `G-B5-02`, `G-B5-03`, `G-B5-04`, `G-EST-01`, `G-EST-02`, `G-EST-03`, `G-EST-04`, `I-10`, `T-B5-01`, `T-EST-01`, `T-EST-02`, `T-EST-04`.
+
+### TASK-M3-01 · Implement the estimator family in core/quant/garch
+
+**Type** task · **Priority** medium · **Modules** R-30 · **Depends on** TASK-M2-01, TASK-M1-11
+
+- **Package / files:** core/quant/garch (sma, ewma, garch_t, gjr_t, range_proxy, log_har_range, comb)
+- **Spec sections and rules:** R-30 rule 2 · §10 item 11b · R-16 (2)
+- **Owner decisions touched:** none
+
+**Description.** Implement SMA20 (h × the sample variance of 20 returns), EWMA(λ) by the RiskMetrics recursion (0.94, 0.97), and GARCH-t and GJR-t with constant mean on expanding ≥ 10-year windows refit every 21 origins under α + β + γ/2 ≤ 0.9999. Implement log-HAR-range as a direct h-step OLS of log(mean range proxy over the next h) on [1, log p_t, log mean p_{t−4..t}, log mean p_{t−21..t}], rescaled to r² units by the expanding Σr²/Σp ratio, with overnight² + Garman–Klass for KOSPI and Parkinson for the US from KRX regular-session OHLC. Define COMB = ½(GJR-t + log-HAR-range) in variance units, and never add an ML vol-state classifier.
+
+**Acceptance criteria**
+- `G-US-01c` (runs_from M2; the EWMA(0.94) challenger clause runs from M3): The EWMA(0.94) challenger at the same 15% target reproduces Sharpe 0.605 gross, 0.520 at 50 bp and 0.434 at 100 bp.
+
+### TASK-M3-02 · Build the forecast-evaluation harness and the forecast registry
+
+**Type** task · **Priority** medium · **Modules** R-30 · **Depends on** TASK-M3-01
+
+- **Package / files:** core/quant/backtest (forecast registry, loss_registry, dm_test, cw_test, gw_test, mcs, kupiec, christoffersen_cc, es_z2, fan_pit, reliability_table; proposed)
+- **Spec sections and rules:** R-30 rule 1 · §12 M3 (QF7-M2)
+- **Owner decisions touched:** none
+
+**Description.** Register every forecaster and every "X predicts Y" claim with its target y[t, h] = Σ r² over the next h days, horizon, loss (QLIKE pre-declared for selection; MSE; tick loss), benchmark and test. Implement DM with HAC lags max(10, 2h) and the Harvey–Leybourne–Newbold factor, Clark–West, Giacomini–White, the MCS (T_max, stationary bootstrap with mean block max(10, 2h), B 2,000, seed 11), Kupiec, Christoffersen CC, Acerbi–Székely ES Z2 with simulated critical values, fan PIT at h and reliability tables.
+
+**Acceptance criteria**
+- `T-EST-01` (runs_from M3; its bootstrap-CI clause joins at M7): On KOSPI OOS 2001–26 and US OOS 1995–2026, SMA20 is outside the 90% QLIKE MCS at h 1, 5 and 21 (p ≤ 0.0005) and COMB is inside in all six cells; SMA20's MSE MCS p is printed (KOSPI 0.036 / 0.066 / 0.141; US 0.112 / 0.112 / 0.290).
+- `G-EST-01` (runs_from M3): The QLIKE ratio table vs SMA20 with MCS p-values reproduces (COMB 0.944 / 0.809 / 0.691 KOSPI; 0.916 / 0.723 / 0.642 US).
+- `G-EST-02` (runs_from M3): SMA20 MSE MCS p: KOSPI 0.036 / 0.066 / 0.141; US 0.112 / 0.112 / 0.290.
+- `G-EST-03` (runs_from M3): The calibration lines reproduce (B5 7 of 9 KOSPI and 8–9 of 9 US forecasters; Christoffersen independence on KOSPI 2001–26: SMA20 < 0.0001 … COMB 0.17).
+
+### TASK-M3-03 · Publish docs/vol_backtest.py (B5) with its seed and rerun the app's B5 study
+
+**Type** task · **Priority** high · **Modules** R-30, R-06 · **Depends on** TASK-M3-02
+
+- **Package / files:** docs/vol_backtest.py (proposed)
+- **Spec sections and rules:** R-06 estimator row (B5 kept) · R-30 rule 8 · §8.10 settling test "the app's B5 study" · BL-G01
+- **Owner decisions touched:** none
+
+**Description.** Publish docs/vol_backtest.py with its seed: rolling origins, FHS and model forms, 5% VaR exceedance within ±2 binomial SE over ≥ 200 origins and a PIT χ² over 10 equal bins with p ≥ 0.01 as the B5 pass rule. Rerun B5 on SPY and KODEX 200 for 2016–26 so the app's GJR and GARCH-t B5 claim stops being UNVERIFIED, and never display σ̂ as a normal-quantile VaR. Expose the incumbent's B5 status for R-21's estimator-calibration cap (wired in M7).
+
+**Acceptance criteria**
+- `T-B5-01` (runs_from M3; the "cannot be PASS" clause joins at M7): The harness reproduces SMA20 FHS exceedance 4.70% ± 0.3 pp on KOSPI 2016-03 → 2026-10, PASS (PIT p 0.11); a synthetic estimator with σ̂ × 0.7 fails; an estimator switch without a counted revision is refused.
+- `G-B5-01` (runs_from M3): KOSPI 2016-03 → 2026-10: SMA20 4.70% (PIT p 0.11) PASS; normal form 6.75% FAIL; EWMA 4.90% PASS.
+- `G-B5-02` (runs_from M3): SPY 2016-03 → 2026-10: SMA20 4.99% (PIT p 0.57) PASS; EWMA 5.22% PASS; GARCH t-quantile 6.33% FAIL.
+- `G-B5-03` (runs_from M3): US market 1991-03 → 2026-10: SMA20 5.31% (PIT p 0.98) PASS; EWMA 5.31% PASS.
+- `G-B5-04` (runs_from M3): Display labels on 2 Oct 2026: KOSPI elevated (relative; σ̂ 28.8%, 70th percentile) and stressed (absolute); US normal.
+- `G-POST-01` (runs_from M1; its M3 row): G-B5-01 KOSPI SMA20 FHS PIT p is 0.11 (0.107) post-patch, exceedance 4.70% unchanged.
+
+### TASK-M3-04 · Implement the staged estimator gate estimator_gate() (Stages 1–3)
+
+**Type** task · **Priority** medium · **Modules** R-30 · **Depends on** TASK-M3-02, TASK-M3-03
+
+- **Package / files:** core/quant/backtest.estimator_gate (proposed); macro_state.vol.estimator and vol.estimator_gate (written by the M6 builder)
+- **Spec sections and rules:** R-30 rules 3–6 and 8 · R-06 estimator row · §8.5 estimator requirement
+- **Owner decisions touched:** none
+
+**Description.** Stage 1 (necessary for a challenger) at the 21-day sizing horizon: FHS VaR exceedance at h 21, the 21-day fan PIT and Christoffersen CC, printing 1-day Kupiec and CC at 95% and 99% and ES 97.5% Z2; display a 1-day VaR only from a model that passes 1-day B5. Stage 2: membership of the 90% QLIKE MCS at h 21 (MSE MCS printed). Stage 3: among survivors non-inferior in ΔSR vs the SMA20 book (δ 0.10), with ΔMDD ≥ 0 and PC-2 ≤ 0.90 at the declared book and cost, choose the lowest vol-of-vol (SD of rolling 63-session realised vol), treating overlapping CIs as ties broken by simplicity (SMA20 < EWMA0.94 < EWMA0.97 < GARCH-t < GJR-t < log-HAR-range < COMB). Return status ∈ {registered_default, challenger_selected, fallback_to_sma20, NOT_RUN}, keeping SMA20 acting until a counted card revision passes Stages 1–3 and the full v2 CARD-P, never on the stock book or the registered R-06 KR card.
+
+**Acceptance criteria**
+- `T-EST-02` (runs_from M3; its Stage-3 clause joins at M7): The Stage-1 report contains the 21-day FHS exceedance, the 21-day fan PIT and Christoffersen CC; KOSPI 2001–26 1-day independence p < 0.0001 for SMA20, 0.17 for COMB, 0.16 for log-HAR-range.
+- `I-10` (runs_from M3; its Stage-3, bootstrap-CI and counted-revision clauses join at M7): On the KOSPI and US fixtures the harness reproduces DLB-T1a and Stage 1 reports 21-day FHS exceedance, fan PIT and Christoffersen CC; a GJR fit outside bounds or a tripped OHLC flag falls back to SMA20.
+- `G-EST-04` (runs_from M3): Sizing books on KOSPI 2001–26 at 3 bp reproduce (SMA20 0.571 / −40.0% / vol-of-vol 0.0446; COMB 0.571 / −37.2% / 0.0347).
+
+### TASK-M3-05 · Implement the fail-closed fallback to SMA20
+
+**Type** task · **Priority** medium · **Modules** R-30 · **Depends on** TASK-M3-01, TASK-M3-04
+
+- **Package / files:** core/quant/garch; core/quant/backtest.estimator_gate
+- **Spec sections and rules:** R-30 rule 7 and fail-closed behaviour · §10 item 25
+- **Owner decisions touched:** none
+
+**Description.** Use SMA20 for a decision, and log it, when the GJR fit is outside its bounds (ω > 0, α ≥ 0, α + γ ≥ 0, β ≥ 0, α + β + γ/2 ≤ 0.9999, ν ∈ (2, 100], converged) or the range proxy's quality flag trips (opens equal to the prior close on > 5% of the trailing 252 sessions for Garman–Klass and the overnight leg; high = low on > 5% for Parkinson). Never blend a challenger with SMA20 and never use a stale challenger forecast.
+
+**Acceptance criteria**
+- `T-EST-04` (runs_from M3; its counted-revision clause joins at M7): A GJR fit with α + β + γ/2 > 0.9999 (or non-convergence), or a tripped OHLC quality flag, makes σ̂ come from SMA20 for that decision, logged; no blend.
+
+---
+
+## M4 — Factor sleeves
+
+**Exit tests whose runs_from is M4** (§9.0a; clauses deferred by §9.0b join later and are named in the tasks): `G-BOOK-01`, `G-INTL-01`, `G-MOM-01`, `G-MOM-02`, `G-MOM-03`, `G-MOM-04`, `G-MOM-05`, `G-MOM-06`, `G-MOM-07`, `G-MOM-08`, `T-PRIOR-01`, `T-R03-01`.
+
+### TASK-M4-01 · Map the six composite components to families (BL-G07)
+
+**Type** spike · **Priority** high · **Modules** R-15, R-03 · **Depends on** TASK-M0-05
+
+- **Package / files:** core/quant/signals (6-component composite); core/rules (family mapping and priors as a revision)
+- **Spec sections and rules:** §3.7 · BL-G07 · §8.10 (flow and quality priors before M4) · R-15
+- **Owner decisions touched:** none
+
+**Description.** Read the composite's six components from the code and propose each one's family tag (momentum, reversal, flow, quality, ts_trend or none); the sources do not list them. Record the mapping as a rules-store revision for the owner or council to confirm before the M4 book builders read it. Collect the registration of the flow and quality priors at the same time; until a prior is registered, that family is not admissible in that market.
+
+**Acceptance criteria**
+- `T-PRIOR-01` (runs_from M4): Runs on the confirmed mapping: base weights are IV_m × 1/K_m over the families with prior ≥ 1 and card not REJECT.
+
+### TASK-M4-02 · Tag composite components by family and wire the exposure basis
+
+**Type** task · **Priority** high · **Modules** R-15, R-02 · **Depends on** TASK-M4-01, TASK-M2-03
+
+- **Package / files:** core/quant/signals (family tags, apply_overlays); core/quant/risk (market level)
+- **Spec sections and rules:** §3.7 · §3.3 family and market levels · P1 · P8
+- **Owner decisions touched:** none
+
+**Description.** Attach overlays to components only through family tags; an untagged component gets no family overlay but stays subject to vt and the risk layer. Implement active_budget(m, f) = base_weight × vs × min(1.0, family overlays) with exposure_basis active (long-only sleeves move toward the benchmark, long/short toward zero) and market gross with exposure_basis total. Never apply vt to L/S sleeves or to TS trend, and make overlays unable to create a component or flip its sign.
+
+**Acceptance criteria**
+- `T-BASIS-01` (runs_from M0; its runtime clause for L/S sleeves runs from M4): Every multiplier has exposure_basis; vt is not applied to L/S sleeves.
+
+### TASK-M4-03 · Implement sleeve_vol_scale() for momentum with revisions 1–3 (R-03)
+
+**Type** task · **Priority** high · **Modules** R-03 · **Depends on** TASK-M4-02, TASK-M1-13, TASK-M1-17, TASK-M2-07
+
+- **Package / files:** core/quant/risk.sleeve_vol_scale; core/quant/signals (application to the sleeve budget); MOM_PAPER_LS_SERIES derived record
+- **Spec sections and rules:** R-03 · §3.3 · §3.5
+- **Owner decisions touched:** none
+
+**Description.** Build the paper unit-gross long/short series (+1 / −1, same ranking as the sleeve) as a derived PIT record bound acting_exposure to the specification book, and compute σ126 = stdev of the last 126 valid returns (ddof = 1) × √252 and vs = min(1.0, 0.12/σ126) (revision 1), applied to the sleeve's active budget and never computed on the benchmark-relative active series. Implement revision 2 (target = the expanding median of σ126 on the same series, ≥ 252 observations, cap 1) and revision 3 (vs = min(1, (0.12/σ126)²)), with the declared rule that the lowest PASSing revision acts. Map fewer than 126 valid observations to vs = 1.0 "warmup" before the book's first ARMED decision and to MissingInput afterwards, and write overlay_decision.vol_scale with exposure_basis active.
+
+**Acceptance criteria**
+- `T-R03-01` (runs_from M4; its sleeve-scale and years clauses; ΔSR +0.273 on the French fixture enters as research-phase ledger rows; the step-3 and header clauses join at M7): On the French Mom fixture (50 bp, both legs) the sleeve-scale line gives ΔSR +0.273 ± 0.01; the years line prints the 20 differing years with 15 higher gross / 11 net.
+- `G-YRS-01` (runs_from M4; checked through T-R03-01's years clause): 37 calendar years at cap 1: 17 identical; 15/20 = 75% higher gross, 11/20 = 55% net; own return > 0 in 73.0% gross / 70.3% net.
+- `G-MOM-01` (runs_from M4): Static Mom Sharpe 0.399, max DD −63.3%.
+- `G-MOM-02` (runs_from M4): R-03 vol scale: 0.714 / −27.9% / avg weight 0.870 / 60.6% at cap gross; 0.672 / −28.7% at 50 bp; 0.631 / −29.4% at 100 bp.
+- `G-MOM-08` (runs_from M4): ΔSR vs unscaled +0.273 (share 1.00) at 50 bp, one-sided p 0.0005 / 0.000, 70% of years positive; +0.231 (0.998) at 2×.
+- `G-INTL-01` (runs_from M4): Regional vol scale at cap 1, 12%: Japan 0.073 → 0.196; Europe 0.843 → 1.143; APxJ 0.924 → 1.125; Developed ex-US 0.799 → 0.996.
+- `G-MOM-07` (runs_from M4; reference mode only): Vol scale at cap 2: 0.907; DM 0×: 0.657.
+- `T-COST-01` (runs_from M2; its "both legs for L/S sleeves" clause runs from M4): The overlay's own turnover is charged on both legs of the L/S sleeve.
+
+### TASK-M4-04 · Implement dm_gate() in the specification book only (R-04)
+
+**Type** task · **Priority** medium · **Modules** R-04 · **Depends on** TASK-M4-02, TASK-M1-13
+
+- **Package / files:** core/quant/signals.dm_gate
+- **Spec sections and rules:** R-04 · §8.1.2 · §10 item 22
+- **Owner decisions touched:** none
+
+**Description.** Compute bear24 = the 24-month compounded total return as of the last month-end on or before t is negative, and hivol = σ126 of the market above its expanding 2/3 quantile (≥ 252 observations); set dm = 0.5 if both, else 1.0, decided at the close of t, exposure_basis active, inputs DM_MKT_RET_24M and DM_MKT_VOL_126 bound to the specification book. Apply it only in the specification book, labelled "step 3 FAIL", and never substitute a 200-day average. The recommended-book refusal (I-03) lands in M8 and the card's step 3 (T-R04-01) in M7.
+
+**Acceptance criteria**
+- `G-MOM-03` (runs_from M4): R-03 × R-04 (DM 0.5): Sharpe 0.798 / max DD −20.9% gross; 0.745 / −21.6% at 50 bp; 0.691 / −22.7% at 100 bp.
+- `G-MOM-04` (runs_from M4): DM add-on over R-03: +0.084 (0.996) full gross; +0.072 (0.983) net; +0.061 (0.958) at 2×.
+- `G-MOM-05` (runs_from M4): DM gate on 10.6% of days, 7 spell onsets, 0.38 transitions a year.
+
+### TASK-M4-05 · Hold reversal and quality at 1.0× (R-05) and record D3
+
+**Type** task · **Priority** medium · **Modules** R-05 · **Depends on** TASK-M4-02, TASK-M0-06
+
+- **Package / files:** core/quant/signals; core/rules (families.reversal.calm_state_downweight: not_adopted, owner_decision D3)
+- **Spec sections and rules:** R-05 · R-15 owner decision D3 · P2 · P3 · §10.4
+- **Owner decisions touched (implement the default, flag it):**
+  - D3 Calm-state reversal down-weight (QF5-M10) — default not adopted (P3 stands); key families.reversal.calm_state_downweight
+
+**Description.** Give the reversal and quality families no overlay multiplier in any state (fixed 1.0): never up-weighted in stress, never cut by macro or stress flags. Decide reversal simulated daily entries at the official close of t, earning from t+1, with no intraday reversal leg. Store families.reversal.calm_state_downweight: not_adopted with its D3 marker so a calm-state down-weight is refused until the owner reopens it after the KRX net test in 2010–17 and 2018–26.
+
+**Acceptance criteria**
+- `G-BOOK-01` (runs_from M4): (Mom + ST_Rev + RMW)/3 static → specification book 1.358 → 1.753; 2020–26 0.400 → 0.618; ST_Rev static 1.253; RMW 0.480.
+
+### TASK-M4-06 · Implement base weights: inverse vol across markets, equal budgets over admissible families (R-15)
+
+**Type** task · **Priority** high · **Modules** R-15 · **Depends on** TASK-M4-01, TASK-M4-02
+
+- **Package / files:** core/quant/optimize.inverse_vol_weights; core/quant/signals.base_weights; core/rules (priors, admissibility, tilt refusal)
+- **Spec sections and rules:** R-15 · §3.3 base weights · T-MONO-01 exception
+- **Owner decisions touched:** none
+
+**Description.** Compute IV_m from weekly returns with EWMA λ 0.97 (a Ledoit–Wolf 156-week line printed; no HRP or minimum variance) over the markets whose sleeves exist in the composite. Make a family admissible in market m iff its registered prior ≥ 1 (range priors resolve to the lower bound; unregistered priors are not admissible) and its card is not REJECT (NOT_RUN stays admissible except ts_trend, which needs its own PASS), and set base_weight = IV_m × 1/K_m with assertions that family weights sum to 1 per market and Σ IV_m = 1. Store the Korea reversal prior as 1 (UNVERIFIED), refuse a tilt without a PASSed family card, and on a family-card REJECT re-weight by K/(K−1) from the next decision, logged as a governance event and printed.
+
+**Acceptance criteria**
+- `T-PRIOR-01` (runs_from M4): base_weight(m, f) = IV_m × 1/K_m over families with prior ≥ 1 and card not REJECT; family weights sum to 1 per market and Σ IV_m = 1 (assertions); the Korea reversal prior is stored as 1 (UNVERIFIED); a tilt without a PASSed family card is refused by rules-store validation.
+
+### TASK-M4-07 · Build the recommended and specification book builders for the factor sleeves
+
+**Type** task · **Priority** high · **Modules** R-02, R-03, R-04 · **Depends on** TASK-M4-03, TASK-M4-04, TASK-M4-05, TASK-M4-06
+
+- **Package / files:** core/quant/signals.composite_weights; core/quant/risk.risk_layer; book builder (proposed)
+- **Spec sections and rules:** §3.3 books · §8.1.2 · P7 · P17
+- **Owner decisions touched:** none
+
+**Description.** Build the specification book with every BUILD NOW and SPECIFICATION BOOK factor labelled with its verdict (vs, R-04 at floor 0.5), and the recommended book with the invariants plus PASS factors only; every macro card is NOT_RUN today, so vs and dm enter it as 1.0. Never renormalise freed budget: freed active budget moves to the benchmark (long-only) or to zero (long/short), and freed total exposure to cash. Reproduce the specification-stack episode table.
+
+**Acceptance criteria**
+- `G-MOM-06` (runs_from M4): Static → specification stack (gross): Apr-2009 −26.8% → −4.2%; Mar–May 2009 −45.6% → −8.0%; Nov-2020 −12.0% → −3.9%; Jul-2026 −10.9% → −5.9%; calendar 2020 −11.0% → +3.1%; May–Nov 2008 +21.8% → +9.5%.
+
+---
+
+## M5 — Engine and events
+
+**Exit tests whose runs_from is M5** (§9.0a; clauses deferred by §9.0b join later and are named in the tasks): `G-LAD-01`, `G-LAD-02`, `G-LAD-03`, `I-04`, `I-04b`, `I-06`, `I-06b`, `I-06c`, `T-ANNOT-01`, `T-BOOK-03`, `T-CAPS-01`, `T-FILL-01`, `T-FILL-02`, `T-FILL-03`, `T-HALT-01`, `T-MONO-01`, `T-STEP-05`.
+
+### TASK-M5-01 · Compute daily look-through exposure from the KODEX 200 basket
+
+**Type** task · **Priority** high · **Modules** R-07, R-26 · **Depends on** TASK-M1-08, TASK-M1-17, TASK-M0-12
+
+- **Package / files:** core/quant/risk.lookthrough_exposure; core/ficc/data (KODEX200_PDF from KIS or KRX); core/markets (L, tick eligibility)
+- **Spec sections and rules:** R-07 (1) · §4.2 KODEX 200 row · R-26 rule 2 · §9.5 (KODEX 200 PDF history, M5)
+- **Owner decisions touched:** none
+
+**Description.** Acquire the KODEX 200 PDF history and read the daily basket as an acting_exposure input bound to the recommended and specification books with halt_after_consecutive_decisions 5, carrying the last basket with its age printed and recomputing bounds on current prices. Compute look-through exposure per name with leveraged and inverse products counted at × L, and make a product whose tick exceeds 10 bp of its price ineligible. Treat a basket failure beyond its 5 misses as OPS, never as a risk-limit breach.
+
+**Acceptance criteria**
+- `T-BOOK-03` (runs_from M5): A product whose tick exceeds 10 bp of its price is ineligible; look-through counts × L in R-07.
+
+### TASK-M5-02 · Implement concentration_bound() with the active single-name cap and the D1 template
+
+**Type** task · **Priority** high · **Modules** R-07 · **Depends on** TASK-M5-01, TASK-M2-03, TASK-M0-06
+
+- **Package / files:** core/quant/risk.concentration_bound; core/rules (risk_layer.korea_caps.template)
+- **Spec sections and rules:** R-07 (2)–(7) · §3.3 concentration bound · §11 risk layer
+- **Owner decisions touched (implement the default, flag it):**
+  - D1 Korea concentration template — default MSCI 25/50 (single name ≤ 22.5% after the buffer; names above 4.5% ≤ 45% in aggregate; checked quarterly and on breach); key risk_layer.korea_caps.template
+
+**Description.** Read the template from the rules store (D1 default MSCI 25/50: targets 22.5% per name and 45% aggregate for names above 4.5% on every decision; the hard levels 25/50 define a breach after the prescribed action), as shares of Korea sleeve NAV on look-through with cash in the denominator. Bound the ETF line by g_KR ≤ min(vt, limit_k/share_k, 0.05/(s_i − b̃_i) for every name with s_i > b̃_i) and the semiconductor cap by g ≤ 0.50/semis share; return {absolute_bound, active_bound, aggregate_bound, semis_bound, bound, binding_factor} per book with gross = min(composed, bound), and print the pair's look-through share and risk contribution in concentration.by_book. Raise a risk-limit breach (RISK) only when the post-action target weights still exceed a hard level, and make an exception inside the function an OPS HALT.
+
+**Acceptance criteria**
+- `T-CAPS-01` (runs_from M5): The daily KODEX 200 basket is applied; w_i − g·b̃_i ≤ 0.05 NAV is enforced; the template is read from the rules store; on 2 Oct under 25/50 the absolute bound is 22.5/29.8 = 0.755 and the active bound ≤ 0.05/(0.298 − 0.225) = 0.685, binding in both books with the gross and binding factor asserted per book; leveraged products count at × L.
+- `T-MISS-02` (runs_from M1; its concentration_bound and drawdown_ladder exception clauses run from M5): An exception in concentration_bound or drawdown_ladder HALTs (OPS) the books it feeds.
+- `G-POST-01` (runs_from M1; its M5 row): Samsung + SK hynix implied share ≈ 53.6% (Samsung 29.8% + hynix 23.8%).
+
+### TASK-M5-03 · Add the RISK class: hard stop with automatic re-arm and post-re-arm cap
+
+**Type** task · **Priority** high · **Modules** R-07 · **Depends on** TASK-M1-20, TASK-M2-03, TASK-M0-06
+
+- **Package / files:** core/engine/runtime (RISK class); core/quant/risk (hard-stop evaluation on whole-book NAV); core/engine/state
+- **Spec sections and rules:** R-07 hard stop · §3.8 re-arm row and NAV valuation · P16
+- **Owner decisions touched (implement the default, flag it):**
+  - D2 Drawdown hard-stop level — default −15% of book NAV from the high-water mark since the last re-arm; key risk_layer.drawdown.hard_stop.level
+
+**Description.** At −15% of whole-book NAV from the high-water mark since the last re-arm (D2 via {ref}; option −1.5 σ_book) set that book HALTED (RISK) at the close of t so it earns 0 on t+1…t+10, refuse re-arm for 10 sessions of its primary-market calendar, and re-arm automatically at the decision at the close of t+10 (operator acknowledgement logged, never required), resetting the hard-stop and step references to the NAV at re-arm and adding post_rearm_cap 0.5 inside min() for the re-arm decision and the 9 after it. Re-arm a risk-limit-breach HALT only at the first decision ≥ t+10 at which the post-action target weights meet the limit, without reference reset. Keep halt() idempotent per cause, merge new causes into halt.causes[] (references reset only if a hard-stop cause was in the set; the cap window starts at the actual re-arm), value NAV point-in-time through NAV_LINE_CLOSES and nav_fx, and log every HALT and re-arm as a governance review event (no protection claim).
+
+**Acceptance criteria**
+- `I-04b` (runs_from M5): A −15% book-NAV breach sets that book HALTED (RISK), refuses re-arm for 10 sessions, re-arms automatically, resets both references and caps exposure at 0.5 × vt inside min() for 10 sessions; on the KOSPI 1997–2026 fixture the book re-enters after every HALT (the literal v1.2 rule stays HALTED from 1997-10, 714 cycles).
+- `T-HALT-01` (runs_from M5): A synthetic NAV breaching exactly −15.00% at t gives exposure 0 on t+1…t+10, automatic re-arm at t+10, references reset, the 0.5 cap for weights decided t+10…t+19; a breach HALT with a persisting limit-locked order re-arms only when the post-action target meets the limit; a lag-audit violation during a RISK HALT keeps the book HALTED until the operator re-arms.
+- `T-STEP-05` (runs_from M5): NAV flat at −16% for 30 sessions after a breach sets rearm_not_before once (t + 10); the book re-arms at t+10, re-enters at t+11 under the 0.5 cap, and a second halt() while HALTED changes nothing.
+
+### TASK-M5-04 · Add the remaining OPS triggers: heartbeat, NAV, coverage and operator kill
+
+**Type** task · **Priority** high · **Modules** R-07, R-25 · **Depends on** TASK-M5-03
+
+- **Package / files:** core/engine/runtime; core/engine feed (QuoteFeed heartbeat)
+- **Spec sections and rules:** §3.8 OPS triggers and runtime states · §3.8 kill vs manual override · R-25 (NAV unavailable)
+- **Owner decisions touched:** none
+
+**Description.** HALT (OPS) a book on feed heartbeat loss above 60 s during a session (BLOCK new intraday entries at once; re-arm automatically once the feed has been restored for 5 minutes; a HALT cleared before the next decision changes no weight), on whole-book NAV unavailable for more than 2 consecutive decisions, on an exception in an acting risk-layer function, and on an operator kill (runtime_halt(book, "OPS", "operator_kill"), operator re-arm, never a demotion except for a card's forward books). Implement ARMED or HALTED → DISARMED as owner action only: a retired book never re-arms, and a card's on, off and S books are retired and killed together.
+
+**Acceptance criteria**
+- `T-HALT-01` (runs_from M5; OPS clause): An OPS HALT (a stale acting input) clears at the first decision with the input fresh, with no refusal window, no reference reset and no cap; a KODEX-basket failure beyond its 5 misses is OPS.
+
+### TASK-M5-05 · Implement drawdown_ladder() with time-boxed −8% / −12% steps
+
+**Type** task · **Priority** high · **Modules** R-31, R-07 · **Depends on** TASK-M5-03, TASK-M2-03
+
+- **Package / files:** core/quant/risk.drawdown_ladder (LadderState with the R-31 names); core/engine/evaluator (the −12% block)
+- **Spec sections and rules:** R-31 algorithm · R-07 steps · §3.8 ladder steps
+- **Owner decisions touched:** none
+
+**Description.** Implement the R-31 pseudocode on whole-book NAV: hwm_hard resets only at re-arm; ref_step is the running peak since its last reset; −8% gives step_mult 0.5 and −12% gives 0.5 plus block_new_entries, each for a 21-session dwell counting the first, after which ref_step resets to the current NAV; nothing is evaluated while HALTED; −15% from hwm_hard hands off to R-07's halt(). Compose step_mult by min(), never cumulatively, and act on it only in the specification book while the declared book's binding share exceeds 0.10 (KOSPI VT20 ≈ 19%). Make an exception in the function an OPS HALT, and hold the step state with an alert if NAV is unavailable.
+
+**Acceptance criteria**
+- `I-04` (runs_from M5): With the overlay at 1.0 and a −12% whole-book drawdown from the step reference the evaluator BLOCKs new entries and the step multiplier 0.5 composes by min() (never 0.25 × vt); after 21 sessions the step reference resets and the hard-stop reference does not; steps binding on more than 10% of days act only in the specification book.
+
+### TASK-M5-06 · Add evaluator BLOCKED decisions for new entries
+
+**Type** task · **Priority** high · **Modules** R-10, R-07 · **Depends on** TASK-M5-05, TASK-M5-08
+
+- **Package / files:** core/engine/evaluator.evaluator_block
+- **Spec sections and rules:** §3.8 entry blocks · R-10 windows · §3.5 core/engine hooks
+- **Owner decisions touched:** none
+
+**Description.** Return BLOCKED(rule_id, reason) for every new-entry decision while an R-10 event window or the −12% step is active; never block holds or exits. Apply the same rule at daily resolution in backtests. Log every window hit and every BLOCKED decision.
+
+**Acceptance criteria**
+- `I-06` (runs_from M5; blocking clause): Window hits produce BLOCKED evaluator decisions only for new intraday entries.
+
+### TASK-M5-07 · Implement the R-08 VIX ≥ VIX3M execution-state annotation
+
+**Type** task · **Priority** medium · **Modules** R-08 · **Depends on** TASK-M1-06, TASK-M1-08
+
+- **Package / files:** core/engine/evaluator.evaluator_annotate; core/ficc/macro (macro_state.annotations)
+- **Spec sections and rules:** R-08 · §10.3 · G-R08-01 · G-R08-02 (record)
+- **Owner decisions touched:** none
+
+**Description.** Flag every input date D with VIX(D) ≥ VIX3M(D) at parity (never tuned) and clear at the first D with VIX < VIX3M (raw flag, no hysteresis), usable from the US close of D+1 and the KRX close of K ≥ D+1 on the registry's production channel. On each flag day write macro_state.annotations.vix_ge_vix3m and request KIS spread snapshots for the traded lines (subject to the KIS quote-field check), assert in the book builder that no book's weights change (no BLOCKED decision, cut or re-add), and log switches above 2× the budget of 14 a year. Keep the CARD-P REJECT record (G-R08-02) on file as a record only.
+
+**Acceptance criteria**
+- `T-ANNOT-01` (runs_from M5): With the flag on no book's weights change (book-builder assertion); each flag day writes an annotation and a KIS spread-snapshot request; the fixture reproduces 132 spells, 50.8% one day long.
+- `G-R08-01` (runs_from M5; reproduced by T-ANNOT-01): 4,735 days, 10.1% flagged, 132 spells, 50.8% one-day, 15.9% ≥ 5 days, 14.0 transitions a year.
+
+### TASK-M5-08 · Build the event store, window generator and event_calendar artifact
+
+**Type** task · **Priority** medium · **Modules** R-10 · **Depends on** TASK-M1-06, TASK-M0-08
+
+- **Package / files:** core/calendars (event store, window generator); event_calendar.v2.0 artifact
+- **Spec sections and rules:** R-10 calendar entries and windows · §6.3 · §10 item 12
+- **Owner decisions touched:** none
+
+**Description.** Store events as {event_id, type, region, scheduled_utc, status ∈ {scheduled, released, cancelled, delayed}, source}; expire the windows of cancelled events and move those of delayed ones. Generate no-new-entry windows: US CPI/NFP 08:25–10:00 ET (30 min earlier for drift releases), FOMC 13:45–15:00 ET with the VIX-conditioned resume at 15:00 or 15:30 (also on KOSPI200 night futures), the BoK rate decision 09:45–10:15 KST and the governor's press conference 11:00–11:45 KST as two separate events with their own status, the first 30 minutes of every KRX session (10:00–10:30 on 10:00-open days), 30 minutes after a circuit-breaker reopening, and oil or geopolitical entries carrying a scenario_tag. Write one event_calendar file per version with the provenance envelope; never build 24-hour or daily-book blackouts.
+
+**Acceptance criteria**
+- `I-06` (runs_from M5): A cancelled event (Oct-2025 CPI) produces no window; a delayed event moves its window; a US CPI night sets the KR opening-gap flag for the next KRX session; the BoK decision and press conference are separate events with status.
+
+### TASK-M5-09 · Tag opening-gap nights and multi-session gaps; scale the displayed VaR
+
+**Type** task · **Priority** medium · **Modules** R-10 · **Depends on** TASK-M5-08, TASK-M1-03
+
+- **Package / files:** core/calendars.gap_sessions; core/quant/risk (display VaR scale); macro_state flags
+- **Spec sections and rules:** R-10 opening-gap and multi-session rows · §4.1 multi-session gaps · §11 next KRX session
+- **Owner decisions touched:** none
+
+**Description.** Set kr_open_gap_event on the KRX session after US CPI/NFP, FOMC and hyperscaler capex or earnings nights (acquire the hyperscaler list from company IR) and log the overnight SOX, S&P, ΔUST10 and USD/KRW moves as opening-gap inputs. Compute gap_sessions(KR, K) = n_US ≥ 0, add a KRX_HOLIDAY_GAP event and scale the displayed 1-day VaR by √max(n_US, 1) when n_US ≥ 2, with gap_sessions 0 valid (no event, unscaled). Assert in the book builder that no event tag or gap flag changes any weight.
+
+**Acceptance criteria**
+- `I-06b` (runs_from M5): A KRX session following two or more US sessions since the previous KRX close (e.g. 2026-10-06) carries gap_sessions ≥ 2 and its displayed 1-day VaR scales by √max(n_US, 1); BoK decision and press conference are separate events with status; no event tag changes any weight.
+- `I-06c` (runs_from M5; the "macro_state validates" clause joins at M6 and the acting-field schema HALT at M8): The KR decision of 2026-11-26 (effective 2026-11-27, NYSE closed 2026-11-26): gap_sessions 0, VaR scale 1, kr_open_gap_event false, books stay ARMED; an out-of-schema context field never HALTs.
+
+### TASK-M5-10 · Implement the simulated fill model (R-27)
+
+**Type** task · **Priority** low · **Modules** R-27 · **Depends on** TASK-M1-03, TASK-M1-04, TASK-M1-11, TASK-M0-12
+
+- **Package / files:** core/engine/orders (fill_model, simulate_fill; simulated fills only); core/markets (closing call, random end, LP duties)
+- **Spec sections and rules:** R-27 rules 1–5 and 7 · §3.8 execution row
+- **Owner decisions touched:** none
+
+**Description.** Snapshot KRX decisions one minute before the closing call (15:19 KST from 2016-08-01, 14:49 before, the CSAT equivalent from the calendar) on the last continuous price and fill at the official close, printing the snapshot-vs-close tracking error; fall back, labelled, to the official-close decision when the KIS field is unverified, and carry the order with an alert when no official close exists. Flag every ETF close LP_exempt_auction and |close − iNAV| > 30 bp, and make a stock at its tick-rounded limit price (previous close × (1 ± price_limit), rounded toward the previous close) non-fillable at the close, carried and logged, while ETF and futures lines stay fillable unless themselves locked. Fill NYSE MOC-equivalent at the official close (15:50 ET snapshot), let KOSPI200 futures trade to 15:45 KST with the expiry-day stop at 15:20, price intraday entries at the triggering quote with its timestamp, and write the fill fields into overlay_decision.extras.
+
+**Acceptance criteria**
+- `T-FILL-01` (runs_from M5): A ≈ 15:19 KST snapshot decision filled at the official close reproduces QF1's tracking error vs an official-close decision (0.19% a year on KOSPI; mean |Δw| 0.0013) within ±0.05 pp.
+- `T-FILL-02` (runs_from M5): SK hynix on 2026-07-31 (+29.95%, close = tick-rounded limit price) is non-fillable at the close in a stock book; the KODEX 200 line fills.
+- `T-FILL-03` (runs_from M5): An ETF close-vs-iNAV residual above 30 bp is flagged.
+
+### TASK-M5-11 · Enforce the bar convention in the history loader
+
+**Type** task · **Priority** high · **Modules** R-27, R-01 · **Depends on** TASK-M1-11
+
+- **Package / files:** core/quant/history (bar records, loader)
+- **Spec sections and rules:** R-27 rule 6 · §4.1 bar convention
+- **Owner decisions touched:** none
+
+**Description.** Stamp every intraday bar with bar_end in UTC, keep the closing auction as its own bar, and set available_at = bar_end + latency. Make the loader refuse any daily close derived from bars: the vendor's last KRX hourly bar is the 14:00–15:00 bar on 727 of 729 days.
+
+**Acceptance criteria**
+- `T-BAR-01` (runs_from M1; its R-27 clause runs from M5): No daily close is derived from intraday bars; a fixture whose last hourly KRX bar ends at 15:00 is refused as a close source.
+
+### TASK-M5-12 · Run the simulated books, persist state, and enforce no reallocation
+
+**Type** task · **Priority** high · **Modules** R-02, R-07, R-25 · **Depends on** TASK-M5-03, TASK-M5-05, TASK-M4-07, TASK-M5-10
+
+- **Package / files:** core/engine/orders (recommended, specification, card on/off/S and FORWARD-SIM simulated books); core/engine/state; core/quant/signals.composite_weights; core/quant/risk.risk_layer
+- **Spec sections and rules:** §3.8 books and trigger counts · §3.3 T-MONO-01 · §12 M5
+- **Owner decisions touched:** none
+
+**Description.** Run the recommended and specification books, each card's overlay-on, overlay-off and S books, and the FORWARD-SIM books in the simulated order book, priced at the official close of t, earning from t+1 and costed with the tick floor, each with its own runtime state. Persist trigger counts, per-card switch counts, the ladder state (references, step, dwell, re-arm and cooling-off dates), runtime states and counters in core/engine/state. Make composite_weights and risk_layer weakly monotone in every multiplier with zero cross-partials, never renormalising freed budget, with R-15's K/(K−1) re-weighting the one logged exception.
+
+**Acceptance criteria**
+- `T-MONO-01` (runs_from M5): For random multiplier vectors m ≤ m′ on the I-01 fixtures (seed 11) every market's gross and every family's active budget is weakly monotone in its own multipliers and every cross-partial is 0; the R-15 re-weighting is the one exception, logged.
+
+### TASK-M5-13 · Reproduce the ladder references in reference mode
+
+**Type** task · **Priority** high · **Modules** R-07, R-31 · **Depends on** TASK-M2-07, TASK-M5-05
+
+- **Package / files:** tests/reference/ (reference_only=True)
+- **Spec sections and rules:** §9.3.2 drawdown ladder · §9.3.3
+- **Owner decisions touched:** none
+
+**Description.** Reproduce in reference mode the literal v1.2 ladder, QF4's 11-session fix and the sensitivity lines. Keep these results out of every book, card and artifact.
+
+**Acceptance criteria**
+- `G-LAD-01` (runs_from M5; reference mode): Literal v1.2 rule: KOSPI permanently HALTED from 1997-10-17 (cumulative; 714 cycles) or 1997-09-30 (non-cumulative; 715); US from 2000-10-13 (653) or 1990-09 (907).
+- `G-LAD-02` (runs_from M5; reference mode): QF4's fix with an 11-session halt: KOSPI VT20 0.532 / −42.0%, 16 HALTs; US VT15 0.522 / −42.5%, 8 HALTs.
+- `G-LAD-03` (runs_from M5; reference mode): The 0.5× cooling-off moves US VT15 to 0.538 / −37.8%; a 10-session halt moves KOSPI buy-and-hold cumulative Sharpe 0.553 → 0.595.
+
+### TASK-M5-14 · Pin the v2 HALT count and print the invariants-only book beside D2 (§9.4 items 9–10)
+
+**Type** spike · **Priority** high · **Modules** R-07 · **Depends on** TASK-M5-02, TASK-M5-03, TASK-M2-08
+
+- **Package / files:** core/quant/backtest (recommended-book replay on the ETF line with caps); the D2 owner page
+- **Spec sections and rules:** §9.4 items 9 and 10 · §8.10 D2 · I-04b
+- **Owner decisions touched (implement the default, flag it):**
+  - D2 Drawdown hard-stop level — default −15% of book NAV from the high-water mark since the last re-arm; key risk_layer.drawdown.hard_stop.level
+
+**Description.** Compute and md5-freeze the KOSPI VT20 1997–2026 HALT count under the v2 rule (automatic RISK re-arm; Check C2 printed 24 under its own re-arm) and pin it in I-04b. Compute G-LAD-04, the invariants-only recommended KOSPI book (ETF line, caps) with and without the −15% hard stop (HALT count, MDD, Sharpe), and print it beside D2 for the owner. Neither number may change a default.
+
+**Acceptance criteria**
+- `I-04b` (runs_from M5; its pinned-count clause): The KOSPI VT20 1997–2026 HALT count under the v2 rule is pinned once computed (§9.4 item 9).
+
+### TASK-M5-15 · Run the opening-gap event-conditional variance test (§9.4 item 6)
+
+**Type** spike · **Priority** medium · **Modules** R-10 · **Depends on** TASK-M5-09
+
+- **Package / files:** research harness on local hourly bars and daily opens (core/quant/backtest)
+- **Spec sections and rules:** R-10 measurement · §9.4 item 6 · QF7-A28 · BL-U03
+- **Owner decisions touched:** none
+
+**Description.** Before the opening-gap flag is kept as "log only", run the event-conditional variance test (DM on the squared gap) on the local hourly bars and daily opens. Pre-register the 2027–28 out-of-sample post-holiday VaR breach check that settles the √n display scaling. Neither result may change a weight.
+
+**Acceptance criteria**
+- `I-06b` (runs_from M5): No event tag or gap flag changes any weight, whatever the test shows.
+
+---
+
+## M6 — Context and breaks
+
+**Exit tests whose runs_from is M6** (§9.0a; clauses deferred by §9.0b join later and are named in the tasks): `T-BREAK-01`, `T-CTX-01`, `T-CTX-02`.
+
+### TASK-M6-01 · Reconcile the 18-indicator sheet and the regime read (BL-G06)
+
+**Type** spike · **Priority** medium · **Modules** R-13 · **Depends on** TASK-M0-14
+
+- **Package / files:** core/ficc/macro (18-indicator sheet, z-scores, regime read, daily/weekly brief)
+- **Spec sections and rules:** §3.6 · BL-G06 · P19 · §10 item 27
+- **Owner decisions touched:** none
+
+**Description.** List the 18 indicators, their z-score windows and the regime-read method from the code, and map each indicator onto §3.6's role table. If the regime read comes from a regime model (Markov switching, HMM, jump model, mixture or change point), schedule its removal from every page. Otherwise keep it only as a causal descriptive text in the brief that never uses the calm / normal / elevated / stressed names and never feeds signals, risk or the engine.
+
+**Acceptance criteria**
+- `T-CTX-01` (runs_from M6): No acting module reads the sheet's values (static import check plus runtime guard).
+
+### TASK-M6-02 · Build build_context_log() with vintages, first prints and live snapshots (R-13)
+
+**Type** task · **Priority** medium · **Modules** R-13 · **Depends on** TASK-M1-13, TASK-M1-16, TASK-M0-08, TASK-M6-01
+
+- **Package / files:** core/ficc/macro.build_context_log; core/ficc/data (ALFRED vintages; the KRX/KOFIA leverage provider once acquired)
+- **Spec sections and rules:** R-13 table · §6.4 · §7 context_log · §4.2 C-role series · §9.5 (VIX/VIX3M 16:00 ET snapshot source, M6)
+- **Owner decisions touched:** none
+
+**Description.** Write one context_log per decision whose every item carries series_id, value_status, stale, vintage (null for unrevised) and retrieved_at_utc, with first_release, latest and vintage_date for revised series (FRED output_type=4). Compute the R-13 items: Sahm (SAHMREALTIME plus in-house with NaN across gaps), the 10y–3m probit with the Estrella–Trubin coefficients (no 10y–2y prior), the Taylor-residual min–max range, real yields and the named Kim–Wright term premium, breakevens, credit, FX, oil, inflation and labour (known then vs known now), Korea items including the KOSPI SMA10m trend state as context only, leverage and flow once acquired (log the 16 Jul 2026 rule change as a structural break), VRP, VIX/VIX3M at 16:00 ET and KOSPI200 MFIV at 15:30 KST stamped live, turbulence and absorption ratio (500-day, half-life 250, N/5), FOMC and SEP bands, EPU, and every remaining sheet item with its causal z-score and from_sheet = true. Label stale items, and refuse, quarantine and alert on a failed context_log without ever HALTing.
+
+**Acceptance criteria**
+- `T-CTX-02` (runs_from M6): Every context_log item carries vintage and retrieved_at_utc; revised series store first print, current value and vintage date; LETF AUM, KOFIA margin debt, VRP, the VIX/VIX3M snapshot (16:00 ET) and the KOSPI200 MFIV snapshot (15:30 KST) are stamped live; T-CTX-01 still passes.
+- §12 M6: §11's context values reproduce at Level-1 tolerance and every sheet item appears in context_log with from_sheet = true.
+
+### TASK-M6-03 · Guard context isolation with a static import check and a runtime guard
+
+**Type** task · **Priority** medium · **Modules** R-13, R-18 · **Depends on** TASK-M6-02
+
+- **Package / files:** tests/run_all.py (static import check); runtime guard in core/ (proposed)
+- **Spec sections and rules:** T-CTX-01 · §3.5 interface rules · P9
+- **Owner decisions touched:** none
+
+**Description.** Fail the build if any acting module imports or reads context_log, the 18-indicator sheet's values, the R-18 break log or a refusal book. Add a runtime guard that raises on such a read, and keep both in force for every later milestone.
+
+**Acceptance criteria**
+- `T-CTX-01` (runs_from M6): No acting module imports or reads context_log, the sheet's values, the R-18 break log or a refusal book (static import check plus runtime guard).
+
+### TASK-M6-04 · Implement the R-18 policy-break trigger, research log and market-structure break log
+
+**Type** task · **Priority** low · **Modules** R-18 · **Depends on** TASK-M1-04, TASK-M6-02
+
+- **Package / files:** core/ficc/macro.log_break; core/calendars (effective-dated structure tags); core/rules (breaks block)
+- **Spec sections and rules:** R-18 · §7 breaks · §10 item 27 · §10.4
+- **Owner decisions touched:** none
+
+**Description.** On an official framework-change event, shrink every macro-conditioned multiplier to 1.0 and start a forward record (no historical re-gate; no such multiplier acts in v2, so it binds future cards), and never treat a policy-direction flip as a trigger. Write the statistical break flag (CUSUM or BOCPD on EFFR minus the Taylor-range midpoint) and the BOCPD probability (hazard 1/250, declared prior) to the R-18 research log only, with no reader in any acting module or display, and keep the statistical leg log-only until EX1's test passes (≤ 1 false break a decade on 1990–2026; flags within 6 months of 2012 and 2020). Re-anchor scale thresholds only on declared, effective-dated events, as a counted card revision that never lifts a demotion or lockout, and demote v1.2's 2×-median rule to a logged flag. Log Korean market-structure breaks (short-sale bans, sell tax, tick reforms, LETF rules, session changes) as calendar tags; a card straddling a break prints the split and a futures card a ban-period basis line.
+
+**Acceptance criteria**
+- `T-BREAK-01` (runs_from M6): An official framework-change event shrinks every macro-conditioned multiplier to 1.0 and starts a forward record; the statistical-break flag and the BOCPD probability (hazard 1/250) are logged with no reader in any acting module or display; scale-break re-anchoring occurs only on declared events; the statistical leg activates only after EX1's test.
+
+### TASK-M6-05 · Build build_macro_state() and build_overlay_decisions()
+
+**Type** task · **Priority** high · **Modules** R-32, R-09, R-10, R-30 · **Depends on** TASK-M2-04, TASK-M3-04, TASK-M5-02, TASK-M5-09, TASK-M6-02, TASK-M0-10
+
+- **Package / files:** core/ficc/macro (builders); macro_state.v2.0 and overlay_decision.v2.0 artifacts
+- **Spec sections and rules:** §3.2 · §6.1 · §6.2 · §3.6 rule 4 · R-30 outputs
+- **Owner decisions touched:** none
+
+**Description.** Write exactly one macro_state per market per decision and one overlay_decision per market × family, filling every §6.1 and §6.2 field from the functions built earlier: inputs with full provenance and role, lag_audit, vol (estimator, estimator_gate, both labels, vt_status, vt_weight_recommended_book), flags (hedge reasons, gap sessions, var_display_scale, ladder state), annotations, concentration.by_book, owner_decisions, runtime[], fail_closed, structured alerts, and the display-only refusal_books and forward_sim blocks; composition min with overlay_min, ladder and post_rearm_cap, each card's verdict, disposition and label, refusal, binding and extras. Always write the artifacts, also when a gate failed, and validate them with the M0 validator before bounds_ok consumes them in M8.
+
+**Acceptance criteria**
+- `T-HEDGE-01` (runs_from M2; its built-macro_state assertion runs from M6): With the live USD proxy and DTWEXBGS stale, the built macro_state shows hedge_credit_off = TRUE, fail_closed false for every acting component of the KR and US books, and vt unchanged.
+- `I-06c` (runs_from M5; its "macro_state validates" clause runs from M6): The 2026-11-26 KR macro_state (gap_sessions 0) validates.
+- `T-SCHEMA-01` (runs_from M0): The built artifacts validate against their §6 schemas.
+
+### TASK-M6-06 · Add the Macro page panel and the brief's macro_state section
+
+**Type** user-story · **Priority** high · **Modules** R-13, R-32 · **Depends on** TASK-M6-05, TASK-M0-06
+
+- **Package / files:** ui/ Macro page (proposed); core/ficc/macro (daily and weekly brief)
+- **Spec sections and rules:** §3.1 UI box · §3.6 rule 4 · §12 M6 · P19
+- **Owner decisions touched (implement the default, flag it):**
+  - D1 Korea concentration template — default MSCI 25/50 (single name ≤ 22.5% after the buffer; names above 4.5% ≤ 45% in aggregate; checked quarterly and on breach); key risk_layer.korea_caps.template
+  - D2 Drawdown hard-stop level — default −15% of book NAV from the high-water mark since the last re-arm; key risk_layer.drawdown.hard_stop.level
+  - D3 Calm-state reversal down-weight (QF5-M10) — default not adopted (P3 stands); key families.reversal.calm_state_downweight
+  - D4 Book-level false-demotion budget — default ≤ 10% a year across all statistical triggers, split equally across active cards, each split verified on a 20-shift placebo panel; key monitoring.false_demotion_budget_per_year
+  - D5 US sleeve and line — default no US sleeve until decided (R-28 and R-29 stay FORWARD-SIM and never enter the recommended book); key sleeves.US.line
+  - D6 CDaR-guard calibration — default the lowest-placebo-false-pass rule, frozen with the package now, applied only if a negative control passes; an owner ruling is accepted only before the first acceptance attempt; key gate.acceptance_test.cdar_guard.calibration
+
+**Description.** As the owner, I see on the Macro page the macro_state panel, the overlay_decision table, each card's verdict and disposition badge, both volatility labels, the event calendar, the context log and every open owner decision (D1–D6 with value and status). Mark FORWARD-SIM cards and refusal books "not a recommendation" and display no regime-model state anywhere. Add the same macro_state section to the daily and weekly brief.
+
+**Acceptance criteria**
+- `T-DNB-01` (runs_from M0): A displayed field whose source is a regime model is refused by validation.
+- §12 M6: the Macro page lists every open owner decision.
+
+---
+
+## M7 — Cards (gate package built and frozen first)
+
+**Exit tests whose runs_from is M7** (§9.0a; clauses deferred by §9.0b join later and are named in the tasks): `G-DSR-01`, `G-DSR-02`, `G-KR-L01`, `G-KR-L02`, `G-KR-L03`, `G-KR-L04`, `G-KR-L05`, `G-KR-L06`, `G-KR-L07`, `G-KR-L08`, `G-KR-L09`, `G-KR-L10`, `G-KR-L11`, `G-KR-L12`, `G-KR-L13`, `G-PWR-01`, `G-PWR-02`, `G-US-F01`, `G-US-F02`, `G-US-F03`, `G-US-F04`, `G-US-F05`, `G-US-F06`, `G-US-F07`, `G-US-F08`, `G-US-F09`, `G-US-F10`, `I-05`, `I-07`, `I-08`, `I-09`, `I-15`, `I-16`, `T-BAND-01`, `T-BOOK-02`, `T-CARD-01`, `T-CARD-02`, `T-DNH-01`, `T-DSR-01`, `T-DSR-02`, `T-EPIS-01`, `T-EPIS-02`, `T-ES-01`, `T-ES-02`, `T-EST-03`, `T-EST-05`, `T-EXCESS-01`, `T-GATE-01`, `T-GATE-02`, `T-GATE-03`, `T-GATE-04`, `T-LEDGER-01`, `T-NEFF-01`, `T-ORDER-01`, `T-PBO-01`, `T-PLACEBO-01`, `T-PLACEBO-02`, `T-POWER-01`, `T-POWER-02`, `T-PZERO-01`, `T-R04-01`, `T-R06-US-01`, `T-R14-01`, `T-REPRO-01b`, `T-RLAYER-01`, `T-SE-01`, `T-SEL-01`, `T-STEP-01`, `T-STEP-02`, `T-STEP-03`, `T-STEP-04`, `T-STEP3-01`, `T-STEP3-02`, `T-TROUGH-01`, `T-UNDERPOW-01`.
+
+### TASK-M7-01 · Implement the hash-chained family trial ledger (R-23)
+
+**Type** task · **Priority** high · **Modules** R-23 · **Depends on** TASK-M0-11, TASK-M0-05
+
+- **Package / files:** core/quant/backtest (ledger.append, ledger.hash, family_ledger; proposed); core/rules (ledger hash per family)
+- **Spec sections and rules:** R-23 inputs and fail-closed behaviour · §8.4 revisions and new cards · P13
+- **Owner decisions touched:** none
+
+**Description.** Append one row per configuration ever run — config_id over the rule and every parameter (signal, threshold, target, lookback, multiplier, lag) plus estimator, window, cap, book, rebalance, timing class and start convention; timing_class, span, instrument_book, cost, phase, run_utc, script, results_md5, the stored difference-series reference and prev_row_md5 — from the harness on every run of a registered rule's code path, research scripts included, never by hand. Assign family_id by rule from QC_modules.csv and file a new card whose difference series correlates ≥ 0.5 with a family's rows into that family, or refuse it; never append null-distribution runs (acceptance placebos, shift panels, GJR-null paths, D4 panels). Refuse a ledger whose chain fails to verify, a row not appended by the harness or a row without a timing class; commit the family hash with every header, and write test runs to temporary copies.
+
+**Acceptance criteria**
+- `T-LEDGER-01` (runs_from M7; before the freeze): A hand-edited row breaks the hash chain and the ledger is refused; a research-script run of a registered rule's code path appends its row; a card whose ledger_hash_at_run differs from the stored ledger is not written.
+
+### TASK-M7-02 · Seed the family ledgers from the research phase (§9.5)
+
+**Type** task · **Priority** high · **Modules** R-23, R-03, R-06, R-28, R-31 · **Depends on** TASK-M7-01, TASK-M1-22
+
+- **Package / files:** tests/fixtures/macro/ledger_seed_<family>.csv (e.g. ledger_seed_R-06.csv); definitions_md5 manifest entries
+- **Spec sections and rules:** §9.5 research-phase ledger seeds · R2-C1 · §9.4 item 12
+- **Owner decisions touched:** none
+
+**Description.** Enumerate one row per distinct configuration for every family: R-03's 26 trials; R-06's rows (every configuration whose Korean-data result was seen before the freeze — R4 and R4b window and cap comparisons on 2016–26, the DL-A Korea grid, the QF/QX/DL variants — plus the other-market rows DLA-U1–U5 and DLB-T1h); R-28's 94 DLB-T3f variants; R-31's EX1 L1–L6 ladders. Store each row's source file and row, market, span, run_utc, params, timing class, book, cost, results md5 and difference series, regenerating any missing series from its config before the freeze. md5-list every seed file and series in the definitions manifest.
+
+**Acceptance criteria**
+- `T-NEFF-01` (runs_from M7; its row-count clause): QF3's 26 trials stay 26 rows in the R-03 seed.
+- `T-SEL-01` (runs_from M7; clause (g)): With two defensible row-set readings giving f 1.3 and 2.9, the binding f is 2.9.
+
+### TASK-M7-03 · Implement N_eff, the E[max] function and the deflated ΔSR (R-23)
+
+**Type** task · **Priority** high · **Modules** R-23 · **Depends on** TASK-M7-01
+
+- **Package / files:** core/quant/backtest (diff_corr, emax_sim, emax_iid, n_equiv, n_clusters, deflated_dsr; proposed)
+- **Spec sections and rules:** R-23 algorithm · §7 gate.step3 · §10 item 36
+- **Owner decisions touched:** none
+
+**Description.** Correlate the ledger's difference series (rule minus comparator: overlay-off for CARD-O, S for CARD-P) on the common window and compute N_raw, ρ̄, the printed bound N_hat_linear = ρ̄ + (1 − ρ̄)N_raw, N_clusters (average linkage on √(0.5(1 − ρ)) cut at ρ ≥ 0.5), E_sim (mean max of Z ~ N(0, C) over ≥ 200,000 draws, seed 11) and N_equiv by bisection of e(N) (exact iid integral below 2; BLdP closed form with γ = 0.5772156649 from 2), with N_eff = max(N_clusters, N_equiv). Compute deflated = Φ((ΔSR − SE_null·e(N_eff))/SE_obs) with SE_obs the LW-HAC SE and SE_null the median over the ledger's rebuilt trials (the cross-trial V with ≥ 30 independent trials; both printed), taking the Sharpe ratio and T in one declared unit. Name Sharpe differences delta_sr and boot_delta_sr in code and add a static check that no path computes the Kish M/(1 + (M − 1)ρ̄) or uses a revision count as N.
+
+**Acceptance criteria**
+- `T-DSR-01` (runs_from M7; before the freeze): Reproduces Bailey–López de Prado's example: 0.9505 at N 46 and 0.9004 at N 100.
+- `T-DSR-02` (runs_from M7; before the freeze): The DSR API takes SR and T in one declared unit; daily and monthly DSR of the same card agree within 0.1; an annualised SR with a daily T raises.
+- `T-NEFF-01` (runs_from M7; before the freeze): On QF3's 26-trial matrix (seed 11): E_sim 1.33 ± 0.01, N_equiv 6.3 ± 0.4, N_clusters 5, N_hat_linear 12.6 ± 0.1; padding with 80 near-duplicates moves N_equiv by < 0.5 (6.33 → 6.59); a card without a ledger hash is refused; no code path computes the Kish N̂.
+
+### TASK-M7-04 · Implement step3() and the computed selection factor f
+
+**Type** task · **Priority** high · **Modules** R-23 · **Depends on** TASK-M7-03, TASK-M7-02
+
+- **Package / files:** core/quant/backtest.step3 (proposed)
+- **Spec sections and rules:** R-23 CARD-O and CARD-P rules, row set · §8.1.1 step 3 · §7 gate.step3
+- **Owner decisions touched:** none
+
+**Description.** Pass a CARD-O's step 3 iff deflated ≥ 0.95; for a CARD-P print DSR vs 0 and PSR vs S ungated and compute f from the ledger rows' span and run_utc against the header commit under any_overlap: f = 1 only for a configuration fixed in a committed, externally anchored header or a published SPEC version before any family row touched the evaluation span, else f = N_eff (Holm across variants printed). Compute f under every defensible row-set reading (market-scoped, family-wide; contested filings both ways) and bind the maximum, excluding the card's own run rows and null-distribution runs, and refuse any header that declares selection_factor. Print N_raw, N_hat_linear, N_clusters, N_equiv, N_eff, E_sim, SE_obs, SE_null, V_trials, the deflated value at N_raw and at N_hat_linear ("step 3 borderline" if < 0.95 there), the break-even N, the one-sided z-check (2.50 for ≤ 8 cells, 3.34 beyond), a BY q-value and the verdict at f = 1 and at f = N_eff. If C cannot be built, write no CARD-O verdict and default a CARD-P's f to N_raw.
+
+**Acceptance criteria**
+- `T-STEP3-01` (runs_from M7; before the freeze): On QF3's inputs R-03 gives 0.98 ± 0.01 PASS and 0.947 ± 0.01 at N_hat_linear, flagged "step 3 borderline"; R-04 gives 0.77 ± 0.02 FAIL.
+- `T-STEP3-02` (runs_from M7; before the freeze): A card without a ledger hash is refused; a static scan finds no implementation of M/(1 + (M − 1)ρ̄).
+- `T-SEL-01` (runs_from M7; clauses (a)–(d), (f), (h) before the freeze; (e) joins after the freeze (§9.0b)): (a) A and B run on 2016–26, then A runs on 1997–2026: f = N_eff; (b) a configuration committed before any family row touches its span: f = 1; (c) a header declaring selection_factor is refused; (d) both verdicts are printed; (e) at the card run f is recomputed and the larger of it and the acceptance report's binds, both printed, never refusing the run; (f) placebo, shift-panel and GJR-null runs append no row; (h) configurations differing only in target, threshold, multiplier or lag are two rows.
+
+### TASK-M7-05 · Anchor the timestamps of the f = 1 route (§9.4 item 15)
+
+**Type** task · **Priority** high · **Modules** R-23 · **Depends on** TASK-M7-02, TASK-M7-04
+
+- **Package / files:** core/rules gate.step3.spec_versions; ledger seed run_utc fields; git commits or external anchors
+- **Spec sections and rules:** §9.4 item 15 · R-23 (published-SPEC route) · R3 changelog
+- **Owner decisions touched:** none
+
+**Description.** Make every gate.step3.spec_versions publication instant and every seed row's run_utc cite a git commit or an external anchor, never a hand-entered time, because they decide the f = 1 route. Make step3() refuse unanchored timestamps. Close this before the freeze.
+
+**Acceptance criteria**
+- `T-SEL-01` (runs_from M7; clause (b)): A configuration committed before any family row touches its span receives f = 1 only through anchored timestamps.
+
+### TASK-M7-06 · Build the statistics and power harness (R-24)
+
+**Type** task · **Priority** high · **Modules** R-24 · **Depends on** TASK-M2-06
+
+- **Package / files:** core/quant/backtest (lw_studentized_boot, pw_block_psi, se_ladder, power_line, by_qvalue, harvey_liu_haircut, lo_adjusted_sr; proposed)
+- **Spec sections and rules:** R-24 rules 1–5 and 7 · §8.5 · §7 gate.stats
+- **Owner decisions touched:** none
+
+**Description.** Implement the Ledoit–Wolf studentized circular-block bootstrap with a null-centred t* (B 2,000, seed 11; HAC p printed beside it; a p of 0 printed "< 1/B"), Politis–White block length on the influence function ψ of ΔSR with a 21-session floor (250 sessions, logged, if it cannot be computed), and the SE ladder from LW-HAC and blocks of 10, 21, 63, 126 and 250 sessions with SE_plateau = the maximum and the curve and T/b printed. Print on every card MDE80 = 2.1232·SE_plateau, power at Δ +0.05 and +0.10 and, for CARD-P, PC-3 power at a true 0 and the years to detect +0.05 (T_years = sessions/252), and apply UNDERPOWERED (MDE80 > 0.10) only to a failed step-5 or PC-3 p-value, raising if applied anywhere else. Run multiplicity on analytic HAC/LW p-values (or B ≥ 20M/α) and print a BY q-value from the global ledger, the Harvey–Liu haircut beside live_sharpe_multiplier 0.60, and the Lo-adjusted Sharpe at 20 and all lags (never gated).
+
+**Acceptance criteria**
+- `T-POWER-01` (runs_from M7; before the freeze): SE(ΔSR) 0.061 ± 0.005 (US VT15 vs S, 50 bp, 1990–2026) and 0.130 ± 0.01 (KOSPI VT20 vs S, 3 bp, 2016–26); MDE80 0.13 / 0.28; years to detect +0.05 inside 241–246 / 319–330 and restated to a point before the freeze; PC-3 power at a true 0 for KOSPI 2016–26 0.30 ± 0.02.
+- `T-POWER-02` (runs_from M7; before the freeze): Every card prints SE (HAC and 250-block), MDE80 and power; a card without them is refused.
+- `T-UNDERPOW-01` (runs_from M7; before the freeze): With MDE80 > 0.10 a failed PC-3 p-value → INSUFFICIENT DATA (underpowered); a PC-3 point below −0.10, a PC-1′ failure or a PC-2 failure keep their REJECT or INSUFFICIENT path.
+- `T-PZERO-01` (runs_from M7; before the freeze): A resample count of 0 prints "< 1/B"; no card field holds p = 0.
+- `T-SE-01` (runs_from M7; before the freeze): R-03 vs unscaled (50 bp): LW-HAC 0.072, 250-block 0.091 (± 0.005); z falls from 3.81 to 3.0 and still passes 2.50.
+
+### TASK-M7-07 · Implement PBO by CSCV on the card's own objective
+
+**Type** task · **Priority** high · **Modules** R-24 · **Depends on** TASK-M7-06, TASK-M7-01
+
+- **Package / files:** core/quant/backtest (pbo_cscv, pbo_null; proposed)
+- **Spec sections and rules:** R-24 rule 6 · §8.1.1 step 4
+- **Owner decisions touched:** none
+
+**Description.** Run CSCV with S = 16 blocks (12,870 splits) over the family ledger ∪ the frozen PC-6 grid of the rule type, using paired ΔSR vs overlay-off for CARD-O and the block-wise ΔES95 of 21-session returns for CARD-P (never MDD on concatenated halves). Count the winner as losing when its out-of-sample objective is below the comparator's in more than 10% of splits, REJECT when PBO > 0.2 and the winner loses, and print "PBO not run (n < 10)" below 10 configurations, never imputing. Print the null-calibrated PBO and the degradation slope.
+
+**Acceptance criteria**
+- `T-PBO-01` (runs_from M7; before the freeze): The configuration set is ledger ∪ the frozen PC-6 grid on the card's own objective; the KOSPI VT grid's Sharpe-objective PBO (0.28) is printed; QF3's noise control (default_rng(11), normal(0, 0.01, (2600, 10)) truncated to 2,592 rows, 16 blocks, ddof 1) gives PBO 0.536 ± 0.001; over 200 panels (SeedSequence(11) children) the mean PBO lies in [0.45, 0.55].
+
+### TASK-M7-08 · Implement objective market-own episodes and the post-trough window (R-22 rules 1–2)
+
+**Type** task · **Priority** high · **Modules** R-22 · **Depends on** TASK-M1-11, TASK-M1-04
+
+- **Package / files:** core/quant/backtest (episodes, episode_benefits, post_trough_window; proposed); core/rules registry (θ per market)
+- **Spec sections and rules:** R-22 rules 1–2 · §8.6
+- **Owner decisions touched:** none
+
+**Description.** Implement the alternating bear/bull builder on the market's own official closes from the first close of the declared history (θ 0.20 for KOSPI and by default, 0.15 for the S&P 500; any other market's θ written before its first run by the frozen rule: 0.15 if its long-run median SMA20 vol < 0.18, else 0.20), with windows from the first return after the peak close to the trough and each episode carrying its peak date's regime tags. Print an open bear (open = true) and never count it toward PC-4, PC-7 or a re-gate, and refuse episodes built from vendor-derived or provisional closes. Compute the benefits B_e vs S, the trough → +63-session window and the three cost episodes (printed, never gated), keep the §8.6 named windows with their return-date conventions as the printed shock-type table with leave-one-crisis-out over six shock types, and assert — never override — that Sep-2026 is not an episode.
+
+**Acceptance criteria**
+- `T-EPIS-01` (runs_from M7; before the freeze): 18 alternating ≥ 20% KOSPI episodes on 1997–2026 (12 with troughs before 2008), 4 on 2016–26, 16 S&P episodes at 15% on 1990–2026, no Sep-2026 episode with no override; an open bear on a synthetic series is printed with open = true and counts toward neither PC-4 nor PC-7.
+
+### TASK-M7-09 · Implement excess returns and the cash leg (R-22 rule 3)
+
+**Type** task · **Priority** high · **Modules** R-22 · **Depends on** TASK-M1-21, TASK-M7-08
+
+- **Package / files:** core/quant/backtest.excess_returns (proposed); registry cash series BOK_CALL_RATE and US_RF (French RF or DTB3)
+- **Spec sections and rules:** R-22 rule 3 · R2-C5 · §8.5 return convention
+- **Owner decisions touched:** none
+
+**Description.** Compute x_t = w_t·(r_t − c_t) − cost_t with c_t from the card's declared cash series: annual-rate series (BOK_CALL_RATE; DTB3 after its discount-basis conversion) accrue the latest rate dated on or before the previous session × calendar days/365, a closed day of the rate's own calendar carrying the prior rate; per-period series (French daily or monthly RF) enter as published. Read the cash series from the card's frozen snapshot at knowledge_utc (role history; available_at recorded, never filtered), give zero-investment L/S series no cash term, print the price-index convention, and refuse a card when a day of the series' own calendar lacks a value (never cash = 0). Allow returns: raw only in reproduction runs, never in a card record, and get BOK_CALL_RATE's ECOS code and observation calendar from the owner before the freeze.
+
+**Acceptance criteria**
+- `T-EXCESS-01` (runs_from M7; before the freeze): In v1.2-check mode on PX2's cash fixture the cell gives ΔSR +0.006 and p_ni 0.078 ± 0.01, and the raw flag reproduces +0.026 and 0.052; the frozen-convention values are computed, printed and md5-frozen at their first run, never asserted against these; a missing cash day refuses the card.
+- `T-ROLE-02` (runs_from M1; its cash clause runs from M7): A missing cash day (a day of the series' own calendar without a value) refuses the card, never cash = 0; a KRX session on a day the cash calendar is closed accrues the latest prior rate.
+
+### TASK-M7-10 · Fix history start, span end, start bands, midpoint halves, regime lines and the card-book convention
+
+**Type** task · **Priority** high · **Modules** R-22 · **Depends on** TASK-M7-08, TASK-M1-04
+
+- **Package / files:** core/quant/backtest (start_band, midpoint_halves, regime_lines; proposed); core/rules gate.evaluation
+- **Spec sections and rules:** R-22 rules 4–6 · R3-3 (data cut-off) · §8.4 data and conventions group
+- **Owner decisions touched:** none
+
+**Description.** Start every card at the registry history start (KR 1997-04-01) plus the estimator warm-up, never chosen or truncated except through a regime line, and end drafted CARD-Ps at gate.evaluation.data_cutoff (KR 2026-10-02, US 2026-10-01; French-file cards at that file's last date) and later headers at the last month-end official close before their commit. Generate start bands only from the frozen shapes (default 33 monthly starts; R-06_KR the 32 monthly starts 1997-05…1999-12; decade_spaced for ≥ 80-year daily spans) and apply the integer stability floor (no REJECT at any start; 3·n_pass ≥ 2·n_starts, or 5·n_pass ≥ 4·n_starts for decade-spaced; no REJECT in either calendar-midpoint half, whose split date the header carries). Print per-R-20-regime lines and the declared primary out-of-sample line, and implement rule 6: card books exclude the R-07 hard stop and caps except where the claim concerns them, print a with_risk_layer line, and a run with the convention flipped is refused.
+
+**Acceptance criteria**
+- `T-BAND-01` (runs_from M7; before the freeze): R-06 KR's band has 32 monthly starts 1997-05…1999-12 asserted with history_start 1997-04-01 and needs ≥ 22 PASS (integers); R-29's decade band has 10 starts and needs ≥ 8 with no REJECT; a band with one REJECT start fails even with a PASS share ≥ 2/3; a REJECT in either midpoint half fails.
+
+### TASK-M7-11 · Build cardp_evaluate(): PC-1′…PC-7, caps and the verdict order (R-21)
+
+**Type** task · **Priority** high · **Modules** R-21 · **Depends on** TASK-M7-04, TASK-M7-06, TASK-M7-07, TASK-M7-08, TASK-M7-09, TASK-M7-10
+
+- **Package / files:** core/quant/backtest (cardp_evaluate, es_h, pc1_prime, tail_exposure_ratio, pc3_noninferiority, overlay_card_eval, gjr_null_percentile, placebo_panel; proposed); core/rules gate.card_p_v2
+- **Spec sections and rules:** R-21 rules 1–8 and 10 · §8.7 · §8.5 benchmarks
+- **Owner decisions touched:** none
+
+**Description.** Evaluate the on, off and S books (S = m̄ × overlay-off, constant, same days, uncosted; for an incremental card overlay-off is the book without the factor) plus buy-and-hold and the EWMA(0.94) de-risk line, all on excess returns. Gate PC-1′ (ΔES95 of overlapping 21- and 126-session returns vs S, each point > 0 with a stationary-bootstrap uncentred percentile p × f ≤ 0.10, mean block 250, B 2,000, seed 11, z printed; 1 and 6 months on monthly cards; 2× legs feed REVISE), PC-2 (daily tail-exposure ratio ≤ 0.90 with CI), PC-3 (δ 0.10; p_ni = max(p10, p_max(21, PW(ψ))) × f), PC-4 (≥ 3 positive objective episodes, max share ≤ 0.50), PC-5 (≥ 60% of years), PC-6 (frozen pc6_axes neighbours) and PC-7 (≥ 30 de-clustered onsets or ≥ 5 objective episodes; ≥ 882 sessions). Code the verdict order once — sufficiency → REJECT → inconclusive/underpowered → REVISE → caps (do-no-harm, timing-fragile, claim line, stability, estimator calibration, lowering only) → PASS — with gating lines combined at their worst verdict and reason codes. Print ΔMDD, ΔCDaR95 and daily ΔES99 with bands, the GJR-null percentile (1,000 paths, seed 11), the 20-shift placebo panel, time under water, re-entry lag, rolling 5-year blocks, DSR vs 0 and PSR vs S, and write no card if a bootstrap, the comparator or the episode list fails.
+
+**Acceptance criteria**
+- `T-ES-01` (runs_from M7; before the freeze): A continuous rule identical to S (≥ 5 episodes, ≥ 882 sessions) gives ΔES_21 = ΔES_126 = 0 → REJECT; halving exposure on the worst 5% of 21-session windows gives ΔES_21 > 0.
+- `T-DNH-01` (runs_from M7; before the freeze): A synthetic card passing every gate with ΔMDD < 0 and ΔCDaR95 < 0 → INSUFFICIENT DATA; with only ΔMDD < 0 → PASS; no drawdown-line value ever produces REJECT.
+- `T-ORDER-01` (runs_from M7; before the freeze): A 26-onset discrete rule failing PC-2 → INSUFFICIENT DATA (sufficiency first); a 54-onset rule with a PC-1′ point ≤ 0 → REJECT, with both points > 0 and p × f > 0.10 → INSUFFICIENT DATA; a timing-fragile card meeting a REJECT condition stays REJECT.
+
+### TASK-M7-12 · Build the timing-fragility gate and the timing_probe sandbox (R-34)
+
+**Type** task · **Priority** high · **Modules** R-34 · **Depends on** TASK-M7-01, TASK-M7-11, TASK-M1-19
+
+- **Package / files:** core/quant/backtest.timing_profile (proposed); tests/ fixtures incl. KR_SOX_KRW_gate_B3 (R4 B3 inputs and rule)
+- **Spec sections and rules:** R-34 · C-4 · P5 (single exception) · T-LAG-01/02 timing_probe clauses
+- **Owner decisions touched:** none
+
+**Description.** Run each card at L ∈ {−1, 0, 1, 2, 3} plus publication-strict timing, assert the L = 1 row equals the card's reported ΔSR, and derive LP = ΔSR[0] − ΔSR[1], LF = ΔSR[1] − ΔSR[2], FR = LF/ΔSR[1] (printed "n/m" when ΔSR[1] ≤ 0) and fragile = FR > 0.5 or a sign flip by lag 2, capping a fragile card at INSUFFICIENT DATA and requiring named live feeds. Write every lag to the family ledger (L ≤ 0 as NON-COMPLIANT). Run L ≤ 0 rows and the positive control only in the hermetic timing_probe sandbox (callable from tests/ or the R-34 sandbox, never the runtime, a book builder or a verdict path), tag everything synthetic_lookahead, record lag-audit violations in timing_profile.lags[].lag_audit instead of raising, and write outside the production artifact directory. Block every card run if the positive control (Korea SOX×KRW gate, LP ≥ 0.20) fails to trip, and print FR with a paired-bootstrap 90% interval until the council answers the Sharpe-neutral question.
+
+**Acceptance criteria**
+- `T-PLACEBO-01` (runs_from M7; before the freeze): The look-ahead control is flagged in the sandbox (LP 0.28 ≥ 0.20); R-12 is flagged (FR 0.74–0.75 > 0.5) while R-03 (FR 0.03) and R-04 pass; R-06 KR's raw-flag row and R-11's FR are printed, not asserted; every lag is written to the family ledger (L ≤ 0 as NON-COMPLIANT).
+- `T-PLACEBO-02` (runs_from M7; before the freeze): No call into timing_probe outside timing_profile(); enabling it from the runtime or a book builder raises; a card whose statistics read an L ≤ 0 row is refused; probe output carries synthetic_lookahead and lands outside the production artifact directory.
+- `T-LAG-01` (runs_from M1; its "refuses to write the card" clause and timing_probe exception run from M7): A backtest with a look-ahead datum refuses to write the card; inside timing_probe the violation is recorded in timing_profile.lags[].lag_audit, not raised.
+- `T-LAG-02` (runs_from M1; its timing_probe clause runs from M7): Inside timing_probe a deliberately earlier input is recorded, not raised.
+- `T-AVAIL-01` (runs_from M1; re-run in the freeze list of §8.1.3 step 1): The golden availability fixtures fail on an injected registry error (H.15 at D instead of D+1 16:15 ET).
+
+### TASK-M7-13 · Run the full-sample lag audit over every COMPLIANT golden (I-05)
+
+**Type** task · **Priority** high · **Modules** R-01, R-34 · **Depends on** TASK-M1-19, TASK-M7-12
+
+- **Package / files:** core/quant/backtest; tests (golden tier)
+- **Spec sections and rules:** I-05 · §8.1.3 step 1 · §9.3.1 timing flags
+- **Owner decisions touched:** none
+
+**Description.** Run the independent lag audit across every backtest used for golden values flagged COMPLIANT in §9.3 and fix every violation before the freeze. Keep VALUE and NON-COMPLIANT rows labelled as such and out of production rules.
+
+**Acceptance criteria**
+- `I-05` (runs_from M7; before the freeze): Zero lag-audit violations across every backtest used for golden values flagged COMPLIANT in §9.3.
+
+### TASK-M7-14 · Draft the CARD-P headers of the acceptance population
+
+**Type** task · **Priority** high · **Modules** R-06, R-28, R-29, R-31 · **Depends on** TASK-M7-10, TASK-M0-13, TASK-M0-09
+
+- **Package / files:** header drafts (model_card_header.macro) for MACRO-R06-KR-ETF, MACRO-R28-US-TREND, MACRO-R06-US-FUT and MACRO-R31-KR-ETF
+- **Spec sections and rules:** §8.1.3 step 2 · §8.4 (R-06 KR example header) · R-06 Korea card · R-28 · R-29 · R-31 · R-26
+- **Owner decisions touched (implement the default, flag it):**
+  - D1 Korea concentration template — default MSCI 25/50 (single name ≤ 22.5% after the buffer; names above 4.5% ≤ 45% in aggregate; checked quarterly and on breach); key risk_layer.korea_caps.template
+  - D2 Drawdown hard-stop level — default −15% of book NAV from the high-water mark since the last re-arm; key risk_layer.drawdown.hard_stop.level
+  - D5 US sleeve and line — default no US sleeve until decided (R-28 and R-29 stay FORWARD-SIM and never enter the recommended book); key sleeves.US.line
+
+**Description.** Draft the four CARD-P headers with every §8.4 field except the package citation, spans ending at gate.evaluation.data_cutoff: R-06 KR exactly as the §8.4 example (incl. the futures cost schedule before the KODEX 200 listing); R-28 incremental on R-29's CME_micro_ES vt book with its verbatim claim, its stacked-ΔMDD claim line and its pooled-onset rule; R-29 on CME_micro_ES at 5 bp with the decade-spaced band; R-31 on the KR book with hard_stop_level by {ref} to D2. Read notional_nav from the owner-signed sleeve keys, and record each draft's md5 for the acceptance report; the header committed after the freeze must match its draft.
+
+**Acceptance criteria**
+- `T-SCHEMA-02` (runs_from M0): Each draft validates against model_card_header.macro and is refused with any required field removed.
+- `T-BOOK-01` (runs_from M0; header clauses): Each draft declares instrument_book, rebalance, no_trade_band and the sleeve's notional_nav and passes the granularity floor.
+
+### TASK-M7-15 · Build gate_acceptance_test(): placebos, negative controls, D6 guard, attempts log, bounded redesign
+
+**Type** task · **Priority** high · **Modules** R-21 · **Depends on** TASK-M7-11, TASK-M7-14, TASK-M7-04, TASK-M0-07
+
+- **Package / files:** core/quant/backtest.gate_acceptance_test (proposed); gate/acceptance_runs.jsonl; core/rules gate.acceptance_test
+- **Spec sections and rules:** R-21 rule 9 · §8.1.3 step 2 · R2-C2 · R2-C3 · §8.10 (Q5)
+- **Owner decisions touched (implement the default, flag it):**
+  - D6 CDaR-guard calibration — default the lowest-placebo-false-pass rule, frozen with the package now, applied only if a negative control passes; an owner ruling is accepted only before the first acceptance attempt; key gate.acceptance_test.cdar_guard.calibration
+
+**Description.** Build placebos by circularly shifting each drafted card's multiplier series against its returns: 300 per family (τ uniform on [252, T − 252], seed 11; 300 per card pooled in multi-card families) and 20 per card at τ_k = round(252 + k(T − 504)/19), a placebo passing when both PC-1′ legs pass at 1× with f; fail on > 10% per family or > 2 of 20 per card (a per-card excess is resolved only by council question Q5). Run the five negative controls (US VT 5-day and 10-day at 50 bp; post-shock-day and post-shock-week 0.5×; stale VT with σ lag 252), requiring REJECT or INSUFFICIENT DATA; run the horizon-matched PC-2 placebo decision (adopt iff false-pass ≤ 10%); and only if a control would pass add the CDaR95 guard calibrated by the D6 rule recorded before the first attempt, printing the three candidates' placebo results only. Append every attempt to the hash-chained gate/acceptance_runs.jsonl as a package trial, allow one bounded redesign per version (frozen-items changes only, rationale citing family panels and controls, fresh seeds logged before the run; failures counted across all 2.x versions), and after a second failure leave every card NOT_RUN, write a package_redesign event and page the owner. Print f per row-set reading and p_ni in the report, and never compute a real card's verdict.
+
+**Acceptance criteria**
+- `T-GATE-04` (runs_from M7; before the freeze (synthetic)): On a synthetic failing panel nothing is frozen and no card runs; one redesign is accepted only if its diff touches frozen-items-table items alone and its fresh seeds were logged before the run; a second failure leaves every card NOT_RUN, writes a package_redesign event and pages the owner; a third attempt is refused even after a 2.x bump; every attempt is in gate/acceptance_runs.jsonl.
+
+### TASK-M7-16 · Build the definitions manifest and the card-run anchor check
+
+**Type** task · **Priority** high · **Modules** R-21, R-22, R-23, R-24, R-34 · **Depends on** TASK-M7-15, TASK-M7-02, TASK-M7-05
+
+- **Package / files:** core/rules gate.package; definitions manifest committed to the repository; docs/macro_overlay_study.py (re-hash at every run)
+- **Spec sections and rules:** §8.1.3 step 3 · §8.10 (freeze-relevant council questions) · T-CARD-02
+- **Owner decisions touched:** none
+
+**Description.** Assemble the definitions_md5 manifest: the canonical JSON of every gate.* block; the source files of every R-21–R-24 and R-34 harness function (cardp_evaluate, episodes, family_ledger, n_eff, step3, the bootstrap and block-length code, timing_profile, power_line, gate_acceptance_test); the md5 of every acceptance fixture; the seeds; each family ledger's hash, the §9.5 seed files and their difference series; gate.evaluation.data_cutoff, the D6 rule, and the recorded answers to the freeze-relevant council questions (Q5, the timing fragility of a Sharpe-neutral card, the primary OOS line of future cards), each answered or recorded "stands as written for 2.0.0" before the first attempt. Make docs/macro_overlay_study.py re-hash the manifest at every card run and refuse to run on any mismatch.
+
+**Acceptance criteria**
+- `T-CARD-02` (runs_from M7; after the freeze): docs/macro_overlay_study.py re-hashes the package manifest at every card run and refuses to run on a mismatch; an edit to any gate.* block, harness source file, acceptance fixture or seed after the freeze is detected.
+
+### TASK-M7-17 · Run the gate-acceptance test and freeze package 2.0.0 (I-08)
+
+**Type** task · **Priority** high · **Modules** R-21 · **Depends on** TASK-M7-03, TASK-M7-06, TASK-M7-07, TASK-M7-09, TASK-M7-10, TASK-M7-11, TASK-M7-12, TASK-M7-13, TASK-M7-15, TASK-M7-16
+
+- **Package / files:** core/rules gate.package = {version 2.0.0, definitions_md5, acceptance_report_md5, frozen_utc}; acceptance_report.json; repository commit as external anchor; tests freeze tier
+- **Spec sections and rules:** §8.1.3 steps 1–3 · Quick start "The gate package is frozen before any formal card run" · P11
+- **Owner decisions touched:** none
+
+**Description.** Pass every pre-freeze harness test first (T-DSR-01/02, T-NEFF-01, T-STEP3-01/02, T-SEL-01, T-LEDGER-01, T-ES-01, T-DNH-01, T-ORDER-01, T-EPIS-01, T-EXCESS-01, T-BAND-01, T-POWER-01/02, T-UNDERPOW-01, T-PZERO-01, T-PBO-01, T-SE-01, T-PLACEBO-01/02, T-GATE-04, T-AVAIL-01, I-05), then run the acceptance test once in the freeze job on placebos and negative controls only. On a pass, md5-freeze the results, write gate.package to the rules store, commit the manifest, both md5s and the report to the repository before any card runs, log a package_freeze event and count adoption as one revision in every family ledger; on a failure freeze nothing and follow the bounded-redesign path. From then on tests/run_all.py only re-verifies acceptance_report_md5 and definitions_md5, and any change is a new package version re-run on every card with its flips disclosed.
+
+**Acceptance criteria**
+- `I-08` (runs_from M7; its pre-freeze part; its US VT15 clause joins after the freeze (TASK-M7-23)): Run once with at most one bounded redesign, results md5-frozen, every attempt logged: ≤ 10% of 300 circular-shift placebos per family and ≤ 2 of 20 per card pass PC-1′; the five negative controls return REJECT or INSUFFICIENT DATA (the 5-day VT REJECTed by the PC-3 point, ΔSR −0.29); each attempt runs with the recorded D6 rule; p_ni is printed.
+- `T-GATE-01` (runs_from M7): ≤ 10% of 300 placebos per family and ≤ 2 of 20 per card pass PC-1′; all five negative controls return REJECT or INSUFFICIENT DATA; the report's md5 is written to core/rules and cited by every card header.
+- `T-GATE-03` (runs_from M7): Each negative control's verdict ∈ {REJECT, INSUFFICIENT DATA}; the 5-day ΔSR −0.29, the 10-day ΔSR −0.106 and the post-shock-week z 1.278, ΔSR −0.093, ΔMDD −9.1 pp and ΔCDaR −11.1 pp are printed, never asserted as points.
+
+### TASK-M7-18 · Commit the formal card headers blind (§8.1.3 step 4)
+
+**Type** task · **Priority** high · **Modules** R-03, R-06, R-14, R-28, R-29, R-31 · **Depends on** TASK-M7-17, TASK-M7-14
+
+- **Package / files:** card headers (model_card_header.macro) with header_md5; header_commit governance events
+- **Spec sections and rules:** §8.1.3 step 4 · §8.4 · §8.4 parameter budget
+- **Owner decisions touched (implement the default, flag it):**
+  - D1 Korea concentration template — default MSCI 25/50 (single name ≤ 22.5% after the buffer; names above 4.5% ≤ 45% in aggregate; checked quarterly and on breach); key risk_layer.korea_caps.template
+  - D2 Drawdown hard-stop level — default −15% of book NAV from the high-water mark since the last re-arm; key risk_layer.drawdown.hard_stop.level
+  - D5 US sleeve and line — default no US sleeve until decided (R-28 and R-29 stay FORWARD-SIM and never enter the recommended book); key sleeves.US.line
+
+**Description.** After the freeze, commit with header md5, package version and md5 and ledger_hash_at_registration: MACRO-R06-KR-ETF; MACRO-R03-US-MOM (QUANTGEN's own momentum sleeve, US shares via KIS at 50 bp on both legs, the paper L/S series over its declared history) with its two registered revisions; MACRO-R14-MULTI-TREND (one multi_line card); MACRO-R31-KR-ETF; MACRO-R28-US-TREND; MACRO-R06-US-FUT. Require each CARD-P header to match its acceptance draft, refuse a header citing any other package version or md5, and log every commit as a governance event. Keep all macro cards together within 8 searched parameters.
+
+**Acceptance criteria**
+- `T-CARD-01` (runs_from M7; after the freeze): A card whose header md5 differs from the committed header is refused; a class or claim change creates a new revision and increments the family ledger; a card without a ledger hash or the R-26 header fields is refused; displayed_as ∈ {recommendation, insurance} iff the verdict is PASS.
+
+### TASK-M7-19 · Build the card-study runner docs/macro_overlay_study.py and cards/verdicts.jsonl
+
+**Type** task · **Priority** high · **Modules** R-21, R-26, R-35 · **Depends on** TASK-M7-16, TASK-M7-18
+
+- **Package / files:** docs/macro_overlay_study.py (proposed); cards/verdicts.jsonl; core/quant/backtest (exec_variants, overnight_intraday_attribution, turnover_by_regime, stress_cost_line, roll_calendar, roll_cost_line, ban_basis_line; proposed)
+- **Spec sections and rules:** §8.1.3 steps 3–5 · R-26 rule 6 · R-35 verdict integrity · §8.5 costs
+- **Owner decisions touched:** none
+
+**Description.** Make the study refuse to run before the freeze and write one JSON model card per rule through the nine-step gate, with the overlay-on/off paired evaluation and the static comparator S, plus header md5 and results md5 for every card. Append each formal result to cards/verdicts.jsonl (card_id, revision, header_md5, results_md5, verdict, disposition, gate_package_md5, data_snapshot_id, git_hash, ledger_hash_at_run, prev_row_md5) and commit it with the card file. Run every card at 2× and print execution variants A/B/C, the overnight/intraday attribution, turnover by regime, the stress-cost line (non-gating until calibrated on KIS snapshots) and, for futures books, roll-cost and ban-period basis lines; keep bootstrap and GJR-null outputs bit-reproducible.
+
+**Acceptance criteria**
+- `I-07` (runs_from M7; after the freeze): On fixtures under the frozen package the study writes one card per rule with all nine gate lines, the CARD-P v2 checks, the power line, the timing profile and the ledger hash; in v1.2-check mode on the Yahoo fixture the R-06 KR long-history run reproduces G-KR-L01…L08 within Level-1 tolerance.
+- `T-BOOK-02` (runs_from M7; after the freeze): Every card prints execution variants A / B / C and the overnight/intraday attribution; KOSPI VT20, 3 bp, 1997–2026: SR 0.448 / 0.450 / 0.465 (± 0.01).
+- `T-BOOK-01` (runs_from M0; its printed-line clause runs from M7): Every card prints execution variants A/B/C and the overnight/intraday attribution.
+- `T-COST-01` (runs_from M2; its "a 2× run exists for every card" clause runs from M7): A 2× run exists for every card.
+- `T-REPRO-01b` (runs_from M7; after the freeze): The same seed, rules-store hash, data snapshot and package version give identical bootstrap and GJR-null outputs (relative difference ≤ 1e-12; single-threaded BLAS; PCG64 via SeedSequence with spawned child seeds).
+
+### TASK-M7-20 · Archive each formal card's data snapshot (§9.4 item 16)
+
+**Type** task · **Priority** high · **Modules** R-35, R-01 · **Depends on** TASK-M7-19
+
+- **Package / files:** card archive: the store rows behind each card's data_snapshot_id, md5-listed with the card
+- **Spec sections and rules:** §9.4 item 16 · R-35 verdict_filter check (iii)
+- **Owner decisions touched:** none
+
+**Description.** Archive with every formal card the store rows behind its data_snapshot_id and md5-list them, so verdict_filter's check (iii) can re-derive the snapshot even after a store migration. Treat a lost archive as an integrity failure, never as a reason to re-run silently; losing it would drop every admission at once and step exposure up to the invariants-only level.
+
+**Acceptance criteria**
+- `T-REPRO-01b` (runs_from M7): Re-deriving data_snapshot_id from the archived rows reproduces the card's snapshot and its statistics bit for bit.
+
+### TASK-M7-21 · Run the R-06 KR formal long-history card (I-16) — expect INSUFFICIENT DATA, never rescue it
+
+**Type** task · **Priority** high · **Modules** R-06, R-22 · **Depends on** TASK-M7-19, TASK-M7-20
+
+- **Package / files:** docs/macro_overlay_study.py; core/quant/backtest; card MACRO-R06-KR-ETF
+- **Spec sections and rules:** R-06 Card (Korea) · §8.9 · Quick start "The Korea card, stated plainly" (R2-C1) · Resolution 1
+- **Owner decisions touched (implement the default, flag it):**
+  - D1 Korea concentration template — default MSCI 25/50 (single name ≤ 22.5% after the buffer; names above 4.5% ≤ 45% in aggregate; checked quarterly and on breach); key risk_layer.korea_caps.template
+
+**Description.** Run MACRO-R06-KR-ETF on KRX official closes from 1997-04-01 + 20-session warm-up (ETF 3 bp with the declared futures schedule before the KODEX listing, SMA20 / 0.20 / cap 1, excess returns at BOK_CALL_RATE, objective ≥ 20% episodes), implementing the verdict as PASS iff (i) a full-span v2 PASS, (ii) an ETF-era PASS to 2025-12, (iii) no REJECT at any of the 32 monthly starts and ≥ 22 PASS, and (iv) no REJECT in either midpoint half, at the computed f, tested with injected sub-verdicts per failing branch. Print the insurance label, timing return, per-regime table, both verdicts (f = 1 and f = N_eff) and the differences from G-KR-L01 with each convention's expected direction (informative only), and run the raw-flag data check against G-KR-L01 at Level-2. On current evidence expect INSUFFICIENT DATA through f; record it as a labelled specification-book control re-gated only on a new objective episode, and never change a convention, window, cap, cash series or row set to rescue it.
+
+**Acceptance criteria**
+- `I-16` (runs_from M7; after the freeze): The verdict function returns PASS iff (i)–(iv) hold, tested with injected sub-verdicts for each failing branch; the card prints the insurance label, timing return and per-regime table and its differences from G-KR-L01 (informative, never a pass condition); the raw-flag data check reproduces G-KR-L01 within Level-2; the formal verdict, header md5 and results md5 are written.
+- `I-09` (runs_from M7; after the freeze): 18 alternating ≥ 20% KOSPI episodes (12 before 2008), 4 on 2016–26, 16 S&P episodes at 15%, no Sep-2026 episode; PC-4 maximum share 0.174 ± 0.01 (0.493 under §8.6 printed); excess returns with call-rate cash (p_ni 0.078 ± 0.01 in v1.2-check mode); every card prints the trough → +63-session window.
+- `G-POST-01` (runs_from M1; its M7 rows (v1.2-check mode)): R-06 KR 3 bp p_ni 0.25 (0.246) / 0.21 (0.208); R-06 KR 35 bp ΔSR −0.029.
+- `G-KR-L01` (runs_from M7; v1.2-check mode): Definitive cell 1997-04 → 2026-10, ETF 3 bp: ΔMDD +12.7 (+12.5) pp, tail 0.68, ΔSR +0.026, p_ni 0.052 / 0.029, 4/11 (0.493), years 0.70, plateau 0.875 → PASS (fragile).
+- `G-KR-L02` (runs_from M7; v1.2-check mode): Futures 5 bp: +12.6 pp, p_ni 0.055 → PASS.
+- `G-KR-L03` (runs_from M7; v1.2-check mode): Stock 35 bp reference line: p_ni 0.141 → INSUFFICIENT.
+- `G-KR-L04` (runs_from M7; v1.2-check mode): 1998-01 start: +3.8 pp → PASS (thin).
+- `G-KR-L05` (runs_from M7; v1.2-check mode): 2002-01 → 2026-10: +11.0 pp, p_ni 0.038 → PASS.
+- `G-KR-L06` (runs_from M7; v1.2-check mode): 1997-04 → 2015-12 → INSUFFICIENT (3 §8.6 windows).
+- `G-KR-L07` (runs_from M7; v1.2-check mode): 2016-01 → 2025-12 → REJECT (PC-2, PC-4).
+- `G-KR-L08` (runs_from M7; v1.2-check mode): 2016-01 → 2026-10 → INSUFFICIENT.
+- `G-KR-L09` (runs_from M7): Objective bear-20 episodes 14/18 positive (max share 0.174) vs §8.6 + Sep-2026 5/12 (0.490).
+- `G-KR-L10` (runs_from M7): Start sweep 1997-02 → 2003-01: 71–72 of 72 PASS (the 1998-10 start asserted as PASS or INSUFFICIENT).
+- `G-KR-L11` (runs_from M7): Episode benefits vs S reproduce (GFC +9.1 … Jul-2026 +21.4 pp; cost episodes −6.9 / −15.5 / −31.5 / −13.2 pp).
+- `G-KR-L12` (runs_from M7): Tail metrics reproduce (ΔES99 +1.95 pp; ΔES95 21-day +2.9 pp; ΔCDaR95 +7.1 pp; SD of ΔSR 0.066).
+- `G-KR-L13` (runs_from M7; cap-1.5 variant in reference mode): Variants: targets 0.15 / 0.25, EWMA(0.94), 0.10 band and monthly → INSUFFICIENT; own expanding-median target −3.4 pp → REJECT.
+
+### TASK-M7-22 · Run the post-freeze convention reproductions and the gate-power goldens
+
+**Type** task · **Priority** high · **Modules** R-21, R-22, R-24, R-06 · **Depends on** TASK-M7-19
+
+- **Package / files:** tests (golden tier); core/quant/backtest
+- **Spec sections and rules:** R-21 and R-22 acceptance tables · §9.3.2 gate power and US vol target by instrument book
+- **Owner decisions touched:** none
+
+**Description.** After the freeze, run the convention reproductions on the Korea definitive cell with the R4b raw-return flag and the gate-power goldens. Reproduce the US vol-target-by-instrument-book lines in v1.2-check or reference mode only; none of them is a card run. Print the R-21 stationary-bootstrap z beside every research z without asserting one against the other.
+
+**Acceptance criteria**
+- `T-EPIS-02` (runs_from M7; after the freeze): On the Korea definitive cell, 14 of 18 objective episodes positive, max share 0.174 ± 0.01; the printed §8.6 line shows 0.493 (4 of 11).
+- `T-TROUGH-01` (runs_from M7; after the freeze): Every card prints a trough → +63-session window per episode and the three cost episodes; the Korea cell shows −6.9 / −15.5 / −31.5 pp vs S; none enters PC-4.
+- `T-ES-02` (runs_from M7; after the freeze): Reproduces ΔES99 +1.95 pp, ΔES95 of 21-day returns +2.9 pp and ΔCDaR95 +7.1 pp; the z values (4.3; 2.3) only in reference mode.
+- `T-RLAYER-01` (runs_from M7; after the freeze): R-06 KR's on, off and S books follow rule 6; the with_risk_layer line reproduces Check C2 (24 HALTs, MDD −56.4% vs −45.3%); a run with the convention flipped is refused.
+- `G-PWR-01` (runs_from M7): SE(ΔSR) vs S: US VT15 0.061 (241–246 years for +0.05); KOSPI VT20 2016–26 0.132 (319–330 years); MDE80 0.128 / 0.276.
+- `G-PWR-02` (runs_from M7): P(REJECT) at a true ΔSR of 0 reproduces per cell (e.g. US VT15 50 bp resampling 0.69 · 0.58 · 0.44 at 11 years).
+- `G-US-F01` (runs_from M7; v1.2-check): US shares via KIS 50 bp (the registered card): +0.2 (−3.4) pp, p_ni 0.146 → REJECT (PC-1).
+- `G-US-F02` (runs_from M7; v1.2-check): Futures 5 bp: +3.6 (+3.2) pp, p_ni 0.002 → PASS.
+- `G-US-F03` (runs_from M7; v1.2-check): KRX S&P ETF proxy 3 bp (cost bucket): +3.8 pp → PASS.
+- `G-US-F04` (runs_from M7; v1.2-check): Monthly 50/5/3 bp → INSUFFICIENT (PC-4, GFC).
+- `G-US-F05` (runs_from M7; v1.2-check): Band 0.10 at 50/5/3 bp → REJECT / PASS / PASS.
+- `G-US-F06` (runs_from M7; v1.2-check): 1995–2026 daily 5/3 bp → REJECT (PC-1) / REVISE (2×).
+- `G-US-F07` (runs_from M7; v1.2-check): 1990–2007 / 2008–2026 at 5 bp → INSUFFICIENT / PASS.
+- `G-US-F08` (runs_from M7; v1.2-check): 44 quarterly starts at 5 bp: 11 PASS / 9 REVISE / 24 REJECT (class assertions near thresholds).
+- `G-US-F09` (runs_from M7): ES metrics at 50 / 5 bp and monthly reproduce (e.g. daily 50 bp ΔES99 +1.1 pp, z 2.37).
+- `G-US-F10` (runs_from M7): Estimator choice 1995–2026: at 50 bp every estimator REJECT or INSUFFICIENT; at 5 bp SMA20 REJECT, GARCH / log-HAR / COMB PASS.
+
+### TASK-M7-23 · Keep the R-06 US 50 bp card as an instrument-specific REJECT and compute its disclosed flip
+
+**Type** task · **Priority** high · **Modules** R-06, R-21 · **Depends on** TASK-M7-17, TASK-M7-19
+
+- **Package / files:** card record MACRO-R06-US (registered); core/quant/backtest (fixture U1)
+- **Spec sections and rules:** R-06 Card (US) · §8.1.3 disclosed flips · §10 items 23 and 32
+- **Owner decisions touched:** none
+
+**Description.** Show the registered card as "REJECT (instrument: US shares via KIS, 50 bp, daily)", write no new card record, and never re-run or build it; any vt > 1.0 fails validation. Under the frozen package compute the disclosed flip on fixture U1 as a class (INSUFFICIENT DATA) with its points printed. Log the monthly and banded 50 bp variants as R-06 ledger trials, never as rescues.
+
+**Acceptance criteria**
+- `T-R06-US-01` (runs_from M7; after the freeze): The registered US card shows "REJECT (instrument: US shares via KIS, 50 bp, daily)" and is never re-run; any vt > 1.0 fails validation.
+- `T-GATE-02` (runs_from M7; after the freeze): US VT15 at 50 bp on U1: the v2 verdict is INSUFFICIENT DATA as a class (ES21 +1.65 pp, ES126 +3.8 pp ± 0.2); p_ni printed (never asserted against R4b's 0.146); 2× ΔSR −0.125; the recorded label stays the instrument REJECT.
+- `I-08` (runs_from M7; its US VT15 clause, after the freeze): On the US VT15 50 bp fixture the v2 verdict is INSUFFICIENT (ES21 +1.65 pp, ES126 +3.8 pp, p_ni printed).
+
+### TASK-M7-24 · Run the R-03 momentum card and its two registered revisions
+
+**Type** task · **Priority** high · **Modules** R-03, R-23 · **Depends on** TASK-M7-19, TASK-M4-03
+
+- **Package / files:** card MACRO-R03-US-MOM with revisions 2 and 3; docs/macro_overlay_study.py
+- **Spec sections and rules:** R-03 Card · §8.1.3 step 4 · §8.9 R-03 rows
+- **Owner decisions touched:** none
+
+**Description.** Commit the scale-free and variance-scaled revisions' header md5s before their runs so each increments the R-03 family ledger, and run MACRO-R03-US-MOM on QUANTGEN's own sleeve under the frozen package as a CARD-O against the unscaled sleeve. Verify the card lines on the French Mom fixture and reproduce G-DSR-01/02. Let the lowest PASSing revision act, entering the recommended book only through verdict_filter (M8) with its "step 3 borderline" flag.
+
+**Acceptance criteria**
+- `T-R03-01` (runs_from M4; its step-3 and header clauses, after the freeze): On the French Mom fixture (50 bp, both legs) the card prints ΔSR +0.273 ± 0.01, deflated ΔSR 0.98 ± 0.01 at N_equiv 6.3 (PASS) and 0.947 ± 0.01 at linear N̂ 12.6 flagged "step 3 borderline"; both revisions carry a committed header md5 before their runs and increment the R-03 ledger.
+- `G-DSR-01` (runs_from M7): The DSR code reproduces Bailey–López de Prado's example: 0.9505 at N 46; 0.9004 at N 100.
+- `G-DSR-02` (runs_from M7): R-03 net of 50 bp: SR 0.6723, ΔSR vs unscaled +0.2729, HAC SE 0.0716; at N̂ 12.5–12.6 deflated ΔSR 0.947.
+
+### TASK-M7-25 · Run R-04's step 3 on the R-03 ledger and close the pooled route
+
+**Type** task · **Priority** medium · **Modules** R-04 · **Depends on** TASK-M7-24
+
+- **Package / files:** card record for R-04 (specification book only); core/rules validation (pooled / A-provisional refusal)
+- **Spec sections and rules:** R-04 Card · §8.3 (A-provisional closed) · §10 item 34
+- **Owner decisions touched:** none
+
+**Description.** Compute R-04's add-on step 3 on the R-03 family ledger and keep it in the specification book labelled "step 3 FAIL". Make card validation reject any A-provisional or pooled route for a card already run. Route the would-be pooled trial to R-03's variance-scaled revision instead.
+
+**Acceptance criteria**
+- `T-R04-01` (runs_from M7; after the freeze): The card computes step 3 on the R-03 family ledger and reports a deflated add-on of 0.77 ± 0.02 at N_equiv 6.3 → "step 3 FAIL"; card validation rejects any A-provisional or pooled route for a card already run.
+
+### TASK-M7-26 · Build and run the R-14 TS-trend sleeve card
+
+**Type** task · **Priority** low · **Modules** R-14 · **Depends on** TASK-M7-19, TASK-M4-06
+
+- **Package / files:** core/quant/signals (ts_trend sleeve); card MACRO-R14-MULTI-TREND
+- **Spec sections and rules:** R-14 · §8.2 · R-15 (ts_trend admissibility)
+- **Owner decisions touched:** none
+
+**Description.** Implement the sleeve: 12-1 month sign, monthly rebalance, per-asset weight min(1.0, 0.15/σ_12m) with σ_12m the mean-adjusted SD of the last 12 monthly returns × √12, base weights per R-15, exempt from every overlay and from vt but subject to the risk-layer caps and the hard stop, costed per venue. Require the header to declare instrument_book multi_line with instrument_lines[] (never a stock book) and the claim CARD-O diversification vs the equal-weight long-only basket, and refuse it otherwise. Restate the goldens at cap 1 with sub-period correlations, print the failure mode "not fast-crash protection", and keep the sleeve descriptive until its own PASS.
+
+**Acceptance criteria**
+- `T-R14-01` (runs_from M7; after the freeze): The header declares its instrument book and its claim (CARD-O, diversification) and is refused without them; goldens are restated at cap 1 with sub-period correlations; the failure-mode text reads "not fast-crash protection".
+- `T-BASIS-01` (runs_from M0; its runtime clause for R-14 runs from M7): vt is not applied to TS trend and no overlay multiplier applies to ts_trend.
+
+### TASK-M7-27 · Run the R-31 step-down card and freeze its binding share
+
+**Type** task · **Priority** medium · **Modules** R-31 · **Depends on** TASK-M7-19, TASK-M5-05
+
+- **Package / files:** card MACRO-R31-KR-ETF; core/quant/backtest (binding share; step-down card); R-31 reference run
+- **Spec sections and rules:** R-31 · §9.4 item 8 · §8.10 D2 · Resolution 6
+- **Owner decisions touched (implement the default, flag it):**
+  - D2 Drawdown hard-stop level — default −15% of book NAV from the high-water mark since the last re-arm; key risk_layer.drawdown.hard_stop.level
+
+**Description.** Compute the binding share (sessions with step_mult < 1 ÷ sessions) on the recommended book without the steps over the full declared history at the header commit, freeze it with the header, and recompute it only through a counted R-31 revision when the book's composition changes (promotion, demotion, a D1 or D2 ruling), logged — never on a trailing window. At ≤ 0.10 give the steps disposition INVARIANT_STEP in the recommended book; above it keep them in the specification book until this CARD-P passes, judged incrementally vs S = book × the steps' mean multiplier with the claim "protection in persistent drawdowns; time-boxed; no Sharpe claim" and the Kaminski–Lo line printed. Run the §9.4 item 8 reference run with separate hwm_hard and ref_step references so T-STEP-03 has a frozen reference.
+
+**Acceptance criteria**
+- `I-15` (runs_from M7; after the freeze): Step references reset after 21 sessions and the hard-stop reference does not; the binding share is printed (≈ 19% KOSPI VT20, 10% US VT15); above 10% the steps act only in the specification book until this CARD-P passes; ΔSR vs no steps matches the R-31 reference run.
+- `T-STEP-01` (runs_from M7; after the freeze): A −9% drawdown gives 0.5× for exactly 21 sessions and a −13% drawdown 0.5× plus the block for exactly 21; then ref_step resets and hwm_hard does not; a later −15% from hwm_hard HALTs although dd_step is shallower.
+- `T-STEP-02` (runs_from M7; after the freeze): Binding share ≈ 19% (KOSPI VT20, 3 bp, 1997-04-15 → 2026-10-02) and ≈ 10% (US VT15, 5 bp) ± 3 pp, printed.
+- `T-STEP-03` (runs_from M7; after the freeze): ΔSR vs the same book without steps is printed and matches the R-31 reference run (§9.4 item 8).
+- `T-STEP-04` (runs_from M7; after the freeze): KOSPI binding share > 10% with no PASS: the step multiplier appears only in the specification book and the recommended book carries the hard stop only; US placement uses the exact computed share once D5 enables a sleeve.
+
+### TASK-M7-28 · Close R-30's card-level clauses and wire the estimator-calibration cap
+
+**Type** task · **Priority** medium · **Modules** R-30 · **Depends on** TASK-M7-11, TASK-M3-04, TASK-M3-05
+
+- **Package / files:** core/quant/backtest (estimator_gate Stage 3 with R-24 CIs; cardp_evaluate estimator cap); core/rules validation
+- **Spec sections and rules:** R-30 rules 5–8 · R-21 caps · §8.5 estimator requirement
+- **Owner decisions touched:** none
+
+**Description.** Wire R-24's bootstrap CIs into Stage 3, require every estimator change to be a new card revision with a ledger row, and refuse COMB or log-HAR declared on a KRX_stock_book card. Feed the incumbent's B5 status and a challenger's Stage-1 result into cardp_evaluate's estimator-calibration cap (REVISE; permitted fix "lengthen the holding period" as a counted revision). Reproduce the COMB sized book.
+
+**Acceptance criteria**
+- `T-EST-03` (runs_from M7): COMB sized book (KOSPI 2001–26, 3 bp, target 20%, cap 1): vol-of-vol −22% ± 2 pp vs SMA20 (0.0347 vs 0.0446); ΔMDD +2.8 pp; ΔSR −0.000 with 90% CI [−0.042, +0.039].
+- `T-EST-05` (runs_from M7): An estimator change without a new card revision and ledger row is refused; COMB declared on a KRX_stock_book card is refused.
+- `T-EST-01` (runs_from M3; its bootstrap-CI clause runs from M7): The MCS and Stage-3 CIs come from the frozen R-24 bootstrap.
+- `T-EST-02` (runs_from M3; its Stage-3 clause runs from M7): The Stage-3 report ranks survivors by vol-of-vol with CI ties broken by simplicity.
+- `T-EST-04` (runs_from M3; its counted-revision clause runs from M7): A challenger enters a card only through a counted revision; the fallback never blends.
+- `I-10` (runs_from M3; its Stage-3, bootstrap-CI and counted-revision clauses run from M7): COMB on KOSPI 2001–26 at 3 bp shows vol-of-vol −22% ± 2 pp vs SMA20; an estimator switch without a counted revision is refused.
+- `T-B5-01` (runs_from M3; its "cannot be PASS" clause runs from M7): A vol-target card whose estimator is FAIL cannot be PASS.
+
+### TASK-M7-29 · Generate the stack CARD-P before a second de-risk factor joins a book
+
+**Type** task · **Priority** high · **Modules** R-02 · **Depends on** TASK-M7-11, TASK-M7-19
+
+- **Package / files:** book builder (stack-card generator, proposed); core/quant/backtest (stack CARD-P under the frozen package)
+- **Spec sections and rules:** R-02 rule (6) · §8.7 stack card · P17 · §10 item 31
+- **Owner decisions touched:** none
+
+**Description.** Treat as de-risk factors the market-level factors carried by a card that can be < 1.0 in the recommended book (vt R-06 KR, R-28, R-29 and the R-31 steps once their card PASSes), never invariants, INVARIANT_STEP steps or vs. Before a second such factor joins a market's recommended book, generate a stack CARD-P that judges (a) the joining factor incrementally on the current recommended book and (b) the composed book, with the hard stop and caps applied, against the invariants-only book with S = that book × the stack's mean multiplier; admit the factor only if both PASS, joining a batch in header-commit order. Print the share of days at ≤ 0.25× total exposure and the rebound capture in the cost episodes, refuse a product-composed stack, and run the stack card's own placebo panels at its header commit under the frozen rule 9(a).
+
+**Acceptance criteria**
+- `T-CAP-02` (runs_from M2; its stack-card clause runs from M7): The stack card prints the share of days at ≤ 0.25× total exposure and the rebound capture (EX1 on KOSPI: 31.0% under product composition vs 11.2% under min()); once ≥ 2 de-risk factors act in the recommended book a stack CARD-P is generated and gated.
+
+### TASK-M7-30 · Compute the pending package-dependent values (§9.4 items 1, 4, 11, 12, 14)
+
+**Type** spike · **Priority** high · **Modules** R-21, R-22, R-23, R-24, R-06 · **Depends on** TASK-M7-06, TASK-M7-15, TASK-M7-21, TASK-M7-22
+
+- **Package / files:** core/quant/backtest; acceptance report; tests (golden tier; md5-frozen at first run)
+- **Spec sections and rules:** §9.4 items 1, 4, 11, 12 and 14 · R2-C7
+- **Owner decisions touched:** none
+
+**Description.** Before the freeze, restate T-POWER-01's years line to a point (T_years = sessions/252, SE = SE_plateau of the named fixture) and print the R-06 KR selection factor under every defensible row-set reading in the acceptance report (items 11–12). At the first formal runs compute, print beside the research value and md5-freeze — never asserting one against the other — the excess-return cells of T-EXCESS-01 and I-09, T-GATE-02's p_ni and T-ES-02's z (item 14), the Korea card's ES126 z (item 4), and the excess-return restatement of the §9.3.1 regression goldens (item 1). Each value becomes a golden only once frozen.
+
+**Acceptance criteria**
+- `T-POWER-01` (runs_from M7; years-line clause): The years to detect +0.05 are restated to a point inside 241–246 / 319–330 before the freeze.
+- `T-EXCESS-01` (runs_from M7; frozen-convention clause): The frozen-convention values are computed, printed and md5-frozen at their first run, never asserted against the research numbers.
+- `T-GATE-02` (runs_from M7; p_ni clause): p_ni is printed under R-24's studentized bootstrap and md5-frozen, never asserted against 0.146.
+- `T-ES-02` (runs_from M7; z clause): R-21's stationary-bootstrap z is printed and frozen, never asserted against 4.3 / 2.3.
+
+---
+
+## M8 — Forward records and workflow
+
+**Exit tests whose runs_from is M8** (§9.0a; clauses deferred by §9.0b join later and are named in the tasks): `G-KR-05`, `G-KR-05s`, `G-REF-01`, `G-REF-02`, `G-TR-01`, `G-TR-02`, `G-TR-03`, `G-TR-04`, `G-TR-05`, `I-01`, `I-03`, `I-12`, `I-13`, `I-14`, `T-CARD-03`, `T-DEMOTE-01`, `T-DEMOTE-02`, `T-DEMOTE-03`, `T-DEMOTE-04`, `T-DEMOTE-05`, `T-OBS-01`, `T-OBS-02`, `T-OBS-03`, `T-OBS-04`, `T-OBS-05`, `T-REF-01`, `T-REF-02`, `T-REPLAY-01`, `T-SCOPE-01`, `T-TREND-01`, `T-TREND-02`, `T-TREND-03`, `T-TREND-04`, `T-USFUT-01`, `T-USFUT-02`, `T-USFUT-03`, `T-USFUT-04`, `T-USFUT-05`.
+
+### TASK-M8-01 · Build the macro_daily workflow with its decision gates
+
+**Type** task · **Priority** medium · **Modules** R-35 · **Depends on** TASK-M6-05, TASK-M1-19, TASK-M5-12
+
+- **Package / files:** core/skills/workflows/macro_daily.yaml (proposed); macro.* skills; run_log.jsonl
+- **Spec sections and rules:** §3.9 · R-35 · §3.2
+- **Owner decisions touched:** none
+
+**Description.** Run the pipeline after each close, starting no earlier than close_print_bound_utc + 10 minutes (06:40:30Z for KRX today): pit_snapshot (retry to the decision deadline, then pin knowledge_utc; one artifact per decision, a later run being a replay), data_ok by role and book, the independent lag_audit, vol_and_overlays, build_artifacts (always written, also when a gate failed), bounds_ok, verdict_filter, engine_feed (recommended and specification books only), forward_books, forward_monitor, brief and run_record. Make bounds_ok validate schema 2.0, P2 bounds, exposure basis and min() recomputed from the recorded factors: an acting-field failure HALTs (OPS) the described books and quarantines the artifact; a display or context failure writes extras.validation_errors and alerts; a failed context_log or event_calendar is refused and quarantined, never HALTing. Keep credentials env-only and send the Claude API computed numbers only.
+
+**Acceptance criteria**
+- `I-01` (runs_from M8): On post-close fixtures for KR 2026-07-30 and 2026-10-02 and US 2026-07-30 and 2026-10-01 all five artifacts are produced and valid; 2026-10-02 uses the official close 7,003.74 and its flags match §11; 2026-07-30 reproduces vt 0.25; data_ok passes a stale risk-model input with hedge_credit_off set and fails closed on a stale acting input; refusal and FORWARD-SIM books never reach engine_feed; gates fire on injected failures.
+- `T-CLOSE-01` (runs_from M1; its workflow clause runs from M8): The workflow never starts before 06:40:30Z for the KRX decision of 2026-10-02.
+- `T-RO-02` (runs_from M1; its I-01 clause runs from M8): I-01 runs with the HTTP transport patched to record every request and the recording shows zero non-allowlisted requests.
+- `I-06c` (runs_from M5; its acting-field schema HALT clause runs from M8): An acting-field schema error HALTs (OPS) the books the artifact describes.
+
+### TASK-M8-02 · Implement verdict_filter with verdict integrity and admission-derived bindings
+
+**Type** task · **Priority** high · **Modules** R-35, R-19 · **Depends on** TASK-M8-01, TASK-M7-19, TASK-M7-20
+
+- **Package / files:** verdict_filter gate in macro_daily; cards/verdicts.jsonl; core/ficc/data bindings; governance_events.jsonl
+- **Spec sections and rules:** R-35 verdict integrity (R2-C4) · R-19 rule 5 (bindings follow admission) · §8.1.2
+- **Owner decisions touched:** none
+
+**Description.** Admit a factor to the recommended book only if its card verdict is PASS with build status BUILD NOW or BUILD-AS-INSURANCE, or if it is an R-31 step with disposition INVARIANT_STEP; refuse a BUILD_AS_INSURANCE card whose verdict is NOT_RUN or INSUFFICIENT DATA (R-06 KR today). Admit only if (i) the card file re-hashes to the committed results_md5 and the verdicts chain verifies, (ii) its gate_package_md5 equals the frozen definitions_md5, and (iii) its data_snapshot_id re-derives from the store (archived snapshot) and its git_hash is a commit whose harness sources match the manifest; otherwise keep the factor in the specification book and raise VERDICT_INTEGRITY (page). Bind the admitted factor's acting inputs to the recommended book in the same run, logging each derived-binding change as a governance event.
+
+**Acceptance criteria**
+- `T-CARD-03` (runs_from M8): A card whose verdict is edited to PASS after its run is refused by verdict_filter (specification book, VERDICT_INTEGRITY page); a hand-edited verdicts.jsonl row breaks the chain and blocks every admission until restored; a mismatched gate_package_md5 or a non-reproducible data_snapshot_id is refused the same way.
+- `I-01` (runs_from M8; verdict_filter clause): verdict_filter admits only PASS factors (RECOMMENDATION or BUILD_AS_INSURANCE) and INVARIANT_STEP R-31 steps; R-06 KR (BUILD_AS_INSURANCE on PASS, NOT_RUN today) is refused.
+
+### TASK-M8-03 · Enforce book separation for refusal, FORWARD-SIM and non-PASS factors (I-03)
+
+**Type** task · **Priority** medium · **Modules** R-04, R-11, R-12, R-31, R-35 · **Depends on** TASK-M8-02, TASK-M4-07
+
+- **Package / files:** book builder assertions (core/quant/signals, core/quant/risk); core/rules validation (§10 item 22)
+- **Spec sections and rules:** I-03 · §8.1.2 books · P7 · §10 item 22
+- **Owner decisions touched:** none
+
+**Description.** Assert in the book builder that the recommended book never reads a FORWARD-SIM multiplier, a refusal-book multiplier or a non-PASS factor, refuses R-04, and refuses R-31 steps while their frozen binding share exceeds 0.10 and the card has not passed. Assert that no recommended or specification book reads the R-11 or R-12 multiplier. Extend the assertion to every FORWARD-SIM and refusal book.
+
+**Acceptance criteria**
+- `I-03` (runs_from M8): The recommended book never reads a FORWARD-SIM multiplier, a refusal-book multiplier or a non-PASS factor (assertion); it refuses R-04; no recommended or specification book reads the R-11 or R-12 multiplier.
+
+### TASK-M8-04 · Verify per-book HALT scope end to end (T-SCOPE-01)
+
+**Type** task · **Priority** high · **Modules** R-19, R-07 · **Depends on** TASK-M8-02, TASK-M5-04
+
+- **Package / files:** core/engine/runtime; macro_daily data_ok and bounds_ok gates; tests (integration)
+- **Spec sections and rules:** §3.8 scope (C-1) · R-19 rules 4–5 · P16 · P18
+- **Owner decisions touched:** none
+
+**Description.** Run the eight HALT-scope cases of T-SCOPE-01 end to end through the workflow and fix any path where a factor, input or artifact HALTs a book that does not read it. Confirm the R-28/R-29 FORWARD-SIM failure path and that a global failure (PIT store, calendars, QuoteFeed) HALTs every reading book without HALTing "the engine".
+
+**Acceptance criteria**
+- `T-SCOPE-01` (runs_from M8): (a) R-04 and R-03-series failures on 3 decisions HALT the specification book only; (b) a missing S&P close fails the R-28/R-29 FORWARD-SIM books closed and leaves the KR recommended book ARMED; (c) specification NAV −16% HALTs it only; (d) recommended NAV −16% HALTs it (RISK); (e) a hedge_state exception HALTs nothing; (f) a context_log schema failure HALTs nothing; (g) once R-03 is admitted its series binds to the recommended book (governance event) and its failure HALTs it too; (h) while R-06 KR is NOT_RUN a missing KOSPI close on 3 decisions HALTs specification:KR only.
+- `T-ROLE-02` (runs_from M1; its FORWARD-SIM clause runs from M8): The S&P close failing on 3 decisions fails the R-28 and R-29 FORWARD-SIM books closed, sets hedge_credit_off through corr63 and HALTs no recommended book.
+
+### TASK-M8-05 · Deliver engine_feed atomically per book (§9.4 item 17)
+
+**Type** task · **Priority** medium · **Modules** R-35 · **Depends on** TASK-M8-01
+
+- **Package / files:** macro.engine_feed skill; core/engine/orders
+- **Spec sections and rules:** §9.4 item 17 · §3.9 run_record (errored runs)
+- **Owner decisions touched:** none
+
+**Description.** Deliver each book's weights for a decision all or none; an interrupted delivery leaves the book on its previous weights and is recorded. Block engine_feed for the whole run when an acting step (pit_snapshot through verdict_filter) errors, so the books carry their weights.
+
+**Acceptance criteria**
+- `T-OBS-04` (runs_from M8; engine_feed clause): An exception injected in an acting step writes status = error, raises RUN_ERROR (page) and blocks engine_feed.
+- `I-01` (runs_from M8; engine_feed clause): Refusal books (R-11, R-12) and FORWARD-SIM cards (R-28, R-29) never reach engine_feed.
+
+### TASK-M8-06 · Add run records, missed-decision detection, alert sinks and log verification
+
+**Type** user-story · **Priority** medium · **Modules** R-35 · **Depends on** TASK-M8-01, TASK-M0-07
+
+- **Package / files:** macro.run_record and macro.missed_decisions skills; run_log.jsonl; alert sinks (Macro-page banner, OS notification, optional e-mail skill); governance_events.jsonl chain check at app start
+- **Spec sections and rules:** §3.9 run_record, missed decisions, alert sinks · §6.6 · §8.8 (b)
+- **Owner decisions touched:** none
+
+**Description.** As the operator, I am paged for every missed or errored decision and every HALT, and nothing is silently lost. Append {run_id, market, session_date, decision_utc, knowledge_utc, started/finished, step results with errors, git_hash, config_hash, data_snapshot_id, late} to run_log.jsonl even when a step raises (status = error, RUN_ERROR page), count an errored acting step against every book it serves (OPS HALT run_error at the limit), and re-run a failed forward_monitor for each skipped decision at the next successful run. At app start and every scheduled run compare the calendar's expected decisions with run_log.jsonl, raising MISSED_DECISION (page) while the books carry their weights; keep page alerts until acknowledged and verify the governance-log chain at app start.
+
+**Acceptance criteria**
+- `T-OBS-01` (runs_from M8): Each HALT class writes its book's runtime[].halt block and a governance event.
+- `T-OBS-02` (runs_from M8): A skipped scheduled run raises MISSED_DECISION (page) at the next app start and the books carry their weights.
+- `T-OBS-03` (runs_from M8): Page-severity alerts persist until acknowledged.
+- `T-OBS-04` (runs_from M8): An exception in each acting step writes status = error, raises RUN_ERROR, blocks engine_feed, adds 1 to every served book's counter and HALTs them (OPS, run_error) at the limit; the errored decision counts for MISSED_DECISION; a forward_monitor exception is re-evaluated for every skipped decision.
+- `T-OBS-05` (runs_from M8): At app start the governance_events.jsonl chain is verified; a hand-edited row raises GOVERNANCE_LOG_BROKEN (page).
+
+### TASK-M8-07 · Implement deterministic replay of past decisions (R-01 rule 7)
+
+**Type** task · **Priority** low · **Modules** R-01 · **Depends on** TASK-M8-01, TASK-M0-11
+
+- **Package / files:** core/ficc/data (as-of reads at an artifact's knowledge_utc); core/engine/state (runtime restore); artifact canonicaliser
+- **Spec sections and rules:** R-01 rule (7) (council priority P2) · T-REPLAY-01 · §8.8 (a) (replays are audits only)
+- **Owner decisions touched:** none
+
+**Description.** Re-run a past decision from the store at its knowledge_utc after restoring the runtime state from before it (per-book counters, halt.causes, derived bindings, each covariance input's carry count derived from its stale labels in at most the last 5 artifacts) out of the previous artifacts and the governance log. Reproduce the artifact byte for byte after canonicalisation, excluding only generated_at_utc and git_hash. Treat replays as audits only: they never start, backfill or extend a forward record.
+
+**Acceptance criteria**
+- `T-REPLAY-01` (runs_from M8): Re-running a past decision from the store at its knowledge_utc reproduces the artifact byte for byte after canonicalisation (UTF-8 JSON, sorted keys, repr floats, no insignificant whitespace), excluding generated_at_utc and git_hash; data_snapshot_id is order-invariant and unchanged by a later correction.
+
+### TASK-M8-08 · Implement forward-record monitoring and demotion v2 (R-25)
+
+**Type** task · **Priority** high · **Modules** R-25 · **Depends on** TASK-M8-01, TASK-M5-12, TASK-M7-19
+
+- **Package / files:** core/engine/state (forward-book, switch, alarm and CUSUM state); core/quant/backtest (calibrate_alarms, cusum_monitor, false_demotion_rate, demote; proposed); macro.forward_monitor skill; monitoring_report
+- **Spec sections and rules:** R-25 · §8.8 · P14 · §10 item 35
+- **Owner decisions touched (implement the default, flag it):**
+  - D4 Book-level false-demotion budget — default ≤ 10% a year across all statistical triggers, split equally across active cards, each split verified on a 20-shift placebo panel; key monitoring.false_demotion_budget_per_year
+
+**Description.** Start each card's forward on, off and S books at the first live macro_daily decision after its header commit (never backfilled; S uses the header's design-sample m̄), mark late and missed decisions, and keep records append-only, resetting alarm state only with a new revision while the age counts from first registration. Calibrate the statistical triggers on whole-book NAV on the design sample — CARD-P all of (ΔMDD vs S ≤ 0 = no protection, ΔES95-21 ≤ 0, 12-month ΔSR below the design 2.5th percentile), CARD-O either of (6-month gap > 2σ, 12-month ΔSR below the 2.5th percentile), a monthly CUSUM with k 0.25 and h for an in-control ARL ≥ 20 years — under the D4 budget split equally, fixed at each record's start and verified on a 20-shift panel. Demote immediately, outside the budget, on a lag-audit violation, an acting-parameter edit outside a revision, a provisional or stale input reaching an acting decision, an operator kill of a card's forward books, > 10% of decisions late, missed, failed closed, HALTED or DISARMED in a rolling 12 months, or switches above the 99th percentile of the Poisson / negative-binomial fit; a demotion sets REVISE (operational) or REJECT (catastrophic or CUSUM), a 6-month family × market lockout and a new revision. Make any attempt to raise a verdict from forward statistics raise, never demote on a bull-market lag alone, and print the honesty line with the calibrated threshold.
+
+**Acceptance criteria**
+- `I-14` (runs_from M8): CARD-P demotion reads "forward ΔMDD vs S ≤ 0 = no protection"; all statistical triggers use whole-book NAV; on a 20-shift placebo panel the book-level false-demotion rate is ≤ the declared budget (default 10% a year, D4); an injected lag-audit violation or an acting-parameter edit outside a revision demotes immediately; no forward record can raise a verdict.
+- `T-DEMOTE-01` (runs_from M8): The CARD-P trigger text reads "forward ΔMDD vs S ≤ 0 = no protection"; a forward record with ΔMDD > 0 and ES protection never demotes.
+- `T-DEMOTE-02` (runs_from M8): Every statistical trigger reads whole-book NAV; a card at 20% of the book with sleeve-level noise does not fire on the seeded fixture (seed 11).
+- `T-DEMOTE-03` (runs_from M8): On the 20-shift panel the book-level false-demotion rate is ≤ the D4 budget and each card is ≤ its equal split.
+- `T-DEMOTE-04` (runs_from M8): An injected lag-audit violation or acting-parameter edit outside a revision demotes immediately; so does an operator kill of a card's forward books (gap excluded) and 26 HALTED decisions of a card's books in 12 months.
+- `T-DEMOTE-05` (runs_from M8): No forward record raises a verdict; an INSUFFICIENT card with 12 strong forward months stays INSUFFICIENT until new history adds an objective episode.
+
+### TASK-M8-09 · Run the R-28 trend-axis card as a FORWARD-SIM book
+
+**Type** task · **Priority** medium · **Modules** R-28 · **Depends on** TASK-M8-08, TASK-M7-18, TASK-M8-03
+
+- **Package / files:** core/quant/signals.trend_axis (gross overlay); core/quant/backtest (card); core/engine (FORWARD-SIM book forward_sim:R-28)
+- **Spec sections and rules:** R-28 · §8.3 pooled-onset rule · §8.7 claims · §10 item 37
+- **Owner decisions touched (implement the default, flag it):**
+  - D5 US sleeve and line — default no US sleeve until decided (R-28 and R-29 stay FORWARD-SIM and never enter the recommended book); key sleeves.US.line
+
+**Description.** Implement trend(t_m) = 0.5 if the month-end official close < SMA10m (mean of the last 10 month-end closes including t_m) else 1.0, decided at the month-end close and held to the next decision, exposure_basis total, composed by min() with vt and judged incrementally on R-29's CME_micro_ES vt book with S = that book × the trend's mean multiplier. Apply the claim line (stacked ΔMDD on VT ≥ 3 pp; a miss caps at INSUFFICIENT, never REJECT) and the header's pooled-onset rule (de-clustered at 10 months over SPX, N225, HSI, DAX, FTSE100, TAIEX, with an own-market PC-1′ or PC-2 veto), and print the GJR-null percentile and the snooping haircut over the 94-variant family. Refuse a Korea instance and log BAND200 as a trial in the same ledger. Run the card FORWARD-SIM until a US or other non-Korean sleeve exists (D5), never reaching engine_feed.
+
+**Acceptance criteria**
+- `I-12` (runs_from M8): The header declares monthly SMA10m, 0.5× below trend, min() composition, the claim "slow-bear protection via the volatility state" and a pooled-onset rule before the run; stacked ΔMDD on VT ≥ 3 pp (+14.9 pp on the daily US VT15 book); on the French monthly 1927–2026 fixture PASS at 5 and 50 bp with 45 de-clustered onsets; GJR-null percentile 87th printed; a Korea instance is refused; FORWARD-SIM until a US sleeve exists.
+- `T-TREND-01` (runs_from M8): A header missing any of SMA10m, 0.5× below trend, min() composition, the claim or the pooled-onset rule is refused.
+- `T-TREND-02` (runs_from M8): Stacked ΔMDD on VT ≥ 3 pp (+14.9 pp, daily US VT15 1991–2026); DLB-T3a reproduced on the French monthly fixture (ΔSR +0.083 at 5 bp, +0.059 at 50 bp; ΔMDD +15.9 pp; tail 0.78; 9/10 episodes; 45 onsets); GJR-null 87th ± 5; the v2 verdict is computed blind.
+- `T-TREND-03` (runs_from M8): Registering the card for KR raises; the KOSPI trend state appears only in context_log.
+- `T-TREND-04` (runs_from M8): Until a US sleeve exists the R-28 multiplier appears only in its FORWARD-SIM book and never in engine_feed.
+- `G-TR-01` (runs_from M8): US monthly 1927–2026, SMA10m 0.5×, cash = RF: PASS at 5 bp (ΔSR +0.083, ΔMDD +15.9 pp) and 50 bp (+0.059, +15.8 pp).
+- `G-TR-02` (runs_from M8): Starts 1930–1960 PASS; starts 1970–2008 INSUFFICIENT (sufficiency) with ΔMDD +15.2 to +16.2 pp.
+- `G-TR-03` (runs_from M8): Snooping haircut: 94/94 variants ΔMDD ≥ 3 pp; deflated ΔSR probability 0.99 / 0.59 / 0.43 / 0.07 at N 1 / 30.7 / 94 / 7,846.
+- `G-TR-04` (runs_from M8): Other indices ΔMDD vs S: S&P +17.5, Nikkei +4.2, HSI +8.0, DAX +14.0, FTSE +7.4, TAIEX +12.0, KOSDAQ +9.8 pp.
+- `G-TR-05` (runs_from M8): KOSPI daily 1998–2026 (context only): ΔSR +0.070, ΔMDD +3.6 pp, 17 onsets → INSUFFICIENT.
+
+### TASK-M8-10 · Run MACRO-R06-US-FUT (R-29) as a FORWARD-SIM book with its settling-run logic
+
+**Type** task · **Priority** medium · **Modules** R-29 · **Depends on** TASK-M8-08, TASK-M7-18, TASK-M8-03
+
+- **Package / files:** core/quant/risk.market_vol_target (US futures instance); core/quant/backtest.settling_run (proposed); core/engine (forward_sim:R-29 with integer-contract sizing)
+- **Spec sections and rules:** R-29 · §8.7 claims · §10 items 23 and 32 · D5
+- **Owner decisions touched (implement the default, flag it):**
+  - D5 US sleeve and line — default no US sleeve until decided (R-28 and R-29 stay FORWARD-SIM and never enter the recommended book); key sleeves.US.line
+
+**Description.** Run vt_US = min(1.0, 0.15/σ̂_SMA20) daily on CME_micro_ES at 5 bp (no band; notional from sleeves.US.notional_nav), sizing contracts = round_half_away_from_zero(vt × notional_KRW / (multiplier × index level × USDKRW_t)) with USDKRW_t from nav_fx (USDKRW_1530_SNAPSHOT; ECOS_1530_CLOSE in history) recorded in extras, rolling before expiry on a fixed calendar with a roll-cost line, and objective ≥ 15% S&P episodes. Implement settling_run on French daily Mkt-RF 1926-07 → 2026-08 at 5 bp: PASS only if PC-1′ holds at 1× and 2× and ≥ 8 of the 10 decade-spaced starts PASS with no REJECT at any start or midpoint half and a full-span v2 PASS; without the frozen 1926 fixture stay FORWARD-SIM and never fall back to the 1990 file. Promote to BUILD-AS-INSURANCE only when that run passes and a US sleeve with notional ≥ ~₩1bn (or another D5 line) exists; log the monthly and banded 50 bp variants as R-06 ledger trials, and refuse a second registration with a 50 bp book.
+
+**Acceptance criteria**
+- `I-13` (runs_from M8): Registered once as a new card (one trial) with a Micro ES 5 bp book and a notional field; the settling run returns PASS only if PC-1′ holds at 1× and 2× and ≥ 8 of 10 decade-spaced starts PASS with no REJECT; promoted only if that run passes and a US sleeve with notional ≥ ~₩1bn exists (D5); monthly and banded 50 bp variants are logged trials.
+- `T-USFUT-01` (runs_from M8): Registered once as a new card with a Micro ES 5 bp book and a notional field; a second registration with a 50 bp book raises.
+- `T-USFUT-02` (runs_from M8): On the 1926-07 → 2026-08 fixture the run returns PASS only if PC-1′ holds at 1× and 2× and ≥ 80% of decade starts pass; a synthetic 70% share, or 9 of 10 with one REJECT start, returns no PASS.
+- `T-USFUT-03` (runs_from M8): The card stays FORWARD-SIM unless the settling run passes and a US sleeve with notional ≥ ~₩1bn (or a D5 line) exists.
+- `T-USFUT-04` (runs_from M8): The monthly and banded 50 bp variants appear as R-06 ledger trials, never as a revision of this card.
+- `T-USFUT-05` (runs_from M8): DLA-U2 reproduces at Level-1 on U1 (ΔMDD +3.6 (+3.2) pp, p_ni 0.002, 6 of 11, plateau 0.875); the 44 quarterly-start verdicts match G-US-F08 with class assertions near thresholds.
+
+### TASK-M8-11 · Acquire the 1926+ French daily file and run the R-29 settling run (§9.4 item 3)
+
+**Type** spike · **Priority** medium · **Modules** R-29 · **Depends on** TASK-M8-10
+
+- **Package / files:** tests/fixtures/macro/ (French daily Mkt-RF and RF 1926-07 → 2026-08, md5-frozen); MANIFEST.csv
+- **Spec sections and rules:** §9.4 item 3 · §9.5 data-acquisition register · R-29 rule 4 · DLA-U6
+- **Owner decisions touched (implement the default, flag it):**
+  - D5 US sleeve and line — default no US sleeve until decided (R-28 and R-29 stay FORWARD-SIM and never enter the recommended book); key sleeves.US.line
+
+**Description.** Acquire the French Data Library daily Mkt-RF and RF from 1926-07 (DL-A's fetch failed with HTTP 403), record licence, owner and md5, and add it to the manifest. Run the settling run under the frozen package and md5-freeze the result as a golden. Its outcome can change only R-29's promotion, together with D5.
+
+**Acceptance criteria**
+- `T-USFUT-02` (runs_from M8): The settling-run logic runs on the frozen 1926-07 → 2026-08 fixture and returns PASS only under the R-29 rule-4 conditions.
+
+### TASK-M8-12 · Retire R-11 (S1) to a display-only refusal book
+
+**Type** task · **Priority** medium · **Modules** R-11 · **Depends on** TASK-M8-03
+
+- **Package / files:** core/quant/risk.refusal_krw_leg (proposed); refusal:R-11 book; macro_state.refusal_books and overlay_decision.refusal (display)
+- **Spec sections and rules:** R-11 · §8.9 R-11 row · §10 item 22
+- **Owner decisions touched:** none
+
+**Description.** Compute krw20 = ln(USDKRW(t)/USDKRW(t − 20 obs)) on the ECOS 15:30 close or a timestamped 15:30:00 KST snapshot (DEXKOUS only as a labelled proxy, never read in production) and apply 0.75 on Korea gross in the refusal book only (one-sided, status REFUSAL, FX-regime metadata recorded). Remove S1 from the FORWARD-SIM re-gate queue (BL-S01 closed; BL-G04 and BL-D13 to P3) and record its REJECT. Display it labelled and read by no other book.
+
+**Acceptance criteria**
+- `T-REF-01` (runs_from M8): S1 is absent from the FORWARD-SIM re-gate queue (BL-S01 closed; BL-G04/BL-D13 at P3); its card records REJECT (54 strict-H.10 onsets, ΔMDD −1.3 pp, tail 1.00).
+- `G-KR-05` (runs_from M8): S1 KRW 0.75× at value timing: ΔSR vs buy-and-hold +0.032 (0.967), on VT20 +0.042 (0.977), 9.0% of days (VALUE).
+- `G-KR-05s` (runs_from M8): S1 at strict H.10: +0.001 (0.53), on VT20 +0.013 (0.74), 9.1% of days, 26 onsets (COMPLIANT).
+- `G-REF-01` (runs_from M8): R-11 refusal record: REJECT at every timing (value 74 onsets −1.7 pp; strict H.10 54 onsets −1.3 pp, tail 1.004; KRW=X lagged 69 onsets +0.3 pp).
+- `G-POST-01` (runs_from M1; its M8 rows): G-KR-05 share 0.967 post-patch; G-KR-05s and G-KR-05 on VT20 unchanged.
+
+### TASK-M8-13 · Retire R-12 (S2) to a display-only refusal book
+
+**Type** task · **Priority** medium · **Modules** R-12 · **Depends on** TASK-M8-03
+
+- **Package / files:** core/quant/risk.refusal_rates_leg (proposed); refusal:R-12 book; registry (Treasury par-yield channel)
+- **Spec sections and rules:** R-12 · §8.9 R-12 row · §10 item 22
+- **Owner decisions touched:** none
+
+**Description.** Compute d10 = y10(t) − y10(t − 20 obs) on the KIS US 10y quote stamped ≤ the US close and apply 0.5 to US duration-sensitive gross in the refusal book only (never to momentum or other L/S sleeves, never to Korea). Remove S2 from the FORWARD-SIM queue (BL-S02 closed) and record its REJECT at every timing, with the Treasury channel recorded as compliant with a logged posting time. Display it labelled, read by no other book.
+
+**Acceptance criteria**
+- `T-REF-02` (runs_from M8): S2 is absent from the FORWARD-SIM queue (BL-S02 closed); its card records REJECT with 71 onsets incl. the Treasury +1 business-day timing (ΔMDD −3.1 pp at 50 bp) and strict +2 days (−3.5 pp); G-US-02a reads "compliant via Treasury with logged posting time".
+- `T-BASIS-01` (runs_from M0; its S2 clause runs from M8): S2 applied to momentum raises an error.
+- `G-REF-02` (runs_from M8): R-12 refusal record: 71 onsets at every timing; REJECT at every timing and cost (strict +2 bd −3.5 pp / ΔSR −0.120 at 50 bp).
+- `G-US-02a` (runs_from M8; checked by T-REF-02): S2 at +1 business day reads "compliant via Treasury with logged posting time" (+0.010 (0.67) gross; non-compliant via H.15 by 15 minutes).
+
+---
+
+## M9 — Quant Lab
+
+**Exit tests whose runs_from is M9** (§9.0a; clauses deferred by §9.0b join later and are named in the tasks): `I-11`, `T-REPRO-01c`.
+
+### TASK-M9-01 · Refit the Quant Lab on expanding windows with FHS and EVT tails
+
+**Type** task · **Priority** medium · **Modules** R-16 · **Depends on** TASK-M3-01, TASK-M3-03
+
+- **Package / files:** core/quant/garch (expanding ≥ 10-year GARCH and GJR fits; GPD tails)
+- **Spec sections and rules:** R-16 rules (1)–(2) · §10 item 11
+- **Owner decisions touched:** none
+
+**Description.** Fit GARCH and GJR parameters on expanding windows of at least 10 years, replacing the regime-captured 504-close window, with tails by FHS and a GPD on the lower 10% of standardised residuals (McNeil–Frey). Keep SMA20 the only sizing estimator (changes only through R-30) and the GARCH(1,1)-t fan's own B5 label, and show a 1-day VaR only from a model that passes 1-day B5. Keep ML vol-state classifiers out.
+
+**Acceptance criteria**
+- `I-11` (runs_from M9; fit clause): GARCH/GJR parameters are fitted on expanding (≥ 10-year) windows.
+
+### TASK-M9-02 · Add the lab's self-grading display and the M9 out-of-sample thresholds
+
+**Type** task · **Priority** medium · **Modules** R-16 · **Depends on** TASK-M9-01, TASK-M3-02, TASK-M5-09
+
+- **Package / files:** core/quant/montecarlo and the Quant Lab page (ui/); core/quant/backtest (Kupiec, Christoffersen, ES Z2, PIT)
+- **Spec sections and rules:** R-16 rule (3) · §12 M9 · I-11
+- **Owner decisions touched:** none
+
+**Description.** Show the envelope max(fast FHS, GJR-EVT) with Kupiec and Christoffersen CC lines at 95% and 99%, the ES 97.5% Z2 line with simulated critical values, Basel zones and fan PIT at h 21 and 126, reporting 2016–26 and 2026 separately and post-holiday sessions separately, with the 1-day VaR scaled by √n_US after multi-session gaps. Report per-label coverage of the vol labels scored by tick loss and rename the path colours "path-vol quartile". Gate M9 on the out-of-sample 2016–26 thresholds; report h 126 and the 2026-only lines without gating them.
+
+**Acceptance criteria**
+- `I-11` (runs_from M9; display and threshold clauses): The lab shows max(fast FHS, GJR-EVT) with Kupiec, Christoffersen and ES Z2 lines, 2016–26 and 2026 separately; out-of-sample 2016–26: 99% VaR Kupiec p ≥ 0.05 and Christoffersen CC p ≥ 0.05, ES 97.5% Z2 not rejected at 5%, fan PIT χ² p ≥ 0.01 at h 21; the 2026-only lines are reported, not gated.
+
+### TASK-M9-03 · Build the seeded scenario library and SEP-band rate paths
+
+**Type** task · **Priority** medium · **Modules** R-16 · **Depends on** TASK-M9-01
+
+- **Package / files:** core/quant/montecarlo (seeded scenarios); core/ficc/ratesim (Vasicek / CIR / Hull-White SEP-band paths)
+- **Spec sections and rules:** R-16 rule (4) · R-26 rule 2 (leveraged-ETF path formula)
+- **Owner decisions touched:** none
+
+**Description.** Build the seeded, reproducible scenarios: the 2026 vs 2022 oil-shock replays at +20 days, the Jul-2026 KOSPI leverage unwind, the Aug-2024 carry unwind, the Apr-2025 tariffs, and SEP Table-2 short-rate error bands as rate-path uncertainty through core/ficc/ratesim (never a log-return price model; read the latest SEP). Name the Brent series in every scenario, and model leveraged ETFs by ln(1 + R_L) = L·ln(1 + R) − ½(L² − L)·Σr² − carry.
+
+**Acceptance criteria**
+- `T-REPRO-01c` (runs_from M9): The same seed, rules-store hash, data snapshot and package version give identical Monte Carlo paths (relative difference ≤ 1e-12).
+- `I-11` (runs_from M9; scenario clause): Scenarios are seeded and reproducible; no lab output is read by a sizing module.
+
+### TASK-M9-04 · Build the historical-replay library with regime metadata
+
+**Type** task · **Priority** medium · **Modules** R-16 · **Depends on** TASK-M9-01, TASK-M1-04, TASK-M5-12
+
+- **Package / files:** core/quant/montecarlo (replay library run on the current simulated book); core/calendars (regime tags)
+- **Spec sections and rules:** R-16 rules (5)–(6) · P19 · §10 item 27
+- **Owner decisions touched:** none
+
+**Description.** Replay 1997-11/12, 1998-03→06, 2000-04-17, 2001-09-12, 2008-10, 2020-03, 2026-03-04 and 2026-06-23→07-30 on the current simulated book with regime metadata (price limits, the 1997 peg) attached to each. Keep GMM scenario regimes deferred behind the library and never label anything as a current regime. Guard that no lab output is read by a sizing module.
+
+**Acceptance criteria**
+- `I-11` (runs_from M9; replay clause): The replay library reproduces the Jul-2026 KOSPI path (−38.6% in 27 sessions) on the current book with regime metadata; no lab output is read by a sizing module.
+
+---
+
+## M10 — Deferred (FX and crypto sleeves)
+
+**Exit tests whose runs_from is M10** (§9.0a; clauses deferred by §9.0b join later and are named in the tasks): `T-CRYPTO-01`, `T-FX-01`.
+
+### TASK-M10-01 · Implement the CRYPTO clock and the crypto sleeve's own risk bucket
+
+**Type** task · **Priority** low · **Modules** R-17 · **Depends on** TASK-M1-03, TASK-M7-19
+
+- **Package / files:** core/calendars (CRYPTO decision_time_utc per venue); core/rules (crypto sleeve card header, vol-target CARD-P, hard gross cap)
+- **Spec sections and rules:** R-17 CRYPTO clock and crypto sleeve · §8.9 R-17 row · §12 M10
+- **Owner decisions touched:** none
+
+**Description.** When a crypto sleeve exists, set decision_time_utc("CRYPTO", d) = 00:00:00Z on d+1, the close of the venue's daily bar dated d, declared per venue (Upbit, Binance, CoinGecko), annualise with 365 days, join weekday macro data as-of with staleness labels, and never mix FRED's 17:00 PT CBBTCUSD stamp with UTC candles. Register BTC's own vol target as a new CARD-P plus a hard gross cap in the risk layer, estimate the BTC–equity β on rolling data with a declared week anchor, and add no net-liquidity or M2 input. Commit the header and run FORWARD-SIM first.
+
+**Acceptance criteria**
+- `T-CRYPTO-01` (runs_from M10): decision_time_utc("CRYPTO", d) = 00:00:00Z on d+1 (the venue's daily bar close); annualisation 365; weekday macro data joined as-of with staleness labels.
+
+### TASK-M10-02 · Require a declared instrument on every FX sleeve card
+
+**Type** task · **Priority** low · **Modules** R-17 · **Depends on** TASK-M0-13
+
+- **Package / files:** core/rules.validate_card_header (FX cards); core/rules (FX sleeve risk limits)
+- **Spec sections and rules:** R-17 FX instrument and FX sleeve · P10 (FX 10 bp) · §10 item 14
+- **Owner decisions touched:** none
+
+**Description.** Refuse an FX sleeve card that does not declare its instrument (KRX USD futures or broker spot) before the run, costed at 10 bp per side. Never forecast FX direction from rate differentials; implement carry de-risking (USD/JPY trend break, JPY rv21 top quintile) and intervention rules as sleeve-level risk limits, not overlays. Commit the header and run FORWARD-SIM first.
+
+**Acceptance criteria**
+- `T-FX-01` (runs_from M10): An FX sleeve card without a declared instrument (KRX USD futures or broker spot) is refused.
+
+---
+
+## Spikes and open items
+
+### §9.4 pending recomputations and open implementation tasks (items 1–17)
+
+Each recomputation becomes a golden value, md5-frozen, only when its run is done; no number is invented in its place.
+
+| §9.4 item | What | Task |
+|---|---|---|
+| 1 | Excess-return restatement of every §9.3.1 regression golden (R-22) | TASK-M7-30 |
+| 2 | Official-close reruns of values DL-A did not recompute (G-KR-06 cap 1.5; SMA60; EWMA half-life 10; EWMA at 35 bp; Korea stock-book 2× ΔSR) | TASK-M2-09 |
+| 3 | The R-29 settling run on French daily Mkt-RF 1926-07 → 2026-08 at 5 bp (data acquisition first; DL-A got HTTP 403) | TASK-M8-11 |
+| 4 | The Korea card's ES126 z | TASK-M7-30 |
+| 5 | The formal R-06 KR card on KRX official closes, and every formal card under the frozen package | TASK-M7-21, TASK-M7-23, TASK-M7-24, TASK-M7-25, TASK-M7-26, TASK-M7-27 |
+| 6 | The event-conditional variance test of the opening-gap flag; the 2027–28 post-holiday VaR breach check | TASK-M5-15 |
+| 7 | Bootstraps of the book-level variants behind the §10 E labels | TASK-M0-15 |
+| 8 | The R-31 reference run with separate hwm_hard and ref_step references (T-STEP-03, I-15) | TASK-M7-27 |
+| 9 | I-04b's KOSPI VT20 1997–2026 HALT count under the v2 rule | TASK-M5-14 |
+| 10 | G-LAD-04: the invariants-only recommended KOSPI book with and without the −15% hard stop, printed beside D2 | TASK-M5-14 |
+| 11 | T-POWER-01's years line restated to a point | TASK-M7-30 |
+| 12 | The R-06 KR selection factor under every defensible row-set reading, printed in the acceptance report | TASK-M7-02, TASK-M7-04, TASK-M7-30 |
+| 13 | M1 measurements: KODEX 200 basket publication instant, NYSE print bound, FRED VIX posting lag | TASK-M1-23 |
+| 14 | Frozen-package values of the research-script goldens (T-EXCESS-01 / I-09 excess cell; T-GATE-02 p_ni; T-ES-02 z) | TASK-M7-30 |
+| 15 | Open implementation task (M7, before the freeze): anchored timestamps for the f = 1 route | TASK-M7-05 |
+| 16 | Open implementation task (M7): archive each formal card's snapshot | TASK-M7-20 |
+| 17 | Open implementation task (M8): atomic engine_feed per book | TASK-M8-05 |
+
+### M1 measurements
+
+TASK-M1-23 measures the KODEX 200 basket's publication instant (default until then: 08:00 KST on the next KRX session, halt_after 5), confirms the KRX and NYSE 30 s close-print bounds from logged print times, and logs FRED's VIX posting lag (last_updated) for 20 sessions; TASK-M1-01 runs the KIS quote-field check in parallel. Changes enter only as signed calendar or registry revisions.
+
+### Owner inputs the build needs (inputs, not decisions with a default)
+
+| Input | Needed by | Consuming task(s) |
+|---|---|---|
+| KIS credentials for the quote-field check (QF1-A25) | M1, first task | TASK-M1-01 |
+| Signed calendar files with the KRX notice facts (pre-2015-06-15 random-end extensions, Saturday close times before 1998-12-12, lunch-break dates, pre-2016 CSAT window and closing call) and the SSE, HKEX and TWSE close times | M1 | TASK-M1-03, TASK-M1-04, TASK-M1-05 |
+| The 2027 KRX, NYSE, Fed and SIFMA calendars, signed | before 2026-11-01 | TASK-M1-05 |
+| The source-exception list (source-skipped dates), signed | M1 | TASK-M1-06 |
+| The ETF tick table before 2023-12-11 (KRX notices) | M0–M1 | TASK-M0-12 |
+| Broker commission confirmation (1.4 bp default) | M0 | TASK-M0-12 |
+| The choice of USD_LIVE_PROXY (default DX-Y.NYB) | before M2 | TASK-M1-08 |
+| Confirmation of the composite → family mapping and registration of the flow and quality priors (owner or council) | before M4 | TASK-M4-01 |
+| The hyperscaler earnings list (company IR) | M5 | TASK-M5-09 |
+| The ECOS code of BOK_CALL_RATE and its observation calendar | before the M7 freeze | TASK-M1-21, TASK-M7-09 |
+| Each sleeve's notional (sleeves.<market>.notional_nav); the US value stays null while D5 = none | before the M7 header commit | TASK-M7-14, TASK-M7-18 |
+| Answers to the freeze-relevant council questions, or "stands as written for 2.0.0" | before the first acceptance attempt | TASK-M7-16 |
+| Optional D6 ruling naming one CDaR-guard candidate | only before the first acceptance attempt | TASK-M7-15 |
+| Owner rulings on D1–D5, whenever the owner chooses (logged governance events; a D2 ruling gives R-31 a counted revision) | any time | TASK-M0-06 |
+
+### Open owner and council questions (the conservative reading stands until an answer is recorded)
+
+| Question | Reading in force | Task(s) |
+|---|---|---|
+| Q5 (council): a per-card placebo panel above 2 of 20 | The acceptance test fails and nothing is frozen; a card-local INSUFFICIENT cap would need the council | TASK-M7-15, TASK-M7-16 |
+| Timing fragility of a Sharpe-neutral card (council): FR is ill-posed when ΔSR(L1) ≈ 0 | The council formula stands in 2.0.0; every card prints FR with a paired-bootstrap 90% interval, never gating | TASK-M7-12, TASK-M7-16 |
+| The primary out-of-sample line of future cards (council) | R-06 KR's is fixed by Resolution 1; other long-sample headers declare theirs | TASK-M7-10 |
+| Flow and quality priors (owner or council, before M4) | A family with no registered prior is not admissible in that market | TASK-M4-01, TASK-M4-06 |
+| D1 and D2 timing (owner): notice period; a ruling while a book is HALTED or near its hard stop | A ruling takes effect as a logged governance event; it never demotes a card | TASK-M0-06 |
+| R-18 policy break mid-spell (council) | Current text: a framework event lifts an active de-risk spell at once | TASK-M6-04 |
+| Demotion verdict by trigger (council) | Default, judgment: operational or integrity → REVISE; catastrophic or CUSUM → REJECT | TASK-M8-08 |
+
+### Settling tests outside the v2.0 build (backlog; nothing in v2.0 waits for them)
+
+| Settling test | What it can change | Note |
+|---|---|---|
+| Jump-model regime engine: pre-registered 2027–28 SJM50 vs BAND200 vs VT15 head-to-head (CONTESTED) | Whether an SJM card may be proposed | Never build a regime state, acting or displayed, in v2.0 (P19; §10 item 27) |
+| GMM scenario regimes (CONTESTED) | Context only, after the replay library exists | Never labelled as a current regime (TASK-M9-04) |
+| Korean cross-asset futures sleeve (CONTESTED) | Whether a card is registered | Backlog |
+| R-18 statistical break leg: ≤ 1 false break a decade on 1990–2026 | Whether the leg may become a trigger | Log-only in v2.0 (TASK-M6-04) |
+| Calm-state reversal (D3): KRX net test in 2010–17 and 2018–26 | Reopens D3 | D3 default stands (TASK-M4-05) |
+| Korea reversal prior (BL-U02, net of 35 bp plus tax) | The R-15 prior | Stays 1, UNVERIFIED (TASK-M4-06) |
+| Step-3 rule for v3 (size and power of N_equiv vs linear N̂ vs PX1's z rule) | A v3 package, re-run on every card | Not in 2.0.0 |
+| How to read BLdP eq. 9 (printed paper) | The printed bound and its "step 3 borderline" flag, not the gate | Not in 2.0.0 |
+| Holiday-gap VaR display: 2027–28 out-of-sample breach rates | The √n display scaling | Pre-registered in TASK-M5-15 |
+| S1 on ECOS 15:30 history (a P3 formality) | Nothing: it cannot change the REJECT | Backlog |
+
+---
+
+## Traceability: module → tasks → tests
+
+Tests in **bold** are the module's own acceptance tests in §9.0; the others are cited by the module's tasks.
+
+| Module | Short name | Class · council priority · milestone | Tasks | Tests |
+|---|---|---|---|---|
+| R-01 | Point-in-time discipline | CHANGED · INVARIANT · P0 · M1 | TASK-M0-02, TASK-M0-03, TASK-M0-11, TASK-M1-01, TASK-M1-02, TASK-M1-07, TASK-M1-10, TASK-M1-11, TASK-M1-12, TASK-M1-13, TASK-M1-14, TASK-M1-15, TASK-M1-19, TASK-M1-21, TASK-M1-22, TASK-M5-11, TASK-M7-13, TASK-M7-20, TASK-M8-07 | **T-PROV-01**, **T-FIX-01**, **T-BAR-01**, **G-POST-01**, T-HERM-01, T-HERM-02, T-REPRO-01a, T-RO-02, T-SER-02, T-BAR-02, T-PRINT-01, T-MISS-01, T-SER-01, T-SYN-01, T-LAG-01, T-LAG-02, T-CLOSE-01, T-H15-01, T-SAT-01, I-05, T-REPRO-01b, T-REPLAY-01 |
+| R-02 | Bounds and min() composition; stack card | CHANGED · INVARIANT · P0 · M2 | TASK-M0-04, TASK-M0-05, TASK-M2-03, TASK-M4-02, TASK-M4-07, TASK-M5-12, TASK-M7-29 | **T-CAP-02**, T-CAP-01, T-BASIS-01, T-HERM-02, T-MISS-02, G-MOM-06, T-MONO-01 |
+| R-03 | Momentum own-vol scaling | CHANGED · CARD-O · P0 · M4 | TASK-M4-01, TASK-M4-03, TASK-M4-07, TASK-M7-02, TASK-M7-18, TASK-M7-24 | **T-R03-01**, T-PRIOR-01, G-YRS-01, G-MOM-01, G-MOM-02, G-MOM-08, G-INTL-01, G-MOM-07, T-COST-01, G-MOM-06, T-NEFF-01, T-SEL-01, T-CARD-01, G-DSR-01, G-DSR-02 |
+| R-04 | Daniel–Moskowitz gate | DEMOTED · CARD-O · P1 · M4 | TASK-M4-04, TASK-M4-07, TASK-M7-25, TASK-M8-03 | **T-R04-01**, **I-03**, G-MOM-03, G-MOM-04, G-MOM-05, G-MOM-06 |
+| R-05 | Reversal and quality at 1.0× | unchanged · CONVENTION · M4 | TASK-M4-05 | G-BOOK-01 |
+| R-06 | Per-market vol target | CHANGED · CARD-P · P0 · M7 (function in M2) | TASK-M2-01, TASK-M2-02, TASK-M2-06, TASK-M2-07, TASK-M2-08, TASK-M2-09, TASK-M3-03, TASK-M7-02, TASK-M7-14, TASK-M7-18, TASK-M7-21, TASK-M7-22, TASK-M7-23, TASK-M7-30 | **I-16**, **T-R06-US-01**, **T-CAP-01**, T-VT-01, T-LAG-02, T-MISS-02, T-LABEL-01, T-COST-01, G-KR-06, G-KR-01, G-KR-02, G-KR-02b, G-KR-02c, G-KR-03, G-KR-04, G-US-01, G-US-01b, G-US-01c, G-POST-01, I-02, T-B5-01, G-B5-01, G-B5-02, G-B5-03, G-B5-04, T-NEFF-01, T-SEL-01, T-SCHEMA-02, T-BOOK-01, T-CARD-01, I-09, G-KR-L01, G-KR-L02, G-KR-L03, G-KR-L04, G-KR-L05, G-KR-L06, G-KR-L07, G-KR-L08, G-KR-L09, G-KR-L10, G-KR-L11, G-KR-L12, G-KR-L13, T-EPIS-02, T-TROUGH-01, T-ES-02, T-RLAYER-01, G-PWR-01, G-PWR-02, G-US-F01, G-US-F02, G-US-F03, G-US-F04, G-US-F05, G-US-F06, G-US-F07, G-US-F08, G-US-F09, G-US-F10, T-GATE-02, I-08, T-POWER-01, T-EXCESS-01 |
+| R-07 | Look-through caps; hard stop with re-arm | CHANGED · INVARIANT · P0 · M5 | TASK-M0-06, TASK-M1-20, TASK-M1-23, TASK-M5-01, TASK-M5-02, TASK-M5-03, TASK-M5-04, TASK-M5-05, TASK-M5-06, TASK-M5-12, TASK-M5-13, TASK-M5-14, TASK-M8-04 | **I-04b**, **T-CAPS-01**, T-OWNER-01, T-ROLE-01, T-LAG-01, T-MISS-02, T-CAL-01, T-BOOK-03, G-POST-01, T-HALT-01, T-STEP-05, I-04, I-06, T-MONO-01, G-LAD-01, G-LAD-02, G-LAD-03, T-SCOPE-01, T-ROLE-02 |
+| R-08 | VIX ≥ VIX3M annotation | DEMOTED · CONVENTION · P1 · M5 | TASK-M1-01, TASK-M5-07 | **T-ANNOT-01**, T-RO-02, G-R08-01 |
+| R-09 | Hedge-validity state | CHANGED · INVARIANT · P1 · M2 | TASK-M2-04, TASK-M2-05, TASK-M6-05 | **T-CORR-01**, **T-HEDGE-01**, T-ROLE-01, T-ROLE-02, T-MISS-02, I-06c, T-SCHEMA-01 |
+| R-10 | Event calendar and gap tags | CHANGED · CONVENTION · P1 · M5 | TASK-M5-06, TASK-M5-08, TASK-M5-09, TASK-M5-15, TASK-M6-05 | **I-06b**, I-06, I-06c, T-HEDGE-01, T-SCHEMA-01 |
+| R-11 | USD/KRW leg (S1) | RETIRED · CARD-P · P1 · M8 | TASK-M8-03, TASK-M8-12 | **T-REF-01**, **I-03**, G-KR-05, G-KR-05s, G-REF-01, G-POST-01 |
+| R-12 | US rates leg (S2) | RETIRED · CARD-P · P1 · M8 | TASK-M8-03, TASK-M8-13 | **T-REF-02**, I-03, T-BASIS-01, G-REF-02, G-US-02a |
+| R-13 | Context log | CHANGED · CONTEXT · P1 · M6 | TASK-M6-01, TASK-M6-02, TASK-M6-03, TASK-M6-06 | **T-CTX-02**, **T-CTX-01**, T-DNB-01 |
+| R-14 | TS-trend sleeve | CHANGED · CARD-O · P2 · M7 | TASK-M7-18, TASK-M7-26 | **T-R14-01**, T-CARD-01, T-BASIS-01 |
+| R-15 | Priors as admissibility filters | CHANGED · CONVENTION · P0 · M4 | TASK-M4-01, TASK-M4-02, TASK-M4-06 | **T-PRIOR-01**, T-BASIS-01 |
+| R-16 | Quant Lab | CHANGED · CONTEXT · P1 · M9 | TASK-M9-01, TASK-M9-02, TASK-M9-03, TASK-M9-04 | **I-11**, T-REPRO-01c |
+| R-17 | Planned sleeves | CHANGED · CONVENTION · P2 · M10 | TASK-M10-01, TASK-M10-02 | **T-CRYPTO-01**, **T-FX-01** |
+| R-18 | Policy and scale breaks | CHANGED · GOVERNANCE · P2 · M6 | TASK-M6-03, TASK-M6-04 | **T-BREAK-01**, T-CTX-01 |
+| R-19 | Data contracts and staleness by role | NEW · INVARIANT · P0 · M1 | TASK-M1-06, TASK-M1-08, TASK-M1-09, TASK-M1-10, TASK-M1-14, TASK-M1-16, TASK-M1-17, TASK-M1-18, TASK-M1-20, TASK-M1-21, TASK-M1-23, TASK-M2-05, TASK-M8-02, TASK-M8-04 | **T-STALE-01**, **T-ROLE-01**, **T-XMKT-01**, **T-HEDGE-01**, T-H15-01, T-H10-02, T-VIX-01, T-TZ-02, T-AVAIL-01, T-SER-02, T-ROLE-02, T-H10-01, T-PROV-01, T-SER-01, G-STALE-01, T-MISS-02, T-TZ-01, T-LAG-01, T-SAT-01, T-CAL-01, T-CARD-03, I-01, T-SCOPE-01 |
+| R-20 | Effective-dated calendars and regime tags | NEW · INVARIANT · P0 · M1 | TASK-M1-03, TASK-M1-04, TASK-M1-05, TASK-M1-06, TASK-M1-18, TASK-M1-19, TASK-M1-23 | **T-CLOSE-02**, **T-SAT-01**, **T-REGIME-01**, **T-AVAIL-01**, **T-CAL-01**, T-CLOSE-01, T-CAL-02, T-H15-01, T-H10-02, T-VIX-01, T-TZ-02, T-XMKT-01, T-TZ-01, T-LAG-01, T-LAG-02 |
+| R-21 | CARD-P gate v2 | NEW · GOVERNANCE · P0 · M7, frozen first | TASK-M0-06, TASK-M7-11, TASK-M7-15, TASK-M7-16, TASK-M7-17, TASK-M7-19, TASK-M7-22, TASK-M7-23, TASK-M7-30 | **I-08**, **T-GATE-01**, **T-GATE-02**, **T-GATE-03**, **T-GATE-04**, **T-DNH-01**, **T-ORDER-01**, **T-ES-01**, **T-ES-02**, T-OWNER-01, T-CARD-02, I-07, T-BOOK-02, T-BOOK-01, T-COST-01, T-REPRO-01b, T-EPIS-02, T-TROUGH-01, T-RLAYER-01, G-PWR-01, G-PWR-02, G-US-F01, G-US-F02, G-US-F03, G-US-F04, G-US-F05, G-US-F06, G-US-F07, G-US-F08, G-US-F09, G-US-F10, T-R06-US-01, T-POWER-01, T-EXCESS-01 |
+| R-22 | Evaluation conventions | NEW · GOVERNANCE · P0 · M7, frozen first | TASK-M0-09, TASK-M1-21, TASK-M7-08, TASK-M7-09, TASK-M7-10, TASK-M7-16, TASK-M7-21, TASK-M7-22, TASK-M7-30 | **I-09**, **T-EPIS-01**, **T-EPIS-02**, **T-EXCESS-01**, **T-TROUGH-01**, **T-BAND-01**, T-SCHEMA-02, T-H15-01, T-SAT-01, T-ROLE-02, T-CARD-02, I-16, G-POST-01, G-KR-L01, G-KR-L02, G-KR-L03, G-KR-L04, G-KR-L05, G-KR-L06, G-KR-L07, G-KR-L08, G-KR-L09, G-KR-L10, G-KR-L11, G-KR-L12, G-KR-L13, T-ES-02, T-RLAYER-01, G-PWR-01, G-PWR-02, G-US-F01, G-US-F02, G-US-F03, G-US-F04, G-US-F05, G-US-F06, G-US-F07, G-US-F08, G-US-F09, G-US-F10, T-POWER-01, T-GATE-02 |
+| R-23 | Family trial ledger and N_eff | NEW · GOVERNANCE · P0 · M7, frozen first | TASK-M0-09, TASK-M7-01, TASK-M7-02, TASK-M7-03, TASK-M7-04, TASK-M7-05, TASK-M7-16, TASK-M7-24, TASK-M7-30 | **T-DSR-01**, **T-DSR-02**, **T-NEFF-01**, **T-STEP3-01**, **T-STEP3-02**, T-SCHEMA-02, T-LEDGER-01, T-SEL-01, T-CARD-02, T-R03-01, G-DSR-01, G-DSR-02, T-POWER-01, T-EXCESS-01, T-GATE-02, T-ES-02 |
+| R-24 | Statistics and power harness | NEW · GOVERNANCE · P0 · M7, frozen first | TASK-M0-09, TASK-M7-06, TASK-M7-07, TASK-M7-16, TASK-M7-22, TASK-M7-30 | **T-POWER-01**, **T-POWER-02**, **T-UNDERPOW-01**, **T-PZERO-01**, **T-PBO-01**, **T-SE-01**, T-SCHEMA-02, T-CARD-02, T-EPIS-02, T-TROUGH-01, T-ES-02, T-RLAYER-01, G-PWR-01, G-PWR-02, G-US-F01, G-US-F02, G-US-F03, G-US-F04, G-US-F05, G-US-F06, G-US-F07, G-US-F08, G-US-F09, G-US-F10, T-EXCESS-01, T-GATE-02 |
+| R-25 | Forward monitoring and demotion v2 | NEW · GOVERNANCE · P0 · M8 | TASK-M0-06, TASK-M5-04, TASK-M5-12, TASK-M8-08 | **I-14**, **T-DEMOTE-01**, **T-DEMOTE-02**, **T-DEMOTE-03**, **T-DEMOTE-04**, **T-DEMOTE-05**, T-OWNER-01, T-HALT-01, T-MONO-01 |
+| R-26 | Instrument book, notional, cost realism | NEW · INVARIANT · P0 · M0 | TASK-M0-05, TASK-M0-06, TASK-M0-09, TASK-M0-12, TASK-M0-13, TASK-M1-01, TASK-M2-06, TASK-M5-01, TASK-M7-19 | **T-COST-02**, **T-COST-03**, **T-BOOK-01**, **T-BOOK-02**, **T-BOOK-03**, T-CAP-01, T-HERM-02, T-OWNER-01, T-SCHEMA-02, T-RO-02, T-COST-01, I-07, T-REPRO-01b |
+| R-27 | Simulated fill model | NEW · CONVENTION · P2 · M5 | TASK-M1-01, TASK-M5-10, TASK-M5-11 | **T-FILL-01**, **T-FILL-02**, **T-FILL-03**, **T-BAR-01**, T-RO-02 |
+| R-28 | Trend-axis protective card | NEW · CARD-P · P1 · M8 | TASK-M7-02, TASK-M7-14, TASK-M7-18, TASK-M8-09 | **I-12**, **T-TREND-01**, **T-TREND-02**, **T-TREND-03**, **T-TREND-04**, T-NEFF-01, T-SEL-01, T-SCHEMA-02, T-BOOK-01, T-CARD-01, G-TR-01, G-TR-02, G-TR-03, G-TR-04, G-TR-05 |
+| R-29 | MACRO-R06-US-FUT | NEW · CARD-P · P1 · M8 | TASK-M7-14, TASK-M7-18, TASK-M8-10, TASK-M8-11 | **I-13**, **T-USFUT-01**, **T-USFUT-02**, **T-USFUT-03**, **T-USFUT-04**, **T-USFUT-05**, T-SCHEMA-02, T-BOOK-01, T-CARD-01 |
+| R-30 | Estimator selection gate and harness | NEW · GOVERNANCE · P1 · M3 | TASK-M3-01, TASK-M3-02, TASK-M3-03, TASK-M3-04, TASK-M3-05, TASK-M6-05, TASK-M7-28 | **I-10**, **T-EST-01**, **T-EST-02**, **T-EST-03**, **T-EST-04**, **T-EST-05**, G-US-01c, G-EST-01, G-EST-02, G-EST-03, T-B5-01, G-B5-01, G-B5-02, G-B5-03, G-B5-04, G-POST-01, G-EST-04, T-HEDGE-01, I-06c, T-SCHEMA-01 |
+| R-31 | Drawdown step-down card | NEW · CARD-P · P1 · M7 | TASK-M0-06, TASK-M5-05, TASK-M5-13, TASK-M7-02, TASK-M7-14, TASK-M7-18, TASK-M7-27, TASK-M8-03 | **I-15**, **T-STEP-01**, **T-STEP-02**, **T-STEP-03**, **T-STEP-04**, T-OWNER-01, I-04, G-LAD-01, G-LAD-02, G-LAD-03, T-NEFF-01, T-SEL-01, T-SCHEMA-02, T-BOOK-01, T-CARD-01, I-03 |
+| R-32 | Schemas v2 | CHANGED · GOVERNANCE · P0 · M0 | TASK-M0-07, TASK-M0-08, TASK-M0-09, TASK-M0-10, TASK-M0-11, TASK-M6-05, TASK-M6-06 | **T-SCHEMA-02**, T-OWNER-01, T-SCHEMA-01, T-SCHEMA-03, T-REPRO-01a, T-HEDGE-01, I-06c, T-DNB-01 |
+| R-33 | DO-NOT-BUILD v2 | CHANGED · GOVERNANCE · P1 · M0 | TASK-M0-01, TASK-M0-04, TASK-M0-05, TASK-M0-14, TASK-M0-15, TASK-M1-02, TASK-M2-07 | **T-DNB-01**, T-RO-01, T-CAP-01, T-BASIS-01, T-HERM-02, T-RO-02, G-KR-06 |
+| R-34 | Timing-fragility gate | NEW · GOVERNANCE · P0 · M7, frozen first | TASK-M0-02, TASK-M7-12, TASK-M7-13, TASK-M7-16 | **T-PLACEBO-01**, **T-AVAIL-01**, T-HERM-01, T-HERM-02, T-PLACEBO-02, T-LAG-01, T-LAG-02, I-05, T-CARD-02 |
+| R-35 | macro_daily workflow gates | CHANGED · GOVERNANCE · P1 · M8 | TASK-M7-19, TASK-M7-20, TASK-M8-01, TASK-M8-02, TASK-M8-03, TASK-M8-05, TASK-M8-06 | **I-01**, I-07, T-BOOK-02, T-BOOK-01, T-COST-01, T-REPRO-01b, T-CLOSE-01, T-RO-02, I-06c, T-CARD-03, I-03, T-OBS-04, T-OBS-01, T-OBS-02, T-OBS-03, T-OBS-05 |
+
+---
+
+## Verification (Python, run on this export)
+
+| Check | Result |
+|---|---|
+| Every module of `QC_modules.csv` maps to ≥ 1 task | 34 of 34 mapped; unmapped: none (R-05 also mapped: TASK-M4-05) |
+| Every cited test id exists in the spec | 228 distinct ids cited; missing: none; not defined as a table row or bold heading: none |
+| Dependencies never point to a later milestone | 266 edges; violations: none |
+| No task cites a test whose runs_from (§9.0a) is later than its milestone | violations: none; unknown runs_from: none |
+| Every §9.0a exit test is cited by a task | 224 exit tests; uncited: none |
+| Every §9.0 (module, test) pair is cited by a task of that module | 105 pairs; uncovered: none |
+| Descriptions have 2–5 sentences; type and priority valid | warnings: none; errors: none |
+

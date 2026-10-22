@@ -1,0 +1,18 @@
+item,value,source
+"KOSPI VT20, 3 bp, 1996-09..2026-09: dMDD vs S / tail ratio / dSR (p_ni) / episodes / years","+6.5 pp / 0.70 / -0.001 (0.051, block 186) / 6 of 13 (largest 38%) / 70% -> PASS",r2_idx_protective_scorecard.csv
+"KOSPI ENS (multi-speed trend), same",+8.9 pp / 0.77 / +0.186 (0.008) / 8 of 13 / 60.0% -> PASS,r2_idx_protective_scorecard.csv
+"KOSPI ENS x VT20, same",+11.3 pp / 0.55 / +0.231 (0.007) / 11 of 13 / 57% -> REVISE,r2_idx_protective_scorecard.csv
+KOSPI SMA200: de-clustered onsets; dMDD vs S,16 (< 30); +1.9 pp -> INSUFFICIENT DATA (sufficiency); if sufficient REJECT,r2_idx_protective_scorecard.csv
+KOSPI TSM12: de-clustered onsets; dMDD vs S,11 (< 30); +4.7 pp -> INSUFFICIENT DATA (sufficiency); if sufficient REVISE,r2_idx_protective_scorecard.csv
+SPY US via KIS 50bp: verdicts,"SMA200 INSUFFICIENT (sufficiency), ENS REJECT, TSM12 INSUFFICIENT (sufficiency), VT REJECT, ENSxVT REJECT",r2_idx_protective_scorecard.csv
+SPY Futures 5bp: verdicts,"SMA200 INSUFFICIENT (sufficiency), ENS INSUFFICIENT (inconclusive), TSM12 INSUFFICIENT (sufficiency), VT INSUFFICIENT (inconclusive), ENSxVT INSUFFICIENT (inconclusive)",r2_idx_protective_scorecard.csv
+"Outperformance test (gate step 5, 10-session CBB) p vs buy-and-hold, KOSPI SMA200 / ENS / TSM12 / VT20 / ENSxVT",0.23 / 0.06 / 0.27 / 0.51 / 0.05,r2_idx_outperformance.csv
+"Same, SPY at 5 bp",0.58 / 0.48 / 0.29 / 0.39 / 0.44,r2_idx_outperformance.csv
+KOSPI 2026-01-02..06-22 melt-up: B&H / SMA200 / ENS / TSM12 / VT20 / ENSxVT,+116.2% / +116.2% / +98.6% / +116.2% / +55.2% / +50.9%,r2_idx_windows.csv
+KOSPI 2026-06-22..07-30 crash: B&H / SMA200 / ENS / TSM12 / VT20 / ENSxVT,-38.6% / -37.9% / -31.3% / -38.6% / -12.2% / -9.8%,r2_idx_windows.csv
+KOSPI 2026-07-31..09-29 rebound: B&H / SMA200 / ENS / TSM12 / VT20 / ENSxVT,+22.8% / +4.1% / +8.3% / +22.8% / +6.2% / +2.1%,r2_idx_windows.csv
+"Gate false pass at true Sharpe 0 (kospi_cbb126), 10 / 18 / 30 years: step 2; step 8; joint 2+3+5+8 (N=1, rho 0.5)",8.0% / 6.9% / 6.8%; 23.8% / 10.2% / 4.7%; 0.5% / 0.1% / 0.0%,r2_idx_gate_sim.csv
+"Gate false pass at true Sharpe 0 (kospi_cbb126_signflip), 10 / 18 / 30 years: step 2; step 8; joint 2+3+5+8 (N=1, rho 0.5)",5.0% / 4.2% / 4.7%; 31.2% / 16.9% / 10.5%; 0.2% / 0.1% / 0.0%,r2_idx_gate_sim.csv
+"Step 5 false pass when the strategy Sharpe equals the benchmark (0.4), rho 0.5, 18 years: KOSPI / sign-flip / iid",12.8% / 9.0% / 8.2%,r2_idx_gate_sim.csv
+"Years for 50% / 80% power, step 2, true Sharpe 0.3 / 0.5 / 0.8 (KOSPI bootstrap)",28.7 / >50 ; 10.5 / 25.7 ; <=5 / 10.1,r2_idx_gate_power_years.csv
+"Averaging inflation of trend Sharpe, SPY 1999-2021 (month-average minus month-end): SMA10 / TSM12 / buy-and-hold",+0.10 / +0.23 / +0.04,r2_idx_averaging_bias.csv

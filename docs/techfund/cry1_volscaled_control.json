@@ -1,0 +1,574 @@
+{
+ "item": "CRY-1",
+ "addition": "vol-scaled long-only control",
+ "register_id": "G-29",
+ "node": "TF-67",
+ "ruling": "CR-10",
+ "card": "S_C3_crypto_trend",
+ "c3_verdict": "PASS, unchanged (D-24: additions are governance lines; the stored verdict is not rewritten)",
+ "label": "vendor data, labelled trial, not a formal card run",
+ "run_mode": "labelled_trial",
+ "value_status": "vendor_close",
+ "seed": 11,
+ "B": 2000,
+ "cost_bp_per_side": 10.0,
+ "stress_multiplier": 2.0,
+ "gate": "core.quant.validate nine-step gate (walk_forward 756/126, embargo 1, hysteresis lattice) + GOV report lines",
+ "trials": {
+  "card_N_total": 11,
+  "extra_trials": 3,
+  "N_after_cry1": 14,
+  "registered_rows_appended": 3,
+  "family": "C3",
+  "family_rows": 3,
+  "global_N": 3,
+  "registry_dir": "C:\\Users\\whydi\\.nextgen\\macro\\ledgers",
+  "cut_time_trial": "not counted: not run (D-24 counts four trials only if it runs)"
+ },
+ "bonferroni_note": "C3's step-5 p (0.038 KRW-BTC, 0.07 BTC-USD; cards of 2026-09-27) fails Bonferroni across the 16 trading cards (0.10 / 16 = 0.00625; R3:291 prints 0.006); its Sharpe-vs-zero t 3.49 survives (P:L371). Printed, not applied: C3 stays PASS (CR-10).",
+ "data": {
+  "binance_BTCUSDT": {
+   "file": "docs/asset_expansion/cache/binance_BTCUSDT.csv",
+   "md5": "8df4a74993c678269cca1d2e15ae87d9",
+   "start": "2017-08-17",
+   "end": "2026-09-25",
+   "sessions": 3327,
+   "source": "vendor: Binance public daily close (USDT), not an official close"
+  },
+  "upbit_KRW-BTC": {
+   "file": "docs/asset_expansion/cache/upbit_KRW-BTC.csv",
+   "md5": "de7eaec6f45d0dc12b2950f50433b89d",
+   "start": "2017-09-25",
+   "end": "2026-09-25",
+   "sessions": 3288,
+   "source": "vendor: Upbit public daily close (KRW), not an official close"
+  }
+ },
+ "run_utc": "2026-10-06T18:24:53Z",
+ "script": "docs/techfund_study.py",
+ "what_would_change_it": "post-ETF sub-period dSR <= 0 (R3:826)",
+ "proposal_status": "tech-fund values are proposals pending owner confirmation; Council v2.0 governs on conflict (rulings 3.7)",
+ "pre_registration": {
+  "control": "w_t = min(1, tau / sigma22_t), long-only, daily (step 1), band 0.10, 10 bp per side",
+  "tau": "annualised realised vol of C3's walk-forward OOS book on the same series (vol-matched, P2 F0)",
+  "n_trials": 14
+ },
+ "results": {
+  "binance_BTCUSDT": {
+   "c3_reproduction": {
+    "decision": "REJECT",
+    "reason": "does not beat its benchmark (Sharpe difference +0.11, p 0.33)",
+    "sr_oos": 0.7776924634496996,
+    "ci90": [
+     0.2505409048025563,
+     1.319501794837028
+    ],
+    "se_lo": 0.31338531444065193,
+    "dsr": 0.9928986212057803,
+    "pbo": 0.9751359751359752,
+    "prob_loss_oos": 0.00473970473970474,
+    "sr_stress": 0.7515138882914054,
+    "bench_sr": 0.6652170641058878,
+    "bench_diff": 0.11247539934381179,
+    "bench_p": 0.332,
+    "bench_ci": [
+     -0.2754022404870867,
+     0.5060758992566873
+    ],
+    "n_sessions": 2569,
+    "n_trials": 11,
+    "n_trades": 90,
+    "years_positive": 0.75,
+    "plateau": 1.0,
+    "edge": false,
+    "turnover_annual": 8.8283378746594,
+    "max_drawdown": -0.4287536675836606,
+    "bench_mdd": -0.7662925431645934,
+    "haircut_sr": 0.46661547806981973,
+    "oos_start": "2019-09-14",
+    "oos_end": "2026-09-25",
+    "walk_forward": "IS 756 / OOS 126 / embargo 1; 21 origins; 5 configs",
+    "chosen_last": {
+     "hysteresis": 0.667
+    },
+    "benchmark": "buy_and_hold"
+   },
+   "c3_vs_control": {
+    "decision": "REJECT",
+    "reason": "does not beat its benchmark (Sharpe difference +0.18, p 0.24)",
+    "sr_oos": 0.7776924634496996,
+    "ci90": [
+     0.2505409048025563,
+     1.319501794837028
+    ],
+    "se_lo": 0.31338531444065193,
+    "dsr": 0.9928194337914761,
+    "pbo": 0.9751359751359752,
+    "prob_loss_oos": 0.00473970473970474,
+    "sr_stress": 0.7515138882914054,
+    "bench_sr": 0.5956496014728527,
+    "bench_diff": 0.18204286197684683,
+    "bench_p": 0.243,
+    "bench_ci": [
+     -0.23542293226704014,
+     0.5797633423755062
+    ],
+    "n_sessions": 2569,
+    "n_trials": 14,
+    "n_trades": 90,
+    "years_positive": 0.75,
+    "plateau": 1.0,
+    "edge": false,
+    "turnover_annual": 8.8283378746594,
+    "max_drawdown": -0.4287536675836606,
+    "bench_mdd": -0.6648270647216763,
+    "haircut_sr": 0.46661547806981973,
+    "oos_start": "2019-09-14",
+    "oos_end": "2026-09-25",
+    "walk_forward": "IS 756 / OOS 126 / embargo 1; 21 origins; 5 configs",
+    "chosen_last": {
+     "hysteresis": 0.667
+    },
+    "benchmark": "vol_scaled_long_only_control",
+    "gov": {
+     "attribution": {
+      "beta": 0.6420290724901729,
+      "jensen_alpha": 0.125713931530566,
+      "nw_t": 1.6401836882914034,
+      "factor_alpha": null,
+      "factor_alpha_t": null,
+      "factor_loadings": null,
+      "factor_tilt": null,
+      "threshold_t": 2.0,
+      "threshold_status": "proposal pending owner confirmation (OQ-15); display only, never changes a verdict (D-19)",
+      "nw_lag": 10,
+      "T": 2569,
+      "nulls": {
+       "factor_alpha": "REFDATA: factor returns not supplied (French / local KRX factor files absent)"
+      },
+      "label": "no alpha (CAPM only)"
+     },
+     "lw_sharpe_test": {
+      "dSR": 0.18204286197684683,
+      "se": 0.24441756605636417,
+      "t_obs": 0.7448026952975493,
+      "p": 0.2235,
+      "p_hac": 0.22819550263861776,
+      "block": 10,
+      "B": 2000,
+      "seed": 11,
+      "ci": [
+       -0.2090340935400748,
+       0.6199691210479543
+      ]
+     },
+     "gov4": {
+      "block_step2": 107,
+      "block_step5": 10,
+      "ci90_pw": [
+       0.1436158199070452,
+       1.474368668461005
+      ],
+      "bench_p_pw": 0.243,
+      "ci90_worse": [
+       0.1436158199070452,
+       1.474368668461005
+      ],
+      "bench_p_worse": 0.243,
+      "decision": "REJECT",
+      "reason": "does not beat its benchmark (Sharpe difference +0.18, p 0.24)",
+      "reading": "GOV-4 / D-01: the worse of the 10-session and the max(10, PW(d), PW(d^2), 2 x holding) result (a tightening)"
+     },
+     "min_track_record": {
+      "min_trl_sessions": 1127.299394774998,
+      "sessions": 2569,
+      "exceeds_history": false
+     },
+     "step8": {
+      "years_positive": 0.8571428571428571,
+      "n_years": 7,
+      "step8_pass": true,
+      "subperiods": [
+       {
+        "name": "third 1",
+        "start": "2019-09-14",
+        "end": "2022-01-17",
+        "sessions": 857,
+        "compounded": 3.076377393247232
+       },
+       {
+        "name": "third 2",
+        "start": "2022-01-18",
+        "end": "2024-05-22",
+        "sessions": 856,
+        "compounded": 0.914659236563796
+       },
+       {
+        "name": "third 3",
+        "start": "2024-05-23",
+        "end": "2026-09-25",
+        "sessions": 856,
+        "compounded": 0.04514180786681088
+       }
+      ],
+      "two_of_three": true,
+      "standalone_note": "step 8 alone passes 23.8% (KOSPI bootstrap, GV-451) / 31.2% (sign-flip, GV-453) / 29.5% (iid, GV-455) of zero-Sharpe strategies at 10 years; reported beside 2-of-3 subperiods (PX-T-05)",
+      "status": "reported, not gated (GOV-6; owner may add 2-of-3 as a tightening, OQ-04)"
+     },
+     "step9": {
+      "expected_live": 0.46661547806981973,
+      "multiplier": 0.6,
+      "line": "step 9 (reported, not gated): expected live = 0.6 x OOS = 0.4666"
+     },
+     "stress": {
+      "windows": [
+       {
+        "name": "2008-06..2009-03 GFC",
+        "start": "2008-05-31",
+        "end": "2009-03-31",
+        "sessions": 0,
+        "book": null,
+        "benchmark": null,
+        "relative": null
+       },
+       {
+        "name": "2009-03..2009-05 post-GFC rebound",
+        "start": "2009-02-27",
+        "end": "2009-05-29",
+        "sessions": 0,
+        "book": null,
+        "benchmark": null,
+        "relative": null
+       },
+       {
+        "name": "2020-02-17..03-19 COVID crash",
+        "start": "2020-02-17",
+        "end": "2020-03-19",
+        "sessions": 31,
+        "book": -0.17316333298990305,
+        "benchmark": -0.31059476413109444,
+        "relative": 0.19934782039764598
+       },
+       {
+        "name": "2020-03-20..06-30 COVID rebound",
+        "start": "2020-03-19",
+        "end": "2020-06-30",
+        "sessions": 103,
+        "book": 0.01385602065435454,
+        "benchmark": 0.22167915766563273,
+        "relative": -0.17011269751739377
+       },
+       {
+        "name": "2022 full year",
+        "start": "2021-12-31",
+        "end": "2022-12-31",
+        "sessions": 365,
+        "book": -0.31115433543031024,
+        "benchmark": -0.5600307992883494,
+        "relative": 0.5656679227897801
+       },
+       {
+        "name": "2026-01-02..06-22 melt-up",
+        "start": "2025-12-31",
+        "end": "2026-06-22",
+        "sessions": 173,
+        "book": -0.09184510218101061,
+        "benchmark": -0.24187126924581515,
+        "relative": 0.1978900956774965
+       },
+       {
+        "name": "2026-06-22..07-30 crash",
+        "start": "2026-06-22",
+        "end": "2026-07-30",
+        "sessions": 38,
+        "book": -0.0006482750469405385,
+        "benchmark": 0.016828230711621428,
+        "relative": -0.01718727434065348
+       },
+       {
+        "name": "2026-07-31..09-29 after crash",
+        "start": "2026-07-30",
+        "end": "2026-09-29",
+        "sessions": 57,
+        "book": 0.17433109558036364,
+        "benchmark": 0.2912673315715062,
+        "relative": -0.09055927702347122
+       }
+      ],
+      "worst_rolling_relative": {
+       "21": -0.2107133498845898,
+       "63": -0.24818895655651854,
+       "25": -0.1848338486012488
+      },
+      "reporting_only": true,
+      "relative_to": "benchmark"
+     }
+    }
+   },
+   "control": {
+    "tau": 0.3376767738286874,
+    "sr": 0.5956496014728527,
+    "avg_exposure": 0.7760645405828753,
+    "max_drawdown": -0.6648270647216763
+   }
+  },
+  "upbit_KRW-BTC": {
+   "c3_reproduction": {
+    "decision": "PASS",
+    "reason": "every gate criterion met",
+    "sr_oos": 1.2160250195674127,
+    "ci90": [
+     0.6248430923037298,
+     1.7733635785645205
+    ],
+    "se_lo": 0.31606483451069267,
+    "dsr": 0.9995084044265401,
+    "pbo": 0.26837606837606837,
+    "prob_loss_oos": 7.77000777000777e-05,
+    "sr_stress": 1.171394227006523,
+    "bench_sr": 0.788830441182887,
+    "bench_diff": 0.4271945783845257,
+    "bench_p": 0.038,
+    "bench_ci": [
+     0.03344352887529298,
+     0.8346050647267628
+    ],
+    "n_sessions": 2530,
+    "n_trials": 11,
+    "n_trades": 138,
+    "years_positive": 0.75,
+    "plateau": 1.0,
+    "edge": false,
+    "turnover_annual": 13.745454545454544,
+    "max_drawdown": -0.4933830078830207,
+    "bench_mdd": -0.7412748915887621,
+    "haircut_sr": 0.7296150117404476,
+    "oos_start": "2019-10-23",
+    "oos_end": "2026-09-25",
+    "walk_forward": "IS 756 / OOS 126 / embargo 1; 21 origins; 5 configs",
+    "chosen_last": {
+     "hysteresis": 0.667
+    },
+    "benchmark": "buy_and_hold"
+   },
+   "c3_vs_control": {
+    "decision": "PASS",
+    "reason": "every gate criterion met",
+    "sr_oos": 1.2160250195674127,
+    "ci90": [
+     0.6248430923037298,
+     1.7733635785645205
+    ],
+    "se_lo": 0.31606483451069267,
+    "dsr": 0.9994217420720103,
+    "pbo": 0.26837606837606837,
+    "prob_loss_oos": 7.77000777000777e-05,
+    "sr_stress": 1.171394227006523,
+    "bench_sr": 0.72032532273185,
+    "bench_diff": 0.4956996968355627,
+    "bench_p": 0.028,
+    "bench_ci": [
+     0.05908030124771226,
+     0.9392043869300056
+    ],
+    "n_sessions": 2530,
+    "n_trials": 14,
+    "n_trades": 138,
+    "years_positive": 0.75,
+    "plateau": 1.0,
+    "edge": false,
+    "turnover_annual": 13.745454545454544,
+    "max_drawdown": -0.4933830078830207,
+    "bench_mdd": -0.6849812966819171,
+    "haircut_sr": 0.7296150117404476,
+    "oos_start": "2019-10-23",
+    "oos_end": "2026-09-25",
+    "walk_forward": "IS 756 / OOS 126 / embargo 1; 21 origins; 5 configs",
+    "chosen_last": {
+     "hysteresis": 0.667
+    },
+    "benchmark": "vol_scaled_long_only_control",
+    "gov": {
+     "attribution": {
+      "beta": 0.6615533590061886,
+      "jensen_alpha": 0.2189840051273492,
+      "nw_t": 2.8096676762772756,
+      "factor_alpha": null,
+      "factor_alpha_t": null,
+      "factor_loadings": null,
+      "factor_tilt": null,
+      "threshold_t": 2.0,
+      "threshold_status": "proposal pending owner confirmation (OQ-15); display only, never changes a verdict (D-19)",
+      "nw_lag": 10,
+      "T": 2530,
+      "nulls": {
+       "factor_alpha": "REFDATA: factor returns not supplied (French / local KRX factor files absent)"
+      },
+      "label": "alpha (CAPM only; factor attribution not run)"
+     },
+     "lw_sharpe_test": {
+      "dSR": 0.4956996968355627,
+      "se": 0.2480921465559478,
+      "t_obs": 1.9980467085191524,
+      "p": 0.02,
+      "p_hac": 0.02285579823866602,
+      "block": 10,
+      "B": 2000,
+      "seed": 11,
+      "ci": [
+       0.10075109797861304,
+       0.9569118612811474
+      ]
+     },
+     "gov4": {
+      "block_step2": 107,
+      "block_step5": 10,
+      "ci90_pw": [
+       0.5721545122286545,
+       1.9197651000575555
+      ],
+      "bench_p_pw": 0.028,
+      "ci90_worse": [
+       0.5721545122286545,
+       1.9197651000575555
+      ],
+      "bench_p_worse": 0.028,
+      "decision": "PASS",
+      "reason": "every gate criterion met",
+      "reading": "GOV-4 / D-01: the worse of the 10-session and the max(10, PW(d), PW(d^2), 2 x holding) result (a tightening)"
+     },
+     "min_track_record": {
+      "min_trl_sessions": 461.07336320374986,
+      "sessions": 2530,
+      "exceeds_history": false
+     },
+     "step8": {
+      "years_positive": 0.8571428571428571,
+      "n_years": 7,
+      "step8_pass": true,
+      "subperiods": [
+       {
+        "name": "third 1",
+        "start": "2019-10-23",
+        "end": "2022-02-12",
+        "sessions": 844,
+        "compounded": 7.02428312896102
+       },
+       {
+        "name": "third 2",
+        "start": "2022-02-13",
+        "end": "2024-06-04",
+        "sessions": 843,
+        "compounded": 1.296413941032506
+       },
+       {
+        "name": "third 3",
+        "start": "2024-06-05",
+        "end": "2026-09-25",
+        "sessions": 843,
+        "compounded": 0.4431949481656899
+       }
+      ],
+      "two_of_three": true,
+      "standalone_note": "step 8 alone passes 23.8% (KOSPI bootstrap, GV-451) / 31.2% (sign-flip, GV-453) / 29.5% (iid, GV-455) of zero-Sharpe strategies at 10 years; reported beside 2-of-3 subperiods (PX-T-05)",
+      "status": "reported, not gated (GOV-6; owner may add 2-of-3 as a tightening, OQ-04)"
+     },
+     "step9": {
+      "expected_live": 0.7296150117404476,
+      "multiplier": 0.6,
+      "line": "step 9 (reported, not gated): expected live = 0.6 x OOS = 0.7296"
+     },
+     "stress": {
+      "windows": [
+       {
+        "name": "2008-06..2009-03 GFC",
+        "start": "2008-05-31",
+        "end": "2009-03-31",
+        "sessions": 0,
+        "book": null,
+        "benchmark": null,
+        "relative": null
+       },
+       {
+        "name": "2009-03..2009-05 post-GFC rebound",
+        "start": "2009-02-27",
+        "end": "2009-05-29",
+        "sessions": 0,
+        "book": null,
+        "benchmark": null,
+        "relative": null
+       },
+       {
+        "name": "2020-02-17..03-19 COVID crash",
+        "start": "2020-02-17",
+        "end": "2020-03-19",
+        "sessions": 31,
+        "book": -0.06187628956111202,
+        "benchmark": -0.3237949358839657,
+        "relative": 0.3873361206858832
+       },
+       {
+        "name": "2020-03-20..06-30 COVID rebound",
+        "start": "2020-03-19",
+        "end": "2020-06-30",
+        "sessions": 103,
+        "book": 0.15097738186614929,
+        "benchmark": 0.21003937633373915,
+        "relative": -0.04880997728068981
+       },
+       {
+        "name": "2022 full year",
+        "start": "2021-12-31",
+        "end": "2022-12-31",
+        "sessions": 365,
+        "book": -0.3635032574260234,
+        "benchmark": -0.5814497146604762,
+        "relative": 0.5207174976781033
+       },
+       {
+        "name": "2026-01-02..06-22 melt-up",
+        "start": "2025-12-31",
+        "end": "2026-06-22",
+        "sessions": 173,
+        "book": -0.012958427272438788,
+        "benchmark": -0.22084716821217676,
+        "relative": 0.2668138168255412
+       },
+       {
+        "name": "2026-06-22..07-30 crash",
+        "start": "2026-06-22",
+        "end": "2026-07-30",
+        "sessions": 38,
+        "book": -0.017325768508621442,
+        "benchmark": -0.04736929248433808,
+        "relative": 0.03153742970774709
+       },
+       {
+        "name": "2026-07-31..09-29 after crash",
+        "start": "2026-07-30",
+        "end": "2026-09-29",
+        "sessions": 57,
+        "book": 0.1906435635322976,
+        "benchmark": 0.2445014358131623,
+        "relative": -0.04327666544287567
+       }
+      ],
+      "worst_rolling_relative": {
+       "21": -0.19266109674889137,
+       "63": -0.21898534833951427,
+       "25": -0.2235041434338628
+      },
+      "reporting_only": true,
+      "relative_to": "benchmark"
+     }
+    }
+   },
+   "control": {
+    "tau": 0.3073662924423816,
+    "sr": 0.72032532273185,
+    "avg_exposure": 0.8060117446627842,
+    "max_drawdown": -0.6849812966819171
+   }
+  }
+ }
+}

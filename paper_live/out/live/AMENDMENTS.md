@@ -1,0 +1,8 @@
+# Mid-run amendments (live paper session 2026-10-07)
+
+| UTC | What | Why |
+|---|---|---|
+| 12:16:45 | Live process stopped after the 12:15:32 tick and restarted from state.json with patched engine.py / run_live.py (backups: out/engine_pre_patch.py.bak, out/run_live_pre_patch.py.bak). config.py (the pre-registered parameters) unchanged: same config sha ffbdfc4d489bcaf2. | Adversarial code review (workflow paper-live-review, 4 lenses x 2 skeptics) confirmed: (1) a ticker missing from one 5-minute download (e.g. GBPUSD=X) would turn an account's cash into NaN permanently and disable its drawdown stop; (2) an edge-decay / stop / flip exit could re-open the same key in the same step, paying a round trip for nothing; (3) the elapsed-seconds cadence check skipped decision cycles after a late tick (happened at 12:05:33); (4) the final flatten was not verified. |
+| | Fixes | carry-forward of the last good series for missing tickers + finite guards in _open/_close/_mark; no same-step re-entry on a key just exited; slot-based cadence; final flatten retried until flat (max 10 x 60 s); file writes guarded; core_cut persisted. Regression proof: scratchpad/regress.py (3 checks) passed before restart. |
+| | Not changed (reported instead) | GARCH sigma fitted with today's partial daily bar for CME/FX/LSE (sizing only); calibrate.py drops exactly-zero 60m returns (scoring only); USDJPY gross uses notional*(1+r). |
+| 12:15:32 | Finding (2) occurred once before the patch: LAZYOWEN-NAIVE closed ZB=F short (edge_decay_5pp) and re-opened the same short in the same step (~$0.03 extra cost). Left in the ledger as executed. | |

@@ -1,0 +1,97 @@
+{
+ "card_id": "M_C7_weekday",
+ "kind": "model",
+ "hypothesis": "Weekday returns carry no persistent effect; weekend liquidity is lower (a cost input)",
+ "rules": {},
+ "universe": {
+  "symbol": "BTCUSDT"
+ },
+ "data": {
+  "days": 3328
+ },
+ "costs": {},
+ "protocol": {},
+ "trials": {
+  "N_planned": 1,
+  "N_total": 1,
+  "ledger": []
+ },
+ "seed": 11,
+ "stats": {
+  "rows": [
+   {
+    "day": "Mon",
+    "n": 475,
+    "mean_ret_pct": 0.34527195405041616,
+    "vol_pct": 3.954243360681882,
+    "mean_volume": 1960862548.484485
+   },
+   {
+    "day": "Tue",
+    "n": 475,
+    "mean_ret_pct": -0.0695301677775575,
+    "vol_pct": 3.4760429501184325,
+    "mean_volume": 1955942583.3921268
+   },
+   {
+    "day": "Wed",
+    "n": 475,
+    "mean_ret_pct": 0.3448020559394962,
+    "vol_pct": 3.6171708887929435,
+    "mean_volume": 1962250059.8690047
+   },
+   {
+    "day": "Thu",
+    "n": 475,
+    "mean_ret_pct": -0.32566216882575105,
+    "vol_pct": 4.4938233632198195,
+    "mean_volume": 1897718630.241366
+   },
+   {
+    "day": "Fri",
+    "n": 476,
+    "mean_ret_pct": 0.1937585840301847,
+    "vol_pct": 3.5937131260720983,
+    "mean_volume": 1956685530.9760585
+   },
+   {
+    "day": "Sat",
+    "n": 476,
+    "mean_ret_pct": 0.11438757809356659,
+    "vol_pct": 2.3757399252690803,
+    "mean_volume": 1142333031.5640254
+   },
+   {
+    "day": "Sun",
+    "n": 475,
+    "mean_ret_pct": 0.022902164472009264,
+    "vol_pct": 2.794385545713083,
+    "mean_volume": 1241623580.8455777
+   }
+  ],
+  "weekend_volume_ratio": 0.6122815560430755
+ },
+ "tests": {
+  "return_p_bonferroni": 0.17512447191188835,
+  "weekend_volume_p": 3.2163855160235763e-35
+ },
+ "decision": "PASS",
+ "decision_reason": "cost input set",
+ "revise_target": null,
+ "lines": [
+  "No weekday mean return differs after Bonferroni (p = 0.18): the expected null.",
+  "Weekend volume is 61% of weekday volume (p = 3.2e-35); weekend slippage set at 2× in the crypto backtests."
+ ],
+ "decay_haircut": {
+  "factor": 0.6,
+  "source": "McLean-Pontiff 2016 26-58%"
+ },
+ "created": "2026-09-27",
+ "author": "QUANTGEN validation gate",
+ "results_file": "docs/asset_expansion/results.csv",
+ "results_md5": "ca757e25f508b588cb2f361719ec83cd",
+ "citations": [
+  "Baur, Cahill, Godfrey & Liu 2019 FRL 31",
+  "ECON302 Ch1 slides 2–7"
+ ]
+}

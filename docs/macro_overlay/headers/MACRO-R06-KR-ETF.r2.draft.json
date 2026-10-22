@@ -1,0 +1,145 @@
+{
+ "N_raw_at_registration": null,
+ "benchmarks": [
+  "buy_and_hold",
+  "overlay_off",
+  "static_same_avg_exposure",
+  "ewma_derisk"
+ ],
+ "build_status_on_pass": "BUILD_AS_INSURANCE",
+ "card_id": "MACRO-R06-KR-ETF",
+ "cash_convention": {
+  "cash_series": "BOK_CALL_RATE",
+  "day_count": "act_365",
+  "returns": "excess"
+ },
+ "checks": "gate_package_2.0.0",
+ "claim": "Crisis-clustering insurance: reduces drawdown in volatility-clustering crises (1997–98, 2008, 2026); no help against gap shocks from calm states (2018-10, 2020-02, 2024-08); Sharpe non-inferiority is marginal — it pays a premium in calm decades (2016–25 alone: tail 0.95, ΔSR −0.079) and is short the post-crash rebound premium; not expected to outperform; cap 1.0 permanent.",
+ "claim_type": "protection",
+ "class": "CARD-P",
+ "comparator": "S_same_average_exposure",
+ "costs": {
+  "floor": "tick_floor",
+  "per_side": "read_from_gate",
+  "printed_lines": [
+   "krx_etf_3bp_throughout"
+  ],
+  "schedule": [
+   {
+    "cost_class": "futures",
+    "to": null
+   },
+   {
+    "cost_class": "krx_etf",
+    "from": null
+   }
+  ],
+  "stress": 2.0,
+  "stress_line": "printed"
+ },
+ "created_utc": null,
+ "data": {
+  "golden_tolerance": "Level-2, only for I-16's raw-flag data check vs G-KR-L01; the formal run's differences are printed, never gated",
+  "history_file": null,
+  "reconciliation": "R-01: index 1 bp, stocks exact",
+  "saturday_sessions_before": "1998-12-12",
+  "source": "KRX_official_closes",
+  "value_status": "official_close"
+ },
+ "data_span": {
+  "end": "2026-10-02",
+  "start": "first_close_plus_20_session_warmup"
+ },
+ "episode_rule_version": "1",
+ "estimator": "sma20",
+ "family_id": "R-06",
+ "fill_model": "KRX_close_auction",
+ "gate_package_md5": null,
+ "gate_package_version": "2.0.0",
+ "gating_lines": {
+  "etf_era": {
+   "from": null,
+   "require": "v2_PASS",
+   "to": "2025-12-31"
+  },
+  "full_span": "v2_PASS"
+ },
+ "header_md5": null,
+ "history_first_close": "1997-04-01",
+ "hypothesis": "VT20 lowers tail losses vs a same-average-exposure static book without a Sharpe loss beyond 0.10",
+ "instrument_book": "KRX_ETF_line",
+ "label": "Crisis-clustering insurance: reduces drawdown in volatility-clustering crises (1997–98, 2008, 2026); no help against gap shocks from calm states (2018-10, 2020-02, 2024-08); Sharpe non-inferiority is marginal — it pays a premium in calm decades (2016–25 alone: tail 0.95, ΔSR −0.079) and is short the post-crash rebound premium; not expected to outperform; cap 1.0 permanent.",
+ "ledger_hash_at_registration": null,
+ "mechanism": "variance reduction (variance ratio 0.59); implicitly short the rebound premium (timing return -1.8%/yr)",
+ "midpoint_halves": {
+  "require": "no_reject",
+  "split": "calendar_midpoint",
+  "split_date": "2012-01-01"
+ },
+ "no_trade_band": 0.0,
+ "notional_nav": null,
+ "outcomes": {
+  "INSUFFICIENT_DATA": "specification_book_control_regated_on_new_objective_episode",
+  "PASS": "BUILD-AS-INSURANCE",
+  "REJECT": "archive"
+ },
+ "owner_decisions": {
+  "risk_layer.korea_caps.template": "msci_25_50"
+ },
+ "parameters": {
+  "cap": 1.0,
+  "estimator": "sma",
+  "floor": "none",
+  "target_ann": 0.2,
+  "window": 20
+ },
+ "primary_oos_line": "etf_era",
+ "printed_lines": [
+  "exec_variants_ABC",
+  "overnight_intraday",
+  "turnover_by_regime",
+  "stress_cost_line",
+  "with_risk_layer",
+  "etf_era_to_present",
+  "pre_design_2002-10_to_2015-12",
+  "1997_to_2002_alone",
+  "2016_to_2025_alone",
+  "rolling_decades",
+  "pc4_under_section_8_6",
+  "ewma094_line",
+  "timing_return",
+  "years_lagging_S",
+  "h1_2026_bull_tax",
+  "median_reentry_lag",
+  "per_regime_table"
+ ],
+ "rebalance": "daily",
+ "regime_lines": "from_R20_tags",
+ "revision": 2,
+ "rule": "vt = min(1.0, 0.20 / sigma_SMA20(t)); decided at the KRX close of t (available_at <= close_print_bound_utc(KR, t)); earns from t+1",
+ "rule_id": "R-06-KR-VT20",
+ "searched_parameters": [],
+ "seed": 11,
+ "start_band": {
+  "from": "1997-05",
+  "require": {
+   "no_reject": true,
+   "pass_share_min": "2/3"
+  },
+  "shape": "R-06_KR",
+  "starts": 32,
+  "step": "month",
+  "to": "1999-12"
+ },
+ "tier": "A",
+ "timing": {
+  "decision": "close_t_earn_t_plus_1",
+  "inputs": {
+   "KOSPI": {
+    "available_at": "<= close_print_bound_utc(KR, t)",
+    "series": "KOSPI_OFFICIAL_CLOSE",
+    "value_status": "official_close"
+   }
+  }
+ }
+}

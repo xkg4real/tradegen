@@ -1,0 +1,371 @@
+{
+ "sha": "fd50c3194378dc74",
+ "built_utc": "2026-10-12T01:18:39.151914+00:00",
+ "seconds": 3.0,
+ "n_rows": 146299,
+ "first": "2026-07-13",
+ "last": "2026-10-12",
+ "train_dates": "2026-07-13..2026-09-28",
+ "test_dates": "2026-09-29..2026-10-12",
+ "note": "SEs are naive (overlapping 60m targets on a 5m grid inflate t-stats ~3.5x); use the hourly non-overlapping se for the trigger subsets",
+ "coef_train": {
+  "equity": [
+   0.0,
+   -0.001681920608066513,
+   -0.029253456363761064
+  ],
+  "rates": [
+   0.0,
+   0.03020281645564296,
+   -0.07570576544880588
+  ],
+  "commod": [
+   0.0,
+   0.04018857992938285,
+   -0.0021662812258234536
+  ],
+  "fx": [
+   0.0,
+   -0.0311286502274516,
+   -0.09192710768406559
+  ]
+ },
+ "coef_full": {
+  "equity": [
+   0.0,
+   0.01948863976144426,
+   -0.03099012818122241
+  ],
+  "rates": [
+   0.0,
+   0.05114141857794069,
+   -0.07400575377709516
+  ],
+  "commod": [
+   0.0,
+   0.056472639440051334,
+   -0.0010173188526710053
+  ],
+  "fx": [
+   0.0,
+   -0.043333971512011446,
+   -0.08199219738717252
+  ]
+ },
+ "se_full_naive": {
+  "equity": [
+   0.0,
+   0.012470581036150544,
+   0.012764509130235573
+  ],
+  "rates": [
+   0.0,
+   0.02235948159494188,
+   0.022157239761467728
+  ],
+  "commod": [
+   0.0,
+   0.014368213891912632,
+   0.0144488708014401
+  ],
+  "fx": [
+   0.0,
+   0.010193628433882176,
+   0.009942422937506044
+  ]
+ },
+ "oos_test": {
+  "equity": {
+   "n": 6487,
+   "auc": 0.49209716816381505,
+   "brier": 0.2501455666442079,
+   "brier_coinflip": 0.25,
+   "mean_p": 0.5000829084495741,
+   "base_rate": 0.4871281023585633,
+   "trig2pp": {
+    "n": 88,
+    "n_hourly": 5,
+    "hit": 0.4090909090909091,
+    "mean_bp": -4.8279144842168655,
+    "se_bp_hourly": 8.160141434081988,
+    "mean_bp_hourly": -7.1890756995435545
+   },
+   "trig8pp": {
+    "n": 0,
+    "n_hourly": 0,
+    "hit": null,
+    "mean_bp": null,
+    "se_bp_hourly": null,
+    "mean_bp_hourly": null
+   }
+  },
+  "rates": {
+   "n": 2381,
+   "auc": 0.5169613865451944,
+   "brier": 0.24992065850106993,
+   "brier_coinflip": 0.25,
+   "mean_p": 0.5000293984303489,
+   "base_rate": 0.498530029399412,
+   "trig2pp": {
+    "n": 391,
+    "n_hourly": 28,
+    "hit": 0.5115089514066496,
+    "mean_bp": 0.11565710116342183,
+    "se_bp_hourly": 1.7724718152682688,
+    "mean_bp_hourly": 3.004178657543149
+   },
+   "trig8pp": {
+    "n": 0,
+    "n_hourly": 0,
+    "hit": null,
+    "mean_bp": null,
+    "se_bp_hourly": null,
+    "mean_bp_hourly": null
+   }
+  },
+  "commod": {
+   "n": 4874,
+   "auc": 0.540794175504597,
+   "brier": 0.2494742852237353,
+   "brier_coinflip": 0.25,
+   "mean_p": 0.5001778626929908,
+   "base_rate": 0.5172343044727123,
+   "trig2pp": {
+    "n": 206,
+    "n_hourly": 14,
+    "hit": 0.5728155339805825,
+    "mean_bp": 9.45154750073658,
+    "se_bp_hourly": 15.953979380343023,
+    "mean_bp_hourly": 19.240256050514322
+   },
+   "trig8pp": {
+    "n": 0,
+    "n_hourly": 0,
+    "hit": null,
+    "mean_bp": null,
+    "se_bp_hourly": null,
+    "mean_bp_hourly": null
+   }
+  },
+  "fx": {
+   "n": 9804,
+   "auc": 0.5282072829131653,
+   "brier": 0.24947944241090456,
+   "brier_coinflip": 0.25,
+   "mean_p": 0.500408112820902,
+   "base_rate": 0.47980416156670747,
+   "trig2pp": {
+    "n": 3334,
+    "n_hourly": 284,
+    "hit": 0.5389922015596881,
+    "mean_bp": 0.7018425120978447,
+    "se_bp_hourly": 0.6350870938190559,
+    "mean_bp_hourly": 0.7174970656880694
+   },
+   "trig8pp": {
+    "n": 108,
+    "n_hourly": 13,
+    "hit": 0.5185185185185185,
+    "mean_bp": 1.1724114223245348,
+    "se_bp_hourly": 4.056687943084996,
+    "mean_bp_hourly": 3.6948361043787568
+   }
+  }
+ },
+ "oos_test_window_hours": {
+  "equity": {
+   "n": 1285,
+   "auc": 0.4873028706129884,
+   "brier": 0.25038467607913456,
+   "brier_coinflip": 0.25,
+   "mean_p": 0.49950659159262967,
+   "base_rate": 0.5361867704280155,
+   "trig2pp": {
+    "n": 56,
+    "n_hourly": 1,
+    "hit": 0.32142857142857145,
+    "mean_bp": -4.972302303516647,
+    "se_bp_hourly": null,
+    "mean_bp_hourly": -8.563681002925913
+   },
+   "trig8pp": {
+    "n": 0,
+    "n_hourly": 0,
+    "hit": null,
+    "mean_bp": null,
+    "se_bp_hourly": null,
+    "mean_bp_hourly": null
+   }
+  },
+  "rates": {
+   "n": 618,
+   "auc": 0.4576721845784373,
+   "brier": 0.25201562595704824,
+   "brier_coinflip": 0.25,
+   "mean_p": 0.49982572432917116,
+   "base_rate": 0.42394822006472493,
+   "trig2pp": {
+    "n": 176,
+    "n_hourly": 13,
+    "hit": 0.4375,
+    "mean_bp": -1.1561522516530296,
+    "se_bp_hourly": 3.080108949348003,
+    "mean_bp_hourly": 3.795797949270801
+   },
+   "trig8pp": {
+    "n": 0,
+    "n_hourly": 0,
+    "hit": null,
+    "mean_bp": null,
+    "se_bp_hourly": null,
+    "mean_bp_hourly": null
+   }
+  },
+  "commod": {
+   "n": 1291,
+   "auc": 0.4567943013214675,
+   "brier": 0.2510374483655213,
+   "brier_coinflip": 0.25,
+   "mean_p": 0.49970318697694044,
+   "base_rate": 0.4972889233152595,
+   "trig2pp": {
+    "n": 82,
+    "n_hourly": 4,
+    "hit": 0.3780487804878049,
+    "mean_bp": -15.094263588938476,
+    "se_bp_hourly": 21.056406367318758,
+    "mean_bp_hourly": -11.738851226012159
+   },
+   "trig8pp": {
+    "n": 0,
+    "n_hourly": 0,
+    "hit": null,
+    "mean_bp": null,
+    "se_bp_hourly": null,
+    "mean_bp_hourly": null
+   }
+  },
+  "fx": {
+   "n": 2466,
+   "auc": 0.5297054883997817,
+   "brier": 0.24945700083859393,
+   "brier_coinflip": 0.25,
+   "mean_p": 0.5013635830795427,
+   "base_rate": 0.4626926196269262,
+   "trig2pp": {
+    "n": 1060,
+    "n_hourly": 93,
+    "hit": 0.5339622641509434,
+    "mean_bp": 0.6828521063044344,
+    "se_bp_hourly": 1.1758082321515857,
+    "mean_bp_hourly": 0.5706701221303989
+   },
+   "trig8pp": {
+    "n": 44,
+    "n_hourly": 4,
+    "hit": 0.5227272727272727,
+    "mean_bp": 1.004803614984126,
+    "se_bp_hourly": 4.184029124889336,
+    "mean_bp_hourly": -11.464188395778276
+   }
+  }
+ },
+ "in_sample_train": {
+  "equity": {
+   "n": 34529,
+   "auc": 0.5082543251586253,
+   "brier": 0.2499546716894584,
+   "brier_coinflip": 0.25,
+   "mean_p": 0.5000314428049936,
+   "base_rate": 0.5045034608589881,
+   "trig2pp": {
+    "n": 526,
+    "n_hourly": 41,
+    "hit": 0.4866920152091255,
+    "mean_bp": -16.277872547156264,
+    "se_bp_hourly": 14.70353829026207,
+    "mean_bp_hourly": -35.75142503989956
+   },
+   "trig8pp": {
+    "n": 0,
+    "n_hourly": 0,
+    "hit": null,
+    "mean_bp": null,
+    "se_bp_hourly": null,
+    "mean_bp_hourly": null
+   }
+  },
+  "rates": {
+   "n": 11092,
+   "auc": 0.5217579393933053,
+   "brier": 0.24978310724169844,
+   "brier_coinflip": 0.25,
+   "mean_p": 0.5001191126094507,
+   "base_rate": 0.46267580238009376,
+   "trig2pp": {
+    "n": 1629,
+    "n_hourly": 125,
+    "hit": 0.5119705340699816,
+    "mean_bp": -0.16589862892223697,
+    "se_bp_hourly": 0.7103410984476174,
+    "mean_bp_hourly": 0.8908038649299456
+   },
+   "trig8pp": {
+    "n": 0,
+    "n_hourly": 0,
+    "hit": null,
+    "mean_bp": null,
+    "se_bp_hourly": null,
+    "mean_bp_hourly": null
+   }
+  },
+  "commod": {
+   "n": 22461,
+   "auc": 0.5180855308474518,
+   "brier": 0.24990816829147283,
+   "brier_coinflip": 0.25,
+   "mean_p": 0.5001211068350745,
+   "base_rate": 0.49766261519967947,
+   "trig2pp": {
+    "n": 1020,
+    "n_hourly": 89,
+    "hit": 0.4843137254901961,
+    "mean_bp": -0.9399691681773302,
+    "se_bp_hourly": 5.513444335973851,
+    "mean_bp_hourly": -4.411666701663213
+   },
+   "trig8pp": {
+    "n": 0,
+    "n_hourly": 0,
+    "hit": null,
+    "mean_bp": null,
+    "se_bp_hourly": null,
+    "mean_bp_hourly": null
+   }
+  },
+  "fx": {
+   "n": 54671,
+   "auc": 0.5308723720234626,
+   "brier": 0.24937235736134075,
+   "brier_coinflip": 0.25,
+   "mean_p": 0.5001960542099328,
+   "base_rate": 0.5031003639955369,
+   "trig2pp": {
+    "n": 18269,
+    "n_hourly": 1486,
+    "hit": 0.5371941540314193,
+    "mean_bp": 0.42419495137941277,
+    "se_bp_hourly": 0.3240141653159112,
+    "mean_bp_hourly": 1.141693800767852
+   },
+   "trig8pp": {
+    "n": 644,
+    "n_hourly": 41,
+    "hit": 0.5496894409937888,
+    "mean_bp": 1.025436720750752,
+    "se_bp_hourly": 5.668094414645376,
+    "mean_bp_hourly": 8.389605823025326
+   }
+  }
+ }
+}

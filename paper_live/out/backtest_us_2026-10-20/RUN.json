@@ -1,0 +1,20 @@
+{
+ "purpose": "exploratory US-session backtest of the six current paper accounts; sessions before the H2 freeze, so not part of the gate test",
+ "window_utc": [
+  "13:30",
+  "20:00"
+ ],
+ "sessions": [
+  "2026-08-12",
+  "2026-10-19"
+ ],
+ "profile": "base",
+ "data": {
+  "snapshot": "paper_live/out/data/us_backtest_5m_60d_20261020.csv.gz",
+  "sha256": "c922e3d6aeb5df3f5a39dfbd6dccdbd41b52cb33b4ddad188578b8fda34a05f1",
+  "saved_utc": "2026-10-20T14:16:42+00:00"
+ },
+ "sigmas": "paper_live/out/live/sigmas.json (Run 1's 2026-10-07 GARCH fit, used on every session)",
+ "model": "paper_live/out/model_train_only.json (logistic trained 2026-07-14..09-23)",
+ "rerun": "PYTHONPATH=<QUANTGEN> python paper_live/out/backtest_us_2026-10-20/run_us_backtest.py"
+}

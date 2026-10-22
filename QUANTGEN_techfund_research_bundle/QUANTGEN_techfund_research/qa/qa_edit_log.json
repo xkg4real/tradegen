@@ -1,0 +1,929 @@
+[
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "title (line 1)",
+  "old": "# QUANTGEN — Technical and Fundamental Signals Integration Specification (v1.0)\n",
+  "new": "# QUANTGEN — Technical and Fundamental Signals Integration Specification (v1.0.1)\n",
+  "reason": "Version bump for the QA pass (QA brief).",
+  "source": "QA brief"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "header table, Companion files",
+  "old": "(1) `QUANTGEN_TECHFUND_BACKLOG.md` (v1.0): everything not built here",
+  "new": "(1) `QUANTGEN_TECHFUND_BACKLOG.md` (v1.0.1): everything not built here",
+  "reason": "Companion version follows the backlog bump.",
+  "source": "QA brief"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "Changelog",
+  "old": "## Changelog\n\nv1.0 is the first version.",
+  "new": "## Changelog\n\n**v1.0.1 (independent QA, 2026-10-03).** No rule, parameter, bound, weight, classification or verdict changed. Citations and labels corrected (§2.3, §5.3 SCR-2, §13.1 XS-02; the breadth window in TP-2, GOV-1 and §11), one data statement corrected (§4.5 ChangeCode), and three reproducibility notes added that the golden values already rely on (code padding in §4.2, the REV_1W definition in §4.3, the lab statistics conventions in §9.3). Every edit is listed in \"QA log (v1.0.1)\" at the end of this file.\n\nv1.0 is the first version.",
+  "reason": "Changelog entry for v1.0.1.",
+  "source": "QA brief"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§1.2 TP-2, Evidence (line 163)",
+  "old": "- Evidence: KOSPI H1-2026: CW +117.1% vs EW +3.4%, CW ex-pair +41.7%; 64.9% of names fell (exec row 91).",
+  "new": "- Evidence: KOSPI 2025-12-30..2026-06-22 (the 2025 close to the June peak): CW +117.1% vs EW +3.4%, CW ex-pair +41.7%; 64.9% of names fell (exec row 91).",
+  "reason": "Window label: these breadth figures run to the 2026-06-22 peak, not over the calendar half-year that \"H1-2026\" denotes in IDX-1 and macro §8.6 (where KOSPI buy-and-hold is +101.1%).",
+  "source": "r2/verification/exec_chair_checks/c09_stdout.txt line 5; R2_EXEC line 155; exec row 91"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§2.3, row \"Korean 1-month reversal\" (line 275)",
+  "old": "(context line 53; macro §2.2 and R-15)",
+  "new": "(context line 53; macro §2.1 and macro backlog BL-U02)",
+  "reason": "Wrong cross-reference: the −2.950%/month (t −3.77) anchor is printed in macro §2.1 (row \"Two simplest families\") and macro backlog BL-U02; macro §2.2 and R-15 carry only the reversal weight 3.",
+  "source": "claude/QUANTGEN_MACRO_INTEGRATION.md §2.1; claude/QUANTGEN_MACRO_BACKLOG.md BL-U02"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§4.2, Rows kept (line 484)",
+  "old": "KOSDAQ ↔ KOSDAQ GLOBAL is the same market.\n",
+  "new": "KOSDAQ ↔ KOSDAQ GLOBAL is the same market. Codes are six-character strings: the files dated 1995-05-02..2000-05-26 store them without leading zeros, so pad every code to six characters before applying any of these filters (QA v1.0.1).\n",
+  "reason": "Reproducibility note: without padding, the \"code ends in 0\" filter and the code join fail for 1995-05-02..2000-05-26 (the last unpadded date in the raw files is 2000-05-26); padding reproduces the lab's 4,301 codes.",
+  "source": "data_raw/marcap/data/marcap-1995..2000.parquet (QA check qa01_load.py)"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§4.3, Features table (after REV_1M)",
+  "old": "| REV_1M | exp(CL[t] − CL[t−21]) − 1 | — |\n",
+  "new": "| REV_1M | exp(CL[t] − CL[t−21]) − 1 | — |\n| REV_1W | exp(CL[t] − CL[t−5]) − 1 at the weekly formation (last trading day on or before Friday); the weekly L/S golden values (GV-183, GV-189) hold quintile 1 long and quintile 5 short (QA v1.0.1; `kr_02_signals.py` docstring; `kr_04_stats.py` `SIGNALS`) | — |\n",
+  "reason": "Missing definition: DNB-TF-07 and §9.3 cite weekly-reversal golden values (net-35 Sharpe −1.78, break-even 12.5 bp) but REV_1W was not defined; the QA recomputation reproduced them with the lab's definition.",
+  "source": "datalab/scripts/kr_02_signals.py docstring (REV_1W line); datalab/scripts/kr_04_stats.py docstring and SIGNALS"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§4.5, lu_lock (line 582)",
+  "old": "ChangeCode is absent in the 2026 data.",
+  "new": "ChangeCode 4/5 (the old limit codes) are absent in the 2026 data, which carries only the values 1–3.",
+  "reason": "Data statement: the ChangeCode column is present in 2026; only its limit values 4/5 are absent.",
+  "source": "r2/kr/r2_kr_01_build_extra.py docstring line 8; data_raw/marcap/data/marcap-2026.parquet (values 1/2/3 only)"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§5.3 SCR-2, Evidence (decay) (line 853)",
+  "old": "(prof log line 48; GV-499; the circulated 0.84 is wrong, CA-03)",
+  "new": "(prof log lines 48–49, V047–V048; GV-499 traces line 48; the circulated 0.84 is wrong, CA-03)",
+  "reason": "Citation: the 2017–26 values (IR 0.35–0.38; about 0 at 70 bp) are in V048 (line 49), not V047 (line 48).",
+  "source": "r2/verification/prof_verification_log.csv lines 48–49"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§5.9 GOV-1, Evidence (line 1047)",
+  "old": "KOSPI H1-2026: CW +117.1% vs EW +3.4% vs CW ex-pair +41.7%; 64.9% of names fell (exec row 91).",
+  "new": "KOSPI 2025-12-30..2026-06-22: CW +117.1% vs EW +3.4% vs CW ex-pair +41.7%; 64.9% of names fell (exec row 91).",
+  "reason": "Window label (as TP-2).",
+  "source": "r2/verification/exec_chair_checks/c09_stdout.txt line 5"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§9.3, Reference data and construction (line 1807)",
+  "old": "Every golden value lives in `tests/fixtures/techfund/golden_values.csv` under its GV id, with its source file and line.",
+  "new": "KRX stock-book values follow the R1/R2 KR lab statistics conventions (QA v1.0.1): statistics on holding-period returns (monthly ×12 and √12 with Newey–West 6 lags; weekly ×52 and √52 with 4 lags); max DD, total return and calendar-year counts on the daily series; a period belongs to the calendar time of its first holding day; costs charged at the formation close; L/S period return = R_L − R_S − cost with both legs paying (`r2_kr_common.py` docstring lines 7–16; `kr_04_stats.py` docstring). Every golden value lives in `tests/fixtures/techfund/golden_values.csv` under its GV id, with its source file and line.",
+  "reason": "Missing convention: SCR-1 IR 1.53 and the weekly Sharpe −1.78 reproduce only on period returns (daily-return basis gives IR 1.65 and −1.68/−1.88); the spec did not state it.",
+  "source": "r2/kr/r2_kr_common.py docstring lines 7–16; datalab/scripts/kr_04_stats.py docstring; QA recomputation (qa05, qa06)"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§11, Breadth row (line 2018)",
+  "old": "the pair contributed +50.9 pp. H1-2026: CW +117.1% vs EW +3.4% vs CW ex-pair +41.7%; 64.9% of names fell |",
+  "new": "the pair contributed +50.9 pp. 2025-12-30..2026-06-22: CW +117.1% vs EW +3.4% vs CW ex-pair +41.7%; 64.9% of names fell |",
+  "reason": "Window label (as TP-2).",
+  "source": "r2/verification/exec_chair_checks/c09_stdout.txt line 5"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§13.1 XS-02, Macro item",
+  "old": "| XS-02 | R-15 Korea ST reversal 3; §2.2 \"Korea keeps 1–5-day reversal\" |",
+  "new": "| XS-02 | R-15 Korea ST reversal 3; §2.2 KEEP Korea reversal 3; §2.1 \"keeps 1–5-day reversal\" |",
+  "reason": "Wrong cross-reference: the sentence \"keeps 1–5-day reversal\" is in macro §2.1; §2.2 holds the KEEP of reversal weight 3.",
+  "source": "claude/QUANTGEN_MACRO_INTEGRATION.md §2.1 and §2.2"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_BACKLOG.md",
+  "location": "title (line 1)",
+  "old": "# QUANTGEN — Technical and Fundamental Signals Backlog (v1.0)\n",
+  "new": "# QUANTGEN — Technical and Fundamental Signals Backlog (v1.0.1)\n",
+  "reason": "Version bump for the QA pass (QA brief).",
+  "source": "QA brief"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_BACKLOG.md",
+  "location": "header table, Companion files",
+  "old": "`QUANTGEN_TECHFUND_INTEGRATION.md` (v1.0, \"the spec\")",
+  "new": "`QUANTGEN_TECHFUND_INTEGRATION.md` (v1.0.1, \"the spec\")",
+  "reason": "Companion version follows the spec bump.",
+  "source": "QA brief"
+ },
+ {
+  "file": "QUANTGEN technical and fundamental signals.md",
+  "location": "\"Low volatility and size fail\" paragraph (line 116)",
+  "old": "It beat the value-weighted market in all seven crash windows and lagged it in nine of ten rebounds,",
+  "new": "Against the value-weighted market it did better in six of seven crash windows equal-weighted and in all seven value-weighted, and lagged it in nine of ten rebounds across the two weightings,",
+  "reason": "Numeric accuracy: the equal-weighted low-vol book lost to the VW market in the 1997–98 window (−42.2% vs −33.1%); only the VW book won 7 of 7; \"nine of ten\" counts both books (5 + 4).",
+  "source": "r2/kr/results/r2_kr_lowvol_windows.csv lines 2–8 and 14–20; R3 TF-16; spec FS-3"
+ },
+ {
+  "file": "QUANTGEN technical and fundamental signals.md",
+  "location": "\"Two facts keep both screens at REVISE\" paragraph (line 100)",
+  "old": "although the best variant reaches 0.979 (local: `r2/kr/results/r2_kr_excl_gate.csv` line 2).",
+  "new": "although the best variant reaches 0.979 (local: `r2/kr/results/r2_kr_excl_gate.csv` line 2; best variant `r2/kr/results/r2_kr_excl_dsr_best.csv` line 2).",
+  "reason": "Citation: 0.979 (0.978629) is in r2_kr_excl_dsr_best.csv line 2, not in r2_kr_excl_gate.csv (which holds 0.939).",
+  "source": "r2/kr/results/r2_kr_excl_dsr_best.csv line 2; spec GV-150"
+ },
+ {
+  "file": "quantgen_signal_neural_link.html",
+  "location": "hero, stat tile 4",
+  "old": "Hansen SPA p-value across 303 KOSPI timing rules at 3&nbsp;bp: no rule beat buy-and-hold on return (1996–2026).",
+  "new": "Hansen SPA p-value across 303 KOSPI timing rules at 3&nbsp;bp: no rule beat buy-and-hold once the search is accounted for (1996–2026).",
+  "reason": "Accuracy: 44 of the 303 rules had a positive mean excess (best MACD(12,26,1) +1.2%/yr, t 0.34); the SPA p-value says none is significant after the search, as the page's own caption states.",
+  "source": "kr/results/kr_index_spa.csv; KR_datalab_summary.md item 6"
+ },
+ {
+  "file": "quantgen_signal_neural_link.html",
+  "location": "section 3, practitioner table, 52-week high row",
+  "old": "SPY breakout Sharpe 0.39 at 50&nbsp;bp vs 0.37.",
+  "new": "SPY breakout Sharpe 0.38 at 50&nbsp;bp vs 0.37.",
+  "reason": "Rounding: the lab value is 0.3845 (US_datalab_summary.md line 73 misrounds it to 0.39).",
+  "source": "us/results/us_B_daily.csv (B_canonical, SPY|52-week-high breakout, 1999-01-05:2021-03-31, kis_50bp, sharpe 0.384521)"
+ },
+ {
+  "file": "quantgen_signal_neural_link.html",
+  "location": "section 3, practitioner table, sources line",
+  "old": "US_datalab_summary.md (SPY 1999–2021); R2_PROF debate D11.",
+  "new": "US_datalab_summary.md and datalab/us/results/us_B_daily.csv (SPY 1999–2021); R2_PROF debate D11.",
+  "reason": "Source for the corrected 0.38.",
+  "source": "us/results/us_B_daily.csv"
+ },
+ {
+  "file": "quantgen_signal_neural_link.html",
+  "location": "section 9, spec box 1",
+  "old": "<h4><span>TF-1</span>Execution invariants</h4>",
+  "new": "<h4><span>§5.1</span>Execution invariants</h4>",
+  "reason": "Cross-reference: the spec has no sections TF-1..TF-9 (R3's destination labels); its item sections are §5.1–§5.9.",
+  "source": "QUANTGEN_TECHFUND_INTEGRATION.md §5 headings"
+ },
+ {
+  "file": "quantgen_signal_neural_link.html",
+  "location": "section 9, spec box 2",
+  "old": "<h4><span>TF-2</span>Data layer</h4>",
+  "new": "<h4><span>§5.2</span>Data layer</h4>",
+  "reason": "Cross-reference: the spec has no sections TF-1..TF-9 (R3's destination labels); its item sections are §5.1–§5.9.",
+  "source": "QUANTGEN_TECHFUND_INTEGRATION.md §5 headings"
+ },
+ {
+  "file": "quantgen_signal_neural_link.html",
+  "location": "section 9, spec box 3",
+  "old": "<h4><span>TF-3</span>Screens</h4>",
+  "new": "<h4><span>§5.3</span>Screens</h4>",
+  "reason": "Cross-reference: the spec has no sections TF-1..TF-9 (R3's destination labels); its item sections are §5.1–§5.9.",
+  "source": "QUANTGEN_TECHFUND_INTEGRATION.md §5 headings"
+ },
+ {
+  "file": "quantgen_signal_neural_link.html",
+  "location": "section 9, spec box 4",
+  "old": "<h4><span>TF-4</span>Momentum risk and concentration</h4>",
+  "new": "<h4><span>§5.4</span>Momentum risk and concentration</h4>",
+  "reason": "Cross-reference: the spec has no sections TF-1..TF-9 (R3's destination labels); its item sections are §5.1–§5.9.",
+  "source": "QUANTGEN_TECHFUND_INTEGRATION.md §5 headings"
+ },
+ {
+  "file": "quantgen_signal_neural_link.html",
+  "location": "section 9, spec box 5",
+  "old": "<h4><span>TF-5</span>Index protective rules</h4>",
+  "new": "<h4><span>§5.5</span>Index protective rules</h4>",
+  "reason": "Cross-reference: the spec has no sections TF-1..TF-9 (R3's destination labels); its item sections are §5.1–§5.9.",
+  "source": "QUANTGEN_TECHFUND_INTEGRATION.md §5 headings"
+ },
+ {
+  "file": "quantgen_signal_neural_link.html",
+  "location": "section 9, spec box 6 (fundamentals)",
+  "old": "<h4><span>TF-6</span>Fundamentals</h4><ul><li><code>FUND-1</code>KR-VQ composite (value + profitability + net issuance), weight 2, split at 2024-02-26.</li><li><code>FUND-2</code>US-VQ composite (value + profitability + investment + issuance), weight 2.</li></ul><p class=\"gate\">Activated only when the point-in-time stores exist.</p>",
+  "new": "<h4><span>Backlog</span>Fundamentals</h4><ul><li><code>BL-TF-10</code>KR-VQ composite (value + profitability + net issuance), weight 2, split at 2024-02-26.</li><li><code>BL-TF-12</code>US-VQ composite (value + profitability + investment + issuance), weight 2.</li></ul><p class=\"gate\">Not in the spec yet: each enters it (as FUND-1 / FUND-2) only after its point-in-time store exists and its card passes the gate.</p>",
+  "reason": "Consistency: FUND-1/FUND-2 are not spec items; KR-VQ and US-VQ are backlog BL-TF-10 / BL-TF-12 and enter the spec only after a PASS (spec §0.2; backlog BL-TF-10/12 \"PASS requires\").",
+  "source": "QUANTGEN_TECHFUND_INTEGRATION.md §0.2; QUANTGEN_TECHFUND_BACKLOG.md BL-TF-10, BL-TF-12"
+ },
+ {
+  "file": "quantgen_signal_neural_link.html",
+  "location": "section 9, spec box 7",
+  "old": "<h4><span>TF-7</span>Governance</h4>",
+  "new": "<h4><span>§5.9</span>Governance</h4>",
+  "reason": "Cross-reference (as box 1).",
+  "source": "QUANTGEN_TECHFUND_INTEGRATION.md §5.9"
+ },
+ {
+  "file": "quantgen_signal_neural_link.html",
+  "location": "section 9, spec box 8",
+  "old": "<h4><span>TF-8</span>ML</h4>",
+  "new": "<h4><span>§5.7</span>Combiner (ML)</h4>",
+  "reason": "Cross-reference (as box 1); ML-1 sits in spec §5.7 \"Combiner\".",
+  "source": "QUANTGEN_TECHFUND_INTEGRATION.md §5.7"
+ },
+ {
+  "file": "quantgen_signal_neural_link.html",
+  "location": "section 9, spec box 9",
+  "old": "<h4><span>TF-9</span>Crypto</h4>",
+  "new": "<h4><span>§5.8</span>Crypto</h4>",
+  "reason": "Cross-reference (as box 1).",
+  "source": "QUANTGEN_TECHFUND_INTEGRATION.md §5.8"
+ },
+ {
+  "file": "quantgen_signal_neural_link.html",
+  "location": "section 9, file box for the spec",
+  "old": "The integration spec for Claude Code: sections TF-1 to TF-9 (invariants, data layer, screens, momentum risk, protective cards, fundamentals, governance, ML, crypto), the FORWARD-SIM cells and the golden values the acceptance tests reproduce.",
+  "new": "The integration spec for Claude Code: item sections §5.1–§5.9 (execution invariants, data, screens, momentum risk and concentration, index protective rules, the five FORWARD-SIM cells, combiner, crypto, governance) and the golden values the acceptance tests reproduce. The KR-VQ and US-VQ composites are backlog items BL-TF-10 and BL-TF-12.",
+  "reason": "Consistency with the spec's actual structure (§5.1–§5.9; no fundamentals section).",
+  "source": "QUANTGEN_TECHFUND_INTEGRATION.md §5 headings, §0.2"
+ },
+ {
+  "file": "quantgen_signal_neural_link.html",
+  "location": "section 9, file box for the research report",
+  "old": "<div class=\"file\"><code>Research report (technical and fundamental signals)</code><p>The full report behind this page:",
+  "new": "<div class=\"file\"><code>QUANTGEN technical and fundamental signals.md</code><p>\"Subtraction Beats Prediction at QUANTGEN's Costs\": the full report behind this page:",
+  "reason": "QA brief: the file box must name the report file and its title.",
+  "source": "reports/QUANTGEN technical and fundamental signals.md line 1"
+ },
+ {
+  "file": "quantgen_signal_neural_link.html",
+  "location": "inline JSON, go/no-go register (GOV-1 row, \"for\")",
+  "old": "spreads live in the short leg; H1-2026 CW +117.1% vs EW +3.4%",
+  "new": "spreads live in the short leg; 2025-12-30..2026-06-22 CW +117.1% vs EW +3.4%",
+  "reason": "Window label (as spec TP-2).",
+  "source": "r2/verification/exec_chair_checks/c09_stdout.txt line 5"
+ },
+ {
+  "file": "quantgen_signal_neural_link.html",
+  "location": "inline JSON, nodes[].dst and reg[].tgt",
+  "old": "\"§TF-1\"..\"§TF-9\" spec-destination labels (§TF-1 ×8, §TF-2 ×8, §TF-3 ×6, §TF-4 ×5, §TF-5 ×5, §TF-6 ×2, §TF-7 ×21, §TF-8 ×2, §TF-9 ×2; 59 in all)",
+  "new": "§TF-1→§5.1, §TF-2→§5.2, §TF-3→§5.3, §TF-4→§5.4, §TF-5→§5.5, §TF-7→§5.9, §TF-8→§5.7, §TF-9→§5.8; \"§TF-6 \" dropped (FUND-1/2 are future items reached through BL-TF-10/12)",
+  "reason": "Cross-reference: the spec has no §TF-n sections; item IDs unchanged.",
+  "source": "QUANTGEN_TECHFUND_INTEGRATION.md §5 headings"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "end of file, before \"*End of specification.*\"",
+  "old": "(none)",
+  "new": "\"## QA log (v1.0.1)\" appendix (scope, recomputation summary, edit table, confirmations)",
+  "reason": "QA brief: short QA log appendix",
+  "source": "QA brief"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_BACKLOG.md",
+  "location": "end of file, before \"*End of backlog.*\"",
+  "old": "(none)",
+  "new": "\"## QA log (v1.0.1)\" appendix",
+  "reason": "QA brief: short QA log appendix",
+  "source": "QA brief"
+ },
+ {
+  "file": "QUANTGEN technical and fundamental signals.md",
+  "location": "end of file",
+  "old": "(none)",
+  "new": "one-paragraph \"QA note (v1.0.1)\"",
+  "reason": "QA brief: one-paragraph note at the end of the report",
+  "source": "QA brief"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§4.2 Rows kept (padding note)",
+  "old": "so pad every code to six characters before applying any of these filters (QA v1.0.1).",
+  "new": "so pad every code to six characters before applying any of these filters, as the lab does (`kr_01_build_panel.py` line 56: `Code.str.zfill(6)` before the row filter; QA v1.0.1).",
+  "reason": "Tie rules from the lab scripts: code zero-padding.",
+  "source": "kr_01_build_panel.py line 56",
+  "batch": "coordinator F2"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§4.3 eligible set, condition 2",
+  "old": "| 2 | Operating company: no SPAC, REIT, infrastructure, ship or other fund, KDR or ETN (name classification `classify_name` in kr_common.py) |",
+  "new": "| 2 | Operating company: no SPAC, REIT, infrastructure, ship or other fund, KDR or ETN, decided by the name classifier below on the row's own Name on day t (the lab's `classify_name`, `kr_common.py` lines 61–84; applied per row in `kr_01_build_panel.py` lines 115–118) |",
+  "reason": "Name classifier defined exactly (was a pointer to undefined code).",
+  "source": "kr_common.py lines 61–84; kr_01_build_panel.py lines 115–118",
+  "batch": "coordinator F2"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§4.3, after the eligible-set table",
+  "old": "| 7 | No beyond-limit move without a corporate action in t−29..t |\n\n- **ALL** = eligible names with Marcap_t ≥ the 20th percentile of eligible Marcap_t (the microcap screen).",
+  "new": "| 7 | No beyond-limit move without a corporate action in t−29..t |\n\n**Name classifier (condition 2; QA v1.0.1, transcribed from `kr_common.py` lines 61–84).** Delete all whitespace from the row's Name, then test the patterns below in order (Python `re.search`, unanchored unless the pattern says otherwise). The first match sets the class; a name with no match is an operating company.\n\n```text\n1 SPAC        스팩|SPAC|기업인수목적\n2 REIT        리츠|코크렙|REIT|리얼티\\d*$|^교보메리츠|^유레스메리츠|맥쿼리센트럴\n              searched in the name with 메리츠 and 블리츠 replaced by '#'; a name starting with\n              교보메리츠 or 유레스메리츠 is searched unmasked; the name 인터리츠 is never REIT\n3 INFRA_FUND  맥쿼리인프라|발해인프라|인프라펀드|인프라투융자\n4 FUND        선박투자|\\d+호|[가-힣]{2,}(?:일|이|삼|사|오|육|칠|팔|구|십|십오)호(?:-?MF)?$|-?MF$|펀드|뮤추얼|경매|베트남(?:개발)?\\d$|유전\\d|유전$\n5 DR_ETN      ETN|KDR\n```\n\nExamples: 메리츠화재, 블리츠웨이, 두산인프라코어 and 인터리츠 are operating companies; 맥쿼리센트럴 and 교보메리츠 are REIT; 바다로3호 and 박현주1호 are FUND; 맥쿼리인프라 is INFRA_FUND.\n\n**Numeric types (lab reproduction).** The lab holds the cleaned return r, Close, High, Amount and Marcap as float32 (`kr_01_build_panel.py` lines 86–94). The eligibility tests, the 20th-percentile cut (`np.quantile`, linear interpolation, on float32 Marcap cast to float64; ALL iff float32 Marcap_t ≥ cut) and the features are computed from those values, and features are stored as float32 before ranking (`kr_02_signals.py` lines 95–101, 157). With these rules, §4.2's code padding and §4.4's tie rules, an independent build reproduces the lab's ALL universe at all 366 formations and its 71,689 F6 flags exactly (QA v1.0.1).\n\n- **ALL** = eligible names with Marcap_t ≥ the 20th percentile of eligible Marcap_t (the microcap screen).",
+  "reason": "Name classifier and exclusion patterns defined exactly; lab numeric types stated (they decide the 20th-percentile boundary).",
+  "source": "kr_common.py lines 61–84; kr_01_build_panel.py lines 86–94; kr_02_signals.py lines 95–101, 157; QA qa17_exact.py (0 ALL differences, 0 F6 flag differences vs the lab arrays)",
+  "batch": "coordinator F2"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§4.3 Book mechanics, Costs row",
+  "old": "| Costs | c × turnover at each formation, c = 35 bp per side (70 bp stress), on each book's own turnover. |",
+  "new": "| Costs | c × turnover at each formation, c = 35 bp per side (70 bp stress), on each book's own turnover. Monthly basis (the R2 lab): subtracted from the period's compounded gross return, R_net = R_gross − c × turnover (`r2_kr_common.py` docstring lines 12–13; `kr_04_stats.py` docstring). Daily basis (the gate, §8.4): subtracted from the return of the first session the new weights earn (t+1). |",
+  "reason": "Cost application per basis stated (needed to reproduce the golden rows exactly).",
+  "source": "r2_kr_common.py docstring lines 12–13; kr_04_stats.py docstring; QA qa17d_costconv.py",
+  "batch": "coordinator F1"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§4.4, share-count change day",
+  "old": "| Share-count change day | s_d = Stocks_d / Stocks_{d−1}; a change day has \\|s_d − 1\\| > 0.1% | r2_kr_01_build_extra.py lines 182–186 (code); docstring lines 27–29 |",
+  "new": "| Share-count change day | s_d = Stocks_d / Stocks_{d−1} in float64 when the code exists on d and on the previous KRX session and both counts are positive, else s_d = 1; a change day has \\|s_d − 1\\| > 0.001 (strict) | r2_kr_01_build_extra.py lines 180–182 (code); docstring lines 27–29 |",
+  "reason": "Tie rule from the lab script (strict 0.1%, previous-session condition, float64).",
+  "source": "r2_kr_01_build_extra.py lines 180–182",
+  "batch": "coordinator F2"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§4.4, split-like day",
+  "old": "| Split-like day | \\|s_d − 1\\| > 5% and \\|s_d × Close_d / Close_{d−1} − 1\\| ≤ 5% | same |",
+  "new": "| Split-like day | A change day with \\|s_d − 1\\| > 0.05 (strict) and \\|s_d × p_d − 1\\| ≤ 0.05 (inclusive), where p_d = Close_d / Close_{d−1} is computed first, in float64 (p_d = 1 when the code did not exist on the previous session). Boundary case: IHQ (003560) on 2003-12-19, a 5:1 reverse split (s = 0.2) with p = 4.75, has \\|s × p − 1\\| = 0.05 and is split-like | r2_kr_01_build_extra.py lines 181, 185 |",
+  "reason": "Split-like boundary defined exactly (inclusive; evaluation order fixes the exact-boundary case).",
+  "source": "r2_kr_01_build_extra.py lines 181, 185; raw marcap-2003.parquet (003560)",
+  "batch": "coordinator F2"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§4.4, DIL_LIT and new tie-rule row",
+  "old": "| DIL_LIT (SCR-2 input) | exp(Σ ln s_d over non-split-like change days in the last 252 sessions) − 1 | same |",
+  "new": "| DIL_LIT (SCR-2 input) | exp(Σ ln s_d over non-split-like change days in the 252 sessions t−251..t) − 1, computed as expm1 of the difference of float64 cumulative sums of ln s_d over the panel and stored as float32; missing when the code does not exist at t | r2_kr_01_build_extra.py lines 186–191, 211, 234 |\n| F6 flag tie rule (SCR-2) | Flag iff the float32 DIL_LIT > 0.10 (strict comparison with the float64 constant 0.10); a missing value is not flagged. Because 0.10 rounds to the float32 value 0.100000001, a 10.0% increase (s = 1.1, or a window whose float64 value is 0.0999999999999999) is flagged: the cut is inclusive at 0.10 to float32 precision (368 ALL members sit exactly at float32 0.1 over the 366 formations) | r2_kr_04_exclusion.py line 86; QA v1.0.1 |",
+  "reason": "DIL_LIT = 0.10 tie defined from the lab: flagged (float32 storage, strict >).",
+  "source": "r2_kr_04_exclusion.py line 86; r2_kr_01_build_extra.py lines 211, 234; lab form_r2.npz (368 exact ties)",
+  "batch": "coordinator F2"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§5.3 SCR-2, Formula",
+  "old": "| **Formula** | **Flag DIL_LIT > 0.10** (a missing DIL_LIT counts as 0, i.e. not flagged) (`r2_kr_04_exclusion.py` line 86). Removed at t; the book earns from t+1. |",
+  "new": "| **Formula** | **Flag DIL_LIT > 0.10** on the float32-stored value (a missing DIL_LIT counts as 0, i.e. not flagged) (`r2_kr_04_exclusion.py` line 86); a 10.0% increase is flagged, so the cut is inclusive at 0.10 to float32 precision (§4.4 tie rule). Removed at t; the book earns from t+1. |",
+  "reason": "Tie rule restated at the formula.",
+  "source": "r2_kr_04_exclusion.py line 86",
+  "batch": "coordinator F2"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§9.1 T-TF-SCR-02",
+  "old": "| T-TF-SCR-02 | SCR-2 formula | DIL_LIT 0.11 → flagged; 0.10 → not flagged; missing → not flagged |",
+  "new": "| T-TF-SCR-02 | SCR-2 formula | DIL_LIT 0.11 → flagged; a 10.0% increase (s = 1.1, DIL_LIT stored as float32 0.1) → flagged (§4.4 tie rule); 0.099 → not flagged; missing → not flagged |",
+  "reason": "Test expectation aligned with the lab tie rule (the old \"0.10 → not flagged\" contradicted the lab's float32 comparison, which flags 368 exact ties).",
+  "source": "r2_kr_04_exclusion.py line 86; coordinator decision F2",
+  "batch": "coordinator F2"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§9.1 T-TF-CA-01",
+  "old": "a 20% rights issue with the close −5% → not split-like (included); DIL_LIT matches exp(Σ ln s) − 1 |",
+  "new": "a 20% rights issue with the close −5% → not split-like (included); a 5:1 reverse split with the close × 4.75 (\\|s × p − 1\\| = 0.05) → split-like; DIL_LIT matches exp(Σ ln s) − 1 |",
+  "reason": "Boundary test case added for the split-like rule.",
+  "source": "r2_kr_01_build_extra.py line 185",
+  "batch": "coordinator F2"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§9.1 T-TF-UNIV-01",
+  "old": "| T-TF-UNIV-01 | Universe rules | Each of the seven eligibility conditions of §4.3 excludes a constructed name; KONEX rows and non-'0' codes are dropped; ALL = Marcap ≥ the 20th percentile of eligible; LARGE = the top 200 |",
+  "new": "| T-TF-UNIV-01 | Universe rules | Each of the seven eligibility conditions of §4.3 excludes a constructed name; KONEX rows and non-'0' codes are dropped; a code stored as '5930' is read as '005930' before the filters; the §4.3 classifier returns operating for 메리츠화재 and 인터리츠, REIT for 맥쿼리센트럴, FUND for 바다로3호 and INFRA_FUND for 맥쿼리인프라; ALL = float32 Marcap ≥ the 20th percentile of eligible; LARGE = the top 200 |",
+  "reason": "Test cases added for code padding and the classifier.",
+  "source": "kr_01_build_panel.py line 56; kr_common.py lines 61–84",
+  "batch": "coordinator F2"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§9.3 tolerances, Sharpe/IR row",
+  "old": "| Sharpe, IR, ΔSR | ±0.01 (macro Level 1) | ±0.03 (macro Level 2) |",
+  "new": "| Sharpe, IR, ΔSR (screen IRs: the screen row below) | ±0.01 (macro Level 1) | ±0.03 (macro Level 2) |",
+  "reason": "Pointer to the screen tolerance.",
+  "source": "coordinator decision F2",
+  "batch": "coordinator F2"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§9.3 tolerances, annualised returns row and new screen row",
+  "old": "| Annualised returns and differences (%/yr) | the printed precision (R3's proposal) | ±0.25 pp/yr (default, judgment) |",
+  "new": "| Annualised returns and differences (%/yr), other than screen rows | the printed precision (R3's proposal) | ±0.25 pp/yr (default, judgment) |\n| Screen rows (G-TF-SCR, and every SCR-1 / SCR-2 card statistic): annual excess-return difference; IR | ±0.10 pp/yr; ±0.02, each compared on the same basis as the golden row (monthly with monthly, daily with daily) (QA v1.0.1; coordinator decision) | ±0.25 pp/yr; ±0.03 |",
+  "reason": "Coordinator decision: Level-1 tolerance for screen annual excess-return differences ±0.10 pp and IR ±0.02 on the same basis.",
+  "source": "coordinator decision F2",
+  "batch": "coordinator F2"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§9.3 tolerances, note",
+  "old": "Level 1 is never tighter than the macro Level 1 where the macro gives a band.",
+  "new": "Checks tighter than these bands, such as matching every printed decimal of a %/yr figure, are not a reproducibility requirement: a value inside its band passes (QA v1.0.1). Level 1 is never tighter than the macro Level 1 where the macro gives a band.",
+  "reason": "Coordinator decision: printed-precision checks are not a reproducibility requirement.",
+  "source": "coordinator decision F2",
+  "batch": "coordinator F2"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§4.8 Definition",
+  "old": "over stocks listed on KOSPI at d−1 that still exist at d with a valid cleaned return. Scaled to the official close of 2,064.85 on 2007-10-31.",
+  "new": "over stocks listed on KOSPI at d−1 that still exist at d with a valid cleaned return. **\"Valid cleaned return\" (QA v1.0.1)** means a finite cleaned return r_{i,d} of §4.2 (main variant, steps 1–2), zero-volume days included (it is not the VALID set), with Marcap_{i,d−1} > 0, the KOSPI market code at d−1 and a code ending in '0', of any name class (`kr_05_index_timing.py` `build_index(include_vehicles=True)`, lines 35–56). Scaled to the official close of 2,064.85 on 2007-10-31. On this definition the rebuilt closes are 1,457.46 / 9,120.19 / 5,599.30 on 2020-03-19 / 2026-06-22 / 2026-07-30 (official 1,457.64 / 9,114.55 / 5,593.56; QA recomputation); restricting to VALID returns would give 1,450.51 / 9,089.28 / 5,577.72.",
+  "reason": "Definition made exact from the script that produces the index.",
+  "source": "kr_05_index_timing.py lines 35–56; QA qa03_index.py",
+  "batch": "coordinator F3"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§0.4 item 2 (SCR-1 IR)",
+  "old": "(IR 1.53; KRX 1996-03..2026-09; r2_kr_excl_summary.csv line 11; GV-002, GV-004)",
+  "new": "(IR 1.53 on monthly differences, 1.64 on the daily differences the gate uses; KRX 1996-03..2026-09; r2_kr_excl_summary.csv line 11; GV-002, GV-004; §8.4)",
+  "reason": "Basis label.",
+  "source": "coordinator decision F1; QA qa17d_costconv.py",
+  "batch": "coordinator F1"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§0.4 item 2 (SCR-2 IR)",
+  "old": "(IR 0.65; line 17; GV-015, GV-017)",
+  "new": "(IR 0.65 monthly, 1.03 daily; line 17; GV-015, GV-017)",
+  "reason": "Basis label.",
+  "source": "coordinator decision F1; QA qa17d_costconv.py",
+  "batch": "coordinator F1"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§5.3 SCR-1, Evidence",
+  "old": "| **Evidence (gross and net)** | KRX, 366 monthly formations 1996-03..2026-09, filtered minus unfiltered book, %/yr (r2_kr_excl_summary.csv; R3 §11.2). **B1 EW:** +3.39% gross, **+3.08% net 35**, +2.76% net 70; IR 1.53, NW t 8.34,",
+  "new": "| **Evidence (gross and net)** | Monthly basis (R2 lab) unless stated. KRX, 366 monthly formations 1996-03..2026-09, filtered minus unfiltered book, %/yr (r2_kr_excl_summary.csv; R3 §11.2). **B1 EW:** +3.39% gross, **+3.08% net 35**, +2.76% net 70; IR 1.53 (daily basis, the gate's: +3.12%/yr, IR 1.64; QA recomputation, §9.3 G-TF-SCR-15), NW t 8.34,",
+  "reason": "Basis label and the daily-basis value.",
+  "source": "coordinator decision F1; QA qa17d_costconv.py",
+  "batch": "coordinator F1"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§5.3 SCR-1, Failure modes (F8)",
+  "old": "Adding the attention-fade screen (F5) to the composite (F8) lowers the IR from 1.53 to 0.67 (R3 E-032).",
+  "new": "Adding the attention-fade screen (F5) to the composite (F8) lowers the monthly-basis IR from 1.53 to 0.67 (R3 E-032).",
+  "reason": "Basis label.",
+  "source": "coordinator decision F1",
+  "batch": "coordinator F1"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§5.3 SCR-2, Evidence",
+  "old": "| **Evidence (gross and net)** | KRX 1996-03..2026-09, filtered minus unfiltered, %/yr. **B1 EW:** +2.42% gross, **+2.34% net 35**, +2.26% net 70; IR 0.65, NW t 3.93,",
+  "new": "| **Evidence (gross and net)** | Monthly basis (R2 lab) unless stated. KRX 1996-03..2026-09, filtered minus unfiltered, %/yr. **B1 EW:** +2.42% gross, **+2.34% net 35**, +2.26% net 70; IR 0.65 (daily basis, the gate's: +2.48%/yr, IR 1.03; QA recomputation, §9.3 G-TF-SCR-16), NW t 3.93,",
+  "reason": "Basis label and the daily-basis value.",
+  "source": "coordinator decision F1; QA qa17d_costconv.py",
+  "batch": "coordinator F1"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§8.4 Paired evaluation (statistic basis)",
+  "old": "The card's series is the daily net difference d_t = r_screened,t − r_base,t. Steps 2, 5 and 8 use d; step 6 rebuilds both books at 2× cost.",
+  "new": "The card's series is the daily net difference d_t = r_screened,t − r_base,t. Steps 2, 5 and 8 use d; step 6 rebuilds both books at 2× cost.\n- **Statistic basis (QA v1.0.1; coordinator decision).** QUANTGEN's gate computes its statistics on daily session returns, so screen cards are gated on the daily differences d_t between the screened and the unscreened book: mean × 252, IR = mean / sd (ddof 1) × √252, each book charged c × its own turnover on the first session its new weights earn. The R2 lab's screen statistics (§5.3, §8.10 and the §9.3 rows labelled \"monthly basis (R2 lab)\") are on monthly holding-period differences and are not interchangeable with the gate's: SCR-1 (B1/F4) IR 1.53 monthly vs 1.64 daily; SCR-2 (B1/F6) 0.65 vs 1.03 (§9.3 G-TF-SCR-15..16, \"daily basis (QA recomputation)\").",
+  "reason": "Coordinator decision: screen cards are gated on daily differences; the two bases distinguished.",
+  "source": "coordinator decision F1; QA qa17d_costconv.py",
+  "batch": "coordinator F1"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§8.10 note above the table",
+  "old": "### 8.10 Indicative verdicts (from the R2 labs; **not a run of the app's gate**)\n\n| Card |",
+  "new": "### 8.10 Indicative verdicts (from the R2 labs; **not a run of the app's gate**)\n\nScreen %/yr figures and IRs in this table are on the monthly basis (R2 lab); the gate uses the daily basis (§8.4; §9.3 G-TF-SCR-15..16).\n\n| Card |",
+  "reason": "Basis label.",
+  "source": "coordinator decision F1",
+  "batch": "coordinator F1"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§8.10 TF-SCR1-KR-EW row",
+  "old": "+3.08%/yr net 35, +2.76% net 70; IR 1.53; t 8.34;",
+  "new": "+3.08%/yr net 35, +2.76% net 70; IR 1.53 (monthly basis; 1.64 daily); t 8.34;",
+  "reason": "Basis label.",
+  "source": "coordinator decision F1",
+  "batch": "coordinator F1"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§8.10 TF-SCR2-KR-EW row",
+  "old": "+2.34%/yr net 35, +2.26% net 70; IR 0.65; 81% of years;",
+  "new": "+2.34%/yr net 35, +2.26% net 70; IR 0.65 (monthly basis; 1.03 daily); 81% of years;",
+  "reason": "Basis label.",
+  "source": "coordinator decision F1",
+  "batch": "coordinator F1"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§9.3 Reference data and construction",
+  "old": "KRX stock-book values follow the R1/R2 KR lab statistics conventions (QA v1.0.1): statistics on holding-period returns (monthly ×12 and √12 with Newey–West 6 lags; weekly ×52 and √52 with 4 lags); max DD, total return and calendar-year counts on the daily series; a period belongs to the calendar time of its first holding day; costs charged at the formation close; L/S period return = R_L − R_S − cost with both legs paying (`r2_kr_common.py` docstring lines 7–16; `kr_04_stats.py` docstring).",
+  "new": "KRX stock-book golden rows carry their basis (QA v1.0.1). Rows labelled \"monthly basis (R2 lab)\", and every R1/R2 KR value without a label, follow the lab statistics conventions: statistics on holding-period returns (monthly ×12 and √12 with Newey–West 6 lags; weekly ×52 and √52 with 4 lags); max DD, total return and calendar-year counts on the daily series; a period belongs to the calendar time of its first holding day; costs charged at the formation close (R_net = R_gross − c × turnover); L/S period return = R_L − R_S − cost with both legs paying (`r2_kr_common.py` docstring lines 7–16; `kr_04_stats.py` docstring). Rows labelled \"daily basis (QA recomputation)\" use the gate's basis (§8.4): daily differences, mean × 252, IR = mean / sd (ddof 1) × √252, c × turnover subtracted on the first session the new weights earn.",
+  "reason": "Both bases defined.",
+  "source": "coordinator decision F1; r2_kr_common.py lines 7–16; kr_04_stats.py",
+  "batch": "coordinator F1"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§9.3 G-TF-SCR header",
+  "old": "**G-TF-SCR: screens** (KRX, 366 formations 1996-03..2026-09; filtered minus unfiltered; r2_kr_excl_summary.csv, r2_kr_excl_long.csv, r2_kr_excl_gate.csv)",
+  "new": "**G-TF-SCR: screens** (KRX, 366 formations 1996-03..2026-09; filtered minus unfiltered; r2_kr_excl_summary.csv, r2_kr_excl_long.csv, r2_kr_excl_gate.csv). Rows G-TF-SCR-01..14 are on the **monthly basis (R2 lab)**. Rows G-TF-SCR-15..16 are on the **daily basis (QA recomputation)**, the basis the gate uses (§8.4): %/yr = mean daily difference × 252. A `lab_reference` run must reproduce each row on its own basis; with the §4.3–§4.4 definitions the QA build reproduces G-TF-SCR-01 and -06 exactly (3.0764 / 1.5295; 2.3363 / 0.6453).",
+  "reason": "Basis labels for the golden table.",
+  "source": "coordinator decision F1; QA qa17d_costconv.py",
+  "batch": "coordinator F1"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§9.3 G-TF-SCR-01",
+  "old": "| G-TF-SCR-01 | SCR-1 F4 / B1 |",
+  "new": "| G-TF-SCR-01 | SCR-1 F4 / B1; monthly basis (R2 lab) |",
+  "reason": "Basis label on the existing lab golden row.",
+  "source": "coordinator decision F1",
+  "batch": "coordinator F1"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§9.3 G-TF-SCR-02",
+  "old": "| G-TF-SCR-02 | SCR-1 F4 / B1 sub-periods (net 35) |",
+  "new": "| G-TF-SCR-02 | SCR-1 F4 / B1 sub-periods (net 35); monthly basis (R2 lab) |",
+  "reason": "Basis label on the existing lab golden row.",
+  "source": "coordinator decision F1",
+  "batch": "coordinator F1"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§9.3 G-TF-SCR-03",
+  "old": "| G-TF-SCR-03 | SCR-1 F4 / B2 |",
+  "new": "| G-TF-SCR-03 | SCR-1 F4 / B2; monthly basis (R2 lab) |",
+  "reason": "Basis label on the existing lab golden row.",
+  "source": "coordinator decision F1",
+  "batch": "coordinator F1"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§9.3 G-TF-SCR-04",
+  "old": "| G-TF-SCR-04 | SCR-1 F4 / B3 (reference) |",
+  "new": "| G-TF-SCR-04 | SCR-1 F4 / B3 (reference); monthly basis (R2 lab) |",
+  "reason": "Basis label on the existing lab golden row.",
+  "source": "coordinator decision F1",
+  "batch": "coordinator F1"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§9.3 G-TF-SCR-05",
+  "old": "| G-TF-SCR-05 | SCR-1 F4 / B4 |",
+  "new": "| G-TF-SCR-05 | SCR-1 F4 / B4; monthly basis (R2 lab) |",
+  "reason": "Basis label on the existing lab golden row.",
+  "source": "coordinator decision F1",
+  "batch": "coordinator F1"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§9.3 G-TF-SCR-06",
+  "old": "| G-TF-SCR-06 | SCR-2 F6 / B1 |",
+  "new": "| G-TF-SCR-06 | SCR-2 F6 / B1; monthly basis (R2 lab) |",
+  "reason": "Basis label on the existing lab golden row.",
+  "source": "coordinator decision F1",
+  "batch": "coordinator F1"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§9.3 G-TF-SCR-07",
+  "old": "| G-TF-SCR-07 | SCR-2 F6 / B2 |",
+  "new": "| G-TF-SCR-07 | SCR-2 F6 / B2; monthly basis (R2 lab) |",
+  "reason": "Basis label on the existing lab golden row.",
+  "source": "coordinator decision F1",
+  "batch": "coordinator F1"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§9.3 G-TF-SCR-08",
+  "old": "| G-TF-SCR-08 | SCR-2 F6 / B3 (reference) |",
+  "new": "| G-TF-SCR-08 | SCR-2 F6 / B3 (reference); monthly basis (R2 lab) |",
+  "reason": "Basis label on the existing lab golden row.",
+  "source": "coordinator decision F1",
+  "batch": "coordinator F1"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§9.3 G-TF-SCR-09",
+  "old": "| G-TF-SCR-09 | SCR-2 F6 / B4 |",
+  "new": "| G-TF-SCR-09 | SCR-2 F6 / B4; monthly basis (R2 lab) |",
+  "reason": "Basis label on the existing lab golden row.",
+  "source": "coordinator decision F1",
+  "batch": "coordinator F1"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§9.3 G-TF-SCR-10",
+  "old": "| G-TF-SCR-10 | SCR-3 F1 / B1 |",
+  "new": "| G-TF-SCR-10 | SCR-3 F1 / B1; monthly basis (R2 lab) |",
+  "reason": "Basis label on the existing lab golden row.",
+  "source": "coordinator decision F1",
+  "batch": "coordinator F1"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§9.3 G-TF-SCR-11",
+  "old": "| G-TF-SCR-11 | SCR-3 F1 / B4 |",
+  "new": "| G-TF-SCR-11 | SCR-3 F1 / B4; monthly basis (R2 lab) |",
+  "reason": "Basis label on the existing lab golden row.",
+  "source": "coordinator decision F1",
+  "batch": "coordinator F1"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§9.3 G-TF-SCR-12",
+  "old": "| G-TF-SCR-12 | F5 (DROP) break-evens B1 / B2 / B3 / B4 |",
+  "new": "| G-TF-SCR-12 | F5 (DROP) break-evens B1 / B2 / B3 / B4; monthly basis (R2 lab) |",
+  "reason": "Basis label on the existing lab golden row.",
+  "source": "coordinator decision F1",
+  "batch": "coordinator F1"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§9.3 G-TF-SCR-13",
+  "old": "| G-TF-SCR-13 | Best of 176 trials (B1, F4 cut 5%): pooled DSR |",
+  "new": "| G-TF-SCR-13 | Best of 176 trials (B1, F4 cut 5%): pooled DSR; monthly basis (R2 lab) |",
+  "reason": "Basis label on the existing lab golden row.",
+  "source": "coordinator decision F1",
+  "batch": "coordinator F1"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§9.3 G-TF-SCR-14",
+  "old": "| G-TF-SCR-14 | Step 9 for B1/F4 = 0.6 × 3.08% (derived; the lab's 0.4 × print +1.23% is GV-131 and must **not** be reproduced by the harness) |",
+  "new": "| G-TF-SCR-14 | Step 9 for B1/F4 = 0.6 × 3.08% (derived; the lab's 0.4 × print +1.23% is GV-131 and must **not** be reproduced by the harness); monthly basis (R2 lab) |",
+  "reason": "Basis label on the existing lab golden row.",
+  "source": "coordinator decision F1",
+  "batch": "coordinator F1"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§9.3 G-TF-SCR-15..16 (new rows)",
+  "old": "| GV-523 (not traced; arithmetic) |\n",
+  "new": "| GV-523 (not traced; arithmetic) |\n| G-TF-SCR-15 | SCR-1 F4 / B1; daily basis (QA recomputation) | +3.43% | +3.12% | +2.80% | 1.64 | — | — | — | — | — (gross IR 1.82; net-70 IR 1.47) | `/home/claude/qa/qa17d_costconv.py` (with `qa17_exact.py`, `qa05_books.py`) → `qa_exact_costconv.json` |\n| G-TF-SCR-16 | SCR-2 F6 / B1; daily basis (QA recomputation) | +2.56% | +2.48% | +2.40% | 1.03 | — | — | — | — | — (gross IR 1.07; net-70 IR 1.00) | same |\n",
+  "reason": "Daily-basis rows added (coordinator decision).",
+  "source": "QA qa17d_costconv.py → qa_exact_costconv.json",
+  "batch": "coordinator F1"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§10 DNB-TF-01",
+  "old": "adding it to SCR-1 (F8) lowers the IR from 1.53 to 0.67",
+  "new": "adding it to SCR-1 (F8) lowers the monthly-basis IR from 1.53 to 0.67",
+  "reason": "Basis label.",
+  "source": "coordinator decision F1",
+  "batch": "coordinator F1"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§13.2 OQ-14",
+  "old": "F1 B1 +4.28%/yr net 35, IR 1.15 (GV-152, GV-154)",
+  "new": "F1 B1 +4.28%/yr net 35, IR 1.15 (both IRs monthly basis, R2 lab; GV-152, GV-154)",
+  "reason": "Basis label.",
+  "source": "coordinator decision F1",
+  "batch": "coordinator F1"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§14 SCR-1 row",
+  "old": "| +3.08%/yr net 35, IR 1.53 (GV-001..013) |",
+  "new": "| +3.08%/yr net 35, IR 1.53 monthly basis (GV-001..013) |",
+  "reason": "Basis label.",
+  "source": "coordinator decision F1",
+  "batch": "coordinator F1"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "§14 SCR-2 row",
+  "old": "| +2.34%/yr net 35, IR 0.65 (GV-014..026) |",
+  "new": "| +2.34%/yr net 35, IR 0.65 monthly basis (GV-014..026) |",
+  "reason": "Basis label.",
+  "source": "coordinator decision F1",
+  "batch": "coordinator F1"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_BACKLOG.md",
+  "location": "§7 failure archive FA-01",
+  "old": "adding it to SCR-1 lowers the IR 1.53 → 0.67",
+  "new": "adding it to SCR-1 lowers the monthly-basis IR 1.53 → 0.67",
+  "reason": "Basis label.",
+  "source": "coordinator decision F1",
+  "batch": "coordinator F1"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_BACKLOG.md",
+  "location": "Appendix T.2, header note",
+  "old": "Columns: GV id; item (card or rule; long names shortened with …);",
+  "new": "Screen golden values (GV-001..170) are on the monthly basis (R2 lab); the gate's daily-basis values are spec §9.3 G-TF-SCR-15..16 (QA recomputation, not GV rows). T.3 quotes the verification logs verbatim, so their screen IRs are also monthly-basis values.\n\nColumns: GV id; item (card or rule; long names shortened with …);",
+  "reason": "Basis label for the traced screen values.",
+  "source": "coordinator decision F1",
+  "batch": "coordinator F1"
+ },
+ {
+  "file": "QUANTGEN technical and fundamental signals.md",
+  "location": "exclusion-screen paragraph before the table (line 86)",
+  "old": "`r2_kr_excl_gate.csv` lines 2-9).\n\n| Screen and book",
+  "new": "`r2_kr_excl_gate.csv` lines 2-9). Its IRs are on monthly differences, the lab's basis. QUANTGEN's gate uses daily differences, on which the two equal-weighted screens' IRs are 1.64 and 1.03 (QA recomputation, `/home/claude/qa/qa17d_costconv.py`).\n\n| Screen and book",
+  "reason": "Basis label and the daily-basis values.",
+  "source": "coordinator decision F1; QA qa17d_costconv.py",
+  "batch": "coordinator F1"
+ },
+ {
+  "file": "QUANTGEN technical and fundamental signals.md",
+  "location": "exclusion-screen table header",
+  "old": "| Gross | Net 35 | Net 70 | IR (net 35) | Indicative gate | Final weight |",
+  "new": "| Gross | Net 35 | Net 70 | IR (net 35, monthly basis) | Indicative gate | Final weight |",
+  "reason": "Basis label.",
+  "source": "coordinator decision F1",
+  "batch": "coordinator F1"
+ },
+ {
+  "file": "QUANTGEN technical and fundamental signals.md",
+  "location": "decision table, BUILD NOW lottery screen row (line 354)",
+  "old": "on the equal-weighted book, IR 1.53, positive in every decade",
+  "new": "on the equal-weighted book, monthly-basis IR 1.53, positive in every decade",
+  "reason": "Basis label.",
+  "source": "coordinator decision F1",
+  "batch": "coordinator F1"
+ },
+ {
+  "file": "quantgen_signal_neural_link.html",
+  "location": "hero, stat tile 3",
+  "old": "net of 35&nbsp;bp (IR 1.53, 1996–2026).",
+  "new": "net of 35&nbsp;bp (IR 1.53 on monthly differences, 1996–2026).",
+  "reason": "Basis label.",
+  "source": "coordinator decision F1",
+  "batch": "coordinator F1"
+ },
+ {
+  "file": "quantgen_signal_neural_link.html",
+  "location": "section 2, exclusion panels (script text)",
+  "old": "· IR ${esc(fmt(g.ir, 2))} ·",
+  "new": "· monthly-basis IR ${esc(fmt(g.ir, 2))} ·",
+  "reason": "Basis label on the rendered panel text (text only).",
+  "source": "coordinator decision F1",
+  "batch": "coordinator F1"
+ },
+ {
+  "file": "quantgen_signal_neural_link.html",
+  "location": "section 2, gate scorecard header (script text)",
+  "old": "<th class=\"n\">IR</th>",
+  "new": "<th class=\"n\">IR (monthly)</th>",
+  "reason": "Basis label on the rendered table header (text only).",
+  "source": "coordinator decision F1",
+  "batch": "coordinator F1"
+ },
+ {
+  "file": "quantgen_signal_neural_link.html",
+  "location": "section 2, gate scorecard caption (SCR-2 IR)",
+  "old": "B1 +2.34%/yr net of 35&nbsp;bp (IR 0.65), expected REVISE",
+  "new": "B1 +2.34%/yr net of 35&nbsp;bp (monthly-basis IR 0.65), expected REVISE",
+  "reason": "Basis label.",
+  "source": "coordinator decision F1",
+  "batch": "coordinator F1"
+ },
+ {
+  "file": "quantgen_signal_neural_link.html",
+  "location": "section 2, gate scorecard caption (basis note)",
+  "old": "Indicative: the lab's harness on QUANTGEN's step definitions, not a run of QUANTGEN's gate.<span class=\"src\">",
+  "new": "Indicative: the lab's harness on QUANTGEN's step definitions, not a run of QUANTGEN's gate. IRs here are on monthly differences, the lab's basis; QUANTGEN's gate uses daily differences, on which B1/F4's IR is 1.64 and B1/F6's 1.03 (QA recomputation).<span class=\"src\">",
+  "reason": "Basis note with the daily-basis values.",
+  "source": "coordinator decision F1; QA qa17d_costconv.py",
+  "batch": "coordinator F1"
+ },
+ {
+  "file": "quantgen_signal_neural_link.html",
+  "location": "section 6, debate D2 evidence (SCR-1)",
+  "old": "lottery F4 <b>IR 1.53</b> (+3.08%/yr net)",
+  "new": "lottery F4 <b>IR 1.53</b> on monthly differences (+3.08%/yr net)",
+  "reason": "Basis label.",
+  "source": "coordinator decision F1",
+  "batch": "coordinator F1"
+ },
+ {
+  "file": "quantgen_signal_neural_link.html",
+  "location": "section 6, debate D2 evidence (SCR-2)",
+  "old": "dilution F6 +2.34%/yr (IR 0.65, not 0.84)",
+  "new": "dilution F6 +2.34%/yr (monthly-basis IR 0.65, not 0.84)",
+  "reason": "Basis label.",
+  "source": "coordinator decision F1",
+  "batch": "coordinator F1"
+ },
+ {
+  "file": "quantgen_signal_neural_link.html",
+  "location": "section 9, OQ-14",
+  "old": "(+4.28%/yr, IR 1.15)?",
+  "new": "(+4.28%/yr, IR 1.15; both IRs on monthly differences)?",
+  "reason": "Basis label.",
+  "source": "coordinator decision F1",
+  "batch": "coordinator F1"
+ },
+ {
+  "file": "QUANTGEN technical and fundamental signals.md",
+  "location": "method paragraph (line 21), source tiers",
+  "old": "Sources were tiered from academic and official, through bank and asset-manager research, to trade press and aggregators.",
+  "new": "Sources were tiered from academic and official (T1), through bank and asset-manager research (T2), to trade press and aggregators (T3).",
+  "reason": "Defines the tier labels used by the restated crowding sentence.",
+  "source": "coordinator decision F5",
+  "batch": "coordinator F5"
+ },
+ {
+  "file": "QUANTGEN technical and fundamental signals.md",
+  "location": "\"Crowding\" paragraph (line 47)",
+  "old": "**Crowding.** Goldman Sachs data put hedge-fund crowding at a record in November 2023, with 70% of long exposure in top-ten positions. Crowded winners then kept outperforming for more than two years ([Investing.com on GS](https://investing.com/news/stock-market-news/magnificent-7-bets-drive-hedge-fund-crowding-to-record-high-goldman-sachs-3240404)).",
+  "new": "**Crowding.** In November 2023 a press report of Goldman Sachs data put hedge-fund crowding at a record: the average fund held 70% of its long book in its top-ten positions, the highest in the 22 years Goldman had tracked (T3: [Investing.com on GS](https://investing.com/news/stock-market-news/magnificent-7-bets-drive-hedge-fund-crowding-to-record-high-goldman-sachs-3240404)).",
+  "reason": "Forward-looking claim the 2023 source cannot support removed; the past fact restated with its T3 label. No T1/T2 source for this fact exists in the notes (E1 cites only this report; the GS Insights article of 12-Feb-2026 covers other data).",
+  "source": "E1_bank_quant_research.md lines 154–158, 478; coordinator decision F5",
+  "batch": "coordinator F5"
+ },
+ {
+  "file": "quantgen_signal_neural_link.html",
+  "location": "inline JSON: nodes[].k, weights[].reason, reg[].for (screen IRs)",
+  "old": "\"(IR x.xx\" ×17 (1.53, 0.68, 0.65, 1.43, 0.15, 0.57, 0.49, 1.02, 1.24) and \"lowers IR 1.53 -> 0.67\"",
+  "new": "\"(monthly-basis IR x.xx\" and \"lowers monthly-basis IR 1.53 -> 0.67\"",
+  "reason": "Basis label wherever the page quotes the R2 lab screen IRs.",
+  "source": "coordinator decision F1",
+  "batch": "coordinator F1"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "Changelog, v1.0.1 entry",
+  "old": "Every edit is listed in \"QA log (v1.0.1)\" at the end of this file.\n\nv1.0 is the first version.",
+  "new": "Every edit is listed in \"QA log (v1.0.1)\" at the end of this file. Coordinator decisions in the same pass (still v1.0.1): screen cards are gated on daily differences (§8.4), the lab's screen golden rows are labelled \"monthly basis (R2 lab)\" and daily-basis rows are added (§9.3 G-TF-SCR-15..16); exact tie rules, the name classifier, code padding and the lab's numeric types are written into §4.2–§4.4 (T-TF-SCR-02 now flags a 10.0% increase, as the lab does); screen rows get a Level-1 tolerance of ±0.10 pp/yr and ±0.02 IR; the rebuilt KOSPI's \"valid cleaned return\" is defined exactly (§4.8).\n\nv1.0 is the first version.",
+  "reason": "Changelog records the coordinator-decision edits (version unchanged).",
+  "source": "QA brief; coordinator message",
+  "batch": "coordinator log"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "QA log (v1.0.1), Scope",
+  "old": "SCR-1 +3.08%/yr net 35, IR 1.53; SCR-2 IR 0.65 (+2.35%/yr on the reviewer's own universe, +2.34% on the lab's universe and DIL_LIT);",
+  "new": "SCR-1 +3.08%/yr net 35, IR 1.53 and SCR-2 +2.34%/yr, IR 0.65 on the monthly basis (the reviewer's first, independent name classifier gave +2.35%/yr for SCR-2; with the definitions added to §4.3–§4.4 by edit 12 the build reproduces the lab exactly: 3.0764 / 1.5295 and 2.3363 / 0.6453);",
+  "reason": "Scope updated for the exact reproduction.",
+  "source": "QA brief; coordinator message",
+  "batch": "coordinator log"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "QA log (v1.0.1), Scope (tolerance sentence)",
+  "old": "All reproduce within the Level-1 tolerances of §9.3, except SCR-2's annualised return, which is 0.001 pp outside the \"printed precision\" band on the reviewer's own universe (open finding for the owner). **No rule, parameter, bound, weight, classification or verdict was changed.**",
+  "new": "All reproduce within the Level-1 tolerances of §9.3. **No rule, weight, classification or verdict was changed.** Edits 10–14 apply coordinator decisions: the statistic basis of screen cards, exact tie rules, the screen-row tolerance and the index definition.",
+  "reason": "Scope updated: the SCR-2 open finding is resolved by edit 12.",
+  "source": "QA brief; coordinator message",
+  "batch": "coordinator log"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "QA log (v1.0.1), edit table rows 10–14",
+  "old": "| 9 | §13.1 XS-02, macro item | \"§2.2 'Korea keeps 1–5-day reversal'\" → \"§2.2 KEEP Korea reversal 3; §2.1 'keeps 1–5-day reversal'\" | macro spec §2.1–§2.2 |",
+  "new": "| 9 | §13.1 XS-02, macro item | \"§2.2 'Korea keeps 1–5-day reversal'\" → \"§2.2 KEEP Korea reversal 3; §2.1 'keeps 1–5-day reversal'\" | macro spec §2.1–§2.2 |\n| 10 | §8.4; §9.3 reference paragraph, G-TF-SCR header and rows 01–14; IR quotes in §0.4, §5.3, §8.10, §10 DNB-TF-01, §13.2 OQ-14, §14 | Coordinator decision F1: screen cards are gated on daily differences between the screened and unscreened books; the lab's golden rows are labelled \"monthly basis (R2 lab)\"; new rows G-TF-SCR-15..16, \"daily basis (QA recomputation)\": SCR-1 +3.12%/yr, IR 1.64; SCR-2 +2.48%/yr, IR 1.03; every quote of these IRs carries its basis | `/home/claude/qa/qa17d_costconv.py` |\n| 11 | §4.3 Book mechanics, Costs | Cost application per basis: monthly R_net = R_gross − c × turnover; daily, on the first session the new weights earn | `r2_kr_common.py` lines 12–13; `kr_04_stats.py` docstring |\n| 12 | §4.2; §4.3 condition 2, classifier block, numeric types; §4.4 change day, split-like day, DIL_LIT, F6 tie rule; §5.3 SCR-2 formula; §9.1 T-TF-SCR-02, T-TF-CA-01, T-TF-UNIV-01 | Coordinator decision F2: exact tie rules from the lab scripts. DIL_LIT is stored as float32 and flagged iff > 0.10, so a 10.0% increase is flagged (368 exact ties in ALL; T-TF-SCR-02's \"0.10 → not flagged\" corrected). Split-like is \\|s × p − 1\\| ≤ 0.05 inclusive with p computed first (IHQ 003560 on 2003-12-19 is split-like). The five classifier patterns, code padding and the lab's float32 types are stated. Verified: ALL universe at 366 formations, 71,689 F6 flags and G-TF-SCR-01/-06 reproduced exactly | `kr_common.py` 61–84; `kr_01_build_panel.py` 56, 86–94, 115–118; `kr_02_signals.py` 95–101, 157; `r2_kr_01_build_extra.py` 180–191, 211, 234; `r2_kr_04_exclusion.py` 86; `/home/claude/qa/qa17_exact.py` |\n| 13 | §9.3 tolerances | Coordinator decision F2: screen rows ±0.10 pp/yr and IR ±0.02, compared on the same basis (Level 2 ±0.25 pp/yr, ±0.03); checks tighter than the bands, such as printed precision, are not a reproducibility requirement | coordinator decision |\n| 14 | §4.8 Definition | Coordinator decision F3: \"valid cleaned return\" = finite cleaned r (zero-volume days included, not VALID), Marcap_{d−1} > 0, KOSPI at d−1, code ending in '0', any name class | `kr_05_index_timing.py` lines 35–56 |",
+  "reason": "Coordinator-decision edits appended to the QA log.",
+  "source": "QA brief; coordinator message",
+  "batch": "coordinator log"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "QA log (v1.0.1), Confirmed paragraph (open findings sentence)",
+  "old": "Open findings for the owner (the \"printed precision\" band, the daily vs monthly basis of the screen-card statistic in §8.4, the ambiguous \"valid cleaned return\" in §4.8, the unspecified name classifier and threshold ties) are listed in the QA report.",
+  "new": "The open findings on the \"printed precision\" band, the statistic basis of screen cards, the name classifier and threshold ties, and the \"valid cleaned return\" were resolved by coordinator decision (edits 10–14); the remaining open findings are listed in the QA report.",
+  "reason": "QA log updated: resolved findings.",
+  "source": "QA brief; coordinator message",
+  "batch": "coordinator log"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_BACKLOG.md",
+  "location": "QA log (v1.0.1), edits to this file",
+  "old": "**Edits to this file:** the title and the companion reference (v1.0 → v1.0.1). Nothing else changed: no item, priority, settling test, weight or classification.",
+  "new": "**Edits to this file:** the title and the companion reference (v1.0 → v1.0.1); and, by coordinator decision F1 (statistic basis), the label \"monthly-basis\" on the IR quoted in FA-01 and a note at the head of Appendix T.2 that the screen golden values GV-001..170 and the T.3 quotes are on the monthly basis (R2 lab), with the gate's daily-basis values in spec §9.3 G-TF-SCR-15..16. Nothing else changed: no item, priority, settling test, weight or classification. The spec's QA log lists the other coordinator-decision edits (edits 10–14).",
+  "reason": "Coordinator-decision edits appended to the backlog QA log.",
+  "source": "QA brief; coordinator message",
+  "batch": "coordinator log"
+ },
+ {
+  "file": "QUANTGEN technical and fundamental signals.md",
+  "location": "QA note (v1.0.1)",
+  "old": "the issuer screen's IR 0.65 (+2.35%/yr on the reviewer's own universe against the printed +2.34%), the −38.6% KOSPI crash on the rebuilt index, VT20's +6.5-point drawdown benefit and 0.70 tail ratio, weekly reversal's net-35 Sharpe of −1.78 with a 12.5 bp break-even, and the 53.71% pair share. All reproduce within the specification's tolerances except the issuer screen's return, which is 0.01 points high on the reviewer's universe and exact on the lab's. Tables and quoted figures were spot-checked against the lab files. Two edits were made: the low-volatility paragraph now says the quintile beat the value-weighted market in six of seven crash windows equal-weighted and in all seven value-weighted (`r2/kr/results/r2_kr_lowvol_windows.csv`), and the 0.979 best-variant deflated Sharpe now cites `r2/kr/results/r2_kr_excl_dsr_best.csv`. No conclusion, weight or verdict changed;",
+  "new": "the issuer screen's +2.34%/yr and IR 0.65, the −38.6% KOSPI crash on the rebuilt index, VT20's +6.5-point drawdown benefit and 0.70 tail ratio, weekly reversal's net-35 Sharpe of −1.78 with a 12.5 bp break-even, and the 53.71% pair share. All reproduce within the specification's tolerances; once the exact definitions now in the specification are applied, both screens reproduce the lab exactly. Tables and quoted figures were spot-checked against the lab files. Edits: the low-volatility paragraph now says the quintile beat the value-weighted market in six of seven crash windows equal-weighted and in all seven value-weighted (`r2/kr/results/r2_kr_lowvol_windows.csv`); the 0.979 best-variant deflated Sharpe now cites `r2/kr/results/r2_kr_excl_dsr_best.csv`; and, by coordinator decision, the screen IRs are labelled as monthly-basis values with the gate's daily-basis IRs (1.64 and 1.03) stated beside the table, the source tiers are labelled T1–T3, and the crowding paragraph reports the November 2023 Goldman Sachs record as a T3-sourced past fact without the unsupported claim that crowded winners kept outperforming. No conclusion, weight or verdict changed;",
+  "reason": "Report QA note updated with the coordinator-decision edits.",
+  "source": "QA brief; coordinator message",
+  "batch": "coordinator log"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_INTEGRATION.md",
+  "location": "Changelog, v1.0.1 entry (first sentence)",
+  "old": "**v1.0.1 (independent QA, 2026-10-03).** No rule, parameter, bound, weight, classification or verdict changed.",
+  "new": "**v1.0.1 (independent QA, 2026-10-03).** No rule, weight, classification or verdict changed.",
+  "reason": "The coordinator decisions change a test tolerance and a test expectation, so the sentence no longer claims \"no parameter or bound changed\".",
+  "source": "coordinator message",
+  "batch": "coordinator log"
+ },
+ {
+  "file": "QUANTGEN_TECHFUND_BACKLOG.md",
+  "location": "Appendix T.2, header note (scope of the basis label)",
+  "old": "Screen golden values (GV-001..170) are on the monthly basis (R2 lab); the gate's daily-basis values are spec §9.3 G-TF-SCR-15..16 (QA recomputation, not GV rows). T.3 quotes the verification logs verbatim, so their screen IRs are also monthly-basis values.",
+  "new": "Screen golden values (GV-001..170) are on the monthly basis (R2 lab); the gate's daily-basis values are spec §9.3 G-TF-SCR-15..16 (QA recomputation, not GV rows). Rows that quote the verification logs verbatim (GV-497..500 here, and T.3) carry screen IRs on the same monthly basis.",
+  "reason": "Basis note extended to the verbatim log quotes in T.2 (GV-497..500).",
+  "source": "coordinator decision F1",
+  "batch": "coordinator F1"
+ },
+ {
+  "file": "QUANTGEN technical and fundamental signals.md",
+  "location": "QA note (v1.0.1), quoted IRs",
+  "old": "the lottery screen's +3.08%/yr net 35 and IR 1.53, the issuer screen's +2.34%/yr and IR 0.65,",
+  "new": "the lottery screen's +3.08%/yr net 35 and IR 1.53, the issuer screen's +2.34%/yr and IR 0.65 (both IRs on the monthly basis),",
+  "reason": "Basis label on the IRs quoted in the QA note.",
+  "source": "coordinator decision F1",
+  "batch": "coordinator F1"
+ }
+]

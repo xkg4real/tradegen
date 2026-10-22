@@ -1,0 +1,196 @@
+{
+ "card_id": "S_E1_trend_us",
+ "kind": "strategy",
+ "hypothesis": "Faber SMA / MOP sign trend switch on ETF sleeves beats equal-weight buy-and-hold on Sharpe and drawdown (long or cash, 1/N per sleeve)",
+ "rules": {
+  "family": "trend_switch",
+  "grid": [
+   {
+    "rule": "sma",
+    "lookback": 126,
+    "step": 21
+   },
+   {
+    "rule": "sma",
+    "lookback": 126,
+    "step": 42
+   },
+   {
+    "rule": "sma",
+    "lookback": 210,
+    "step": 21
+   },
+   {
+    "rule": "sma",
+    "lookback": 210,
+    "step": 42
+   },
+   {
+    "rule": "sma",
+    "lookback": 252,
+    "step": 21
+   },
+   {
+    "rule": "sma",
+    "lookback": 252,
+    "step": 42
+   },
+   {
+    "rule": "tsmom",
+    "lookback": 126,
+    "step": 21
+   },
+   {
+    "rule": "tsmom",
+    "lookback": 126,
+    "step": 42
+   },
+   {
+    "rule": "tsmom",
+    "lookback": 210,
+    "step": 21
+   },
+   {
+    "rule": "tsmom",
+    "lookback": 210,
+    "step": 42
+   },
+   {
+    "rule": "tsmom",
+    "lookback": 252,
+    "step": 21
+   },
+   {
+    "rule": "tsmom",
+    "lookback": 252,
+    "step": 42
+   }
+  ],
+  "cost_bps_per_side": 50.0,
+  "embargo": 21
+ },
+ "universe": {
+  "symbols": [
+   "SPY",
+   "QQQ",
+   "TLT",
+   "GLD"
+  ],
+  "venue": "us"
+ },
+ "data": {
+  "sessions": 5489,
+  "start": "2004-12-01",
+  "end": "2026-09-25",
+  "source": "Yahoo adjusted close unless stated"
+ },
+ "costs": {
+  "cost_bps": 50.0,
+  "stress_multiplier": 2.0
+ },
+ "protocol": {
+  "w_is": 756,
+  "w_oos": 126,
+  "min_is": 504,
+  "ci_level": 0.9,
+  "bootstrap_B": 2000,
+  "block": 10
+ },
+ "trials": {
+  "N_planned": 12,
+  "N_total": 12,
+  "ledger": []
+ },
+ "seed": 11,
+ "stats": {
+  "sr_oos": 0.8403967628626469,
+  "se_lo": 0.2314449976950896,
+  "ci90": [
+   0.4716356235770382,
+   1.2026013725479159
+  ],
+  "sr_is": 1.2013453043072786,
+  "oos_is": 0.6995463834165795,
+  "dsr": 0.9995448793402686,
+  "pbo": 0.5905205905205905,
+  "pbo_slope": -0.907087211331541,
+  "prob_loss_oos": 0.0,
+  "sr_stress": 0.7493069686577187,
+  "turnover_annual": 1.5646359583952452,
+  "n_trades": 82,
+  "n_sessions": 4711,
+  "years_positive": 0.7368421052631579,
+  "n_years": 19,
+  "max_year_share": 0.12513788434265044,
+  "plateau": 1.0,
+  "edge": true,
+  "total_return": 2.7045773400606947,
+  "max_drawdown": -0.1544520892479464,
+  "haircut_sr": 0.5042380577175881,
+  "bench_sr": 0.9510606047588553,
+  "n_trials": 12,
+  "n_configs": 12,
+  "bench_diff": -0.11066384189620848,
+  "bench_p": 0.7465,
+  "bench_ci": [
+   -0.3790042387075642,
+   0.16480017603886538
+  ],
+  "bench_mdd": -0.26582278610120014,
+  "decision": "REJECT",
+  "reason": "does not beat its benchmark (Sharpe difference -0.11, p 0.75)",
+  "revise_target": "the sleeve set or the cost model, not the rule: the benchmark is as good",
+  "regime": {
+   "high_vol": 0.8529773367357346,
+   "low_vol": 0.8667357316863927,
+   "up_market": 0.7554005759236304,
+   "down_market": 1.1142871121462463
+  },
+  "chosen_last": {
+   "rule": "sma",
+   "lookback": 126,
+   "step": 21
+  },
+  "bench_sharpe": 0.9510606047588553,
+  "walk_forward": "IS 756 / OOS 126 / embargo 21; 38 origins; 12 configs",
+  "seconds": 6.0
+ },
+ "tests": {
+  "dsr": 0.9995448793402686,
+  "pbo": 0.5905205905205905,
+  "ci90": [
+   0.4716356235770382,
+   1.2026013725479159
+  ],
+  "sr_stress": 0.7493069686577187
+ },
+ "decision": "REJECT",
+ "decision_reason": "does not beat its benchmark (Sharpe difference -0.11, p 0.75)",
+ "revise_target": "the sleeve set or the cost model, not the rule: the benchmark is as good",
+ "lines": [
+  "Out-of-sample Sharpe 0.84 over 4,711 sessions (19 years); Lo standard error 0.23; 90 % block-bootstrap interval 0.47 to 1.20: passes (the interval must exclude zero).",
+  "Deflated Sharpe 1.00 after 12 trials: passes (needs ≥ 0.95).",
+  "Probability of backtest overfitting 0.59 over the 12-config grid; the in-sample winner loses out of sample in 0% of the splits: passes (PBO ≤ 0.05, or ≤ 10% losing splits because near-identical configurations put PBO at 0.5 by construction; rejected when PBO > 0.2 and the winner also loses).",
+  "Out-of-sample over in-sample Sharpe 0.70: passes (needs ≥ 0.5).",
+  "Against the benchmark (Sharpe 0.95): difference -0.11, paired block-bootstrap 90 % interval -0.38 to +0.16, one-sided p 0.75: fails (the claim 'beats the benchmark' needs p ≤ 0.1); max drawdown -15% against the benchmark's -27% (reported, not gated).",
+  "Positive in 74% of calendar years: passes (needs ≥ 60%); largest year carries 13% of the P&L.",
+  "Sharpe at 2× costs 0.75: passes (must stay positive); turnover 1.6× equity per year.",
+  "Parameter plateau 100% of neighbours keep half the Sharpe, on a grid edge: fails.",
+  "82 position changes out of sample: fails (needs ≥ 100).",
+  "Regime split (Sharpe): high-vol 0.85 / low-vol 0.87, up 0.76 / down 1.11.",
+  "Expected live Sharpe after the McLean–Pontiff haircut: 0.50."
+ ],
+ "decay_haircut": {
+  "factor": 0.6,
+  "source": "McLean-Pontiff 2016 26-58%"
+ },
+ "created": "2026-09-27",
+ "author": "QUANTGEN validation gate",
+ "results_file": "docs/asset_expansion/results.csv",
+ "results_md5": "ca757e25f508b588cb2f361719ec83cd",
+ "citations": [
+  "Faber 2007/2013 SSRN 962461",
+  "Moskowitz, Ooi & Pedersen 2012 JFE 104",
+  "RN→FH §6.1, §6.5, §6.8 pp. 13–16"
+ ]
+}

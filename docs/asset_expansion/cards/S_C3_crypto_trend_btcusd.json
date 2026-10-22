@@ -1,0 +1,149 @@
+{
+ "card_id": "S_C3_crypto_trend_btcusd",
+ "kind": "strategy",
+ "hypothesis": "Short-horizon sign votes plus price/MA ratios (long/flat with hysteresis) beat buy-and-hold BTC on Sharpe with a 25 % smaller drawdown",
+ "rules": {
+  "family": "crypto_trend",
+  "grid": [
+   {
+    "hysteresis": 0.0
+   },
+   {
+    "hysteresis": 0.222
+   },
+   {
+    "hysteresis": 0.444
+   },
+   {
+    "hysteresis": 0.667
+   },
+   {
+    "hysteresis": 0.889
+   }
+  ],
+  "cost_bps_per_side": 10.0,
+  "embargo": 1
+ },
+ "universe": {
+  "symbols": [
+   "BTC-USD"
+  ],
+  "venue": "crypto"
+ },
+ "data": {
+  "sessions": 4392,
+  "start": "2014-09-17",
+  "end": "2026-09-25",
+  "source": "Yahoo adjusted close unless stated"
+ },
+ "costs": {
+  "cost_bps": 10.0,
+  "stress_multiplier": 2.0
+ },
+ "protocol": {
+  "w_is": 756,
+  "w_oos": 126,
+  "min_is": 504,
+  "ci_level": 0.9,
+  "bootstrap_B": 2000,
+  "block": 10
+ },
+ "trials": {
+  "N_planned": 5,
+  "N_total": 11,
+  "ledger": [
+   "run 2/3: hysteresis [0.05, 0.1, 0.2, 0.3, 0.4, 0.5] (6 trials, three of them duplicates on the vote lattice) → REVISE on a grid edge for BTC-USD",
+   "run 4: the complete lattice [0, 2/9, 4/9, 6/9, 8/9] with its ends declared as the domain; N_total = 11 trials for the DSR"
+  ]
+ },
+ "seed": 11,
+ "stats": {
+  "sr_oos": 1.1869326405116527,
+  "se_lo": 0.26370231614986955,
+  "ci90": [
+   0.722600965853553,
+   1.6413220786944809
+  ],
+  "sr_is": 1.3261447084516884,
+  "oos_is": 0.8950249795117987,
+  "dsr": 0.9999775275828303,
+  "pbo": 0.19090909090909092,
+  "pbo_slope": -0.8546227248315362,
+  "prob_loss_oos": 0.0,
+  "sr_stress": 1.1620137009440572,
+  "turnover_annual": 9.98569069895432,
+  "n_trades": 144,
+  "n_sessions": 3634,
+  "years_positive": 0.8181818181818182,
+  "n_years": 11,
+  "max_year_share": 0.3167753351001364,
+  "plateau": 1.0,
+  "edge": false,
+  "total_return": 315.471621938769,
+  "max_drawdown": -0.5282568580953813,
+  "haircut_sr": 0.7121595843069916,
+  "bench_sr": 0.8883795780545409,
+  "n_trials": 11,
+  "n_configs": 5,
+  "bench_diff": 0.2985530624571118,
+  "bench_p": 0.07,
+  "bench_ci": [
+   -0.03254803954747081,
+   0.6226385071032391
+  ],
+  "bench_mdd": -0.8339900882218974,
+  "decision": "PASS",
+  "reason": "every gate criterion met",
+  "revise_target": null,
+  "regime": {
+   "high_vol": 1.3307349289569086,
+   "low_vol": 1.0262669276874243,
+   "up_market": 1.5772107901947114,
+   "down_market": 0.13849740294268148
+  },
+  "chosen_last": {
+   "hysteresis": 0.0
+  },
+  "bench_sharpe": 0.8883795780545409,
+  "walk_forward": "IS 756 / OOS 126 / embargo 1; 29 origins; 5 configs",
+  "seconds": 4.7
+ },
+ "tests": {
+  "dsr": 0.9999775275828303,
+  "pbo": 0.19090909090909092,
+  "ci90": [
+   0.722600965853553,
+   1.6413220786944809
+  ],
+  "sr_stress": 1.1620137009440572
+ },
+ "decision": "PASS",
+ "decision_reason": "every gate criterion met",
+ "revise_target": null,
+ "lines": [
+  "Out-of-sample Sharpe 1.19 over 3,634 sessions (11 years); Lo standard error 0.26; 90 % block-bootstrap interval 0.72 to 1.64: passes (the interval must exclude zero).",
+  "Deflated Sharpe 1.00 after 11 trials: passes (needs ≥ 0.95).",
+  "Probability of backtest overfitting 0.19 is reported only: with 5 configurations the CSCV rank is too coarse (needs ≥ 8); the over-search check uses the share of splits where the in-sample winner loses out of sample, 0.00: passes (needs ≤ 0.1).",
+  "Out-of-sample over in-sample Sharpe 0.90: passes (needs ≥ 0.5).",
+  "Against the benchmark (Sharpe 0.89): difference +0.30, paired block-bootstrap 90 % interval -0.03 to +0.62, one-sided p 0.07: passes (the claim 'beats the benchmark' needs p ≤ 0.1); max drawdown -53% against the benchmark's -83% (reported, not gated).",
+  "Positive in 82% of calendar years: passes (needs ≥ 60%); largest year carries 32% of the P&L.",
+  "Sharpe at 2× costs 1.16: passes (must stay positive); turnover 10.0× equity per year.",
+  "Parameter plateau 100% of neighbours keep half the Sharpe, not on a grid edge: passes.",
+  "144 position changes out of sample: passes (needs ≥ 100).",
+  "Regime split (Sharpe): high-vol 1.33 / low-vol 1.03, up 1.58 / down 0.14.",
+  "Expected live Sharpe after the McLean–Pontiff haircut: 0.71."
+ ],
+ "decay_haircut": {
+  "factor": 0.6,
+  "source": "McLean-Pontiff 2016 26-58%"
+ },
+ "created": "2026-09-27",
+ "author": "QUANTGEN validation gate",
+ "results_file": "docs/asset_expansion/results.csv",
+ "results_md5": "ca757e25f508b588cb2f361719ec83cd",
+ "citations": [
+  "Liu & Tsyvinski 2021 RFS 34",
+  "Detzel et al. 2021 FM",
+  "MTSA §5.2 p. 161"
+ ]
+}

@@ -1,0 +1,317 @@
+{
+ "source": "research_notes/QUANTGEN v2 integration map/tf_dnb_backlog.md section A.1 (labels: section A.2, PROPOSED)",
+ "r3": "QUANTGEN_techfund_research_bundle/QUANTGEN_techfund_research/research_notes/R3_TF_neural_link.md",
+ "caveat": "All lab numbers are in-sample computations on price returns without dividends, not runs of QUANTGEN's gate. Proposals pending owner confirmation; nothing here is an input to exposure (coordinator rulings 3.7-3.9).",
+ "items": [
+  {
+   "id": "DNB-TF-01",
+   "node": "TF-14",
+   "cite": "L367-372; G-64 L881; CR-06 L46",
+   "r3_lines": [
+    "367-372",
+    "881",
+    "46"
+   ],
+   "refused": "An attention-fade screen (exclude names with a volume spike, locked limit-up or +50% run-up in the last 20 sessions) as a monthly exclusion screen or standalone card (E7 rank 1, weight 3).",
+   "evidence": "KRX 1996-2026: B1 F5 +1.40%/yr net 35 but -0.08% net 70 (IR 0.49), break-even 68 bp/side < 70 bp; B2 -0.35%, B3 -0.54%; F8 (F4+F5) lowers IR 1.53 -> 0.67; 20-session memory flags ~23% of names (L369). Break-even by book 68 / 21 / 10 / 76 bp (L956-959).",
+   "label_r3": "not given",
+   "label_brief": "not given [inconclusive_E: mixed sign across books]",
+   "label_proposed": "inconclusive_E",
+   "what_would_change_it": "\"a daily-entry card test (BL-TF-02)\" passing at 35/70 bp \"adds a 5-session no-new-long rule to INV-2\" (L847, L881; OQ-12 L1325). Never as a monthly screen. Entry-day part is already INVARIANT INV-2: \"never enter at a locked limit-up close\" (L46, L802).",
+   "predicate_text": "`tf.screen_id ∈ {F5, F8}`; or `kind ∈ {CARD-O}` ∧ `tf.rebalance == monthly` ∧ `tf.screen_features ∩ {volume_spike_20s, locked_limit_up_20s, runup_ge_50pct_20s} ≠ ∅`. Allowed: INV-2 (`kind == INVARIANT`, entry-day only).",
+   "brief_line": 21
+  },
+  {
+   "id": "DNB-TF-02",
+   "node": "TF-17",
+   "cite": "L374-379; G-63 L880; CR-01 L26",
+   "r3_lines": [
+    "374-379",
+    "880",
+    "26"
+   ],
+   "refused": "A low-volatility or low-beta tilt as a long-only alpha source in Korea (prior weight 2).",
+   "evidence": "KRX 1996-2026 net 35: low-vol top-quintile long-only excess +1.1%/yr EW (t 0.5), -1.8% VW (t -0.6); VW tilt -40.1 / -44.1 pts vs VW universe 2025 / 2026 YTD; Korean SML 1997-2026 flat (+1.1%/yr, t 0.19); low-beta raw alpha -1.0%/yr (t -0.26) EW (L376). vs S_beta: ΔMDD -7 to -22 pp, tail ratio 0.97-0.99 (L26).",
+   "label_r3": "not given",
+   "label_brief": "not given [null_E]",
+   "label_proposed": "null_E",
+   "what_would_change_it": "\"long-only excess with t >= 2 net of 35 bp after beta attribution\" (L880). Retained: screen input to SCR-1 (high-vol tail) and FS-3 FORWARD-SIM descriptive sleeve vs pre-registered S_beta (L26-28, G-32 L834).",
+   "predicate_text": "`market == KR` ∧ `tf.signal_family ∈ {low_vol, low_beta}` ∧ `tf.role ∈ {alpha, protective}` ∧ `books ∩ {recommended, specification} ≠ ∅`. Allowed: `tf.role == screen_input` (SCR-1); `books == [forward_sim]` ∧ `tf.comparator == S_beta` (FS-3). Korea weights: alpha 0, protective 0 (L28, L786).",
+   "brief_line": 22
+  },
+  {
+   "id": "DNB-TF-03",
+   "node": "TF-18",
+   "cite": "L381-386; G-65 L882",
+   "r3_lines": [
+    "381-386",
+    "882"
+   ],
+   "refused": "Size (small minus big) as a usable return signal in Korea or the US.",
+   "evidence": "KRX size L/S EW gross Sharpe 0.39 (1996-2026) but -0.05 in 2016-26; -26.9% (2025), -26.5% (2026 YTD); top 200 -0.23. Korea SMB 2002-15 0.16%/month (t 0.45). US SMB 1981-2018 1.1%/yr (t 0.6) (L383).",
+   "label_r3": "not given",
+   "label_brief": "not given [null_E]",
+   "label_proposed": "null_E",
+   "what_would_change_it": "\"none (risk control and attribution factor only)\" (L882, L386).",
+   "predicate_text": "`tf.signal_family == size` ∧ `tf.role ∈ {alpha, protective, screen}`. Allowed: `tf.role ∈ {risk_control, attribution_factor}` (GOV-3 attribution block, L814).",
+   "brief_line": 23
+  },
+  {
+   "id": "DNB-TF-04",
+   "node": "TF-20",
+   "cite": "L388-393; G-62 L879; CR-05 L42",
+   "r3_lines": [
+    "388-393",
+    "879",
+    "42"
+   ],
+   "refused": "Raw Korean 12-1 momentum as a standalone stock card at 35 bp per side.",
+   "evidence": "KRX ALL quintiles 1996-2026: L/S EW +9.3%/yr gross (Sharpe 0.45), net 35 Sharpe 0.20, net 70 -0.04, 2016-26 net -0.20; long-only excess -1.3%/yr (t -0.6); break-even ~64 bp/side. Top-500 deciles 2000-26: EW net Sharpe 0.04; VW 0.28, 0.02 in 2016-26 with a 5% cap (L390).",
+   "label_r3": "not given",
+   "label_brief": "not given [null_E]",
+   "label_proposed": "null_E",
+   "what_would_change_it": "\"none for the raw card; the constrained variant runs as FS-2\" (L879): Q5 12-1 or 12-7 ex F4 / highest-turnover quintile, R-03 scaled, 5% name cap, long-only, weight 1, FORWARD-SIM (G-31 L833; XS-18 L1306).",
+   "predicate_text": "`market == KR` ∧ `applies_to == momentum` ∧ `instrument_book == KRX_stock_book` ∧ `kind == CARD-O` ∧ NOT(FS-2 shape) where FS-2 shape = (`tf.exclusions ⊇ {F4} ∨ ⊇ {F1}`) ∧ `tf.vol_scale == R-03` ∧ `tf.name_cap <= 0.05` ∧ `tf.long_only == true` ∧ `books == [forward_sim]`. Also GOV-7 pre-gate: break-even 64 < 2 x 35 → REJECT before any trial (L818). SCR-3 rule: any KRX momentum or small-cap long-only sleeve excludes the highest-turnover quintile or the F4 names (G-03 L800).",
+   "brief_line": 24
+  },
+  {
+   "id": "DNB-TF-05",
+   "node": "TF-34",
+   "cite": "L395-400; G-72 L889; CR-02 L30",
+   "r3_lines": [
+    "395-400",
+    "889",
+    "30"
+   ],
+   "refused": "US single-index trend or volatility targeting on SPY as a protective card at QUANTGEN's 50 bp per side (prior US TS-mom weight 3).",
+   "evidence": "SPY 1999-05..2021-03 at 50 bp: multi-speed trend REJECT (PC-1 -10.7 pp), VT15 REJECT (+0.3 pp), trend x VT REJECT (-7.9 pp); SMA200 and 12-month sign INSUFFICIENT; turnover 7.3-11.9 units/yr costs 3.7-6.0%/yr. At 5 bp all INSUFFICIENT (PC-1 +3.8 to +14.7 pp; 53-56% of benefit from the GFC). SPY SMA200 Sharpe 0.39 gross -> 0.07 at 50 bp (L397).",
+   "label_r3": "not given",
+   "label_brief": "not given [harm_E trend; null_E VT15]",
+   "label_proposed": {
+    "trend": "harm_E",
+    "vt15": "null_E"
+   },
+   "what_would_change_it": "\"futures-cost instrument (G-46)\" = BL-TF-08 (L889, L853); \"pooled markets for sufficiency\" (L853). Macro already registers the futures card as a new card id (MS L6211, item 32; R-29).",
+   "predicate_text": "`market == US` ∧ `applies_to ∈ {ts_trend, market_gross}` ∧ `instrument_book == US_shares_KIS` (header cost 50 bp) ∧ `kind == CARD-P` ∧ `books ∩ {recommended, specification} ≠ ∅`. Weight: SPY trend alpha 0, protective 0 at 50 bp / 1 at futures cost; VT15 0 at 50 bp / 1 at futures cost (L788). A cost or instrument edit after `results_md5` exists is a separate refusal (MS L6243).",
+   "brief_line": 25
+  },
+  {
+   "id": "DNB-TF-06",
+   "node": "TF-39",
+   "cite": "L402-407; G-66 L883; CR-03 L34; XS-01 L1289",
+   "r3_lines": [
+    "402-407",
+    "883",
+    "34",
+    "1289"
+   ],
+   "refused": "Korean foreign/institutional net buying as a close-to-close direction signal (prior weight 3 -> 1 logging).",
+   "evidence": "2003-11: lagged foreign/institutional buying negative for next close-to-close, positive for next close-to-open; copying foreign buying underperformed KOSPI 2004-10. Foreigners sold KRW148.3tn net in H1 2026 while KOSPI rose ~101%; bought +KRW231.2bn on the -12.06% day (2026-03-04) (L404). No t-1 flow history (L405).",
+   "label_r3": "not given",
+   "label_brief": "not given [inconclusive_E; = macro item 14 variant `foreign_flow_rules: inconclusive_E`, MS L4638]",
+   "label_proposed": "inconclusive_E",
+   "what_would_change_it": "\"an open-leg test on >= 3 years of logged flows (G-11)\" (L883). Until then DATA-6: log final investor-type flows with timestamps, no direction rule (L808). Overlap: \"DNB-TF-06 repeats item 14\" (XS-19 L1307).",
+   "predicate_text": "`inputs[i].source_kind == tf.investor_flow` ∧ `inputs[i].role ∈ {acting_exposure, direction}`; or any `output_range` / weight derived from a flow sign. Allowed: `role == context` logging with `timing == t-1_timestamped` (DATA-6).",
+   "brief_line": 26
+  },
+  {
+   "id": "DNB-TF-07",
+   "node": "TF-41",
+   "cite": "L409-414; G-61 L878; CR-03 L34; XS-02/03/04 L1290-1292",
+   "r3_lines": [
+    "409-414",
+    "878",
+    "34",
+    "1290-1292"
+   ],
+   "refused": "Korean stock-level short-term reversal (daily, weekly or 1-month, with or without the 5d/20d volume filter) as an alpha card at 35 bp (prior weight 3).",
+   "evidence": "KRX 1996-2026: weekly reversal L/S +19.9%/yr gross (Sharpe 0.99) at 159x/yr turnover, net 35 Sharpe -1.78 EW / -0.82 VW, break-even 12.5 / 22.2 bp; volume-filter designs -0.92 to -1.33%/week net; 1-month reversal VW ex-microcap deciles +0.57%/month gross (t 0.9), -0.68% net 35, negative net in every sub-period after 2005; EW deciles +1.43% gross, +0.23% net (t 0.5) (L411).",
+   "label_r3": "not given",
+   "label_brief": "not given [harm_E]",
+   "label_proposed": "harm_E",
+   "what_would_change_it": "\"a venue at <= 5 bp per side (VIX-conditioned weekly reversal on ETFs/futures is BACKLOG DC-E2-09)\" (L878; XS-04 L1292). Retained: FS-5 monthly reversal guard (exclude last month's top-decile winners), weight 1, FORWARD-SIM screen variant (G-34 L836; L34). Vol scaling hurts reversal (EW net -0.29 -> -0.59, L1292) — never R-03 on reversal.",
+   "predicate_text": "`market == KR` ∧ `applies_to == reversal` ∧ `instrument_book == KRX_stock_book` ∧ `tf.horizon_sessions <= 21` ∧ `tf.role == alpha`. GOV-7 pre-gate: break-even 12.5/22.2 < 70 → REJECT. Allowed: `tf.role == screen_guard` ∧ `tf.rebalance == monthly` ∧ `books == [forward_sim]` (FS-5). Not covered (new card, DC-E2-09): `instrument_book ∈ {KRX_ETF_line, KOSPI200_futures, ...}` ∧ `tf.cost_bp_per_side <= 5`.",
+   "brief_line": 27
+  },
+  {
+   "id": "DNB-TF-08",
+   "node": "TF-44",
+   "cite": "L416-421; G-68 L885",
+   "r3_lines": [
+    "416-421",
+    "885"
+   ],
+   "refused": "Quality/profitability as \"the most consistent factor\" and a crash hedge (prior weight 3).",
+   "evidence": "US 1926-63: profitability 0.09%/month (t 0.86), investment 0.02 (t 0.14), value 0.43 (t 2.09); RMW -16.44% over the 12 months to Aug-2026; QUAL -34.1% vs S&P -33.9% (2020-02-19..03-23), beta 0.99; MSCI USA Quality -20.3% vs -18.1% in 2022 (L418).",
+   "label_r3": "not given",
+   "label_brief": "not given [harm_E as hedge]",
+   "label_proposed": "harm_E",
+   "what_would_change_it": "\"none; quality stays a composite leg at weight 2\" (L885; US). Korea quality 1 until a PIT test (CR-04 L38; G-37 L844).",
+   "predicate_text": "`applies_to == quality` ∧ (`tf.role ∈ {hedge, protective}` ∨ `kind == CARD-P` ∨ `tf.weight == 3`). Allowed: `tf.role == composite_leg` with `tf.weight <= 2` (US) / `<= 1` (KR).",
+   "brief_line": 28
+  },
+  {
+   "id": "DNB-TF-09",
+   "node": "TF-45",
+   "cite": "L423-428; G-67 L884; CR-04 L38",
+   "r3_lines": [
+    "423-428",
+    "884",
+    "38"
+   ],
+   "refused": "US post-earnings drift and US corporate-event drifts (S&P inclusion, buybacks, SEOs, dividend initiation/omission, merger arbitrage) as standalone cards.",
+   "evidence": "NMV US 1963-2012: SUE drift 0.72 -> 0.26%/month net (t 1.60) at 35% monthly turnover; large-cap drift ~0 since 2006; expected net Sharpe at 50 bp -0.51. S&P 500 additions 7.3% (1990s) -> 0.8% n.s. (2010s); repeat-buyback drift 2.51% -> 0.89% (L425). Literature only (L426).",
+   "label_r3": "not given",
+   "label_brief": "not given [inconclusive_E]",
+   "label_proposed": "inconclusive_E",
+   "what_would_change_it": "\"none standalone; events stay as flags and confirmation inputs\" (L884; \"event flags only\" L428).",
+   "predicate_text": "`market == US` ∧ `tf.signal_family ∈ {pead, index_inclusion, buyback, seo, dividend_event, merger_arb}` ∧ `kind ∈ {CARD-O, CARD-P}`. Allowed: `tf.role ∈ {flag, confirmation_input}` with no own weight and no standalone book.",
+   "brief_line": 29
+  },
+  {
+   "id": "DNB-TF-10",
+   "node": "TF-47",
+   "cite": "L430-435; G-69 L886",
+   "r3_lines": [
+    "430-435",
+    "886"
+   ],
+   "refused": "Product composites (CANSLIM/IBD, SEPA/VCP), factor-ETF rotation, sell-side recommendation/target/LTG levels and 13F cloning as acting signals.",
+   "evidence": "FFTY 3.52%/yr since Apr-2015 vs 13-14% S&P; AIEQ 4.18% vs SPY 12.65% over 5 years; iShares 10-year excess vs IVV: MTUM +2.1, QUAL -1.0, VLUE -0.0, USMV -5.9 pp/yr; 2000-01 top recommendation group -7.06%/yr vs +13.44% bottom (L432). No rigorous OOS test found for CANSLIM/VCP (L434).",
+   "label_r3": "not given",
+   "label_brief": "not given [harm_E]",
+   "label_proposed": "harm_E",
+   "what_would_change_it": "\"estimate revisions only, via the forward archive (BACKLOG)\" (L886, L435) — no BL-TF id; revisions archive is DATA-4 (G-09 L806).",
+   "predicate_text": "`inputs[i].source_kind ∈ {tf.product_screen, tf.sell_side_level, tf.holdings_13f}` ∧ `inputs[i].role == acting_exposure`; or `tf.signal_family == factor_etf_rotation`. Allowed later: `source_kind == tf.estimate_revision` ∧ `timing == archive_timestamp` once DATA-4 archives exist, as a new card.",
+   "brief_line": 30
+  },
+  {
+   "id": "DNB-TF-11",
+   "node": "TF-48",
+   "cite": "L437-442; G-58 L870; CR-12 L70",
+   "r3_lines": [
+    "437-442",
+    "870",
+    "70"
+   ],
+   "refused": "Market valuation (CAPE, the Fed model, forward P/E) as a usable 1-year timing signal.",
+   "evidence": "Shiller 1-year R2 of log CAPE 0.05 in sample; OOS 1990-2022 -0.18 (US lab) / -16.5% (chair); 10-year OOS R2 1990-2013 -0.25; Fed model after 1965 R2 0.01; point-in-time CAPE de-risking -1.8 pp/yr (1891-2023), -4.5 pp/yr (1990-2023); CAPE > 30: forward 1-year +3.0% vs +6.5% unconditional (L439). CA-15 L1258.",
+   "label_r3": "not given",
+   "label_brief": "not given [harm_E]",
+   "label_proposed": "harm_E",
+   "what_would_change_it": "\"only a family-gate and nine-step pass as a new card (CR-12)\" (L870). CONTEXT display allowed: \"as a display with its residual drift\" (G-58 L870) → context log. Overlap: \"DNB-TF-11 matches item 26\" (XS-19 L1307; see D-19).",
+   "predicate_text": "`inputs[i].source_kind == tf.valuation_ratio` (CAPE, fed_model, fwd_pe) ∧ `inputs[i].role == acting_exposure` (any multiplier, gate or weight). Allowed: `kind == CONTEXT` ∧ `acting: false` with residual drift printed.",
+   "brief_line": 31
+  },
+  {
+   "id": "DNB-TF-12",
+   "node": "TF-60",
+   "cite": "L444-449; G-70 L887; CR-12 L70",
+   "r3_lines": [
+    "444-449",
+    "887",
+    "70"
+   ],
+   "refused": "Classic technical indicators and rules (RSI, MACD, Bollinger, Donchian, golden/dead cross, candlesticks, Fibonacci, Elliott, chart patterns) and TradingView/CMT/retail-sourced strategies as signals in their own right (oscillators are not independent of short-term reversal).",
+   "evidence": "49 markets 2001-07 (5,806 rules): best Korean rule p 0.298 -> 0.942 after data-snooping adjustment; KOSPI 303 rules SPA p 0.880; SPY 322 rules p 0.82-0.97; KOSPI Connors RSI(2) / Bollinger CAGR 2.8% / 2.4% vs 7.2%; KRX RSI14 vs 1-month reversal correlation 0.92, %B 0.87; RSI14 / %B contrarian net-35 Sharpe -0.15 / -0.32; > 95% of TradingView indicators repaint (L446).",
+   "label_r3": "not given",
+   "label_brief": "not given [harm_E]",
+   "label_proposed": "harm_E",
+   "what_would_change_it": "\"only via family gate + nine-step gate as a new card\" \"via the porting protocol\" (L887, L449): GOV-2 family gate (Hansen SPA or StepM within a technical-rule family; BH-FDR across a release; trial registry with a global N) (L813, L54). Tiered hurdle t >= 3.4-3.8 for TradingView-sourced ideas is NOT adopted (OQ-10 L1323; BL-TF-16).",
+   "predicate_text": "`inputs[i].source_kind == tf.technical_indicator` (`tf.indicator ∈ {RSI, MACD, Bollinger, Donchian, MA_cross, candlestick, fibonacci, elliott, chart_pattern}`) ∨ `tf.source ∈ {tradingview, cmt, retail}`, with `role == acting_exposure`, unless the object is a NEW card with `tf.family_id` in the technical-rule family ledger ∧ `tf.family_gate ∈ {SPA, StepM}` declared before any run ∧ `tf.repaint_check == passed`. Oscillator cards are filed in the `reversal` family ledger (correlation 0.92 ≥ 0.5 cluster cut, MS L2440) and inherit DNB-TF-07.",
+   "brief_line": 32
+  },
+  {
+   "id": "DNB-TF-13",
+   "node": "TF-61",
+   "cite": "L451-456; G-71 L888",
+   "r3_lines": [
+    "451-456",
+    "888"
+   ],
+   "refused": "Short-horizon technical trading at QUANTGEN costs: intraday rules (momentum, opening-range breakout, VWAP crosses, gaps, support/resistance) and KRX stock-level crosses, MA alignment (jeongbaeyeol), price-above-MA200 selection, limit-up chasing and volume-spike buying.",
+   "evidence": "Intraday edges 1-7 bp vs round trips of 25-46 bp on KRX (0.20% tax + one tick of 5.1-25.8 bp) and 70-100 bp at QUANTGEN costs; < 882 recorded intraday sessions. KRX price/SMA200 selection L/S Sharpe -0.05, long-only excess -5.6%/yr (net 35); crosses <= 17 bp (t ~0); MA-alignment state -10.9% net (2015-19), -48.7% in the 2026 crash (L453). Volume spike -43/-93 bp t+5/t+20; limit-up next-open -394/-579 bp (L1079-1082).",
+   "label_r3": "not given",
+   "label_brief": "not given [harm_E]",
+   "label_proposed": "harm_E",
+   "what_would_change_it": "\"none at QUANTGEN costs\" (L888). \"intraday S/R research BACKLOG only\" (PC-T-24, L455) — no BL-TF id, no card.",
+   "predicate_text": "`tf.horizon_sessions < 1` (intraday) ∨ `tf.decision_time != close` ∨ `tf.fill != official_close` (INV-1 L801); or `market == KR` ∧ `instrument_book == KRX_stock_book` ∧ `tf.signal_family ∈ {ma_cross, ma_alignment, price_above_ma200, limit_up_chase, volume_spike_buy}`. GOV-7 pre-gate: break-even ~1-2 bp → REJECT (L888).",
+   "brief_line": 33
+  },
+  {
+   "id": "DNB-TF-14",
+   "node": "TF-65",
+   "cite": "L458-463; G-73 L890; CR-11 L66",
+   "r3_lines": [
+    "458-463",
+    "890",
+    "66"
+   ],
+   "refused": "Deep price-pattern (chart-image CNN), order-book deep learning and LLM-news strategies.",
+   "evidence": "Krauss-Do-Huck 0.45%/day before costs, 0.25% after, negative 2010-15; ChatGPT news strategy Sharpe 6.54 -> 1.22 (late 2021 to 2024), unprofitable at a 20 bp round trip (10 bp per side, CA-18 L1261); in-window LLM backtests are contaminated (L460).",
+   "label_r3": "not given",
+   "label_brief": "not given [harm_G for LLM pre-cutoff backtests = macro 11c `llm_text_pre_cutoff_backtests: harm_G` MS L4635; inconclusive_E for CNN / order-book]",
+   "label_proposed": {
+    "llm_pre_cutoff": "harm_G",
+    "cnn_orderbook": "inconclusive_E"
+   },
+   "what_would_change_it": "\"none\" (L890). Overlap: \"DNB-TF-14/15 extend item 11\" (XS-19 L1307).",
+   "predicate_text": "`inputs[i].source_kind ∈ {tf.chart_image, tf.order_book, tf.llm_text}` with any role other than `research_log`; `estimator.kind == ml` is already refused (`ml_classifier_estimator_gate_or_label`, MS L4668); for `tf.llm_text`: `evidence.backtest_window_end > tf.model_training_cutoff` → refuse (P5).",
+   "brief_line": 34
+  },
+  {
+   "id": "DNB-TF-15",
+   "node": "TF-66",
+   "cite": "L465-469; G-74 L891; CR-11 L66",
+   "r3_lines": [
+    "465-469",
+    "891",
+    "66"
+   ],
+   "refused": "Macro variables interacting with stock-level signals (macro x characteristic terms) in a combiner.",
+   "evidence": "\"Design rule protecting macro P1 (macro sizes risk, never directs)\" (L467); \"interaction terms raise in-sample fit\" / \"violates macro P1\" (L891).",
+   "label_r3": "not given",
+   "label_brief": "not given [harm_G]",
+   "label_proposed": "harm_G",
+   "what_would_change_it": "\"none (macro P1)\" (L891); a G item reopens only if the principle is changed by the owner (MS L6067).",
+   "predicate_text": "Any `tf.combiner.terms[]` of type `interaction(macro_series, characteristic)`; or an input with `source_kind == published_series` inside a composite whose `applies_to != market_gross` and whose role is not risk sizing. Macro inputs enter only as `output_range <= 1.0` multipliers composed by `min()` (MS L4694, L4697).",
+   "brief_line": 35
+  },
+  {
+   "id": "DNB-TF-16",
+   "node": "TF-68",
+   "cite": "L471-476; G-75 L892; CR-10 L62; XS-17 L1305",
+   "r3_lines": [
+    "471-476",
+    "892",
+    "62",
+    "1305"
+   ],
+   "refused": "Crypto short-term reversal at weight 2 (prior design) → weight 0.",
+   "evidence": "Liu-Tsyvinski-Wu 2014-18: 1- to 4-week cross-sectional momentum 2.7 / 3.3 / 4.1 / 2.5% per week; 8-16 weeks not significant; Grobys-Sapkota find nothing (L473). \"short-horizon crypto evidence is momentum\" (L62).",
+   "label_r3": "not given",
+   "label_brief": "not given [inconclusive_E]",
+   "label_proposed": "inconclusive_E",
+   "what_would_change_it": "\"a local crypto test showing 1-4-week reversal net of 10/20 bp\" (L892).",
+   "predicate_text": "`market == crypto` ∧ `applies_to == reversal` ∧ `tf.horizon_sessions <= 28` ∧ (`tf.weight > 0` ∨ `books ∩ {recommended, specification} ≠ ∅`).",
+   "brief_line": 36
+  },
+  {
+   "id": "DNB-TF-17",
+   "node": "TF-70",
+   "cite": "L564-570; G-76 L893",
+   "r3_lines": [
+    "564-570",
+    "893"
+   ],
+   "refused": "G10 FX technical rules at a weight above 0 (executives: FX trend 0-1).",
+   "evidence": "388 FX technical portfolios: mean Sharpe 0.66 (1980-98, in sample) -> 0.06 (1999-2020, out of sample), not surviving modest costs; QUANTGEN V3 FX momentum OOS Sharpe -0.59 (REJECT) (L566).",
+   "label_r3": "not given",
+   "label_brief": "not given [harm_E]",
+   "label_proposed": "harm_E",
+   "what_would_change_it": "\"USD/KRW test (G-54)\" = BL-TF-20: \"one pre-registered USD/KRW slow-trend card passing at 10 bp\" (L893, L861, L569). Weight 0 until then (L570).",
+   "predicate_text": "`market == FX` ∧ (`inputs[i].source_kind == tf.technical_indicator` ∨ `tf.signal_family ∈ {fx_trend, fx_technical}`) ∧ (`tf.weight > 0` ∨ `books ∩ {recommended, specification} ≠ ∅`), except exactly one card registered as BL-TF-20 with `tf.pair == USDKRW` ∧ `tf.speed == slow` ∧ `tf.cost_bp_per_side == 10` ∧ `books == [forward_sim]`.",
+   "brief_line": 37
+  }
+ ]
+}

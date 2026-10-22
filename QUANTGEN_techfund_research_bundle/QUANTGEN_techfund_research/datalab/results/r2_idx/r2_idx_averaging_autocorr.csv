@@ -1,0 +1,7 @@
+sample,acf1_month_end,acf1_month_average,acf1_shiller_price,vol_month_end,vol_month_average
+SPY 1998-02..2021-03,0.0571098,0.206401,0.206463,0.153766,0.132284
+SPY 1999-02..2021-03,0.0473297,0.195121,0.19584,0.150733,0.130067
+S&P500 arch 1999-02..2018-12,0.0738218,0.228027,0.226871,0.144683,0.125289
+Shiller 1872-2026 (price),,,0.273978,,0.140432
+signal agreement SMA10 SPY month-end vs month-average,0.928302,,,,
+signal agreement TSM12 SPY month-end vs month-average,0.981132,,,,

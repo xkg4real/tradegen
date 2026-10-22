@@ -1,0 +1,17 @@
+{
+ "config_hash": "56547d133d7b40fb6c6f729da73e854f",
+ "git_hash": "UNVERSIONED",
+ "inputs_md5": {
+  "yf_069500.KS.csv": "ccf0a94907a721651345667234d76397",
+  "yf_SPY.csv": "d2164597d576e1b2fcadde063065811d"
+ },
+ "label": "SMOKE: VENDOR DATA \u2014 Yahoo auto-adjusted closes (docs/asset_expansion/cache), last row dropped; not an official close, not the I-11 KOSPI fixture, not a card run; gates nothing",
+ "refit_every": 21,
+ "results_md5": "b0a36df49c9152f44216f4983912f538",
+ "run": "smoke",
+ "seed": 11,
+ "verdicts": {
+  "KODEX200": "PASS (SMOKE; gates nothing)",
+  "SPY": "FAIL (SMOKE; gates nothing)"
+ }
+}

@@ -1,0 +1,72 @@
+{
+ "card_id": "D_Q_garch_spy",
+ "kind": "distribution",
+ "hypothesis": "GARCH(1,1)-t one-day-ahead fans on SPY are calibrated (Kupiec/Christoffersen/PIT) and beat EWMA on QLIKE",
+ "rules": {},
+ "universe": {
+  "symbol": "SPY"
+ },
+ "data": {
+  "sessions": 3704,
+  "start": "2012-01-03",
+  "end": "2026-09-25",
+  "window": 504
+ },
+ "costs": {},
+ "protocol": {},
+ "trials": {
+  "N_planned": 1,
+  "N_total": 1,
+  "ledger": []
+ },
+ "seed": 11,
+ "stats": {
+  "model": "garch_t",
+  "n_origins": 3199,
+  "exceed95": 0.06627070959674898,
+  "exceed99": 0.017192872772741483,
+  "coverage90": 0.8937167864957799,
+  "qlike_model": 1.6302280495399935,
+  "qlike_ewma": 1.7043564113052976,
+  "dm_t": -4.147443848978842,
+  "dm_p": 3.362078902981617e-05,
+  "nonconv_share": 0.0,
+  "stationarity_share": 0.24070021881838075,
+  "traffic": "green",
+  "median_gamma": 0.0
+ },
+ "tests": {
+  "kupiec95_p": 5.5568205976362737e-05,
+  "kupiec99_p": 0.0002079701696841245,
+  "cc_p": 0.00021200956509241612,
+  "pit_ks_p": 0.002975770360555402,
+  "berkowitz_p": 0.47213008222950936
+ },
+ "decision": "REJECT",
+ "decision_reason": "PIT fails at the 1 % level",
+ "revise_target": null,
+ "lines": [
+  "The fan said a 5 % day would happen 5 % of the time; it happened 6.6% of the time over 3,199 origins, 4.2 standard errors from target (Kupiec p = 0.00): fails.",
+  "1 % days happened 1.72% of the time (Kupiec p = 0.00); Basel traffic light over the last 250 days: green.",
+  "Exceptions cluster? Christoffersen independence p = 0.41, conditional coverage p = 0.00: fails.",
+  "The 90 % band covered 89.4% of outcomes (target 90 % ± 1.1%): passes.",
+  "PIT calibration: KS p = 0.00, chi-square p = 0.00, Berkowitz p = 0.47; histogram flat; correlogram flags: k=1 lag=20: +0.04: fails.",
+  "Solver failed to converge at 0.0% of origins: passes.",
+  "QLIKE GARCH(1,1)-t 1.630 vs EWMA(0.94) 1.704: Diebold–Mariano t -4.15 (negative favours the model; the crypto gate needs p < 0.10).",
+  "Fitted ν: median 6.0; 2% of refits effectively normal; the persistence sat on the stationarity guardrail (near-integrated variance) at 24% of origins."
+ ],
+ "decay_haircut": {
+  "factor": 0.6,
+  "source": "McLean-Pontiff 2016 26-58%"
+ },
+ "created": "2026-09-27",
+ "author": "QUANTGEN validation gate",
+ "results_file": "docs/asset_expansion/results.csv",
+ "results_md5": "ca757e25f508b588cb2f361719ec83cd",
+ "citations": [
+  "Primer §6.3–6.4, §7.7",
+  "ARCHITECTURE_REVIEW B5",
+  "Berkeley Lec 8 §3 (coverage, PIT)",
+  "Kupiec 1995; Christoffersen 1998"
+ ]
+}

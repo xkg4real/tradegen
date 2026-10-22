@@ -1,0 +1,44 @@
+{
+ "by_theme": {
+  "A. Data hygiene and execution": {
+   "fp": 52,
+   "fe": 101,
+   "n": 11
+  },
+  "B. Screens": {
+   "fp": 19,
+   "fe": 20,
+   "n": 7
+  },
+  "C. Momentum and portfolio risk": {
+   "fp": 29,
+   "fe": 63,
+   "n": 11
+  },
+  "D. Protective index rules": {
+   "fp": 14,
+   "fe": 39,
+   "n": 6
+  },
+  "E. Fundamentals, flows and reversal": {
+   "fp": 84,
+   "fe": 93,
+   "n": 14
+  },
+  "F. Governance and technical-rule standards": {
+   "fp": 97,
+   "fe": 49,
+   "n": 13
+  },
+  "G. ML combiners": {
+   "fp": 28,
+   "fe": 7,
+   "n": 4
+  },
+  "H. Crypto and FX": {
+   "fp": 19,
+   "fe": 3,
+   "n": 4
+  }
+ }
+}

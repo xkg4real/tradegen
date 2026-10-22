@@ -1,0 +1,118 @@
+version: 0.1.0-draft
+signed_off_by: null
+signed_utc: null
+status: 'UNSIGNED DRAFT: every row''s md5 and signed_off_by are null; the loader refuses every listed file'
+change_control:
+  owner_sign_off: required
+  test_per_change: required
+  rule: a changed file is a new version with a new md5, the owner's signature and a new test id; an md5 that differs from
+    the row is an unsigned change and is refused
+rows:
+- file: holidays_KRX.yaml
+  version: 0.1.0-draft
+  md5: null
+  signed_off_by: null
+  test_ids:
+  - T-CLOSE-02
+  - T-SAT-01
+  - T-TZ-02
+- file: holidays_NYSE.yaml
+  version: 0.1.0-draft
+  md5: null
+  signed_off_by: null
+  test_ids:
+  - T-CLOSE-01
+  - T-CLOSE-02
+  - T-TZ-01
+- file: holidays_FED.yaml
+  version: 0.1.0-draft
+  md5: null
+  signed_off_by: null
+  test_ids:
+  - T-H15-01
+  - T-H10-02
+  - T-AVAIL-01
+- file: holidays_SIFMA.yaml
+  version: 0.1.0-draft
+  md5: null
+  signed_off_by: null
+  test_ids:
+  - T-STALE-01
+  - T-H15-01
+- file: holidays_CBOE.yaml
+  version: 0.1.0-draft
+  md5: null
+  signed_off_by: null
+  test_ids:
+  - T-VIX-01
+- file: holidays_CME.yaml
+  version: 0.1.0-draft
+  md5: null
+  signed_off_by: null
+  test_ids:
+  - T-AVAIL-01
+- file: holidays_JPX.yaml
+  version: 0.1.0-draft
+  md5: null
+  signed_off_by: null
+  test_ids:
+  - T-XMKT-01
+- file: holidays_SSE.yaml
+  version: 0.1.0-draft
+  md5: null
+  signed_off_by: null
+  test_ids:
+  - T-XMKT-01
+- file: holidays_HKEX.yaml
+  version: 0.1.0-draft
+  md5: null
+  signed_off_by: null
+  test_ids:
+  - T-XMKT-01
+- file: holidays_TWSE.yaml
+  version: 0.1.0-draft
+  md5: null
+  signed_off_by: null
+  test_ids:
+  - T-XMKT-01
+- file: holidays_ECOS.yaml
+  version: 0.1.0-draft
+  md5: null
+  signed_off_by: null
+  test_ids:
+  - T-ROLE-02
+- file: kr_sessions.yaml
+  version: 0.1.0-draft
+  md5: null
+  signed_off_by: null
+  test_ids:
+  - T-CLOSE-01
+  - T-CLOSE-02
+  - T-SAT-01
+- file: market_closes.yaml
+  version: 0.1.0-draft
+  md5: null
+  signed_off_by: null
+  test_ids:
+  - T-XMKT-01
+- file: publication_schedules.yaml
+  version: 0.1.0-draft
+  md5: null
+  signed_off_by: null
+  test_ids:
+  - T-H15-01
+  - T-H10-02
+  - T-VIX-01
+  - T-AVAIL-01
+- file: source_skipped.yaml
+  version: 0.1.0-draft
+  md5: null
+  signed_off_by: null
+  test_ids:
+  - T-STALE-01
+- file: kr_regime_tags.yaml
+  version: 0.1.0-draft
+  md5: null
+  signed_off_by: null
+  test_ids:
+  - T-REGIME-01

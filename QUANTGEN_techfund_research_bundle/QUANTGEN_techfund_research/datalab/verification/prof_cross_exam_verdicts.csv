@@ -1,0 +1,210 @@
+claim_id,paper,reviewer,claim,verdict,basis
+P1-C01,P1,P3 (+P5),The security market line is too flat: low-beta stocks earn more and high-beta stocks less than CAPM predicts.,CONFIRMED,V001; V002 (KR SML flat too)
+P1-C02,P1,P3 (+P5),"Beta earns a positive premium when macro news arrives and overnight, but not intraday.",UNVERIFIED,Savor-Wilson / HLR not re-opened
+P1-C03,P1,P3 (+P5),"Betting-against-beta shows large paper alphas, but much of it comes from equal-weight/micro-cap construction and profitability/investment tilts.",CONFIRMED,V003 (FP numbers); NMV critique not re-opened
+P1-C04,P1,P3 (+P5),"Long-only low-volatility lost heavily to cap-weighted markets in 2020-2026, mostly because of its 0.67 beta.",CONFIRMED,V004 (CAGR gap -7.00 pp reproduced)
+P1-C05,P1,P3 (+P5),The low-risk anomaly is consistent with lottery demand plus benchmarking limits to arbitrage.,UNVERIFIED,BBW figures not re-opened; mechanism consistent with KR high-beta EW alpha -7%/yr (prof_v09)
+P1-C06,P1,P3 (+P5),The SML flattens and can invert when aggregate disagreement is high.,UNVERIFIED,not re-opened
+P1-C07,P1,P3 (+P5),CAPM remains the practitioner standard for cost of equity despite known bias at extreme betas.,UNVERIFIED,not re-opened
+P1-C08,P1,P3 (+P5),"FF5 improves on FF3 but is statistically rejected, and HML becomes redundant once RMW and CMA are included.",UNVERIFIED,FF2015 not re-opened; US lab GRS rejects FF3 (consistent)
+P1-C09,P1,P3 (+P5),"In the q-factor model, investment and ROE carry the strongest premia and absorb many anomalies.",UNVERIFIED,HXZ q-factor numbers not re-opened
+P1-C10,P1,P3 (+P5),"The best-ranked factor model uses timely factors: {Mkt, SMB, IA, ROE, HMLm, UMD}.",UNVERIFIED,not re-opened
+P1-C11,P1,P3 (+P5),Mispricing and behavioral factor models price anomalies better than FF5.,UNVERIFIED,not re-opened
+P1-C12,P1,P3 (+P5),"Most of the factor zoo is false at the single-signal level, and new factors need t > 3.",CONFIRMED,V005
+P1-C13,P1,P3 (+P5),"With NYSE breakpoints and value weights, 64-85% of anomalies fail; liquidity anomalies almost all fail; micro-caps drive many results.",CONFIRMED,V006
+P1-C14,P1,P3 (+P5),"Major factor themes replicate globally, with about one-third smaller out-of-sample alpha.",UNVERIFIED,JKP/CZ rates not on the pages fetched (93 countries confirmed)
+P1-C15,P1,P3 (+P5),"US anomaly returns decay sharply after publication, while outside the US the decay is not reliably observed.",CONFIRMED,V007
+P1-C16,P1,P3 (+P5),"Net of realistic costs and data-mining, the average anomaly earns about zero today, and only low-turnover strategies survive.",CONFIRMED,V008 (4 bp published)
+P1-C17,P1,P3 (+P5),"Profitability and investment premia are absent in pre-1963 data, whereas value survives.",CONFIRMED,V009
+P1-C18,P1,P3 (+P5),"Value's 2007-2020 drawdown was the deepest since 1963 and came from revaluation, not broken fundamentals.",CONFIRMED,V010
+P1-C19,P1,P3 (+P5),"Value rebounded in 2021-22 and again in 2025-26, most strongly outside the US and in cheap technology.",CONFIRMED,V011 (HML 12m); MSCI value figures not re-opened
+P1-C20,P1,P3 (+P5),Stock momentum earns a positive premium but crashes in market rebounds after bear markets.,CONFIRMED,V014
+P1-C21,P1,P3 (+P5),"US momentum indexes have earned roughly nothing over the cap-weighted market since 2012, before costs.",CONFIRMED,"V015 annual gaps match; 2012-25 annualised gap not recomputable (2013 row missing); ""roughly nothing"" holds (+0.34 to +0.88 pp)"
+P1-C22,P1,P3 (+P5),Quality/profitability was the most consistent live factor in 2012-2025 but crashed in the 2025-26 junk rally.,CONFIRMED,V012 (RMW -16.44%); MSCI quality figures not re-opened
+P1-C23,P1,P3 (+P5),"Size is not a standalone premium in recent data or in Korea, and survives only after controlling for junk.",CONFIRMED,V013; KR lab SIZE flips 2025-26
+P1-C24,P1,P3 (+P5),"Value and momentum are negatively correlated in every market, so combinations beat either alone (Japan momentum is the weak case).",UNVERIFIED,AMP not re-opened; US lab HML-Mom rho -0.18 consistent
+P1-C25,P1,P3 (+P5),"Factor premia exist internationally, but local factor models explain local returns better than global ones.",UNVERIFIED,not re-opened
+P1-C26,P1,P3 (+P5),"In Korea, value, investment and quarterly profitability were priced in 2002-2015, while 2000-2019 replication favours value and (KOSDAQ-driven) momentum, not profitability.",QUALIFIED,"V016, V017 numbers MATCH; the Korea momentum DROP implication also leaned on the refuted brief anchor (V018)"
+P1-C27,P1,P3 (+P5),"Korea's cap-weighted benchmark is dominated by two semiconductor stocks, and that dominates any factor test.",QUALIFIED,V019: AMRO MATCH; the two-stock share is date/denominator dependent (35-57% of KOSPI cap)
+P1-C28,P1,P3 (+P5),"Anomaly returns concentrate on news days, pointing to mispricing, but factor-model tests alone cannot separate risk from mispricing.",UNVERIFIED,not re-opened
+P1-C29,P1,P3 (+P5),QUANTGEN's gate is structurally underpowered for factor-tilt cards with net Sharpe or IR of 0.2-0.4.,CONFIRMED,"V020; V109 (R2: 18 years is the 50%-power horizon, 80% needs about 40)"
+P1-C30,P1,P3 (+P5),"Every card needs a factor-attribution block, and cards with beta ≠ 1 need a beta-matched (Jensen's alpha) benchmark test.",CONFIRMED,methodological; V021 arithmetic
+P2-C01,P2,P7 (+P6),Classic single-index MA/filter/breakout/OBV rules lose significance once the full rule universe is counted and the sample moves past 1986.,CONFIRMED,"substance corroborated by R1 labs: KOSPI SPA p 0.880 (303 rules), SPY p 0.82-0.97 (322 rules); STW numbers not re-opened"
+P2-C02,P2,P7 (+P6),"Controlling false discoveries, even early-sample rule profits are wiped out by low costs and best rules cannot be picked ex ante.",UNVERIFIED,Bajgrowicz-Scaillet not re-opened
+P2-C03,P2,P7 (+P6),The literature's positive results cluster in pre-1990 samples and in methodologically weak studies.,UNVERIFIED,Park-Irwin not re-opened
+P2-C04,P2,P7 (+P6),"Across 49 markets in 2001-2007, no market (Korea included) has a significant rule after data-snooping adjustment.",CONFIRMED,V022
+P2-C05,P2,P7 (+P6),"Where rules worked, it was in young, small or illiquid segments, and the edge faded with maturity and ETFs.",UNVERIFIED,not re-opened
+P2-C06,P2,P7 (+P6),Rule profits in DJIA stocks were episodic and depended on short selling.,UNVERIFIED,not re-opened
+P2-C07,P2,P7 (+P6),Monthly technical indicators forecast the US equity premium out-of-sample and complement macro predictors.,UNVERIFIED,NRTZ not re-opened
+P2-C08,P2,P7 (+P6),Index MA timing mainly cuts drawdowns; return gains are inflated by look-ahead/data-mining bias and by averaged prices.,CONFIRMED,"V023, V024"
+P2-C09,P2,P7 (+P6),Diversified time-series momentum earned large gross alphas in 1965-2009 futures and across 1880-2016.,QUALIFIED,V026: version-dependent HOP figures (2014 vs 2017 update)
+P2-C10,P2,P7 (+P6),Trend following's excess return collapsed toward zero after 2009.,CONFIRMED,V025
+P2-C11,P2,P7 (+P6),TSMOM's statistical evidence is weak once small-sample bias and volatility scaling are handled.,UNVERIFIED,HLWZ/KTW not re-opened
+P2-C12,P2,P7 (+P6),Volatility-scaled crypto trend has independent academic support and is QUANTGEN's strongest technical card.,CONFIRMED,V099 (Detzel); C3 internal record
+P2-C13,P2,P7 (+P6),"Proximity to the 52-week high predicts US returns better than past returns and does not reverse, but international profits rarely survive costs.",CONFIRMED,V027
+P2-C14,P2,P7 (+P6),On KRX top-500 stocks the 52-week-high tilt is gross-positive in every decade but not significant net of 35 bp per side.,CONFIRMED,"V028: re-run slightly higher, conclusion (insignificant net) unchanged"
+P2-C15,P2,P7 (+P6),Neutralizing 52-week-high distance inside momentum removes most of momentum's crash risk.,QUALIFIED,"V029: -23.7% / -74.1% are worst monthly returns, not max drawdowns"
+P2-C16,P2,P7 (+P6),MA-based cross-sectional trend signals have US support but are weak in KRX.,CONFIRMED,V030
+P2-C17,P2,P7 (+P6),MA timing of high-volatility portfolios (HYZ) is large gross but lag- and cost-fragile in KRX.,UNVERIFIED,HYZ desk check not re-run
+P2-C18,P2,P7 (+P6),Short-term reversal is real gross but is a liquidity-provision return that retail costs cannot harvest.,CONFIRMED,V059 (NMV STR -1.28%/m net); KR lab REV 1M/1W net negative
+P2-C19,P2,P7 (+P6),"On KRX top-500 stocks, the weekly 5-day reversal, with or without the prior design's volume filter, is deeply negative net of 35 bp per side and has decayed gross.",QUALIFIED,"V031 (unconditional ~20% lower), V032 (volume-filter level about half); DROP conclusion unchanged"
+P2-C20,P2,P7 (+P6),"Volume's predictive sign depends on horizon and market; in KRX, high turnover predicts reversal, not short-term momentum.",CONFIRMED,"KRX part corroborated by P6 local (1M reversal concentrated in the high-turnover tercile, -1.48%/m)"
+P2-C21,P2,P7 (+P6),Chart patterns carry statistical information but have no demonstrated net trading profit.,UNVERIFIED,LMW not re-opened
+P2-C22,P2,P7 (+P6),A CNN reading chart images produces strong gross OOS sorts that concentrate in small caps and high turnover; there is no net-of-cost evidence.,UNVERIFIED,JKX not re-opened
+P2-C23,P2,P7 (+P6),Candlestick patterns do not predict returns in large US stocks; the one positive (Taiwan) is single-market.,UNVERIFIED,not re-opened
+P2-C24,P2,P7 (+P6),"Fibonacci retracements have no special support/resistance effect, and Elliott waves lack peer-reviewed tests.",UNVERIFIED,not re-opened
+P2-C25,P2,P7 (+P6),"Published RSI/MACD tests show market-specific, non-robust effects without snooping control, and a 52-rule oscillator family on SPY fails the Reality Check.",CONFIRMED,substance corroborated by US lab (RSI/MACD/Bollinger negative at 50 bp; SPA fails) and KR lab (RSI/%B net negative)
+P2-C26,P2,P7 (+P6),"Support/resistance levels and order clustering create small, real order-flow effects intraday.",UNVERIFIED,Osler not re-opened
+P2-C27,P2,P7 (+P6),"Technical-rule profitability rises and decays as the Adaptive Markets Hypothesis predicts: genuine early profits, decay after publication, slower decay for complex rules.",CONFIRMED,FX decay corroborated by V103 (Hutchinson 0.66 -> 0.06)
+P2-C28,P2,P7 (+P6),"With 100 trend rules on one index, the ""best"" rule's edge is a selection artifact.",CONFIRMED,corroborated by US lab family SPA and time split
+P2-C29,P2,P7 (+P6),KRX index-level trend timing added value only in 1997-2005 and failed in the 2024-2026 episodes.,CONFIRMED,V034; KR lab index timing
+P2-C30,P2,P7 (+P6),"KRX 12-1 price momentum is weak, and its worst month was July 2026.",CONFIRMED,V035
+P2-C31,P2,P7 (+P6),"Behavioural mechanisms (anchoring, disposition effect, slow diffusion) explain why a few price-state variables work, and disposition subsumes momentum.",UNVERIFIED,not re-opened
+P3-C01,P3,P1,The US value premium is small and statistically fragile among large stocks after 1991 and falls with firm size.,CONFIRMED,"corroborated by US lab HML decade Sharpe (-0.01 1990s, -0.23 2010-18)"
+P3-C02,P3,P1,"The 2007-2020 value drawdown came mainly from valuation compression, not structural decay.",CONFIRMED,V036
+P3-C03,P3,P1,Including intangibles in book value materially improves value.,CONFIRMED,"partly via V010 (iHML -43% vs -55%, +2.2 pp/yr post-2007); EKP numbers not re-opened"
+P3-C04,P3,P1,Timely prices in B/M add value alpha.,UNVERIFIED,not re-opened
+P3-C05,P3,P1,"US value since 2021 trailed growth cumulatively, and results depend heavily on construction.",UNVERIFIED,iShares pages not re-opened
+P3-C06,P3,P1,Gross profitability is a strong signal that hedges value.,CONFIRMED,V037 (NMV); Novy-Marx 2013 not re-opened
+P3-C07,P3,P1,"Quality minus junk earns robust alphas worldwide, but long-only quality did not beat the US market in 2021-26.",UNVERIFIED,AFP / QUAL not re-opened
+P3-C08,P3,P1,"Buffett's record is largely explained by cheap, safe, quality stocks plus about 1.6× leverage.",UNVERIFIED,not re-opened
+P3-C09,P3,P1,"Profitability and investment effects are not universal; Japan is an exception, and HML is redundant in the US five-factor model.",UNVERIFIED,FF2017 not re-opened
+P3-C10,P3,P1,The F-score worked internationally in 2000-2018 (incl. EM with Korea) but is near zero net in broad US tests.,CONFIRMED,V038
+P3-C11,P3,P1,The Mohanram G-score separates winners among growth stocks in-sample only.,UNVERIFIED,OSAP not re-opened
+P3-C12,P3,P1,The accrual anomaly has decayed in the US.,CONFIRMED,V039
+P3-C13,P3,P1,"High M-score (likely manipulators) predicts lower returns, especially among low-accrual firms.",UNVERIFIED,not re-opened
+P3-C14,P3,P1,US PEAD has disappeared for non-microcap stocks.,CONFIRMED,V044 (2006 confirmed; microcap 2016 not in abstract)
+P3-C15,P3,P1,PEAD lives in illiquid stocks and is mostly consumed by costs.,CONFIRMED,V040
+P3-C16,P3,P1,An earnings-announcement premium exists in the US and in about half of countries.,UNVERIFIED,not re-opened
+P3-C17,P3,P1,Analyst recommendation strategies are gross-profitable but not net.,UNVERIFIED,not re-opened
+P3-C18,P3,P1,Asset growth and investment predict lower returns worldwide; they survive costs best inside composites.,CONFIRMED,V041
+P3-C19,P3,P1,Net share issuance is among the most robust financing signals internationally.,CONFIRMED,V042
+P3-C20,P3,P1,Korean net issuance predicts returns net of QUANTGEN costs but is decaying and strongest in EW/KOSDAQ.,QUALIFIED,"V046-V048: sign, decay and 2017-26 IR reproduce; full-sample long-only IR about 0.5 not 0.84; L/S Sharpe about 25% lower"
+P3-C21,P3,P1,US buyback drift disappeared; Korean cancellation effects look regime-specific (2024-26).,UNVERIFIED,local cancellation test not re-run
+P3-C22,P3,P1,"Distressed stocks underperform, but the long-short is not harvestable after costs.",CONFIRMED,V043
+P3-C23,P3,P1,"Published anomaly returns shrink by about 26% OOS and 58% post-publication in the US, less clearly elsewhere.",QUALIFIED,V045: 8 bp is the superseded WP figure; published 4 bp
+P3-C24,P3,P1,"Slow, low-turnover fundamental strategies survive costs; high-turnover ones do not.",CONFIRMED,V049
+P3-C25,P3,P1,"Value and momentum diversify in-sample, but the hedge is weaker on recent US data and inapplicable to Korean 12-1 momentum.",QUALIFIED,"US part consistent (rho -0.18); ""inapplicable to Korean 12-1"" rests on the refuted brief anchor (V018, V087)"
+P3-C26,P3,P1,CAPE predicts 10-year returns in-sample but fails at 1-year horizons out of sample.,CONFIRMED,V050: all OOS R2 negative; printed values specification-dependent
+P3-C27,P3,P1,Equity-premium predictors and value-based market timing do not beat simple benchmarks out of sample.,CONFIRMED,corroborated by US lab A4 (10y OOS R2 -0.25 from 1990)
+P3-C28,P3,P1,The Fed model is theoretically flawed and has no long-horizon forecasting power.,CONFIRMED,corroborated by US lab A5 (Fed model post-1965 R2 0.01)
+P3-C29,P3,P1,The implied ERP (4.14% on 1 Sep 2026) is mid-range even though CAPE is near its record.,UNVERIFIED,Damodaran ERP not re-opened
+P3-C30,P3,P1,Point-in-time fundamentals require filing timestamps and first-filed snapshots; Korean statement history is short and date-only.,CONFIRMED,V051
+P4-C01,P4,P3,"Once the search is counted, a new signal needs t of about 3.0-3.8, not 2.0.",CONFIRMED,V053
+P4-C02,P4,P3,"Sharpe haircuts for multiple testing are nonlinear, not a flat 50%.",UNVERIFIED,Harvey-Liu haircut table not re-opened
+P4-C03,P4,P3,"Large universes of classic technical rules have no edge on the DJIA after 1962, even at zero cost.",CONFIRMED,"substance corroborated by US lab (no SPY rule beats B&H at zero cost, SPA p 0.82)"
+P4-C04,P4,P3,"Where technical profits survive snooping checks, they sit in young markets and earlier decades.",UNVERIFIED,not re-opened
+P4-C05,P4,P3,DSR >= 0.95 with honest trial counts already implies t of about 3.2-3.7 for 9-27 independent configurations.,CONFIRMED,V054
+P4-C06,P4,P3,"Pure noise produces ""SR above 1"" backtests after modest searches.",CONFIRMED,V055
+P4-C07,P4,P3,"Overfit backtests are common, hold-out testing is unreliable, and overfitting can make OOS returns negative.",UNVERIFIED,not re-opened
+P4-C08,P4,P3,CPCV beats walk-forward at preventing false discoveries.,UNVERIFIED,synthetic-data evidence only; not re-opened
+P4-C09,P4,P3,Microcap-neutral construction knocks out most published anomalies.,CONFIRMED,V006
+P4-C10,P4,P3,"Built as the papers built them, published predictors are mostly statistically real.",UNVERIFIED,CZ/JKP rates not on fetched pages
+P4-C11,P4,P3,US anomaly returns fall about a quarter OOS and about a third to a half after publication.,CONFIRMED,V056
+P4-C12,P4,P3,Accounting anomalies lose most of their Sharpe outside discovery samples.,CONFIRMED,V057 (minor t differences)
+P4-C13,P4,P3,"Outside the US, published anomalies show no reliable post-publication decline.",CONFIRMED,V058
+P4-C14,P4,P3,Theory does not protect a predictor from post-sample decay.,UNVERIFIED,not re-opened
+P4-C15,P4,P3,Turnover decides whether anomalies survive costs; reversal-type signals do not.,CONFIRMED,V059
+P4-C16,P4,P3,The average anomaly's realistic net expected return is a few bp per month.,CONFIRMED,V060
+P4-C17,P4,P3,"Institutional live costs are far below academic estimates, but realized fund returns still lose most of momentum.",UNVERIFIED,FIM / Patton-Weller not re-opened
+P4-C18,P4,P3,"With costs included, the cash-profitability Fama-French model beats high-turnover factor models.",UNVERIFIED,not re-opened
+P4-C19,P4,P3,Long-only investors get about half of momentum and 60% of value; short legs carry sentiment-driven overpricing.,CONFIRMED,KRX substance corroborated by KR lab (spreads come from the short leg)
+P4-C20,P4,P3,"KRX short selling was fully or partly banned for most of 2020-2025, with full resumption from 2025-03-31.",CONFIRMED,V061
+P4-C21,P4,P3,The KRX sell-side tax rose to 0.20% on KOSPI and KOSDAQ from 2026-01-01.,CONFIRMED,V062
+P4-C22,P4,P3,"Sharpe ratios are imprecise, and serial correlation can overstate annualized SR by up to 65%.",QUALIFIED,V063: the SR 1.5 / 60-month SE example mixes units (0.188 vs 0.47)
+P4-C23,P4,P3,Realistic net factor Sharpes cannot reach t = 3 on KRX history alone.,QUALIFIED,V064: simplified SE understates MinTRL by about 12%
+P4-C24,P4,P3,"Comparing a strategy with its benchmark needs a studentized time-series bootstrap, not Jobson-Korkie.",UNVERIFIED,standard method; not re-opened
+P4-C25,P4,P3,TradingView backtests default to zero costs and are exposed to repainting and look-ahead.,CONFIRMED,V068
+P4-C26,P4,P3,"A win rate without the payoff ratio is uninformative, and backtest SR barely predicts live SR.",CONFIRMED,arithmetic identity re-derived (-0.70% per trade at 70 bp round trip); Wiecki not re-opened
+P4-C27,P4,P3,Gate step 8 (>= 60% of years positive) admits many zero-edge strategies.,QUALIFIED,"V065: binomial arithmetic right, but at true Sharpe 0 the R2 simulation gives 24-31% at 8-10 years (36-38% assumes a zero median year)"
+P4-C28,P4,P3,Card-level testing without program-wide control yields false passes.,CONFIRMED,V066
+P4-C29,P4,P3,"Momentum fails in fast, deep crashes, and the 2026 KRX crash was winner-led, a pattern unlike 1932 and 2009.",CONFIRMED,V067: winner-led crash confirmed on ALL and LARGE universes (E7 file not opened)
+P4-C30,P4,P3,"Missing delisting returns bias anomaly backtests, in either direction.",UNVERIFIED,not re-opened
+P5-C01,P5,P4 (+P7),Shallow nonlinear ML roughly doubles OOS R² and long-short Sharpe against a 3-characteristic OLS in US stocks.,CONFIRMED,V069
+P5-C02,P5,P4 (+P7),Depth does not help: neural nets peak at about 3 layers and unregularized OLS on all features fails.,CONFIRMED,V070
+P5-C03,P5,P4 (+P7),Many-feature linear models add little; ML gains come from interactions and nonlinearity.,CONFIRMED,V070 (ENet 0.11%); FNW not re-opened
+P5-C04,P5,P4 (+P7),"Price trends, then liquidity, then volatility dominate ML importance in the US; reversal and momentum lead SDF learning.",UNVERIFIED,not re-opened
+P5-C05,P5,P4 (+P7),"Outside the US, valuation (Europe), liquidity (China), simple factors (46 markets) and gross profitability/accruals (Korea) carry the power.",UNVERIFIED,not re-opened
+P5-C06,P5,P4 (+P7),"Few characteristics are independent, and non-microcap hedge returns vanished after 2003.",UNVERIFIED,not re-opened
+P5-C07,P5,P4 (+P7),"ML profits concentrate in hard-to-arbitrage stocks and states, and deteriorate under realistic costs.",UNVERIFIED,abstract-level only
+P5-C08,P5,P4 (+P7),1-month-horizon ML nets about zero after 2004; longer horizons plus trading rules restore positive net returns.,CONFIRMED,V071
+P5-C09,P5,P4 (+P7),Cost-aware ML construction beats cost-agnostic ML by a wide margin net.,UNVERIFIED,not re-opened
+P5-C10,P5,P4 (+P7),"Combining signals nets trades, so more characteristics are useful after costs.",UNVERIFIED,not re-opened
+P5-C11,P5,P4 (+P7),Some US ML strategies stayed profitable net on post-publication anomalies over 2005-2021.,UNVERIFIED,not re-opened
+P5-C12,P5,P4 (+P7),The average anomaly earns about 8 bp/month net in the modern era.,QUALIFIED,V079: superseded 8 bp; published 4 bp
+P5-C13,P5,P4 (+P7),"Most anomalies fail replication with NYSE breakpoints and VW returns, liquidity variables most of all.",CONFIRMED,V006
+P5-C14,P5,P4 (+P7),Simple combinations are hard to beat in short samples.,UNVERIFIED,not re-opened
+P5-C15,P5,P4 (+P7),"""Virtue of complexity"" timing gains are largely mechanical or artefactual.",CONFIRMED,V072
+P5-C16,P5,P4 (+P7),"Image-CNN price-pattern signals are strong equal-weighted but modest value-weighted, with high turnover.",UNVERIFIED,JKX not re-opened
+P5-C17,P5,P4 (+P7),"The Korean chart CNN reports very high gross Sharpe, but tradability at KRX costs is unverified.",UNVERIFIED,not re-opened; cost treatment unclear (as P5 says)
+P5-C18,P5,P4 (+P7),Daily deep-learning stat-arb on S&P 500 constituents decayed to about zero net after 2010.,CONFIRMED,V073
+P5-C19,P5,P4 (+P7),Order-book deep learning predicts tick-horizon direction but overfits benchmarks and ignores costs.,UNVERIFIED,not re-opened
+P5-C20,P5,P4 (+P7),"LLM embeddings extract strong but fast news signals, gross.",UNVERIFIED,not re-opened
+P5-C21,P5,P4 (+P7),Post-cutoff ChatGPT headline strategies decayed as adoption rose and fail at 20 bp costs.,QUALIFIED,"V074: ""20 bp"" is round-trip; small-stock coefficients version-dependent"
+P5-C22,P5,P4 (+P7),"LLM backtests inside the training window are contaminated, and masking does not fix it.",UNVERIFIED,not re-opened
+P5-C23,P5,P4 (+P7),Point-in-time LLMs make honest text backtests feasible at modest cost in accuracy.,UNVERIFIED,not re-opened
+P5-C24,P5,P4 (+P7),"The ML/LLM finance literature commonly omits backtests, costs and bias controls.",UNVERIFIED,not re-opened
+P5-C25,P5,P4 (+P7),ML gains in China and emerging markets survive costs better than in US large caps.,UNVERIFIED,not re-opened
+P5-C26,P5,P4 (+P7),"Korean ML evidence is thin, mostly gross, and contains red-flag results.",UNVERIFIED,not re-opened
+P5-C27,P5,P4 (+P7),Point-in-time Korean fundamentals via OpenDART begin in 2015.,CONFIRMED,V075
+P5-C28,P5,P4 (+P7),The gate cannot detect a plausible ML uplift over the composite; P5's net uplift estimate for GBRT/NN over L0 in liquid KRX is about 0 to +0.01 IR (range −0.15 to +0.10).,CONFIRMED,V076
+P5-C29,P5,P4 (+P7),ML hyperparameter search raises the deflated-Sharpe bar sharply.,CONFIRMED,V077
+P5-C30,P5,P4 (+P7),Crowded quant reversal and factor books can crash together.,UNVERIFIED,Khandani-Lo not re-opened
+P6-C01,P6,P4,Standalone stock momentum is insignificant in every East Asian market in the 40-country GJM sample.,UNVERIFIED,V080: source returned HTTP 500
+P6-C02,P6,P4,"Momentum profits rise with national individualism, which predicts weak momentum in Korea, Japan, Taiwan and China.",UNVERIFIED,not re-opened
+P6-C03,P6,P4,Japanese stock momentum has had no standalone premium but pays as a hedge to value.,CONFIRMED,V081 (static Japan WML SR 0.067) corroborates; AMP not re-opened
+P6-C04,P6,P4,Dynamic (Daniel-Moskowitz) scaling or market-state conditioning rescues part of Japanese momentum.,CONFIRMED,V081
+P6-C05,P6,P4,"Outside the US, anomalies have not reliably decayed after publication.",CONFIRMED,"V058 (claim); its ""keep 60% haircut"" implication is contested (PX-T-04)"
+P6-C06,P6,P4,"In China A, past returns at all horizons predict reversal and there is no momentum.",UNVERIFIED,not re-opened
+P6-C07,P6,P4,"Clientele drives the sign: retail-dominated A shares reverse, foreign-institutional B shares of the same firms show momentum.",UNVERIFIED,not re-opened
+P6-C08,P6,P4,Korea's 1-month reversal is real before costs but has decayed and is negative at QUANTGEN's costs.,CONFIRMED,"V082 (coefficient), V084 (decay reproduced with quintiles)"
+P6-C09,P6,P4,The prior design's volume-filtered 5-day reversal has no edge in Korea; high-volume losers continue down.,QUALIFIED,"V085: about zero for decile designs, but the ""wrong sign"" generalisation is not robust (quintile design +0.31%/wk gross)"
+P6-C10,P6,P4,"Korean 12-1 momentum is positive on average but fragile, not reliably negative as the KJFS headline suggests.",CONFIRMED,"V086 (KJFS as printed), V087 (three replications positive)"
+P6-C11,P6,P4,The intermediate window (12-7) and skipping the latest month carry most of Korean momentum.,QUALIFIED,V088: matches from 2001; from 1996 net35 SR 0.19; net70 negative after 2010
+P6-C12,P6,P4,Nearness to the 52-week high is a Korean anchoring signal that helps an equal-weighted long book but not a cap-weighted one after costs.,QUALIFIED,V089: +0.33%/m (t 2.14) from 2001 but +0.13 (t 0.81) from 1996
+P6-C13,P6,P4,"MAX/lottery stocks earn very low subsequent returns in Korea, more so in volatile markets.",CONFIRMED,KR lab MAX LS SR 1.12 EW; literature figures not re-opened
+P6-C14,P6,P4,The Korean low-risk premium sits in the short leg; as a long-only tilt it is about zero (EW) or negative (cap-weighted).,CONFIRMED,"V090 (VW tilt -35 to -51 pts 2025-26), V002 (no low-beta alpha)"
+P6-C15,P6,P4,Excluding the most lottery-like decile improves a long-only Korean book in every subperiod.,CONFIRMED,"V091; V113 (R2: F4 on EW book +3.08%/yr, IR 1.53, 7/8 indicative gate steps)"
+P6-C16,P6,P4,Korean earnings drift is large and is caused by individuals trading against the news.,CONFIRMED,"V092 (gross, market-adjusted)"
+P6-C17,P6,P4,Chaebol-style related-party transactions amplify Korean earnings drift.,UNVERIFIED,not re-opened
+P6-C18,P6,P4,Size has no reliable premium in Korea.,CONFIRMED,V013; KR lab SIZE; conflict with Kim (2021) noted
+P6-C19,P6,P4,Korean value and profitability premia were significant before Value-up.,CONFIRMED,V016
+P6-C20,P6,P4,"The Korea discount is structural (governance and inheritance tax), and the 2024-26 reforms are a regime break for value signals.",CONFIRMED,V094
+P6-C21,P6,P4,"Lagged foreign and institutional net buying predicts the next open, not the next close; copying foreign flow underperformed.",UNVERIFIED,Kim-Byun / Yu-Jang not re-opened
+P6-C22,P6,P4,Foreign investors trade at a disadvantage in Korea; domestic individuals hold a short-lived edge.,UNVERIFIED,not re-opened
+P6-C23,P6,P4,Korean short-sale bans reduced price efficiency and did not support prices.,UNVERIFIED,KCMI not re-opened (ban dates verified in V061)
+P6-C24,P6,P4,Short-sale regime does not consistently change Korean anomaly short legs.,UNVERIFIED,local regime test not re-run (18-month post-resumption sample)
+P6-C25,P6,P4,"The ±30% price limits (since 15 Jun 2015) raised low-frequency volatility, and limit hits spike in retail manias.",CONFIRMED,V095
+P6-C26,P6,P4,QUANTGEN's flat 35 bp per side understates the cost of trading the bottom 60% of KRX caps.,QUALIFIED,V062 (tax) MATCH; V096 spread levels not reproducible (22-117 bp across conventions)
+P6-C27,P6,P4,"Low volatility, E/P value and gross profitability are robust in China A; low volatility is close to independent of other regions' VOL factors.",UNVERIFIED,not re-opened
+P6-C28,P6,P4,"The TSE 2023 P/B request changed payout behaviour, but its valuation effect is modest and uneven.",UNVERIFIED,not re-opened
+P7-C01,P7,P2,Price-to-moving-average ratios forecast Bitcoin returns out of sample and improve Sharpe mainly by cutting drawdowns.,CONFIRMED,V099
+P7-C02,P7,P2,"Thousands of technical rules were significant on major cryptocurrencies to 2017 after multiple-testing correction, but failed OOS on Bitcoin in H1 2018.",UNVERIFIED,Hudson-Urquhart not re-opened
+P7-C03,P7,P2,"Other crypto technical-rule studies are positive but weaker in design (no costs, short samples, or intraday).",UNVERIFIED,not re-opened
+P7-C04,P7,P2,"Bitcoin weekly returns show time-series momentum and attention effects, and almost no exposure to equity factors.",UNVERIFIED,not re-opened
+P7-C05,P7,P2,Crypto cross-sectional momentum is short-horizon (1–4 weeks) and contested.,CONFIRMED,V100
+P7-C06,P7,P2,"A 28-indicator technical composite (CTREND) predicts the crypto cross-section, including large and liquid coins, after costs.",UNVERIFIED,"V101: numbers not on the abstract page; qualitative claims (survives costs, big/liquid coins) confirmed"
+P7-C07,P7,P2,"Perpetual-futures premia are large, extrapolative and shrinking, so they are a crowding gauge rather than a tradable edge for QUANTGEN.",UNVERIFIED,not re-opened
+P7-C08,P7,P2,High crypto carry predicts crashes and liquidations; cash-and-carry earns little and carries liquidation risk.,CONFIRMED,V102 (core claim)
+P7-C09,P7,P2,Crypto calendar effects are not persistent; weekends are illiquid but not abnormal in returns.,UNVERIFIED,not re-opened
+P7-C10,P7,P2,"The spot-ETF era changed Bitcoin's market structure (lower volatility, flows chasing price, higher equity correlation).",UNVERIFIED,not re-opened
+P7-C11,P7,P2,Technical analysis is near-universal among FX professionals and its persistence is best explained by non-fundamental influences.,UNVERIFIED,not re-opened
+P7-C12,P7,P2,Simple MA and filter rule profits in major FX were genuine in the 1970s–80s and gone by the early 1990s.,CONFIRMED,decay corroborated by V103 (Hutchinson)
+P7-C13,P7,P2,G10 FX technical portfolios have earned roughly nothing OOS since 1999 and lose after modest costs.,CONFIRMED,V103
+P7-C14,P7,P2,FX technical predictability survived in emerging currencies but died in developed ones.,UNVERIFIED,not re-opened
+P7-C15,P7,P2,Cross-sectional currency momentum is large gross but limited by costs and arbitrage frictions.,UNVERIFIED,not re-opened
+P7-C16,P7,P2,"Diversified trend following has a 135-year record with crisis alpha, but disappointed after 2008.",CONFIRMED,V104
+P7-C17,P7,P2,"TSMOM works at monthly, weekly and daily frequency in broad futures books, but faster rules multiply turnover.",UNVERIFIED,not re-opened
+P7-C18,P7,P2,Single-asset TSMOM evidence is weak and much of the apparent alpha is volatility scaling plus drift.,UNVERIFIED,not re-opened
+P7-C19,P7,P2,Long-horizon trends have not degraded over two centuries; short-horizon trends have withered.,CONFIRMED,V105
+P7-C20,P7,P2,"Commodity-futures trend rules, and old futures systems including Wilder's directional parabolic, were net-profitable.",UNVERIFIED,not re-opened
+P7-C21,P7,P2,"The technical-analysis literature is mostly positive but unreliable because of data snooping, and on the DJIA profits vanish with low costs.",CONFIRMED,substance corroborated by R1 lab SPA tests
+P7-C22,P7,P2,"In equities, MA-based trend and nearness to the 52-week high carry cross-sectional information, and technical indicators help forecast the index equity premium.",CONFIRMED,V027 (52-week high dominance); HZZ not re-opened; Korea untested
+P7-C23,P7,P2,"Oscillator and band rules (RSI, MACD, Bollinger) have only weak, old, market-specific standalone support.",CONFIRMED,substance corroborated by US/KR labs (oscillators negative net)
+P7-C24,P7,P2,"Chart patterns are dominated by simple rules, while support and resistance have a microstructure basis without a demonstrated daily profit.",UNVERIFIED,not re-opened
+P7-C25,P7,P2,"For Ichimoku, Supertrend, Squeeze, UT Bot, WaveTrend, Connors RSI(2), TD Sequential, Wyckoff/VSA, Elliott/Fibonacci, CANSLIM/VCP and Lorentzian Classification, no rigorous OOS net-of-cost test was found.",UNVERIFIED,absence-of-evidence claim (search budget exhausted)
+P7-C26,P7,P2,"TradingView's engine and indicators are structurally prone to repainting, look-ahead and unrealistic fills unless the author intervenes.",CONFIRMED,V106
+P7-C27,P7,P2,TradingView's publishing standards are minimal compared with QUANTGEN's gate.,UNVERIFIED,not re-opened
+P7-C28,P7,P2,"Backtest performance barely predicts live or OOS performance, and searching more makes it worse.",UNVERIFIED,not re-opened
+P7-C29,P7,P2,Retail technical and day traders overwhelmingly lose after costs.,UNVERIFIED,not re-opened
+P7-C30,P7,P2,"Range-based volatility, stops on serially correlated returns, reversal as liquidity provision, and abnormal volume give the canon's best-founded translations.",UNVERIFIED,not re-opened

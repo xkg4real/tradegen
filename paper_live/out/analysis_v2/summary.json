@@ -1,0 +1,1135 @@
+{
+ "sha": "ffbdfc4d489bcaf2",
+ "analyzed_with_config": "5e770c599b2ba488",
+ "window": [
+  "2026-10-07 11:42:00+00:00",
+  "2026-10-07 16:42:00+00:00"
+ ],
+ "first_tick": "2026-10-07 12:01:42+00:00",
+ "last_tick": "2026-10-07 16:42:00+00:00",
+ "ticks": 59,
+ "accounts": {
+  "QG-TREND": {
+   "final_equity": 489.73398949630814,
+   "net_pnl": -10.26601050369186,
+   "costs": 8.824127784675683,
+   "fills": 50,
+   "closed_trades": 25,
+   "gross_pnl_closed": -1.4418827190162675,
+   "net_pnl_closed": -10.26601050369195,
+   "open_positions": 0,
+   "halted": false,
+   "halt_reason": "",
+   "win_rate": 0.08,
+   "avg_win": 0.07147297004897912,
+   "avg_loss": -0.4525633236430395,
+   "max_drawdown": -0.020532019999999984,
+   "peak_gross": 491.3558,
+   "avg_gross": 362.10123389830505,
+   "stats": {
+    "n": 59,
+    "basis": "net of costs, within one session, per 5-minute mark",
+    "sr_per_bar": -0.5445958548857697,
+    "lo_se_per_bar": 0.13950835723580712,
+    "ci90_per_bar": [
+     -0.780689508671719,
+     -0.33831101077867504
+    ],
+    "psr_vs_0": 5.431605527865021e-05,
+    "t_mean": -4.183120135062699,
+    "vs_bench_sr_diff_per_bar": -0.5076322183754644,
+    "vs_bench_p_diff_le_0": 1.0
+   },
+   "by_asset": [
+    {
+     "key": "AUDUSD=X",
+     "trades": 1,
+     "net": -0.1374,
+     "gross": 0.1725,
+     "cost": 0.3099
+    },
+    {
+     "key": "AZN.L",
+     "trades": 2,
+     "net": -0.926,
+     "gross": 0.0784,
+     "cost": 1.0044
+    },
+    {
+     "key": "CL=F",
+     "trades": 5,
+     "net": -0.5296,
+     "gross": -0.3654,
+     "cost": 0.1642
+    },
+    {
+     "key": "EURUSD=X",
+     "trades": 2,
+     "net": -0.5626,
+     "gross": -0.1186,
+     "cost": 0.444
+    },
+    {
+     "key": "GBPUSD=X",
+     "trades": 1,
+     "net": -0.0594,
+     "gross": -0.0026,
+     "cost": 0.0568
+    },
+    {
+     "key": "GC=F",
+     "trades": 1,
+     "net": -0.1092,
+     "gross": -0.05,
+     "cost": 0.0592
+    },
+    {
+     "key": "HSBA.L",
+     "trades": 1,
+     "net": -0.5657,
+     "gross": -0.1836,
+     "cost": 0.3821
+    },
+    {
+     "key": "HYG",
+     "trades": 1,
+     "net": -0.4641,
+     "gross": 0.0322,
+     "cost": 0.4963
+    },
+    {
+     "key": "ISF.L",
+     "trades": 2,
+     "net": -2.9255,
+     "gross": -0.4218,
+     "cost": 2.5037
+    },
+    {
+     "key": "NQ=F",
+     "trades": 1,
+     "net": 0.0185,
+     "gross": 0.0468,
+     "cost": 0.0283
+    },
+    {
+     "key": "SHEL.L",
+     "trades": 4,
+     "net": -3.0267,
+     "gross": -0.5183,
+     "cost": 2.5084
+    },
+    {
+     "key": "USDJPY=X",
+     "trades": 1,
+     "net": -0.3847,
+     "gross": -0.0664,
+     "cost": 0.3183
+    },
+    {
+     "key": "USO",
+     "trades": 1,
+     "net": -0.6751,
+     "gross": -0.3838,
+     "cost": 0.2913
+    },
+    {
+     "key": "ZB=F",
+     "trades": 1,
+     "net": 0.1245,
+     "gross": 0.2097,
+     "cost": 0.0853
+    },
+    {
+     "key": "ZN=F",
+     "trades": 1,
+     "net": -0.0431,
+     "gross": 0.1289,
+     "cost": 0.172
+    }
+   ],
+   "by_venue": [
+    {
+     "venue": "CME futures",
+     "trades": 9,
+     "net": -0.5389,
+     "gross": -0.0299,
+     "cost": 0.509
+    },
+    {
+     "venue": "FX spot",
+     "trades": 5,
+     "net": -1.1441,
+     "gross": -0.0151,
+     "cost": 1.129
+    },
+    {
+     "venue": "LSE",
+     "trades": 9,
+     "net": -7.4439,
+     "gross": -1.0453,
+     "cost": 6.3986
+    },
+    {
+     "venue": "NYSE/Nasdaq ETF",
+     "trades": 2,
+     "net": -1.1391,
+     "gross": -0.3516,
+     "cost": 0.7875
+    }
+   ],
+   "exit_reasons": {
+    "trend_off": 19,
+    "window_end": 5,
+    "session_close": 1
+   }
+  },
+  "QG-TACTICAL": {
+   "final_equity": 500.0,
+   "net_pnl": 0.0,
+   "costs": 0.0,
+   "fills": 0,
+   "closed_trades": 0,
+   "gross_pnl_closed": 0.0,
+   "net_pnl_closed": 0.0,
+   "open_positions": 0,
+   "halted": false,
+   "halt_reason": "",
+   "win_rate": null,
+   "avg_win": null,
+   "avg_loss": null,
+   "max_drawdown": 0.0,
+   "peak_gross": 0.0,
+   "avg_gross": 0.0,
+   "stats": {
+    "n": 59,
+    "basis": "net of costs, within one session, per 5-minute mark",
+    "note": "too few or constant returns"
+   }
+  },
+  "QG-CORE": {
+   "final_equity": 499.990297600034,
+   "net_pnl": -0.009702399965988207,
+   "costs": 0.5002452714357348,
+   "fills": 14,
+   "closed_trades": 7,
+   "gross_pnl_closed": 0.49054287146976,
+   "net_pnl_closed": -0.009702399965974884,
+   "open_positions": 0,
+   "halted": false,
+   "halt_reason": "",
+   "win_rate": 0.5714285714285714,
+   "avg_win": 0.15166182373270296,
+   "avg_loss": -0.2054498982989289,
+   "max_drawdown": -0.00219510730405148,
+   "peak_gross": 500.535,
+   "avg_gross": 491.61,
+   "stats": {
+    "n": 59,
+    "basis": "net of costs, within one session, per 5-minute mark",
+    "sr_per_bar": -0.0008777680269667049,
+    "lo_se_per_bar": 0.13018893605770238,
+    "ci90_per_bar": [
+     -0.17090341443070164,
+     0.1752972258617788
+    ],
+    "psr_vs_0": 0.497333138253992,
+    "t_mean": -0.0067422641479503225,
+    "vs_bench_sr_diff_per_bar": 0.03608586848333865,
+    "vs_bench_p_diff_le_0": 0.3995
+   },
+   "by_asset": [
+    {
+     "key": "CL=F",
+     "trades": 1,
+     "net": -0.3317,
+     "gross": -0.3092,
+     "cost": 0.0225
+    },
+    {
+     "key": "ES=F",
+     "trades": 1,
+     "net": 0.0144,
+     "gross": 0.0825,
+     "cost": 0.0681
+    },
+    {
+     "key": "GC=F",
+     "trades": 1,
+     "net": -0.0633,
+     "gross": -0.0226,
+     "cost": 0.0407
+    },
+    {
+     "key": "NQ=F",
+     "trades": 1,
+     "net": 0.1124,
+     "gross": 0.1623,
+     "cost": 0.0499
+    },
+    {
+     "key": "RTY=F",
+     "trades": 1,
+     "net": -0.2214,
+     "gross": -0.1745,
+     "cost": 0.0468
+    },
+    {
+     "key": "ZB=F",
+     "trades": 1,
+     "net": 0.3106,
+     "gross": 0.4045,
+     "cost": 0.0939
+    },
+    {
+     "key": "ZN=F",
+     "trades": 1,
+     "net": 0.1693,
+     "gross": 0.3476,
+     "cost": 0.1783
+    }
+   ],
+   "by_venue": [
+    {
+     "venue": "CME futures",
+     "trades": 7,
+     "net": -0.0097,
+     "gross": 0.4905,
+     "cost": 0.5002
+    }
+   ],
+   "exit_reasons": {
+    "window_end": 7
+   }
+  },
+  "LAZYOWEN-CAL": {
+   "final_equity": 500.0,
+   "net_pnl": 0.0,
+   "costs": 0.0,
+   "fills": 0,
+   "closed_trades": 0,
+   "gross_pnl_closed": 0.0,
+   "net_pnl_closed": 0.0,
+   "open_positions": 0,
+   "halted": false,
+   "halt_reason": "",
+   "win_rate": null,
+   "avg_win": null,
+   "avg_loss": null,
+   "max_drawdown": 0.0,
+   "peak_gross": 0.0,
+   "avg_gross": 0.0,
+   "stats": {
+    "n": 59,
+    "basis": "net of costs, within one session, per 5-minute mark",
+    "note": "too few or constant returns"
+   }
+  },
+  "LAZYOWEN-NAIVE": {
+   "final_equity": 492.953283637474,
+   "net_pnl": -7.046716362526013,
+   "costs": 6.5840005935409724,
+   "fills": 140,
+   "closed_trades": 70,
+   "gross_pnl_closed": -0.4627157689849416,
+   "net_pnl_closed": -7.046716362525913,
+   "open_positions": 0,
+   "halted": false,
+   "halt_reason": "",
+   "win_rate": 0.08571428571428572,
+   "avg_win": 0.027605300748320582,
+   "avg_loss": -0.11269294010962241,
+   "max_drawdown": -0.014093440000000013,
+   "peak_gross": 150.1507,
+   "avg_gross": 146.5486745762712,
+   "stats": {
+    "n": 59,
+    "basis": "net of costs, within one session, per 5-minute mark",
+    "sr_per_bar": -0.5992512802736739,
+    "lo_se_per_bar": 0.14139445056923763,
+    "ci90_per_bar": [
+     -0.7368770662164477,
+     -0.4541251537297771
+    ],
+    "psr_vs_0": 1.322352289615198e-05,
+    "t_mean": -4.60293642337895,
+    "vs_bench_sr_diff_per_bar": -0.5622876437633685,
+    "vs_bench_p_diff_le_0": 1.0
+   },
+   "by_asset": [
+    {
+     "key": "AUDUSD=X",
+     "trades": 5,
+     "net": -0.2815,
+     "gross": 0.0167,
+     "cost": 0.2982
+    },
+    {
+     "key": "AZN.L",
+     "trades": 2,
+     "net": -0.7138,
+     "gross": -0.1159,
+     "cost": 0.5979
+    },
+    {
+     "key": "CL=F",
+     "trades": 6,
+     "net": -0.2947,
+     "gross": -0.1162,
+     "cost": 0.1785
+    },
+    {
+     "key": "ES=F",
+     "trades": 6,
+     "net": -0.1805,
+     "gross": -0.0014,
+     "cost": 0.1792
+    },
+    {
+     "key": "EURUSD=X",
+     "trades": 3,
+     "net": -0.1757,
+     "gross": 0.0034,
+     "cost": 0.1791
+    },
+    {
+     "key": "GBPUSD=X",
+     "trades": 4,
+     "net": -0.2768,
+     "gross": -0.0378,
+     "cost": 0.239
+    },
+    {
+     "key": "GC=F",
+     "trades": 4,
+     "net": -0.227,
+     "gross": -0.1078,
+     "cost": 0.1192
+    },
+    {
+     "key": "GLD",
+     "trades": 1,
+     "net": -0.3083,
+     "gross": -0.0111,
+     "cost": 0.2972
+    },
+    {
+     "key": "HSBA.L",
+     "trades": 1,
+     "net": -0.314,
+     "gross": -0.0149,
+     "cost": 0.2991
+    },
+    {
+     "key": "HYG",
+     "trades": 2,
+     "net": -0.5896,
+     "gross": 0.0038,
+     "cost": 0.5934
+    },
+    {
+     "key": "IEF",
+     "trades": 1,
+     "net": -0.3063,
+     "gross": -0.0084,
+     "cost": 0.2979
+    },
+    {
+     "key": "ISF.L",
+     "trades": 2,
+     "net": -0.5859,
+     "gross": 0.0126,
+     "cost": 0.5985
+    },
+    {
+     "key": "IWM",
+     "trades": 1,
+     "net": -0.3376,
+     "gross": -0.0411,
+     "cost": 0.2966
+    },
+    {
+     "key": "NQ=F",
+     "trades": 4,
+     "net": -0.191,
+     "gross": -0.0718,
+     "cost": 0.1192
+    },
+    {
+     "key": "QQQ",
+     "trades": 1,
+     "net": -0.2978,
+     "gross": -0.0015,
+     "cost": 0.2963
+    },
+    {
+     "key": "RTY=F",
+     "trades": 7,
+     "net": -0.1431,
+     "gross": 0.0655,
+     "cost": 0.2086
+    },
+    {
+     "key": "SPY",
+     "trades": 1,
+     "net": -0.2758,
+     "gross": 0.0206,
+     "cost": 0.2965
+    },
+    {
+     "key": "TLT",
+     "trades": 3,
+     "net": -0.8738,
+     "gross": 0.0185,
+     "cost": 0.8923
+    },
+    {
+     "key": "USDJPY=X",
+     "trades": 4,
+     "net": -0.2689,
+     "gross": -0.0298,
+     "cost": 0.2391
+    },
+    {
+     "key": "ZB=F",
+     "trades": 8,
+     "net": -0.2669,
+     "gross": -0.0281,
+     "cost": 0.2388
+    },
+    {
+     "key": "ZN=F",
+     "trades": 4,
+     "net": -0.1375,
+     "gross": -0.0181,
+     "cost": 0.1194
+    }
+   ],
+   "by_venue": [
+    {
+     "venue": "CME futures",
+     "trades": 39,
+     "net": -1.4408,
+     "gross": -0.278,
+     "cost": 1.1629
+    },
+    {
+     "venue": "FX spot",
+     "trades": 16,
+     "net": -1.0029,
+     "gross": -0.0475,
+     "cost": 0.9553
+    },
+    {
+     "venue": "LSE",
+     "trades": 5,
+     "net": -1.6137,
+     "gross": -0.1182,
+     "cost": 1.4955
+    },
+    {
+     "venue": "NYSE/Nasdaq ETF",
+     "trades": 10,
+     "net": -2.9893,
+     "gross": -0.019,
+     "cost": 2.9703
+    }
+   ],
+   "exit_reasons": {
+    "edge_decay_5pp": 59,
+    "horizon_60m": 6,
+    "window_end": 5
+   }
+  }
+ },
+ "benchmarks": {
+  "EW_ALL_BH_ret": -0.0006336490592677809,
+  "per_asset": {
+   "ES=F": {
+    "ret": 0.000829240288320543,
+    "first": "2026-10-07 11:42:00+00:00",
+    "last": "2026-10-07 16:42:00+00:00",
+    "p0": 7838.5,
+    "p1": 7845.0
+   },
+   "NQ=F": {
+    "ret": 0.0031538923354013093,
+    "first": "2026-10-07 11:42:00+00:00",
+    "last": "2026-10-07 16:42:00+00:00",
+    "p0": 31231.25,
+    "p1": 31329.75
+   },
+   "RTY=F": {
+    "ret": -0.004072093623573747,
+    "first": "2026-10-07 11:42:00+00:00",
+    "last": "2026-10-07 16:42:00+00:00",
+    "p0": 2824.10009765625,
+    "p1": 2812.60009765625
+   },
+   "ZN=F": {
+    "ret": 0.0015008254539996546,
+    "first": "2026-10-07 11:42:00+00:00",
+    "last": "2026-10-07 16:42:00+00:00",
+    "p0": 104.109375,
+    "p1": 104.265625
+   },
+   "ZB=F": {
+    "ret": 0.0036991368680641123,
+    "first": "2026-10-07 11:42:00+00:00",
+    "last": "2026-10-07 16:42:00+00:00",
+    "p0": 101.375,
+    "p1": 101.75
+   },
+   "GC=F": {
+    "ret": -0.002172181696776576,
+    "first": "2026-10-07 11:42:00+00:00",
+    "last": "2026-10-07 16:42:00+00:00",
+    "p0": 4143.2998046875,
+    "p1": 4134.2998046875
+   },
+   "CL=F": {
+    "ret": -0.012646986880048172,
+    "first": "2026-10-07 11:42:00+00:00",
+    "last": "2026-10-07 16:42:00+00:00",
+    "p0": 90.13999938964844,
+    "p1": 89.0
+   },
+   "EURUSD=X": {
+    "ret": 0.000671592244916086,
+    "first": "2026-10-07 11:42:00+00:00",
+    "last": "2026-10-07 16:42:00+00:00",
+    "p0": 1.1184431314468384,
+    "p1": 1.1191942691802979
+   },
+   "GBPUSD=X": {
+    "ret": 0.0,
+    "first": "2026-10-07 11:42:00+00:00",
+    "last": "2026-10-07 16:42:00+00:00",
+    "p0": 1.3209341764450073,
+    "p1": 1.3209341764450073
+   },
+   "USDJPY=X": {
+    "ret": -0.0016254808062585724,
+    "first": "2026-10-07 11:42:00+00:00",
+    "last": "2026-10-07 16:42:00+00:00",
+    "p0": 158.35699462890625,
+    "p1": 158.10000610351562
+   },
+   "AUDUSD=X": {
+    "ret": 0.00111382064136345,
+    "first": "2026-10-07 11:43:00+00:00",
+    "last": "2026-10-07 16:41:00+00:00",
+    "p0": 0.6954103112220764,
+    "p1": 0.6961848735809326
+   },
+   "ISF.L": {
+    "ret": -0.000817721050061837,
+    "first": "2026-10-07 11:42:00+00:00",
+    "last": "2026-10-07 15:30:00+00:00",
+    "p0": 1344.716312766992,
+    "p1": 1343.6167099316808
+   },
+   "HSBA.L": {
+    "ret": -0.0017818670225624444,
+    "first": "2026-10-07 11:42:00+00:00",
+    "last": "2026-10-07 15:30:00+00:00",
+    "p0": 1865.687463060298,
+    "p1": 1862.3630560954625
+   },
+   "SHEL.L": {
+    "ret": -0.009729392346953247,
+    "first": "2026-10-07 11:42:00+00:00",
+    "last": "2026-10-07 15:30:00+00:00",
+    "p0": 4863.0191705822945,
+    "p1": 4815.704949080944
+   },
+   "AZN.L": {
+    "ret": 0.009399861996485015,
+    "first": "2026-10-07 11:42:00+00:00",
+    "last": "2026-10-07 15:30:00+00:00",
+    "p0": 15917.256826162338,
+    "p1": 16066.876843690872
+   },
+   "SPY": {
+    "ret": 0.0007474719918263428,
+    "first": "2026-10-07 13:31:00+00:00",
+    "last": "2026-10-07 16:42:00+00:00",
+    "p0": 775.8900146484375,
+    "p1": 776.469970703125
+   },
+   "QQQ": {
+    "ret": 0.0027717275693401877,
+    "first": "2026-10-07 13:31:00+00:00",
+    "last": "2026-10-07 16:42:00+00:00",
+    "p0": 754.030029296875,
+    "p1": 756.1199951171875
+   },
+   "IWM": {
+    "ret": -0.0025137795955135767,
+    "first": "2026-10-07 13:31:00+00:00",
+    "last": "2026-10-07 16:42:00+00:00",
+    "p0": 278.4700012207031,
+    "p1": 277.7699890136719
+   },
+   "TLT": {
+    "ret": 0.004906785056267182,
+    "first": "2026-10-07 13:31:00+00:00",
+    "last": "2026-10-07 16:42:00+00:00",
+    "p0": 76.44499969482422,
+    "p1": 76.82009887695312
+   },
+   "IEF": {
+    "ret": 0.0026499843205103346,
+    "first": "2026-10-07 13:31:00+00:00",
+    "last": "2026-10-07 16:41:00+00:00",
+    "p0": 88.68000030517578,
+    "p1": 88.91500091552734
+   },
+   "HYG": {
+    "ret": 0.002079319927939638,
+    "first": "2026-10-07 13:31:00+00:00",
+    "last": "2026-10-07 16:42:00+00:00",
+    "p0": 76.94999694824219,
+    "p1": 77.11000061035156
+   },
+   "GLD": {
+    "ret": 0.004052521023957922,
+    "first": "2026-10-07 13:31:00+00:00",
+    "last": "2026-10-07 16:42:00+00:00",
+    "p0": 375.0799865722656,
+    "p1": 376.6000061035156
+   },
+   "USO": {
+    "ret": -0.016790605059802566,
+    "first": "2026-10-07 13:31:00+00:00",
+    "last": "2026-10-07 16:42:00+00:00",
+    "p0": 146.50999450683594,
+    "p1": 144.0500030517578
+   }
+  },
+  "SPY_BH_ret": 0.0007474719918263428,
+  "ES_BH_ret": 0.000829240288320543
+ },
+ "replay_percentile": {
+  "QG-TREND": 16.3265306122449,
+  "QG-TACTICAL": 50.0,
+  "QG-CORE": 71.42857142857143,
+  "LAZYOWEN-CAL": 56.12244897959183,
+  "LAZYOWEN-NAIVE": 12.244897959183673
+ },
+ "replay_days": 49,
+ "controls": [
+  {
+   "id": "C-01",
+   "control": "Every entry carries an exit plan written before the fill",
+   "type": "Automated",
+   "frequency": "per fill",
+   "assertion": "Occurrence, Presentation",
+   "passed": true,
+   "population": 102,
+   "note": "",
+   "conclusion": "Effective"
+  },
+  {
+   "id": "C-02",
+   "control": "LAZYOWEN stake at most 6% of equity at the decision tick",
+   "type": "Automated",
+   "frequency": "per fill",
+   "assertion": "Accuracy",
+   "passed": true,
+   "population": 70,
+   "note": "",
+   "conclusion": "Effective"
+  },
+  {
+   "id": "C-03",
+   "control": "LAZYOWEN holds at most 5 positions",
+   "type": "Automated",
+   "frequency": "per mark",
+   "assertion": "Accuracy",
+   "passed": true,
+   "population": 118,
+   "note": "",
+   "conclusion": "Effective"
+  },
+  {
+   "id": "C-04",
+   "control": "QUANTGEN gross exposure at most 1.0x equity (1% mark tolerance)",
+   "type": "Automated",
+   "frequency": "per mark",
+   "assertion": "Valuation",
+   "passed": true,
+   "population": 177,
+   "note": "",
+   "conclusion": "Effective"
+  },
+  {
+   "id": "C-05",
+   "control": "No entry priced on a quote older than 25 minutes",
+   "type": "Automated",
+   "frequency": "per fill",
+   "assertion": "Accuracy, Valuation",
+   "passed": true,
+   "population": 102,
+   "note": "",
+   "conclusion": "Effective"
+  },
+  {
+   "id": "C-06",
+   "control": "Every account flat at the end of the window",
+   "type": "Automated",
+   "frequency": "once",
+   "assertion": "Completeness",
+   "passed": true,
+   "population": 5,
+   "note": "",
+   "conclusion": "Effective"
+  },
+  {
+   "id": "C-07",
+   "control": "Every opened position has exactly one close",
+   "type": "Automated",
+   "frequency": "per fill",
+   "assertion": "Completeness, Existence",
+   "passed": true,
+   "population": 102,
+   "note": "",
+   "conclusion": "Effective"
+  },
+  {
+   "id": "C-08",
+   "control": "Cash reconciles to the sum of closed-trade net P&L (to $0.01)",
+   "type": "Automated",
+   "frequency": "once per account",
+   "assertion": "Accuracy",
+   "passed": true,
+   "population": 5,
+   "note": "",
+   "conclusion": "Effective"
+  },
+  {
+   "id": "C-09",
+   "control": "No NaN or infinite value in equity, cash or any fill",
+   "type": "Automated",
+   "frequency": "per mark and fill",
+   "assertion": "Accuracy, Valuation",
+   "passed": true,
+   "population": 499,
+   "note": "",
+   "conclusion": "Effective"
+  },
+  {
+   "id": "C-10",
+   "control": "One pre-registered parameter hash (config.py) across all fills",
+   "type": "IT general (change management)",
+   "frequency": "per fill",
+   "assertion": "Presentation",
+   "passed": true,
+   "population": 204,
+   "note": "",
+   "conclusion": "Effective"
+  },
+  {
+   "id": "C-11",
+   "control": "Kill switches armed: QUANTGEN -15% hard stop, LAZYOWEN -40% halt",
+   "type": "Automated",
+   "frequency": "per mark",
+   "assertion": "Valuation",
+   "passed": true,
+   "population": 5,
+   "note": "design only: no account came near its threshold, so the halt path never executed",
+   "conclusion": "Effective (design tested; not triggered)"
+  },
+  {
+   "id": "C-12",
+   "control": "Mid-run code changes reviewed, regression-tested and logged",
+   "type": "IT general (change management)",
+   "frequency": "per change",
+   "assertion": "Presentation",
+   "passed": true,
+   "population": 1,
+   "note": "exception: one pre-patch defect fired at 21:15:32 KST (same-step re-entry on ZB=F, about $0.03); isolated and corrected",
+   "conclusion": "Effective with exception"
+  }
+ ],
+ "outcomes": {
+  "best_trades": [
+   {
+    "account": "QG-CORE",
+    "key": "ZB=F",
+    "name": "30y T-Bond fut",
+    "traded": "ZB=F",
+    "direction": 1,
+    "notional": 93.6915,
+    "hold_min": 280.4,
+    "pnl_gross": 0.4045,
+    "cost": 0.0939,
+    "pnl_net": 0.3106,
+    "exit_reason": "window_end",
+    "mae_usd": -0.1445,
+    "risk_usd_1sigma": 0.1127
+   },
+   {
+    "account": "QG-CORE",
+    "key": "ZN=F",
+    "name": "10y T-Note fut",
+    "traded": "ZN=F",
+    "direction": 1,
+    "notional": 178.1484,
+    "hold_min": 280.4,
+    "pnl_gross": 0.3476,
+    "cost": 0.1783,
+    "pnl_net": 0.1693,
+    "exit_reason": "window_end",
+    "mae_usd": -0.2139,
+    "risk_usd_1sigma": 0.1127
+   },
+   {
+    "account": "QG-TREND",
+    "key": "ZB=F",
+    "name": "30y T-Bond fut",
+    "traded": "ZB=F",
+    "direction": 1,
+    "notional": 85.1796,
+    "hold_min": 156.6,
+    "pnl_gross": 0.2097,
+    "cost": 0.0853,
+    "pnl_net": 0.1245,
+    "exit_reason": "window_end",
+    "mae_usd": -0.0262,
+    "risk_usd_1sigma": 0.1024
+   },
+   {
+    "account": "QG-CORE",
+    "key": "NQ=F",
+    "name": "E-mini Nasdaq-100 fut",
+    "traded": "NQ=F",
+    "direction": 1,
+    "notional": 49.8167,
+    "hold_min": 280.4,
+    "pnl_gross": 0.1623,
+    "cost": 0.0499,
+    "pnl_net": 0.1124,
+    "exit_reason": "window_end",
+    "mae_usd": -0.1399,
+    "risk_usd_1sigma": 0.1127
+   },
+   {
+    "account": "LAZYOWEN-NAIVE",
+    "key": "ZB=F",
+    "name": "30y T-Bond fut",
+    "traded": "ZB=F",
+    "direction": 1,
+    "notional": 29.808,
+    "hold_min": 60.0,
+    "pnl_gross": 0.1009,
+    "cost": 0.0299,
+    "pnl_net": 0.071,
+    "exit_reason": "horizon_60m",
+    "mae_usd": 0.0,
+    "risk_usd_1sigma": 0.0358
+   }
+  ],
+  "worst_trades": [
+   {
+    "account": "QG-TREND",
+    "key": "ISF.L",
+    "name": "iShares Core FTSE 100",
+    "traded": "ISF.L",
+    "direction": 1,
+    "notional": 125.6915,
+    "hold_min": 35.0,
+    "pnl_gross": -0.279,
+    "cost": 1.2555,
+    "pnl_net": -1.5345,
+    "exit_reason": "trend_off",
+    "mae_usd": -0.2392,
+    "risk_usd_1sigma": 0.269
+   },
+   {
+    "account": "QG-TREND",
+    "key": "ISF.L",
+    "name": "iShares Core FTSE 100",
+    "traded": "ISF.L",
+    "direction": 1,
+    "notional": 124.888,
+    "hold_min": 10.0,
+    "pnl_gross": -0.1428,
+    "cost": 1.2482,
+    "pnl_net": -1.391,
+    "exit_reason": "trend_off",
+    "mae_usd": -0.1936,
+    "risk_usd_1sigma": 0.2673
+   },
+   {
+    "account": "QG-TREND",
+    "key": "SHEL.L",
+    "name": "Shell",
+    "traded": "SHEL.L",
+    "direction": 1,
+    "notional": 62.9133,
+    "hold_min": 5.0,
+    "pnl_gross": -0.1728,
+    "cost": 0.6283,
+    "pnl_net": -0.801,
+    "exit_reason": "trend_off",
+    "mae_usd": -0.1546,
+    "risk_usd_1sigma": 0.2693
+   },
+   {
+    "account": "QG-TREND",
+    "key": "SHEL.L",
+    "name": "Shell",
+    "traded": "SHEL.L",
+    "direction": 1,
+    "notional": 63.0854,
+    "hold_min": 13.8,
+    "pnl_gross": -0.1706,
+    "cost": 0.63,
+    "pnl_net": -0.8006,
+    "exit_reason": "trend_off",
+    "mae_usd": -0.1032,
+    "risk_usd_1sigma": 0.2701
+   },
+   {
+    "account": "QG-TREND",
+    "key": "SHEL.L",
+    "name": "Shell",
+    "traded": "SHEL.L",
+    "direction": 1,
+    "notional": 62.6717,
+    "hold_min": 10.0,
+    "pnl_gross": -0.1081,
+    "cost": 0.6262,
+    "pnl_net": -0.7343,
+    "exit_reason": "trend_off",
+    "mae_usd": -0.0726,
+    "risk_usd_1sigma": 0.2683
+   }
+  ],
+  "riskiest_trades": [
+   {
+    "account": "QG-CORE",
+    "key": "GC=F",
+    "name": "Gold fut",
+    "traded": "GC=F",
+    "direction": 1,
+    "notional": 40.7022,
+    "hold_min": 280.4,
+    "pnl_gross": -0.0226,
+    "cost": 0.0407,
+    "pnl_net": -0.0633,
+    "exit_reason": "window_end",
+    "mae_usd": -0.4737,
+    "risk_usd_1sigma": 0.1127
+   },
+   {
+    "account": "QG-CORE",
+    "key": "CL=F",
+    "name": "WTI crude fut",
+    "traded": "CL=F",
+    "direction": 1,
+    "notional": 22.6826,
+    "hold_min": 280.4,
+    "pnl_gross": -0.3092,
+    "cost": 0.0225,
+    "pnl_net": -0.3317,
+    "exit_reason": "window_end",
+    "mae_usd": -0.4424,
+    "risk_usd_1sigma": 0.1127
+   },
+   {
+    "account": "QG-TREND",
+    "key": "USO",
+    "name": "US Oil Fund",
+    "traded": "USO",
+    "direction": 1,
+    "notional": 29.3206,
+    "hold_min": 65.0,
+    "pnl_gross": -0.3838,
+    "cost": 0.2913,
+    "pnl_net": -0.6751,
+    "exit_reason": "trend_off",
+    "mae_usd": -0.3838,
+    "risk_usd_1sigma": 0.3056
+   },
+   {
+    "account": "QG-CORE",
+    "key": "RTY=F",
+    "name": "E-mini Russell 2000 fut",
+    "traded": "RTY=F",
+    "direction": 1,
+    "notional": 46.9324,
+    "hold_min": 280.4,
+    "pnl_gross": -0.1745,
+    "cost": 0.0468,
+    "pnl_net": -0.2214,
+    "exit_reason": "window_end",
+    "mae_usd": -0.3091,
+    "risk_usd_1sigma": 0.1127
+   },
+   {
+    "account": "QG-TREND",
+    "key": "ISF.L",
+    "name": "iShares Core FTSE 100",
+    "traded": "ISF.L",
+    "direction": 1,
+    "notional": 125.6915,
+    "hold_min": 35.0,
+    "pnl_gross": -0.279,
+    "cost": 1.2555,
+    "pnl_net": -1.5345,
+    "exit_reason": "trend_off",
+    "mae_usd": -0.2392,
+    "risk_usd_1sigma": 0.269
+   }
+  ],
+  "worst_assets_all_accounts": [
+   {
+    "key": "ISF.L",
+    "name": "iShares Core FTSE 100",
+    "trades": 4,
+    "net": -3.5114,
+    "gross": -0.4092,
+    "cost": 3.1022
+   },
+   {
+    "key": "SHEL.L",
+    "name": "Shell",
+    "trades": 4,
+    "net": -3.0267,
+    "gross": -0.5183,
+    "cost": 2.5084
+   },
+   {
+    "key": "AZN.L",
+    "name": "AstraZeneca",
+    "trades": 4,
+    "net": -1.6398,
+    "gross": -0.0375,
+    "cost": 1.6023
+   }
+  ],
+  "worst_asset_by_account": {
+   "LAZYOWEN-NAIVE": {
+    "key": "TLT",
+    "net": -0.8738
+   },
+   "QG-CORE": {
+    "key": "CL=F",
+    "net": -0.3317
+   },
+   "QG-TREND": {
+    "key": "SHEL.L",
+    "net": -3.0267
+   }
+  },
+  "max_positions": {
+   "LAZYOWEN-CAL": 0,
+   "LAZYOWEN-NAIVE": 5,
+   "QG-CORE": 7,
+   "QG-TACTICAL": 0,
+   "QG-TREND": 6
+  },
+  "cost_share_of_losses": 0.8349
+ }
+}

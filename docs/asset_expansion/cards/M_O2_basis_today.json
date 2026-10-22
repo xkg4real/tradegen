@@ -1,0 +1,53 @@
+{
+ "card_id": "M_O2_basis_today",
+ "kind": "model",
+ "hypothesis": "The app's cost-of-carry fair value reconciles with KIS's theoretical price once dividend points are aligned",
+ "rules": {},
+ "universe": {
+  "contract": "A01612"
+ },
+ "data": {
+  "as_of": "2026-09-27"
+ },
+ "costs": {},
+ "protocol": {},
+ "trials": {
+  "N_planned": 1,
+  "N_total": 1,
+  "ledger": []
+ },
+ "seed": 11,
+ "stats": {
+  "futures": 1127.75,
+  "spot": 1126.12,
+  "fair": 1133.9439115287669,
+  "theo_kis": 1132.78,
+  "mispricing_bp": -55.00223358760057,
+  "implied_rate": 0.006687575620917713,
+  "cd91": 0.0321,
+  "days": 79.0
+ },
+ "tests": {
+  "theo_gap_pts": 1.1639115287669028
+ },
+ "decision": "PASS",
+ "decision_reason": "within the dividend band",
+ "revise_target": null,
+ "lines": [
+  "F 202612 1127.75 vs KOSPI200 1126.12: basis +1.63 pts, fair value 1133.94 at CD 91d 3.21% over 79 days (no dividend points), mispricing -55 bp.",
+  "KIS theoretical 1132.78 (gap +1.16 pts): the dividend-point convention is the difference; implied simple funding rate 0.67%."
+ ],
+ "decay_haircut": {
+  "factor": 0.6,
+  "source": "McLean-Pontiff 2016 26-58%"
+ },
+ "created": "2026-09-27",
+ "author": "QUANTGEN validation gate",
+ "results_file": "docs/asset_expansion/results.csv",
+ "results_md5": "ca757e25f508b588cb2f361719ec83cd",
+ "citations": [
+  "Shreve II Thm 5.6.2 p. 241, eq. 5.6.11 p. 247",
+  "Cornell & French 1983 JFM 3",
+  "Ko 2022 KJFS 51"
+ ]
+}

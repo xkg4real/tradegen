@@ -1,0 +1,34 @@
+REJECT             S_E1_trend_us                    PBO above 0.20                                                           11.5s
+REJECT             S_E1_trend_krx                   deflated Sharpe below 0.95                                               20.0s
+REJECT             S_E2_voltarget_spy               PBO above 0.20                                                           27.1s
+REJECT             S_E2_voltarget_kodex200          does not beat its benchmark (Sharpe difference -0.13, p 0.81)            15.8s
+REJECT             S_E3_riskparity_us               PBO above 0.20                                                           30.2s
+REJECT             S_E5_xsmom_sectors               PBO above 0.20                                                           25.0s
+REJECT             S_B3_tsmom_futures               deflated Sharpe below 0.95                                               24.0s
+REVISE             S_C3_crypto_trend_btcusd         plateau check failed (plateau)                                           15.2s
+PASS               S_C3_crypto_trend_krwbtc         every gate criterion met                                                 14.3s
+REJECT             S_E8_pairs_kodex_tiger           PBO above 0.20                                                           15.7s
+REJECT             S_S6_pairs_samsung_pref          PBO above 0.20                                                           20.3s
+REJECT             S_S6_pairs_hyundai_kia           deflated Sharpe below 0.95                                               20.3s
+REJECT             S_E8_pairs_gld_iau               deflated Sharpe below 0.95                                               20.8s
+REJECT             S_V1_vix_rolldown                deflated Sharpe below 0.95                                               15.3s
+REJECT             S_V3_fx_momentum                 deflated Sharpe below 0.95                                               28.4s
+REJECT             S_V4_dollar_carry                deflated Sharpe below 0.95                                                0.8s
+REJECT             M_B1_dns                         0/5 maturities beaten, 0/5 significant                                    4.0s
+REVISE             S_B2_pca_fly                     see lines                                                                 1.8s
+REVISE             D_C2_garch_btc                   tails, clustering, coverage, pit failed                                 186.4s
+REJECT             D_Q_garch_spy                    PIT fails at the 1 % level                                              154.0s
+REJECT             D_Q_garch_kodex200               PIT fails at the 1 % level                                              133.4s
+REVISE             D_C2_gjr_btc                     tails, clustering, coverage, pit failed                                 198.8s
+REVISE             D_Q_gjr_spy                      tails, clustering, pit failed                                           176.2s
+REJECT             D_Q_gjr_kodex200                 PIT fails at the 1 % level                                              160.7s
+REVISE             M_C1_kimchi                      descriptive tile only: the predictive test did not pass                   0.6s
+PASS               M_C4_funding                     BIS sign confirmed                                                        0.3s
+REJECT             M_C8_ethbtc                      no rejection of a unit root (the expected null)                           0.6s
+PASS               M_C7_weekday                     cost input set                                                            6.5s
+REVISE             M_E4_letf_drag                   see lines                                                                15.2s
+REVISE             M_O1_board_today                 see lines; a single-day snapshot, history must accumulate               350.7s
+PASS               M_O2_basis_today                 within the dividend band                                                  2.0s
+
+31 cards in 1696s → C:\Users\whydi\OneDrive\Desktop\QUANTGEN\docs\asset_expansion\results.md
+exit 0

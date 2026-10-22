@@ -1,0 +1,2 @@
+# Byte-exact: frozen studies pin file sha256s, so never convert line endings.
+* -text

@@ -1,0 +1,152 @@
+{
+ "accounts": {
+  "PRED-FLB": {
+   "band": [
+    0.9,
+    0.95
+   ],
+   "max_spread": 0.03,
+   "prob": null,
+   "size": "flat",
+   "target": 0.93
+  },
+  "PRED-GATED": {
+   "band": [
+    0.8,
+    0.97
+   ],
+   "edge": "fee",
+   "fee_mult": 2.0,
+   "max_spread": 0.03,
+   "prob": "cal",
+   "size": "half_kelly"
+  },
+  "PRED-LIT8": {
+   "band": [
+    0.1,
+    0.9
+   ],
+   "edge": "abs",
+   "edge_min": 0.08,
+   "max_spread": null,
+   "prob": "raw",
+   "size": "half_kelly"
+  }
+ },
+ "calibration": {
+  "a": -0.02369697531212153,
+  "b": 0.9805062095725852,
+  "n": 77429
+ },
+ "calibration_run_utc": "2026-10-22T04:29:56+00:00",
+ "code": {
+  "core/quant/forecast_eval.py": "7c203d7052e2de06b70edf482afab2a05206246515b7b119165ce979e7fb359e",
+  "core/quant/garch.py": "2a8a07377c0b82ec7f9fbd5874f4029d561d1396207e51f3a1acd81465ed4527",
+  "core/quant/gate_ledger.py": "018eaa960b2411dca13301c7353adcfb0bc160e494d9eb8e6e68f20d4c10be86",
+  "core/quant/gate_stats.py": "3ae17e23e4cb07136d6603a4fe572041c26abbc44369698897603c051e15286a",
+  "core/quant/validate.py": "68bc480f655d8297ae5326e08c3a19d36cdabf569452b93c97be5f634d239cf9",
+  "data/crypto/crypto_client.py": "f799c510e754292d1467004b87266e08b48afa00cc9d7138d7ee1c7c4396f04b",
+  "data/net.py": "549c1af65ee12e8617089b912e157d7b9e65ccbc1d359fbcf22c60943cbae025",
+  "grokteam/__init__.py": "31c2a482c9800912e92cee271f72e1f3fbc32f1528064af178f67dcc8b718d7d",
+  "grokteam/book.py": "b92c8af0e3ffe8fb9d504af51f980d39872052dde306973fb17751a7c7af0b59",
+  "grokteam/prereg.py": "caf55f47585dbab6af0f4e42ca218395b654baf0433e4217b2f8ff86d726631a"
+ },
+ "family": "GROKTEAM-BOOK",
+ "guide": "https://lazyowen.com/guides/grok-bot-trading-team-setup (published 2026-10-20)",
+ "hypotheses": {
+  "H_B0_skill": "each model account's probability beats the market mid: per-event mean log loss (model - mid) on the scored strikes, Diebold-Mariano (forecast_eval.dm_test), t < 0 and two-sided p / 2 <= skill_p. PRED-GATED is scored with p_cal (the frozen calibration), PRED-LIT8 with p_raw. A fail is REJECT for that account whatever its P&L",
+  "H_B1_gated": "PRED-GATED (the guide's BOOK with QUANTGEN's calibrated GARCH-t and a 2x-fee binary cost gate) earns more than 0 per $",
+  "H_B2_lit8": "PRED-LIT8 (the guide as written: 8-point gap on the raw model) earns more than 0 per $",
+  "H_B3_flb": "PRED-FLB (no model: the favourite nearest 93c) earns more than 0 per $",
+  "model": "GARCH(1,1)-t (core.quant.garch.fit_garch) on the last 2,000 hourly BTCUSDT log returns divided by their hour-of-day x weekend RMS, fed at x 0.01. An event's model is skipped (and counted toward max_skip) on a parameter bound (alpha, beta, omega, nu), a missing last bar, or a fit that did not converge UNLESS it carries garch.py's 'stationarity' flag (alpha + beta > 0.995): such fits are used. On the 2026 archive these were mostly stops on the 0.9995 penalty wall, plus a minority of interior stalls between 0.9967 and 0.9989 whose sigma lies within 0.93-1.06x of a refit with the cap relaxed (owner's ruling 2026-10-22, before the freeze)",
+  "nulls": "model accounts must beat the coin-flip side on the same strike (paired, p <= null_p); PRED-GATED must also beat PRED-FLB on 5-day block means (p <= null_p); NB0 (the market mid as forecast) is the skill bar",
+  "sample": "every KXBTCD event whose decision (close - 30 min) is after frozen_utc and whose close is before 2027-02-01; blinded (fetched, never replayed) until then; one look, by the first full grokteam.book run at or after 2027-02-01 01:00 UTC with every forward event fetched, written once to out/book/FORWARD_LOOK.json; never extended",
+  "test": "mean per-bet return, cluster-robust SE over 5-day UTC blocks, one-sided p from t(G - 1); Holm across the three accounts at holm_alpha",
+  "unit": "net return per $ of premium (fee included) of each bet on the fixed $60 shadow book; the $1,000 path is reported, not tested",
+  "verdicts": "REJECT: skill failed, or the 90% interval lies below 0. PAPER-CANDIDATE: Holm p <= holm_alpha, the 90% interval above 0, the 2x-fee + 1-cent stress mean above 0, and the nulls beaten. INVALID: model skip rate above max_skip. Else INCONCLUSIVE. Reported with every verdict, never gated: MDE = mde_factor x sd / sqrt(n) and N* = ceil((mde_factor x sd / target_edge)^2) (at the 1% target the forward window cannot reach N*). validate.GATE is not run: it needs five years, so PAPER-CANDIDATE is the ceiling"
+ },
+ "model_digest": "02b1aaa913a91511",
+ "rules": {
+  "basis": {
+   "max_age_h": 48,
+   "min_n": 12,
+   "n": 24
+  },
+  "cap_frac": 0.06,
+  "decision_s": 1800,
+  "equity0": 1000.0,
+  "fee_rate": 0.07,
+  "fill_lag_s": 60,
+  "garch": {
+   "dist": "t",
+   "drift": 0.0,
+   "season": "hour-of-day x weekend RMS",
+   "window": 2000
+  },
+  "min_order": 50.0,
+  "quote_stale_s": 1800,
+  "score": {
+   "clip": 0.001,
+   "mid": [
+    0.02,
+    0.98
+   ]
+  },
+  "shadow_usd": 60.0,
+  "strikes": 12
+ },
+ "seen": [
+  "KXBTCD-24DEC1617",
+  "KXBTCD-25DEC1017",
+  "KXBTCD-25JAN1511",
+  "KXBTCD-25JAN1517",
+  "KXBTCD-25JUN1014",
+  "KXBTCD-25JUN1017",
+  "KXBTCD-25SEP1014",
+  "KXBTCD-26AUG1917",
+  "KXBTCD-26AUG2019",
+  "KXBTCD-26JAN1414",
+  "KXBTCD-26OCT2014",
+  "KXBTCD-26OCT2017",
+  "KXBTCD-26OCT2019"
+ ],
+ "verdict": {
+  "block_days": 5,
+  "ci": 0.9,
+  "holm_alpha": 0.1,
+  "max_skip": 0.05,
+  "mde_factor": 2.4865,
+  "null_p": 0.1,
+  "skill_p": 0.1,
+  "target_edge": 0.01
+ },
+ "versions": {
+  "numpy": "2.3.5",
+  "pandas": "2.3.3",
+  "python": "3.13.14",
+  "scipy": "1.18.0"
+ },
+ "windows": {
+  "archive_start": "2025-01-15",
+  "cal_end": "2026-01-01",
+  "forward_end": "2027-02-01"
+ },
+ "frozen_utc": "2026-10-22T04:30:22+00:00",
+ "ledger": [
+  {
+   "account": "PRED-GATED",
+   "config_id": "53db505fa417481d7f58af433e9364ed",
+   "appended": false
+  },
+  {
+   "account": "PRED-LIT8",
+   "config_id": "d36e437762d7fd0d6f7b9f6480777eef",
+   "appended": false
+  },
+  {
+   "account": "PRED-FLB",
+   "config_id": "270a13f3a0022e785b994d7f919d34ae",
+   "appended": false
+  }
+ ]
+}

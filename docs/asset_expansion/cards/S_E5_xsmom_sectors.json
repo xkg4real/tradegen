@@ -1,0 +1,227 @@
+{
+ "card_id": "S_E5_xsmom_sectors",
+ "kind": "strategy",
+ "hypothesis": "12-1 cross-sectional momentum across the nine sector SPDRs (long top third) beats the equal-weight sector basket after 50 bp per side",
+ "rules": {
+  "family": "xs_momentum",
+  "grid": [
+   {
+    "lookback": 126,
+    "skip": 5,
+    "top": 0.3333333333333333,
+    "step": 21,
+    "long_only": true
+   },
+   {
+    "lookback": 126,
+    "skip": 5,
+    "top": 0.3333333333333333,
+    "step": 42,
+    "long_only": true
+   },
+   {
+    "lookback": 126,
+    "skip": 21,
+    "top": 0.3333333333333333,
+    "step": 21,
+    "long_only": true
+   },
+   {
+    "lookback": 126,
+    "skip": 21,
+    "top": 0.3333333333333333,
+    "step": 42,
+    "long_only": true
+   },
+   {
+    "lookback": 189,
+    "skip": 5,
+    "top": 0.3333333333333333,
+    "step": 21,
+    "long_only": true
+   },
+   {
+    "lookback": 189,
+    "skip": 5,
+    "top": 0.3333333333333333,
+    "step": 42,
+    "long_only": true
+   },
+   {
+    "lookback": 189,
+    "skip": 21,
+    "top": 0.3333333333333333,
+    "step": 21,
+    "long_only": true
+   },
+   {
+    "lookback": 189,
+    "skip": 21,
+    "top": 0.3333333333333333,
+    "step": 42,
+    "long_only": true
+   },
+   {
+    "lookback": 252,
+    "skip": 5,
+    "top": 0.3333333333333333,
+    "step": 21,
+    "long_only": true
+   },
+   {
+    "lookback": 252,
+    "skip": 5,
+    "top": 0.3333333333333333,
+    "step": 42,
+    "long_only": true
+   },
+   {
+    "lookback": 252,
+    "skip": 21,
+    "top": 0.3333333333333333,
+    "step": 21,
+    "long_only": true
+   },
+   {
+    "lookback": 252,
+    "skip": 21,
+    "top": 0.3333333333333333,
+    "step": 42,
+    "long_only": true
+   }
+  ],
+  "cost_bps_per_side": 50.0,
+  "embargo": 21
+ },
+ "universe": {
+  "symbols": [
+   "XLB",
+   "XLE",
+   "XLF",
+   "XLI",
+   "XLK",
+   "XLP",
+   "XLU",
+   "XLV",
+   "XLY"
+  ],
+  "venue": "us"
+ },
+ "data": {
+  "sessions": 6975,
+  "start": "1999-01-04",
+  "end": "2026-09-25",
+  "source": "Yahoo adjusted close unless stated"
+ },
+ "costs": {
+  "cost_bps": 50.0,
+  "stress_multiplier": 2.0
+ },
+ "protocol": {
+  "w_is": 756,
+  "w_oos": 126,
+  "min_is": 504,
+  "ci_level": 0.9,
+  "bootstrap_B": 2000,
+  "block": 10
+ },
+ "trials": {
+  "N_planned": 12,
+  "N_total": 12,
+  "ledger": []
+ },
+ "seed": 11,
+ "stats": {
+  "sr_oos": 0.4755939310285143,
+  "se_lo": 0.20170049021038072,
+  "ci90": [
+   0.16277461440162305,
+   0.7603051745249984
+  ],
+  "sr_is": 0.6632934592516971,
+  "oos_is": 0.7170188766297524,
+  "dsr": 0.9695427864415167,
+  "pbo": 0.3911421911421911,
+  "pbo_slope": -0.9540664190990084,
+  "prob_loss_oos": 0.0031857031857031857,
+  "sr_stress": 0.35756065413586274,
+  "turnover_annual": 4.3918024850734225,
+  "n_trades": 131,
+  "n_sessions": 6197,
+  "years_positive": 0.84,
+  "n_years": 25,
+  "max_year_share": 0.11252530251439466,
+  "plateau": 1.0,
+  "edge": true,
+  "total_return": 4.86292321752853,
+  "max_drawdown": -0.5201085980552329,
+  "haircut_sr": 0.28535635861710856,
+  "bench_sr": 0.6305473796253201,
+  "n_trials": 12,
+  "n_configs": 12,
+  "bench_diff": -0.15495344859680582,
+  "bench_p": 0.969,
+  "bench_ci": [
+   -0.2885892172005839,
+   -0.018162510005674988
+  ],
+  "bench_mdd": -0.5253055142679582,
+  "decision": "REJECT",
+  "reason": "does not beat its benchmark (Sharpe difference -0.15, p 0.97)",
+  "revise_target": "the sleeve set or the cost model, not the rule: the benchmark is as good",
+  "regime": {
+   "high_vol": 0.4257592648666613,
+   "low_vol": 0.5781161786553516,
+   "up_market": 0.44253818328245725,
+   "down_market": 0.5705692148151188
+  },
+  "chosen_last": {
+   "lookback": 252,
+   "skip": 21,
+   "top": 0.3333333333333333,
+   "step": 21,
+   "long_only": true
+  },
+  "bench_sharpe": 0.6305473796253201,
+  "walk_forward": "IS 756 / OOS 126 / embargo 21; 50 origins; 12 configs",
+  "seconds": 7.8
+ },
+ "tests": {
+  "dsr": 0.9695427864415167,
+  "pbo": 0.3911421911421911,
+  "ci90": [
+   0.16277461440162305,
+   0.7603051745249984
+  ],
+  "sr_stress": 0.35756065413586274
+ },
+ "decision": "REJECT",
+ "decision_reason": "does not beat its benchmark (Sharpe difference -0.15, p 0.97)",
+ "revise_target": "the sleeve set or the cost model, not the rule: the benchmark is as good",
+ "lines": [
+  "Out-of-sample Sharpe 0.48 over 6,197 sessions (25 years); Lo standard error 0.20; 90 % block-bootstrap interval 0.16 to 0.76: passes (the interval must exclude zero).",
+  "Deflated Sharpe 0.97 after 12 trials: passes (needs ≥ 0.95).",
+  "Probability of backtest overfitting 0.39 over the 12-config grid; the in-sample winner loses out of sample in 0% of the splits: passes (PBO ≤ 0.05, or ≤ 10% losing splits because near-identical configurations put PBO at 0.5 by construction; rejected when PBO > 0.2 and the winner also loses).",
+  "Out-of-sample over in-sample Sharpe 0.72: passes (needs ≥ 0.5).",
+  "Against the benchmark (Sharpe 0.63): difference -0.15, paired block-bootstrap 90 % interval -0.29 to -0.02, one-sided p 0.97: fails (the claim 'beats the benchmark' needs p ≤ 0.1); max drawdown -52% against the benchmark's -53% (reported, not gated).",
+  "Positive in 84% of calendar years: passes (needs ≥ 60%); largest year carries 11% of the P&L.",
+  "Sharpe at 2× costs 0.36: passes (must stay positive); turnover 4.4× equity per year.",
+  "Parameter plateau 100% of neighbours keep half the Sharpe, on a grid edge: fails.",
+  "131 position changes out of sample: passes (needs ≥ 100).",
+  "Regime split (Sharpe): high-vol 0.43 / low-vol 0.58, up 0.44 / down 0.57.",
+  "Expected live Sharpe after the McLean–Pontiff haircut: 0.29."
+ ],
+ "decay_haircut": {
+  "factor": 0.6,
+  "source": "McLean-Pontiff 2016 26-58%"
+ },
+ "created": "2026-09-27",
+ "author": "QUANTGEN validation gate",
+ "results_file": "docs/asset_expansion/results.csv",
+ "results_md5": "ca757e25f508b588cb2f361719ec83cd",
+ "citations": [
+  "Jegadeesh & Titman 1993 JF 48",
+  "Asness, Moskowitz & Pedersen 2013 JF 68",
+  "McLean & Pontiff 2016 JF 71"
+ ]
+}

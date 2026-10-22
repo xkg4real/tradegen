@@ -1,0 +1,19 @@
+{
+ "b5_rule": "5% VaR exceedance within +-2 binomial SE over >= 200 origins and PIT chi2 (10 bins) p >= 0.01",
+ "incumbent_b5_status": {
+  "KR": "PASS",
+  "US": "PASS"
+ },
+ "inputs_md5": {
+  "yf_069500.KS.csv": "ccf0a94907a721651345667234d76397",
+  "yf_SPY.csv": "d2164597d576e1b2fcadde063065811d"
+ },
+ "label": "SMOKE: Yahoo auto-adjusted vendor closes, last row dropped; not an official close, not a card run",
+ "mode": "quick",
+ "note": "SMOKE on vendor closes; the G-B5 goldens stay NOT_RUN until the fixtures are listed",
+ "origins_from": "2016-03-01",
+ "read_only": true,
+ "results_md5": "52858c5b539059c38bfc257a6b33988d",
+ "run": "2026-10-06",
+ "seed": 11
+}

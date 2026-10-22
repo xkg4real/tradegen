@@ -1,0 +1,1061 @@
+{
+ "sha": "fd50c3194378dc74",
+ "analyzed_with_config": "00ad2eb7d3826a31",
+ "window": [
+  "2026-10-12 01:20:00+00:00",
+  "2026-10-12 06:20:00+00:00"
+ ],
+ "first_tick": "2026-10-12 01:19:41+00:00",
+ "last_tick": "2026-10-12 06:20:00+00:00",
+ "ticks": 62,
+ "accounts": {
+  "QG-TREND": {
+   "final_equity": 497.8304754680454,
+   "net_pnl": -2.1695245319546075,
+   "costs": 2.045281929144113,
+   "fills": 32,
+   "closed_trades": 16,
+   "gross_pnl_closed": -0.12424260281062421,
+   "net_pnl_closed": -2.1695245319547367,
+   "open_positions": 0,
+   "halted": false,
+   "halt_reason": "",
+   "win_rate": 0.125,
+   "avg_win": 0.1332478337587572,
+   "avg_loss": -0.17400144281944654,
+   "max_drawdown": -0.004339039999999961,
+   "peak_gross": 500.0367,
+   "avg_gross": 472.0927241935484,
+   "stats": {
+    "n": 62,
+    "basis": "net of costs, within one session, per 5-minute mark",
+    "sr_per_bar": -0.3035424931657258,
+    "lo_se_per_bar": 0.12989257488144879,
+    "ci90_per_bar": [
+     -0.5405106887694201,
+     -0.10911863583994745
+    ],
+    "psr_vs_0": 0.010225993185285349,
+    "t_mean": -2.3900959812841016,
+    "vs_bench_sr_diff_per_bar": -0.25245109159087015,
+    "vs_bench_p_diff_le_0": 0.907
+   },
+   "by_asset": [
+    {
+     "key": "105560.KS",
+     "trades": 1,
+     "net": -0.3312,
+     "gross": -0.0993,
+     "cost": 0.2319
+    },
+    {
+     "key": "132030.KS",
+     "trades": 1,
+     "net": -0.1271,
+     "gross": -0.0955,
+     "cost": 0.0316
+    },
+    {
+     "key": "148070.KS",
+     "trades": 1,
+     "net": -0.058,
+     "gross": 0.0469,
+     "cost": 0.1049
+    },
+    {
+     "key": "261240.KS",
+     "trades": 1,
+     "net": 0.1006,
+     "gross": 0.1898,
+     "cost": 0.0892
+    },
+    {
+     "key": "AUDUSD=X",
+     "trades": 1,
+     "net": -0.0436,
+     "gross": -0.0041,
+     "cost": 0.0395
+    },
+    {
+     "key": "CL=F",
+     "trades": 1,
+     "net": 0.1659,
+     "gross": 0.1986,
+     "cost": 0.0327
+    },
+    {
+     "key": "ES=F",
+     "trades": 1,
+     "net": -0.0798,
+     "gross": 0.0084,
+     "cost": 0.0882
+    },
+    {
+     "key": "EURUSD=X",
+     "trades": 2,
+     "net": -0.7975,
+     "gross": -0.0981,
+     "cost": 0.6994
+    },
+    {
+     "key": "GC=F",
+     "trades": 1,
+     "net": -0.1304,
+     "gross": -0.0686,
+     "cost": 0.0618
+    },
+    {
+     "key": "KRW=X",
+     "trades": 1,
+     "net": -0.1948,
+     "gross": -0.0226,
+     "cost": 0.1722
+    },
+    {
+     "key": "NQ=F",
+     "trades": 2,
+     "net": -0.2352,
+     "gross": -0.1079,
+     "cost": 0.1272
+    },
+    {
+     "key": "USDJPY=X",
+     "trades": 1,
+     "net": -0.0109,
+     "gross": 0.0065,
+     "cost": 0.0174
+    },
+    {
+     "key": "ZN=F",
+     "trades": 2,
+     "net": -0.4274,
+     "gross": -0.0782,
+     "cost": 0.3493
+    }
+   ],
+   "by_venue": [
+    {
+     "venue": "CME futures",
+     "trades": 7,
+     "net": -0.7069,
+     "gross": -0.0477,
+     "cost": 0.6592
+    },
+    {
+     "venue": "FX spot",
+     "trades": 5,
+     "net": -1.0469,
+     "gross": -0.1183,
+     "cost": 0.9286
+    },
+    {
+     "venue": "KRX (KOSPI)",
+     "trades": 4,
+     "net": -0.4157,
+     "gross": 0.0418,
+     "cost": 0.4575
+    }
+   ],
+   "exit_reasons": {
+    "trend_off": 12,
+    "window_end": 4
+   }
+  },
+  "QG-TACTICAL": {
+   "final_equity": 500.0,
+   "net_pnl": 0.0,
+   "costs": 0.0,
+   "fills": 0,
+   "closed_trades": 0,
+   "gross_pnl_closed": 0.0,
+   "net_pnl_closed": 0.0,
+   "open_positions": 0,
+   "halted": false,
+   "halt_reason": "",
+   "win_rate": null,
+   "avg_win": null,
+   "avg_loss": null,
+   "max_drawdown": 0.0,
+   "peak_gross": 0.0,
+   "avg_gross": 0.0,
+   "stats": {
+    "n": 62,
+    "basis": "net of costs, within one session, per 5-minute mark",
+    "note": "too few or constant returns"
+   }
+  },
+  "QG-CORE": {
+   "final_equity": 498.91651891002334,
+   "net_pnl": -1.083481089976658,
+   "costs": 0.41214344935820524,
+   "fills": 12,
+   "closed_trades": 6,
+   "gross_pnl_closed": -0.6713376406184792,
+   "net_pnl_closed": -1.0834810899766842,
+   "open_positions": 0,
+   "halted": false,
+   "halt_reason": "",
+   "win_rate": 0.16666666666666666,
+   "avg_win": 0.267896443299654,
+   "avg_loss": -0.27027550665526767,
+   "max_drawdown": -0.0025294423793026377,
+   "peak_gross": 500.2176,
+   "avg_gross": 491.7564209677419,
+   "stats": {
+    "n": 62,
+    "basis": "net of costs, within one session, per 5-minute mark",
+    "sr_per_bar": -0.10528724861683963,
+    "lo_se_per_bar": 0.12735160259390663,
+    "ci90_per_bar": [
+     -0.2929554216846458,
+     0.06676940266151613
+    ],
+    "psr_vs_0": 0.20609374711545425,
+    "t_mean": -0.8290326246420344,
+    "vs_bench_sr_diff_per_bar": -0.05419584704198399,
+    "vs_bench_p_diff_le_0": 0.626
+   },
+   "by_asset": [
+    {
+     "key": "069500.KS",
+     "trades": 1,
+     "net": -0.2537,
+     "gross": -0.2387,
+     "cost": 0.015
+    },
+    {
+     "key": "132030.KS",
+     "trades": 1,
+     "net": -0.1938,
+     "gross": -0.1704,
+     "cost": 0.0234
+    },
+    {
+     "key": "148070.KS",
+     "trades": 1,
+     "net": 0.2679,
+     "gross": 0.3484,
+     "cost": 0.0805
+    },
+    {
+     "key": "229200.KS",
+     "trades": 1,
+     "net": -0.5585,
+     "gross": -0.5461,
+     "cost": 0.0124
+    },
+    {
+     "key": "ES=F",
+     "trades": 1,
+     "net": -0.1106,
+     "gross": -0.034,
+     "cost": 0.0766
+    },
+    {
+     "key": "ZN=F",
+     "trades": 1,
+     "net": -0.2348,
+     "gross": -0.0305,
+     "cost": 0.2043
+    }
+   ],
+   "by_venue": [
+    {
+     "venue": "CME futures",
+     "trades": 2,
+     "net": -0.3454,
+     "gross": -0.0645,
+     "cost": 0.2809
+    },
+    {
+     "venue": "KRX (KOSPI)",
+     "trades": 4,
+     "net": -0.7381,
+     "gross": -0.6068,
+     "cost": 0.1313
+    }
+   ],
+   "exit_reasons": {
+    "window_end": 6
+   }
+  },
+  "LAZYOWEN-CAL": {
+   "final_equity": 499.94000000000005,
+   "net_pnl": -0.05999999999994543,
+   "costs": 0.060000000000000005,
+   "fills": 2,
+   "closed_trades": 1,
+   "gross_pnl_closed": 0.0,
+   "net_pnl_closed": -0.060000000000000005,
+   "open_positions": 0,
+   "halted": false,
+   "halt_reason": "",
+   "win_rate": 0.0,
+   "avg_win": null,
+   "avg_loss": -0.060000000000000005,
+   "max_drawdown": -0.00012000000000000899,
+   "peak_gross": 30.0042,
+   "avg_gross": 1.9355516129032257,
+   "stats": {
+    "n": 62,
+    "basis": "net of costs, within one session, per 5-minute mark",
+    "note": "only 3 non-zero returns: within-session statistics are not meaningful"
+   },
+   "by_asset": [
+    {
+     "key": "AUDUSD=X",
+     "trades": 1,
+     "net": -0.06,
+     "gross": 0.0,
+     "cost": 0.06
+    }
+   ],
+   "by_venue": [
+    {
+     "venue": "FX spot",
+     "trades": 1,
+     "net": -0.06,
+     "gross": 0.0,
+     "cost": 0.06
+    }
+   ],
+   "exit_reasons": {
+    "edge_decay_5pp": 1
+   }
+  },
+  "LAZYOWEN-NAIVE": {
+   "final_equity": 495.8468469713491,
+   "net_pnl": -4.153153028650877,
+   "costs": 3.0383128592297295,
+   "fills": 134,
+   "closed_trades": 67,
+   "gross_pnl_closed": -1.1148401694211771,
+   "net_pnl_closed": -4.153153028650907,
+   "open_positions": 0,
+   "halted": false,
+   "halt_reason": "",
+   "win_rate": 0.1044776119402985,
+   "avg_win": 0.03311689752096372,
+   "avg_loss": -0.07308285518829423,
+   "max_drawdown": -0.008306299999999989,
+   "peak_gross": 150.1408,
+   "avg_gross": 142.95509677419355,
+   "stats": {
+    "n": 62,
+    "basis": "net of costs, within one session, per 5-minute mark",
+    "sr_per_bar": -0.538826773275282,
+    "lo_se_per_bar": 0.13590598896100853,
+    "ci90_per_bar": [
+     -0.67373087612894,
+     -0.3964159080136243
+    ],
+    "psr_vs_0": 4.201620847778609e-05,
+    "t_mean": -4.2427262554979475,
+    "vs_bench_sr_diff_per_bar": -0.4877353717004263,
+    "vs_bench_p_diff_le_0": 0.9985
+   },
+   "by_asset": [
+    {
+     "key": "000660.KS",
+     "trades": 1,
+     "net": -0.3634,
+     "gross": -0.1545,
+     "cost": 0.2089
+    },
+    {
+     "key": "005930.KS",
+     "trades": 1,
+     "net": -0.398,
+     "gross": -0.1892,
+     "cost": 0.2088
+    },
+    {
+     "key": "069500.KS",
+     "trades": 5,
+     "net": -0.4485,
+     "gross": -0.3591,
+     "cost": 0.0895
+    },
+    {
+     "key": "105560.KS",
+     "trades": 1,
+     "net": -0.3482,
+     "gross": -0.1396,
+     "cost": 0.2086
+    },
+    {
+     "key": "148070.KS",
+     "trades": 3,
+     "net": 0.0296,
+     "gross": 0.0834,
+     "cost": 0.0538
+    },
+    {
+     "key": "229200.KS",
+     "trades": 5,
+     "net": -0.3114,
+     "gross": -0.2218,
+     "cost": 0.0896
+    },
+    {
+     "key": "261240.KS",
+     "trades": 5,
+     "net": -0.1236,
+     "gross": -0.0339,
+     "cost": 0.0897
+    },
+    {
+     "key": "AUDUSD=X",
+     "trades": 6,
+     "net": -0.35,
+     "gross": 0.0083,
+     "cost": 0.3583
+    },
+    {
+     "key": "CL=F",
+     "trades": 3,
+     "net": -0.1073,
+     "gross": -0.0177,
+     "cost": 0.0896
+    },
+    {
+     "key": "ES=F",
+     "trades": 2,
+     "net": -0.0408,
+     "gross": 0.0189,
+     "cost": 0.0597
+    },
+    {
+     "key": "EURUSD=X",
+     "trades": 7,
+     "net": -0.4243,
+     "gross": -0.0068,
+     "cost": 0.4175
+    },
+    {
+     "key": "GC=F",
+     "trades": 7,
+     "net": -0.2531,
+     "gross": -0.0442,
+     "cost": 0.2089
+    },
+    {
+     "key": "KRW=X",
+     "trades": 7,
+     "net": -0.4166,
+     "gross": 0.0015,
+     "cost": 0.4181
+    },
+    {
+     "key": "NQ=F",
+     "trades": 7,
+     "net": -0.2489,
+     "gross": -0.0398,
+     "cost": 0.2091
+    },
+    {
+     "key": "USDJPY=X",
+     "trades": 4,
+     "net": -0.2455,
+     "gross": -0.0069,
+     "cost": 0.2387
+    },
+    {
+     "key": "ZN=F",
+     "trades": 3,
+     "net": -0.103,
+     "gross": -0.0134,
+     "cost": 0.0896
+    }
+   ],
+   "by_venue": [
+    {
+     "venue": "CME futures",
+     "trades": 22,
+     "net": -0.7531,
+     "gross": -0.0962,
+     "cost": 0.6569
+    },
+    {
+     "venue": "FX spot",
+     "trades": 24,
+     "net": -1.4364,
+     "gross": -0.0039,
+     "cost": 1.4326
+    },
+    {
+     "venue": "KRX (KOSPI)",
+     "trades": 21,
+     "net": -1.9636,
+     "gross": -1.0148,
+     "cost": 0.9488
+    }
+   ],
+   "exit_reasons": {
+    "edge_decay_5pp": 57,
+    "horizon_60m": 6,
+    "window_end": 4
+   }
+  }
+ },
+ "benchmarks": {
+  "EW_ALL_BH_ret": -0.0022587888109198984,
+  "per_asset": {
+   "069500.KS": {
+    "ret": -0.006118514327367541,
+    "first": "2026-10-12 01:20:00+00:00",
+    "last": "2026-10-12 06:00:00+00:00",
+    "p0": 76.74646923471099,
+    "p1": 76.27689486312353
+   },
+   "229200.KS": {
+    "ret": -0.015182455478166434,
+    "first": "2026-10-12 01:20:00+00:00",
+    "last": "2026-10-12 06:00:00+00:00",
+    "p0": 10.970201961274144,
+    "p1": 10.803647358410606
+   },
+   "148070.KS": {
+    "ret": 0.0018050148127723986,
+    "first": "2026-10-12 01:21:00+00:00",
+    "last": "2026-10-12 06:00:00+00:00",
+    "p0": 78.76637807382109,
+    "p1": 78.90855255299277
+   },
+   "132030.KS": {
+    "ret": -0.00475327429792316,
+    "first": "2026-10-12 01:20:00+00:00",
+    "last": "2026-10-12 06:00:00+00:00",
+    "p0": 17.640713976647735,
+    "p1": 17.556862824305522
+   },
+   "261240.KS": {
+    "ret": -0.00014793356816722447,
+    "first": "2026-10-12 01:20:00+00:00",
+    "last": "2026-10-12 06:00:00+00:00",
+    "p0": 10.363451289465878,
+    "p1": 10.3619181871381
+   },
+   "005930.KS": {
+    "ret": -0.01520754662672652,
+    "first": "2026-10-12 01:20:00+00:00",
+    "last": "2026-10-12 06:00:00+00:00",
+    "p0": 191.01410038408378,
+    "p1": 188.1092445461306
+   },
+   "000660.KS": {
+    "ret": 0.0007316810342528068,
+    "first": "2026-10-12 01:20:00+00:00",
+    "last": "2026-10-12 06:00:00+00:00",
+    "p0": 1206.7596694853291,
+    "p1": 1207.6426326483927
+   },
+   "005380.KS": {
+    "ret": -0.012848544987910882,
+    "first": "2026-10-12 01:20:00+00:00",
+    "last": "2026-10-12 06:00:00+00:00",
+    "p0": 242.70026872330644,
+    "p1": 239.58192340203698
+   },
+   "105560.KS": {
+    "ret": 0.010044478273899093,
+    "first": "2026-10-12 01:20:00+00:00",
+    "last": "2026-10-12 06:00:00+00:00",
+    "p0": 120.60105945818623,
+    "p1": 121.81243417972318
+   },
+   "ES=F": {
+    "ret": -0.0002855148784975947,
+    "first": "2026-10-12 01:20:00+00:00",
+    "last": "2026-10-12 06:20:00+00:00",
+    "p0": 7880.5,
+    "p1": 7878.25
+   },
+   "NQ=F": {
+    "ret": -0.0010897959837812277,
+    "first": "2026-10-12 01:20:00+00:00",
+    "last": "2026-10-12 06:20:00+00:00",
+    "p0": 31198.5,
+    "p1": 31164.5
+   },
+   "ZN=F": {
+    "ret": -0.000298552022689913,
+    "first": "2026-10-12 01:20:00+00:00",
+    "last": "2026-10-12 06:19:00+00:00",
+    "p0": 104.671875,
+    "p1": 104.640625
+   },
+   "GC=F": {
+    "ret": -0.00640028728123232,
+    "first": "2026-10-12 01:20:00+00:00",
+    "last": "2026-10-12 06:20:00+00:00",
+    "p0": 4234.2001953125,
+    "p1": 4207.10009765625
+   },
+   "CL=F": {
+    "ret": 0.010978020186508175,
+    "first": "2026-10-12 01:20:00+00:00",
+    "last": "2026-10-12 06:20:00+00:00",
+    "p0": 90.18000030517578,
+    "p1": 91.16999816894531
+   },
+   "KRW=X": {
+    "ret": -3.740028001741891e-05,
+    "first": "2026-10-12 01:20:00+00:00",
+    "last": "2026-10-12 06:20:00+00:00",
+    "p0": 1334.97998046875,
+    "p1": 1334.9300537109375
+   },
+   "USDJPY=X": {
+    "ret": 0.0012001543661446235,
+    "first": "2026-10-12 01:20:00+00:00",
+    "last": "2026-10-12 06:20:00+00:00",
+    "p0": 158.125,
+    "p1": 158.31500244140625
+   },
+   "EURUSD=X": {
+    "ret": -0.0012324401454147926,
+    "first": "2026-10-12 01:20:00+00:00",
+    "last": "2026-10-12 06:20:00+00:00",
+    "p0": 1.1218308210372925,
+    "p1": 1.1204482316970825
+   },
+   "AUDUSD=X": {
+    "ret": -0.001815287392240239,
+    "first": "2026-10-12 01:20:00+00:00",
+    "last": "2026-10-12 06:20:00+00:00",
+    "p0": 0.6994474530220032,
+    "p1": 0.6981777548789978
+   }
+  },
+  "SPY_BH_ret": null,
+  "ES_BH_ret": -0.0002855148784975947
+ },
+ "replay_percentile": {
+  "QG-TREND": 80.0,
+  "QG-TACTICAL": 50.0,
+  "QG-CORE": 24.444444444444443,
+  "LAZYOWEN-CAL": 24.444444444444443,
+  "LAZYOWEN-NAIVE": 13.333333333333334
+ },
+ "replay_days": 45,
+ "controls": [
+  {
+   "id": "C-01",
+   "control": "Every entry carries an exit plan written before the fill",
+   "type": "Automated",
+   "frequency": "per fill",
+   "assertion": "Occurrence, Presentation",
+   "passed": true,
+   "population": 90,
+   "note": "",
+   "conclusion": "Effective"
+  },
+  {
+   "id": "C-02",
+   "control": "LAZYOWEN stake at most 6% of equity at the decision tick",
+   "type": "Automated",
+   "frequency": "per fill",
+   "assertion": "Accuracy",
+   "passed": true,
+   "population": 68,
+   "note": "",
+   "conclusion": "Effective"
+  },
+  {
+   "id": "C-03",
+   "control": "LAZYOWEN holds at most 5 positions",
+   "type": "Automated",
+   "frequency": "per mark",
+   "assertion": "Accuracy",
+   "passed": true,
+   "population": 124,
+   "note": "",
+   "conclusion": "Effective"
+  },
+  {
+   "id": "C-04",
+   "control": "QUANTGEN gross exposure at most 1.0x equity (1% mark tolerance)",
+   "type": "Automated",
+   "frequency": "per mark",
+   "assertion": "Valuation",
+   "passed": true,
+   "population": 186,
+   "note": "",
+   "conclusion": "Effective"
+  },
+  {
+   "id": "C-05",
+   "control": "No entry priced on a quote older than 30 minutes",
+   "type": "Automated",
+   "frequency": "per fill",
+   "assertion": "Accuracy, Valuation",
+   "passed": true,
+   "population": 90,
+   "note": "",
+   "conclusion": "Effective"
+  },
+  {
+   "id": "C-06",
+   "control": "Every account flat at the end of the window",
+   "type": "Automated",
+   "frequency": "once",
+   "assertion": "Completeness",
+   "passed": true,
+   "population": 5,
+   "note": "",
+   "conclusion": "Effective"
+  },
+  {
+   "id": "C-07",
+   "control": "Every opened position has exactly one close",
+   "type": "Automated",
+   "frequency": "per fill",
+   "assertion": "Completeness, Existence",
+   "passed": true,
+   "population": 90,
+   "note": "",
+   "conclusion": "Effective"
+  },
+  {
+   "id": "C-08",
+   "control": "Cash reconciles to the sum of closed-trade net P&L (to $0.01)",
+   "type": "Automated",
+   "frequency": "once per account",
+   "assertion": "Accuracy",
+   "passed": true,
+   "population": 5,
+   "note": "",
+   "conclusion": "Effective"
+  },
+  {
+   "id": "C-09",
+   "control": "No NaN or infinite value in equity, cash or any fill",
+   "type": "Automated",
+   "frequency": "per mark and fill",
+   "assertion": "Accuracy, Valuation",
+   "passed": true,
+   "population": 490,
+   "note": "",
+   "conclusion": "Effective"
+  },
+  {
+   "id": "C-10",
+   "control": "One pre-registered parameter hash (config.py) across all fills",
+   "type": "IT general (change management)",
+   "frequency": "per fill",
+   "assertion": "Presentation",
+   "passed": true,
+   "population": 180,
+   "note": "",
+   "conclusion": "Effective"
+  },
+  {
+   "id": "C-11",
+   "control": "Kill switches armed: QUANTGEN -15% hard stop, LAZYOWEN -40% halt",
+   "type": "Automated",
+   "frequency": "per mark",
+   "assertion": "Valuation",
+   "passed": true,
+   "population": 5,
+   "note": "design only: no account came near its threshold, so the halt path never executed",
+   "conclusion": "Effective (design tested; not triggered)"
+  },
+  {
+   "id": "C-12",
+   "control": "Mid-run code changes reviewed, regression-tested and logged",
+   "type": "IT general (change management)",
+   "frequency": "per change",
+   "assertion": "Presentation",
+   "passed": true,
+   "population": 1,
+   "note": "",
+   "conclusion": "Effective"
+  }
+ ],
+ "outcomes": {
+  "best_trades": [
+   {
+    "account": "QG-CORE",
+    "key": "148070.KS",
+    "name": "KOSEF 10Y KTB",
+    "traded": "148070.KS",
+    "direction": 1,
+    "notional": 134.0319,
+    "hold_min": 300.4,
+    "pnl_gross": 0.3484,
+    "cost": 0.0805,
+    "pnl_net": 0.2679,
+    "exit_reason": "window_end",
+    "mae_usd": -0.1797,
+    "risk_usd_1sigma": 0.2289
+   },
+   {
+    "account": "QG-TREND",
+    "key": "CL=F",
+    "name": "WTI crude fut",
+    "traded": "CL=F",
+    "direction": 1,
+    "notional": 32.6067,
+    "hold_min": 114.6,
+    "pnl_gross": 0.1986,
+    "cost": 0.0327,
+    "pnl_net": 0.1659,
+    "exit_reason": "window_end",
+    "mae_usd": -0.0217,
+    "risk_usd_1sigma": 0.164
+   },
+   {
+    "account": "QG-TREND",
+    "key": "261240.KS",
+    "name": "KODEX USD Futures",
+    "traded": "261240.KS",
+    "direction": 1,
+    "notional": 148.5666,
+    "hold_min": 29.6,
+    "pnl_gross": 0.1898,
+    "cost": 0.0892,
+    "pnl_net": 0.1006,
+    "exit_reason": "window_end",
+    "mae_usd": -0.0823,
+    "risk_usd_1sigma": 0.3077
+   },
+   {
+    "account": "LAZYOWEN-NAIVE",
+    "key": "GC=F",
+    "name": "Gold fut",
+    "traded": "GC=F",
+    "direction": -1,
+    "notional": 29.7702,
+    "hold_min": 60.0,
+    "pnl_gross": 0.086,
+    "cost": 0.0297,
+    "pnl_net": 0.0563,
+    "exit_reason": "horizon_60m",
+    "mae_usd": 0.0007,
+    "risk_usd_1sigma": 0.079
+   },
+   {
+    "account": "LAZYOWEN-NAIVE",
+    "key": "261240.KS",
+    "name": "KODEX USD Futures",
+    "traded": "261250.KS",
+    "direction": -1,
+    "notional": 29.8291,
+    "hold_min": 20.0,
+    "pnl_gross": 0.0581,
+    "cost": 0.0179,
+    "pnl_net": 0.0402,
+    "exit_reason": "edge_decay_5pp",
+    "mae_usd": -0.0023,
+    "risk_usd_1sigma": 0.0618
+   }
+  ],
+  "worst_trades": [
+   {
+    "account": "QG-CORE",
+    "key": "229200.KS",
+    "name": "KODEX KOSDAQ150",
+    "traded": "229200.KS",
+    "direction": 1,
+    "notional": 20.9345,
+    "hold_min": 300.4,
+    "pnl_gross": -0.5461,
+    "cost": 0.0124,
+    "pnl_net": -0.5585,
+    "exit_reason": "window_end",
+    "mae_usd": -0.654,
+    "risk_usd_1sigma": 0.2289
+   },
+   {
+    "account": "QG-TREND",
+    "key": "EURUSD=X",
+    "name": "EUR/USD",
+    "traded": "EURUSD=X",
+    "direction": 1,
+    "notional": 175.0,
+    "hold_min": 85.8,
+    "pnl_gross": -0.0785,
+    "cost": 0.3499,
+    "pnl_net": -0.4284,
+    "exit_reason": "trend_off",
+    "mae_usd": -0.0785,
+    "risk_usd_1sigma": 0.1215
+   },
+   {
+    "account": "LAZYOWEN-NAIVE",
+    "key": "005930.KS",
+    "name": "Samsung Electronics",
+    "traded": "005930.KS",
+    "direction": 1,
+    "notional": 29.9206,
+    "hold_min": 10.0,
+    "pnl_gross": -0.1892,
+    "cost": 0.2088,
+    "pnl_net": -0.398,
+    "exit_reason": "edge_decay_5pp",
+    "mae_usd": -0.1941,
+    "risk_usd_1sigma": 0.3377
+   },
+   {
+    "account": "QG-TREND",
+    "key": "EURUSD=X",
+    "name": "EUR/USD",
+    "traded": "EURUSD=X",
+    "direction": 1,
+    "notional": 174.7587,
+    "hold_min": 20.0,
+    "pnl_gross": -0.0196,
+    "cost": 0.3495,
+    "pnl_net": -0.3691,
+    "exit_reason": "trend_off",
+    "mae_usd": -0.0196,
+    "risk_usd_1sigma": 0.1213
+   },
+   {
+    "account": "LAZYOWEN-NAIVE",
+    "key": "000660.KS",
+    "name": "SK hynix",
+    "traded": "000660.KS",
+    "direction": 1,
+    "notional": 29.9206,
+    "hold_min": 40.0,
+    "pnl_gross": -0.1545,
+    "cost": 0.2089,
+    "pnl_net": -0.3634,
+    "exit_reason": "edge_decay_5pp",
+    "mae_usd": -0.2492,
+    "risk_usd_1sigma": 0.4309
+   }
+  ],
+  "riskiest_trades": [
+   {
+    "account": "QG-CORE",
+    "key": "229200.KS",
+    "name": "KODEX KOSDAQ150",
+    "traded": "229200.KS",
+    "direction": 1,
+    "notional": 20.9345,
+    "hold_min": 300.4,
+    "pnl_gross": -0.5461,
+    "cost": 0.0124,
+    "pnl_net": -0.5585,
+    "exit_reason": "window_end",
+    "mae_usd": -0.654,
+    "risk_usd_1sigma": 0.2289
+   },
+   {
+    "account": "QG-CORE",
+    "key": "069500.KS",
+    "name": "KODEX 200",
+    "traded": "069500.KS",
+    "direction": 1,
+    "notional": 25.0467,
+    "hold_min": 300.4,
+    "pnl_gross": -0.2387,
+    "cost": 0.015,
+    "pnl_net": -0.2537,
+    "exit_reason": "window_end",
+    "mae_usd": -0.4188,
+    "risk_usd_1sigma": 0.2289
+   },
+   {
+    "account": "QG-CORE",
+    "key": "132030.KS",
+    "name": "KODEX Gold Futures(H)",
+    "traded": "132030.KS",
+    "direction": 1,
+    "notional": 39.0925,
+    "hold_min": 300.4,
+    "pnl_gross": -0.1704,
+    "cost": 0.0234,
+    "pnl_net": -0.1938,
+    "exit_reason": "window_end",
+    "mae_usd": -0.3121,
+    "risk_usd_1sigma": 0.2289
+   },
+   {
+    "account": "LAZYOWEN-NAIVE",
+    "key": "000660.KS",
+    "name": "SK hynix",
+    "traded": "000660.KS",
+    "direction": 1,
+    "notional": 29.9206,
+    "hold_min": 40.0,
+    "pnl_gross": -0.1545,
+    "cost": 0.2089,
+    "pnl_net": -0.3634,
+    "exit_reason": "edge_decay_5pp",
+    "mae_usd": -0.2492,
+    "risk_usd_1sigma": 0.4309
+   },
+   {
+    "account": "LAZYOWEN-NAIVE",
+    "key": "069500.KS",
+    "name": "KODEX 200",
+    "traded": "114800.KS",
+    "direction": -1,
+    "notional": 29.9754,
+    "hold_min": 30.0,
+    "pnl_gross": -0.2048,
+    "cost": 0.0179,
+    "pnl_net": -0.2227,
+    "exit_reason": "edge_decay_5pp",
+    "mae_usd": -0.2278,
+    "risk_usd_1sigma": 0.274
+   }
+  ],
+  "worst_assets_all_accounts": [
+   {
+    "key": "EURUSD=X",
+    "name": "EUR/USD",
+    "trades": 9,
+    "net": -1.2218,
+    "gross": -0.1048,
+    "cost": 1.1169
+   },
+   {
+    "key": "229200.KS",
+    "name": "KODEX KOSDAQ150",
+    "trades": 6,
+    "net": -0.8699,
+    "gross": -0.768,
+    "cost": 0.102
+   },
+   {
+    "key": "ZN=F",
+    "name": "10y T-Note fut",
+    "trades": 6,
+    "net": -0.7652,
+    "gross": -0.122,
+    "cost": 0.6432
+   }
+  ],
+  "worst_asset_by_account": {
+   "LAZYOWEN-CAL": {
+    "key": "AUDUSD=X",
+    "net": -0.06
+   },
+   "LAZYOWEN-NAIVE": {
+    "key": "069500.KS",
+    "net": -0.4485
+   },
+   "QG-CORE": {
+    "key": "229200.KS",
+    "net": -0.5585
+   },
+   "QG-TREND": {
+    "key": "EURUSD=X",
+    "net": -0.7975
+   }
+  },
+  "max_positions": {
+   "LAZYOWEN-CAL": 1,
+   "LAZYOWEN-NAIVE": 5,
+   "QG-CORE": 6,
+   "QG-TACTICAL": 0,
+   "QG-TREND": 7
+  },
+  "cost_share_of_losses": 0.6307
+ }
+}

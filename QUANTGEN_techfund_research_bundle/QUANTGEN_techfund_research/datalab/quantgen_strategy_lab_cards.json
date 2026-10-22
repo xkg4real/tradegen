@@ -1,0 +1,397 @@
+{
+ "counts": {
+  "pass": 5,
+  "revise": 11,
+  "reject": 18,
+  "insufficient": 0
+ },
+ "strategies": [
+  {
+   "id": "C3",
+   "name": "Crypto trend",
+   "mkt": "KRW-BTC",
+   "v": "PASS",
+   "sr": 1.22,
+   "ci": [
+    0.62,
+    1.77
+   ],
+   "dsr": 1.0,
+   "pbo": 0.27,
+   "loses": 0,
+   "bench": 0.79,
+   "p": 0.04,
+   "x2": 1.17,
+   "turn": 13.7,
+   "note": "Beats buy-and-hold at p 0.04 and stays at 1.17 with costs doubled. Expected live Sharpe after the haircut: 0.73."
+  },
+  {
+   "id": "C3",
+   "name": "Crypto trend",
+   "mkt": "BTC-USD",
+   "v": "PASS",
+   "sr": 1.19,
+   "ci": [
+    0.72,
+    1.64
+   ],
+   "dsr": 1.0,
+   "pbo": 0.19,
+   "loses": 0,
+   "bench": 0.89,
+   "p": 0.07,
+   "x2": 1.16,
+   "turn": 10.0,
+   "note": "The same rule on the dollar market. Every gate criterion met."
+  },
+  {
+   "id": "E8",
+   "name": "Pairs, same index",
+   "mkt": "KODEX / TIGER trackers",
+   "v": "REVISE",
+   "sr": 0.55,
+   "ci": [
+    0.3,
+    0.81
+   ],
+   "dsr": 0.97,
+   "pbo": 0.45,
+   "loses": 0,
+   "bench": null,
+   "p": null,
+   "x2": -0.32,
+   "turn": 16.3,
+   "note": "A spread half-life of one session is bid-ask bounce. The trade loses money at 2\u00d7 costs."
+  },
+  {
+   "id": "E1",
+   "name": "Trend switch",
+   "mkt": "US ETF sleeves",
+   "v": "REJECT",
+   "sr": 0.84,
+   "ci": [
+    0.47,
+    1.2
+   ],
+   "dsr": 1.0,
+   "pbo": 0.59,
+   "loses": 0,
+   "bench": 0.95,
+   "p": 0.75,
+   "x2": 0.75,
+   "turn": 1.6,
+   "note": "Drawdown \u221215% against \u221227%. It protects; it does not outperform."
+  },
+  {
+   "id": "E1",
+   "name": "Trend switch",
+   "mkt": "KRX ETF sleeves",
+   "v": "REJECT",
+   "sr": 0.52,
+   "ci": [
+    -0.03,
+    1.04
+   ],
+   "dsr": 0.84,
+   "pbo": 0.31,
+   "loses": 0,
+   "bench": 0.74,
+   "p": 0.89,
+   "x2": 0.52,
+   "turn": 1.8,
+   "note": "The interval includes zero."
+  },
+  {
+   "id": "E2",
+   "name": "Volatility targeting",
+   "mkt": "SPY",
+   "v": "REJECT",
+   "sr": 0.63,
+   "ci": [
+    0.34,
+    0.92
+   ],
+   "dsr": 1.0,
+   "pbo": 0.28,
+   "loses": 0,
+   "bench": 0.56,
+   "p": 0.18,
+   "x2": 0.59,
+   "turn": 1.0,
+   "note": "Adds +0.08 of Sharpe at p 0.18, as Cederburg et al. found when the rule is run in real time."
+  },
+  {
+   "id": "E2",
+   "name": "Volatility targeting",
+   "mkt": "KODEX 200",
+   "v": "REJECT",
+   "sr": 0.53,
+   "ci": [
+    0.08,
+    0.97
+   ],
+   "dsr": 0.96,
+   "pbo": 0.1,
+   "loses": 3,
+   "bench": 0.66,
+   "p": 0.81,
+   "x2": 0.53,
+   "turn": 0.8,
+   "note": "Below buy-and-hold on the same days."
+  },
+  {
+   "id": "E3",
+   "name": "Risk parity, unlevered",
+   "mkt": "US sleeves",
+   "v": "REJECT",
+   "sr": 0.89,
+   "ci": [
+    0.51,
+    1.27
+   ],
+   "dsr": 1.0,
+   "pbo": 0.35,
+   "loses": 0,
+   "bench": 0.86,
+   "p": 0.25,
+   "x2": 0.87,
+   "turn": 0.4,
+   "note": "Without leverage, risk parity is the benchmark."
+  },
+  {
+   "id": "E5",
+   "name": "Sector momentum",
+   "mkt": "nine sector SPDRs",
+   "v": "REJECT",
+   "sr": 0.48,
+   "ci": [
+    0.16,
+    0.76
+   ],
+   "dsr": 0.97,
+   "pbo": 0.39,
+   "loses": 0,
+   "bench": 0.63,
+   "p": 0.97,
+   "x2": 0.36,
+   "turn": 4.4,
+   "note": "After 50 bp per side it sits below buy-and-hold."
+  },
+  {
+   "id": "B3",
+   "name": "Time-series momentum",
+   "mkt": "ten continuous futures",
+   "v": "REJECT",
+   "sr": 0.08,
+   "ci": [
+    -0.27,
+    0.43
+   ],
+   "dsr": 0.27,
+   "pbo": 0.1,
+   "loses": 7,
+   "bench": 0.58,
+   "p": 0.97,
+   "x2": 0.06,
+   "turn": 3.3,
+   "note": "No measurable edge after 2009."
+  },
+  {
+   "id": "S6",
+   "name": "Pairs, common / preferred",
+   "mkt": "Samsung Electronics",
+   "v": "REJECT",
+   "sr": 0.83,
+   "ci": [
+    0.48,
+    1.18
+   ],
+   "dsr": 1.0,
+   "pbo": 0.22,
+   "loses": 0,
+   "bench": 0.85,
+   "p": 0.61,
+   "x2": 0.77,
+   "turn": 5.9,
+   "note": "The real relative-value trade of the set. Its long-only tilt still fails to beat holding both legs."
+  },
+  {
+   "id": "S6",
+   "name": "Pairs",
+   "mkt": "Hyundai / Kia",
+   "v": "REJECT",
+   "sr": 0.43,
+   "ci": [
+    0.08,
+    0.75
+   ],
+   "dsr": 0.86,
+   "pbo": 0.2,
+   "loses": 7,
+   "bench": null,
+   "p": null,
+   "x2": 0.31,
+   "turn": 3.6,
+   "note": "Deflated Sharpe 0.86, short of the 0.95 the gate needs once every configuration tried is counted."
+  },
+  {
+   "id": "E8",
+   "name": "Pairs, two gold ETFs",
+   "mkt": "GLD / IAU",
+   "v": "REJECT",
+   "sr": -2.28,
+   "ci": [
+    -2.53,
+    -2.03
+   ],
+   "dsr": 0.0,
+   "pbo": 0.0,
+   "loses": 100,
+   "bench": null,
+   "p": null,
+   "x2": -2.4,
+   "turn": 6.0,
+   "note": "At 50 bp per side, costs eat the whole spread."
+  },
+  {
+   "id": "V1",
+   "name": "VIX roll-down, hedged",
+   "mkt": "VIX products",
+   "v": "REJECT",
+   "sr": -0.14,
+   "ci": [
+    -0.58,
+    0.3
+   ],
+   "dsr": 0.28,
+   "pbo": 0.93,
+   "loses": 62,
+   "bench": 0.54,
+   "p": 0.99,
+   "x2": -0.22,
+   "turn": 53.2,
+   "note": "Loses after 2018, even hedged."
+  },
+  {
+   "id": "V3",
+   "name": "FX momentum",
+   "mkt": "G10 currencies",
+   "v": "REJECT",
+   "sr": -0.59,
+   "ci": [
+    -1.25,
+    0.07
+   ],
+   "dsr": 0.06,
+   "pbo": 0.35,
+   "loses": 100,
+   "bench": null,
+   "p": 0.99,
+   "x2": -0.89,
+   "turn": 12.0,
+   "note": "Decayed to a negative Sharpe since publication."
+  },
+  {
+   "id": "V4",
+   "name": "Dollar carry",
+   "mkt": "USD vs basket",
+   "v": "REJECT",
+   "sr": 0.27,
+   "ci": [
+    -0.42,
+    0.93
+   ],
+   "dsr": 0.74,
+   "pbo": null,
+   "loses": null,
+   "bench": null,
+   "p": 0.65,
+   "x2": 0.27,
+   "turn": 12.0,
+   "note": "Too few trades to certify."
+  }
+ ],
+ "fans": [
+  {
+   "name": "GARCH(1,1)-t",
+   "mkt": "SPY",
+   "v": "REJECT",
+   "b5": 6.6
+  },
+  {
+   "name": "GJR-GARCH",
+   "mkt": "SPY",
+   "v": "REVISE",
+   "b5": 6.6
+  },
+  {
+   "name": "Skewed-t",
+   "mkt": "SPY",
+   "v": "REVISE",
+   "b5": 5.2
+  },
+  {
+   "name": "GARCH(1,1)-t",
+   "mkt": "KODEX 200",
+   "v": "REJECT",
+   "b5": 6.6
+  },
+  {
+   "name": "GJR-GARCH",
+   "mkt": "KODEX 200",
+   "v": "REJECT",
+   "b5": 6.8
+  },
+  {
+   "name": "Skewed-t",
+   "mkt": "KODEX 200",
+   "v": "REVISE",
+   "b5": 6.3
+  },
+  {
+   "name": "GARCH(1,1)-t",
+   "mkt": "BTC",
+   "v": "REVISE",
+   "b5": 5.8
+  },
+  {
+   "name": "GJR-GARCH",
+   "mkt": "BTC",
+   "v": "REVISE",
+   "b5": 5.7
+  },
+  {
+   "name": "Skewed-t",
+   "mkt": "BTC",
+   "v": "REVISE",
+   "b5": 5.8
+  }
+ ],
+ "monitors": [
+  {
+   "name": "KOSPI 200 basis and fair value",
+   "v": "PASS",
+   "line": "Fair value within 1.16 points of KIS's theoretical price; the gap is the December dividend points."
+  },
+  {
+   "name": "Crypto funding carry",
+   "v": "PASS",
+   "line": "The BIS sign is confirmed. Offered as a positioning read, not a trade."
+  },
+  {
+   "name": "Kimchi premium",
+   "v": "REVISE",
+   "line": "Half-life 15 days, but no sentiment signal. Kept as a descriptive tile."
+  },
+  {
+   "name": "PCA-neutral 2-5-10 fly",
+   "v": "REVISE",
+   "line": "38 trades, hit rate 39%. Shown as a richness measure, not a trade."
+  },
+  {
+   "name": "Leveraged-fund drag forecast",
+   "v": "REVISE",
+   "line": "Over 52 quarters the GARCH forecast missed by 136 bp against 91 bp for last quarter's drag."
+  }
+ ]
+}

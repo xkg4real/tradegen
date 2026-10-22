@@ -1,0 +1,78 @@
+{
+ "sha": "ffbdfc4d489bcaf2",
+ "accounts": {
+  "QG-TREND": {
+   "name": "QG-TREND",
+   "rules": "trend",
+   "cost_table": "COST_CLASS_BP",
+   "prob": "cal",
+   "cash": 489.73398949630814,
+   "peak": 500.0,
+   "halted": false,
+   "halt_reason": "",
+   "positions": {},
+   "costs_paid": 8.824127784675683,
+   "n_fills": 50
+  },
+  "QG-TACTICAL": {
+   "name": "QG-TACTICAL",
+   "rules": "quantgen",
+   "cost_table": "COST_CLASS_BP",
+   "prob": "cal",
+   "cash": 500.0,
+   "peak": 500.0,
+   "halted": false,
+   "halt_reason": "",
+   "positions": {},
+   "costs_paid": 0.0,
+   "n_fills": 0
+  },
+  "QG-CORE": {
+   "name": "QG-CORE",
+   "rules": "core",
+   "cost_table": "COST_CLASS_BP",
+   "prob": "cal",
+   "cash": 499.990297600034,
+   "peak": 500.284991679086,
+   "halted": false,
+   "halt_reason": "",
+   "positions": {},
+   "costs_paid": 0.5002452714357348,
+   "n_fills": 14
+  },
+  "LAZYOWEN-CAL": {
+   "name": "LAZYOWEN-CAL",
+   "rules": "lazyowen",
+   "cost_table": "COST_CLASS_BP",
+   "prob": "cal",
+   "cash": 500.0,
+   "peak": 500.0,
+   "halted": false,
+   "halt_reason": "",
+   "positions": {},
+   "costs_paid": 0.0,
+   "n_fills": 0
+  },
+  "LAZYOWEN-NAIVE": {
+   "name": "LAZYOWEN-NAIVE",
+   "rules": "lazyowen",
+   "cost_table": "COST_CLASS_BP",
+   "prob": "naive",
+   "cash": 492.953283637474,
+   "peak": 500.0,
+   "halted": false,
+   "halt_reason": "",
+   "positions": {},
+   "costs_paid": 6.5840005935409724,
+   "n_fills": 140
+  }
+ },
+ "last_decision": {
+  "QG-TREND": "2026-10-07 16:42:06+00:00",
+  "QG-TACTICAL": "2026-10-07 16:42:06+00:00",
+  "QG-CORE": "2026-10-07 16:42:06+00:00",
+  "LAZYOWEN-CAL": "2026-10-07 16:42:06+00:00",
+  "LAZYOWEN-NAIVE": "2026-10-07 16:42:06+00:00"
+ },
+ "core_cut": {}
+}

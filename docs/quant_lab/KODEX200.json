@@ -1,0 +1,507 @@
+{
+ "acts": false,
+ "components": [
+  "fast_fhs",
+  "gjr_evt"
+ ],
+ "components_lines": {
+  "fast_fhs": {
+   "2016-26": {
+    "basel": {
+     "last_250": "green",
+     "n_windows": 10,
+     "windows": {
+      "green": 8,
+      "red": 0,
+      "yellow": 2
+     }
+    },
+    "es975": {
+     "B": 2000,
+     "alpha": 0.025000000000000022,
+     "law": "x*_t = scale_t z*, z* iid from the residual pool",
+     "n": 2599,
+     "p": 0.4725,
+     "q": 0.975,
+     "rejected_5pct": false,
+     "seed": 11,
+     "z2": 0.013997894003591305
+    },
+    "n": 2599,
+    "tick_loss": {
+     "var95": 0.0016265588215795938,
+     "var99": 0.0004993519458155326
+    },
+    "unscaled": {
+     "var95_rate": 0.044632550981146595,
+     "var99_rate": 0.013081954597922277
+    },
+    "var95": {
+     "cc_p": 0.1174116005001252,
+     "ind_p": 0.1034658618789211,
+     "kupiec_p": 0.20130951369660532,
+     "n": 2599,
+     "q": 0.95,
+     "rate": 0.044632550981146595,
+     "tick_loss": 0.0016265588215795938,
+     "x": 116
+    },
+    "var99": {
+     "cc_p": 0.24645825183591616,
+     "ind_p": 0.4674263047069044,
+     "kupiec_p": 0.13163876381333897,
+     "n": 2599,
+     "q": 0.99,
+     "rate": 0.013081954597922277,
+     "tick_loss": 0.0004993519458155326,
+     "x": 34
+    }
+   },
+   "2026": {
+    "basel": {
+     "last_250": null,
+     "n_windows": 0,
+     "windows": {
+      "green": 0,
+      "red": 0,
+      "yellow": 0
+     }
+    },
+    "es975": {
+     "B": 2000,
+     "alpha": 0.025000000000000022,
+     "law": "x*_t = scale_t z*, z* iid from the residual pool",
+     "n": 178,
+     "p": 0.4665,
+     "q": 0.975,
+     "rejected_5pct": false,
+     "seed": 11,
+     "z2": -0.5588825529581198
+    },
+    "n": 178,
+    "tick_loss": {
+     "var95": 0.005311005341758436,
+     "var99": 0.0015316871706966579
+    },
+    "unscaled": {
+     "var95_rate": 0.0449438202247191,
+     "var99_rate": 0.011235955056179775
+    },
+    "var95": {
+     "cc_p": 0.6159843858477005,
+     "ind_p": 0.35094382043503514,
+     "kupiec_p": 0.7530018244134222,
+     "n": 178,
+     "q": 0.95,
+     "rate": 0.0449438202247191,
+     "tick_loss": 0.005311005341758436,
+     "x": 8
+    },
+    "var99": {
+     "cc_p": 0.9645798524730405,
+     "ind_p": 0.830694196366828,
+     "kupiec_p": 0.8709029556111914,
+     "n": 178,
+     "q": 0.99,
+     "rate": 0.011235955056179775,
+     "tick_loss": 0.0015316871706966579,
+     "x": 2
+    }
+   }
+  },
+  "gjr_evt": {
+   "2016-26": {
+    "basel": {
+     "last_250": "yellow",
+     "n_windows": 4,
+     "windows": {
+      "green": 4,
+      "red": 0,
+      "yellow": 0
+     }
+    },
+    "es975": {
+     "B": 2000,
+     "alpha": 0.025000000000000022,
+     "law": "x*_t = scale_t z*, z* iid from the residual pool; losses beyond u redrawn from GPD(xi, beta)",
+     "n": 1248,
+     "p": 0.561,
+     "q": 0.975,
+     "rejected_5pct": false,
+     "seed": 11,
+     "z2": -0.14763154426839842
+    },
+    "n": 1248,
+    "tick_loss": {
+     "var95": 0.0019640410560039672,
+     "var99": 0.0006172437404155585
+    },
+    "unscaled": {
+     "var95_rate": 0.04887820512820513,
+     "var99_rate": 0.01201923076923077
+    },
+    "var95": {
+     "cc_p": 0.8260184221544311,
+     "ind_p": 0.554693335647588,
+     "kupiec_p": 0.8552030297610397,
+     "n": 1248,
+     "q": 0.95,
+     "rate": 0.04887820512820513,
+     "tick_loss": 0.0019640410560039672,
+     "x": 61
+    },
+    "var99": {
+     "cc_p": 0.031196451396343382,
+     "ind_p": 0.011082293944560407,
+     "kupiec_p": 0.48714390674651464,
+     "n": 1248,
+     "q": 0.99,
+     "rate": 0.01201923076923077,
+     "tick_loss": 0.0006172437404155585,
+     "x": 15
+    }
+   },
+   "2026": {
+    "basel": {
+     "last_250": null,
+     "n_windows": 0,
+     "windows": {
+      "green": 0,
+      "red": 0,
+      "yellow": 0
+     }
+    },
+    "es975": {
+     "B": 2000,
+     "alpha": 0.025000000000000022,
+     "law": "x*_t = scale_t z*, z* iid from the residual pool; losses beyond u redrawn from GPD(xi, beta)",
+     "n": 178,
+     "p": 0.074,
+     "q": 0.975,
+     "rejected_5pct": false,
+     "seed": 11,
+     "z2": -0.812204405756805
+    },
+    "n": 178,
+    "tick_loss": {
+     "var95": 0.005309775011031156,
+     "var99": 0.0016562767214079093
+    },
+    "unscaled": {
+     "var95_rate": 0.06179775280898876,
+     "var99_rate": 0.02247191011235955
+    },
+    "var95": {
+     "cc_p": 0.28502823977532626,
+     "ind_p": 0.15487381061012775,
+     "kupiec_p": 0.485378053071967,
+     "n": 178,
+     "q": 0.95,
+     "rate": 0.06179775280898876,
+     "tick_loss": 0.005309775011031156,
+     "x": 11
+    },
+    "var99": {
+     "cc_p": 0.06332780117278781,
+     "ind_p": 0.06312453999855648,
+     "kupiec_p": 0.15066219717931506,
+     "n": 178,
+     "q": 0.99,
+     "rate": 0.02247191011235955,
+     "tick_loss": 0.0016562767214079093,
+     "x": 4
+    }
+   }
+  }
+ },
+ "config": {
+  "acceptance": {
+   "es975_z2_reject_level": 0.05,
+   "fan_pit_h21_chi2_p_min": 0.01,
+   "reported_not_gated": [
+    "fan_pit_h126",
+    "period_2026"
+   ],
+   "sample": "oos_2016_26",
+   "var99_cc_p_min": 0.05,
+   "var99_kupiec_p_min": 0.05
+  },
+  "envelope": "max(fast_fhs, gjr_evt)",
+  "fit": {
+   "min_years": 10,
+   "refit_every_origins": 21,
+   "window": "expanding"
+  },
+  "lines": {
+   "basel_zones": true,
+   "es_level": 0.975,
+   "es_test": "z2_simulated_critical_values",
+   "fan_model": {
+    "drift": "premium",
+    "erp": 0.04,
+    "fit": "expanding",
+    "model": "garch_t",
+    "n_paths": 2000,
+    "rf_rate": 0.03
+   },
+   "fan_pit_h": [
+    21,
+    126
+   ],
+   "var_levels": [
+    0.95,
+    0.99
+   ]
+  },
+  "outputs": "descriptive",
+  "path_colour_label": "path-vol quartile",
+  "post_holiday": {
+   "reported_separately": true,
+   "var_display_scale": "sqrt(max(n_US, 1))"
+  },
+  "report_periods": [
+   "2016-26",
+   "2026"
+  ],
+  "source": "core.quant.lab.LAB_CONFIG (module constant)",
+  "tails": {
+   "evt": {
+    "dist": "gpd",
+    "method": "mcneil_frey",
+    "side": "lower",
+    "threshold_share": 0.1
+   },
+   "fhs": true
+  }
+ },
+ "fan_pit": {
+  "h126": {
+   "chi2_p": null,
+   "counts": [
+    2,
+    0,
+    1,
+    1,
+    2,
+    2,
+    1,
+    1,
+    0,
+    3
+   ],
+   "drift": "premium",
+   "erp": 0.04,
+   "h": 126,
+   "model": "garch_t",
+   "n_origins": 13,
+   "n_paths": 2000,
+   "overlap": false,
+   "period": "2016-26",
+   "rf_rate": 0.03
+  },
+  "h21": {
+   "chi2_p": 0.7362954040878107,
+   "counts": [
+    8,
+    8,
+    6,
+    5,
+    6,
+    9,
+    10,
+    8,
+    10,
+    13
+   ],
+   "drift": "premium",
+   "erp": 0.04,
+   "h": 21,
+   "model": "garch_t",
+   "n_origins": 83,
+   "n_paths": 2000,
+   "overlap": false,
+   "period": "2016-26",
+   "rf_rate": 0.03
+  }
+ },
+ "gate": {
+  "lines": {
+   "es975_z2_p": 0.571,
+   "fan_pit_h21_chi2_p": 0.7362954040878107,
+   "var99_cc_p": 0.14100194169585642,
+   "var99_kupiec_p": 0.46487598817001574
+  },
+  "n": 1248,
+  "n_fan_origins": 83,
+  "period": "2016-26",
+  "reported_not_gated": [
+   "fan_pit_h126",
+   "period_2026"
+  ],
+  "status": "PASS",
+  "thresholds": {
+   "es975_z2_reject_level": 0.05,
+   "fan_pit_h21_chi2_p_min": 0.01,
+   "min_fan_origins": 20,
+   "min_origins": 200,
+   "var99_cc_p_min": 0.05,
+   "var99_kupiec_p_min": 0.05
+  }
+ },
+ "label": "SMOKE: VENDOR DATA \u2014 Yahoo auto-adjusted closes (docs/asset_expansion/cache), last row dropped; not an official close, not the I-11 KOSPI fixture, not a card run; gates nothing",
+ "lines": [
+  "model envelope = fast_fhs / gjr_evt; expanding GJR fit >= 10 years, refit every 21 origins; returns log",
+  "2016-26 (gated; n 1248): 95% VaR breaches 3.61% Kupiec p 0.018 CC p 0.057",
+  "2016-26 (gated): 99% VaR breaches 0.80% Kupiec p 0.465 CC p 0.141",
+  "2016-26 (gated): ES 97.5% Z2 +0.242 p 0.571 (not rejected at 5%; 2000 simulated)",
+  "2016-26: Basel last 250 green; windows green 4 / yellow 0 / red 0",
+  "fan PIT h21 (gated; garch_t fan, 2016-26 origins, non-overlapping): chi2 p 0.736 n 83",
+  "fan PIT h126 (reported, not gated; garch_t fan): chi2 p nan n 13",
+  "2026 (reported, not gated; n 178): 95% VaR breaches 4.49% Kupiec p 0.753 CC p 0.616",
+  "2026 (reported, not gated): 99% VaR breaches 1.12% Kupiec p 0.871 CC p 0.965",
+  "2026 (reported, not gated): ES 97.5% Z2 -0.556 p 0.030 (rejected at 5%; 2000 simulated)",
+  "2026: Basel last 250 None; windows green 0 / yellow 0 / red 0",
+  "post-holiday buckets: not run (gap_sessions not supplied: KR/US calendars)",
+  "1-day VaR (envelope): 95% 4.98% / 99% 8.27% at x1.000; B5 {'fast_fhs': 'PASS', 'gjr_evt': 'PASS'}",
+  "M9 gate: PASS var99_kupiec_p 0.4649, var99_cc_p 0.141, es975_z2_p 0.571, fan_pit_h21_chi2_p 0.7363",
+  "SMOKE: VENDOR DATA \u2014 Yahoo auto-adjusted closes (docs/asset_expansion/cache), last row dropped; not an official close, not the I-11 KOSPI fixture, not a card run; gates nothing"
+ ],
+ "market": "KR",
+ "model": "envelope",
+ "n_ok": 1248,
+ "note": "",
+ "path_colour_label": "path-vol quartile",
+ "per_label": {},
+ "periods": {
+  "2016-26": {
+   "basel": {
+    "last_250": "green",
+    "n_windows": 4,
+    "windows": {
+     "green": 4,
+     "red": 0,
+     "yellow": 0
+    }
+   },
+   "es975": {
+    "B": 2000,
+    "alpha": 0.025000000000000022,
+    "law": "x*_t = scale_t z*, z* iid from the residual pool; losses beyond u redrawn from GPD(xi, beta)",
+    "n": 1248,
+    "p": 0.571,
+    "q": 0.975,
+    "rejected_5pct": false,
+    "seed": 11,
+    "z2": 0.2416264320231587
+   },
+   "n": 1248,
+   "tick_loss": {
+    "var95": 0.0020060462516801555,
+    "var99": 0.0006232430028942632
+   },
+   "unscaled": {
+    "var95_rate": 0.036057692307692304,
+    "var99_rate": 0.008012820512820512
+   },
+   "var95": {
+    "cc_p": 0.057251468400123205,
+    "ind_p": 0.767082462691859,
+    "kupiec_p": 0.017626713931089517,
+    "n": 1248,
+    "q": 0.95,
+    "rate": 0.036057692307692304,
+    "tick_loss": 0.0020060462516801555,
+    "x": 45
+   },
+   "var99": {
+    "cc_p": 0.14100194169585642,
+    "ind_p": 0.06583873313212994,
+    "kupiec_p": 0.46487598817001574,
+    "n": 1248,
+    "q": 0.99,
+    "rate": 0.008012820512820512,
+    "tick_loss": 0.0006232430028942632,
+    "x": 10
+   }
+  },
+  "2026": {
+   "basel": {
+    "last_250": null,
+    "n_windows": 0,
+    "windows": {
+     "green": 0,
+     "red": 0,
+     "yellow": 0
+    }
+   },
+   "es975": {
+    "B": 2000,
+    "alpha": 0.025000000000000022,
+    "law": "x*_t = scale_t z*, z* iid from the residual pool; losses beyond u redrawn from GPD(xi, beta)",
+    "n": 178,
+    "p": 0.0305,
+    "q": 0.975,
+    "rejected_5pct": true,
+    "seed": 11,
+    "z2": -0.5559874763623767
+   },
+   "n": 178,
+   "tick_loss": {
+    "var95": 0.005375289262941259,
+    "var99": 0.0015552116748686433
+   },
+   "unscaled": {
+    "var95_rate": 0.0449438202247191,
+    "var99_rate": 0.011235955056179775
+   },
+   "var95": {
+    "cc_p": 0.6159843858477005,
+    "ind_p": 0.35094382043503514,
+    "kupiec_p": 0.7530018244134222,
+    "n": 178,
+    "q": 0.95,
+    "rate": 0.0449438202247191,
+    "tick_loss": 0.005375289262941259,
+    "x": 8
+   },
+   "var99": {
+    "cc_p": 0.9645798524730405,
+    "ind_p": 0.830694196366828,
+    "kupiec_p": 0.8709029556111914,
+    "n": 178,
+    "q": 0.99,
+    "rate": 0.011235955056179775,
+    "tick_loss": 0.0015552116748686433,
+    "x": 2
+   }
+  }
+ },
+ "post_holiday": {},
+ "reason": "",
+ "repro": {
+  "config_hash": "56547d133d7b40fb6c6f729da73e854f",
+  "data_snapshot_id": "de3e33f1bbc5b12695136a8d7f2f20a1",
+  "git_hash": "UNVERSIONED",
+  "knowledge_utc": "2026-09-22T23:59:59Z (last close in the file)",
+  "package_version": "quant_lab_grading 2.0",
+  "seed": 11
+ },
+ "returns": "log",
+ "status": "ok",
+ "symbol": "KODEX200",
+ "var_1d": {
+  "b5": {
+   "fast_fhs": "PASS",
+   "gjr_evt": "PASS"
+  },
+  "displayable": true,
+  "es975": 0.08535541184415697,
+  "model": "envelope",
+  "origin": "2026-09-22",
+  "reason": "",
+  "scale": 1.0,
+  "var95": 0.04981576806181417,
+  "var99": 0.08268116975115877
+ },
+ "verdict": "PASS"
+}

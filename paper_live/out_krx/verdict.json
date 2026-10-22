@@ -1,0 +1,200 @@
+{
+ "profile": "krx",
+ "frozen_file": "C:\\Users\\whydi\\OneDrive\\Desktop\\QUANTGEN\\paper_live\\out_krx\\HYPOTHESES_frozen.json",
+ "H1": {
+  "status": "exploratory: holds (run predates the hypotheses)",
+  "run": "run2",
+  "accounts": {
+   "QG-TREND": {
+    "gap": 0.926227042147957,
+    "replay_sd": 2.1612169267015373,
+    "gap_in_sd": 0.4285673643883451,
+    "limit": 1.0806084633507687,
+    "holds": true
+   },
+   "QG-CORE": {
+    "gap": 0.01948346738942064,
+    "replay_sd": 1.361414294284574,
+    "gap_in_sd": 0.01431119643095803,
+    "limit": 0.680707147142287,
+    "holds": true
+   },
+   "LAZYOWEN-CAL": {
+    "gap": -0.05999999999994543,
+    "replay_sd": 0.058324133509602784,
+    "gap_in_sd": 1.028733671458089,
+    "limit": 0.25,
+    "holds": true
+   },
+   "LAZYOWEN-NAIVE": {
+    "gap": -0.2025497260954694,
+    "replay_sd": 0.9506968128496415,
+    "gap_in_sd": 0.21305396563636517,
+    "limit": 0.47534840642482074,
+    "holds": true
+   }
+  }
+ },
+ "H2": {
+  "status": "pending",
+  "sessions": 0,
+  "planned": 10,
+  "missing": [
+   "2026-10-21",
+   "2026-10-22",
+   "2026-10-23",
+   "2026-10-26",
+   "2026-10-27",
+   "2026-10-28",
+   "2026-10-29",
+   "2026-10-30",
+   "2026-11-02",
+   "2026-11-03"
+  ],
+  "expected": [
+   "2026-10-21",
+   "2026-10-22",
+   "2026-10-23",
+   "2026-10-26",
+   "2026-10-27",
+   "2026-10-28",
+   "2026-10-29",
+   "2026-10-30",
+   "2026-11-02",
+   "2026-11-03"
+  ],
+  "how": "REPLAY_HOLDOUT=1 python -m paper_live.replay after the last expected session"
+ },
+ "H3": {
+  "status": "power line only (pre-registered: no edge test)",
+  "power": {
+   "LAZYOWEN-CAL": {
+    "gross": {
+     "n": 45,
+     "mean": -0.0014817413802204911,
+     "sd": 0.02903634229005436,
+     "t": -0.342323535604096,
+     "t_nw5": -0.48569949637582505,
+     "mde80_usd": 0.009190233715401319,
+     "sessions_for_0p50": 2,
+     "upper90_usd": 0.004150003972702231,
+     "sessions_for_sr1": 1137
+    },
+    "net": {
+     "n": 45,
+     "mean": -0.03881486587706224,
+     "sd": 0.058324133509602784,
+     "t": -4.46432754758499,
+     "t_nw5": -5.114260677775367,
+     "mde80_usd": 0.018460053020697323,
+     "sessions_for_0p50": 2,
+     "upper90_usd": -0.027502605380379172,
+     "sessions_for_sr1": 1137
+    }
+   },
+   "LAZYOWEN-NAIVE": {
+    "gross": {
+     "n": 45,
+     "mean": -0.06195219748092503,
+     "sd": 0.6628046451275926,
+     "t": -0.6270142761122569,
+     "t_nw5": -0.6757653575962747,
+     "mde80_usd": 0.20978295184454532,
+     "sessions_for_0p50": 8,
+     "upper90_usd": 0.06660211362359272,
+     "sessions_for_sr1": 1137
+    },
+    "net": {
+     "n": 45,
+     "mean": -2.950722961171855,
+     "sd": 0.9506968128496415,
+     "t": -20.820571926099188,
+     "t_nw5": -21.29040366690067,
+     "mde80_usd": 0.3009031170419846,
+     "sessions_for_0p50": 17,
+     "upper90_usd": -2.7663305089710724,
+     "sessions_for_sr1": 1137
+    }
+   },
+   "QG-CORE": {
+    "gross": {
+     "n": 45,
+     "mean": 0.187953906195869,
+     "sd": 1.3687001167554238,
+     "t": 0.9211901988147833,
+     "t_nw5": 1.123990015621529,
+     "mde80_usd": 0.43320449365235353,
+     "sessions_for_0p50": 34,
+     "upper90_usd": 0.453420212009545,
+     "sessions_for_sr1": 1137
+    },
+    "net": {
+     "n": 45,
+     "mean": -0.2182234307100594,
+     "sd": 1.361414294284574,
+     "t": -1.0752695062761919,
+     "t_nw5": -1.3036622470743606,
+     "mde80_usd": 0.4308984727821226,
+     "sessions_for_0p50": 34,
+     "upper90_usd": 0.045829753008810536,
+     "sessions_for_sr1": 1137
+    }
+   },
+   "QG-TACTICAL": {
+    "gross": {
+     "n": 45,
+     "mean": 0.0,
+     "sd": 0.0,
+     "t": null,
+     "t_nw5": null,
+     "mde80_usd": null,
+     "sessions_for_0p50": null,
+     "upper90_usd": null,
+     "sessions_for_sr1": 1137
+    },
+    "net": {
+     "n": 45,
+     "mean": 0.0,
+     "sd": 0.0,
+     "t": null,
+     "t_nw5": null,
+     "mde80_usd": null,
+     "sessions_for_0p50": null,
+     "upper90_usd": null,
+     "sessions_for_sr1": 1137
+    }
+   },
+   "QG-TREND": {
+    "gross": {
+     "n": 45,
+     "mean": -0.3406555291153612,
+     "sd": 1.302021634322476,
+     "t": -1.7551065971560804,
+     "t_nw5": -2.603813304005542,
+     "mde80_usd": 0.41210022262449175,
+     "sessions_for_0p50": 31,
+     "upper90_usd": -0.08812185199956063,
+     "sessions_for_sr1": 1137
+    },
+    "net": {
+     "n": 45,
+     "mean": -4.048013732777863,
+     "sd": 2.1612169267015373,
+     "t": -12.56463490801726,
+     "t_nw5": -17.95963764774468,
+     "mde80_usd": 0.6840423792934736,
+     "sessions_for_0p50": 85,
+     "upper90_usd": -3.6288347858559464,
+     "sessions_for_sr1": 1137
+    }
+   }
+  },
+  "plain": [
+   "LAZYOWEN-CAL: over 45 sessions a gross edge of $0.01 a session would have been detected with 80% power (one-sided alpha 0.10); the upper 90% bound on the gross mean is $+0.00; a $0.50 edge needs 2 sessions, an annual Sharpe of 1 about 1,137",
+   "LAZYOWEN-NAIVE: over 45 sessions a gross edge of $0.21 a session would have been detected with 80% power (one-sided alpha 0.10); the upper 90% bound on the gross mean is $+0.07; a $0.50 edge needs 8 sessions, an annual Sharpe of 1 about 1,137",
+   "QG-CORE: over 45 sessions a gross edge of $0.43 a session would have been detected with 80% power (one-sided alpha 0.10); the upper 90% bound on the gross mean is $+0.45; a $0.50 edge needs 34 sessions, an annual Sharpe of 1 about 1,137",
+   "QG-TACTICAL: no gross variation over 45 sessions (it barely traded)",
+   "QG-TREND: over 45 sessions a gross edge of $0.41 a session would have been detected with 80% power (one-sided alpha 0.10); the upper 90% bound on the gross mean is $-0.09; a $0.50 edge needs 31 sessions, an annual Sharpe of 1 about 1,137"
+  ]
+ }
+}

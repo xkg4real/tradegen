@@ -1,0 +1,76 @@
+{
+ "card_id": "D_Q_skewt_kodex200",
+ "kind": "distribution",
+ "hypothesis": "GJR-GARCH(1,1) skew-t one-day-ahead fans on 069500.KS are calibrated (Kupiec/Christoffersen/PIT) and beat EWMA on QLIKE",
+ "rules": {},
+ "universe": {
+  "symbol": "069500.KS"
+ },
+ "data": {
+  "sessions": 3587,
+  "start": "2012-01-02",
+  "end": "2026-09-23",
+  "window": 504
+ },
+ "costs": {},
+ "protocol": {},
+ "trials": {
+  "N_planned": 1,
+  "N_total": 1,
+  "ledger": []
+ },
+ "seed": 11,
+ "stats": {
+  "model": "gjr_skewt",
+  "n_origins": 3082,
+  "exceed95": 0.06262167423750811,
+  "exceed99": 0.012329656067488644,
+  "coverage90": 0.8705386112913692,
+  "qlike_model": 1.8765735848525489,
+  "qlike_ewma": 1.8968938355900833,
+  "dm_t": -1.284887829453193,
+  "dm_p": 0.19883148449753119,
+  "nonconv_share": 0.0,
+  "stationarity_share": 0.01654769630110318,
+  "traffic": "yellow",
+  "median_gamma": 0.12680731868248454,
+  "median_lambda": -0.09248960164403133
+ },
+ "tests": {
+  "kupiec95_p": 0.0019423129505901865,
+  "kupiec99_p": 0.20977097345658566,
+  "cc_p": 0.006970537475227623,
+  "pit_ks_p": 0.10959682674271898,
+  "berkowitz_p": 1.4031377335882233e-05
+ },
+ "decision": "REVISE",
+ "decision_reason": "tails, clustering, coverage, pit, light failed",
+ "revise_target": "tails too thin: t innovations, a lower ν floor, or the GJR leverage term",
+ "lines": [
+  "The fan said a 5 % day would happen 5 % of the time; it happened 6.3% of the time over 3,082 origins, 3.2 standard errors from target (Kupiec p = 0.00): fails.",
+  "1 % days happened 1.23% of the time (Kupiec p = 0.21); Basel traffic light over the last 250 days: yellow.",
+  "Exceptions cluster? Christoffersen independence p = 0.57, conditional coverage p = 0.01: fails.",
+  "The 90 % band covered 87.1% of outcomes (target 90 % ± 1.1%): fails.",
+  "PIT calibration: KS p = 0.11, chi-square p = 0.00, Berkowitz p = 0.00; histogram flat; correlogram flags: k=2 lag=5: +0.04, k=4 lag=5: +0.05: fails.",
+  "Solver failed to converge at 0.0% of origins: passes.",
+  "QLIKE GJR-GARCH(1,1) skew-t 1.877 vs EWMA(0.94) 1.897: Diebold–Mariano t -1.28 (negative favours the model; the crypto gate needs p < 0.10).",
+  "Fitted ν: median 6.3; 0% of refits effectively normal; the persistence sat on the stationarity guardrail (near-integrated variance) at 2% of origins; median leverage γ 0.127; median skew λ -0.092 (negative = longer left tail)."
+ ],
+ "decay_haircut": {
+  "factor": 0.6,
+  "source": "McLean-Pontiff 2016 26-58%"
+ },
+ "created": "2026-09-27",
+ "author": "QUANTGEN validation gate",
+ "results_file": "docs/asset_expansion/results.csv",
+ "results_md5": "ca757e25f508b588cb2f361719ec83cd",
+ "citations": [
+  "Primer §6.3–6.4, §7.7",
+  "ARCHITECTURE_REVIEW B5",
+  "Berkeley Lec 8 §3 (coverage, PIT)",
+  "Kupiec 1995; Christoffersen 1998",
+  "Glosten, Jagannathan & Runkle 1993 JF 48",
+  "ARCHITECTURE_REVIEW B8",
+  "Hansen 1994 IER 35 (skewed t)"
+ ]
+}

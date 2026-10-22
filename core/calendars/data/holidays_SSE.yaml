@@ -1,0 +1,19 @@
+file_id: holidays_SSE
+version: 0.1.0-draft
+status: UNSIGNED DRAFT - refused at load (R-20 rule 6, T-CAL-01); every KR/US acting input fails closed and every book stays
+  DISARMED until the owner verifies and signs
+covers:
+  from: null
+  to: null
+coverage_calendar: SSE
+signed_off_by: null
+signed_utc: null
+md5: null
+how_to_sign: verify every row against its official source, fill source_url and signed_off_by on every row, set signed_off_by
+  / signed_utc at file level, set md5 to the content md5 printed by `python -m core.calendars.store`, and add the matching
+  MANIFEST.yaml row with a new test id
+unverified:
+- 'no rows: skeleton only'
+owner_must_sign:
+- SSE trading calendar, with licence, owner and md5 (spec section 9.5)
+rows: []

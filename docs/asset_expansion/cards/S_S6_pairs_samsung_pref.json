@@ -1,0 +1,195 @@
+{
+ "card_id": "S_S6_pairs_samsung_pref",
+ "kind": "strategy",
+ "hypothesis": "005935.KS/005930.KS: the Engle–Granger spread mean-reverts fast enough to trade at 2σ after 35 bp per side (long-only tilt)",
+ "rules": {
+  "family": "pairs",
+  "grid": [
+   {
+    "formation": 126,
+    "trading": 126,
+    "entry": 1.5,
+    "exit": 0.0,
+    "long_only": true
+   },
+   {
+    "formation": 126,
+    "trading": 126,
+    "entry": 2.0,
+    "exit": 0.0,
+    "long_only": true
+   },
+   {
+    "formation": 126,
+    "trading": 126,
+    "entry": 2.5,
+    "exit": 0.0,
+    "long_only": true
+   },
+   {
+    "formation": 126,
+    "trading": 126,
+    "entry": 3.0,
+    "exit": 0.0,
+    "long_only": true
+   },
+   {
+    "formation": 252,
+    "trading": 126,
+    "entry": 1.5,
+    "exit": 0.0,
+    "long_only": true
+   },
+   {
+    "formation": 252,
+    "trading": 126,
+    "entry": 2.0,
+    "exit": 0.0,
+    "long_only": true
+   },
+   {
+    "formation": 252,
+    "trading": 126,
+    "entry": 2.5,
+    "exit": 0.0,
+    "long_only": true
+   },
+   {
+    "formation": 252,
+    "trading": 126,
+    "entry": 3.0,
+    "exit": 0.0,
+    "long_only": true
+   }
+  ],
+  "cost_bps_per_side": 35.0,
+  "embargo": 5
+ },
+ "universe": {
+  "symbols": [
+   "005935.KS",
+   "005930.KS"
+  ],
+  "venue": "krx_stock"
+ },
+ "data": {
+  "sessions": 5184,
+  "start": "2005-09-29",
+  "end": "2026-09-23",
+  "source": "Yahoo adjusted close unless stated"
+ },
+ "costs": {
+  "cost_bps": 35.0,
+  "stress_multiplier": 2.0
+ },
+ "protocol": {
+  "w_is": 756,
+  "w_oos": 126,
+  "min_is": 504,
+  "ci_level": 0.9,
+  "bootstrap_B": 2000,
+  "block": 10
+ },
+ "trials": {
+  "N_planned": 8,
+  "N_total": 8,
+  "ledger": []
+ },
+ "seed": 11,
+ "stats": {
+  "sr_oos": 0.8306677264755966,
+  "se_lo": 0.23888450835109765,
+  "ci90": [
+   0.47834396813571284,
+   1.1820779238314127
+  ],
+  "sr_is": 0.6998239527976172,
+  "oos_is": 1.1869666980601594,
+  "dsr": 0.9997003918621984,
+  "pbo": 0.22377622377622378,
+  "pbo_slope": -0.969257672151866,
+  "prob_loss_oos": 0.0001554001554001554,
+  "sr_stress": 0.7657709528685072,
+  "turnover_annual": 5.869742198100408,
+  "n_trades": 102,
+  "n_sessions": 4422,
+  "years_positive": 0.7368421052631579,
+  "n_years": 19,
+  "max_year_share": 0.18023598406479546,
+  "plateau": 1.0,
+  "edge": true,
+  "total_return": 43.44932816854206,
+  "max_drawdown": -0.4179886320091636,
+  "haircut_sr": 0.49840063588535793,
+  "bench_sr": 0.8452007183684996,
+  "n_trials": 8,
+  "n_configs": 8,
+  "bench_diff": -0.014532991892903024,
+  "bench_p": 0.6145,
+  "bench_ci": [
+   -0.08297153816766767,
+   0.05611050775394445
+  ],
+  "bench_mdd": -0.40889817116999894,
+  "decision": "REJECT",
+  "reason": "does not beat its benchmark (Sharpe difference -0.01, p 0.61)",
+  "revise_target": "the sleeve set or the cost model, not the rule: the benchmark is as good",
+  "regime": {
+   "high_vol": 1.0738342410316228,
+   "low_vol": 0.5695706446505228,
+   "up_market": 0.8578018966886914,
+   "down_market": 0.8582831539036186
+  },
+  "chosen_last": {
+   "formation": 252,
+   "trading": 126,
+   "entry": 1.5,
+   "exit": 0.0,
+   "long_only": true
+  },
+  "bench_sharpe": 0.8452007183684996,
+  "walk_forward": "IS 756 / OOS 126 / embargo 5; 36 origins; 8 configs",
+  "seconds": 6.4,
+  "share_cointegrated": 0.575,
+  "median_half_life": 6.699493162027779
+ },
+ "tests": {
+  "dsr": 0.9997003918621984,
+  "pbo": 0.22377622377622378,
+  "ci90": [
+   0.47834396813571284,
+   1.1820779238314127
+  ],
+  "sr_stress": 0.7657709528685072
+ },
+ "decision": "REJECT",
+ "decision_reason": "does not beat its benchmark (Sharpe difference -0.01, p 0.61)",
+ "revise_target": "the sleeve set or the cost model, not the rule: the benchmark is as good",
+ "lines": [
+  "ADF rejects a unit root in 57% of the 40 formation windows; median half-life 7 sessions (gate: ≥ 60 % and 5–40 sessions).",
+  "Out-of-sample Sharpe 0.83 over 4,422 sessions (19 years); Lo standard error 0.24; 90 % block-bootstrap interval 0.48 to 1.18: passes (the interval must exclude zero).",
+  "Deflated Sharpe 1.00 after 8 trials: passes (needs ≥ 0.95).",
+  "Probability of backtest overfitting 0.22 over the 8-config grid; the in-sample winner loses out of sample in 0% of the splits: passes (PBO ≤ 0.05, or ≤ 10% losing splits because near-identical configurations put PBO at 0.5 by construction; rejected when PBO > 0.2 and the winner also loses).",
+  "Out-of-sample over in-sample Sharpe 1.19: passes (needs ≥ 0.5).",
+  "Against the benchmark (Sharpe 0.85): difference -0.01, paired block-bootstrap 90 % interval -0.08 to +0.06, one-sided p 0.61: fails (the claim 'beats the benchmark' needs p ≤ 0.1); max drawdown -42% against the benchmark's -41% (reported, not gated).",
+  "Positive in 74% of calendar years: passes (needs ≥ 60%); largest year carries 18% of the P&L.",
+  "Sharpe at 2× costs 0.77: passes (must stay positive); turnover 5.9× equity per year.",
+  "Parameter plateau 100% of neighbours keep half the Sharpe, on a grid edge: fails.",
+  "102 position changes out of sample: passes (needs ≥ 100).",
+  "Regime split (Sharpe): high-vol 1.07 / low-vol 0.57, up 0.86 / down 0.86.",
+  "Expected live Sharpe after the McLean–Pontiff haircut: 0.50."
+ ],
+ "decay_haircut": {
+  "factor": 0.6,
+  "source": "McLean-Pontiff 2016 26-58%"
+ },
+ "created": "2026-09-27",
+ "author": "QUANTGEN validation gate",
+ "results_file": "docs/asset_expansion/results.csv",
+ "results_md5": "ca757e25f508b588cb2f361719ec83cd",
+ "citations": [
+  "Gatev, Goetzmann & Rouwenhorst 2006 RFS 19",
+  "Do & Faff 2010 FAJ 66",
+  "MTSA §5.3.2 p. 170, §6.2.3 pp. 215–219, §6.3.2 pp. 228–238"
+ ]
+}

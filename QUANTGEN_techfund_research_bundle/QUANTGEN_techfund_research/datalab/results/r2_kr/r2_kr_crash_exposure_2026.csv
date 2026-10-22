@@ -1,0 +1,25 @@
+sleeve,control,s_on_2026_06_22,s_on_2026_06_30,min_s_june_2026,first_cut_in_2026,cut_before_2026_07_01,sigma126_on_2026_06_22
+LS_EW (ALL quintiles),static,1,1,1,none,False,
+LS_EW (ALL quintiles),"VS (own vol, 12%, cap 1)",0.553134,0.537921,0.537921,2026-01-02,True,0.216946
+LS_EW (ALL quintiles),"DM gate (KOSPI, floor 0.5)",1,1,1,none,False,
+LS_EW (ALL quintiles),VS x DM,0.553134,0.537921,0.537921,2026-01-02,True,0.216946
+LS_VW (ALL quintiles),static,1,1,1,none,False,
+LS_VW (ALL quintiles),"VS (own vol, 12%, cap 1)",0.273837,0.251078,0.251078,2026-01-02,True,0.438216
+LS_VW (ALL quintiles),"DM gate (KOSPI, floor 0.5)",1,1,1,none,False,
+LS_VW (ALL quintiles),VS x DM,0.273837,0.251078,0.251078,2026-01-02,True,0.438216
+LO_EW excess (Q5 vs EW univ),static,1,1,1,none,False,
+LO_EW excess (Q5 vs EW univ),"VS (own vol, 12%, cap 1)",0.796807,0.771105,0.771105,2026-04-02,True,0.150601
+LO_EW excess (Q5 vs EW univ),"DM gate (KOSPI, floor 0.5)",1,1,1,none,False,
+LO_EW excess (Q5 vs EW univ),VS x DM,0.796807,0.771105,0.771105,2026-04-02,True,0.150601
+LO_VW excess (Q5 vs VW univ),static,1,1,1,none,False,
+LO_VW excess (Q5 vs VW univ),"VS (own vol, 12%, cap 1)",0.889638,0.83837,0.83837,2026-03-18,True,0.134886
+LO_VW excess (Q5 vs VW univ),"DM gate (KOSPI, floor 0.5)",1,1,1,none,False,
+LO_VW excess (Q5 vs VW univ),VS x DM,0.889638,0.83837,0.83837,2026-03-18,True,0.134886
+E5 top500 D10-D1 EW,static,1,1,1,none,False,
+E5 top500 D10-D1 EW,"VS (own vol, 12%, cap 1)",0.35095,0.33196,0.33196,2026-01-02,True,0.341929
+E5 top500 D10-D1 EW,"DM gate (KOSPI, floor 0.5)",1,1,1,none,False,
+E5 top500 D10-D1 EW,VS x DM,0.35095,0.33196,0.33196,2026-01-02,True,0.341929
+E5 top500 D10-D1 VW,static,1,1,1,none,False,
+E5 top500 D10-D1 VW,"VS (own vol, 12%, cap 1)",0.203396,0.18965,0.18965,2026-01-02,True,0.589982
+E5 top500 D10-D1 VW,"DM gate (KOSPI, floor 0.5)",1,1,1,none,False,
+E5 top500 D10-D1 VW,VS x DM,0.203396,0.18965,0.18965,2026-01-02,True,0.589982
