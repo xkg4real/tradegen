@@ -416,9 +416,8 @@ def main(argv=None) -> int:
     ap.add_argument("--macro-dir", default=None, help="defaults to config.macro_dir()")
     ap.add_argument("--store", default=str(M.SHIPPED_STORE_PATH))
     args = ap.parse_args(argv)
-    if args.macro_dir is None:
-        import config
-        args.macro_dir = str(config.macro_dir())
+    import config
+    args.macro_dir = str(config.refuse_quantgen(args.macro_dir, "--macro-dir") if args.macro_dir else config.macro_dir())
     store = M.load_store(args.store, rulings_log=Path(args.macro_dir) / "governance_events.jsonl")
     root = Path(args.root)
     info = listing(store, root=root, macro_dir=args.macro_dir, anchor=args.anchor)

@@ -12,7 +12,8 @@ import json, math, sys, time
 import numpy as np
 from scipy.optimize import minimize
 from scipy.special import gammaln
-sys.path.insert(0, r"C:\Users\whydi\OneDrive\Desktop\QUANTGEN")
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))       # this repo (TRADEGEN), never QUANTGEN
 from core.quant.garch import (BOUNDS, STATIONARITY_MAX, _OMEGA_SCALE, _PENALTY, _variance_path,
                               fit_garch, simulate_garch_series)
 from core.quant.history import synthetic_history
@@ -120,5 +121,5 @@ out["stability"] = {f"eta={e:g}": loglik_eta(np.array([var * 0.1, 0.05, 0.85, e]
                     for e in (1e-7, 1e-5, 1e-3, 1e-2)}
 print("5. stability (loglik(eta) - loglik(normal)):", out["stability"], flush=True)
 out["elapsed_s"] = time.time() - t0
-json.dump(out, open(r"C:\Users\whydi\AppData\Local\Temp\claude\C--Users-whydi-OneDrive-Desktop-QUANTGEN\291d2ec9-503b-4095-8c02-214016a1ab5b\scratchpad\b1_results.json", "w"), indent=1)
+json.dump(out, open(Path(__file__).with_name("b1_results.json"), "w"), indent=1)   # was a QUANTGEN session scratchpad
 print("done", f"{time.time()-t0:.0f}s")

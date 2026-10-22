@@ -203,33 +203,54 @@ def test_skill_one_sided_direction():
     assert s["dm_t"] > 0 and s["p_one_sided"] > 0.5 and not s["passed"]
 
 
-def test_forward_window_is_blinded_until_the_one_look():
-    tmp = Path(tempfile.mkdtemp(prefix="grokteam_"))
-    keep = B.LOOK
+def test_tradegen_copy_is_permanently_blinded():
+    # TRADEGEN's copy never takes the look (QUANTGEN holds the record): forward events are dropped at any date,
+    # and the freeze record and its byte copies stay in place (deleting them would remove the gate's anchor)
+    fz = B.ts(B.FROZEN_UTC)
+    assert B.ts(json.loads(B.PREREG.read_text(encoding="utf-8"))["frozen_utc"]) == fz
+    assert (B.PREREG.parent / "frozen_book" / "grokteam" / "book.py").is_file()
+    recs = [dict(event="A", decision_s=fz - 10), dict(event="B", decision_s=fz + 10)]
+    for freeze in (fz, fz + 86400 * 365):                      # a later freeze time can never widen the cut
+        kept, status = B.forward_gate(recs, freeze)
+        assert [r["event"] for r in kept] == ["A"] and status.startswith("blinded permanently")
+    assert B.FREEZE_BY <= B.FROZEN_UTC[:10]                     # prereg.freeze() refuses: no re-freeze here, ever
+
+    class Stop(Exception):
+        pass
+    d = B.RULES["decision_s"]
+    pre, post = dict(event="A", close_s=fz + d - 10), dict(event="B", close_s=fz + d + 10)
+    iso = lambda s: B.datetime.fromtimestamp(s, B.timezone.utc).isoformat()       # noqa: E731
+    tmp = Path(tempfile.mkdtemp(prefix="grokteam_blind_"))
+    asked = []
+
+    def fetch(evs):                                             # every call recorded, so a second fetch is seen too
+        asked.extend(e["event"] for e in evs)
+        return [], []
+
+    def stop(*a, **k):
+        raise Stop
+
+    keep = (B.DATA, B.OUT, B.kalshi, B.settled_events, B.fetch_all, B.strike_table, B.register_trials)
     try:
-        B.LOOK = tmp / "FORWARD_LOOK.json"
-        fz = B.day_s("2026-10-25")
-        recs = [dict(event="A", decision_s=fz - 10), dict(event="B", decision_s=fz + 10), dict(event="C", decision_s=fz + 20)]
-        before, after = B.day_s("2026-12-01"), B.day_s(B.FORWARD_END) + 7200
-        kept, status = B.forward_gate(recs, ["B", "C"], [], fz, before)
-        assert [r["event"] for r in kept] == ["A"] and status.startswith("blinded")
-        kept, status = B.forward_gate(recs, ["B", "C"], [], fz, after, smoke=True)
-        assert [r["event"] for r in kept] == ["A"] and status.startswith("blinded")
-        kept, status = B.forward_gate(recs, ["B", "C", "D"], [], fz, after)
-        assert [r["event"] for r in kept] == ["A"] and status.startswith("incomplete")
-        kept, status = B.forward_gate(recs, ["B", "C"], ["C"], fz, after)
-        assert status.startswith("incomplete")
-        kept, status = B.forward_gate(recs, ["B", "C"], [], fz, after)
-        assert len(kept) == 3 and status == "look"
-        kept, status = B.forward_gate(recs, ["B", "C"], [], fz, after, diffs=["grokteam/book.py"])
-        assert [r["event"] for r in kept] == ["A"] and status.startswith("VOID")     # a VOID run shows nothing forward
-        kept, status = B.forward_gate(recs, ["B", "C"], [], fz, after, pending=["E"])
-        assert [r["event"] for r in kept] == ["A"] and status.startswith("incomplete")  # an unsettled event waits
-        B.LOOK.write_text("{}")
-        kept, status = B.forward_gate(recs, ["B", "C"], [], fz, after)
-        assert [r["event"] for r in kept] == ["A"] and status == "taken"
+        B.DATA, B.OUT = tmp / "data", tmp / "out"
+        B.kalshi = lambda path, **kw: dict(events=[dict(event_ticker=e["event"], strike_date=iso(e["close_s"]))
+                                                   for e in (pre, post)])
+        assert [e["event"] for e in B.settled_events(fz + 86400)] == ["A"]          # the listing itself is cut
+        B.write_cached(B.DATA / "kalshi" / "events.json.gz", dict(listed_s=2**40, events=[pre, post]))
+        B._MANIFESTS.clear()
+        assert [e["event"] for e in B.settled_events(fz + 86400)] == ["A"]          # so is an older cache
+        B.settled_events = lambda until: [pre, post]           # main must cut again even if the listing leaked
+        B.fetch_all, B.strike_table, B.register_trials = fetch, stop, stop
+        try:
+            B.main(["--limit", "10", "--end", "2027-06-01"])    # long after FORWARD_END
+        except Stop:
+            pass
+        except SystemExit as exc:
+            raise AssertionError(f"book.main exited: {exc}")
     finally:
-        B.LOOK = keep
+        B.DATA, B.OUT, B.kalshi, B.settled_events, B.fetch_all, B.strike_table, B.register_trials = keep
+        B._MANIFESTS.clear()
+    assert asked == ["A"], asked                                # a forward event is never even fetched
 
 
 def test_calibration_recovers_identity():

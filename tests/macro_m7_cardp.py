@@ -528,8 +528,8 @@ def test_placebo_02_probe_isolation():
     _raises(ns["builder"], CP.TimingProbeForbidden, "tests/ or docs/")
     # a card whose statistics read an L <= 0 row is refused; probe output is tagged and lands outside the production dir
     with tempfile.TemporaryDirectory() as tmp:
-        old = os.environ.get("QUANTGEN_MACRO_DIR")
-        os.environ["QUANTGEN_MACRO_DIR"] = str(Path(tmp) / "prod")
+        old = os.environ.get("TRADEGEN_MACRO_DIR")
+        os.environ["TRADEGEN_MACRO_DIR"] = str(Path(tmp) / "prod")
         try:
             prof = CP.timing_probe(card, lambda L: books_at(r, vt, L), sandbox=True, B=20, seed=SEED, out_dir=Path(tmp) / "probe")
             assert prof["synthetic_lookahead"] and prof["LP"] is not None and prof["lags"][3]["L"] == -1
@@ -539,9 +539,9 @@ def test_placebo_02_probe_isolation():
                     CP.TimingProbeForbidden, "production artifact directory")
         finally:
             if old is None:
-                os.environ.pop("QUANTGEN_MACRO_DIR", None)
+                os.environ.pop("TRADEGEN_MACRO_DIR", None)
             else:
-                os.environ["QUANTGEN_MACRO_DIR"] = old
+                os.environ["TRADEGEN_MACRO_DIR"] = old
     leaked = CP._run_lagged.__wrapped__ if hasattr(CP._run_lagged, "__wrapped__") else None
     assert leaked is None
     probe_books = CP.Books(np.zeros(3), np.zeros(3), np.zeros(3), np.ones(3), (date(2020, 1, 1),) * 3, synthetic_lookahead=True)

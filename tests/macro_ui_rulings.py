@@ -12,10 +12,10 @@ from core.rules import macro_rules as R
 
 def test_owner_items_replay_owner_rulings_from_the_macro_dir():
     from ui import macro_state_panel as P
-    saved = os.environ.get("QUANTGEN_MACRO_DIR")
+    saved = os.environ.get("TRADEGEN_MACRO_DIR")
     with tempfile.TemporaryDirectory() as tmp:
         try:
-            os.environ["QUANTGEN_MACRO_DIR"] = tmp
+            os.environ["TRADEGEN_MACRO_DIR"] = tmp
             before = {d["decision"]: d for d in P.owner_items()["decisions"]}
             assert before["D2"]["status"] == "default"
             R.apply_owner_ruling(R.SHIPPED_STORE_PATH, Path(tmp) / "governance_events.jsonl", "D2", "-1.5*sigma_book",
@@ -25,9 +25,9 @@ def test_owner_items_replay_owner_rulings_from_the_macro_dir():
             assert after["D1"]["status"] == "default"
         finally:
             if saved is None:
-                os.environ.pop("QUANTGEN_MACRO_DIR", None)
+                os.environ.pop("TRADEGEN_MACRO_DIR", None)
             else:
-                os.environ["QUANTGEN_MACRO_DIR"] = saved
+                os.environ["TRADEGEN_MACRO_DIR"] = saved
 
 
 if __name__ == "__main__":

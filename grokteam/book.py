@@ -3,14 +3,20 @@ settled on the 60-second BRTI average), with QUANTGEN's GARCH-t as the "own prob
 
     python -m grokteam.book [--start 2025-01-15] [--end YYYY-MM-DD] [--limit N]
 
-fetches every settled event not yet cached, replays all of them and writes grokteam/out/book/. Candles are
-timestamped records, so the forward window (decisions after the freeze, grokteam.prereg) is the archive code on
-later events and the machine need not be awake at decision times. The forward window is blinded until
-FORWARD_END: before it, its events are fetched and cached but never replayed; on or after it, the first run with
-every forward event in hand is the one look, written once to out/book/FORWARD_LOOK.json and only re-printed after.
+fetches every settled event not yet cached, replays all of them and writes grokteam/out/book/.
+
+TRADEGEN COPY, NOT THE RECORD. The study of record is QUANTGEN's (its baseline eacd57d, which QUANTGEN tags
+studies-of-record-2026-10-23); its one forward look is QUANTGEN's to take. This copy is permanently blinded: events
+whose decision falls after FROZEN_UTC are never listed, fetched, replayed, scored or printed, whatever the date, no
+FORWARD_LOOK.json is ever written, and FREEZE_BY is moved back so prereg.freeze() refuses. Editing this file makes
+`python -m grokteam.prereg` report a change; that is expected here and voids nothing in QUANTGEN. NEVER "fix" that
+by restoring out/frozen_book over this file: the frozen copy unblinds the look and caches under QUANTGEN's
+~/.nextgen/grokteam. Research
+and paper only: prediction markets are unlawful for Korean residents (reports/Korean resident trading venue
+legality.md), so no TRADEGEN order path may ever point at Kalshi or Polymarket.
 
 Read-only HTTP: Kalshi public market data and Binance public klines; no account, key or order endpoint. Raw pulls
-are cached under ~/.nextgen/grokteam as gzip JSON with a sha256 MANIFEST, verified on every read. Nothing in
+are cached under ~/.tradegen/grokteam as gzip JSON with a sha256 MANIFEST, verified on every read. Nothing in
 paper_live is imported (its engine silences all warnings at import).
 
 One event closing at T (top of a UTC hour):
@@ -54,12 +60,14 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+import config as QC  # noqa: E402
 from core.quant import garch as G  # noqa: E402
 
 OUT = Path(__file__).resolve().parent / "out" / "book"
-DATA = Path(os.environ.get("GROKTEAM_DATA") or Path.home() / ".nextgen" / "grokteam")
+DATA = QC.state_path("TRADEGEN_GROKTEAM_DATA", QC.state_root() / "grokteam")
 PREREG = Path(__file__).resolve().parent / "out" / "PREREG_book.json"
-LOOK = OUT / "FORWARD_LOOK.json"
+# The freeze of record (PREREG_book.json), hard-coded so that losing that file can never unblind this copy.
+FROZEN_UTC = "2026-10-22T04:30:22+00:00"
 KALSHI = "https://api.elections.kalshi.com/trade-api/v2"
 SERIES, FAMILY = "KXBTCD", "GROKTEAM-BOOK"
 EVENT_CACHE = f"{SERIES}-v2"           # v2: decision quote = last candle within quote_stale_s (v1 kept 3 minutes)
@@ -85,7 +93,8 @@ ACCOUNTS = {
     "PRED-FLB": dict(prob=None, band=[0.90, 0.95], max_spread=0.03, target=0.93, size="flat"),
 }
 MODEL_ACCOUNTS = ("PRED-GATED", "PRED-LIT8")
-ARCHIVE_START, CAL_END, FORWARD_END, FREEZE_BY = "2025-01-15", "2026-01-01", "2027-02-01", "2026-10-25"
+# FREEZE_BY was 2026-10-25; in TRADEGEN it is the freeze day itself, so prereg.freeze() can never re-freeze here.
+ARCHIVE_START, CAL_END, FORWARD_END, FREEZE_BY = "2025-01-15", "2026-01-01", "2027-02-01", "2026-10-22"
 # How the readout decides; frozen with the hypotheses (grokteam.prereg).
 VERDICT = dict(ci=0.90, block_days=5, holm_alpha=0.10, skill_p=0.10, null_p=0.10, mde_factor=2.4865,
                target_edge=0.01, max_skip=0.05)
@@ -229,24 +238,23 @@ def hourly_bars(need_close_s: int) -> tuple[np.ndarray, np.ndarray]:
 
 # ----------------------------------------------------------------------------- Kalshi pulls
 def settled_events(until_s: int) -> list[dict]:
-    """Every settled KXBTCD event with a strike date, oldest first: {event, close_s}. Re-listed when the cached
-    list ends more than two hours before `until_s`, and always once after FORWARD_END + 1 h, so the one look
-    sees the window's last events."""
+    """Every settled KXBTCD event with a strike date whose decision is at or before FROZEN_UTC, oldest first:
+    {event, close_s}. Re-listed when the cached list ends more than two hours before `until_s`. Forward events are
+    never kept, so no caller can reach them."""
     p = DATA / "kalshi" / "events.json.gz"
-    ev = read_cached(p)
-    end = day_s(FORWARD_END) + 3600
-    if not ev or ev["listed_s"] < until_s - 7200 or (until_s >= end > ev["listed_s"]):
+    ev, cut = read_cached(p), ts(FROZEN_UTC) + RULES["decision_s"]
+    if not ev or ev["listed_s"] < until_s - 7200:
         rows, cursor = [], ""
         while True:
             d = kalshi("/events", series_ticker=SERIES, status="settled", limit=200, **({"cursor": cursor} if cursor else {}))
             rows += [dict(event=e["event_ticker"], close_s=ts(e["strike_date"])) for e in d.get("events", [])
-                     if e.get("strike_date")]
+                     if e.get("strike_date") and ts(e["strike_date"]) <= cut]
             cursor = d.get("cursor") or ""
             if not cursor:
                 break
         ev = dict(listed_s=int(time.time()), events=sorted(rows, key=lambda e: e["close_s"]))
         write_cached(p, ev)
-    return ev["events"]
+    return [e for e in ev["events"] if e["close_s"] <= cut]      # also cuts a cache listed before this rule
 
 
 def _px(d: dict | None, k: str = "close") -> float | None:
@@ -307,7 +315,7 @@ def fetch_event(event: str, close_s: int, cutoff_s: int) -> dict:
 
 def fetch_all(evs: list[dict]) -> tuple[list[dict], list[str]]:
     """(records, failed event tickers) for `evs`, fetching the ones not cached. A failed event is left for the next
-    run; the forward look refuses to run while any of its events is missing."""
+    run."""
     folder = DATA / "kalshi" / EVENT_CACHE
     out, todo = [], []
     for e in evs:
@@ -734,9 +742,8 @@ def trial_rows(run_utc: str) -> list[dict]:
 
 
 def register_trials(ledger_dir: Path | None = None) -> list:
-    import config as QC
     from core.quant import gate_ledger as GL
-    d = Path(ledger_dir or os.environ.get("GROKTEAM_LEDGER_DIR") or QC.macro_dir() / "ledgers")
+    d = Path(ledger_dir or QC.state_path("TRADEGEN_GROKTEAM_LEDGER_DIR", QC.macro_dir() / "ledgers"))
     led = GL.family_ledger(FAMILY, d)
     run = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     return [GL.register_trial(led, row, script="grokteam/book.py") for row in trial_rows(run)]
@@ -747,41 +754,12 @@ def frozen() -> dict | None:
     return json.loads(PREREG.read_text(encoding="utf-8")) if PREREG.exists() else None
 
 
-def forward_gate(records: list[dict], fwd: list[str], failed: list[str], freeze_s: int, now_s: float,
-                 smoke: bool = False, diffs=(), pending=()) -> tuple[list[dict], str]:
-    """(records to replay, status) for the forward window, the one look of the pre-registration. Forward events
-    (decision after the freeze) are dropped before FORWARD_END, on a smoke or partial run, once the look is on disk,
-    while the code differs from the frozen record (VOID: nothing forward is shown), and while any of them is missing
-    or not yet settled; only status 'look' replays them. `now_s` is the time the event listing was taken for."""
-    keep = [r for r in records if r["decision_s"] <= freeze_s]
-    if smoke or now_s < day_s(FORWARD_END) + 3600:
-        return keep, f"blinded until {FORWARD_END}: {len(records) - len(keep)} forward events cached, none replayed"
-    if LOOK.exists():
-        return keep, "taken"
-    if diffs:
-        fix = "restore grokteam/out/frozen_book" + ("; reinstall the libraries in PREREG_book.json['versions']"
-                                                    if "versions" in diffs else "")
-        return keep, f"VOID: changed since the freeze ({', '.join(diffs)}); {fix}, then rerun"
-    have = {r["event"] for r in records}
-    missing = [e for e in fwd if e not in have or e in failed] + list(pending)
-    if missing:
-        return keep, f"incomplete: {len(missing)} forward events missing or unsettled (e.g. {missing[:3]}); rerun later"
-    return records, "look"
-
-
-def unsettled_in_window(freeze_s: int) -> list[str]:
-    """Events of the forward window that have closed but not settled (or are still open): the look waits for them."""
-    out = []
-    for status in ("closed", "open"):
-        cursor = ""
-        while True:
-            d = kalshi("/events", series_ticker=SERIES, status=status, limit=200, **({"cursor": cursor} if cursor else {}))
-            out += [e["event_ticker"] for e in d.get("events", []) if e.get("strike_date")
-                    and freeze_s < ts(e["strike_date"]) - RULES["decision_s"] and ts(e["strike_date"]) < day_s(FORWARD_END)]
-            cursor = d.get("cursor") or ""
-            if not cursor:
-                break
-    return out
+def forward_gate(records: list[dict], freeze_s: int) -> tuple[list[dict], str]:
+    """(records to replay, status). TRADEGEN's copy never takes the look: every event whose decision falls after
+    the freeze (or after FROZEN_UTC, whichever is earlier) is dropped, at any date."""
+    cut = min(freeze_s, ts(FROZEN_UTC))
+    keep = [r for r in records if r["decision_s"] <= cut]
+    return keep, f"blinded permanently (TRADEGEN copy; the look is QUANTGEN's): {len(records) - len(keep)} dropped"
 
 
 def main(argv=None) -> dict:
@@ -805,19 +783,15 @@ def main(argv=None) -> dict:
         reg = register_trials()
         print(f"ledger {FAMILY}: {sum(r.appended for r in reg)} new trial rows, {len(reg)} configurations")
     end_s = day_s(a.end) if a.end else int(time.time())
-    evs = [e for e in settled_events(end_s) if day_s(a.start) <= e["close_s"] < min(end_s, day_s(FORWARD_END))]
+    freeze_s = min(ts(fz["frozen_utc"]), ts(FROZEN_UTC)) if fz else ts(FROZEN_UTC)
+    # Forward events are never even fetched here: decision after the freeze -> out, at any date.
+    evs = [e for e in settled_events(end_s) if day_s(a.start) <= e["close_s"] < end_s
+           and e["close_s"] - RULES["decision_s"] <= freeze_s]
     evs = evs[-a.limit:] if a.limit else evs
-    print(f"{len(evs)} settled events from {a.start}", flush=True)
+    print(f"{len(evs)} settled pre-freeze events from {a.start}", flush=True)
     records, failed = fetch_all(evs)
-    freeze_s = ts(fz["frozen_utc"]) if fz else None
-    status = None
-    if freeze_s is not None:
-        fwd = [e["event"] for e in evs if e["close_s"] - RULES["decision_s"] > freeze_s]
-        at_look = not partial and end_s >= day_s(FORWARD_END) + 3600 and not LOOK.exists()
-        records, status = forward_gate(records, fwd, failed, freeze_s, end_s, smoke=partial,
-                                       diffs=prereg.check(fz) if at_look else (),
-                                       pending=unsettled_in_window(freeze_s) if at_look else ())
-        print(f"forward window: {status}", flush=True)
+    records, status = forward_gate(records, freeze_s)
+    print(f"forward window: {status}", flush=True)
     ev, st = strike_table(records, freeze_s, md0)
     cal_rows = st[(st["window"] == "cal") & st["scored"] & st["p_raw"].notna() & ~st["event"].isin(SEEN)]
     cals = dict(cal=fit_calibration(cal_rows["p_raw"], cal_rows["y"]) if len(cal_rows) > 100 else None)
@@ -835,15 +809,8 @@ def main(argv=None) -> dict:
     rep.update(rules=RULES, accounts=ACCOUNTS, verdict_rules=VERDICT, model_digest=md0, code=code0,
                code_drift=drift, frozen_utc=fz["frozen_utc"] if fz else None, smoke=partial or drift,
                failed_events=failed, forward_status=status, run_utc=datetime.now(timezone.utc).isoformat(timespec="seconds"))
-    if status == "taken":
-        rep["forward"] = json.loads(LOOK.read_text(encoding="utf-8"))["forward"]
-    elif status == "look" and not drift:
-        OUT.mkdir(parents=True, exist_ok=True)
-        LOOK.write_text(json.dumps(dict(forward=rep["forward"], run_utc=rep["run_utc"], code=rep["code"]),
-                                   indent=1, default=str), encoding="utf-8")
-    elif status == "look":
-        rep.pop("forward", None)
-        rep["forward_status"] = "VOID: a pinned file changed during this run; rerun"
+    if "forward" in rep:                                        # unreachable while the cut above stands
+        raise SystemExit("TRADEGEN's copy produced a forward readout; nothing written")
     out = OUT if not partial else OUT.parent / "book_smoke"     # a partial run never overwrites the archive
     out.mkdir(parents=True, exist_ok=True)
     ev.to_csv(out / "events.csv.gz", index=False)

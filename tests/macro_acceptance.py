@@ -2,7 +2,7 @@
 
 `tests()` discovers every `tests/macro_*.py` module, wraps each of its `test_*` functions in the hermetic
 guard, and brackets the suite with T-HERM-01 (every network touchpoint raises while the guard is armed)
-and T-HERM-02 (the shipped read-only trees and `~/.nextgen` are byte-identical before and after).
+and T-HERM-02 (the shipped read-only trees and TRADEGEN's `~/.tradegen` are byte-identical before and after).
 
 The guard is armed around every macro test and restored in `finally`, not left in place for the whole
 process: `engine/test_82` serves a loopback HTTP server through `data.net.session` and `cockpit/test_21`
@@ -112,13 +112,15 @@ def tree_md5s() -> dict[str, str]:
 
 def home_listing() -> tuple:
     """(relative path, size, mtime_ns) of every file the macro suite must never touch under the home dir:
-    `~/.nextgen/macro` (the v2 artifact root), the operator rules store `~/.nextgen/trading/rules.json`, and
-    QUANTGEN_MACRO_DIR when set. Not all of `~/.nextgen`: the legacy cockpit tests write `~/.nextgen/runs` by
-    design, so a concurrent full run tripped T-HERM-02 falsely (Sprint 4 coordinator ruling)."""
-    home = Path.home() / ".nextgen"
+    `~/.tradegen/macro` (the v2 artifact root), the operator rules store `~/.tradegen/trading/rules.json`, and
+    TRADEGEN_MACRO_DIR when set. Not all of `~/.tradegen`: the legacy cockpit tests write `~/.tradegen/runs` by
+    design, so a concurrent full run tripped T-HERM-02 falsely (Sprint 4 coordinator ruling). QUANTGEN's
+    `~/.nextgen` is not watched: since the 2026-10-23 split it belongs to the other program."""
+    import config
+    home = config.state_root()
     roots = [home / "macro", home / "trading" / "rules.json"]
-    if os.environ.get("QUANTGEN_MACRO_DIR"):
-        roots.append(Path(os.environ["QUANTGEN_MACRO_DIR"]))
+    if os.environ.get("TRADEGEN_MACRO_DIR"):
+        roots.append(Path(os.environ["TRADEGEN_MACRO_DIR"]))
     rows = []
     for root in roots:
         if root.is_file():
@@ -196,7 +198,7 @@ test_t_herm_01_every_touchpoint_raises.test_ids = ["T-HERM-01"]
 
 
 def test_t_herm_02_shipped_trees_and_home_untouched():
-    """The read-only trees and ~/.nextgen are byte-identical to the snapshot taken before the first macro test."""
+    """The read-only trees and ~/.tradegen are byte-identical to the snapshot taken before the first macro test."""
     assert _BEFORE is not None, "no snapshot: the macro suite has not run"
     before_md5, before_home = _BEFORE
     after_md5, after_home = snapshot()
@@ -204,7 +206,7 @@ def test_t_herm_02_shipped_trees_and_home_untouched():
     assert not changed, f"shipped read-only files changed during the macro suite: {changed}"
     added = sorted(set(after_home) - set(before_home))
     removed = sorted(set(before_home) - set(after_home))
-    assert not added and not removed, f"the macro suite touched ~/.nextgen: added {added[:5]}, removed {removed[:5]}"
+    assert not added and not removed, f"the macro suite touched ~/.tradegen: added {added[:5]}, removed {removed[:5]}"
 
 
 test_t_herm_02_shipped_trees_and_home_untouched.test_ids = ["T-HERM-02"]

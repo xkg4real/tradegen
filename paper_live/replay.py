@@ -123,10 +123,15 @@ def bench(closes, day0: pd.Timestamp, end: pd.Timestamp) -> dict:
 
 def main():
     """REPLAY_HOLDOUT=1 replays the sessions after HYPOTHESES['frozen'] instead (a fresh pull, frozen as
-    holdout_5m_60d_<today>), into out*/replay_holdout/ for verdict.py's H2 test."""
+    holdout_5m_60d_<today>), into out*/replay_holdout/ for verdict.py's H2 test.
+
+    TRADEGEN copy: refused. The H2 holdout is QUANTGEN's pre-registered one look (readout about 2026-11-03, from
+    its tag); replaying it here would be an early second look at the same sessions."""
     import os
     t0 = time.time()
     holdout = bool(os.environ.get("REPLAY_HOLDOUT"))
+    if holdout:
+        raise SystemExit("REPLAY_HOLDOUT refused in TRADEGEN: the H2 holdout readout is QUANTGEN's one look")
     out_dir = E.OUT / "replay_holdout" if holdout else OUTR
     out_dir.mkdir(parents=True, exist_ok=True)
     OUTR.mkdir(parents=True, exist_ok=True)

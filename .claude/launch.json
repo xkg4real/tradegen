@@ -2,10 +2,10 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "quantgen-web",
-      "runtimeExecutable": "python",
+      "name": "tradegen-web",
+      "runtimeExecutable": ".venv/Scripts/python.exe",
       "runtimeArgs": [".claude/run_web.py"],
-      "port": 8552,
+      "port": 8562,
       "autoPort": true
     },
     {

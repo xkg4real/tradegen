@@ -58,7 +58,8 @@ def append_event(path: Path, event: dict, clock: Callable[[], datetime] | None =
     Returns the md5 of the written line. Raises before writing on any validation error and on a
     `prev_row_md5` the caller supplied that does not match the file. Never swallows a write error.
     """
-    path = Path(path)
+    from core.isolation import refuse_quantgen      # TRADEGEN: never append to QUANTGEN's governance log
+    path = refuse_quantgen(path, "governance log")
     event.setdefault("schema", SCHEMA)
     event.setdefault("schema_version", SCHEMA_VERSION)
     event.setdefault("event_id", uuid.uuid4().hex)

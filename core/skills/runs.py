@@ -1,6 +1,6 @@
 """Persistent run history.
 
-Each run owns a directory under `~/.nextgen/runs/<run_id>/` containing whatever
+Each run owns a directory under `~/.tradegen/runs/<run_id>/` containing whatever
 the skill wrote plus `transcript.log` and `run.json`. This module only handles
 the index: append a record, list recent records newest-first, and reload one.
 

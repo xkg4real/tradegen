@@ -18,7 +18,7 @@ number), and an explicit decision. That is deliberate.
 TOKENS
 ------
 KIS issues a bearer token valid for ~24h and rate-limits issuance hard, so the
-token is cached on disk under `~/.nextgen/kis_token.json` with its expiry. A
+token is cached on disk under `~/.tradegen/kis_token.json` with its expiry. A
 cold start reuses a still-valid token rather than minting a new one; that is the
 difference between the client working and being throttled out for the day. The
 cache file holds a token, never the appkey/appsecret.
@@ -30,7 +30,6 @@ import threading
 import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
 from typing import Any, Optional
 
 import config
@@ -50,7 +49,7 @@ class KISUnavailable(KISError):
     """KIS is not configured on this machine."""
 
 
-_TOKEN_PATH = Path.home() / ".nextgen" / "kis_token.json"
+_TOKEN_PATH = config.state_root() / "kis_token.json"     # never QUANTGEN's ~/.nextgen token: a refresh would clobber it
 _TOKEN_LOCK = threading.Lock()
 
 # Read-only guard (M1, TASK-M1-02; spec P0, T-RO-02). The allowlist is frozen in config.py

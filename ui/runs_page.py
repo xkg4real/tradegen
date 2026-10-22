@@ -1,6 +1,6 @@
 """Run history: what was executed, what it produced, and what it printed.
 
-Artifacts live on disk under `~/.nextgen/runs/<run_id>/`, so this page is a
+Artifacts live on disk under `~/.tradegen/runs/<run_id>/`, so this page is a
 reader over that directory rather than a database view. That means a failed run
 is still inspectable after NEXTGEN is closed, and an operator can hand the
 folder to someone else without exporting anything.

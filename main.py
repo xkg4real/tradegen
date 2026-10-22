@@ -1,4 +1,4 @@
-"""QUANTGEN — the operator's personal quant trading application.
+"""TRADEGEN — the operator's trading program (split off QUANTGEN 2026-10-23; no order path yet).
 
 Built on the NEXTGEN base (its rule engine, simulated order book, KRX data
 layer, and skill cockpit all survive intact) and upgraded with the thing the
@@ -95,7 +95,7 @@ NAV = (
 
 
 def main(page: ft.Page) -> None:
-    page.title = "QUANTGEN"
+    page.title = "TRADEGEN"
     page.padding = 0
     page.theme_mode = ft.ThemeMode.DARK
     page.window.min_width = 420
@@ -177,12 +177,12 @@ def main(page: ft.Page) -> None:
 
     # -------------------------------------------------------------------- nav
     logo = ft.Container(
-        content=ft.Text("Q", size=20, weight=ft.FontWeight.BOLD, color=pal.on_accent),
+        content=ft.Text("T", size=20, weight=ft.FontWeight.BOLD, color=pal.on_accent),
         width=38, height=38, bgcolor=pal.accent, border_radius=RADII["md"],
         alignment=ft.Alignment.CENTER,
     )
     brand = ft.Column([
-        ft.Text("QUANTGEN", weight=ft.FontWeight.BOLD, color=pal.text, size=14),
+        ft.Text("TRADEGEN", weight=ft.FontWeight.BOLD, color=pal.text, size=14),
         ft.Text("rates · FX · derivatives · ETF · crypto", size=10, color=pal.muted),
     ], spacing=0)
     nav_host = ft.Column(spacing=4)

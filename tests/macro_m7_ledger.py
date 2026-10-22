@@ -141,7 +141,16 @@ def test_ledger01_refusals_and_null_distribution_runs():
     # an unanchored run is still a row (every configuration ever run); only step 3 refuses it
     r = GL.register_trial(lg, _row(window=40, params={"window": 40}, run_utc_anchor=None))
     assert r.appended and r.row["run_utc_anchor"] == GL.UNVERSIONED and not GL.anchored(r.row["run_utc_anchor"])
-    assert GL.repo_anchor() == GL.UNVERSIONED            # this folder is not a git repository (rulings 3.1)
+    # a folder without .git is UNVERSIONED (rulings 3.1); a git folder anchors HEAD from a loose ref or, after
+    # `git gc` / `git pack-refs`, from packed-refs (hermetic: fixture repos, never the live one, git since 2026-10-23)
+    root, sha = Path(tempfile.mkdtemp(prefix="m7_git_")), "c" * 40
+    assert GL.repo_anchor(root) == GL.UNVERSIONED
+    (root / ".git" / "refs" / "heads").mkdir(parents=True)
+    (root / ".git" / "HEAD").write_text("ref: refs/heads/main\n", encoding="utf-8")
+    (root / ".git" / "packed-refs").write_text(f"# pack-refs with: peeled\n{sha} refs/heads/main\n", encoding="utf-8")
+    assert GL.repo_anchor(root) == f"git:{sha}"
+    (root / ".git" / "refs" / "heads" / "main").write_text("d" * 40 + "\n", encoding="utf-8")
+    assert GL.repo_anchor(root) == "git:" + "d" * 40                       # a loose ref wins over packed-refs
     assert GL.anchored("git:" + "a" * 40) and GL.anchored("external:council-release-2.0.0") and not GL.anchored("git:")
 
 
@@ -407,8 +416,10 @@ def test_sel01_b_configuration_fixed_before_any_row_touched_its_span_gives_f_1_o
     # rows outside the evaluation span never touch it
     narrow = _header(ledger_hash_at_registration=lg.hash(), data_span={"start": "1997-04-01", "end": "2015-12-31"})
     assert GL.step3(narrow, lg, SEED, commit=late, **kw)["f"] == 1.0
-    # unanchored: the commit (this folder is UNVERSIONED) or a row
-    e = _raises(lambda: GL.step3(card, lg, SEED, **kw), GL.UnanchoredTimestamp, "owner must place the repository under git")
+    # unanchored: the commit (an UNVERSIONED header commit, explicit now that this folder is under git) or a row
+    unv = GL.Anchor(card["created_utc"], GL.UNVERSIONED, "header_commit")
+    e = _raises(lambda: GL.step3(card, lg, SEED, commit=unv, **kw), GL.UnanchoredTimestamp,
+                "owner must place the repository under git")
     assert GL.UNVERSIONED in str(e)
     _raises(lambda: GL.step3(card, lg, SEED, commit=GL.Anchor("2026-08-01T00:00:00Z", "git:"), **kw), GL.UnanchoredTimestamp)
     lg_u = _tmp_ledger()

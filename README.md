@@ -1,4 +1,56 @@
-# QUANTGEN
+# TRADEGEN
+
+TRADEGEN is the trading program split off QUANTGEN on 2026-10-23, as a byte copy
+of all 959 files. QUANTGEN stays pure quant research that goes no further than
+paper trading. TRADEGEN is where trading for the owner's own account is designed,
+inside Korean law.
+
+- **Status (2026-10-23): no order path exists.** Everything after the line below
+  is inherited QUANTGEN text and still describes this copy: read-only data
+  clients, the simulated engine and the P0 read-only guards. Those guards are
+  retired only through TRADEGEN's own safety design: a Korean compliance gate,
+  execution the owner arms per session, hard loss limits, a kill switch and an
+  order audit log.
+- **Not legal, tax or investment advice.** The software and its author are not a
+  licensed advisor.
+- **Honest odds.** Turning $30 into $30,000 in a month has at most about a 0.1%
+  chance in theory, and realistically 0.01% or less. Every plan must show its
+  P(reaching the target) and its P(losing the stake).
+- **Lawful set.** This is research, not legal advice; see
+  `reports/Korean resident trading venue legality.md`. Prediction markets are
+  unlawful for Korean residents, so GrokBot (`grokteam/`) and the LAZYOWEN
+  accounts stay paper and research only.
+- **Frozen studies are QUANTGEN's.** Both one-look readouts belong to QUANTGEN:
+  the GrokBot forward look and the paper_live H2 holdout. Its baseline is
+  `eacd57d`, which QUANTGEN tags `studies-of-record-2026-10-23`. Here
+  `grokteam/` is permanently blinded: it never lists, fetches, replays or prints
+  an event decided after the freeze, and it cannot re-freeze.
+  `REPLAY_HOLDOUT=1 python -m paper_live.replay` is refused. Never restore
+  `grokteam/out/frozen_book` over `grokteam/book.py`: the frozen copy unblinds
+  the look and caches under `~/.nextgen`.
+- **State.** Mutable state lives in `~/.tradegen` (move it with `TRADEGEN_HOME`),
+  never in QUANTGEN's `~/.nextgen` or its repository folder.
+  `config.refuse_quantgen()` refuses any path inside either. It checks both the
+  resolved path and file identity, so `\\?\`, UNC and junction aliases are caught
+  too. It runs in the path resolver, in every ledger and governance-log writer,
+  and on `--macro-dir`. The overrides are `TRADEGEN_MACRO_DIR`,
+  `TRADEGEN_TRADING_DIR`, `TRADEGEN_RUNS_DIR`, `TRADEGEN_FICC_CACHE`,
+  `TRADEGEN_GROKTEAM_DATA` and `TRADEGEN_GROKTEAM_LEDGER_DIR`. QUANTGEN's state
+  variable names are ignored.
+- **Seeded ledgers.** `~/.tradegen/macro/ledgers` started as a byte copy of
+  QUANTGEN's GROKTEAM-BOOK, LAZYOWEN, C3, QG-CORE and QG-TACTICAL families (50
+  rows, 2026-10-23). TRADEGEN appends fork those hash chains. Its global N counts
+  QUANTGEN's earlier trials, and their rows are UNVERSIONED, so step 3 refuses a
+  card whose span they touch.
+- **Shared keys.** `.env` is still a copy of QUANTGEN's, so both programs share
+  one KIS app key, its token issuance and its rate limit, plus the FMP, OpenDART,
+  KRX and Anthropic quotas. Give TRADEGEN its own keys, or blank the ones it does
+  not need yet.
+- **Python.** Use `.venv` (3.13, with numpy 2.3.5, scipy 1.18.0 and pandas 2.3.3,
+  pinned in `constraints.txt`). Never `pip install` into the global Python:
+  QUANTGEN's frozen studies pin it.
+
+---
 
 The upgraded, personal-use successor to NEXTGEN. Same body — the rule engine,
 simulated order book, KRX data layer, and skill cockpit all survive intact —
@@ -322,7 +374,7 @@ Where it lives:
 | Rules store (read-only, version 2.0.0) | `data/macro/rules_v2.0.0.json`; series registry `data/macro/series_registry.yaml`; calendars `core/calendars/data/` |
 | Code | `core/ficc/` (`pit`, `contracts`, `lag_audit`, `macro_schema`, `macro_artifacts`, `context_log`, `schemas/`), `core/calendars/`, `core/quant/` (`risk_layer`, `vol_estimators`, `forecast_eval`, `sleeves`, `gate_stats`, `gate_ledger`, `cardp`, `gate_package`, `cards`, `instruments`, `forward`, `forward_sim`, `refusal`, `lab`, `scenarios`), `core/engine/books.py`, `core/rules/macro_rules.py`, `core/rules/governance.py`, `core/skills/pipeline.py`, `core/skills/macro_daily.py`, `core/skills/alerts.py` |
 | Macro model cards | `docs/macro_overlay/` (`headers/`, `cards/`, `cards/verdicts.jsonl`, `archive/`); runner `docs/macro_overlay_study.py` |
-| Mutable state (never in the repo) | `~/.nextgen/macro` (override with `QUANTGEN_MACRO_DIR`): artifacts, books, alerts, run log, governance log, family ledgers |
+| Mutable state (never in the repo) | `~/.tradegen/macro` (override with `TRADEGEN_MACRO_DIR`): artifacts, books, alerts, run log, governance log, family ledgers |
 | Build record | `research_notes/QUANTGEN v2 integration map/` (coordinator rulings, design brief, sprint logs) |
 
 ### Status: indicative, nothing formally run
@@ -598,7 +650,7 @@ python -m core.skills.macro_daily --market KR --mode live            # refuses t
 A dry run ingests `docs/asset_expansion/cache` as `vendor_close` rows (source
 Yahoo / FRED), runs with `run_mode = backtest`, and writes its artifacts under
 `<macro dir>/dry_run/` (`macro_state/`, `overlay_decision/`, `context_log/`);
-without `--macro-dir` that is `~/.nextgen/macro/dry_run/`. Every artifact
+without `--macro-dir` that is `~/.tradegen/macro/dry_run/`. Every artifact
 carries `extras.dry_run` and is shown with the red chip "VENDOR DATA · DRY RUN ·
 not an official close · not a card run". Books stay DISARMED (no acting input
 is an `official_close`), the engine feed is blocked, and no verdict is ever
@@ -691,7 +743,7 @@ Model defaults to `claude-sonnet-5`; override with `QUANTGEN_AI_MODEL`.
 | **Upbit / Binance / CoinGecko** | KRW-BTC daily candles since 2017, USDT spot klines, perpetual funding history, premium index, open interest, the top-N list; `KRW-BTC` / `BTCUSDT` route here automatically | nothing — keyless (`UPBIT_ACCESS_KEY` / `UPBIT_SECRET_KEY`, asset-inquiry scope, only for the balance tile) |
 | Synthetic | Seeded per-symbol series, curves and rates | nothing |
 
-FICC fetches are cached on disk (`~/.nextgen/ficc_cache`, six hours by default)
+FICC fetches are cached on disk (`~/.tradegen/ficc_cache`, six hours by default)
 so a page refresh does not re-download two years of the curve. The same cache
 now holds every price history that goes through `load_history` (FMP, KIS,
 Yahoo, Upbit, Binance), so re-running Quant Lab, Signals, Portfolio or Strategy
@@ -748,21 +800,22 @@ The navigation rail scrolls, so all nineteen entries are reachable at the
 
 ## Setup
 
-1. Python 3.10+
-2. `pip install -r requirements.txt`
+1. Python 3.13: `python -m venv .venv`
+2. `.venv/Scripts/python -m pip install -r requirements.txt -r requirements-dev.txt -c constraints.txt`
+   (the constraints keep numpy 2.3.5, scipy 1.18.0 and pandas 2.3.3)
 3. `cp .env.example .env` and fill in what you have (everything is optional —
    the FICC pages need nothing)
-4. `python main.py`
+4. `.venv/Scripts/python main.py`
 
-Optional: `QUANTGEN_MACRO_DIR` moves the macro state out of `~/.nextgen/macro`.
+Optional: `TRADEGEN_MACRO_DIR` moves the macro state out of `~/.tradegen/macro`.
 
 ## Verification
 
 ```bash
-python tests/run_all.py                  # every suite; writes qa/acceptance_results.json
-python tests/run_all.py --suite macro    # one suite: cockpit, engine, ui, quant, ficc, expansion, macro, paper or grokteam
-python tests/run_all.py --milestone M8   # the exit set of a milestone (tests/macro_registry.csv)
-python -m tests.macro_acceptance         # resync the registry's implemented_in column
+.venv/Scripts/python tests/run_all.py                  # every suite; writes qa/acceptance_results.json
+.venv/Scripts/python tests/run_all.py --suite macro    # one suite: cockpit, engine, ui, quant, ficc, expansion, macro, paper or grokteam
+.venv/Scripts/python tests/run_all.py --milestone M8   # the exit set of a milestone (tests/macro_registry.csv)
+.venv/Scripts/python -m tests.macro_acceptance         # resync the registry's implemented_in column
 ```
 
 A test has one of three statuses: PASS, FAIL, or NOT_RUN — a test that raises
@@ -780,15 +833,15 @@ exit code; the exit code is 0 only when nothing failed. The summary line reads
 | quant | `tests/quant_acceptance.py` | Monte Carlo, optimizer, signal and backtest invariants; GARCH parameter recovery, unit-variance t shocks, guardrail flags, likelihood ordering against GBM and normal-GARCH, forecast convergence, the drift modes, the bounded-innovation and martingale checks, the LR null size, interval coverage, every chart renders | 53 PASS |
 | ficc | `tests/ficc_acceptance.py` | Bootstrap round-trips, monotone discount factors, Nelson-Siegel fits, PCA, duration and KRD, carry and roll, scenario convexity, swap and swaption parity, Black ↔ Bachelier, caps and floors, Garman-Kohlhagen, SABR, CIP, the carry backtest, CIR and Hull-White, structured products, narratives, every chart renders | 56 PASS |
 | expansion | `tests/expansion_acceptance.py` | Fake KIS and crypto transports for every new asset domain, the gate's own checks (a planted edge passes, noise is rejected, the deflated Sharpe orders them, the distribution loop calibrates), the t+1 causality of every strategy family, the five-year rule counted in whole years, the table cost floor and the Strategy Lab's withheld verdict below it, the module self-checks | 19 PASS |
-| macro | `tests/macro_acceptance.py` over `tests/macro_*.py` | The v2 build, below | 418 PASS / 121 NOT_RUN |
+| macro | `tests/macro_acceptance.py` over `tests/macro_*.py` | The v2 build, below | 419 PASS / 121 NOT_RUN |
 | paper | `tests/paper_live_acceptance.py` | The paper_live harness after the 2026-10-18/19 fixes, offline: costs from QUANTGEN's table and KRX ETF tick floor, LSE refused rather than proxied, the per-account cost gate in `Engine._open`, the 5-minute C3 account retired, no resume from another config's state, frozen price snapshots (exact round trip, sha refusal), post-session prices by window dates, session hours from `core.markets` across clock changes and holidays, only complete pulls frozen, the same-day replay's archived code, the power line, one ledger trial per configuration, the pre-registered gate and fidelity tests, the Strategy Lab ledger, concurrent ledger appends, the refused late freeze and the report outcomes block | 21 PASS |
-| grokteam | `grokteam/selfcheck.py` | The GROKTEAM BOOK desk (Kalshi KXBTCD paper benchmark of the Grok trading-team guide), offline: the Kalshi fee and payoff with the fee inside the stake, SIZE (half Kelly, 6% cap, $50 floor), the GARCH-t digital, no look-ahead in hourly bars or quotes, the 30-minute quote lookback, the stationarity warning not skipping, each account's entry rule, the cluster t and the one-sided skill p, the verdict precedence, the forward window blinded until its one look (VOID and unsettled events withhold it), Python patch updates not voiding the freeze, the sha-checked cache and the new ledger family | 17 PASS |
-| **Total** | `tests/run_all.py` | | 727/848 passed, 0 failed, 121 not run (2026-10-22) |
+| grokteam | `grokteam/selfcheck.py` | The GROKTEAM BOOK desk (Kalshi KXBTCD paper benchmark of the Grok trading-team guide), offline: the Kalshi fee and payoff with the fee inside the stake, SIZE (half Kelly, 6% cap, $50 floor), the GARCH-t digital, no look-ahead in hourly bars or quotes, the 30-minute quote lookback, the stationarity warning not skipping, each account's entry rule, the cluster t and the one-sided skill p, the verdict precedence, the TRADEGEN copy permanently blinded (no event decided after the freeze is listed, fetched or replayed at any date; no re-freeze), Python patch updates not voiding the freeze, the sha-checked cache and the new ledger family | 17 PASS |
+| **Total** | `tests/run_all.py` | | 728/849 passed, 0 failed, 121 not run (2026-10-23, TRADEGEN `.venv`) |
 
 The macro group (new in v2) discovers every `tests/macro_*.py` module,
 wraps each test in a hermetic guard, and brackets the run with T-HERM-01 (every
 network touchpoint raises) and T-HERM-02 (the shipped read-only trees and
-`~/.nextgen/macro` are byte-identical before and after). Every test id of the
+`~/.tradegen/macro` are byte-identical before and after). Every test id of the
 specification is a row of `tests/macro_registry.csv` (tier, the milestone it
 runs from, its clause deferrals, the tests that implement it); fixtures are
 md5-listed in `tests/fixtures/macro/MANIFEST.csv`.

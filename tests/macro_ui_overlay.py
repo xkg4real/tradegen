@@ -3,7 +3,7 @@
 The renderer `ui.macro_state_panel.macro_state_blocks` runs on the S1 schema examples
 (`tests/fixtures/macro/schema_examples.json`) plus a synthetic HALTED runtime entry, with no page: the control tree is
 walked and the `ft.Text` values asserted (the quant_lab_page driver pattern). Hermetic: the one page build points
-`QUANTGEN_MACRO_DIR` at a temp directory and asserts nothing was written there.
+`TRADEGEN_MACRO_DIR` at a temp directory and asserts nothing was written there.
 """
 from __future__ import annotations
 
@@ -257,9 +257,9 @@ def test_descriptive_read_caption_volatility_labels_and_no_regime_state():
 
 def test_view_selector_hosts_the_overlay_view_and_reads_nothing_into_home():
     from ui.macro_page import build_macro_page
-    old = os.environ.get("QUANTGEN_MACRO_DIR")
+    old = os.environ.get("TRADEGEN_MACRO_DIR")
     with tempfile.TemporaryDirectory() as tmp:
-        os.environ["QUANTGEN_MACRO_DIR"] = tmp
+        os.environ["TRADEGEN_MACRO_DIR"] = tmp
         try:
             fake = SimpleNamespace(run_thread=lambda fn: fn(), update=lambda: None)
             root = build_macro_page(fake)
@@ -286,17 +286,17 @@ def test_view_selector_hosts_the_overlay_view_and_reads_nothing_into_home():
             assert not any(Path(tmp).iterdir())                     # Refresh only reads
         finally:
             if old is None:
-                os.environ.pop("QUANTGEN_MACRO_DIR", None)
+                os.environ.pop("TRADEGEN_MACRO_DIR", None)
             else:
-                os.environ["QUANTGEN_MACRO_DIR"] = old
+                os.environ["TRADEGEN_MACRO_DIR"] = old
 
 
 def test_the_run_button_dry_run_writes_only_the_temp_macro_dir_and_the_view_renders_it():
     """S8 integration: Macro -> Overlay state -> Run (dry run) end to end on the local vendor data (~15 s)."""
     from ui.macro_page import build_macro_page
-    old = os.environ.get("QUANTGEN_MACRO_DIR")
+    old = os.environ.get("TRADEGEN_MACRO_DIR")
     with tempfile.TemporaryDirectory() as tmp:
-        os.environ["QUANTGEN_MACRO_DIR"] = tmp
+        os.environ["TRADEGEN_MACRO_DIR"] = tmp
         try:
             fake = SimpleNamespace(run_thread=lambda fn: fn(), update=lambda: None)
             root = build_macro_page(fake)
@@ -318,23 +318,23 @@ def test_the_run_button_dry_run_writes_only_the_temp_macro_dir_and_the_view_rend
             assert not any("macro_state refused" in t for t in found)
         finally:
             if old is None:
-                os.environ.pop("QUANTGEN_MACRO_DIR", None)
+                os.environ.pop("TRADEGEN_MACRO_DIR", None)
             else:
-                os.environ["QUANTGEN_MACRO_DIR"] = old
+                os.environ["TRADEGEN_MACRO_DIR"] = old
 
 
 @contextmanager
 def temp_macro_dir():
-    old = os.environ.get("QUANTGEN_MACRO_DIR")
+    old = os.environ.get("TRADEGEN_MACRO_DIR")
     with tempfile.TemporaryDirectory() as tmp:
-        os.environ["QUANTGEN_MACRO_DIR"] = tmp
+        os.environ["TRADEGEN_MACRO_DIR"] = tmp
         try:
             yield Path(tmp)
         finally:
             if old is None:
-                os.environ.pop("QUANTGEN_MACRO_DIR", None)
+                os.environ.pop("TRADEGEN_MACRO_DIR", None)
             else:
-                os.environ["QUANTGEN_MACRO_DIR"] = old
+                os.environ["TRADEGEN_MACRO_DIR"] = old
 
 
 def test_a_live_page_alert_shows_and_acknowledges_from_the_dry_run_view():

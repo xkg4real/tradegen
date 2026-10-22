@@ -1444,7 +1444,7 @@ def main(argv=None) -> int:
     parser.add_argument("--macro-dir", default=None)
     parser.add_argument("--session", default=None, help="YYYY-MM-DD (live: default = the clock's UTC date)")
     args = parser.parse_args(argv)
-    macro_dir = Path(args.macro_dir) if args.macro_dir else config.macro_dir()
+    macro_dir = config.refuse_quantgen(args.macro_dir, "--macro-dir") if args.macro_dir else config.macro_dir()
     now = datetime.now(UTC)          # the CLI entry's one wall-clock read (rulings 3.11), pinned for the whole run;
     clock = lambda: now              # noqa: E731  ponytail: the CLI ingests nothing; a CLI that fetches must pin knowledge after its fetches
     try:

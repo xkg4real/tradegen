@@ -110,7 +110,7 @@ def test_history_cache_serves_a_rerun_without_asking_the_provider_again():
                        adjustment="total")
 
     saved = (H.fmp_history, config.fmp_ready, config.fmp_key,
-             config.FICC_CACHE_TTL_SECONDS, os.environ.get("NEXTGEN_FICC_CACHE"),
+             config.FICC_CACHE_TTL_SECONDS, os.environ.get("TRADEGEN_FICC_CACHE"),
              H._may_be_trading, H._CACHE_LIVE_TTL)
     H.fmp_history = fake_fmp
     real_may_be_trading = H._may_be_trading
@@ -118,7 +118,7 @@ def test_history_cache_serves_a_rerun_without_asking_the_provider_again():
     config.fmp_ready = lambda: True
     config.fmp_key = lambda: "k"
     config.FICC_CACHE_TTL_SECONDS = 3600.0
-    os.environ["NEXTGEN_FICC_CACHE"] = tempfile.mkdtemp()
+    os.environ["TRADEGEN_FICC_CACHE"] = tempfile.mkdtemp()
     try:
         first = load_history("AAPL", days=120)
         again = load_history("AAPL", days=120)
@@ -149,7 +149,7 @@ def test_history_cache_serves_a_rerun_without_asking_the_provider_again():
         import time as _time
         from pathlib import Path
         H._may_be_trading = lambda *a: False
-        cache = Path(os.environ["NEXTGEN_FICC_CACHE"])
+        cache = Path(os.environ["TRADEGEN_FICC_CACHE"])
         load_history("TSLA", days=120)
         path = cache / "HIST_FMP_TSLA_120.json"
         stored = _json.loads(path.read_text("utf-8"))
@@ -186,9 +186,9 @@ def test_history_cache_serves_a_rerun_without_asking_the_provider_again():
         H._may_be_trading, H._CACHE_LIVE_TTL = saved[5:]
         assert H._may_be_trading is real_may_be_trading
         if saved[4] is None:
-            os.environ.pop("NEXTGEN_FICC_CACHE", None)
+            os.environ.pop("TRADEGEN_FICC_CACHE", None)
         else:
-            os.environ["NEXTGEN_FICC_CACHE"] = saved[4]
+            os.environ["TRADEGEN_FICC_CACHE"] = saved[4]
 
 
 def test_fmp_history_asks_for_dividend_adjusted_closes_and_reports_refusals_honestly():

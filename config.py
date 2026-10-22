@@ -45,6 +45,24 @@ def _present(name: str) -> bool:
 
 
 # --------------------------------------------------------------------------- #
+# TRADEGEN state root
+# --------------------------------------------------------------------------- #
+# TRADEGEN was split off QUANTGEN on 2026-10-23. QUANTGEN keeps ~/.nextgen (its trial ledgers, frozen studies
+# and KIS token), so every mutable TRADEGEN path resolves under ~/.tradegen and the overrides carry TRADEGEN_
+# names: an OS-level QUANTGEN_* / NEXTGEN_* variable (which load_dotenv never overrides) cannot redirect it.
+from core.isolation import QUANTGEN_REPO, QUANTGEN_STATE, refuse_quantgen  # noqa: E402,F401  (also used by writers)
+
+
+def state_path(env: str, default: Path) -> Path:
+    """`env` when set, else `default`; refused inside QUANTGEN (refuse_quantgen)."""
+    return refuse_quantgen(_clean(env) or default, env)
+
+
+def state_root() -> Path:
+    return state_path("TRADEGEN_HOME", Path.home() / ".tradegen")
+
+
+# --------------------------------------------------------------------------- #
 # Trading-skills repository
 # --------------------------------------------------------------------------- #
 _DEFAULT_SKILLS_ROOT = (
@@ -73,8 +91,7 @@ SKILL_TIMEOUT_SECONDS = float(_clean("NEXTGEN_SKILL_TIMEOUT") or "300")
 
 # Where run transcripts and artifacts are written.
 def runs_dir() -> Path:
-    override = _clean("NEXTGEN_RUNS_DIR")
-    return Path(override) if override else (Path.home() / ".nextgen" / "runs")
+    return state_path("TRADEGEN_RUNS_DIR", state_root() / "runs")
 
 
 # --------------------------------------------------------------------------- #
@@ -266,15 +283,13 @@ def skill_provider_status() -> list[dict]:
 # Rules the operator authored, the simulated order book, and the engine's halt
 # state. Kept beside the run transcripts, on this machine only.
 def trading_dir() -> Path:
-    override = _clean("NEXTGEN_TRADING_DIR")
-    return Path(override) if override else (Path.home() / ".nextgen" / "trading")
+    return state_path("TRADEGEN_TRADING_DIR", state_root() / "trading")
 
 
 # Macro overlay v2 mutable state (artifacts, governance_events.jsonl, book states, alerts). The
 # shipped section 7 store stays read-only in the repository; nothing mutable lives there.
 def macro_dir() -> Path:
-    override = _clean("QUANTGEN_MACRO_DIR")
-    return Path(override) if override else (Path.home() / ".nextgen" / "macro")
+    return state_path("TRADEGEN_MACRO_DIR", state_root() / "macro")
 
 
 # How old a quote may be before the engine halts rather than acting on it.
@@ -371,8 +386,7 @@ FICC_CACHE_TTL_SECONDS = float(_clean("NEXTGEN_FICC_CACHE_TTL") or str(6 * 3600)
 
 
 def ficc_cache_dir() -> Path:
-    override = _clean("NEXTGEN_FICC_CACHE")
-    return Path(override) if override else (Path.home() / ".nextgen" / "ficc_cache")
+    return state_path("TRADEGEN_FICC_CACHE", state_root() / "ficc_cache")
 
 
 def ficc_provider_status() -> list[dict]:

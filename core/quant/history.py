@@ -402,7 +402,7 @@ def _traded_since(provider: str, symbol: str, ts: float) -> bool:
 def _cached(provider: str, fetch, symbol: str, days: int) -> History:
     """`fetch(symbol, days=days)`, remembered on disk.
 
-    Same directory and time-to-live as `core.ficc.data` (`NEXTGEN_FICC_CACHE`,
+    Same directory and time-to-live as `core.ficc.data` (`TRADEGEN_FICC_CACHE`,
     `NEXTGEN_FICC_CACHE_TTL`; a TTL of 0 switches it off), keyed by
     provider / symbol / days. Four rules:
 

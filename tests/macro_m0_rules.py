@@ -393,17 +393,74 @@ test_config_hash_stable_and_canonical.test_ids = ["T-REPRO-01a"]
 
 def test_macro_dir_env_override():
     import config
-    saved = os.environ.get("QUANTGEN_MACRO_DIR")
+    names = ("TRADEGEN_MACRO_DIR", "TRADEGEN_HOME", "QUANTGEN_MACRO_DIR")
+    saved = {n: os.environ.get(n) for n in names}
     try:
-        os.environ.pop("QUANTGEN_MACRO_DIR", None)
-        assert config.macro_dir() == Path.home() / ".nextgen" / "macro"
-        os.environ["QUANTGEN_MACRO_DIR"] = "X:/macro_tmp"
+        for n in names:
+            os.environ.pop(n, None)
+        os.environ["QUANTGEN_MACRO_DIR"] = "X:/quantgen_macro"            # QUANTGEN's variable never redirects TRADEGEN
+        assert config.macro_dir() == Path.home() / ".tradegen" / "macro"
+        os.environ["TRADEGEN_MACRO_DIR"] = "X:/macro_tmp"
         assert config.macro_dir() == Path("X:/macro_tmp")
+        for n, v in (("TRADEGEN_MACRO_DIR", Path.home() / ".nextgen" / "macro"), ("TRADEGEN_HOME", Path.home() / ".nextgen")):
+            os.environ.pop("TRADEGEN_MACRO_DIR", None)
+            os.environ[n] = str(v)
+            try:
+                config.macro_dir()
+                raise AssertionError(f"{n} into QUANTGEN's ~/.nextgen was accepted")
+            except RuntimeError:
+                pass
+            os.environ.pop(n, None)
     finally:
-        if saved is None:
-            os.environ.pop("QUANTGEN_MACRO_DIR", None)
-        else:
-            os.environ["QUANTGEN_MACRO_DIR"] = saved
+        for n, v in saved.items():
+            if v is None:
+                os.environ.pop(n, None)
+            else:
+                os.environ[n] = v
+
+
+def test_every_state_path_stays_out_of_quantgen():
+    """TRADEGEN never resolves state into QUANTGEN (split 2026-10-23): every default lies under ~/.tradegen,
+    QUANTGEN's variable names are ignored, and aliases of ~/.nextgen or of the QUANTGEN repo are refused by the
+    resolver and by the ledger and governance writers before any I/O (metadata stats only, nothing written)."""
+    import config
+    from core.quant import gate_ledger as GL
+    from core.rules import governance as GOV
+    from data.krx import kis_client, opendart_client
+    from grokteam import book
+    q = config.QUANTGEN_STATE
+    ours = ("TRADEGEN_HOME", "TRADEGEN_MACRO_DIR", "TRADEGEN_TRADING_DIR", "TRADEGEN_RUNS_DIR", "TRADEGEN_FICC_CACHE")
+    theirs = {"QUANTGEN_MACRO_DIR": "macro", "NEXTGEN_TRADING_DIR": "trading", "NEXTGEN_RUNS_DIR": "runs",
+              "NEXTGEN_FICC_CACHE": "ficc_cache", "GROKTEAM_LEDGER_DIR": "macro/ledgers"}
+    saved = {n: os.environ.get(n) for n in (*ours, *theirs)}
+    try:
+        for n in ours:
+            os.environ.pop(n, None)
+        for n, sub in theirs.items():
+            os.environ[n] = str(q / sub)                    # set to QUANTGEN's own dirs: must change nothing
+        home = (Path.home() / ".tradegen").resolve()
+        paths = {"state_root": config.state_root(), "macro": config.macro_dir(), "trading": config.trading_dir(),
+                 "runs": config.runs_dir(), "ficc_cache": config.ficc_cache_dir(), "kis_token": kis_client._TOKEN_PATH,
+                 "dart_cache": opendart_client._CACHE_PATH, "grokteam": book.DATA}
+        for name, p in paths.items():
+            assert p.resolve().is_relative_to(home), (name, p)
+        aliases = [q / "macro" / "ledgers", Path("\\\\?\\" + str(q.resolve()) + "\\macro"),
+                   Path(str(q).upper()) / "trading", config.QUANTGEN_REPO / "grokteam" / "out"]
+        for p in aliases:
+            for what, call in (("resolver", lambda p=p: config.refuse_quantgen(p)),
+                               ("ledger", lambda p=p: GL.family_ledger("X", p)),
+                               ("governance", lambda p=p: GOV.append_event(p / "governance_events.jsonl", {}))):
+                try:
+                    call()
+                    raise AssertionError(f"{what} accepted {p}")
+                except RuntimeError:
+                    pass
+    finally:
+        for n, v in saved.items():
+            if v is None:
+                os.environ.pop(n, None)
+            else:
+                os.environ[n] = v
 
 
 # --------------------------------------------------------------------------- #

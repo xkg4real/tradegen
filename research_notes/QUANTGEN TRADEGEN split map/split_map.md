@@ -212,6 +212,13 @@ Format: **remove** goes to TRADEGEN (or is deleted from QUANTGEN because TRADEGE
 
 ## 4. Frozen / pre-registered constraints
 
+> **Superseded in TRADEGEN (2026-10-23).** The owner later decided that QUANTGEN keeps both frozen studies as the
+> record and reads them out from its own baseline `eacd57d` (tag `studies-of-record-2026-10-23`). The plan below,
+> where the GROKTEAM look runs "there", in TRADEGEN, no longer applies. TRADEGEN's `grokteam/` is permanently blinded
+> and cannot re-freeze, and its `REPLAY_HOLDOUT` replay is refused. `python -m grokteam.prereg` in TRADEGEN
+> therefore reports `grokteam/book.py` changed, by design. **Never** restore `grokteam/out/frozen_book` over it:
+> the frozen copy would unblind the look and cache under QUANTGEN's `~/.nextgen/grokteam`.
+
 ### 4.1 GROKTEAM-BOOK pre-registration (forward look on/after 2027-02-01)
 
 - **Record:** `grokteam/out/PREREG_book.json`, `frozen_utc` 2026-10-22T04:30:22Z.

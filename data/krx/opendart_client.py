@@ -3,7 +3,7 @@
 OpenDART keys the whole system on an eight-digit `corp_code` that is *not* the
 stock ticker. The mapping ships as a ~20 MB zipped XML at `/corpCode.xml`, so
 this client downloads it once and caches the parsed ticker→corp_code map under
-`~/.nextgen/dart_corp_codes.json`. Without that cache every lookup would cost a
+`~/.tradegen/dart_corp_codes.json`. Without that cache every lookup would cost a
 20 MB download, which is why the first call is slow and every later one is not.
 
 Endpoints used, all read-only:
@@ -21,7 +21,6 @@ import threading
 import time
 import zipfile
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
 from typing import Optional
 from xml.etree import ElementTree
 
@@ -41,7 +40,7 @@ class DARTUnavailable(DARTError):
     pass
 
 
-_CACHE_PATH = Path.home() / ".nextgen" / "dart_corp_codes.json"
+_CACHE_PATH = config.state_root() / "dart_corp_codes.json"
 _CACHE_TTL_S = 7 * 24 * 3600
 _CACHE_LOCK = threading.Lock()
 

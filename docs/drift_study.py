@@ -19,8 +19,7 @@ import matplotlib.pyplot as plt
 
 ROOT = Path(__file__).resolve().parent
 OUT = ROOT / "drift_study"
-CACHE = Path(r"C:\Users\whydi\AppData\Local\Temp\claude\C--Users-whydi-OneDrive-Desktop-QUANTGEN"
-             r"\2be26074-fe57-45b7-9a5d-2e0d6b080896\scratchpad\drift_prices")
+CACHE = Path.home() / ".tradegen" / "drift_prices"           # was a QUANTGEN session scratchpad
 OUT.mkdir(parents=True, exist_ok=True)
 CACHE.mkdir(parents=True, exist_ok=True)
 

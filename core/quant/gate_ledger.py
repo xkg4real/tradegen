@@ -125,7 +125,13 @@ def repo_anchor(root: Path = REPO_ROOT) -> str:
     try:
         text = head.read_text(encoding="utf-8").strip()
         if text.startswith("ref:"):
-            text = (Path(root) / ".git" / text[4:].strip()).read_text(encoding="utf-8").strip()
+            ref = text[4:].strip()
+            loose = Path(root) / ".git" / ref
+            if loose.is_file():
+                text = loose.read_text(encoding="utf-8").strip()
+            else:                                   # after `git gc` / `git pack-refs` the ref lives in packed-refs only
+                packed = (Path(root) / ".git" / "packed-refs").read_text(encoding="utf-8").splitlines()
+                text = next((ln.split()[0] for ln in packed if ln.endswith(" " + ref)), "")
         return f"git:{text}" if re.fullmatch(r"[0-9a-f]{40}", text) else UNVERSIONED
     except OSError:
         return UNVERSIONED
@@ -269,7 +275,8 @@ class FamilyLedger:
     a chain that does not verify. Test runs point `path` at a temporary copy (T-HERM-02)."""
 
     def __init__(self, path: Path, family_id: str | None = None) -> None:
-        self.path = Path(path)
+        from core.isolation import refuse_quantgen  # TRADEGEN: never open a QUANTGEN ledger, whoever passes the path
+        self.path = refuse_quantgen(path, "ledger")
         self.family_id = family_id or self.path.stem
 
     # -- reading -------------------------------------------------------------
