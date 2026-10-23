@@ -4,8 +4,8 @@ contract section 0; P5).
 Each guard is a pure checker `(rel, source) -> [hit, ...]`. Every test first proves its checker catches a synthetic
 offender (the positive control), then asserts the shipped files are clean. The repo-wide guards (T-RO-01, test_08,
 test_09, T-CTX-01) stay in force; these add what they miss: docstrings and comments, `def` names, every HTTP verb,
-`from core.engine import orders`, star and dynamic imports, the import allowlist, the wall clock and the sealed
-context.
+every stdlib network module and URL-fetching call, `from core.engine import orders`, star and dynamic imports, the
+import allowlist, the wall clock and the sealed context.
 """
 from __future__ import annotations
 
@@ -31,6 +31,12 @@ RAW_CS = ("CANO", "KIS_ACCOUNT", "ACNT_PRDT_CD")
 CORE_RAW_CI = ("private_key", "seed_phrase")            # these two hold for every file in core/ (contract section 0)
 DEF_NAMES = frozenset({"transfer", "withdraw", "deposit_address"})
 HTTP_VERBS = frozenset({"post", "put", "delete", "patch", "request"})
+# core/compliance never needs the network: the alert email is sent by the scheduled Claude task and the toast is a
+# subprocess (P26). So no stdlib network module may be imported in any form, and the calls that open a connection
+# or fetch a URL are banned by name too (bare or as an attribute), as a second line behind the import ban.
+NETWORK_MODULES = ("urllib", "http", "socket", "ssl", "smtplib", "ftplib", "imaplib", "poplib", "nntplib",
+                   "telnetlib", "xmlrpc", "asyncio", "webbrowser")
+NETWORK_CALLS = frozenset({"urlopen", "urlretrieve", "create_connection"})
 FORBIDDEN_MODULES = ("core.engine.orders", "core.quant.forward_sim", "core.quant.refusal", "core.ficc.context_log",
                      "core.ficc.macro", "core.ficc.flows_log", "core.skills.macro_daily")
 # Star and dynamic imports hide what a file loads from these guards and from the D14 closure (P6).
@@ -112,8 +118,14 @@ def _def_hits(rel: str, src: str) -> list[str]:
 
 
 def _http_hits(rel: str, src: str) -> list[str]:
-    return [f"{rel}:{n.lineno}: .{n.func.attr}()" for n, _f in _walk(ast.parse(src))
-            if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) and n.func.attr in HTTP_VERBS]
+    hits = []
+    for n, _f in _walk(ast.parse(src)):
+        if not isinstance(n, ast.Call):
+            continue
+        name = n.func.attr if isinstance(n.func, ast.Attribute) else n.func.id if isinstance(n.func, ast.Name) else None
+        if (isinstance(n.func, ast.Attribute) and name in HTTP_VERBS) or name in NETWORK_CALLS:
+            hits.append(f"{rel}:{n.lineno}: {name}()")
+    return hits
 
 
 def _forbidden_hits(rel: str, src: str) -> list[str]:
@@ -149,7 +161,11 @@ def _allowed(name: str) -> bool:
 def _allowlist_hits(rel: str, src: str) -> list[str]:
     hits = []
     for node, module, names, funcs in _imports(rel, ast.parse(src)):
-        if not (_allowed(module) or (names and all(_allowed(f"{module}.{n}") for n in names))):
+        net = [t for t in [module] + [f"{module}.{n}" for n in names]
+               for m in NETWORK_MODULES if t == m or t.startswith(m + ".")]
+        if net:                                         # stdlib, so the allowlist alone would pass it
+            hits.append(f"{rel}:{node.lineno}: imports {net[0]}: a network module; core/compliance never needs one")
+        elif not (_allowed(module) or (names and all(_allowed(f"{module}.{n}") for n in names))):
             hits.append(f"{rel}:{node.lineno}: imports {module}: not stdlib, yaml, cryptography, core.isolation "
                         "or core.compliance")
         elif module.split(".")[0] == "cryptography" and not funcs:
@@ -225,11 +241,17 @@ def test_no_function_named_transfer_withdraw_or_deposit_address():
 
 
 def test_no_http_verb_calls():
-    """core/compliance never calls .post/.put/.delete/.patch/.request on anything (contract section 0), so no order,
-    withdrawal, transfer or deposit string can reach one, a dict-like `.put` included."""
+    """core/compliance never calls .post/.put/.delete/.patch/.request on anything (contract section 0), a dict-like
+    `.put` included, nor urlopen, urlretrieve or create_connection (bare or as an attribute). With the network modules
+    banned from its imports (test_imports_stay_on_the_allowlist), nothing in core/compliance can open a connection
+    through the stdlib, so no order, withdrawal, transfer or deposit string can reach one. The alert toast is a
+    powershell subprocess (P26); neither guard covers a subprocess."""
     assert len(_http_hits(X, "requests.post(u)\nstore.put('transfer_ack', 1)\nx.delete()\ny.patch(z)\n"
                              "s.request('POST', u)\n")) == 5
-    assert not _http_hits(X, "d.get(1)\nlines.append(2)\n")
+    # a urllib POST with no verb method at all: only the urlopen call names it
+    assert len(_http_hits(X, "urllib.request.urlopen(urllib.request.Request(u, data=b'x', method='POST'))\n"
+                             "urlopen(u)\nurlretrieve(u, p)\nsocket.create_connection(a)\n")) == 4
+    assert not _http_hits(X, "d.get(1)\nlines.append(2)\nmy_urlopen(u)\nx.urlopen_note\n")
     hits = [h for rel, src in _scope(COMPLIANCE).items() for h in _http_hits(rel, src)]
     assert not hits, hits
 
@@ -262,12 +284,24 @@ def test_no_forbidden_module_import():
 
 def test_imports_stay_on_the_allowlist():
     """stdlib, yaml, cryptography (inside a function only), core.isolation and core.compliance.* (contract
-    section 0), so the D14 signed closure stays core/__init__.py, core/isolation.py and core/compliance (P6)."""
+    section 0), so the D14 signed closure stays core/__init__.py, core/isolation.py and core/compliance (P6). The
+    stdlib network modules are not allowed: core/compliance never needs the network (the alert email is sent by the
+    scheduled Claude task, the toast is a subprocess)."""
     for src in ("import numpy\n", "import config\n", "from core.quant import instruments\n",
                 "from core import isolation, quant\n", "from core.calendars.store import CalendarSet\n",
                 "def f():\n    import core.rules.governance\n", "import cryptography\n",
                 "from cryptography.exceptions import InvalidSignature\n"):
         assert _allowlist_hits(X, src), src
+    for src in ("import urllib.request\n", "from http import client\n", "import socket\n", "import smtplib\n",
+                "from urllib.request import urlopen\n", "from urllib import request\n", "import http.client as hc\n",
+                "def f():\n    import ssl\n", "from socket import create_connection\n"):
+        assert _allowlist_hits(X, src), src
+    for module in NETWORK_MODULES:                      # every banned module, in each import form
+        for src in (f"import {module}\n", f"import {module}.x\n", f"from {module} import x\n",
+                    f"from {module}.x import y\n"):
+            assert _allowlist_hits(X, src), src
+    assert not _allowlist_hits(X, "import subprocess\nimport importlib.metadata\nfrom importlib import metadata\n"
+                                  "import ipaddress, email.message, json\n")
     ok = ("from __future__ import annotations\nimport json, zoneinfo\nimport yaml\nfrom core import isolation\n"
           "from core.isolation import checked_target\nfrom . import model\nfrom .model import Intent\n"
           "import core.compliance.rules\ndef f():\n    from cryptography.exceptions import InvalidSignature\n")
