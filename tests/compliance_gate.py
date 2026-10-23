@@ -182,6 +182,13 @@ def test_classification_goes_through_the_map():
     listed = F.ctx(active=dataclasses.replace(state, venues=venues), holdings={("okx", "USDT"): 100.0})
     settle = gate.decide(F.intent(venue="okx", symbol="USDT", counter_symbol="USDC", action="sell"), listed)
     assert settle.kind == "new_exposure", settle.reasons                   # a settlement asset sold: no close_long
+    both = F.ctx(holdings={("upbit", "BTC"): 1.0}, shorts={("kis", "005930"): 10.0})
+    for financing in ("credit", "margin"):                                  # D15: only cash-financed intents are exits
+        for i, exit_kind in ((F.intent(action="sell"), "close_long"),
+                             (_t7_kis("005930", action="buy_to_cover"), "cover_short")):
+            assert gate.decide(i, both).kind == exit_kind, i.action
+            d = gate.decide(dataclasses.replace(i, financing=financing), both)
+            assert d.kind == "new_exposure" and d.verdict == model.BLOCK, (i.action, financing, d.reasons)
 
 
 def test_credit_lend_and_borrow_block():
@@ -306,6 +313,8 @@ def test_withdraw_classification():
     c = F.ctx(holdings=held, owner=_t7_owner(addresses=frozenset({_T7_ADDRESS, lightning, tagged})))
     w = _t7_withdraw()
     assert gate.decide(w, c).kind == "withdraw"
+    for financing in ("credit", "margin"):                                  # D15: an exit is cash-financed
+        assert gate.decide(dataclasses.replace(w, financing=financing), c).kind == "new_exposure", financing
     for change in ({"destination_network": "lightning"}, {"destination_address": "bc1qother"},
                    {"destination_tag": "123"}, {"destination_venue": "bithumb"}, {"destination_venue": "binance"}):
         assert gate.decide(dataclasses.replace(w, **change), c).kind == "new_exposure", change
@@ -332,6 +341,24 @@ def test_history_maps_serve_exits_only():
     gone = F.ctx(active=dataclasses.replace(state, history_maps=()), holdings=held)
     d = gate.decide(_t7_kis("IBIT", action="sell"), gone)
     assert d.verdict == model.BLOCK and {"malformed: symbol", "close manually in the broker app"} <= set(d.reasons)
+    # A transfer is an exit (history-map lookup, manual advice) only toward a domestic exchange (spec 6.2 steps 0, 3).
+    no_btc = dataclasses.replace(full.instruments, entries={k: v for k, v in full.instruments.entries.items()
+                                                            if k != ("crypto", "BTC")})
+    both = {("upbit", "BTC"): 1.0, ("okx", "BTC"): 1.0}
+    kept = F.ctx(active=dataclasses.replace(full, instruments=no_btc, history_maps=(full.instruments,)),
+                 holdings=both, owner=_t7_owner())
+    lost = F.ctx(active=dataclasses.replace(full, instruments=no_btc, history_maps=()), holdings=both,
+                 owner=_t7_owner())
+    offshore = gate.decide(_t7_withdraw(venue="upbit", destination_venue="okx"), kept)   # superseded map: no service
+    assert offshore.kind == "malformed" and "malformed: symbol" in offshore.reasons, offshore.reasons
+    assert gate.decide(_t7_withdraw(), kept).kind == "withdraw"                          # okx -> upbit: found
+    assert gate.decide(F.intent(action="sell"), kept).kind == "close_long"               # a sell: found
+    credit = gate.decide(F.intent(action="sell", financing="credit"), kept)              # not an exit (D15): not found
+    assert credit.kind == "malformed" and "malformed: symbol" in credit.reasons, credit.reasons
+    for source, dest, manual in (("upbit", "okx", False), ("upbit", "polymarket", False), ("okx", "upbit", True)):
+        d = gate.decide(_t7_withdraw(venue=source, destination_venue=dest), lost)
+        assert d.kind == "malformed" and "malformed: symbol" in d.reasons, (dest, d.reasons)
+        assert ("withdraw manually in the exchange app" in d.reasons) is manual, (dest, d.reasons)
 
 
 def test_reasons_ranked_and_verdicts_combined():

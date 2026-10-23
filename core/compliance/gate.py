@@ -137,8 +137,11 @@ def _validate(intent, ctx, state) -> tuple[rules.Instrument | None, rules.Venue 
     venue = state.venues.venues.get(intent.venue)
     if venue is None:                                         # a vocabulary venue without approved facts
         return None, None, [f"malformed: {f}" for f in bad + ["venue"]]
-    exit_action = "action" not in bad and intent.action in _EXIT_KIND
-    inst = _lookup(state, venue, intent.symbol, exit_action)
+    # A transfer is an exit only toward a domestic exchange (spec 6.2 step 3); only a cash-financed exit may fall back
+    # to the earlier maps (D15, spec 6.2 step 0). The manual advice follows the first test alone.
+    exit_action = "action" not in bad and intent.action in _EXIT_KIND and (
+        not transfer or _is(intent.destination_venue, rules.DOMESTIC_EXCHANGES))
+    inst = _lookup(state, venue, intent.symbol, exit_action and intent.financing == "cash")
     if inst is None:
         manual = [_WITHDRAW_MANUALLY if transfer else _CLOSE_MANUALLY] if exit_action else []
         return None, venue, [f"malformed: {f}" for f in bad + ["symbol"]] + manual
@@ -170,8 +173,11 @@ def _conduct(intent, state) -> list[str]:
 
 def _classify(intent, ctx, inst, venue) -> str:
     """Step 3, on a valid intent: close_long, cover_short or withdraw when its exit test holds; else new_exposure.
-    Under a broken owner log a domestic withdrawal stays a withdraw, so that step 4 can send it to the app."""
+    Only a cash-financed intent is an exit (D15). Under a broken owner log a domestic withdrawal stays a withdraw, so
+    that step 4 can send it to the app."""
     action = intent.action
+    if intent.financing != "cash":
+        return "new_exposure"
     if (action == "sell" and inst.symbol not in venue.settlement and intent.counter_symbol in venue.settlement
             and _within_free(intent, ctx)):
         return "close_long"
