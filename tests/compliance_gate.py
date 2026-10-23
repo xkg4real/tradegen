@@ -447,3 +447,511 @@ def test_property_conduct_intents_always_block():
         assert d.verdict == model.BLOCK and _t7_has(d, "conduct: "), (f"Random(23) case {n}", fields, d.reasons)
         kinds.add(d.kind)
     assert kinds == {"close_long", "cover_short", "withdraw", "new_exposure", "malformed"}, kinds
+
+
+# --------------------------------------------------------------------------- #
+# Task 8: steps 4-6 (spec 6.2 steps 4-6, D6, D11, D16; compliance tests 4, 6, 7). Helpers are prefixed `_t8_`;
+# the `_t7_` helpers above are reused, never redefined.
+# --------------------------------------------------------------------------- #
+import datetime as _t8_dt  # noqa: E402
+
+_T8_DAY = _t8_dt.date
+_T8_OKX_ADDRESS = ("okx", "BTC", "bitcoin", "bc1qokxfixtureaddress", "")
+
+
+def _t8_row(row_id: str, state: model.ApprovedState | None = None) -> rules.Row:
+    rows = [r for r in (state or F.approved()).rules.rows if r.id == row_id]
+    assert len(rows) == 1, row_id
+    return rows[0]
+
+
+def _t8_with_rows(state: model.ApprovedState, changes: dict) -> model.ApprovedState:
+    """`state` with fields of the named rows replaced: {row_id: {field: value}}."""
+    assert set(changes) <= {r.id for r in state.rules.rows}, changes
+    rows = tuple(dataclasses.replace(r, **changes[r.id]) if r.id in changes else r for r in state.rules.rows)
+    return dataclasses.replace(state, rules=dataclasses.replace(state.rules, rows=rows))
+
+
+def _t8_with_instruments(state: model.ApprovedState, *extra: rules.Instrument) -> model.ApprovedState:
+    entries = {**state.instruments.entries, **{(i.section, i.symbol): i for i in extra}}
+    return dataclasses.replace(state, instruments=dataclasses.replace(state.instruments, entries=entries))
+
+
+def _t8_fixture(symbol: str, asset: str, multiple: float, underlying: str | None) -> rules.Instrument:
+    """A fixture-only KRX instrument (the shipped map has no single-stock ETP, KRX derivative or ELW)."""
+    return rules.Instrument(section="krx", symbol=symbol, asset=asset, multiple=multiple, underlying=underlying,
+                            cls=rules.derive_class(asset, multiple, underlying),
+                            cost_book="KRX_ETF_line" if asset == "krx_etp" else None, currency="KRW",
+                            tax_basis="unsupported", source="fixture: not a real listing")
+
+
+def _t8_okx_ack(session: str = "S1", cap: str = "10%") -> tuple[str, str, str]:
+    """The session ack the owner signs for KR-OKX-SPOT at the fixture cap of 10%."""
+    return (session, "KR-OKX-SPOT", gate.warning_sha256(_t8_row("KR-OKX-SPOT"), {"cap": cap}))
+
+
+def _t8_owner(**changes) -> model.OwnerState:
+    """_t7_owner() (cap 10%, age flag, _T7_ADDRESS registered) with any field replaced, addresses included."""
+    return dataclasses.replace(_t7_owner(), **changes)
+
+
+def _t8_okx_owner(**changes) -> model.OwnerState:
+    """_t8_owner with the S1 ack of KR-OKX-SPOT signed."""
+    return _t8_owner(**{"session_acks": frozenset({_t8_okx_ack()}), **changes})
+
+
+def _t8_okx_buy(**changes) -> model.Intent:
+    """An OKX BTC buy for USDT, KRW 50,000."""
+    return F.intent(**{"venue": "okx", "counter_symbol": "USDT", **changes})
+
+
+def _t8_to_okx(**changes) -> model.Intent:
+    """Upbit -> OKX, 0.001 BTC on the bitcoin network, to _T8_OKX_ADDRESS: a new-exposure transfer (step 6)."""
+    return F.intent(**{"action": "transfer_out", "counter_symbol": "", "destination_venue": "okx",
+                       "destination_address": _T8_OKX_ADDRESS[3], "destination_network": "bitcoin", **changes})
+
+
+def test_render_warning_fills_only_the_cap_slot():
+    row = _t8_row("KR-OKX-SPOT")
+    text = gate.render_warning(row, {"cap": "10%"})
+    assert "caps everything you hold on OKX at 10% of your equity." in text and "{" not in text, text
+    assert gate.render_warning(row, {}) == row.warning.replace("{cap}", "")          # a missing slot renders ""
+    assert gate.render_warning(row, {"cap": "10%", "other": "x"}) == text
+    assert gate.warning_sha256(row, {"cap": "10%"}) == model.sha256_hex(text)
+    assert gate.warning_sha256(row, {"cap": "20%"}) != gate.warning_sha256(row, {"cap": "10%"})
+    odd = dataclasses.replace(row, warning="a {bogus} b {{x}} {cap}")
+    assert gate.render_warning(odd, {"cap": "5%", "bogus": "B"}) == "a  b {x} 5%"     # only {cap} is a slot
+    assert gate.render_warning(dataclasses.replace(row, warning="bad {"), {"cap": "5%"}) == ""
+    assert gate.render_warning(_t8_row("KR-DOMESTIC-SPOT"), {"cap": "10%"}) == ""
+    assert gate.render_warning(None, {}) == ""                                      # never raises
+
+
+def test_verdicts_follow_the_rows():
+    c = F.ctx()
+    for symbol in ("005930", "069500", "114800", "SH", "SPY", "AAPL", "BITO"):          # spec 8.4: BITO is ALLOW
+        d = gate.decide(_t7_kis(symbol), c)
+        assert d.verdict == model.ALLOW and d.kind == "new_exposure" and d.reasons == (), (symbol, d.reasons)
+    for symbol in ("IBIT", "FBTC", "ETHA", "GDLC", "EZPZ"):
+        d = gate.decide(_t7_kis(symbol), c)
+        assert d.verdict == model.BLOCK, symbol
+        assert {"floor: etp_crypto_spot", "hard_block: KR-KIS-CRYPTO-SPOT-ETP"} <= set(d.reasons), d.reasons
+    for symbol in ("TQQQ", "252670"):
+        d = gate.decide(_t7_kis(symbol), c)
+        assert d.verdict == model.BLOCK and \
+            "needs live broker evidence (execution spec): KR-KIS-ETP-LEV" in d.reasons, (symbol, d.reasons)
+    for i in (F.intent(), F.intent(symbol="USDT"), F.intent(venue="bithumb"), F.intent(venue="coinone"),
+              F.intent(venue="korbit")):
+        d = gate.decide(i, c)
+        assert d.verdict == model.ALLOW and d.reasons == (), (i.venue, i.symbol, d.reasons)
+    for financing in ("credit", "margin"):                                              # D15
+        d = gate.decide(_t7_kis("005930", financing=financing), c)
+        assert d.verdict == model.BLOCK and d.reasons == ("out_of_scope: KR-KIS-CREDIT",), d.reasons
+    for action in ("lend", "borrow"):                                                   # D15
+        d = gate.decide(F.intent(action=action, counter_symbol=""), c)
+        assert d.verdict == model.BLOCK and d.reasons == ("out_of_scope: KR-DOMESTIC-LENDING",), d.reasons
+    p2p = gate.decide(_t8_okx_buy(action="p2p_buy"), c)
+    assert p2p.verdict == model.BLOCK and {"floor: okx p2p_buy", "hard_block: KR-OKX-P2P"} <= set(p2p.reasons)
+    for i in (_t7_kis("005930", action="write"), F.intent(action="p2p_buy"), _t7_kis("AAPL", action="sell_short")):
+        d = gate.decide(i, c)
+        assert d.verdict == model.BLOCK and d.reasons == ("no row",), (i.action, d.reasons)
+    early = gate.decide(F.intent(), F.ctx(date=_T8_DAY(2026, 6, 23)))     # KR-DOMESTIC-SPOT is in force from 06-24
+    assert early.verdict == model.BLOCK and early.reasons == ("no row",), early.reasons
+
+
+def test_gated_option_needs_owner_flags_then_the_session_ack():
+    state = _t7_with_option(F.approved())
+    row = _t8_row("KR-KIS-US-OPTION", state)
+    need = sorted(row.requires_owner)
+    assert need == ["broker_eligibility", "us_option_course_1h", "us_option_mock_3h"] and row.ack == "per_session"
+    bare = gate.decide(_t7_option(), F.ctx(active=state))
+    assert bare.verdict == model.BLOCK and \
+        set(bare.reasons) == {f"requires {item}: KR-KIS-US-OPTION" for item in need}, bare.reasons
+    flags = frozenset({"age_of_majority", *need})
+    sha = gate.warning_sha256(row, {})                                      # no cap_key, so no slot
+    ack = gate.decide(_t7_option(), F.ctx(active=state, owner=_t8_owner(flags=flags)))
+    assert ack.verdict == model.ACK_REQUIRED and ack.reasons == ("ack required: KR-KIS-US-OPTION",)
+    assert ack.ack == ("KR-KIS-US-OPTION", sha) and ack.warnings == (row.warning,)
+    signed = _t8_owner(flags=flags, session_acks=frozenset({("S1", "KR-KIS-US-OPTION", sha)}))
+    ok = gate.decide(_t7_option(), F.ctx(active=state, owner=signed))
+    assert ok.verdict == model.ALLOW and ok.reasons == () and ok.ack is None, ok.reasons
+    write = gate.decide(_t7_option(action="write"), F.ctx(active=state, owner=signed))
+    assert write.verdict == model.BLOCK and \
+        {"floor: option write", "hard_block: KR-KIS-US-OPTION-WRITE"} <= set(write.reasons), write.reasons
+
+
+def test_okx_auto_off_at_the_asia_seoul_boundary():
+    # Spec 8.7: ctx.date is the Asia/Seoul date of the decision moment, so 23:59:59 KST on 12-02 decides on 12-02
+    # and 00:00:00 KST on 12-03 on 12-03. The gate sees only the date; load_context's conversion of a moment into it
+    # is Task 13's test_decision_date_is_the_asia_seoul_date_of_now. The shipped KR-OKX-SPOT is due 2026-11-22 and
+    # already stale on 12-02, so the boundary is tested on a re-reviewed row: a review on 2026-11-15 may move
+    # review_by to 2026-12-02 (P15: within 31 days, before the 2026-12-03 affected_by date).
+    row = _t8_row("KR-OKX-SPOT")
+    review = dataclasses.replace(row.reviews[-1], date=_T8_DAY(2026, 11, 15))
+    state = _t8_with_rows(F.approved(), {"KR-OKX-SPOT": {"review_by": _T8_DAY(2026, 12, 2),
+                                                         "reviews": (*row.reviews, review)}})
+    before = _t8_dt.datetime(2026, 12, 2, 23, 59, 59, tzinfo=model.KST).date()
+    after = _t8_dt.datetime(2026, 12, 3, 0, 0, 0, tzinfo=model.KST).date()
+    assert (before, after) == (_T8_DAY(2026, 12, 2), _T8_DAY(2026, 12, 3)), (before, after)
+    ok = gate.decide(_t8_okx_buy(), F.ctx(active=state, date=before, owner=_t8_okx_owner()))
+    assert ok.verdict == model.ALLOW and ok.reasons == (), ok.reasons
+    off = gate.decide(_t8_okx_buy(), F.ctx(active=state, date=after, owner=_t8_okx_owner()))
+    assert off.verdict == model.BLOCK and off.reasons == ("stale: review by 2026-12-02 passed (KR-OKX-SPOT)",
+                                                          "auto_off 2026-12-03: KR-OKX-SPOT"), off.reasons
+    shipped = gate.decide(_t8_okx_buy(), F.ctx(date=before, owner=_t8_okx_owner()))
+    assert shipped.verdict == model.BLOCK and \
+        shipped.reasons == ("stale: review by 2026-11-22 passed (KR-OKX-SPOT)",), shipped.reasons
+
+
+def test_rows_are_in_force_from_effective_from_until_effective_until():
+    # A gate-only fixture row, neither stale nor off in February: the loader would refuse this review_by (P15: it
+    # crosses the 2026-12-03 and 2027-02-18 affected_by dates).
+    later = _T8_DAY(2027, 3, 31)
+    state = _t8_with_rows(F.approved(), {"KR-OKX-SPOT": {"review_by": later, "auto_off": later}})
+    owner = _t8_okx_owner()
+    last = gate.decide(_t8_okx_buy(), F.ctx(active=state, date=_T8_DAY(2027, 2, 17), owner=owner))
+    assert last.verdict == model.ALLOW, last.reasons
+    ended = gate.decide(_t8_okx_buy(), F.ctx(active=state, date=_T8_DAY(2027, 2, 18), owner=owner))
+    assert ended.verdict == model.BLOCK and ended.reasons == ("no row",), ended.reasons    # effective_until
+    first = _t8_row("KR-OKX-SPOT").effective_from
+    assert gate.decide(_t8_okx_buy(), F.ctx(date=first, owner=owner)).verdict == model.ALLOW
+    before = gate.decide(_t8_okx_buy(), F.ctx(date=_T8_DAY.fromordinal(first.toordinal() - 1), owner=owner))
+    assert before.reasons == ("no row",), before.reasons
+
+
+def test_okx_sell_for_usdt_is_an_exit_after_auto_off():
+    c = F.ctx(date=_T8_DAY(2026, 12, 3), holdings={("okx", "BTC"): 0.01, ("okx", "USDT"): 100.0},
+              owner=_t8_okx_owner())
+    sell = gate.decide(_t8_okx_buy(action="sell"), c)
+    assert sell.verdict == model.ALLOW_EXIT and sell.kind == "close_long" and sell.reasons == (), sell.reasons
+    assert "stale: review by 2026-11-22 passed (KR-OKX-SPOT)" in sell.warnings
+    assert gate.render_warning(_t8_row("KR-OKX-SPOT"), {"cap": "10%"}) in sell.warnings
+    buy = gate.decide(_t8_okx_buy(), c)                                  # USDT -> BTC is a BTC buy: new exposure
+    assert buy.verdict == model.BLOCK and buy.kind == "new_exposure"
+    assert "auto_off 2026-12-03: KR-OKX-SPOT" in buy.reasons, buy.reasons
+    usdt = gate.decide(_t8_okx_buy(symbol="USDT", counter_symbol="BTC", action="sell"), c)   # no USDT-BTC market
+    assert usdt.verdict == model.BLOCK and "malformed: counter_symbol" in usdt.reasons, usdt.reasons
+
+
+def test_withdrawal_to_upbit_ignores_stale_rows_and_unsigned_code():
+    on = _T8_DAY(2026, 12, 3)
+    assert on > _t8_row("KR-DOMESTIC-SPOT").review_by and on > _t8_row("KR-OKX-WITHDRAW").review_by
+    c = F.ctx(date=on, code_signed=False, holdings={("okx", "BTC"): 0.01}, owner=_t8_owner())
+    d = gate.decide(_t7_withdraw(), c)
+    assert d.verdict == model.ALLOW_EXIT and d.kind == "withdraw" and d.reasons == (), d.reasons
+    assert d.warnings == ("stale: review by 2026-11-22 passed (KR-OKX-WITHDRAW)",), d.warnings
+    buy = gate.decide(F.intent(), F.ctx(date=on, code_signed=False))
+    assert buy.verdict == model.BLOCK and "unsigned code" in buy.reasons     # the same context refuses a buy
+
+
+def test_withdrawal_wrong_network_or_missing_tag_blocks():
+    held = {("okx", "BTC"): 0.01}
+    lightning = ("upbit", "BTC", "lightning", _T7_ADDRESS[3], "")
+    c = F.ctx(holdings=held, owner=_t8_owner(addresses=frozenset({_T7_ADDRESS, lightning})))
+    wrong = gate.decide(_t7_withdraw(destination_network="lightning"), c)
+    assert wrong.verdict == model.BLOCK and wrong.kind == "new_exposure", wrong
+    assert {"destination: upbit does not credit BTC on lightning", "out_of_scope: KR-OKX-WITHDRAW"} <= \
+        set(wrong.reasons), wrong.reasons
+    raw = F.shipped_bytes("venues")                                       # fixture venue file: Upbit wants a tag
+    head, sep, tail = raw.partition(b"\n  okx:")
+    assert sep and head.count(b"tag_required: false") == 1
+    tagged = F.approved(venues=head.replace(b"tag_required: false", b"tag_required: true") + sep + tail)
+    assert tagged.valid, tagged.reason
+    assert tagged.venues.venues["upbit"].deposits == frozenset({("BTC", "bitcoin", True)})
+    assert tagged.venues.venues["okx"].deposits == frozenset({("BTC", "bitcoin", False)})
+    memo = ("upbit", "BTC", "bitcoin", _T7_ADDRESS[3], "4242")
+    c2 = F.ctx(active=tagged, holdings=held, owner=_t8_owner(addresses=frozenset({_T7_ADDRESS, memo})))
+    missing = gate.decide(_t7_withdraw(), c2)
+    assert missing.verdict == model.BLOCK and missing.kind == "new_exposure"
+    assert "destination: upbit needs a tag for BTC on bitcoin" in missing.reasons, missing.reasons
+    tag = gate.decide(_t7_withdraw(destination_tag="4242"), c2)
+    assert tag.verdict == model.ALLOW_EXIT and tag.kind == "withdraw", tag.reasons
+    extra = gate.decide(_t7_withdraw(destination_tag="4242"),
+                        F.ctx(holdings=held, owner=_t8_owner(addresses=frozenset({memo}))))
+    assert extra.verdict == model.BLOCK and "destination: upbit takes no tag for BTC on bitcoin" in extra.reasons
+
+
+def test_broken_owner_log_closes_with_the_snapshot_and_withdraws_manually():
+    snap = _t8_with_rows(F.approved(seq=2), {"KR-DOMESTIC-SPOT": {"warning": "snapshot-only warning"}})
+    c = F.ctx(owner=model.OwnerState.broken("bad signature on entry 4"), snapshot=snap,
+              holdings={("upbit", "BTC"): 1.0, ("okx", "BTC"): 0.01}, shorts={("kis", "005930"): 3.0})
+    for i, kind in ((F.intent(action="sell"), "close_long"), (_t7_kis("005930", action="buy_to_cover"),
+                                                              "cover_short")):
+        d = gate.decide(i, c)
+        assert d.verdict == model.ALLOW_EXIT and d.kind == kind and d.reasons == (), (kind, d.reasons)
+        assert d.state_hash == snap.state_hash != c.active.state_hash
+        assert "snapshot: decided on the last approved snapshot (D11)" in d.warnings
+    upbit = gate.decide(F.intent(action="sell"), c)
+    assert "snapshot-only warning" in upbit.warnings, upbit.warnings      # the snapshot's rows, not ctx.active's
+    okx = gate.decide(_t8_okx_buy(action="sell"), c)                     # a broken log has no caps to read
+    assert okx.verdict == model.ALLOW_EXIT and okx.kind == "close_long", okx.reasons
+    assert gate.render_warning(_t8_row("KR-OKX-SPOT"), {"cap": "the share you set"}) in okx.warnings, okx.warnings
+    w = gate.decide(_t7_withdraw(), c)
+    assert w.verdict == model.BLOCK and w.kind == "withdraw"
+    assert w.reasons == ("withdraw manually in the exchange app",), w.reasons
+    buy = gate.decide(F.intent(), c)
+    assert buy.verdict == model.BLOCK and "state: owner log bad signature on entry 4" in buy.reasons
+
+
+def test_invalid_active_state_closes_with_the_snapshot():
+    held = {("upbit", "BTC"): 1.0, ("okx", "BTC"): 0.01}
+    c = F.ctx(active=model.ApprovedState.invalid("rules: unapproved"), snapshot=F.approved(), holdings=held,
+              shorts={("kis", "005930"): 3.0}, owner=_t8_owner())
+    for i, kind in ((F.intent(action="sell"), "close_long"), (_t7_kis("005930", action="buy_to_cover"),
+                                                              "cover_short"), (_t7_withdraw(), "withdraw")):
+        d = gate.decide(i, c)
+        assert d.verdict == model.ALLOW_EXIT and d.kind == kind and d.reasons == (), (kind, d.reasons)
+        assert d.state_hash == F.approved().state_hash
+    buy = gate.decide(F.intent(), c)
+    assert buy.verdict == model.BLOCK and "state: rules: unapproved" in buy.reasons
+
+
+def test_no_snapshot_means_manual_exits():
+    c = F.ctx(active=model.ApprovedState.invalid("rules: unapproved"), holdings={("upbit", "BTC"): 1.0,
+              ("okx", "BTC"): 0.01}, shorts={("kis", "005930"): 3.0}, owner=_t8_owner())
+    for i, kind, manual in ((F.intent(action="sell"), "close_long", "close manually in the broker app"),
+                            (_t7_kis("005930", action="buy_to_cover"), "cover_short",
+                             "close manually in the broker app"),
+                            (_t7_withdraw(), "withdraw", "withdraw manually in the exchange app")):
+        d = gate.decide(i, c)
+        assert d.verdict == model.BLOCK and d.kind == kind and d.reasons == ("state: rules: unapproved", manual), \
+            (kind, d.reasons)
+
+
+def test_conduct_still_blocks_exits():
+    c = F.ctx(holdings={("upbit", "BTC"): 1.0, ("okx", "BTC"): 0.01}, shorts={("kis", "005930"): 3.0},
+              owner=_t8_owner())
+    for base in (F.intent(action="sell"), _t7_kis("005930", action="buy_to_cover"), _t7_withdraw()):
+        assert gate.decide(base, c).verdict == model.ALLOW_EXIT, base
+        for change, reason in (({"tags": frozenset({"spoof"})}, "conduct: KR-CONDUCT-MANIP"),
+                               ({"route": "vpn"}, "conduct: KR-CONDUCT-ROUTE"),
+                               ({"on_behalf": "follower"}, "conduct: KR-CONDUCT-OTHERS"),
+                               ({"publishes_signal": True}, "conduct: KR-CONDUCT-SIGNALS")):
+            d = gate.decide(dataclasses.replace(base, **change), c)
+            assert d.verdict == model.BLOCK and reason in d.reasons, (base.action, change, d.reasons)
+
+
+def test_exits_ignore_gates_caps_d16_leverage_and_hard_blocks():
+    # D11 / spec 6.2 step 4: unmet owner gates, an unset or exceeded cap, D16 requires.live, max_leverage and
+    # hard_block rows never block an exit. The shipped hard_block, D16 and leverage rows match buys only, so this
+    # fixture widens three of them to sells (the shipped table has no such rows).
+    def sells(row_id: str, **more) -> dict:
+        row = _t8_row(row_id)
+        return {"match": {**row.match, "action": row.match["action"] | {"sell"}}, **more}
+
+    base = _t7_with_option(_t8_with_instruments(F.approved(), _t8_fixture("ZFUT", "krx_derivative", 1.0, None)))
+    state = _t8_with_rows(base, {"KR-KIS-CRYPTO-SPOT-ETP": sells("KR-KIS-CRYPTO-SPOT-ETP"),
+                                 "KR-KIS-KRX-DERIV": sells("KR-KIS-KRX-DERIV"),
+                                 "KR-KIS-ETP-LEV": sells("KR-KIS-ETP-LEV", max_leverage=1.5)})
+    held = {("kis", "ZFUT"): 1.0, ("kis", _T7_OPTION): 1.0, ("kis", "IBIT"): 2.0, ("kis", "TQQQ"): 1.0,
+            ("okx", "BTC"): 0.01}
+    bare = _t8_owner(flags=frozenset(), caps={})                         # no age flag, no course, no cap
+    zfut = F.intent(venue="kis", symbol="ZFUT", counter_symbol="KRW", asset="krx_derivative", multiple=1.0,
+                    action="sell", quantity=1.0, notional_krw=30_000.0)
+    for i, row_id in ((zfut, "KR-KIS-KRX-DERIV"),                            # D16 requires.live, owner items unmet
+                      (_t7_option(action="sell"), "KR-KIS-US-OPTION"),        # gated, owner items unmet
+                      (_t7_kis("IBIT", action="sell"), "KR-KIS-CRYPTO-SPOT-ETP"),   # hard_block
+                      (_t7_kis("TQQQ", action="sell"), "KR-KIS-ETP-LEV"),           # 3x above max_leverage 1.5
+                      (_t8_okx_buy(action="sell"), "KR-OKX-SPOT")):                  # grey: cap unset, age unmet
+        inst = state.instruments.lookup(state.venues.venues[i.venue].sections, i.symbol)
+        assert row_id in {r.id for r in gate._in_force(state, i, inst.cls, F.ctx().date)}, row_id   # it matches
+        d = gate.decide(i, F.ctx(active=state, holdings=held, owner=bare))
+        assert d.verdict == model.ALLOW_EXIT and d.kind == "close_long" and d.reasons == (), (row_id, d.reasons)
+    over = F.ctx(active=state, holdings=held, owner=_t8_okx_owner(),
+                 exposure={"okx": model.Exposure(held_krw=10_000_000.0)})        # ten times the 10% cap
+    assert gate.decide(_t8_okx_buy(action="sell"), over).verdict == model.ALLOW_EXIT
+    shipped = gate.decide(_t7_kis("IBIT", action="sell"), F.ctx(holdings={("kis", "IBIT"): 2.0}))
+    assert shipped.verdict == model.ALLOW_EXIT and shipped.reasons == (), shipped.reasons   # spec 8.3
+
+
+def test_okx_ack_missing_wrong_or_other_session_is_ack_required():
+    sha = _t8_okx_ack()[2]
+    cases = {"missing": frozenset(), "wrong hash": frozenset({("S1", "KR-OKX-SPOT", "0" * 64)}),
+             "old session": frozenset({_t8_okx_ack(session="S0")}),
+             "other row": frozenset({("S1", "KR-DOMESTIC-SPOT", sha)}),
+             "other cap text": frozenset({_t8_okx_ack(cap="20%")})}
+    for name, acks in cases.items():
+        d = gate.decide(_t8_okx_buy(), F.ctx(owner=_t8_owner(session_acks=acks)))
+        assert d.verdict == model.ACK_REQUIRED and d.reasons == ("ack required: KR-OKX-SPOT",), (name, d.reasons)
+        assert d.ack == ("KR-OKX-SPOT", sha), name
+    ok = gate.decide(_t8_okx_buy(), F.ctx(owner=_t8_okx_owner()))
+    assert ok.verdict == model.ALLOW and ok.reasons == () and ok.ack is None, ok.reasons
+    assert ok.warnings == (gate.render_warning(_t8_row("KR-OKX-SPOT"), {"cap": "10%"}),)
+    for session in (model.SessionState(session_id="S2", armed=True), model.SessionState()):
+        d = gate.decide(_t8_okx_buy(), F.ctx(owner=_t8_okx_owner(), session=session))
+        assert d.verdict == model.ACK_REQUIRED, session
+
+
+def test_okx_cap_age_and_auto_off_block():
+    owner = _t8_okx_owner()
+    cases = [(F.ctx(owner=dataclasses.replace(owner, caps={})), "cap unset: KR-OKX-SPOT"),
+             (F.ctx(owner=dataclasses.replace(owner, caps={"okx_equity_share": 0.0})), "cap unset: KR-OKX-SPOT"),
+             (F.ctx(owner=dataclasses.replace(owner, caps={"okx_equity_share": 1.5})), "cap unset: KR-OKX-SPOT"),
+             (F.ctx(owner=dataclasses.replace(owner, caps={"okx_equity_share": "0.1"})), "cap unset: KR-OKX-SPOT"),
+             (F.ctx(owner=dataclasses.replace(owner, flags=frozenset())), "requires age_of_majority: KR-OKX-SPOT"),
+             # held_krw is the caller's KRW value of everything on OKX, USDT included (P19, contract 5.2)
+             (F.ctx(owner=owner, exposure={"okx": model.Exposure(held_krw=60_000.0)}), "cap exceeded: KR-OKX-SPOT"),
+             (F.ctx(owner=owner, exposure={"okx": model.Exposure(held_krw=30_000.0, reservations={"R9": 30_000.0})}),
+              "cap exceeded: KR-OKX-SPOT"),
+             (F.ctx(owner=owner, date=_T8_DAY(2026, 12, 3)), "auto_off 2026-12-03: KR-OKX-SPOT")]
+    for c, reason in cases:
+        d = gate.decide(_t8_okx_buy(), c)
+        assert d.verdict == model.BLOCK and reason in d.reasons and d.ack is None, (reason, d.reasons)
+    edge = gate.decide(_t8_okx_buy(), F.ctx(owner=owner, exposure={"okx": model.Exposure(held_krw=50_000.0)}))
+    assert edge.verdict == model.ALLOW, edge.reasons                       # exactly at the cap: 100,000 of 1,000,000
+    own = gate.decide(_t8_okx_buy(reservation_id="R1"), F.ctx(owner=owner, exposure={
+        "okx": model.Exposure(held_krw=50_000.0, reservations={"R1": 50_000.0})}))
+    assert own.verdict == model.ALLOW, own.reasons                         # its own reservation is not counted twice
+
+
+def test_stale_row_blocks_new_exposure_but_not_exits():
+    assert gate.decide(F.intent(), F.ctx(date=_T8_DAY(2026, 11, 22))).verdict == model.ALLOW
+    late = gate.decide(F.intent(), F.ctx(date=_T8_DAY(2026, 11, 23)))
+    assert late.verdict == model.BLOCK and \
+        late.reasons == ("stale: review by 2026-11-22 passed (KR-DOMESTIC-SPOT)",), late.reasons
+    assert gate.decide(_t7_kis("005930"), F.ctx(date=_T8_DAY(2026, 11, 23))).verdict == model.ALLOW
+    kis = gate.decide(_t7_kis("005930"), F.ctx(date=_T8_DAY(2026, 11, 24)))
+    assert kis.reasons == ("stale: review by 2026-11-23 passed (KR-KIS-KRX-SHARE)",), kis.reasons
+    sell = gate.decide(F.intent(action="sell"), F.ctx(date=_T8_DAY(2026, 11, 23), holdings={("upbit", "BTC"): 1.0}))
+    assert sell.verdict == model.ALLOW_EXIT and sell.reasons == ()
+    assert sell.warnings == ("stale: review by 2026-11-22 passed (KR-DOMESTIC-SPOT)",), sell.warnings
+
+
+def test_d16_rows_stay_blocked_with_every_owner_flag_signed():
+    state = _t8_with_instruments(F.approved(), _t8_fixture("ZSINGLE", "krx_etp", -1.0, "single"),
+                                 _t8_fixture("ZFUT", "krx_derivative", 1.0, None),
+                                 _t8_fixture("ZELW", "elw", 1.0, None))
+    d16 = sorted(r.id for r in state.rules.rows if r.policy_ref == "D16")
+    assert d16 == ["KR-KIS-ELW", "KR-KIS-ETP-LEV", "KR-KIS-KRX-DERIV", "KR-KIS-SHORT", "KR-KIS-SINGLE-ETP"], d16
+    assert state.instruments.entries[("krx", "ZSINGLE")].cls == "etp_single_stock"      # spec 8.4: single-stock -1x
+
+    def kis(symbol: str, **changes) -> model.Intent:
+        inst = state.instruments.entries[("krx", symbol)]
+        return F.intent(**{"venue": "kis", "symbol": symbol, "counter_symbol": "KRW", "asset": inst.asset,
+                           "multiple": inst.multiple, "quantity": 1.0, "notional_krw": 30_000.0, **changes})
+    every = F.ctx(active=state, owner=_t8_owner(flags=frozenset(rules.OWNER_REQUIREMENTS)))
+    for row_id, i in (("KR-KIS-SHORT", kis("005930", action="sell_short")), ("KR-KIS-ETP-LEV", kis("252670")),
+                      ("KR-KIS-SINGLE-ETP", kis("ZSINGLE")), ("KR-KIS-KRX-DERIV", kis("ZFUT")),
+                      ("KR-KIS-ELW", kis("ZELW"))):
+        d = gate.decide(i, every)
+        assert d.verdict == model.BLOCK and d.kind == "new_exposure", (row_id, d.reasons)
+        assert d.reasons == (f"needs live broker evidence (execution spec): {row_id}",), (row_id, d.reasons)
+
+
+def test_leverage_above_max_leverage_blocks():
+    lev = _t8_row("KR-KIS-ETP-LEV")
+    assert lev.max_leverage == 3.0
+    loose = _t8_with_rows(F.approved(), {"KR-KIS-ETP-LEV": {"treatment": "allow", "requires_owner": (),
+                                                             "requires_live": (), "policy_ref": None,
+                                                             "max_leverage": 2.0}})
+    c = F.ctx(active=loose)
+    assert gate.decide(_t7_kis("252670"), c).verdict == model.ALLOW            # -2x: |multiple| == max_leverage
+    three = gate.decide(_t7_kis("TQQQ"), c)
+    assert three.verdict == model.BLOCK and three.reasons == ("leverage 3 above 2: KR-KIS-ETP-LEV",), three.reasons
+    inverse = gate.decide(_t7_kis("252670"), F.ctx(active=_t8_with_rows(loose, {"KR-KIS-ETP-LEV": {
+        "max_leverage": 1.5}})))
+    assert inverse.verdict == model.BLOCK and \
+        inverse.reasons == ("leverage 2 above 1.5: KR-KIS-ETP-LEV",), inverse.reasons   # P4: |-2| = 2 > 1.5
+    shipped = gate.decide(_t7_kis("TQQQ"), F.ctx())
+    assert not _t7_has(shipped, "leverage "), shipped.reasons                  # 3x is within the shipped 3.0
+
+
+def test_upbit_to_okx_transfer_needs_the_transfer_ack_and_a_registered_address():
+    i = _t8_to_okx()
+    sha = _t8_okx_ack()[2]
+    full = _t8_okx_owner(addresses=frozenset({_T7_ADDRESS, _T8_OKX_ADDRESS}),
+                         transfer_acks=frozenset({(model.intent_hash(i), sha)}))
+    held = {("upbit", "BTC"): 0.01}
+    ok = gate.decide(i, F.ctx(holdings=held, owner=full))
+    assert ok.verdict == model.ALLOW and ok.kind == "new_exposure" and ok.reasons == (), ok.reasons
+    assert ok.warnings == (gate.render_warning(_t8_row("KR-OKX-SPOT"), {"cap": "10%"}),)
+    no_ack = F.ctx(holdings=held, owner=dataclasses.replace(full, transfer_acks=frozenset()))
+    d = gate.decide(i, no_ack)
+    assert d.verdict == model.ACK_REQUIRED and d.reasons == ("ack required: KR-OKX-SPOT per transfer",), d.reasons
+    assert d.ack == ("KR-OKX-SPOT", sha)
+    other = gate.decide(dataclasses.replace(i, quantity=0.002), F.ctx(holdings=held, owner=full))
+    assert other.verdict == model.ACK_REQUIRED, other.reasons            # the ack names one intent hash
+    for old_sha in ("0" * 64, _t8_okx_ack(cap="20%")[2]):                 # signed on other or older warning text
+        signed = dataclasses.replace(full, transfer_acks=frozenset({(model.intent_hash(i), old_sha)}))
+        d = gate.decide(i, F.ctx(holdings=held, owner=signed))
+        assert d.verdict == model.ACK_REQUIRED and d.reasons == ("ack required: KR-OKX-SPOT per transfer",), \
+            d.reasons
+    plain = _t8_with_rows(F.approved(), {"KR-TRANSFER-OUT": {"ack": None}})   # the source row's field is informational
+    d = gate.decide(i, F.ctx(active=plain, holdings=held, owner=dataclasses.replace(full, transfer_acks=frozenset())))
+    assert d.verdict == model.ACK_REQUIRED and d.reasons == ("ack required: KR-OKX-SPOT per transfer",), d.reasons
+    session = gate.decide(i, F.ctx(holdings=held, owner=dataclasses.replace(full, session_acks=frozenset())))
+    assert session.verdict == model.ACK_REQUIRED and session.reasons == ("ack required: KR-OKX-SPOT",), \
+        session.reasons                                                   # the destination is decided as a buy
+    neither = gate.decide(i, F.ctx(holdings=held, owner=dataclasses.replace(
+        full, session_acks=frozenset(), transfer_acks=frozenset())))
+    assert neither.verdict == model.ACK_REQUIRED and set(neither.reasons) == {
+        "ack required: KR-OKX-SPOT", "ack required: KR-OKX-SPOT per transfer"}, neither.reasons
+    cases = [(F.ctx(holdings=held, owner=dataclasses.replace(full, addresses=frozenset({_T7_ADDRESS}))),
+              "destination: address not registered"),
+             (F.ctx(holdings=held, owner=full, exposure={"okx": model.Exposure(held_krw=60_000.0)}),
+              "cap exceeded: KR-OKX-SPOT"),                                 # a deposit counts toward the OKX cap
+             (F.ctx(holdings=held, owner=full, exposure={"okx": model.Exposure(held_krw=-1.0)}),
+              "state: positions invalid (exposure)"),
+             (F.ctx(holdings=held, owner=full, date=_T8_DAY(2026, 12, 3)), "auto_off 2026-12-03: KR-OKX-SPOT")]
+    for c, reason in cases:
+        d = gate.decide(i, c)
+        assert d.verdict == model.BLOCK and reason in d.reasons, (reason, d.reasons)
+    lightning = gate.decide(_t8_to_okx(destination_network="lightning"), F.ctx(holdings=held, owner=full))
+    assert lightning.verdict == model.BLOCK and \
+        "destination: okx does not credit BTC on lightning" in lightning.reasons, lightning.reasons
+    binance = gate.decide(_t8_to_okx(destination_venue="binance"), F.ctx(holdings=held, owner=full))
+    assert binance.verdict == model.BLOCK and \
+        "destination: binance has no approved venue facts" in binance.reasons, binance.reasons
+    clash = rules.Instrument(section="us", symbol="BTC", asset="us_etp", multiple=1.0, underlying="crypto_spot",
+                             cls="etp_crypto_spot", cost_book="US_shares_KIS", currency="USD",
+                             tax_basis="unsupported", source="fixture: a US ticker spelled BTC")
+    kis = gate.decide(_t8_to_okx(destination_venue="kis"),
+                      F.ctx(active=_t8_with_instruments(F.approved(), clash), holdings=held, owner=full))
+    assert kis.verdict == model.BLOCK and {"floor: etp_crypto_spot", "hard_block: KR-KIS-CRYPTO-SPOT-ETP",
+                                           "destination: kis does not credit BTC on bitcoin"} <= set(kis.reasons), \
+        kis.reasons                                                       # decided as a buy there, floor included
+    raw = F.shipped_bytes("venues")                                       # fixture venue file: OKX wants a tag
+    head, sep, tail = raw.partition(b"\n  okx:")
+    assert sep and tail.count(b"tag_required: false") == 1
+    tagged = F.approved(venues=head + sep + tail.replace(b"tag_required: false", b"tag_required: true"))
+    assert tagged.valid and tagged.venues.venues["okx"].deposits == frozenset({("BTC", "bitcoin", True)})
+    memo = (*_T8_OKX_ADDRESS[:4], "1111")
+    for tag, want in (("1111", ()), ("2222", ("destination: address not registered",))):   # the tag is in the key
+        j = _t8_to_okx(destination_tag=tag)
+        owner = dataclasses.replace(full, addresses=frozenset({_T7_ADDRESS, _T8_OKX_ADDRESS, memo}),
+                                    transfer_acks=frozenset({(model.intent_hash(j), sha)}))
+        d = gate.decide(j, F.ctx(active=tagged, holdings=held, owner=owner))
+        assert d.verdict == (model.BLOCK if want else model.ALLOW) and d.reasons == want, (tag, d.reasons)
+
+
+def test_valid_intents_never_hit_an_internal_error():
+    state = _t7_with_option(F.approved())
+    every = {(v, s): 1.0 for v in state.venues.venues for (_, s) in state.instruments.entries}
+    owner = _t8_okx_owner(flags=frozenset(rules.OWNER_REQUIREMENTS),
+                          addresses=frozenset({_T7_ADDRESS, _T8_OKX_ADDRESS}))
+    verdicts, count = set(), 0
+    for on in (_T8_DAY(2026, 10, 23), _T8_DAY(2026, 12, 3), _T8_DAY(2027, 2, 18)):
+        c = F.ctx(active=state, date=on, owner=owner, holdings=every, shorts=every,
+                  exposure={"okx": model.Exposure(held_krw=20_000.0, reservations={"R2": 5_000.0})})
+        for venue in state.venues.venues.values():
+            for (section, symbol), inst in sorted(state.instruments.entries.items()):
+                if section not in venue.sections:
+                    continue
+                for action in sorted(rules.ACTIONS):
+                    for financing in ("cash", "credit"):
+                        fields = dict(venue=venue.id, symbol=symbol, asset=inst.asset, multiple=inst.multiple,
+                                      action=action, financing=financing, quantity=0.5, notional_krw=10_000.0,
+                                      counter_symbol="" if action in ("transfer_out", "lend", "borrow")
+                                      else venue.quote_for(inst))
+                        targets = ("upbit", "okx", "bithumb") if action == "transfer_out" else (None,)
+                        for dest in targets:
+                            if dest == venue.id:
+                                continue
+                            extra = {} if dest is None else dict(destination_venue=dest,
+                                                                 destination_address=_T7_ADDRESS[3],
+                                                                 destination_network="bitcoin")
+                            d = gate.decide(model.Intent(**fields, **extra), c)
+                            count += 1
+                            verdicts.add(d.verdict)
+                            assert not _t7_has(d, "state: internal error"), (fields, extra, d.reasons)
+    assert count > 1000 and verdicts == {model.ALLOW, model.ALLOW_EXIT, model.ACK_REQUIRED, model.BLOCK}, \
+        (count, verdicts)

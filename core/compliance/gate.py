@@ -4,7 +4,10 @@ Pure: no clock, no file, no network, no time zone. It reads only the intent and 
 accepts (P5). decide() never raises: an internal error is BLOCK "state: internal error <type>"."""
 from __future__ import annotations
 
+import dataclasses
 import math
+import string
+from collections.abc import Mapping
 
 from core.compliance import model, rules
 from core.compliance.model import ACK_REQUIRED, ALLOW, ALLOW_EXIT, BLOCK, Decision, Intent
@@ -200,21 +203,159 @@ def _combine(verdicts) -> str:
 
 
 # --------------------------------------------------------------------------- #
-# Steps 4-6: Task 8 replaces these three bodies; until then they fail closed
+# Steps 4-6
 # --------------------------------------------------------------------------- #
 def _exit(intent, ctx, state, kind, inst, venue) -> tuple[str, list[str], list[str]]:
-    """Step 4 (exits, D11). Fails closed until Task 8."""
-    return BLOCK, ["no row"], []
+    """Step 4 (exits, D11): ALLOW_EXIT whatever the venue rows say (stale, auto-off, unmet gates, caps, D16,
+    out_of_scope, hard_block), with the matching rows' warnings. Under a broken owner log a withdrawal is BLOCK,
+    because its registered address cannot be verified."""
+    if kind == "withdraw" and not ctx.owner.ok:
+        return BLOCK, [_WITHDRAW_MANUALLY], []
+    warnings = [] if state is ctx.active else ["snapshot: decided on the last approved snapshot (D11)"]
+    for row in _in_force(state, intent, inst.cls, ctx.date):
+        if ctx.date > row.review_by:
+            warnings.append(_stale(row))
+        warnings.append(render_warning(row, _slots(row, ctx)))
+    return ALLOW_EXIT, [], [w for w in warnings if w]
 
 
 def _new_exposure(intent, ctx, state, inst, venue) -> tuple[str, list[str], list[str], tuple | None]:
-    """Step 5 (venue rows on ctx.date). Fails closed until Task 8."""
-    return BLOCK, ["no row"], [], None
+    """Step 5 (venue rows on ctx.date): no row in force is BLOCK "no row"; every matching row applies and the
+    strictest wins. `ack: per_transfer` is never read: step 6 requires the per-transfer ack itself."""
+    rows = _in_force(state, intent, inst.cls, ctx.date)
+    reasons, ack = ([] if rows else ["no row"]), None
+    for row in rows:
+        more, need = _row_check(row, intent, ctx)
+        reasons += more
+        ack = ack or need
+    warnings = [render_warning(row, _slots(row, ctx)) for row in rows]
+    return _verdict(reasons), reasons, [w for w in warnings if w], ack
 
 
 def _transfer(intent, ctx, state, inst, venue) -> tuple[str, list[str], list[str], tuple | None]:
-    """Step 6 (the destination of a new-exposure transfer). Fails closed until Task 8."""
-    return BLOCK, ["no row"], [], None
+    """Step 6 (the destination of a new-exposure transfer): decided as a buy of the same symbol there, the stricter
+    result winning. It also needs a signed registered address that the destination credits and, for every grey row
+    of the destination, a per-transfer ack (spec 6.2 step 6), whatever the source row's `ack` field says."""
+    dest = state.venues.venues.get(intent.destination_venue)
+    dest_inst = _lookup(state, dest, intent.symbol, False) if dest is not None else None
+    if dest_inst is None:
+        why = "has no approved venue facts" if dest is None else f"does not list {intent.symbol}"
+        return BLOCK, [f"destination: {intent.destination_venue} {why}"], [], None
+    buy = dataclasses.replace(intent, venue=dest.id, counter_symbol=dest.quote_for(dest_inst), action="buy",
+                              destination_venue=None, destination_address=None, destination_network=None,
+                              destination_tag=None)
+    _, reasons, warnings, ack = _new_exposure(buy, ctx, state, dest_inst, dest)
+    reasons += _floor_new(buy, dest_inst) + _positions(buy, ctx) + _dest_check(intent, ctx, dest)
+    for row in _in_force(state, buy, dest_inst.cls, ctx.date):
+        sha = warning_sha256(row, _slots(row, ctx))
+        if row.treatment == "grey" and (_intent_hash(intent), sha) not in ctx.owner.transfer_acks:
+            reasons.append(f"ack required: {row.id} per transfer")
+            ack = ack or (row.id, sha)
+    return _verdict(reasons), reasons, warnings, ack
+
+
+# --------------------------------------------------------------------------- #
+# Warnings and acks (spec 6.2 step 5)
+# --------------------------------------------------------------------------- #
+def render_warning(row, slots: Mapping[str, str]) -> str:
+    """row.warning with {cap} filled from `slots`. Any other slot, or one that `slots` lacks, renders as ""; a
+    warning that does not parse renders as "". Never raises."""
+    try:
+        return "".join(text + (str(slots[name]) if name in rules.WARNING_SLOTS and name in slots else "")
+                       for text, name, _, _ in string.Formatter().parse(row.warning))
+    except Exception:
+        return ""
+
+
+def warning_sha256(row, slots) -> str:
+    """What an owner ack signs: the sha256 of the rendered warning."""
+    return model.sha256_hex(render_warning(row, slots))
+
+
+# --------------------------------------------------------------------------- #
+# Step 4-6 helpers
+# --------------------------------------------------------------------------- #
+def _in_force(state, intent, cls, on) -> list:
+    """The venue rows of `state` in force on `on` (effective_from <= on < effective_until) that match the intent."""
+    return [row for row in state.rules.rows if row.kind == "venue" and row.effective_from <= on
+            and (row.effective_until is None or on < row.effective_until) and _matches(row, intent, cls)]
+
+
+def _row_check(row, intent, ctx) -> tuple[list[str], tuple | None]:
+    """One venue row in force, for new exposure: its BLOCK reasons; else the per-session ack it still needs, as
+    (["ack required: <id>"], (row id, warning sha256)); else ([], None)."""
+    out = [_stale(row)] if ctx.date > row.review_by else []
+    if row.treatment not in ("allow", "gated", "grey"):              # hard_block, out_of_scope
+        return out + [f"{row.treatment}: {row.id}"], None
+    if row.requires_live:                                              # D16: no owner event satisfies these
+        out.append(f"needs live broker evidence (execution spec): {row.id}")
+    out += [f"requires {item}: {row.id}" for item in row.requires_owner if item not in ctx.owner.flags]
+    if row.treatment == "grey":
+        out += _grey(row, intent, ctx)
+    leverage = abs(intent.multiple)                                    # P4; no row lets credit or margin through
+    if leverage > row.max_leverage:
+        out.append(f"leverage {leverage:g} above {row.max_leverage:g}: {row.id}")
+    if out or row.ack != "per_session":
+        return out, None
+    sha = warning_sha256(row, _slots(row, ctx))
+    if (ctx.session.session_id, row.id, sha) in ctx.owner.session_acks:
+        return [], None
+    return [f"ack required: {row.id}"], (row.id, sha)
+
+
+def _grey(row, intent, ctx) -> list[str]:
+    """D6: off from auto_off on; the cap must be set; the venue's held value (settlement assets included), plus
+    every other reservation, plus this notional must not exceed cap x equity."""
+    out = [f"auto_off {row.auto_off}: {row.id}"] if ctx.date >= row.auto_off else []
+    cap = _cap(row, ctx)
+    if cap is None:
+        return out + [f"cap unset: {row.id}"]
+    exposure = ctx.exposure.get(intent.venue)
+    held = exposure.held_krw if exposure is not None else 0.0
+    others = (sum(v for k, v in exposure.reservations.items() if k != intent.reservation_id)
+              if exposure is not None else 0.0)
+    if held + others + intent.notional_krw > cap * ctx.equity_krw:
+        out.append(f"cap exceeded: {row.id}")
+    return out
+
+
+def _cap(row, ctx) -> float | None:
+    """The owner's cap for the row's cap_key when it is a number in (0, 1], else None (unset)."""
+    cap = ctx.owner.caps.get(row.cap_key) if row.cap_key else None
+    return cap if _number(cap) and 0 < cap <= 1 else None
+
+
+def _slots(row, ctx) -> dict:
+    """The warning slots of `row`: {"cap": "10%"} when its cap is set. An unset or unreadable cap (a broken owner
+    log) reads "the share you set"; a grey row then blocks new exposure with "cap unset", so no ack signs it."""
+    cap = _cap(row, ctx)
+    return {"cap": f"{cap:.0%}" if cap is not None else "the share you set"}
+
+
+def _stale(row) -> str:
+    return f"stale: review by {row.review_by} passed ({row.id})"
+
+
+def _verdict(reasons) -> str:
+    """BLOCK for any reason but a missing ack, ACK_REQUIRED for missing acks only, ALLOW for none."""
+    if any(not r.startswith("ack required: ") for r in reasons):
+        return BLOCK
+    return ACK_REQUIRED if reasons else ALLOW
+
+
+def _dest_check(intent, ctx, dest) -> list[str]:
+    """Step 6's address test: a signed registered (venue, symbol, network, address, tag or "") on a network that
+    `dest` credits for the symbol, with a tag exactly when it requires one."""
+    network = intent.destination_network
+    key = (dest.id, intent.symbol, network, intent.destination_address, intent.destination_tag or "")
+    out = [] if key in ctx.owner.addresses else ["destination: address not registered"]
+    tag_rules = [needs for symbol, net, needs in dest.deposits if (symbol, net) == (intent.symbol, network)]
+    if not tag_rules:
+        out.append(f"destination: {dest.id} does not credit {intent.symbol} on {network}")
+    elif tag_rules[0] != bool(intent.destination_tag):
+        need = "needs a tag" if tag_rules[0] else "takes no tag"
+        out.append(f"destination: {dest.id} {need} for {intent.symbol} on {network}")
+    return out
 
 
 # --------------------------------------------------------------------------- #
