@@ -7,6 +7,7 @@ from __future__ import annotations
 import dataclasses
 import math
 import string
+import weakref
 from collections.abc import Mapping
 
 from core.compliance import model, rules
@@ -529,3 +530,103 @@ def _fallback(intent, ctx, reason: str) -> Decision:
     except Exception:
         return Decision(verdict=BLOCK, kind="malformed", reasons=(reason,), intent_hash="", state_hash="",
                         code_hash="", owner_head=(0, ""), ctx_hash="", date=None)
+
+
+# --------------------------------------------------------------------------- #
+# Permits and plan screening (spec 6.3)
+# --------------------------------------------------------------------------- #
+_ISSUED: weakref.WeakValueDictionary = weakref.WeakValueDictionary()     # id(permit) -> permit, as model._SEALED
+
+
+def permit(intent, ctx) -> model.Permit | None:
+    """A Permit for an ALLOW or ALLOW_EXIT decision, else None. Never raises. Only a Permit that this function
+    returned, and that its caller still holds, verifies: discipline, as P5 is for contexts."""
+    try:
+        d = decide(intent, ctx)
+        if d.verdict not in (ALLOW, ALLOW_EXIT):
+            return None
+        state, _ = _choose_state(intent, ctx)
+        issued = model.Permit(decision_id=d.decision_id, intent_hash=d.intent_hash, state_hash=d.state_hash,
+                              state_seq=state.seq, session_id=ctx.session.session_id,
+                              reservation_id=intent.reservation_id, date=ctx.date)
+        _ISSUED[id(issued)] = issued
+        return issued
+    except Exception:
+        return None
+
+
+def verify_permit(p, intent, ctx_now) -> tuple[bool, str]:
+    """At send time: (True, "ok") only for a permit from permit(), for the same intent (its hash covers the
+    reservation id), whose decision under ctx_now is still ALLOW or ALLOW_EXIT, in the same session and Asia/Seoul
+    date, on a state with the permit's hash or a higher seq: the state that decision used, so the snapshot for a
+    snapshot exit. decide() counts every reservation but the intent's own; the caller's promised sell units must
+    likewise leave this permit's own units out. Never raises."""
+    try:
+        if type(p) is not model.Permit or _ISSUED.get(id(p)) is not p:
+            return False, "permit: not issued by permit()"
+        if _intent_hash(intent) != p.intent_hash:
+            return False, "permit: intent differs"
+        d = decide(intent, ctx_now)
+        if d.verdict not in (ALLOW, ALLOW_EXIT):
+            return False, f"permit: decision now {d.verdict} ({d.reasons[0]})"
+        state, _ = _choose_state(intent, ctx_now)          # the state d used: the snapshot for a snapshot exit
+        for what, same in (("session", ctx_now.session.session_id == p.session_id),
+                           ("date", ctx_now.date == p.date),
+                           ("state", d.state_hash == p.state_hash or state.seq > p.state_seq)):
+            if not same:
+                return False, f"permit: {what} differs"
+        return True, "ok"
+    except Exception as exc:
+        return False, f"permit: internal error {type(exc).__name__}"
+
+
+def screen(plan, ctx, first_stake_krw: float) -> model.Screening:
+    """The plan's single leg decided on ctx.date as a cash buy of `first_stake_krw` on its venue (P3: reads
+    plan.leg.venue, plan.leg.symbol, plan.start and plan.horizon_days only), with every review_by, auto_off and
+    effective_until of the venue rows matching it inside [start, start + horizon_days) flagged; the simulation exits
+    on the earliest. The plan must start on ctx.date. Never raises."""
+    try:
+        return _screen(plan, ctx, first_stake_krw)
+    except Exception as exc:
+        return _screening(_fallback(None, ctx, f"state: internal error {type(exc).__name__}"), (), None)
+
+
+def _screen(plan, ctx, first_stake_krw) -> model.Screening:
+    leg = getattr(plan, "leg", None)
+    venue_id, symbol = getattr(leg, "venue", None), getattr(leg, "symbol", None)
+    start, horizon = getattr(plan, "start", None), getattr(plan, "horizon_days", None)
+    sealed = model.is_sealed(ctx)
+    state = ctx.active if sealed and ctx.owner.ok and _usable(ctx.active) else None    # decide()'s state for a buy
+    venue = state.venues.venues.get(venue_id) if state is not None and _is(venue_id, rules.VENUES) else None
+    inst = _lookup(state, venue, symbol, False) if venue is not None else None
+    # quantity is nominal: a buy's verdict depends on its notional, never on its units
+    intent = Intent(venue=venue_id, symbol=symbol, counter_symbol=venue.quote_for(inst) if inst is not None else "",
+                    asset=inst.asset if inst is not None else "", multiple=inst.multiple if inst is not None else 0.0,
+                    action="buy", quantity=1.0, notional_krw=first_stake_krw)
+    if not sealed:
+        return _screening(decide(intent, ctx), (), None)                  # "state: context not from load_context"
+    if type(start) is not model.date or type(horizon) is not int or horizon <= 0:
+        return _screening(_decision(intent, ctx, None, BLOCK, "malformed", ["malformed: plan"]), (), None)
+    if start != ctx.date:                  # the rows are read on ctx.date: a later start would miss [ctx.date, start)
+        return _screening(_decision(intent, ctx, None, BLOCK, "malformed", ["malformed: plan start"]), (), None)
+    if state is None:                      # the real cause, not the empty fields of a leg nothing could look up
+        return _screening(_decision(intent, ctx, None, BLOCK, "new_exposure", [_why_no_active(ctx)]), (),
+                          (start, horizon))
+    first, end = start.toordinal(), start.toordinal() + horizon
+    flags = []
+    for row in state.rules.rows if inst is not None else ():
+        if row.kind == "venue" and _matches(row, intent, inst.cls):
+            for what, when in (("review_by", row.review_by), ("auto_off", row.auto_off),
+                               ("effective_until", row.effective_until)):
+                if when is not None and first <= when.toordinal() < end:
+                    flags.append((when, what, row.id))
+    return _screening(decide(intent, ctx), tuple(sorted(flags)), (start, horizon))
+
+
+def _screening(d, flags, window) -> model.Screening:
+    """The hashed Screening: allowed for ALLOW and ACK_REQUIRED; exit_date is the earliest flag date."""
+    allowed = d.verdict in (ALLOW, ACK_REQUIRED)
+    exit_date = flags[0][0] if flags else None
+    body = {"decision": d, "allowed": allowed, "flags": flags, "exit_date": exit_date, "window": window}
+    return model.Screening(decision=d, allowed=allowed, flags=flags, exit_date=exit_date,
+                           screening_hash=model.sha256_hex(model.canonical_json(body)))

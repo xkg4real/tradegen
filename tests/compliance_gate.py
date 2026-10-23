@@ -971,3 +971,333 @@ def test_valid_intents_never_hit_an_internal_error():
                             assert not _t7_has(d, "state: internal error"), (fields, extra, d.reasons)
     assert count > 1000 and verdicts == {model.ALLOW, model.ALLOW_EXIT, model.ACK_REQUIRED, model.BLOCK}, \
         (count, verdicts)
+
+
+# --------------------------------------------------------------------------- #
+# Task 9: permits, verify_permit, screen and purity (spec 6.3; compliance test 8; P3). Helpers are prefixed `_t9_`;
+# the `_t7_` and `_t8_` helpers above are reused, never redefined.
+# --------------------------------------------------------------------------- #
+import ast as _t9_ast  # noqa: E402
+import builtins as _t9_builtins  # noqa: E402
+import inspect as _t9_inspect  # noqa: E402
+import io as _t9_io  # noqa: E402
+import os as _t9_os  # noqa: E402
+import pathlib as _t9_pathlib  # noqa: E402
+import socket as _t9_socket  # noqa: E402
+import time as _t9_time  # noqa: E402
+import types as _t9_types  # noqa: E402
+
+_T9_FORBIDDEN = frozenset({"now", "utcnow", "today", "time", "time_ns", "monotonic", "monotonic_ns", "perf_counter",
+                           "perf_counter_ns", "process_time", "process_time_ns", "thread_time", "clock_gettime",
+                           "localtime", "gmtime", "ctime", "sleep", "fromtimestamp", "ZoneInfo", "zoneinfo", "open",
+                           "read_bytes", "read_text", "write_bytes", "write_text", "scandir", "listdir", "urandom",
+                           "system", "urlopen", "socket", "connect", "environ", "getenv"})
+
+
+def _t9_plan(venue, symbol, start, horizon_days):
+    """A duck-typed plan (P3): screen() reads only leg.venue, leg.symbol, start and horizon_days."""
+    return _t9_types.SimpleNamespace(leg=_t9_types.SimpleNamespace(venue=venue, symbol=symbol), start=start,
+                                     horizon_days=horizon_days)
+
+
+def _t9_okx_ctx(reservations: dict | None = None, **changes) -> model.Context:
+    """OKX with the S1 ack signed and nothing held: the cap is 10% of KRW 1,000,000 = KRW 100,000."""
+    exposure = {"okx": model.Exposure(held_krw=0.0, reservations=reservations or {})}
+    return F.ctx(**{"owner": _t8_okx_owner(), "exposure": exposure, **changes})
+
+
+def _t9_names(node) -> set[str]:
+    """Every Name, attribute name and imported module or name under `node`."""
+    out = set()
+    for n in _t9_ast.walk(node):
+        if isinstance(n, _t9_ast.Name):
+            out.add(n.id)
+        elif isinstance(n, _t9_ast.Attribute):
+            out.add(n.attr)
+        elif isinstance(n, (_t9_ast.Import, _t9_ast.ImportFrom)):
+            out.update(part for a in n.names for part in a.name.split("."))
+            out.update((getattr(n, "module", None) or "").split("."))
+    return out - {""}
+
+
+class _T9Trap:
+    """Stands in for a file, clock, zone or socket name: every use is recorded, then raises."""
+
+    def __init__(self, name: str, calls: list) -> None:
+        self._name, self._calls = name, calls
+
+    def __call__(self, *args, **kwargs):
+        self._calls.append(self._name)
+        raise AssertionError(f"the gate touched {self._name}")
+
+    def __getattr__(self, attr: str):
+        self._calls.append(f"{self._name}.{attr}")
+        raise AssertionError(f"the gate touched {self._name}.{attr}")
+
+
+def test_permit_only_for_allow_and_allow_exit():
+    c = F.ctx(holdings={("upbit", "BTC"): 1.0})
+    i = F.intent(reservation_id="R1")
+    d, p = gate.decide(i, c), gate.permit(i, c)
+    assert d.verdict == model.ALLOW and type(p) is model.Permit
+    assert (p.decision_id, p.intent_hash, p.state_hash) == (d.decision_id, d.intent_hash, d.state_hash)
+    assert (p.state_seq, p.session_id, p.reservation_id, p.date) == (3, "S1", "R1", c.date)
+    assert gate.verify_permit(p, i, c) == (True, "ok")
+    sell = F.intent(action="sell")
+    assert gate.decide(sell, c).verdict == model.ALLOW_EXIT and gate.permit(sell, c) is not None
+    assert gate.decide(_t8_okx_buy(), c).verdict == model.ACK_REQUIRED and gate.permit(_t8_okx_buy(), c) is None
+    assert gate.permit(F.intent(venue="polymarket", counter_symbol="USDC"), c) is None
+    for intent, context in ((None, c), ("intent", c), (F.intent(), None), (F.intent(), "ctx")):
+        assert gate.permit(intent, context) is None
+    snap = F.approved(seq=2)                               # a snapshot exit is permitted on the snapshot (D11)
+    broken = F.ctx(owner=model.OwnerState.broken("bad signature on entry 4"), snapshot=snap,
+                   holdings={("upbit", "BTC"): 1.0})
+    ps = gate.permit(sell, broken)
+    assert ps is not None and (ps.state_seq, ps.state_hash) == (2, snap.state_hash)
+    assert gate.verify_permit(ps, sell, broken) == (True, "ok")
+
+
+def test_verify_permit_excludes_only_its_own_reservation():
+    a = _t8_okx_buy(reservation_id="R1", notional_krw=60_000.0)
+    p = gate.permit(a, _t9_okx_ctx({"R1": 60_000.0}))
+    assert p is not None
+    assert gate.verify_permit(p, a, _t9_okx_ctx({"R1": 60_000.0})) == (True, "ok")      # not counted twice
+    assert gate.verify_permit(p, a, _t9_okx_ctx({"R1": 60_000.0, "R2": 40_000.0})) == (True, "ok")   # at the cap
+    assert gate.verify_permit(p, a, _t9_okx_ctx({"R1": 60_000.0, "R2": 40_001.0})) == \
+        (False, "permit: decision now BLOCK (cap exceeded: KR-OKX-SPOT)")
+
+
+def test_verify_permit_counts_only_other_permits_promised_units():
+    held = {("upbit", "BTC"): 1.0}
+
+    def promised(units: float) -> model.Context:           # units promised to unexpired sell permits
+        return F.ctx(holdings=held, exposure={"upbit": model.Exposure(held_krw=0.0,
+                                                                      promised_sell_units={"BTC": units})})
+
+    sell = F.intent(action="sell", quantity=0.6, reservation_id="SELL-1")
+    p = gate.permit(sell, promised(0.4))                   # 0.4 promised to other permits: 0.6 is free
+    assert p is not None and gate.decide(sell, promised(0.4)).kind == "close_long"
+    assert gate.verify_permit(p, sell, promised(0.4)) == (True, "ok")       # the caller leaves its own 0.6 out
+    for others in (0.5, 1.0):                              # 0.5 + 0.6 > 1.0; 1.0 = 0.4 + its own 0.6 counted in
+        assert gate.verify_permit(p, sell, promised(others)) == \
+            (False, "permit: decision now BLOCK (malformed: quantity)"), others
+
+
+def test_two_permits_cannot_share_cap_capacity():
+    a = _t8_okx_buy(reservation_id="R1", notional_krw=60_000.0)
+    b = _t8_okx_buy(reservation_id="R2", notional_krw=60_000.0)
+    pa, pb = gate.permit(a, _t9_okx_ctx()), gate.permit(b, _t9_okx_ctx())        # each fits alone
+    assert pa is not None and pb is not None
+    both = _t9_okx_ctx({"R1": 60_000.0, "R2": 60_000.0})                       # both reserved at send time
+    for p, i in ((pa, a), (pb, b)):
+        assert gate.verify_permit(p, i, both) == (False, "permit: decision now BLOCK (cap exceeded: KR-OKX-SPOT)")
+    one = _t9_okx_ctx({"R1": 60_000.0})
+    assert gate.verify_permit(pa, a, one) == (True, "ok")
+    assert gate.permit(b, one) is None                                         # R1 holds the capacity b needs
+
+
+def test_forged_or_mismatched_permits_are_refused():
+    i, c = F.intent(reservation_id="R1"), F.ctx()
+    p = gate.permit(i, c)
+    assert gate.verify_permit(p, i, c) == (True, "ok")
+    fields = {f.name: getattr(p, f.name) for f in dataclasses.fields(model.Permit)}
+    for forged in (model.Permit(**fields), dataclasses.replace(p), dataclasses.replace(p, state_seq=-1), None,
+                   fields, "permit"):
+        assert gate.verify_permit(forged, i, c) == (False, "permit: not issued by permit()"), forged
+    hand = model.Context(**{f.name: getattr(c, f.name) for f in dataclasses.fields(model.Context)})
+    for other, ctx_now, why in (
+            (F.intent(reservation_id="R2"), c, "permit: intent differs"),      # the hash covers the reservation
+            (F.intent(quantity=0.002, reservation_id="R1"), c, "permit: intent differs"),
+            (None, c, "permit: intent differs"),
+            (i, F.ctx(session=model.SessionState(session_id="S2", armed=True)), "permit: session differs"),
+            (i, F.ctx(session=model.SessionState()), "permit: session differs"),
+            (i, F.ctx(date=_T8_DAY(2026, 10, 24)), "permit: date differs"),
+            (i, F.ctx(code_signed=False), "permit: decision now BLOCK (unsigned code)"),
+            (i, hand, "permit: decision now BLOCK (state: context not from load_context)"),
+            (i, None, "permit: decision now BLOCK (state: context not from load_context)")):
+        assert gate.verify_permit(p, other, ctx_now) == (False, why), why
+    okx = gate.permit(_t8_okx_buy(), F.ctx(owner=_t8_okx_owner()))          # issued while the ack was held
+    assert okx is not None and gate.verify_permit(okx, _t8_okx_buy(), F.ctx()) == \
+        (False, "permit: decision now ACK_REQUIRED (ack required: KR-OKX-SPOT)")
+
+
+def test_newer_state_accepted_older_refused():
+    i = F.intent()
+    p = gate.permit(i, F.ctx())
+    assert p.state_seq == 3
+    newer = F.ctx(active=F.approved(seq=4))
+    assert newer.active.state_hash != p.state_hash and gate.verify_permit(p, i, newer) == (True, "ok")
+    same_seq = dataclasses.replace(F.approved(), hashes={**F.approved().hashes, "rules": "0" * 64})
+    for older in (F.approved(seq=2), same_seq):
+        assert gate.verify_permit(p, i, F.ctx(active=older)) == (False, "permit: state differs"), older.seq
+    sell, held = F.intent(action="sell"), {("upbit", "BTC"): 1.0}       # a snapshot exit: the snapshot's seq counts
+    dead = model.ApprovedState.invalid("rules: unapproved")
+    ps = gate.permit(sell, F.ctx(active=dead, snapshot=F.approved(seq=2), holdings=held))
+    assert ps.state_seq == 2
+    assert gate.verify_permit(ps, sell, F.ctx(active=dead, snapshot=F.approved(seq=4), holdings=held)) == (True, "ok")
+    assert gate.verify_permit(ps, sell, F.ctx(active=dead, snapshot=F.approved(seq=1), holdings=held)) == \
+        (False, "permit: state differs")
+
+
+def test_screen_flags_rule_dates_inside_the_horizon():
+    day = _T8_DAY
+
+    def at(venue, symbol, start, horizon_days, stake=50_000.0):     # screened on its own start date
+        return gate.screen(_t9_plan(venue, symbol, start, horizon_days), F.ctx(date=start), stake)
+
+    okx = at("okx", "BTC", day(2026, 11, 1), 40)
+    assert okx.flags == ((day(2026, 11, 22), "review_by", "KR-OKX-SPOT"),
+                         (day(2026, 12, 3), "auto_off", "KR-OKX-SPOT")), okx.flags
+    assert okx.allowed and okx.exit_date == day(2026, 11, 22)
+    edge = at("okx", "BTC", day(2026, 11, 22), 11)                                       # [11-22, 12-03)
+    assert edge.flags == ((day(2026, 11, 22), "review_by", "KR-OKX-SPOT"),), edge.flags
+    assert edge.allowed                                                       # review_by is the last good day
+    stale = at("okx", "BTC", day(2026, 11, 23), 10)                                      # [11-23, 12-03)
+    assert stale.flags == () and stale.exit_date is None
+    assert not stale.allowed and "stale: review by 2026-11-22 passed (KR-OKX-SPOT)" in stale.decision.reasons
+    until = at("okx", "BTC", day(2027, 2, 10), 10)
+    assert until.flags == ((day(2027, 2, 18), "effective_until", "KR-OKX-SPOT"),), until.flags
+    assert not until.allowed and until.exit_date == day(2027, 2, 18)
+    for start in (day(2026, 10, 22), day(2026, 11, 23), day(2027, 2, 10)):              # not on the context's date
+        s = gate.screen(_t9_plan("okx", "BTC", start, 10), F.ctx(), 50_000.0)
+        assert not s.allowed and s.decision.reasons == ("malformed: plan start",) and s.flags == (), start
+    krx = at("kis", "005930", day(2026, 11, 1), 30, 40_000.0)
+    assert krx.flags == ((day(2026, 11, 23), "review_by", "KR-KIS-KRX-SHARE"),), krx.flags
+    shorter = at("okx", "BTC", day(2026, 11, 23), 9)
+    assert shorter.flags == () and shorter.screening_hash != stale.screening_hash     # the window is hashed
+
+
+def test_screen_verdicts():
+    c, start = F.ctx(), _T8_DAY(2026, 10, 23)                    # a plan starts on its context's date
+    krx = gate.screen(_t9_plan("kis", "005930", start, 5), c, 40_000.0)
+    assert krx.allowed and krx.decision.verdict == model.ALLOW and krx.flags == () and krx.exit_date is None
+    leg = model.Intent(venue="kis", symbol="005930", counter_symbol="KRW", asset="krx_share", multiple=1.0,
+                       action="buy", quantity=1.0, notional_krw=40_000.0)
+    assert krx.decision.intent_hash == model.intent_hash(leg)                          # a cash buy at the stake
+    assert len(krx.screening_hash) == 64
+    assert gate.screen(_t9_plan("kis", "005930", start, 5), c, 40_000.0).screening_hash == krx.screening_hash
+    assert gate.screen(_t9_plan("kis", "005930", start, 5), c, 40_001.0).screening_hash != krx.screening_hash
+    okx = gate.screen(_t9_plan("okx", "BTC", start, 5), c, 40_000.0)
+    assert okx.allowed and okx.decision.verdict == model.ACK_REQUIRED and okx.decision.ack[0] == "KR-OKX-SPOT"
+    acked = gate.screen(_t9_plan("okx", "BTC", start, 5), F.ctx(owner=_t8_okx_owner()), 40_000.0)
+    assert acked.allowed and acked.decision.verdict == model.ALLOW
+    over = gate.screen(_t9_plan("okx", "BTC", start, 5), F.ctx(owner=_t8_okx_owner()), 150_000.0)
+    assert not over.allowed and "cap exceeded: KR-OKX-SPOT" in over.decision.reasons
+    ibit = gate.screen(_t9_plan("kis", "IBIT", start, 5), c, 40_000.0)
+    assert not ibit.allowed and "floor: etp_crypto_spot" in ibit.decision.reasons
+    for bad in (_t9_plan("kis", "005930", "2026-10-23", 5), _t9_plan("kis", "005930", _t8_dt.datetime(2026, 10, 23), 5),
+                _t9_plan("kis", "005930", start, 0), _t9_plan("kis", "005930", start, True),
+                _t9_plan("kis", "005930", start, 5.0), _t9_types.SimpleNamespace(), None):
+        s = gate.screen(bad, c, 40_000.0)
+        assert not s.allowed and s.decision.reasons == ("malformed: plan",) and s.flags == (), bad
+    nope = gate.screen(_t9_plan("kis", "NOPE", start, 5), c, 40_000.0)
+    assert not nope.allowed and "malformed: symbol" in nope.decision.reasons
+    stake = gate.screen(_t9_plan("kis", "005930", start, 5), c, math.nan)
+    assert not stake.allowed and "malformed: notional_krw" in stake.decision.reasons
+    long = gate.screen(_t9_plan("kis", "005930", start, 40), c, 40_000.0)              # [10-23, 12-02)
+    assert long.flags == ((_T8_DAY(2026, 11, 23), "review_by", "KR-KIS-KRX-SHARE"),), long.flags
+    for no_state, why in ((F.ctx(active=model.ApprovedState.invalid("rules: unapproved")), "state: rules: unapproved"),
+                          (F.ctx(owner=model.OwnerState.broken("bad signature on entry 4")),
+                           "state: owner log bad signature on entry 4")):
+        s = gate.screen(_t9_plan("kis", "005930", start, 40), no_state, 40_000.0)
+        assert not s.allowed and s.decision.reasons == (why,), s.decision.reasons
+        assert s.decision.kind == "new_exposure" and s.flags == () and s.exit_date is None
+    okx_plan = _t9_plan("okx", "BTC", _T8_DAY(2026, 11, 1), 40)                        # holds 11-22 and 12-03
+    hand = model.Context(**{**{f.name: getattr(c, f.name) for f in dataclasses.fields(model.Context)},
+                            "date": _T8_DAY(2026, 11, 1)})
+    for unsealed in (None, hand):
+        for plan in (_t9_plan("kis", "005930", start, 5), okx_plan):
+            s = gate.screen(plan, unsealed, 40_000.0)
+            assert not s.allowed and s.decision.reasons == ("state: context not from load_context",)
+            assert s.flags == () and s.exit_date is None
+
+
+def test_purity_no_file_clock_zone_or_network():
+    rng = random.Random(9)
+    held = {("upbit", "BTC"): 1.0, ("okx", "BTC"): 0.01, ("kis", "IBIT"): 2.0}
+    contexts = [F.ctx(holdings=held, shorts={("kis", "005930"): 3.0},
+                      owner=_t8_okx_owner(addresses=frozenset({_T7_ADDRESS, _T8_OKX_ADDRESS}))),
+                F.ctx(holdings=held),
+                F.ctx(active=_t7_with_option(F.approved()), date=_T8_DAY(2026, 12, 3), holdings=held,
+                      owner=_t8_owner()),
+                F.ctx(owner=model.OwnerState.broken("bad signature on entry 4"), snapshot=F.approved(),
+                      holdings=held),
+                F.ctx(active=model.ApprovedState.invalid("fixture"), holdings=held)]
+    hand = model.Context(**{f.name: getattr(contexts[0], f.name) for f in dataclasses.fields(model.Context)})
+    templates = [F.intent(), F.intent(action="sell"), _t8_okx_buy(), _t8_okx_buy(action="sell"), _t7_withdraw(),
+                 _t8_to_okx(), _t7_kis("005930"), _t7_kis("TQQQ"), _t7_kis("IBIT", action="sell"),
+                 _t7_kis("005930", action="buy_to_cover"), _t7_option(), F.intent(quantity=math.nan),
+                 F.intent(tags=frozenset({"spoof"})), F.intent(venue="polymarket", counter_symbol="USDC")]
+    cases = []
+    for n in range(200):                                   # built first: the fixtures read the shipped drafts
+        i = dataclasses.replace(rng.choice(templates), reservation_id=rng.choice((None, "R1", "R2")))
+        c = hand if n % 25 == 0 else rng.choice(contexts)
+        cases.append((i, c, _t9_plan(i.venue, i.symbol, c.date, rng.choice((5, 30, 60)))))   # starts on c.date
+    names = ("date", "datetime", "time", "timezone", "ZoneInfo", "zoneinfo")
+    assert not any(hasattr(gate, n) for n in names), [n for n in names if hasattr(gate, n)]   # gate binds none
+    calls, missing, results = [], object(), []
+    targets = ((_t9_builtins, "open"), (_t9_io, "open"), (_t9_os, "open"), (_t9_socket.socket, "connect"),
+               (_t9_socket.socket, "connect_ex"), (_t9_time, "time"), (_t9_time, "time_ns"),
+               (_t9_time, "perf_counter"), (_t9_time, "monotonic"), (model, "datetime"), (model, "timezone"),
+               (model, "zoneinfo"), (model, "KST"), (rules, "date"), (rules, "Path"), (rules, "os"))
+    saved = [(owner, name, vars(owner).get(name, missing)) for owner, name in targets]   # model.date stays: jsonable
+    probes = (lambda: _t8_dt.date.today(), lambda: _t9_pathlib.Path(__file__).read_bytes(),
+              lambda: _t9_os.open(__file__, _t9_os.O_RDONLY), lambda: _t9_socket.socket.connect(None, ("127.0.0.1", 9)))
+    try:
+        for owner, name, _ in saved:
+            setattr(owner, name, _T9Trap(f"{owner.__name__}.{name}", calls))
+        for probe in probes:                               # positive control: each trap catches what it stands for
+            try:
+                probe()
+            except AssertionError:
+                pass
+        assert calls == ["time.time", "io.open", "os.open", "socket.connect"], calls
+        calls.clear()
+        for i, c, plan in cases:
+            p = gate.permit(i, c)
+            results.append((gate.decide(i, c), p, gate.verify_permit(p, i, c) if p is not None else None,
+                            gate.screen(plan, c, i.notional_krw)))
+    finally:
+        for owner, name, value in saved:
+            if value is not missing:
+                setattr(owner, name, value)
+            elif name in vars(owner):
+                delattr(owner, name)
+    assert calls == [], calls[:5]
+    assert {d.verdict for d, _, _, _ in results} == {model.ALLOW, model.ALLOW_EXIT, model.ACK_REQUIRED, model.BLOCK}
+    assert any(v == (True, "ok") for _, _, v, _ in results)
+    assert any(s.allowed for *_, s in results) and any(s.flags for *_, s in results)    # screen ran for real
+    for d, _, _, s in results:
+        assert not any("internal error" in r for r in d.reasons + s.decision.reasons), (d.reasons, s.decision.reasons)
+
+
+def test_gate_call_graph_has_no_clock_zone_file_or_socket():
+    assert _t9_names(_t9_ast.parse("from datetime import datetime\nx = datetime.now()\n")) & _T9_FORBIDDEN == {"now"}
+    assert _t9_names(_t9_ast.parse("import time\ntime.time()\n")) & _T9_FORBIDDEN == {"time"}
+    assert _t9_names(_t9_ast.parse("p.read_bytes()\n")) & _T9_FORBIDDEN == {"read_bytes"}
+    src = _t9_inspect.getsource(gate)
+    tree = _t9_ast.parse(src)
+    assert "ZoneInfo" not in src and "datetime" not in src
+    assert _t9_names(tree) & _T9_FORBIDDEN == set(), _t9_names(tree) & _T9_FORBIDDEN
+    imported = {n.module if isinstance(n, _t9_ast.ImportFrom) else a.name
+                for n in _t9_ast.walk(tree) if isinstance(n, (_t9_ast.Import, _t9_ast.ImportFrom)) for a in n.names}
+    assert imported <= {"__future__", "dataclasses", "math", "string", "weakref", "collections.abc",
+                        "core.compliance", "core.compliance.model"}, imported
+    from_model = {a.name for n in _t9_ast.walk(tree) if isinstance(n, _t9_ast.ImportFrom)
+                  and n.module == "core.compliance.model" for a in n.names}
+    used = {mod: {n.attr for n in _t9_ast.walk(tree) if isinstance(n, _t9_ast.Attribute)
+                  and isinstance(n.value, _t9_ast.Name) and n.value.id == mod} for mod in ("model", "rules")}
+    used["model"] |= from_model
+    used["rules"] |= {"InstrumentMap", "Venue"}            # .lookup, .is_market and .quote_for live there
+    for module in (model, rules):
+        defs = {n.name: n for n in _t9_ast.parse(_t9_inspect.getsource(module)).body
+                if isinstance(n, (_t9_ast.FunctionDef, _t9_ast.ClassDef))}
+        todo, seen = set(used[module.__name__.rsplit(".", 1)[1]]) & set(defs), set()
+        while todo:                                        # the module's own defs that decide() can reach
+            name = todo.pop()
+            seen.add(name)
+            todo |= (_t9_names(defs[name]) & set(defs)) - seen
+        assert len(seen) >= 3, (module.__name__, seen)
+        for name in sorted(seen):
+            hits = _t9_names(defs[name]) & _T9_FORBIDDEN
+            assert hits == set(), (module.__name__, name, hits)
