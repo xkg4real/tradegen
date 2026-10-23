@@ -904,3 +904,56 @@ def test_state_future_tightening_applies_and_future_loosening_does_not():
     assert mixed.limits == {"total_loss_floor_krw": 30_000.0, "daily_loss_krw": 5_000.0}, "per key: floor up, daily no"
     later = _state_at(_state_log(*base, _state_cap(0.05, tomorrow), _state_cap(0.40, _state_kst(2026, 10, 22))), now)
     assert later.caps == {"okx_equity_share": 0.05}, "a loosening written after it, stamped before it, waits"
+
+
+def _state_ahead(at: _dt.datetime):
+    """Any line stamped ahead of the others; a course item, so that it changes nothing but the dates."""
+    return ("course_completed", {"course": "short_course_30m", "evidence": "certificate"}, at)
+
+
+def test_state_a_line_stamped_ahead_does_not_delay_an_arming():
+    """An arming is dated as early as the log allows (P31), so a line stamped ahead before it cannot hide it."""
+    for ahead in (_state_kst(2026, 10, 30), _state_kst(2099, 1, 1)):
+        rows = [_state_cap(0.10, _state_kst(2026, 10, 20)), _state_cap(0.50, _state_kst(2026, 10, 22, 12)),
+                _state_ahead(ahead), ("session_armed", {"session_id": "S1"}, _state_kst(2026, 10, 22, 13))]
+        check, at = _state_log(*rows), _state_kst(2026, 10, 23, 12)
+        assert _state_at(check, at, session_id="S1").caps == {"okx_equity_share": 0.10}, "S1 armed on the loosening's date"
+        assert _state_at(check, at).caps == {"okx_equity_share": 0.50}, "control: no session, so the loosening counts"
+        later = _state_log(*rows[:3], ("session_armed", {"session_id": "S1"}, _state_kst(2026, 10, 23, 10)))
+        assert _state_at(later, _state_kst(2026, 10, 24, 12), session_id="S1").caps == {"okx_equity_share": 0.50},             "control: armed on the 23rd, after the loosening took effect"
+
+
+def test_state_a_disarm_stamped_ahead_does_not_delay_a_rearming():
+    rows = [_state_cap(0.10, _state_kst(2026, 10, 20)),
+            ("session_armed", {"session_id": "S1"}, _state_kst(2026, 10, 22, 10)),
+            _state_cap(0.50, _state_kst(2026, 10, 22, 12)),
+            ("system_disarm", {"session_id": "S1", "reason": "kill switch"}, _state_kst(2099, 1, 1)),
+            ("session_armed", {"session_id": "S1"}, _state_kst(2026, 10, 22, 13))]
+    state = _state_at(_state_log(*rows), _state_kst(2026, 10, 23, 12), session_id="S1")
+    assert state.armed_sessions == {"S1"} and state.caps == {"okx_equity_share": 0.10}
+
+
+def _state_loosened_before_a_halt():
+    """A cap and a daily loss loosened on 14 October, and a halt the same evening."""
+    loosen = [_state_limits(21_000.0, 5_000.0, _state_kst(2026, 10, 10)), _state_cap(0.10, _state_kst(2026, 10, 10)),
+              _state_limits(21_000.0, 9_000.0, _state_kst(2026, 10, 14, 10)), _state_cap(0.50, _state_kst(2026, 10, 14, 10))]
+    return loosen, ("system_halt", {"floor_krw": 21_000.0}, _state_kst(2026, 10, 14, 20))
+
+
+def test_state_a_line_stamped_ahead_does_not_delay_a_halt():
+    """A halt is dated as early as the log allows (D12, P32), so a line stamped ahead before it cannot hide it."""
+    loosen, halt = _state_loosened_before_a_halt()
+    for ahead in (_state_kst(2026, 10, 30), _state_kst(2099, 1, 1)):
+        state = _state_at(_state_log(*loosen, _state_ahead(ahead), halt), _state_kst(2026, 10, 24))
+        assert state.caps == {"okx_equity_share": 0.10}, ahead
+        assert state.limits == {"total_loss_floor_krw": 21_000.0, "daily_loss_krw": 5_000.0}, ahead
+
+
+def test_state_a_halt_stamped_far_ahead_does_not_shadow_the_real_one():
+    loosen, halt = _state_loosened_before_a_halt()
+    bogus = ("system_halt", {"floor_krw": 21_000.0}, _state_kst(2099, 1, 1))     # an unsigned halt stamped far ahead
+    state = _state_at(_state_log(*loosen, bogus, halt), _state_kst(2026, 10, 24))
+    assert state.caps == {"okx_equity_share": 0.10} and state.limits["daily_loss_krw"] == 5_000.0, "the earliest halt rules"
+    alone = _state_at(_state_log(*loosen, bogus), _state_kst(2026, 10, 24))
+    assert alone.caps == {"okx_equity_share": 0.50}, "control: nothing shows that halt came before 15 October"
+    assert alone.halted_floors == {21_000.0}

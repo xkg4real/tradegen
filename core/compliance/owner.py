@@ -485,34 +485,44 @@ def _owner_fold(entries, day: _dt.date, now_utc: str, session_id, head, fingerpr
     own, only when it took effect before the first system_halt, and never inside `session_id` while that session
     has been armed, since its last disarm, from a date on or before the loosening's. A set floor is never below the
     highest halted floor. The latest age_of_majority entry wins.
-    Each entry is dated by the latest Asia/Seoul date among the lines up to and including it, so a late-signed
-    entry stamped back cannot count as older than the line before it. An entry stamped after `now_utc` counts only
-    when it is a system_halt, a system_disarm or a tightening; a loosening stamped ahead never applies."""
-    dated, seen = [], _dt.date.min
-    for e in entries:
-        seen = max(seen, _seoul_date(e.utc))
-        dated.append((e, seen))
-    halts = [(e.seq, on, float(e.data["floor_krw"])) for e, on in dated if e.kind == "system_halt"]
-    first_halt = min(halts, default=None)
+    A loosening is dated as late as the log allows: by the latest Asia/Seoul date among the lines up to and
+    including it, so a late-signed entry stamped back cannot count as older than the line before it. A restriction
+    (a system_halt or a session_armed) is dated as early as the log allows: by the earliest of its own stamp, the
+    stamps of the lines after it, and `day`, so a line stamped ahead cannot push it later than the loosening it
+    follows. The halt cutoff is the earliest halt date. An entry stamped after `now_utc` counts only when it is a
+    system_halt, a system_disarm or a tightening; a loosening stamped ahead never applies."""
+    stamps = [_seoul_date(e.utc) for e in entries]
+    late, seen = [], _dt.date.min
+    for on in stamps:
+        seen = max(seen, on)
+        late.append(seen)
+    early, soonest = [_dt.date.min] * len(stamps), day
+    for i in range(len(stamps) - 1, -1, -1):
+        soonest = min(soonest, stamps[i])
+        early[i] = soonest
+    dated = list(zip(entries, late, early))
+    halts = [(e.seq, soon, float(e.data["floor_krw"])) for e, _, soon in dated if e.kind == "system_halt"]
+    first_halt = min((seq for seq, _, _ in halts), default=None)
+    halt_day = min((soon for _, soon, _ in halts), default=None)
     halt_floor = max((floor for _, _, floor in halts), default=None)
-    # session id -> the date (as dated above) of its first arming since its last disarm
+    # session id -> the earliest date of its armings since its last disarm
     armed: dict[str, _dt.date] = {}
-    for e, on in dated:
+    for e, _, soon in dated:
         if e.kind == "session_armed" and e.utc <= now_utc:
-            armed.setdefault(e.data["session_id"], on)
+            armed[e.data["session_id"]] = min(armed.get(e.data["session_id"], soon), soon)
         elif e.kind == "system_disarm":
             armed.pop(e.data["session_id"], None)
     mine = armed.get(session_id) if session_id is not None else None
 
     def loosening_counts(e, on) -> bool:
         return (e.utc <= now_utc and on < day
-                and (first_halt is None or (e.seq < first_halt[0] and on < first_halt[1]))
+                and (first_halt is None or (e.seq < first_halt and on < halt_day))
                 and (mine is None or mine > on))
 
     values: dict[str, float] = {}
     majority: _dt.date | None = None
     flags, addresses, session_acks, transfer_acks = set(), set(), set(), set()
-    for e, on in dated:
+    for e, on, _ in dated:
         d = e.data
         if e.utc > now_utc and e.kind not in ("cap_set", "limit_set"):
             continue
