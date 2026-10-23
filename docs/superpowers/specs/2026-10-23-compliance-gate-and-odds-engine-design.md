@@ -3,21 +3,20 @@
 Date: 2026-10-23.
 
 Status:
-- **Revision 2.1**: rev 2 plus the owner decisions D11 to D14.
-- Round 1 was run on rev 1 (`6113c27`).
-  - Gemini (Antigravity) said **REJECT**.
-  - The Claude adversarial workflow (5 reviewers, each finding checked by a skeptic) confirmed most of the same points.
-  - Both reviews are in `docs/superpowers/specs/2026-10-23-review-gate-odds/`. Appendix B gives a ruling on every
-    finding.
-- GPT (Codex) referees round 2 after the Codex quota resets on 2026-10-27 19:16.
-- **The owner decided D11 to D14 on 2026-10-23**, taking the recommended option each time.
-- Implementation will be planned as two plans, compliance first and then odds, because odds depends on `screen()`.
+- **Revision 3.**
+  - Round 1 reviewed rev 1: Gemini said REJECT, and the Claude 5×2 workflow confirmed most of its points (Appendix B).
+  - Round 2 reviewed rev 2.1: GPT (Codex) said REJECT, with 16 major findings (Appendix C). The quota note in the brief
+    proved stale.
+  - The owner decided D11 to D16 on 2026-10-23.
+  - All reviews are in `docs/superpowers/specs/2026-10-23-review-gate-odds/`.
+- Next: a convergence round (GPT and Gemini) on rev 3, then the owner's review, then two implementation plans. The
+  compliance plan comes first, because the odds engine depends on `screen()`.
 
 Inputs:
 - `reports/Korean resident trading venue legality.md`, with its notes in `research_notes/Korean resident trading venue legality/`;
-- `research_notes/QUANTGEN asset coverage expansion/crypto_wallets_connectivity.md` (crypto ETP and derivative rules);
+- `research_notes/QUANTGEN asset coverage expansion/crypto_wallets_connectivity.md`;
 - `research_notes/QUANTGEN TRADEGEN split map/split_map.md`;
-- the Phase A isolation (commit `d47cea9`).
+- the Phase A isolation (`d47cea9`).
 
 > This is research and software design, not legal, tax or investment advice. Neither TRADEGEN nor its author is a
 > licensed advisor. Before any real-money feature ships, the open legal points in section 11 need Korean-qualified
@@ -27,187 +26,238 @@ Inputs:
 
 ## 1. Purpose and scope
 
-TRADEGEN is a personal trading program for one Korean-resident individual trading their own money, starting from about
-KRW 42,000 (USD 30). It has two tracks:
-- a **moonshot** track aimed at USD 30,000, about 1,000 times the stake;
-- a realistic **compounding** track.
+TRADEGEN is a personal trading program for one Korean-resident individual, trading their own money from about
+KRW 42,000 (USD 30). It runs two tracks: a **moonshot** track aimed at USD 30,000, about 1,000 times the stake, and a
+realistic **compounding** track.
 
-This spec covers the first two building blocks:
-1. **The compliance gate** (`core/compliance/`). It decides whether a venue, instrument, order, transfer or plan is
-   allowed for this owner under Korean law, as researched. Unknown, unapproved or stale cases are refused for new
-   exposure.
+This spec covers two building blocks:
+1. **The compliance gate** (`core/compliance/`). It decides whether an order, transfer or plan leg is allowed for this
+   owner under Korean law as researched, and under the owner's own stricter policies. Unknown, unapproved or stale
+   cases are refused for new exposure. Exits stay open (D11).
 2. **The odds engine** (`core/odds/`). It shows the honest chance of each outcome for a plan the gate allows.
 
 **Neither package can place an order.** Execution, strategy research and the UI each get their own spec. They are built
-on these two interfaces: `decide()` / `verify_permit()` and `OddsReport`.
+on these interfaces: `decide()`, `permit()` / `verify_permit()`, and `OddsReport`.
 
-**Scope limits in this version:**
-- Odds plans have **one leg**, with no leverage and no short selling. Multi-leg, leveraged and short plans are refused
-  with a named reason. They are added when the strategies spec needs them.
-- The gate still covers every instrument class, so execution later inherits the full rule set.
+**Limits of this version**
+- The odds engine accepts **single-leg, cash-financed, 1x, long-only plans** on a whitelist of asset classes. These are
+  KRX cash shares, KRX 1x ETFs and ETNs, US stocks and 1x ETFs, and crypto spot.
+- Everything else is refused with a named reason, including multi-leg plans, leverage, shorts and options.
+- The gate covers every action and asset class, so the execution spec inherits the full rule set.
 
 ## 2. Owner decisions (fixed inputs)
 
 | # | Decision | Status |
 |---|---|---|
-| D1 | Build order: gate and odds engine first (no money moves), then execution, then strategies and the UI | decided 2026-10-23 |
+| D1 | Build order: the gate and the odds engine first (no money moves), then execution, then strategies and the UI | decided 2026-10-23 |
 | D2 | Accounts: KIS stock account; Upbit (opened 2026-10-23), the lawful KRW-spot crypto venue; OKX (overseas exchange) | decided |
-| D3 | Ruin = equity reaching the owner's hard total-loss floor. Execution halts for good there, and the odds engine and the kill switch read one shared setting | decided |
-| D4 | The compounding track reports an outcome ladder: P(+10%), P(+25%), P(2x), P(10x), P(target), median and 5th-percentile ending equity, and P(lose the stake). There is no single target | decided |
-| D5 | A rule row past its review date fails closed, and the owner is alerted on every channel: iOS push via the Claude app, email to their own address, and a Windows notification. D11 refines what is blocked | decided; refined by D11 |
-| D6 | OKX spot is grey. It is off by default. Each armed session needs a warning acknowledgement, and OKX exposure is capped at an owner-set share of equity. It switches off automatically on 2026-12-03 until re-reviewed. OKX derivatives and P2P are hard-blocked | decided |
-| D7 | Every plan shows P(reaching the target) and P(losing the stake), with bold play as the reference. Section 7.4 refines this: bold play is shown beside the exact optimum and the ceiling | decided; refined |
-| D8 | Execution is disarmed by default, armed per session by the owner only, with hard daily and total loss limits, a kill switch and an audit log. The owner adds trading-scope keys | decided; execution spec |
+| D3 | Ruin = equity reaching the owner's hard total-loss floor L. Execution halts for good there, and the odds engine and the kill switch read one shared setting | decided |
+| D4 | The compounding track reports an outcome ladder (P(+10%), P(+25%), P(2x), P(10x), P(target), median and 5th percentile), not a single target | decided |
+| D5 | A rule row past its review date fails closed for new exposure, and the owner is alerted on every channel: iOS push via the Claude app, email to their own address, and a Windows notification | decided |
+| D6 | OKX spot is grey. It is off by default. Each armed session needs a warning acknowledgement, and OKX exposure is capped at a share of equity the owner sets. It switches off automatically on 2026-12-03 until re-reviewed. OKX derivatives and P2P are hard-blocked | decided |
+| D7 | Every plan shows P(reaching the target) and P(hitting the floor or becoming unable to trade). Bold play is a reference, shown beside the ceiling (7.4) | decided; refined |
+| D8 | Execution is disarmed by default and armed per session by the owner only. It has hard daily and total loss limits, a kill switch and an audit log. The owner adds trading-scope keys | decided; execution spec |
 | D9 | Approach A: rules as data, a pure `decide()` kernel, and a plan simulator | decided |
-| D10 | Grey venues other than OKX (Binance, Bybit, Bitget, Hyperliquid, pump.fun, Jupiter, Uniswap), and the lawful but non-trading Betman, Lotto and Speed-On, are `out_of_scope`, so they are blocked. Enabling one needs a reviewed `grey` row with the report's warning bundle (section 5.3) | follows D2/D6; stricter than the report |
-| D11 | **Exits stay open.** Stale rows, auto-off, unmet gates and caps block **new exposure only**. A reduce-only sell, or a withdrawal to an FIU-registered domestic exchange, is still allowed. Conduct rows and the hard-coded floor still apply | decided 2026-10-23 (narrows D5) |
-| D12 | **Loss limits and caps tighten at once and loosen slowly.** Raising the floor, lowering the daily limit or lowering the cap takes effect immediately. A loosening takes effect only from the next Asia/Seoul date, never inside an armed session, and never after a recorded halt | decided 2026-10-23 |
-| D13 | **Validated edges.** A strategy card counts as a "tested edge", shown in a labelled column and never in the headline, only if it is one of these: (a) a hash-chained registry verdict of PASS; or (b) a committed `validate.ModelCard` with decision PASS whose out-of-sample run TRADEGEN can re-create and re-verify. Today only (b) exists: `S_C3_crypto_trend_krwbtc`, a daily trend rule on KRW-BTC, out-of-sample Sharpe 1.22, 90% CI [0.62, 1.77] | decided 2026-10-23 |
-| D14 | **Owner confirmation.** Owner-only writes need an interactive console, with input from a TTY rather than a pipe, and the owner must retype a random code shown on screen | decided 2026-10-23 (console + retyped code; no PIN) |
+| D10 | Grey venues other than OKX (Binance, Bybit, Bitget, Hyperliquid, pump.fun, Jupiter, Uniswap), and the lawful but non-trading Betman, Lotto and Speed-On, are `out_of_scope` (blocked). Enabling one needs a reviewed `grey` row | follows D2/D6 |
+| D11 | **Exits stay open.** Stale rows, auto-off, unmet gates, caps and out-of-scope or hard-block venue rows block **new exposure only**. Closing a position is still allowed, and so is withdrawing to an FIU-registered domestic exchange at a registered address. Conduct rows still apply. **If owner state is corrupt,** automated closing orders use the last approved stored snapshot, and withdrawals are done manually by the owner in the exchange app | decided 2026-10-23 |
+| D12 | Limits and caps **tighten at once and loosen slowly**: only from the next Asia/Seoul date, never inside an armed session, and never after a recorded halt | decided 2026-10-23 |
+| D13 | The "tested edge" column shows only a **replay of the exact validated strategy**: `S_C3_crypto_trend_krwbtc`, the long/flat crypto trend on KRW-BTC, with its own timing and costs. It is re-created and re-verified first. A changed coin, rule or timing needs a new validation, and until then no tested edge is shown | decided 2026-10-23 |
+| D14 | **Owner-only writes are signed.** An Ed25519 key is unlocked only by a passphrase typed in the owner's **own** terminal, not Claude's terminal panel. The gate verifies entries with the public key, so no script can forge an entry without the passphrase. A console confirmation with a retyped code stays as the UX. The honest limit: anyone who can edit the code could disable checks, so the gate refuses new exposure until the owner signs the current code hash of `core/compliance` and `core/odds` | decided 2026-10-23 |
+| D15 | **No credit buying and no coin lending or borrowing.** This is owner policy, stricter than the law. Both are `out_of_scope` and are kept out of the strategies spec as well | decided 2026-10-23 |
+| D16 | Short selling, leveraged and single-stock ETPs, KRX derivatives and ELW are **refused until live broker evidence exists**: real current cash and the broker's own answers, which the execution spec adds. Owner snapshots are not accepted as evidence | decided 2026-10-23 |
 
 ## 3. The honest numbers, up front
 
-These were checked by direct computation on 2026-10-23.
+The first five points are mathematics, checked by direct computation on 2026-10-23. The rest are research estimates and
+base rates, labelled as such.
 
-- **The ceiling.** If every bet has zero or negative expected value after costs, at every point where a trade can
-  happen, and losses stop at the account balance, then wealth is a non-negative supermartingale. By optional stopping,
-  P(ever reaching T) ≤ W₀/T for every strategy. For KRW 42,000 → KRW 42,000,000 that is **0.1% (1 in 1,000)**.
-- **With a loss floor.** If equity is absorbed at the floor L and no single price move can push it below L_min, the
-  bound tightens to (W₀ − L_min)/(T − L_min). With L = L_min = KRW 21,000, half the stake, that is **0.050%**.
-- **Bold play (Dubins–Savage).** It is the best a subfair even-money game allows: always stake enough to reach the goal.
-  - Exact P(1,000×) is **0.1000%** at p = 0.50, **0.0816%** at 0.49, **0.0346%** at 0.45 and **0.0106%** at 0.40.
-  - With a floor at half the stake it is 0.0400% at p = 0.49.
+- **The ceiling.** Suppose every trade has zero or negative expected value after costs at every point where it can be
+  placed, and losses stop at the account balance. Then wealth is a non-negative supermartingale, and by optional
+  stopping P(ever reaching T) ≤ W₀/T for every strategy. For KRW 42,000 → KRW 42,000,000 that is **0.1% (1 in 1,000)**.
+- **With a floor that truly holds.** If no outcome can take equity below L_min, the bound is (W₀ − L_min)/(T − L_min).
+  - TRADEGEN only claims L_min = L under **floor-safe sizing**, where cash never falls below L plus reserved exit costs,
+    so even a total loss of the position leaves L.
+  - With L at half the stake, that is **0.050%**.
+  - Under stop-based sizing, gaps and limit-down locks can carry losses past L, so the honest bound is W₀/T.
+- **Bold play (Dubins–Savage), the even-money benchmark.**
+  - Exact P(1,000×): **0.1000%** at p = 0.50, **0.0816%** at 0.49, **0.0346%** at 0.45 and **0.0106%** at 0.40.
+  - With a floor at half the stake: 0.0400% at p = 0.49.
   - It loses the stake in more than 99.9% of months.
-- **KRX cannot do it in a month.**
-  - The ±30% daily limit caps one KRX position at 1.3ⁿ over n sessions. A 30-day window holds 18 to 22 KRX sessions,
-    so the cap is **about 112× to 321×**.
-  - A 1,000× month from 1x KRX shares or ETFs is therefore impossible, not merely unlikely.
-- **Kelly** aims at long-run growth, not at reaching a target by a deadline.
-  - With zero edge it bets nothing.
-  - A genuine 52.5% even-money edge needs about **5,524 bets** to grow 1,000× at full Kelly.
-- **The typical result versus the average result.**
-  - With no edge, the *average* ending equity is the stake minus costs, because rare jackpots offset the many losses.
-  - The *typical* (median) moonshot month ends at the floor: bold play does so in 99.95% of months.
-  - Every card shows both, typical first (section 7.5).
-- **Realistic odds of USD 30 → USD 30,000 in a month:** about 0.01%, up to roughly 0.03% for long far-out-of-the-money
-  US options, and never above 0.1% without a real edge.
-- **Base rates.** In every retail group studied, most traders lose:
-  - Kalshi takers lose about 32% of what they stake;
-  - 74–89% of EU retail CFD accounts lose money;
-  - 87.7% of Indian retail equity-derivatives traders lost in FY26;
-  - 62% of new Korean investors lost in 2020.
-
-  (report lines 161–163)
+  - It is the optimum for that benchmark game. It is not a universal rule for every market.
+- **KRX.**
+  - A KRX position bought at the first open and held is capped by the ±30% daily band at (1.3/0.7)·1.3ⁿ⁻¹ over n
+    sessions. A 30-day window holds 18 to 22 sessions, so the cap is **about 161× to 459×**. A buy-and-hold KRX plan
+    cannot reach 1,000×.
+  - The band is measured from each day's reference price. Repeated intraday round trips from limit-down to limit-up
+    (about 1.86× a session), IPO days and special reference-price regimes are **not** bounded this way.
+  - The research rates that route as "essentially zero" in practice, because surveillance designations halt such runs.
+    That is not a mathematical impossibility (report line 165).
+- **Kelly** aims at long-run growth, not at reaching a target by a deadline. With zero edge it bets nothing. A genuine
+  52.5% even-money edge needs about **5,524 bets** to grow 1,000×.
+- **Typical versus average.**
+  - With no edge, the average ending equity is the stake minus costs, because rare jackpots offset the many losses.
+  - The typical (median) moonshot month ends at the floor: bold play does so in 99.95% of months.
+  - Every card shows the typical result first.
+- **Research estimates, not measurements.** The research found no measured probability for this account reaching
+  1,000× in a month. Its reasoned estimates (feasibility notes):
+  - about 0.01% in general;
+  - roughly 0.01–0.03% for long far-out-of-the-money US options;
+  - below 0.01% for domestic crypto spot.
+- **Base rates,** each with its population and statistic (report line 163 and the feasibility notes):
+  - Kalshi takers lost on average about 32% of the amount staked; makers lost about 10%.
+  - 74–89% of EU retail CFD accounts lose money (ESMA).
+  - 87.7% of Indian retail equity-derivatives traders lost in FY26 (SEBI).
+  - Korean retail lost about KRW 458 billion a year on overseas derivatives, 2020 to H1 2025, with no profitable year.
+  - In a 2020 study of 204,004 Korean retail accounts, 46% lost money, and 62% of new investors did.
 - **Monte Carlo precision.** A 0.01% event needs about 1,000,000 simulated months to reach a 10% relative standard
   error. A 0.1% event needs about 100,000.
-
-No report may promise more than this.
 
 ---
 
 ## 4. Architecture
 
-Two new packages follow the repo's `core/<domain>` pattern. Neither contains an order path.
-
 ```
 core/compliance/
-  kr_rules.yaml        the rules table (data; venue rows + conduct rows); dates quoted as strings
-  instruments.yaml     the instrument map (symbol -> class, multiple, underlying kind, eligibility facts, source)
-  rules.py             safe loader + schema/vocabulary check + hash; RulesTable.invalid(reason); CLI --check
-  gate.py              decide(), screen(), permit(), verify_permit(), render_warning(); hard-coded floor (pure)
-  owner.py             owner log: approvals, flags, acknowledgements, caps, limits, withdrawal addresses (append-only)
-  alerts.py            due(rows, today) (pure), the alert text catalogue, the Windows toast, the alerts.jsonl writer CLI
+  kr_rules.yaml        rules table (venue rows + conduct rows; quoted dates)
+  instruments.yaml     instrument map: symbol -> asset class, multiple, underlying, currency, cost book, tax basis, source
+  owner_pubkey.pem     the owner's Ed25519 public key; its fingerprint is printed in every alert email
+  rules.py             safe loaders; schema and vocabulary checks; hashes; immutable approved versions; CLI --check
+  gate.py              decide(), permit(), verify_permit(), screen(), render_warning(); hard-coded floor   (pure)
+  owner.py             owner log: signed entries (approvals, flags, caps, limits, addresses, sessions); snapshot store
+  sign.py              owner-side CLI run in the owner's own terminal: key generation, passphrase unlock, signing
+  alerts.py            due() (pure), alert template, Windows toast, alerts.jsonl writer CLI
 
 core/odds/
-  plan.py              Plan, Leg, Sizing, Limits (kw_only dataclasses; validation)
-  bars.py              daily open/close loader for bootstrap legs (reuses the data clients; own cache under ~/.tradegen)
-  venues.yaml          venue facts: lot sizes, minimum orders, fee extras, tick ladders, sources (owner-approved)
-  models.py            return models under one no-edge null: SignFlipBootstrap, GarchT; edge sources
-  simulate.py          vectorised, chunked path simulator
-  bold.py              exact references: ceiling, structural maximum, exact optimum and bold policy (dynamic programme)
-  report.py            OddsReport and rendering from the sentence catalogue; flags; language guard
+  plan.py              Plan, Leg, Sizing (kw_only dataclasses; whitelist validation)
+  bars.py              daily open/close loader built on the data clients; its own sha-manifest cache under ~/.tradegen
+  venues.yaml          lot sizes, minimum orders, fee extras, KRX stock tick ladder, sources (owner-approved)
+  models.py            TwoPointBootstrap, GarchT; no-edge law; edge sources; strategy replay (D13)
+  simulate.py          vectorised, chunked simulator
+  bold.py              ceiling, structural maximum, estimated bracket reference, exact even-money recursion
+  report.py            OddsReport rendered from the sentence catalogue; flags; language guard
 ```
 
 **How data flows**
-1. A `Plan` goes to `gate.screen(plan, ctx)`. If any leg is blocked, the plan is refused and is never simulated or
-   compared.
-2. `odds.simulate(plan, screening, cal, limits, ...)` refuses an unscreened plan, and produces an `OddsReport`.
-3. Execution, in its own spec, obtains a `Permit` from `gate.permit(intent, ctx)` and calls
-   `verify_permit(permit, intent, ctx_now)` at send time. A Permit object is never treated as proof by itself.
+1. A `Plan` goes to `gate.screen(plan, ctx)`. If any leg is blocked, the plan is refused.
+2. `odds.simulate(plan, screening, cal, limits, ...)` refuses an unscreened plan and produces an `OddsReport`.
+3. Execution, in its own spec, calls `permit(intent, ctx)` and, at send time, `verify_permit(permit, intent, ctx_now)`.
 
-**Boundaries and repository facts** (verified 2026-10-23)
-- `decide()`, `screen()`, `permit()`, `verify_permit()` and `render_warning()` are pure. They do no I/O and read no
-  clock: the Asia/Seoul date, the rules table, the instrument map, the owner state and the session are all passed in.
-  - `rules.load()` never raises. On any failure it returns `RulesTable.invalid(reason)`, and on an invalid table every
-    decision is BLOCK.
-- **The odds engine does not import `core.engine.orders`.** Guard T-RO-01 (`tests/macro_m0_harness.py`) allows only
-  `core/engine/` and two skills modules to import it, and `test_s4` makes `orders.py` add-only, so its functions cannot
-  be moved either. The odds engine therefore:
-  - checks KRX price limits itself, from the dated `price_limit` in `kr_regime_tags.yaml`, through `core.calendars`;
-  - uses the KRX tick ladder from `venues.yaml`, because `instruments.TICK_TABLES` has only the KRX ETF ladder;
-  - declares `LIMIT_DOWN_CARRY_COST_MULTIPLIER = 2.0` locally, and a test (tests are not scanned) asserts it equals
-    `core.engine.orders.LIMIT_DOWN_CARRY_COST_MULTIPLIER`.
-- **Price history.** `core.quant.history.History` holds closes only, as do all its loaders and its cache.
-  - `core/odds/bars.py` is a new loader of daily (open, close) bars, built on the same clients:
-    - KIS daily rows, for KRX;
-    - `data.crypto` Candles, for Upbit KRW-* and Binance *USDT;
-    - yfinance, for US names.
-  - Its cache lives under `state_root()/odds_bars/`, with a sha256 manifest.
-  - `History` and its loaders are not changed.
-  - A leg without open prices falls back to close-only checks, flagged `CLOSE_ONLY_CHECKS`.
-- **Calendars.** Every shipped calendar and regime-tag file in `core/calendars/data/` is an unsigned draft
-  (`signed_off_by: null`), so `clocks.is_session`, `sessions_between` and `regime_tags` raise `CalendarUnsigned` for KR
-  and US.
-  - `simulate()` takes a `cal: CalendarSet`. While the files are unsigned, every KRX or US plan is refused with
-    `CALENDAR_UNSIGNED`, and only crypto plans run.
-  - Signing is an owner act (section 11).
-  - The tests use the repo's signed fixture set (`tests/macro_m1_calendars.py`).
+**Repository facts the design rests on** (verified 2026-10-23; GPT's verification record is in Appendix C)
+- **No `core.engine.orders` import.** The odds engine never imports it, because T-RO-01 allows only `core/engine/` and
+  two skills modules, and `test_s4` keeps `orders.py` add-only. So:
+  - KRX limits are applied by the odds engine itself, from `kr_regime_tags.yaml`'s dated `price_limit` through
+    `core.calendars.regime_tags`. That call is KR-only; US and crypto legs have no daily limit.
+  - The KRX stock tick ladder lives in `venues.yaml`.
+  - `LIMIT_DOWN_CARRY_COST_MULTIPLIER = 2.0` is declared locally, and a test asserts it equals the orders constant.
+- **Bars.** `History` holds closes only, so `core/odds/bars.py` loads daily (open, close) bars:
+  - KRX: KIS daily rows;
+  - Upbit KRW-* and Binance *USDT: `data.crypto` Candles;
+  - US: yfinance.
+  - US and FX bars are mapped to the Asia/Seoul date of their close.
+  - `History` and its loaders are unchanged.
+- **Calendars.** The shipped calendar and regime files are unsigned drafts, so `simulate()` takes `cal: CalendarSet`
+  and refuses KRX and US legs with `CALENDAR_UNSIGNED` until they are signed. The full signing procedure is in
+  section 11. `sessions_between` includes both endpoints. Tests use the signed fixture set in
+  `tests/macro_m1_calendars.py`.
 - **Costs.**
-  - Per-side base cost = `validate.cost_bp(validate.cost_class(symbol))`, in bp. Equivalently it is
-    `instruments.cost_per_side(BOOK[cls])` with `price=None`, through an explicit map:
-    - `krx_stock` → `KRX_stock_book`;
-    - `krx_etf` → `KRX_ETF_line`;
-    - `us` → `US_shares_KIS`;
-    - `crypto` → `crypto_venue`.
-  - Passing a cost-class string straight to `cost_per_side` raises `NotTradable`.
-  - `instruments.check_cost_policy` validates macro-card headers and is not used here. `venues.yaml` extras are checked
-    by their own rule, `odds.models.check_extras`, which requires every extra to be ≥ 0 and allows a fee row only as
-    max(table, fee).
-- **Validated cards.**
-  - The chained registry (`core.quant.cards`, `model_card.macro` v2.0) has no out-of-sample return field, so it cannot
-    supply an edge today.
-  - The expansion study's committed `validate.ModelCard` files in `docs/asset_expansion/cards/` can, under D13.
-  - The live multiplier is `gate_stats.LIVE_SHARPE_MULTIPLIER` (0.60), imported and never written as a literal.
-- **Provenance.**
-  - `macro_artifacts.GIT_HASH` is the constant `UNVERSIONED`, so it is not used.
-  - The report records `gate_ledger.repo_anchor()` (`git:<sha>`, which reads packed-refs since `d47cea9`) and
-    `macro_artifacts.tree_hash()`.
-- **Guards to respect:**
-  - the read-only scans: `tests/acceptance.py` test_08 and test_09, and T-RO-01;
-  - no identifier, docstring or comment containing an order-endpoint name or `CANO`;
-  - no function or method named `transfer`, `withdraw` or `deposit_address` (`macro_m0_harness.FORBIDDEN_CALLS`);
-  - `core.odds.` and `core.compliance.` are added to `context_log.ACTING_MODULE_PREFIXES`, so T-CTX-01 covers them.
-- **Paths.** Every mutable path goes through `config.state_path()` / `state_root()`. Every file-writing function calls
-  `core.isolation.refuse_quantgen()` immediately before opening its target.
+  - The approved **instrument map** names each symbol's cost book: `KRX_stock_book`, `KRX_ETF_line`, `US_shares_KIS`,
+    `crypto_venue`, or a new `KONEX_stock_book`. The base per-side rate is `instruments.cost_per_side(book).bp` with
+    `price=None`.
+  - Symbol-shape inference (`validate.cost_class`) is not used, because it costs unlisted ETFs as stocks.
+  - Extras in `venues.yaml` may only raise costs, under the odds engine's own `check_extras` rule.
+  - The buy and sell sides are separate: κ_b and κ_s per side, the sell tax only where the book's `tax_side` says
+    `sell`, and fixed charges φ_b and φ_s.
+- **Provenance.** The record carries `gate_ledger.repo_anchor()` (`git:<sha>`, packed-refs aware) and
+  `macro_artifacts.tree_hash()`, which covers `core/**`, `data/macro/**` and `config.py` only. A separate sha256 of
+  `core/compliance` and `core/odds` is the code hash the owner signs under D14.
+- **Guards.**
+  - The read-only scans: test_08, test_09 and T-RO-01.
+  - No identifier, docstring or comment may contain an order-endpoint name or `CANO`.
+  - No function or method may be named `transfer`, `withdraw` or `deposit_address`.
+  - `core.odds.` and `core.compliance.` are added to `context_log.ACTING_MODULE_PREFIXES` (T-CTX-01).
+- **Isolation residual (task A0 of the compliance plan).**
+  - Every writer reached by the reused loaders checks its **final** target with `refuse_quantgen` immediately before
+    opening it, temp and sidecar files included. That covers the KIS token, the OpenDART cache, `history._cached`, the
+    FICC cache, the grokteam cache and the new bars cache.
+  - `state_root()` refuses once per process if any entry under `~/.tradegen` is a symlink, a junction or a hard link
+    (st_nlink > 1).
+  - This is path discipline, not a security boundary against a hostile local user.
 
 ---
 
-## 5. The rules table and the instrument map
+## 5. Rules, instruments and approvals
 
-### 5.1 Row schema
+### 5.1 Vocabulary
+
+An intent is described along five independent axes:
+- **Venue:** an exact lower-case id.
+- **Asset class:** what is held, taken from the instrument map.
+- **Action:** what is done.
+- **Financing:** how it is paid for.
+- **Product multiple:** taken from the instrument map.
+
+**Venue ids.**
+- Domestic brokers and exchanges: `kis`, `upbit`, `bithumb`, `coinone`, `korbit`, `gopax`.
+- Offshore exchanges: `okx`, `binance`, `bybit`, `bitget`.
+- DEXes: `hyperliquid`, `pumpfun`, `jupiter`, `uniswap`, `drift`.
+- Prediction markets: `polymarket`, `kalshi`, `limitless`, `myriad`, `opinion`, `predictfun`.
+- Retail apps with prediction markets: `robinhood`, `cryptocom`, `predictit`.
+- Betting and lotteries: `sportsbook`, `betman`, `lotto`, `speedon`.
+- Foreign brokers: `ibkr`, `moomoo`, `webull`, `etoro`, `offshore_fx_cfd`.
+- The state-blocked ids, plus `bitmart`.
+- Anything else is unknown, which means BLOCK.
+
+**Asset classes.**
+- KRX: `krx_share`, `konex_share`, `krx_etp` (multiple and underlying come from the map), `krx_derivative`
+  (stage 1: futures and long options; stage 2: option writing and VKOSPI futures; the stage comes from the action and
+  the contract type), `elw`.
+- US: `us_share`, `us_etp`, `us_option`, `us_crypto_spot_etp`.
+- Futures and derivatives: `overseas_future`, `overseas_crypto_derivative`.
+- Crypto: `crypto_coin`, `crypto_perp_or_future`.
+- Other: `fx_pair`, `cfd`, `event_contract`, `sports_bet`, `lottery`.
+
+**Actions.**
+- Trading: `buy`, `sell`, `sell_short`, `buy_to_cover`.
+- Options: `write`.
+- Transfers: `transfer_out`.
+- Lending: `lend`, `borrow`.
+- P2P: `p2p_buy`, `p2p_sell`.
+
+**Financing.** `cash`, `credit`, `margin`.
+
+**Derived classes,** from the map:
+- `krx_etp` or `us_etp` with multiple +1 is the **1x ETF/ETN**.
+- With multiple −1 on an index or basket underlying, it is the **index inverse**.
+- With any other multiple on an index or basket underlying, it is the **index leveraged ETP**.
+- With any multiple other than +1 on a **single** underlying, including −1, domestic or overseas-listed, it is the
+  **single-stock ETP**.
+- `us_etp` on a crypto **futures** underlying, for example BITO, is a **crypto-futures ETF**. The FSC distinguished
+  these and preserved trading in existing overseas bitcoin-futures ETFs.
+- `us_crypto_spot_etp` covers the spot-backed products: IBIT, FBTC, ETHA, GDLC, EZPZ and the like.
+
+**The instrument map** (`instruments.yaml`, owner-approved).
+- **Contents:** each symbol maps to its asset class, multiple, underlying kind (single | index | basket | crypto_spot |
+  crypto_futures), currency, cost book, tax basis and a source, all under the same review rules as the table.
+- **Lookups:** the gate looks up `intent.symbol`.
+  - An unknown symbol is BLOCK.
+  - A caller-supplied class or multiple that disagrees with the map is BLOCK.
+  - Effective leverage is derived from the product multiple and the financing; the caller's own value is never trusted.
+- **Transfers** name the coin as the symbol (`crypto_coin`) with action `transfer_out`. They do not need a separate
+  class.
+
+### 5.2 Row schema and table rules
 
 ```yaml
-schema: tradegen.kr_rules/2
+schema: tradegen.kr_rules/3
 scope: "Korean-resident individual, own funds only"
-known_changes: ["2026-12-03", "2027-01-01", "2027-02-18"]     # FX Act; crypto tax; travel-rule expansion
+known_changes: ["2026-12-03", "2027-01-01", "2027-02-18"]
 rows:
   - id: KR-OKX-SPOT
-    kind: venue                              # venue | conduct
-    match: {venue: [okx], instrument: [crypto_spot]}
-    treatment: grey                          # hard_block | gated | grey | allow | out_of_scope
-    max_leverage: 1.0                        # default 1.0
-    requires: {owner: [age_of_majority]}     # gated/grey rows: deposits, cash, courses, broker approvals, age
-    ack: per_session                         # gated or grey rows that need this session's acknowledgement
+    kind: venue                                   # venue | conduct
+    match: {venue: [okx], asset: [crypto_coin], action: [buy, sell], financing: [cash]}
+    treatment: grey                               # hard_block | gated | grey | allow | out_of_scope
+    requires: {owner: [age_of_majority]}
+    ack: per_session
     grey: {cap_key: okx_equity_share, auto_off: "2026-12-03"}
     warning: >-
       OKX is not registered with Korea's FIU. The FSC tells users of unregistered exchanges to withdraw their money. You
@@ -219,179 +269,124 @@ rows:
             "amended FX Act (promulgated 2026-06-02, effective 2026-12-03; Act No. 21714 secondary-sourced)"]
     sources: ["https://www.fsc.go.kr/no010101/87177"]
     research: "reports/Korean resident trading venue legality.md#compliance-matrix row 14"
-    confidence: low                          # OKX spot is not separately rated; this is the row-13 analogue
-    effective_from: "2021-03-25"             # the regime start, not a press-release date
-    effective_until: "2027-02-18"            # the travel-rule expansion needs a new reviewed row
+    confidence: low
+    legal_or_policy: legal                        # legal = a legal reading; policy = the owner's stricter choice
+    effective_from: "2021-03-25"
+    effective_until: "2027-02-18"
     review_by: "2026-11-22"
     reviews: [{date: "2026-10-23", by: claude-research, checked: "report rows 13-15, 19; crypto notes section 3"}]
 ```
 
-**Table rules** (the loader enforces each one, and tests cover them)
-- **Loading.**
-  - A YAML SafeLoader subclass rejects duplicate keys, anchors, aliases and native (unquoted) dates.
-  - The file is capped at 256 KB.
-  - Every `match` value must belong to the section 5.2 vocabulary, and `any` is allowed only on `hard_block`,
-    `out_of_scope` and conduct rows.
-  - Any violation makes the table `INVALID`.
-- **Sources.** Every row has at least one source and a pointer to the research it came from.
-- **Review cadence: monthly,** as the report recommends during the rule-drift window (report line 84).
-  - `review_by` is at most 31 days after the row's latest review.
-  - `review_by` must also not be later than the day before the next `known_changes` date that affects the row.
-- **Coverage.** Every one of the 38 legality-matrix rows is covered by at least one table row.
-- **Owner approval (the meaning of "owner-signed").** A table counts only if `owner.jsonl` holds a
-  `rules_approved {rules_hash}` event written through the owner-confirmation API (D14).
-  - An unapproved table is `INVALID`.
-  - A `reviews` entry by anyone other than the owner is a draft: it cannot move `review_by` or `auto_off` until the owner
-    approves the resulting hash.
-  - A git commit is **not** evidence of owner approval, because Claude makes this repo's commits under the owner's
-    identity.
-  - `instruments.yaml` and `venues.yaml` follow the same rule, through `instruments_approved {hash}` and
-    `venues_approved {hash}`.
-- **Hard-coded floor.** `gate.py` blocks the following whatever the table says, as defence in depth:
-  - the conduct classes, the prediction venues and the state-blocked ids;
-  - OKX derivatives and P2P;
-  - `fx_margin`, `cfd`, `overseas_future`, `us_crypto_etp` and `overseas_crypto_derivative`.
+**Loading**
+- The loader uses a SafeLoader subclass that rejects duplicate keys, anchors, aliases and native dates.
+- The file is capped at 256 KB.
+- Every `match` value must belong to the vocabulary, and `any` is allowed only on `hard_block`, `out_of_scope` and
+  conduct rows.
+- Any violation makes the table INVALID.
+- `instruments.yaml` and `venues.yaml` get the same treatment.
 
-### 5.2 Vocabulary
+**Sources and review**
+- Every row cites a source and its research, and carries `legal_or_policy`. Policy rows say so in their owner-facing
+  reason.
+- The review cadence is **monthly**: `review_by` is at most 31 days after the latest review, and no later than the day
+  before the next `known_changes` date that affects the row.
+- All 38 legality-matrix rows must be covered.
 
-**Venue ids**
-- Brokers and domestic exchanges: `kis`, `upbit`, `bithumb`, `coinone`, `korbit`, `gopax`.
-- Overseas and decentralised: `okx`, `binance`, `bybit`, `bitget`, `hyperliquid`, `pumpfun`, `jupiter`, `uniswap`,
-  `drift`.
-- Prediction markets: `polymarket`, `kalshi`, `limitless`, `myriad`, `opinion`, `predictfun`.
-- Platforms: `robinhood`, `cryptocom`, `predictit`, `sportsbook` (any foreign or crypto sportsbook).
-- Lotteries and racing: `betman`, `lotto`, `speedon`.
-- Foreign brokers and apps: `ibkr`, `moomoo`, `webull`, `etoro`, `offshore_fx_cfd`.
-- The state-blocked ids of section 5.3.
-- Ids are exact lower-case ASCII with no case folding. Anything else is unknown, which means BLOCK.
+**Approval (D14)**
+- A table, map or venue file counts only if the owner log holds a **signed** `approved {kind, sha256}` for those exact
+  bytes.
+- `rules.py` keeps every approved version immutably in `~/.tradegen/compliance/approved/<kind>/<sha256>`, so a snapshot
+  can be reconstructed.
+- A git commit is not approval, because Claude makes this repo's commits under the owner's identity.
+- A `reviews` entry by anyone but the owner is a draft.
 
-**Instrument classes**
-- **KRX:**
-  - `krx_cash_share`, `konex_share`, `krx_etf_1x`, `krx_etn_1x`, `krx_inverse_1x` (index or basket underlyings only);
-  - `krx_lev_etp` (index or basket, multiple other than ±1);
-  - `krx_derivative_stage1` (futures and long options), `krx_derivative_stage2` (option writing and VKOSPI futures);
-  - `elw`.
-- **Single-underlying leveraged and inverse:** `single_stock_lev_etp`, meaning any ETF/ETN on a single underlying with
-  a multiple other than +1, **including −1x, domestic or overseas-listed**.
-- **Credit and short:** `credit_buy`, `retail_short`, `fx_margin`, `cfd`.
-- **US:**
-  - `us_stock`, `us_etf_1x`, `us_inverse_1x` (index or basket only), `us_lev_etp` (index or basket);
-  - `us_option_long`, `us_option_write`;
-  - `us_crypto_etp`: any US-listed product whose underlying is crypto, spot or index (for example IBIT, FBTC, ETHA,
-    GDLC, EZPZ).
-- **Futures:** `overseas_future`, and `overseas_crypto_derivative` (for example CME bitcoin futures and options).
-- **Crypto:** `crypto_spot`, `crypto_lending`, `crypto_derivative`, `crypto_p2p`, `crypto_transfer`.
-- **Other:** `event_contract`, `sports_bet`, `lottery`.
-
-**The instrument map (`instruments.yaml`, owner-approved).**
-- **Contents:** each symbol maps to its class, multiple, underlying kind (single | index | basket | crypto), eligibility
-  facts (for lending: top-20 or listed on 3 or more KRW markets) and a source, under the same review rules as the table.
-- **Fail closed.** `decide()` and `screen()` **derive** the class from `intent.symbol`:
-  - an unknown symbol gives BLOCK;
-  - a caller-supplied class that disagrees with the map gives BLOCK (`class mismatch`).
-
-  This is the root fix for mislabelled products. TQQQ cannot pass as `us_etf_1x`, and 252670 (KODEX 200 Futures
-  Inverse 2X) cannot pass as `krx_etf_1x`.
+**Hard-coded floor.** `gate.py` blocks the following whatever the table says:
+- the conduct classes and tags;
+- the prediction and sportsbook venues;
+- the state-blocked ids;
+- OKX derivatives and P2P;
+- `fx_pair`, `cfd`, `overseas_future`, `overseas_crypto_derivative`, `us_crypto_spot_etp` and `us_option` + `write`.
 
 ### 5.3 Seed rows
 
-Each row carries the research and source fields from section 5.1. The report's "Recommended actions for a
-trading-software designer" table sets each treatment, except where D10 is stricter.
+The report's "Recommended actions" table sets each treatment, except where owner policy (D10, D15, D16) is stricter.
 
-| Row id | Match | Treatment | Matrix row |
-|---|---|---|---|
-| KR-KIS-KRX-SHARE | kis: krx_cash_share | allow (1x; ±30% limit; 0.20% sell tax, ETFs exempt) | 21 |
-| KR-KIS-KONEX | kis: konex_share | allow (±15% limit; 0.10% tax) | 21 |
-| KR-KIS-KRX-ETF1X | kis: krx_etf_1x, krx_etn_1x | allow | 21 |
-| KR-KIS-KRX-INV1X | kis: krx_inverse_1x | allow; confidence low (confirm with the broker) | 22 |
-| KR-KIS-KRX-LEV | kis: krx_lev_etp | gated: deposit ≥ KRW 10M + `kofia_leveraged_1h` | 25 |
-| KR-KIS-SINGLE-LEV | kis: single_stock_lev_etp | gated: **cash** ≥ KRW 30M (cash only, re-checked on every buy, additional buys included) + `single_stock_lev_3h` + `single_stock_mock_5h_5d` | 26 |
-| KR-KIS-KRX-DERIV-1 | kis: krx_derivative_stage1 | gated: deposit ≥ KRW 10M + `broker_approvals.krx_deriv_eligible` (the broker sets course and mock hours by profile; at least 1h + 3h) | 27 |
-| KR-KIS-KRX-DERIV-2 | kis: krx_derivative_stage2 | gated: deposit ≥ KRW 20M + `broker_approvals.krx_deriv_stage2` | 27 |
-| KR-KIS-ELW | kis: elw | gated: deposit ≥ KRW 15M + `elw_course` | 28 |
-| KR-KIS-CREDIT | kis: credit_buy | gated: `broker_approvals.credit`; max 2.2x; per-session acknowledgement; BLOCK on symbols designated 투자경고/투자위험 (designation state in context; unknown state means BLOCK) | 23 |
-| KR-KIS-SHORT | kis: retail_short | gated: `kofia_short_edu_30m` + `krx_short_mock_1h` + `broker_approvals.short`; 105% collateral; per-session acknowledgement | 24 |
-| KR-KIS-US-STOCK | kis: us_stock, us_etf_1x | allow | 31 |
-| KR-KIS-US-INV1X | kis: us_inverse_1x | allow; confidence low (broker notices) | 33 |
-| KR-KIS-US-LEV | kis: us_lev_etp | gated: deposit ≥ KRW 10M + `kofia_leveraged_1h` (since 2026-05-22) | 32 |
-| KR-KIS-US-OPT-LONG | kis: us_option_long | gated: `broker_approvals.us_option_eligible` (at least 1h + 3h); per-session acknowledgement (commissions of 3–20% of the account per side) | 34 |
-| KR-KIS-US-OPT-WRITE | kis: us_option_write | hard_block (recourse leverage; losses can exceed the account) | 34 |
-| KR-KIS-US-CRYPTO-ETP | kis: us_crypto_etp | hard_block. FSC January 2024: brokering overseas spot crypto ETFs may breach the FSCMA. The FSS halted GDLC/EZPZ in November 2025. Confidence low; review monthly while the ETF amendment is pending | crypto notes Q4 |
-| KR-KIS-CRYPTO-DERIV | kis: overseas_crypto_derivative | hard_block (FSC 2017-12-06: bitcoin is not an underlying asset) | crypto notes Q4 |
-| KR-KIS-OVERSEAS-FUT | kis: overseas_future | hard_block (recourse leverage) | 35 |
-| KR-KIS-FX-MARGIN | kis: fx_margin | hard_block (USD 10,000 per lot; recourse leverage) | 29 |
-| KR-KIS-CFD | kis: cfd | hard_block (professional investors only) | 30 |
-| KR-DOMESTIC-SPOT | upbit, bithumb, coinone, korbit: crypto_spot | allow (KRW 5,000 minimum on Upbit) | 10 |
-| KR-GOPAX | gopax: any | out_of_scope (VASP renewal delayed indefinitely; not configured) | 10 |
-| KR-DOMESTIC-LENDING | upbit, bithumb, coinone, korbit: crypto_lending | gated: `daxa_lending_course` + `daxa_lending_aptitude`; eligible coins only (instrument map); max 1.0x; per-session acknowledgement | 11 |
-| KR-DOMESTIC-CRYPTO-DERIV | upbit, bithumb, coinone, korbit: crypto_derivative | hard_block (no legal framework) | 12 |
-| KR-TRANSFER-OUT | upbit, bithumb, coinone, korbit: crypto_transfer | allow only to a destination that is itself allowed or grey (6.2 step 5); destination address registered in the owner log; a grey destination needs a per-transfer acknowledgement on top of the session one; `effective_until: "2027-02-18"` | 19 |
-| KR-OKX-SPOT | okx: crypto_spot | grey (D6), example in 5.1; requires `age_of_majority` | 14 (13 analogue) |
-| KR-OKX-WITHDRAW | okx: crypto_transfer | allow, exit only, to upbit, bithumb, coinone or korbit at a registered address (D11) | 14, 19 |
-| KR-OKX-DERIV | okx: crypto_derivative | hard_block (OKX blocks South Korea) | 14 |
-| KR-OKX-P2P | okx: crypto_p2p | hard_block (OKX blocks South Korea) | 14 |
-| KR-OFFSHORE-CEX | binance, bybit, bitget: any | out_of_scope (D10) | 13 |
-| KR-STATE-BLOCKED | kucoin, mexc, phemex, xtcom, bitrue, coinw, poloniex, btcc, bingx, digifinex, and every other site on the KCSC block list of 2026-10-13: any | hard_block (reachable only by VPN) | 15 |
-| KR-BITMART | bitmart: any | hard_block (Google Play app block of 2025-03; named in English reports of the 2026-10-13 block, but not in the Korean reports read) | 15 |
-| KR-HYPERLIQUID | hyperliquid: any except event_contract | out_of_scope (D10; grey; no wallet) | 16 |
-| KR-DEX | pumpfun, jupiter, uniswap: any | out_of_scope (D10). Enabling needs: age 19+, no automatic buys of newly launched tokens, and a liquidation-price warning on perps | 17, 18 |
-| KR-DRIFT | drift: any except event_contract | out_of_scope (D10) | 16 analogue |
-| KR-PREDICTION | polymarket, kalshi, limitless, myriad, opinion, predictfun, robinhood, cryptocom, predictit: any; hyperliquid and drift: event_contract | hard_block (Criminal Act Art. 246; platform terms) | 1-6 |
-| KR-SPORTSBOOK | sportsbook: any | hard_block (National Sports Promotion Act Art. 48(3); Supreme Court 2022도6462) | 7 |
-| KR-IBKR | ibkr: any | hard_block (direct foreign-broker routing; FX reporting) | 36 |
-| KR-RETAIL-APPS | moomoo, webull, etoro: any | hard_block (blocked or unknown for Korea) | 37 |
-| KR-OFFSHORE-FX-CFD | offshore_fx_cfd: any | hard_block | 38 |
-| KR-LOTTERY-RACING | betman, lotto, speedon: any | out_of_scope (D10: lawful designated issuers, but not trading) | 8, 9 |
-| KR-CONDUCT-EVENT | any venue: event_contract | hard_block (Criminal Act Art. 246) | 1-6 |
-| KR-CONDUCT-SPORTS | any venue except betman: sports_bet | hard_block (National Sports Promotion Act Art. 26, 48(3)) | 3, 7 |
-| KR-CONDUCT-ROUTE | route ≠ direct | hard_block (VPN or proxy; state blocks; platform terms) | 15, 16 |
-| KR-CONDUCT-OTHERS | on_behalf ≠ self, or tag copy_lead / copy_follow | hard_block (pooled money, copy-trading, trading for others: 특금법, Supreme Court 2024도10710) | 20 |
-| KR-CONDUCT-FX | tag fx_settlement | hard_block (환치기 under the FX Act, where business-like) | 20 |
-| KR-CONDUCT-SIGNALS | publishes_signal | hard_block (VAUPA Art. 10; advisory registration not researched) | 20 |
-| KR-CONDUCT-PROMOTE | tag unregistered_vasp_referral | hard_block (FSC 2026-06-24, on promoters of unregistered exchanges). TRADEGEN stores and emits no referral, affiliate or invite codes | 20 |
-| KR-CONDUCT-MANIP | tags coordinated, self_match, spoof, layer, mnpi, false_statement, self_issued_coin | hard_block (VAUPA Art. 10(1)–(5)) | 20 |
+| Row id | Match (venue: asset / action / financing) | Treatment | Basis | Matrix row |
+|---|---|---|---|---|
+| KR-KIS-KRX-SHARE | kis: krx_share / buy, sell / cash | allow (±30% band; 0.20% sell tax) | legal | 21 |
+| KR-KIS-KONEX | kis: konex_share / buy, sell / cash | allow (±15% band; 0.10% tax) | legal | 21 |
+| KR-KIS-KRX-1X | kis: krx_etp (1x) / buy, sell / cash | allow | legal | 21 |
+| KR-KIS-KRX-INVERSE | kis: krx_etp (index inverse −1x) / buy, sell / cash | allow; confidence low (confirm with the broker) | legal | 22 |
+| KR-KIS-KRX-LEV | kis: krx_etp (index leveraged) / buy | gated; **refused until live evidence (D16)**: deposit ≥ KRW 10M and `kofia_leveraged_1h` | policy (D16) + legal | 25 |
+| KR-KIS-SINGLE-ETP | kis: krx_etp, us_etp (single-stock) / buy | gated; **refused until live evidence (D16)**: cash ≥ KRW 30M, cash only, before every buy, + 3h course + 5h mock over 5 days | policy (D16) + legal | 26 |
+| KR-KIS-KRX-DERIV | kis: krx_derivative / any | gated; **refused until live evidence (D16)**: stage 1 KRW 10M / stage 2 KRW 20M + broker eligibility | policy (D16) + legal | 27 |
+| KR-KIS-ELW | kis: elw / any | gated; **refused until live evidence (D16)**: KRW 15M + course | policy (D16) + legal | 28 |
+| KR-KIS-CREDIT | kis: any / buy / credit | out_of_scope (**D15: no credit buying**) | policy | 23 |
+| KR-KIS-SHORT | kis: krx_share / sell_short | gated; **refused until live evidence (D16)**: 30m KOFIA + 1h KRX mock + broker approval; 105% collateral | policy (D16) + legal | 24 |
+| KR-KIS-US-SHARE | kis: us_share, us_etp (1x) / buy, sell / cash | allow | legal | 31 |
+| KR-KIS-US-INVERSE | kis: us_etp (index inverse −1x) / buy, sell / cash | allow; confidence low (broker notices) | legal | 33 |
+| KR-KIS-US-LEV | kis: us_etp (index leveraged) / buy | gated; **refused until live evidence (D16)**: KRW 10M + `kofia_leveraged_1h` (since 2026-05-22) | policy (D16) + legal | 32 |
+| KR-KIS-US-CRYPTO-FUT-ETF | kis: us_etp (crypto_futures, 1x) / buy, sell / cash | allow; confidence low. The FSC preserved existing overseas bitcoin-futures ETF trading; review monthly | legal | crypto notes Q4 |
+| KR-KIS-US-CRYPTO-SPOT-ETP | kis: us_crypto_spot_etp / buy | hard_block. FSC January 2024: brokering overseas spot crypto ETFs may breach the FSCMA. The FSS halted GDLC/EZPZ in November 2025 | legal | crypto notes Q4 |
+| KR-KIS-US-OPTION | kis: us_option / buy, sell | gated; per-session acknowledgement; broker eligibility (at least 1h + 3h); commissions of 3–20% of the account per side. The odds engine refuses option legs | legal | 34 |
+| KR-KIS-US-OPTION-WRITE | kis: us_option / write | hard_block (recourse leverage) | legal | 34 |
+| KR-KIS-CRYPTO-DERIV | kis: overseas_crypto_derivative / any | hard_block (FSC 2017-12-06) | legal | crypto notes Q4 |
+| KR-KIS-OVERSEAS-FUT / FX / CFD | kis: overseas_future, fx_pair, cfd / any | hard_block | legal | 35, 29, 30 |
+| KR-DOMESTIC-SPOT | upbit, bithumb, coinone, korbit: crypto_coin / buy, sell / cash | allow (KRW 5,000 minimum on Upbit) | legal | 10 |
+| KR-GOPAX | gopax: any | out_of_scope (VASP renewal status unverified; not configured) | policy | 10 |
+| KR-DOMESTIC-LENDING | upbit, bithumb, coinone, korbit: crypto_coin / lend, borrow | out_of_scope (**D15: no coin lending**) | policy | 11 |
+| KR-DOMESTIC-CRYPTO-DERIV | upbit, bithumb, coinone, korbit: crypto_perp_or_future / any | hard_block (no legal framework) | legal | 12 |
+| KR-TRANSFER-OUT | upbit, bithumb, coinone, korbit: crypto_coin / transfer_out | allow only to a destination that is allowed or grey (6.2), at a signed registered address. A grey destination needs a per-transfer acknowledgement. `effective_until: "2027-02-18"` | legal | 19 |
+| KR-OKX-SPOT | okx: crypto_coin / buy, sell / cash | grey (D6), example in 5.2 | legal | 14 (13 analogue) |
+| KR-OKX-WITHDRAW | okx: crypto_coin / transfer_out | exit only (D11): to upbit, bithumb, coinone or korbit at a registered address | legal | 14, 19 |
+| KR-OKX-DERIV / P2P | okx: crypto_perp_or_future / any; okx: any / p2p_buy, p2p_sell | hard_block (OKX blocks South Korea) | legal | 14 |
+| KR-OFFSHORE-CEX | binance, bybit, bitget: any | out_of_scope (D10) | policy | 13 |
+| KR-STATE-BLOCKED | kucoin, mexc, phemex, xtcom, bitrue, coinw, poloniex, btcc, bingx, digifinex, + every other site on the KCSC block list of 2026-10-13: any | hard_block (reachable only by VPN) | legal | 15 |
+| KR-BITMART | bitmart: any | hard_block (Google Play app block 2025-03; Korean reports of the 2026-10-13 block do not name it) | legal | 15 |
+| KR-HYPERLIQUID / KR-DEX / KR-DRIFT | hyperliquid, pumpfun, jupiter, uniswap, drift: any except event_contract | out_of_scope (D10). Enabling needs: age 19+; no auto-buy of new tokens; a liquidation-price warning on perps | policy | 16, 17, 18 |
+| KR-PREDICTION | polymarket, kalshi, limitless, myriad, opinion, predictfun, robinhood, cryptocom, predictit: any; any venue: event_contract | hard_block (Criminal Act Art. 246; platform terms) | legal | 1-6 |
+| KR-SPORTS | sportsbook: any; any venue except betman: sports_bet | hard_block (National Sports Promotion Act Art. 26, 48(3); 2022도6462) | legal | 3, 7 |
+| KR-IBKR / KR-RETAIL-APPS / KR-OFFSHORE-FX-CFD | ibkr; moomoo, webull, etoro; offshore_fx_cfd: any | hard_block | legal | 36, 37, 38 |
+| KR-LOTTERY-RACING | betman, lotto, speedon: any | out_of_scope (D10) | policy | 8, 9 |
+| KR-CONDUCT-ROUTE | route ≠ direct | hard_block | legal | 15, 16 |
+| KR-CONDUCT-OTHERS | on_behalf ≠ self, or tag copy_lead / copy_follow | hard_block (특금법; 2024도10710) | legal | 20 |
+| KR-CONDUCT-FX | tag fx_settlement | hard_block (환치기, where business-like) | legal | 20 |
+| KR-CONDUCT-SIGNALS | publishes_signal | hard_block | legal | 20 |
+| KR-CONDUCT-PROMOTE | tag unregistered_vasp_referral | hard_block (FSC 2026-06-24). TRADEGEN stores and emits no referral, affiliate or invite codes | legal | 20 |
+| KR-CONDUCT-MANIP | tags coordinated, self_match, spoof, layer, mnpi, false_statement, self_issued_coin | hard_block (VAUPA Art. 10(1)–(5)) | legal | 20 |
 
 **Dates**
-- Crypto rows are due by 2026-11-22, one month after review. The cadence then pins every crypto, transfer and OKX row to
-  2026-12-02 at the latest, the day before the FX Act amendment.
+- Crypto, transfer and OKX rows are due by 2026-11-22, and in no case later than 2026-12-02.
 - `KR-TRANSFER-OUT` and `KR-OKX-SPOT` end on 2027-02-18, when the travel-rule expansion takes effect: six months after
   promulgation, per FSC 2026-08-11 (the promulgation date is secondary-sourced).
-- Tax-sensitive and leverage rows are due before the November and December votes.
-- Every other row is due within the 31-day cadence.
+- Every other row follows the monthly cadence.
 
 ### 5.4 Lifecycle and alerts
 
-- **Fail closed.** If today is after a row's `review_by`, that row blocks **new exposure** with the reason
-  "stale: review by YYYY-MM-DD passed". Under D11, exits stay allowed.
-- **Re-review.**
-  1. Someone re-checks the row's sources and drafts a `reviews` entry, moving `review_by`. Claude may draft this.
-  2. The owner approves the new table hash through the confirmation API (`rules_approved`).
-  3. Until then, the previous approved hash stays in force. If none is approved, the table is `INVALID`.
-- **`python -m core.compliance.rules --check [--today YYYY-MM-DD]`** checks the table, the instrument map, the venue
-  table and the owner-log chain and approvals. Exit codes:
+- **Stale rows.** A row past `review_by` blocks new exposure with "stale: review by … passed". Exits stay open (D11).
+- **Re-review.** Someone drafts a `reviews` entry, possibly Claude. The owner signs `approved` for the new bytes. Until
+  then the previous approved version stays in force. If no version was ever approved, the table is INVALID.
+- **`python -m core.compliance.rules --check [--today …]`** checks the table, the map and the venue file; their
+  approvals; the owner-log chain and signatures; the signed code hash; and the public-key fingerprint. Exit codes:
   - 0: nothing due;
   - 1: something due within 14 days;
   - 2: something overdue;
-  - 3: invalid, unapproved, or the owner chain is broken. Exit 3 blocks every new-exposure decision.
-- **Who does what.**
-  - `alerts.py` renders the alert text from a fixed template: row id, `review_by`, `auto_off`, days left and the owner-log
-    head. Rule free text is never interpolated.
-  - It shows the Windows toast (PowerShell WinRT call, no new dependency).
-  - It writes `alerts.jsonl` through `python -m core.compliance.alerts --log <channel> <ok|fail> [--detail]`.
+  - 3: invalid, unapproved, unsigned code, a broken chain or a changed key. Exit 3 blocks new exposure.
+- **Who sends what.**
+  - `alerts.py` renders a fixed template: row id, `review_by`, `auto_off`, days left, the owner-log head and the
+    key fingerprint. Rule free text is never interpolated.
+  - It shows the Windows toast (PowerShell WinRT, no new dependency).
+  - It writes `alerts.jsonl` through `--log <channel> <ok|fail>`.
 - **The daily job.** A local scheduled Claude task runs at 09:00 KST:
-  1. It runs `--check`.
-  2. While anything is overdue or invalid, it alerts every day. When a row is due within 14 days, it alerts on the first
-     run at or below 14 days and again at or below 3 days, so a missed run never skips a threshold.
-  3. It sends the iOS push through the Claude app.
-  4. It sends an email **only to `sapientia@korea.ac.kr`**. That address is written literally into the task prompt and
-     into `alerts.OWNER_ALERT_EMAIL`, and changing it requires the owner to edit the task in chat.
-  5. It records each result through the `--log` CLI.
-- **Authority.** The owner approves the task once, at creation. Their D5 instruction is the standing authority for
-  these self-addressed alerts, and for nothing else.
-- **Failures.** A failed channel is announced on the others, and a failed check is itself alerted.
-- **The in-app banner** shows while any row is overdue or the table is invalid. The check also runs at every app start,
-  because the scheduled task runs only while the PC is on.
-- **No credential** is stored in TRADEGEN for alerts.
+  - it runs `--check`;
+  - it alerts every day while anything is overdue or exit code 3 holds;
+  - for a row due soon, it alerts on the first run at or below 14 days, and again at or below 3 days;
+  - it sends the iOS push via the Claude app and an email **only to `sapientia@korea.ac.kr`**, written literally in the
+    task prompt and in `alerts.OWNER_ALERT_EMAIL`;
+  - it records each result through `--log`.
+- **Authority.** The owner approves the task once; D5 is the standing authority for these self-addressed alerts only.
+- **Failures and the in-app banner.** A failed channel is announced on the others. The in-app banner and an app-start
+  check cover the times the PC was off.
 
 ---
 
@@ -402,721 +397,713 @@ trading-software designer" table sets each treatment, except where D10 is strict
 ```python
 @dataclass(frozen=True, kw_only=True)
 class Intent:
-    kind: str                       # "order" | "transfer" | "plan_leg"
-    venue: str                      # exact venue id (5.2)
-    symbol: str | None              # orders and plan legs: the class is derived from instruments.yaml
-    instrument: str                 # caller's class; must equal the derived class
-    side: str = "buy"               # "buy" | "sell" | "sell_short"
-    reduces_position: bool = False  # a sell that only lowers an existing long (execution verifies it against holdings)
-    leverage: float = 1.0           # the financing or product multiple (1.0 = cash), not position size
-    notional_krw: float = 0.0
-    destination_venue: str | None = None    # transfers only
-    destination_address: str | None = None  # transfers only; must be registered in the owner log
-    route: str = "direct"           # anything else gives BLOCK
-    on_behalf: str = "self"         # anything else gives BLOCK; orders copied to followers are not "self"
+    venue: str
+    symbol: str                      # every intent names a mapped symbol (coins included, for transfers)
+    asset: str                       # caller's asset class; must equal the map's
+    multiple: float                  # caller's product multiple; must equal the map's
+    action: str                      # buy | sell | sell_short | buy_to_cover | write | transfer_out | lend | borrow | p2p_buy | p2p_sell
+    financing: str = "cash"          # cash | credit | margin
+    quantity: float                  # units (> 0)
+    notional_krw: float              # >= 0, finite
+    closes_position: bool = False    # caller's claim; checked against ctx.holdings
+    destination_venue: str | None = None     # transfer_out only
+    destination_address: str | None = None   # transfer_out only; must be signed-registered
+    route: str = "direct"
+    on_behalf: str = "self"
     publishes_signal: bool = False
-    tags: frozenset = frozenset()   # subset of the conduct-tag vocabulary (5.3); anything else gives BLOCK
-    client_order_id: str | None = None      # execution's nonce
+    tags: frozenset = frozenset()
+    reservation_id: str | None = None        # set by execution for permits (6.3)
 
 @dataclass(frozen=True, kw_only=True)
 class Context:
-    date: date                      # the Asia/Seoul calendar date of the moment of decision; never UTC or a trade date
-    rules: RulesTable; instruments: InstrumentMap
-    owner: OwnerState               # resolved from owner.jsonl: approvals, flags, caps, limits, addresses, head
-    session: SessionState           # session_id, armed date, acknowledgements bound to warning hashes
-    equity_krw: float
-    exposure_krw: Mapping[str, float]       # by venue; includes open orders and unexpired permits
-    designations: Mapping[str, str]         # symbol -> KRX designation (normal | caution | warning | risk); unknown = absent
-
-@dataclass(frozen=True)
-class Decision:
-    verdict: str                    # "ALLOW" | "ALLOW_EXIT" | "ACK_REQUIRED" | "BLOCK"
-    reasons: tuple                  # ((row_id, catalogue sentence id, slots), ...), strictest first
-    intent_hash: str; rules_hash: str; ctx_hash: str; owner_head: str; date: date; decision_id: str
-
-@dataclass(frozen=True)
-class Permit:                       # only from ALLOW or ALLOW_EXIT, via permit(intent, ctx)
-    decision_id: str; intent_hash: str; rules_hash: str; ctx_hash: str; session_id: str; date: date
+    date: date                       # Asia/Seoul calendar date of the decision moment (never UTC, never a trade date)
+    state: ApprovedState             # current approved rules, map and venues; RulesTable.invalid(reason) on any failure
+    snapshot: ApprovedState | None   # last approved immutable snapshot (exits under D11 recovery)
+    owner: OwnerState                # verified owner log: signed flags, caps, limits, addresses, sessions; or BROKEN
+    code_signed: bool                # the owner signed the current sha256 of core/compliance + core/odds (D14)
+    session: SessionState            # session_id; acknowledgements bound to warning hashes
+    equity_krw: float                # > 0, finite
+    holdings: Mapping[tuple, float]  # (venue, symbol) -> units held, >= 0 (short positions listed separately, >= 0)
+    exposure: Mapping[str, Exposure] # per venue: filled >= 0, reservations {reservation_id: notional >= 0}
+    designations: Mapping[str, str]  # symbol -> KRX designation (credit is out of scope; kept for later specs)
 ```
 
-### 6.2 Evaluation order
+`Decision`, with verdicts ALLOW | ALLOW_EXIT | ACK_REQUIRED | BLOCK:
+- the reasons, as (row_id, catalogue id, slots), strictest first;
+- `intent_hash`, `state_hash`, `ctx_hash`, `owner_head`, `date`, `decision_id`.
 
-1. **Validate everything.** Any of the following gives `BLOCK ("malformed: <field>")`:
-   - a numeric field that is not finite (`math.isfinite`);
-   - `notional_krw < 0`, `leverage < 1`, `equity_krw ≤ 0`, or a cap outside [0, 1];
-   - `publishes_signal` that is not exactly a `bool`;
-   - ids that are not exact vocabulary members;
-   - `tags` that are not a subset of the conduct vocabulary;
-   - `kind == "transfer"` that does not coincide with `instrument == "crypto_transfer"` and with a known
-     `destination_venue` different from `venue`;
-   - an unknown symbol, or a class that does not match the symbol.
+`Permit`, issued only from ALLOW or ALLOW_EXIT:
+- `decision_id`, `intent_hash`, `state_hash`, `session_id`, `reservation_id`, `date`.
 
-   The kernel never raises. Any internal error becomes `BLOCK ("internal error: <type>")`. An invalid or unapproved
-   rules table, instrument map or broken owner chain also gives BLOCK.
-2. **The hard-coded floor and the conduct rows** apply on every venue and to exits as well. Each one gives BLOCK.
-3. **Exits (D11).** An exit is either a `sell` with `reduces_position = True` where exposure after the
-   intent is below exposure before it, or a `crypto_transfer` to an `allow`-row domestic exchange at a registered
-   address.
-   - If no venue row for the pair is `hard_block`, the result is `ALLOW_EXIT`.
-   - Stale rows, auto-off, unmet gates and caps do not block exits. Even a `hard_block` venue row lets an exit through
-     with a warning, so funds can always be withdrawn by lawful means.
-4. **Venue rows.** Only rows in force on `ctx.date` count: `effective_from ≤ date`, and `effective_until` either null or
-   later than `date`. All dates are Asia/Seoul calendar dates.
-   - **No matching row:** BLOCK. When several rows match, **all** apply and the strictest result wins.
-   - For each matching row:
-     - **stale** (`date > review_by`): BLOCK;
-     - **`hard_block` or `out_of_scope`**: BLOCK;
-     - **`gated`**: every `requires` item must be met by evidenced owner state:
-       - courses and broker approvals need a date and an evidence reference;
-       - deposit and cash snapshots must be dated within 7 days;
-       - `age_of_majority` needs a birth date and evidence;
-       - `KR-KIS-CREDIT` also needs a designation state that is known and not warning or risk.
+### 6.2 Evaluation order (one decision table)
 
-       Anything unmet is BLOCK, naming what is missing. The broker may set stricter walls than these pre-checks.
-     - **`grey`**:
-       - BLOCK if `date ≥ auto_off`, the cap is unset, or `requires` is unmet;
-       - BLOCK if exposure after the intent would exceed `cap × equity`. Exposure after the intent is current venue
-         exposure plus `notional_krw` for a buy or a transfer in, and minus it for a sell;
-     - **`ack: per_session`** (on a gated or grey row): `ACK_REQUIRED` unless `ctx.session` holds an acknowledgement
-       for this row with `warning_sha256 == sha256(render_warning(row, slots))` and the current `session_id`;
-     - **`allow`**: ALLOW.
-   - **Leverage:** `leverage > row.max_leverage` gives BLOCK.
-5. **Transfers.** The destination is evaluated as a `crypto_spot` intent on `destination_venue` with the same notional.
-   The transfer gets the stricter of the two results.
-   - A grey destination also needs a per-transfer acknowledgement, recorded against the intent hash.
-   - An unregistered destination address gives BLOCK. Below KRW 1M, before about 2027-02-18, exchanges need not match
-     names, so the owner log's registered address is the guard.
-6. **Combine.** BLOCK beats ACK_REQUIRED, which beats ALLOW and ALLOW_EXIT. Every reason is kept.
+1. **Validate the intent.** Any of the following gives `BLOCK ("malformed: <field>")`:
+   - a field that is non-finite, negative where it must be non-negative, of the wrong type, or not exactly a vocabulary
+     member;
+   - an unknown symbol;
+   - an asset or multiple that disagrees with the map;
+   - an inconsistent `action`, `destination_venue` and `destination_address` (`transfer_out` needs both destination
+     fields, and the destination must differ from `venue`; other actions must have neither);
+   - tags outside the vocabulary.
+
+   The kernel never raises; any internal error is BLOCK.
+2. **Conduct rows and the hard-coded conduct floor** apply on every venue and to every intent, exits included.
+3. **Classify the intent:**
+   - **close-long:** a `sell` with `closes_position`, quantity ≤ `holdings[(venue, symbol)]`, and lower exposure after;
+   - **cover-short:** a `buy_to_cover` with quantity ≤ the short held;
+   - **withdraw:** a `transfer_out` to a domestic venue whose row is `allow`, at a registered address, with quantity ≤
+     holdings;
+   - **new exposure:** everything else.
+4. **Exits (D11).** They give `ALLOW_EXIT` with warnings, and are **not** blocked by:
+   - stale rows, auto-off, unmet gates, caps or D16;
+   - out-of-scope or hard-block venue rows.
+
+   Conduct (step 2) still applies. **Which state:**
+   - Close-long and cover-short use `ctx.state` if it is valid, and otherwise `ctx.snapshot`.
+   - A withdrawal needs a valid `ctx.state` and a valid owner log, because the address must be verifiable.
+   - If owner state is broken, a withdrawal is BLOCK with "withdraw manually in the exchange app".
+   - If there is no snapshot either, closing orders are BLOCK with "close manually in the broker app". The owner can
+     always exit outside TRADEGEN.
+5. **New exposure** requires all three of:
+   - a valid `ctx.state`;
+   - a valid owner log;
+   - `code_signed`.
+
+   Otherwise BLOCK. Then the venue rows: only rows in force on `ctx.date` count (Asia/Seoul dates; `effective_from ≤
+   date`, and `effective_until` null or later than `date`).
+   - **No matching row:** BLOCK. When several rows match, all apply, and the strictest wins.
+   - **stale**, **`hard_block`** or **`out_of_scope`**: BLOCK.
+   - **`gated`** with D16 in force: BLOCK, "needs live broker evidence (execution spec)". Other gated rows need every
+     `requires` item to be met by signed owner state.
+   - **`grey`:**
+     - BLOCK if `date ≥ auto_off`, the cap is unset, or `requires` is unmet;
+     - BLOCK if filled exposure, plus the other reservations, plus this notional exceeds `cap × equity`. Only the
+       reservation carrying this intent's own `reservation_id` is excluded when verifying a permit.
+   - **`ack: per_session`:** ACK_REQUIRED unless `ctx.session` holds an acknowledgement for the row, with
+     `warning_sha256 == sha256(render_warning(row, slots))`, under the current `session_id`.
+   - **`allow`:** ALLOW.
+   - **Leverage:** effective leverage (multiple × financing) above the row's `max_leverage` is BLOCK.
+6. **Transfers.** The destination is evaluated as a `buy` of the same symbol on `destination_venue`; the stricter result
+   wins.
+   - A grey destination also needs a per-transfer acknowledgement against the intent hash.
+   - An unregistered address is BLOCK. Below KRW 1M, before about 2027-02-18, exchanges need not match names, so the
+     signed address registry is the guard.
+7. **Combine.** BLOCK beats ACK_REQUIRED, which beats ALLOW and ALLOW_EXIT.
 
 ### 6.3 Permits and plan screening
 
-- **`permit(intent, ctx)`** calls `decide()` itself and returns a `Permit` only for ALLOW or ALLOW_EXIT.
-- **`verify_permit(permit, intent, ctx_now)`** re-runs `decide(intent, ctx_now)`. It requires ALLOW or ALLOW_EXIT, the
-  same intent hash, the same `session_id` and the same Asia/Seoul date.
-  - A permit expires at 24:00 Asia/Seoul on its date. Execution recomputes the date at send time.
-  - Single use, the audit trail and `client_order_id` uniqueness belong to the execution spec.
-- **`screen(plan, ctx)`** decides every leg as a `plan_leg` intent.
-  - Its notional is the leg's first stake after the section 7.1 cuts, including the grey cap.
-  - It also scans the whole horizon `[start, start + horizon]` for any `review_by`, `auto_off` or `effective_until` that
-    falls inside it. Such a date is flagged `RULE_CHANGE_IN_HORIZON`, and the simulation exits the position on that date,
-    with costs charged.
-  - The returned `Screening` carries every decision and a hash that `simulate()` requires.
+- **`permit(intent, ctx)`** calls `decide()` and issues a `Permit` only for ALLOW or ALLOW_EXIT.
+- **`verify_permit(permit, intent, ctx_now)`** recomputes:
+  - `intent_hash(intent) == permit.intent_hash`;
+  - `decide(intent, ctx_now)` is ALLOW or ALLOW_EXIT;
+  - the same `session_id`, `reservation_id` and Asia/Seoul date;
+  - `state_hash` equal to the issue-time hash or to a newer **approved** state.
 
-### 6.4 The owner log (`core/compliance/owner.py`)
+  A permit expires at 24:00 Asia/Seoul. Atomic reservation, single use and the audit log belong to the execution spec.
+- **`screen(plan, ctx)`** decides the plan's single leg as a `buy` at the leg's first stake, after the 7.1 cuts
+  including the grey cap.
+  - It scans `[start, start + horizon]` for any `review_by`, `auto_off` or `effective_until`. Each one found is flagged
+    `RULE_CHANGE_IN_HORIZON`, and the simulation exits on that date, or at the next check point when the date falls on a
+    non-session day.
+  - It returns a hashed `Screening`.
 
-- **Storage:** `~/.tradegen/compliance/owner.jsonl`, append-only. Every line carries both `prev_sha256` and its own
-  `row_sha256` (the canonical JSON of the row minus that field), following `core/quant/gate_ledger.py`. That way the
-  last line cannot be edited unnoticed.
-- **Head anchoring.** Every Decision's `owner_head` (line count and last `row_sha256`) and every `alerts.jsonl` row
-  record the log head. The daily alert email carries it too, which makes the owner's mailbox an external anchor.
-  - A log shorter than, or different from, the highest head recorded anywhere is **broken**.
-  - When the log is broken, every flag, acknowledgement, cap, limit, approval and address counts as absent, and every
-    new-exposure decision is BLOCK. The alert fires.
+### 6.4 The owner log, signing and snapshots
+
+- **The log.** `~/.tradegen/compliance/owner.jsonl` is append-only. Each line carries `prev_sha256`, `row_sha256` and
+  `sig`, an Ed25519 signature over the row by the owner key.
+  - Unsigned or badly signed lines make the log **BROKEN**.
+  - **Head anchoring:** every Decision's `owner_head`, every `alerts.jsonl` row and every daily alert email record the
+    head. A log shorter than, or different from, the highest recorded head is BROKEN.
+- **Signing (D14).** `python -m core.compliance.sign <command>` is run **by the owner, in the owner's own Windows
+  Terminal**, never in the Claude app's terminal panel, which Claude can read.
+  - It generates the key, stored as `~/.tradegen/compliance/owner_key.enc`: the private key encrypted with a passphrase
+    via scrypt, then sealed with AES-GCM.
+  - It writes `core/compliance/owner_pubkey.pem`.
+  - It shows exactly what will be signed, with a fresh random code that must be retyped, refuses non-TTY stdin, and
+    asks for the passphrase.
+  - **Claude never runs it, never asks for the passphrase, and never writes owner entries.**
+- **Key changes.** The public-key fingerprint appears in every alert email. Rotating the key requires a signature by the
+  old key, and an unexplained change is exit 3.
+- **The code hash.** The owner also signs `code_approved {sha256 of core/compliance + core/odds}`. If the code changes,
+  new exposure is BLOCK until the owner signs again.
+- **The honest limit.** A process with the owner's file access could still edit the verifier itself. The owner's review
+  of every diff to these two packages is the remaining boundary, and the plan makes that review a step of its own.
+- **The dependency.** The Python `cryptography` package (Ed25519, scrypt, AES-GCM) is installed into `.venv` only and
+  pinned in `constraints.txt`.
 - **Events:**
-  - approvals: `rules_approved`, `instruments_approved`, `venues_approved` {hash};
-  - flags: `course_completed` {course, date, evidence}, `deposit_snapshot` {krw, cash_krw, source, date},
-    `broker_approval` {kind, date, evidence}, `age_of_majority` {birth_date, evidence};
-  - settings: `cap_set` {key, value}, `limit_set` {total_loss_floor_krw, daily_loss_krw};
-  - transfers: `withdrawal_address` {venue, address, evidence};
-  - sessions: `session_armed` / `session_disarmed` {session_id} and `session_ack` {session_id, row_id, warning_sha256}.
-    Arming itself is the execution spec's.
-- **Who writes it (D14).** Writes go only through the owner-confirmation API:
-  - it refuses unless stdin and stdout are interactive consoles (`CONIN$`/TTY);
-  - it prints exactly what will be recorded, with a fresh random code, and the owner must retype that code;
-  - a pipe or a script is refused (tested);
-  - **Claude never writes this log, and never runs the confirmation API.**
-- **Tighten fast, loosen slow (D12).**
-  - Raising the floor, lowering the daily limit and lowering a cap take effect at once.
-  - A loosening takes effect only from the next Asia/Seoul date, never inside an armed session, and never once a halt
-    for that floor is recorded. The halt record is defined in the execution spec.
-- **Unset limits.** While `total_loss_floor_krw` (0 ≤ L < stake) or `daily_loss_krw` (> 0) is unset:
-  - the odds engine refuses with `LIMITS_UNSET`;
-  - execution will refuse to arm.
-
-  `owner.py` resolves `Plan.limits` references to KRW numbers, and `simulate()` receives those numbers; it never reads
-  `owner.jsonl` itself.
+  - approvals: `approved {kind, sha256}`, `code_approved {sha256}`;
+  - evidence: `course_completed`, `broker_approval`, `age_of_majority {birth_date, evidence}`;
+  - settings: `cap_set {key, value}`, `limit_set {total_loss_floor_krw, daily_loss_krw}`;
+  - transfers: `withdrawal_address {venue, symbol, address, evidence}`;
+  - sessions: `session_armed`, `session_disarmed`, `session_ack {session_id, row_id, warning_sha256}`, and
+    `transfer_ack {intent_hash, warning_sha256}`.
+  - Deposit and cash snapshots are not accepted as evidence (D16).
+- **D12.** Tightening takes effect immediately. Loosening takes effect only from the next Asia/Seoul date, never inside
+  an armed session, and never after a recorded halt for that floor.
+- **Snapshot (D11 recovery).** After every successful verification, `owner.py` stores the resolved owner state and the
+  approved state hashes as an immutable snapshot. Exits under a broken log use the last one.
+- **Unset limits.** While `total_loss_floor_krw` (0 ≤ L < stake) or `daily_loss_krw` is unset, the odds engine refuses
+  with `LIMITS_UNSET`. `owner.py` resolves `Plan.limits`, and `simulate()` never reads the log itself.
 
 ---
 
 ## 7. The odds engine (`core/odds/`)
 
-### 7.1 Plans
+### 7.1 Plans and stakes
 
 ```python
 @dataclass(frozen=True, kw_only=True)
 class Leg:
-    venue: str; symbol: str          # the class is derived from instruments.yaml (5.2)
-    model: str                       # "bootstrap" | "garch_t"
-    bracket: Bracket | None = None   # take-profit +u, stop -d (fractions); None = buy-and-hold to the horizon
-    edge_source: str = "none"        # "none" | "validated:<card ref>" | "assumed"
-    assumed_p: float | None = None   # bracket legs only, with edge_source == "assumed"
+    venue: str; symbol: str          # whitelist: krx_share, krx_etp (1x), us_share, us_etp (1x), crypto_coin; cash; long
+    model: str                       # "bootstrap" (TwoPointBootstrap) | "garch_t" (US and crypto only)
+    bracket: Bracket | None = None   # take-profit +u, stop -d; None = buy at the first open and hold
+    sizing: str                      # "floor_safe" (default) | "stop_based"
+    edge_source: str = "none"        # "none" | "assumed" (bracket legs) | "replay:S_C3_crypto_trend_krwbtc" (D13)
+    assumed_p: float | None = None
 
 @dataclass(frozen=True, kw_only=True)
 class Plan:
-    name: str                        # cosmetic; excluded from every hash that feeds a seed
+    name: str                        # cosmetic; never hashed into a seed
     track: str                       # "moonshot" | "compounding"
-    stake_krw: float
-    target_krw: float                # fixed in KRW at creation; before income tax
-    fx_krw_per_usd: float            # recorded FX close used to fix the target
-    start: date                      # required; the caller passes it (e.g. the first armed session)
-    horizon_days: int                # calendar days
-    leg: Leg                         # one leg in this version (multi-leg: MULTI_LEG_UNSUPPORTED)
-    sizing: Sizing                   # fixed_fraction(f) | kelly(c <= 0.5) | bold()
+    stake_krw: float; target_krw: float     # target before income tax, fixed in KRW
+    fx_krw_per_usd: float            # recorded close used to fix the target (US legs)
+    start: date; horizon_days: int
+    leg: Leg
+    fraction: Fraction               # fixed(f) | kelly(c <= 0.5) | bold()
 ```
 
-**Stake.** The stake `s` is the position notional in KRW. Write κ for the per-side cost rate (base plus extras, plus
-the sell tax on sells where it applies) and φ for any fixed fee per order.
-- **A win at +u** leaves `W + s·u − κ·s·(2 + u) − 2φ`.
-- **A loss at −d** leaves `W − s·d − κ·s·(2 − d) − 2φ`, before gap-through.
+**The cost ledger.**
+- Buying s of notional costs s(1 + κ_b) + φ_b in cash.
+- Selling a position worth v returns v(1 − κ_s) − φ_s.
+- κ_s includes the sell tax only where the cost book's `tax_side` is `sell`.
 
-**Sizing**
-- `fixed_fraction(f)`: `s = f·W`.
-- `kelly(c)`: `s = c·f*·W`, where f* = argmax E[ln(1 + f·R)] computed numerically from the leg's model under a
-  **validated** edge.
-  - It uses the lower 95% bound of the card's out-of-sample mean, after `LIVE_SHARPE_MULTIPLIER`.
-  - With no validated edge it gives `s = 0`, and the card reads "this plan places no trades".
-  - Its label: "aims at long-run growth, not at reaching your target".
-- `bold()` (bracket legs only): `s = min((W − L − 2φ)/(d + κ(2 − d)), (T − W + 2φ)/(u − κ(2 + u)), W/(1 + κ))`, so that
-  a win reaches T net of costs and a loss lands at the floor before gaps.
+**Affordability.** For every entry, after lot rounding and under each cost scenario (1× and 2×):
+- **always:** s(1 + κ_b) + φ_b ≤ W;
+- **floor-safe** (the default): s(1 + κ_b) + φ_b + φ_s ≤ W − L. Cash never falls below L plus the reserved exit
+  charge, so even a total loss of the position leaves L, and **L_min = L** (7.4);
+- **stop-based** (bracket legs only): s[d + κ_b + κ_s(1 − d)] + φ_b + φ_s ≤ W − L before gaps, with **L_min = 0**.
 
-**Every stake is then cut**, in this order:
-1. **at-risk:** `s·(d + κ(2 − d)) ≤ W − L`, before gaps;
-2. **grey cap:** `s ≤ cap·equity − exposure`;
-3. **no leverage:** `s ≤ W/(1 + κ)`;
-4. **whole units:** `floor(s / price)` units, or fractional units where `venues.yaml` allows them.
+**Fractions**
+- `fixed(f)`: s = f·W, then cut by affordability.
+- `kelly(c)`: only in the D13 replay column (7.2). c·f*, with f* = argmax E[ln(1 + f·R_net)] on the conservative return
+  distribution. That distribution is the replayed net daily returns shifted so their mean equals the lower 95% bound of
+  the mean, times `LIVE_SHARPE_MULTIPLIER`. Zero exposure if conservative growth ≤ 0. Labelled "aims at long-run
+  growth, not at reaching your target".
+- `bold()` (bracket legs): the largest s that satisfies affordability and does not overshoot T on a win:
+  s(u − κ_b − κ_s(1 + u)) − φ_b − φ_s ≥ T − W is the reaching condition, and s is reduced until it just holds.
+- **A bold fraction is refused** when the net win coefficient u − κ_b − κ_s(1 + u) is ≤ 0, or no affordable stake
+  exists.
 
-A stake below the venue minimum means **no bet**. It is never rounded up.
+**Rounding.** Stakes round **down** to whole units, or to fractional units where `venues.yaml` allows. A stake below the
+venue minimum means no bet; it is never rounded up.
 
-**Refused in this version, with named reasons:**
-- a leg whose class is `credit_buy` or `retail_short`, or whose leverage is above 1: `UNSUPPORTED_LEVERAGE_OR_SHORT`.
-  It is never silently cut to 1x;
+**Refused with named reasons:**
+- a leg outside the whitelist, a multiple ≠ +1, or a short, credit or option leg: `UNSUPPORTED_PRODUCT`;
 - multi-leg plans: `MULTI_LEG_UNSUPPORTED`;
 - unset limits: `LIMITS_UNSET`;
-- an unsigned calendar for a KRX or US leg: `CALENDAR_UNSIGNED`.
+- an unsigned calendar for a KRX or US leg: `CALENDAR_UNSIGNED`;
+- a GARCH-t model on a KRX leg: `MODEL_NOT_FOR_LIMITED_VENUE`.
 
-### 7.2 The no-edge null and edge sources (`models.py`)
+### 7.2 The no-edge law, models and edge sources
 
-**One definition of no edge.** At every point where the simulator can act (each session's open and close), the
-expected next price relative to the current one is exactly 1 given the past. It is a conditional martingale, not just a
-zero average. Costs then make every trade's expectation negative.
+**No edge means a conditional martingale at every point where the simulator can act:** each session's open and close.
+Given everything so far, the expected next price equals the current one. Costs then make every trade's expectation
+negative. Two traps ruled out in review:
+- zero log drift is not zero edge;
+- per-row demeaning of a block bootstrap lets timing rules harvest historical serial patterns.
 
-The review found two traps:
-- **Zero log drift is not zero edge.** The repo's `drift="zero"` gives an edge of about σ²/2 per day.
-- **Per-row demeaning of a block bootstrap is not a martingale.** Inside a block, the next row is the historical
-  continuation, so a stop or timing rule can harvest past serial patterns.
+**`TwoPointBootstrap`** (the primary model; KRX, US and crypto legs):
+- **Price series.** Each leg's price series is in KRW: price × KRW=X for US legs, aligned to the Asia/Seoul close date;
+  Binance BTCUSDT × Upbit KRW-USDT for OKX legs.
+- **Moves.** From each historical session the model takes two magnitudes:
+  - the overnight move, m_o = |ln(open / previous close)|;
+  - the intraday move, m_i = |ln(close / open)|.
+- **Blocks.** Rows are drawn in stationary-bootstrap blocks (`pw_block(x, kind="stationary")`, with mean length the
+  maximum over r and r²), so volatility clustering survives through the magnitudes.
+- **The kernel.** At each check point with current price p, the next check's price is one of two values:
+  - x_u = min(p·e^{m}, U) with probability q;
+  - x_d = max(p·e^{−m}, D) with probability 1 − q;
+  - q = (p − x_d)/(x_u − x_d), and when x_u = x_d the price stays at p.
+- **Bands.** [D, U] is the session's legal band, the reference price × (1 ∓ dated `price_limit`), for both check points
+  of that session. Venues without a daily limit use [0, ∞).
+- **Why it is exact.** E[next | p] = p holds algebraically. Prices never leave the band, and a price at a band edge stays
+  there with probability 1, which a martingale bounded by that edge must do.
+- **The reference price.** The KRX reference is the previous session's close. Special regimes (IPO days,
+  reference-price resets) are not simulated; the leg refuses symbols in such a regime (flag `SPECIAL_REGIME`).
+- **Limit-down.** A check at D that would exit is a limit-down lock. The exit carries to the next session at 2× cost.
+- **Intraday extremes are not modelled,** so the card says "price checks at the open and the close only"
+  (`CHECKS_AT_OPEN_CLOSE`). That is a limit of this construction, not a property of martingales.
 
-The two models below are martingales by construction.
+**`GarchT`** (US and crypto legs only):
+- It fits with `garch.fit_garch` and simulates with `simulate_returns(fit, rate_daily=0.0, bound=Z_BOUND)`.
+- Checks happen at the close only (`CLOSE_ONLY_CHECKS`).
+- The repo's convexity correction is numerical. The engine asserts |mean factor − 1| < 1e-9 per step on a pilot run,
+  and otherwise drops the model with a note.
+- If the fit falls back to unbounded normal innovations, HIDDEN_EDGE is unavailable for that model (7.5).
 
-- **`SignFlipBootstrap`** (bootstrap legs):
-  - **Two half-steps per session.** Each session splits into an overnight half-step, a = ln(open/prev close), and an
-    intraday half-step, b = ln(close/open), both computed from the leg's **KRW** price series. For US legs that means
-    price × KRW=X, aligned to the KST date of the US close; for OKX legs, Binance BTCUSDT × Upbit KRW-USDT.
-  - **Random signs.** Each half-step gets its own random sign ε = ±1 and factor exp(ε·x)/k(x). k is solved per row, so
-    that ½[clip(e^{x}/k) + clip(e^{−x}/k)] = 1 exactly after clipping to the dated KRX price limit (no clipping for
-    crypto or the US). A row with no solution is dropped from the pool and counted.
-  - **Blocks.** Rows are drawn in stationary-bootstrap blocks with mean length max(pw_block(r), pw_block(r²)), so
-    volatility clustering survives through the move sizes. The signs are independent, so no historical sign pattern
-    survives.
-  - **Price checks.** Stops and take-profits are checked at the open and at the close only. A check that finds the
-    price beyond the level fills at that price, so overnight gaps go through stops. Optional stopping then holds
-    exactly.
-  - **Intraday highs and lows are not modelled**, because honest intraday extremes would break the martingale. The card
-    says so: `CHECKS_AT_OPEN_CLOSE`.
-- **`GarchT`** (`core.quant.garch.fit_garch`, then `simulate_returns(fit, rate_daily=0.0)`): close-to-close only, a
-  conditional martingale after the exact convexity correction. Stops are checked at the close only
-  (`CLOSE_ONLY_CHECKS`). KRX legs clip to the dated limit, and the same per-step normalisation keeps E = 1.
-- **Brackets** are evaluated pathwise on the leg's simulated prices: take-profit +u, stop −d, at the check points above.
-  There is no separate p₀ formula. On a martingale, a bracket's mean payoff before costs is exactly 0, and gaps change
-  the win rate, not the edge.
-- **Cash** between trades is held in KRW (US trades convert each time, and the conversion spread is charged), so idle
-  cash carries no FX drift.
+**Brackets** are evaluated pathwise at the check points: take-profit +u and stop −d, each filling at the check price.
+Under the martingale, a bracket's mean payoff before costs is 0.
+
+**Cash** between trades is held in KRW.
 
 **Edge sources**
-- **`none`** is the default and is always the headline.
-- **`assumed`**: a typed win rate p for a bracket leg. The simulator replaces the martingale with a tilted law under
-  which that bracket wins with probability p. It is shown only in its own column (section 7.5).
-- **`validated:<ref>`** (D13):
-  - (a) `chain:<card_id>.r<rev>@<results_md5>`, resolved through `cards.read_chain(config.macro_dir()/"cards"/"verdicts.jsonl", ...)`.
-    This is structurally unavailable today, because the macro card schema has no out-of-sample return field.
-  - (b) `modelcard:<path>@<results_md5>`, for a committed `validate.ModelCard` JSON with `decision: PASS`. TRADEGEN
-    re-creates its walk-forward run: same rules, grid, seed and data window. It requires the re-run statistics to
-    match the card (out-of-sample Sharpe within ±0.02, the same `results_md5` for `results_file`), and that the file is
-    tracked and unchanged in git.
-    - The edge is the re-run out-of-sample daily P&L, resampled. Its mean is multiplied by
-      `gate_stats.LIVE_SHARPE_MULTIPLIER`.
-    - Only the extra costs a small account pays above the card's 10 bp are added: rounding to whole units and the
-      venue minimum.
-    - The only candidate today is `S_C3_crypto_trend_krwbtc`: KRW-BTC, out-of-sample Sharpe 1.22, 90% CI
-      [0.62, 1.77], 2× costs 1.17, max drawdown −49%, created 2026-09-27.
-  - Plain words: a backtest pass is not proof. Backtest edges often shrink or vanish in live trading, so this column is
-    the hopeful case.
+- **`none`:** the default and always the headline.
+- **`assumed`** (bracket legs): the owner's typed win probability p.
+  - The simulator uses an exponentially tilted kernel, q′ = q·e^{θ}/(q·e^{θ} + 1 − q), with θ found by bisection on a
+    pilot run so that the bracket's simulated win rate equals p.
+  - Unresolved brackets exit at market at the horizon.
+  - p outside the range the tilt can reach is refused.
+  - The column states the no-edge win rate p₀ of this bracket under the model, and how many recorded brackets would
+    tell p from p₀: a one-sided 5% test at 80% power,
+    n = ((1.645·√(p₀(1 − p₀)) + 0.842·√(p(1 − p))) / (p − p₀))². For example, 617 brackets for 55% versus 50%, and 153
+    for 60%.
+- **`replay:S_C3_crypto_trend_krwbtc`** (D13). This is a **separate plan type**: it replays the validated strategy itself
+  and nothing else.
+  - **Pure replay.** `models.replay_s_c3(bars, card)` is a pure function over **hashed, immutable** KRW-BTC bars. It
+    uses the card's rules, grid, seed, protocol (in-sample 756 / out-of-sample 126, embargo 1) and 10 bp costs. It
+    emits:
+    - canonical out-of-sample daily net returns;
+    - turnover;
+    - the selected parameters;
+    - the 2× stress result;
+    - a fresh verdict, using `validate` functions only.
+  - **No study runner.** It never imports `docs/asset_expansion_study.py`, which writes at import.
+  - **Digests.** Three are recorded: the input bars, the replay output, and the aggregate `results.csv` (`results_md5`).
+  - **The check.** The replay must reproduce the card (out-of-sample Sharpe within ±0.02, verdict PASS, the same
+    selected parameter), or the plan is refused with `CARD_NOT_REPRODUCED`.
+  - **Its column.** The simulator resamples the replayed out-of-sample net returns in stationary blocks, with the mean
+    multiplied by `LIVE_SHARPE_MULTIPLIER`.
+  - **Costs.** The card's 10 bp is already inside those returns. Only the incremental small-account effects are added:
+    whole-unit rounding and the KRW 5,000 Upbit minimum. A venue fee above 10 bp would be added too; Upbit's KRW fee is
+    below that.
+  - **Kelly** uses the lower 95% bound of the out-of-sample mean, from a stationary block bootstrap with B = 2,000.
+  - **The candidate card's figures:** out-of-sample Sharpe 1.22, 90% CI [0.62, 1.77], Sharpe 1.17 at 2× costs, maximum
+    drawdown −49%. Its card names Yahoo as the source, while the study runner used the Upbit path. The replay pins
+    which one, and records it.
 
 **Data rules**
-- Synthetic history is refused (`SYNTHETIC_REFUSED`). A provisional intraday last bar is dropped.
-- OKX legs carry `PROXY_DATA`, because the prices come from Binance.
-- Single-coin and single-name legs add a delisting stress column (`tf_books.DELIST_STRESS`, −30% / −100%), whose
-  losses are booked in the cost ledger.
-- Each series is hashed as md5 of canonical JSON {symbol, source, dates, open, close, adjustment, status}.
+- `SYNTHETIC_REFUSED`; a provisional last bar is dropped.
+- `PROXY_DATA` for OKX.
+- Single-name and single-coin legs add a delisting stress column (`tf_books.DELIST_STRESS`), with its losses booked in
+  the cost ledger.
+- Series hashes are md5 of canonical JSON {symbol, source, dates, open, close, adjustment, status}.
 
-**Costs**
-- The base is described in section 4. The extras in `venues.yaml` are:
-  - the KIS KRW-USD conversion spread;
-  - the US minimum commission;
-  - Upbit and OKX fees, as max(table, fee);
-  - the Upbit → OKX withdrawal fee.
-- Entry and exit are charged on every trade, and the sell tax is never charged twice.
-- Every plan runs at 1× and at `GATE["cost_stress"]` = 2× cost, and both results are printed.
+**Costs, minimums and calendar**
+- Costs come from section 4 and the cost ledger in 7.1. Every plan runs at 1× and 2× cost.
+- Minimums and ticks come from `venues.yaml`. A missing entry gives `NOT_TRADABLE`.
+- Steps are calendar days. KRX and US legs move on their market's sessions (`cal`); crypto moves daily.
 
-**Minimum tickets and ticks** come from `venues.yaml`:
-- KRX: 1 share, plus the KRX stock tick ladder;
-- KIS US: whether fractional orders are allowed, and the minimum;
-- Upbit: KRW 5,000;
-- OKX: the minimum per pair, with its source.
+### 7.3 Simulation and outcomes
 
-A missing entry gives `NOT_TRADABLE`.
+- **Terminal outcome**, exactly one per path:
+  - **REACHED:** liquidation value after exit costs and tax ≥ T. Moonshot paths stop here.
+  - **FLOOR:** liquidation value ≤ L, recorded at the actual fill, overshoot kept. Absorbed.
+  - **STUCK:** too little left to place any order.
+  - **RUNNING:** still trading at the horizon, at liquidation value. A position whose exit is still limit-locked at the
+    horizon is valued at the locked price and flagged.
+- **First passage.** `reached_by_deadline` is a separate indicator: liquidation value ≥ T at some check point. For
+  compounding paths it can be true while the terminal outcome is FLOOR or RUNNING.
+- **The daily loss limit** is checked at the check points. A breach exits and stops trading for the rest of that day.
+- **Seeds and streams.**
+  - The market seed is sha256(data hashes ‖ comparison id ‖ run counter), shared by every plan in one comparison.
+  - Streams are `SeedSequence(int.from_bytes(seed, "big"), spawn_key=(chunk, stream_id))`. The bootstrap index and
+    sign streams are keyed by data set and chunk; the GARCH innovations by symbol.
+  - Cosmetic fields are excluded, and the owner never chooses the seed.
+- **Scale.** CHUNK = 200,000, and n must be a multiple of it. Defaults: 1,000,000 paths for moonshot plans and 200,000
+  for compounding plans. Provenance records the NumPy version and PCG64.
 
-**Calendar**
-- Steps are calendar days from `start`. A KRX or US leg moves on its market's sessions (`cal` injected); crypto moves
-  every day.
-- The card prints the session count.
-- A rule date inside the horizon (6.3) forces an exit on that date.
+### 7.4 References (`bold.py`)
 
-### 7.3 Simulation (`simulate.py`)
+- **`ceiling(W0, L_min, T)`** = (W₀ − L_min)/(T − L_min).
+  - L_min = L only under floor-safe sizing (7.1), a global bound that holds across carried positions and every
+    remaining session. Otherwise L_min = 0, which gives W₀/T.
+  - The no-edge column always shows it and always runs the breach check. Edge columns print "Without the edge assumed
+    here, no plan can beat 1 in N".
+- **`structural_max(plan, cal)`** applies only to **buy-and-hold KRX or KONEX legs**: (1 + limit)/(1 − limit) ×
+  (1 + limit)^{n−1} over the leg's n sessions.
+  - When the target exceeds it, the card prints **"IMPOSSIBLE for this buy-and-hold plan: KRX's daily band allows at
+    most N× in these S sessions"** and no probability.
+  - For bracket legs, which can re-enter, no market-wide bound is claimed.
+- **`bracket_reference(plan)`** is an **estimated** reference, not a certified bound. It is a dynamic programme over
+  equity and check points remaining, using the simulated joint law of one bracket's (realised payoff, duration). The
+  card reads "estimated: the highest chance placing this bracket could give is about X; staking boldly gives about Y,
+  and hits your floor in Z% of months". It never drives a red flag.
+- **`bold_even(x, p)`:** the exact even-money recursion, used in regression tests only.
 
-- **Outcomes.** Each path ends in exactly one of four outcomes, and together they sum to n:
-  - **REACHED:** liquidation value after exit costs and sell tax ≥ T (moonshot paths stop here);
-  - **RUINED:** liquidation value ≤ L, recorded at the actual fill level, so overshoot below L is kept;
-  - **STUCK:** too little left to place any order;
-  - **RUNNING:** still trading at the horizon, valued at liquidation.
-- **Daily loss limit.** It is checked at the same open and close points. A breach exits and stops trading for that day.
-- **KRX limit-down.** A close at the limit-down price (dated `price_limit` and the tick ladder) cannot be exited. The
-  exit carries to the next session at `LIMIT_DOWN_CARRY_COST_MULTIPLIER` (2×) cost.
-- **Seeds and streams:**
-  - **Market seed:** sha256(data hashes ‖ comparison id ‖ run counter), shared by **every plan in one comparison**
-    (common random numbers). Cosmetic fields are excluded.
-  - **Streams:** `SeedSequence(seed_int, spawn_key=(chunk, stream_id))`, with seed_int =
-    int.from_bytes(sha256, "big"). The bootstrap index and sign streams are keyed by data set and chunk, the GARCH
-    innovations by symbol. Every plan therefore sees the same market paths.
-  - **The owner never chooses the seed.**
-- **Scale.** `CHUNK = 200_000`, and n must be a multiple of CHUNK. Defaults: 1,000,000 paths for moonshot plans and
-  200,000 for compounding plans. Provenance records the NumPy version and the bit generator (PCG64).
-  - A standalone check ran 1,000,000 paths × 30 steps in about 0.4 s. A 200k chunk needs about 100 MB.
+### 7.5 The report
 
-### 7.4 Exact references (`bold.py`)
+All owner-facing text comes from one reviewed **sentence catalogue** with numeric slots. Each plan card shows:
 
-- **`ceiling(W0, L_min, T)`** = (W₀ − L_min)/(T − L_min). L_min is the lowest equity one price check can produce given
-  the stake rule:
-  - L_min = L when the largest one-check loss of the stake cannot cross L;
-  - otherwise L_min is the worst post-gap equity, at most 0 under limited liability, which gives W₀/T.
-  - **The no-edge column always shows it and always runs the breach check.** Edge columns print "Without the edge
-    assumed here, no plan can beat 1 in N" instead.
-- **`structural_max(plan, cal)`:**
-  - For a KRX or KONEX leg it is ∏(1 + dated limit-up) over the leg's sessions, a legal bound. When target/stake exceeds
-    it, the card prints **"IMPOSSIBLE in this horizon: KRX's daily limit allows at most N× in these S sessions"** and no
-    probability.
-  - For unlimited venues the card prints "No simulated path can reach N× (a limit of this model, not of the market)".
-- **`bracket_optimum(plan)`** (bracket legs): a dynamic programme V(w, k) over equity and price checks remaining.
-  - **Law of the bracket:** the joint (outcome, duration) law of one bracket under the leg's model, including
-    "unresolved at the horizon, exit at market", estimated by simulation.
-  - **Boundary values:** V(w, 0) = 1{w ≥ T}. Stake 0 is always allowed, and STUCK and RUINED states are worth 0.
-  - **A certified upper bound** for policies under that law: every w′ is rounded **up** to the next grid node (V is
-    non-decreasing in w), and the stake set contains every stake the simulator can choose.
-  - **Bold play** is evaluated on the same grid, by memoised recursion over the states it can reach.
-  - **On the card:** "the highest chance any way of placing this bracket can give is X; staking boldly gives Y and loses
-    your stake in Z% of months".
-  - **Breach check:** a simulated P(target) above `bracket_optimum` is a breach.
-- **`bold_even(x, p)`** is the exact even-money recursion, used only as a regression test (3).
-- **Kelly context,** only in the validated column: "typical bets needed" = ln(T/W₀)/g, compared with the bets the month
-  allows. It is not a probability.
-
-### 7.5 The report (`report.py`)
-
-Every owner-facing string is rendered from one reviewed **sentence catalogue** with numeric slots. That covers the
-report, gate reasons, warnings, alerts and CLI text. Each plan card shows, in this order:
-
-1. **The model:** "Model: <name>. Price checks at the open and the close only; intraday moves are not modelled."
-2. **The typical result first:**
-   - "The middle month ends with KRW M. In P% of months you end at or below your floor of KRW L."
-   - "Averaged over all simulated months: KRW X (an average loss of KRW Y: fees and the securities transaction tax).
-     That average includes the rare jackpots and is not what usually happens."
-   - The mean is P(REACHED)·T plus the mean over the other paths, at liquidation value, with its standard error.
-   - Edge columns may say "an average gain of KRW Y, only if the edge in this column is real".
-   - A no-trade plan says "this plan places no trades".
+1. **The model and its check points.** "Price checks at the open and the close only", or for GARCH-t "at the close
+   only".
+2. **The typical result first.**
+   - "The middle month ends with KRW M. In P% of months you end at or below your floor of KRW L, keeping about KRW L
+     (or less after gaps)."
+   - "Averaged over all simulated months: KRW X (an average loss of KRW Y, from fees and the securities transaction tax).
+     That average includes rare jackpots and is not what usually happens."
+   - **Computing it.** X is the plain mean of terminal liquidation values, overshoots included, with its standard error.
+     Y comes from the cost ledger. A difference between the two is what HIDDEN_EDGE tests.
 3. **The headline pair:**
-   - P(reach KRW 42,000,000 before income tax) and P(lose the stake) = P(RUINED) + P(STUCK), with the split
-     underneath;
-   - then the ladder (D4), measured on ending liquidation value.
-4. **The plain sentence:** "In 1,000,000 made-up months (from a model in which nobody has an edge, not real history),
+   - P(reached KRW 42,000,000 by the deadline, before income tax), using `reached_by_deadline`;
+   - P(hit your floor or became unable to trade) = P(FLOOR) + P(STUCK), with the split;
+   - the ladder (D4) on terminal liquidation value.
+4. **The plain sentence.** "In 1,000,000 made-up months (from a model in which nobody has an edge, not real history),
    this plan reached KRW 42,000,000 before income tax in 63, about 1 in 16,000 (counting noise alone: between 1 in
-   12,000 and 1 in 21,000; other models give 1 in A to 1 in B; neither range covers the model being wrong). In 912,034
-   (91.2%) it hit your loss limit, leaving about KRW L or less. In N it fell below the minimum order (effectively lost).
-   In M it was still trading at the end."
-5. **Tax:**
-   - "If those gains came from US shares (or from crypto sold in 2027 or later, unless the tax is postponed again), about
-     KRW 8.7M of income tax would be due the following May, leaving about KRW 33.3M (USD 23,800)."
-   - Each leg carries a `tax_basis`: `krx_small_holder_exempt`, `overseas_22pct_over_2.5m` or `crypto_22pct_from_2027`.
-   - An after-tax target is optional.
-6. **The ceiling and base rates,** after the plan's own figures:
-   - "No plan without a real edge can beat 1 in N (with your floor)."
-   - "In every retail group studied, most traders lose: Kalshi takers lose about 32% of what they stake, 74–89% of EU
-     CFD accounts lose money, and 62% of new Korean investors lost in 2020."
+   12,000 and 1 in 21,000; other models give 1 in A to 1 in B; neither range covers the model being wrong)…"
+5. **Tax.**
+   - Estimated with a per-leg `tax_basis` from the instrument map: `krx_small_holder_exempt`, `overseas_22pct_over_2.5m`
+     or `crypto_22pct_from_2027`, the last unless postponed again.
+   - Example: "about KRW 8.7M due the following May, leaving about KRW 33.3M (USD 23,800)".
+   - An unsupported product or tax combination is refused.
+6. **The ceiling and the base rates.**
+   - "No plan without a real edge can beat 1 in N."
+   - Then the base rates of section 3, each with its population, date and statistic.
 7. **Precision.**
-   - Clopper–Pearson intervals throughout. For k > 0 they are two-sided 95%, shown both as percentages and as "1 in N".
-     For example, 63 of 1,000,000 gives 0.0048–0.0081%.
-   - For k = 0 the one-sided 95% upper bound is "below resolution: under about 3 in n".
-   - The language guard refuses any rendered probability equal to zero (a regex on probability slots, not on text such
-     as "P(+10%)").
+   - Clopper–Pearson intervals: two-sided 95% for k > 0, and a one-sided 95% upper bound for k = 0 ("below resolution:
+     under about 3 in n").
+   - A **structural** zero (IMPOSSIBLE, or no trades) is worded as such, not as low resolution.
+   - The guard never renders a probability slot equal to zero.
 8. **Model spread.**
-   - The headline uses the primary model: the bootstrap for legs with open prices, otherwise GARCH-t.
-   - The spread shows every eligible model and a parametric GARCH-t refit (B = 20; simulate from the fit, refit, all on
-     common random numbers), as a range together with the lowest lower and highest upper Clopper–Pearson bound.
-   - The bootstrap's sensitivity is shown at 0.5× and 2× block length. No figure outside the range is ever shown.
+   - The primary model is the two-point bootstrap.
+   - Also shown: GARCH-t where eligible, a parametric GARCH-t refit (B = 20, simulate-then-refit, on common random
+     numbers), and the bootstrap at 0.5× and 2× block length.
+   - It is shown as a range with the lowest lower and highest upper bound. No figure from outside the range is shown.
 9. **Columns:**
-   - **No edge**: always the headline, always with the ceiling and the breach check;
-   - **If tested edge <card> is real**: `VALIDATED_EDGE` (D13);
-   - **Using the win rate you typed**: `ASSUMED_EDGE`. Its fixed text: "These numbers are only as true as the win rate
-     you typed (W%). Nothing in your records supports it. To tell W% from a coin flip you would need about N recorded
-     bets. Without the edge you typed, no plan can beat 1 in M." The same column also shows P(lose the stake) and the
-     typical result.
-10. **Flags,** each with its catalogue sentence (section 10):
-    - **`HIDDEN_EDGE`** (red):
-      - D = mean over paths of (W_τ + C_τ − W₀), with τ = the first of REACHED, RUINED or the horizon. Both tracks stop
-        at T for this test, and W_τ is the liquidation value at the actual fill.
-      - It flags when |D| exceeds the empirical-Bernstein bound √(2V·ln(4/δ)/n) + 7R·ln(4/δ)/(3(n − 1)), with
-        R = (T + max overshoot) − L_min and δ = 1e-4.
-      - The card prints the smallest edge the test can detect.
-      - It has two wordings: "makes money without any edge" and "loses more than its costs explain".
-    - **`CEILING_BREACH`**: amber when the one-sided 95% Clopper–Pearson lower bound exceeds the ceiling or
-      `bracket_optimum`; red when the one-sided (1 − 0.001/m) lower bound does, where m is the number of bound checks in
-      the report (Bonferroni). It never fires on the point estimate alone.
-    - `IMPOSSIBLE`, `BELOW_RESOLUTION`, `GREY_LEG`, `PROXY_DATA`, `CHECKS_AT_OPEN_CLOSE`, `CLOSE_ONLY_CHECKS`,
-      `LIMIT_GAP`, `COST_DOMINATED`, `NOT_TRADABLE`, `STUCK_AT_START`, `RULE_CHANGE_IN_HORIZON`.
+   - **No edge**, always the headline;
+   - **Using the win rate you typed** (`ASSUMED_EDGE`): "These numbers are only as true as the win rate you typed (W%).
+     This bracket's no-edge win rate is P0%; telling them apart would take about N recorded brackets. Without the edge
+     you typed, no plan can beat 1 in M." It also shows the typical result and P(hit your floor);
+   - **The tested-strategy replay** (`TESTED_REPLAY`, D13), on its own card: "This replays strategy S_C3 exactly as it
+     passed QUANTGEN's backtest test, with 40% of its edge removed. Backtest edges often shrink or vanish in live
+     trading; read this as the hopeful case."
+10. **Flags:**
+    - **`HIDDEN_EDGE`**, only where its variable is provably bounded:
+      - It applies to two-point bootstrap legs, and to GARCH-t legs with bounded innovations.
+      - X = W_τ + C_τ − W₀, with τ = the first of REACHED, FLOOR or the horizon; for this test both tracks stop at T.
+      - Its range R is deterministic: W_τ ∈ [L_min − gap, T·e^{m_max}], and C_τ is at most the number of check points
+        times the largest cost per check.
+      - It is red when |mean X| exceeds the empirical-Bernstein bound √(2V·ln(4/δ)/n) + 7R·ln(4/δ)/(3(n − 1)), with
+        δ = 1e-4.
+      - Its two wordings: "makes money without any edge" and "loses more than its costs explain".
+      - The card prints the smallest edge the test can detect (a resolution figure, not a power guarantee).
+      - Where the variable is not bounded, the card says "diagnostic unavailable".
+    - **`CEILING_BREACH`** against the analytic ceiling only:
+      - amber "preliminary evidence, about 5% false-alarm rate: rerun with more paths" when the one-sided 95%
+        Clopper–Pearson lower bound exceeds it;
+      - red "do not use these numbers" when the one-sided (1 − 0.001/m) bound does (Bonferroni over the m checks).
+    - `ABOVE_ESTIMATED_REFERENCE` (amber), `IMPOSSIBLE`, `BELOW_RESOLUTION`, `GREY_LEG`, `PROXY_DATA`,
+      `CHECKS_AT_OPEN_CLOSE`, `CLOSE_ONLY_CHECKS`, `LIMIT_GAP`, `LOCKED_AT_HORIZON`, `COST_DOMINATED`, `NOT_TRADABLE`,
+      `STUCK_AT_START`, `RULE_CHANGE_IN_HORIZON`, `SPECIAL_REGIME`.
 11. **"Not in these numbers":**
-    - income tax on gains (estimated above, not simulated);
-    - the won-dollar rate moving;
-    - Upbit holding withdrawals after a KRW deposit, and the Upbit-to-OKX route being closed without notice;
-    - an exchange freezing withdrawals or failing;
-    - a coin being delisted or flagged by Upbit (the history only contains coins that still trade);
-    - KRX trading halts, VI auctions and caution, warning or risk designations;
-    - buy orders not filling at limit-up, and sells not filling at limit-down, beyond what is modelled;
-    - a broker refusing an order;
-    - a hacked or locked account;
+    - income tax (estimated, not simulated);
+    - the won-dollar rate;
+    - Upbit withdrawal holds after a KRW deposit, and the Upbit-to-OKX route closing without notice;
+    - exchange freezes or failure;
+    - delistings and Upbit warnings (survivorship);
+    - KRX halts, VI auctions and designations;
+    - unfilled orders at the limits beyond what is modelled;
+    - broker refusals;
+    - hacked or locked accounts;
     - rule changes.
 
-    "Most of these make the real result worse; none of them makes a no-edge plan better."
-12. **Footer:** "These numbers describe rules you wrote, run in a model. They are not advice, and TRADEGEN does not
+    "Most of these make the real result worse; none makes a no-edge plan better."
+12. **Footer.** "These numbers describe rules you wrote, run in a model. They are not advice, and TRADEGEN does not
     recommend any plan. A higher chance of reaching the target does not make a plan better."
 
-**Comparing plans honestly**
+**Comparing plans**
 - There is no ranking by P(target). Plans are listed in creation order, or by smallest average loss.
-- The moonshot table carries a fixed caption: "With no real edge, the plan with the highest chance of the target is
-  always the one that bets the most, soonest, and it is also the one that loses your stake most often. Higher here means
-  riskier, not better."
+- The fixed moonshot caption: "With no real edge, a higher chance of the target generally comes from putting more of
+  your stake at risk, sooner. Check P(hit your floor) beside it. Higher here means riskier, not better."
 - The comparison prints: "You compared K plans (and tried J typed win rates) in this session. The highest-looking
   figure is the luckiest of K and is probably too high."
-- Before arming (execution spec), the plan is re-run on a fresh market seed and that confirmation figure is shown.
+- Before arming (execution spec), the plan is re-run on a fresh market seed.
 
 **Language guard**
-- Owner-facing text outside the catalogue fails the self-check.
-- Rendered text fails on whole-word matches of: best, optimal, recommended, safe, guaranteed, sure, ideal, risk-free,
-  low-risk, proven, "should", "worth trying", "good chance", "likely to reach".
-- Korean entries (최적, 최선, 추천, 안전, 보장, 확실) are added once a Korean UI exists.
-- Internal names such as `bracket_optimum` never appear in rendered text.
+- All text comes from the catalogue.
+- Whole words banned: best, optimal, recommended, safe, guaranteed, sure, ideal, risk-free, low-risk, proven, "should",
+  "worth trying", "good chance", "likely to reach". Korean entries are added once a Korean UI exists.
+- Internal names never appear in rendered text.
 
 **Provenance** recorded with every report:
-- the rules, instrument and venue hashes, and the owner-log head;
-- the data hashes, model, seeds, n, CHUNK, NumPy version and bit generator;
-- the edge sources;
+- the state hashes, the owner-log head, the code hash and the key fingerprint;
+- the data, model, seed, n, CHUNK and NumPy version;
+- the edge source;
 - `repo_anchor()` and `tree_hash()`.
 
 ---
 
 ## 8. Testing
 
-**Setup.** Two new suites are registered in `tests/run_all.py`: `compliance` (`tests/compliance_acceptance.py`) and
-`odds` (`tests/odds_acceptance.py`). Every test runs inside `tests.macro_acceptance.hermetic()`, so the network raises,
-with `TRADEGEN_HOME` set to a temp dir and price data from in-memory fixtures only. They are built test-first.
+**Setup.**
+- Two new suites run under `tests.macro_acceptance.hermetic()`: `compliance` (`tests/compliance_acceptance.py`) and
+  `odds` (`tests/odds_acceptance.py`).
+- `TRADEGEN_HOME` points to a temp dir. Price data comes from in-memory fixtures. A test key pair is generated per test
+  run, and the real owner key is never touched.
+- Everything is built test-first.
 
 **compliance**
-1. **Loading the table:**
-   - schema and vocabulary are valid;
-   - duplicate keys, anchors, native dates, oversized files and an `any` on an allow row each make the table INVALID;
-   - ids are unique;
-   - every row is sourced;
-   - the 31-day cadence and the `known_changes` rule hold;
+1. **Loaders:**
+   - duplicate keys, anchors, native dates, oversized files, `any` on an allow row and out-of-vocabulary values each
+     make the table INVALID;
+   - the monthly and `known_changes` rules hold;
    - all 38 matrix rows are covered;
    - every research pointer resolves;
-   - an unapproved hash is INVALID.
-2. **Hard blocks:**
-   - one test per conduct class and tag, on every venue id;
-   - the hard-coded floor still blocks when the table rows are deleted;
+   - every row carries `legal_or_policy`.
+2. **Approval and signing (D14):**
+   - unsigned or wrongly signed approvals make the table INVALID;
+   - a replaced draft blocks new exposure while the previous approved version stays active;
+   - an unsigned code hash blocks new exposure;
+   - a changed public key gives exit 3;
+   - the signing CLI refuses non-TTY stdin and needs the retyped code;
+   - nothing in the test suite or any other module can produce a valid owner signature without the test passphrase.
+3. **Hard blocks:**
+   - each conduct class and tag, on every venue;
+   - the hard-coded floor with the table rows deleted;
    - a randomised property test: any blocked attribute gives BLOCK.
-3. **Classification:**
-   - TQQQ labelled `us_etf_1x` gives BLOCK (class mismatch);
-   - 252670 labelled `krx_etf_1x` gives BLOCK;
-   - a US single-stock −1x product needs the KRW 30M cash gate;
-   - IBIT gives BLOCK (`us_crypto_etp`);
-   - an unknown symbol gives BLOCK.
-4. **Fail-closed inputs:**
-   - NaN or infinite numbers, negative notional, wrong types, unknown ids, case variants, unknown tags, and an
-     inconsistent kind/instrument/destination each give BLOCK;
-   - fuzzed garbage never raises;
-   - `RulesTable.invalid` gives BLOCK;
-   - a table whose rows were mutated in memory under its old hash gives BLOCK.
-5. **Gated rows:**
-   - each missing flag gives BLOCK naming that flag;
-   - a deposit or cash snapshot older than 7 days gives BLOCK;
-   - credit on a designated warning or risk stock, or with an unknown designation, gives BLOCK.
-6. **OKX:**
-   - no acknowledgement gives ACK_REQUIRED;
-   - an acknowledgement with a wrong `warning_sha256`, or from an old session, gives ACK_REQUIRED;
-   - an unset cap, exposure over the cap, a missing age record, or a date ≥ 2026-12-03 gives BLOCK for a buy;
-   - a reduce-only sell on 2026-12-03 gives ALLOW_EXIT, and a withdrawal OKX → Upbit at a registered
-     address gives ALLOW_EXIT;
-   - an unregistered address gives BLOCK;
-   - Asia/Seoul boundaries: 2026-12-02T23:59:59+09:00 gives ALLOW (buy); 2026-12-03T00:00:00+09:00 gives BLOCK (buy).
-7. **Staleness and alerts:**
-   - a date after `review_by` blocks new exposure but not exits;
-   - the due thresholds still fire after a missed run;
-   - CLI exit codes 0, 1, 2 and 3;
-   - the toast and the `--log` writer work with fake channels;
-   - a failed channel is announced on the others;
-   - the alert text contains no rule free text.
-8. **Purity and permits:**
-   - during `decide()`, `builtins.open`, `socket.socket.connect` and `time.time` are patched to raise, and the gate
-     module's `date`/`datetime` names are swapped for raising subclasses;
-   - an AST scan of `gate.py` finds no wall-clock call;
-   - identical inputs give an identical `decision_id`;
-   - `verify_permit` refuses a forged Permit, a different intent, a different session, a different date, and a
-     context where the cap was lowered since issue.
+4. **Classification:**
+   - TQQQ as a 1x ETP, or 252670 as 1x, is BLOCK (multiple mismatch);
+   - a US single-stock −1x product is BLOCK (D16);
+   - IBIT is BLOCK;
+   - BITO is ALLOW (crypto-futures ETF);
+   - credit financing is BLOCK (D15);
+   - lend and borrow are BLOCK (D15);
+   - an unknown symbol is BLOCK.
+5. **Fail-closed inputs:** NaN, infinity, negative values, wrong types, case variants, unknown tags, inconsistent
+   transfer fields and negative exposure or reservations are each BLOCK; fuzzed input never raises.
+6. **Exits (D11):**
+   - on 2026-12-03, OKX sell close-long gives ALLOW_EXIT, while a buy is BLOCK;
+   - OKX → Upbit withdrawal at a registered address gives ALLOW_EXIT;
+   - with a broken owner log, closing uses the snapshot and a withdrawal is BLOCK "withdraw manually";
+   - with no snapshot, closing is BLOCK "close manually";
+   - a sell larger than holdings is not an exit;
+   - conduct still blocks exits.
+7. **OKX new exposure:**
+   - no acknowledgement, or an acknowledgement with a wrong hash or an old session, gives ACK_REQUIRED;
+   - an unset cap, over-cap exposure, missing age, or a date ≥ 2026-12-03 gives BLOCK;
+   - Asia/Seoul boundary: 2026-12-02T23:59:59+09:00 ALLOW, 2026-12-03T00:00:00+09:00 BLOCK.
+8. **Permits and reservations:**
+   - verifying a permit excludes only its own reservation;
+   - two permits cannot share one cap's capacity;
+   - forged permits, other intents, other sessions, other dates and an unapproved replacement state are refused;
+   - purity: during `decide()`, `open`, `socket.connect` and `time.time` are patched to raise, and the module's date
+     names are swapped; an AST scan shows no wall-clock call.
 9. **Owner log:**
-   - editing the last line is detected;
-   - truncation below a recorded head is detected;
-   - piped stdin is refused by the confirmation API;
-   - a loosening is deferred to the next Asia/Seoul date and refused after a halt;
-   - every path stays under `~/.tradegen` (`refuse_quantgen`).
+   - an edited last line, truncation below a recorded head, and an unsigned line are each detected;
+   - a loosening is deferred and refused after a halt (D12);
+   - paths stay under `~/.tradegen`;
+   - task A0: a symlink, junction or hard link under the state root is refused, and final-target checks hold in the
+     reused writers.
+10. **Alerts:** exit codes 0 to 3; thresholds still fire after a missed run; toast and `--log` work with fake channels;
+    a failed channel is announced on the others; the template contains no rule free text.
 
 **odds**
-1. **The martingale null:**
-   - every sign-flip factor has mean exactly 1 per row (to 1e-12), including after KRX clipping;
-   - under each model, a fixed −d stop, a +u/−d bracket and a buy-and-hold each have a mean payoff of 0 before costs,
-     within simulation error;
-   - a regression test shows the repo's `drift="zero"` and per-row demeaning both fail this.
-2. **HIDDEN_EDGE:**
-   - its false-alarm rate on true martingales with λ = n·P(target) in {1, 2, 10, 50} stays at or below δ;
-   - a planted edge of twice the printed detectable size is flagged.
+1. **The martingale law:**
+   - the two-point kernel gives E[next | p] = p exactly (to 1e-12), on random p within random bands, edges included;
+   - prices never leave the band, and include the 100 → 70 → 100 example that broke rev 2.1's construction;
+   - under every model, a fixed stop, a bracket and buy-and-hold each have a mean payoff of 0 before costs, within error;
+   - the repo's `drift="zero"` and per-row demeaning both fail this check.
+2. **HIDDEN_EDGE:** its false-alarm rate is ≤ δ at λ = n·P(target) in {1, 2, 10, 50}; a planted edge of twice the
+   printed resolution is flagged; it reports "unavailable" for unbounded GARCH innovations.
 3. **Exact values:**
    - `bold_even` gives 0.1000%, 0.0816%, 0.0346% and 0.0106%, and 0.0400% with L at half the stake;
-   - `bracket_optimum` ≥ the bold policy, and equals it for fee-free even money;
-   - the simulated bold policy matches its exact value within the Clopper–Pearson interval;
-   - the ceiling is not breached by randomised no-edge plans at the Bonferroni-corrected level.
+   - simulated bold play on an even-money bracket fixture matches;
+   - under floor-safe sizing the ceiling (W₀ − L)/(T − L) is never breached at the Bonferroni level, and under
+     stop-based sizing neither is W₀/T.
 4. **Mechanics:**
-   - IMPOSSIBLE for a KRX-only 1,000× plan, and the session-dependent N (112× to 321×);
-   - gap-through fills at the open;
-   - limit-down carry at 2× cost, checked against `orders.LIMIT_DOWN_CARRY_COST_MULTIPLIER`;
-   - STUCK_AT_START when a share costs more than the stake;
-   - outcomes sum to n;
-   - session counts on the fixture calendar;
-   - forced exit at a rule date inside the horizon;
-   - REACHED measured after exit costs and sell tax.
-5. **Refusals:** `CALENDAR_UNSIGNED` on the shipped calendar set, plus `LIMITS_UNSET`, `MULTI_LEG_UNSUPPORTED`,
-   `UNSUPPORTED_LEVERAGE_OR_SHORT`, `SYNTHETIC_REFUSED` and `NOT_TRADABLE`.
-6. **Seeds:**
-   - two plans in one comparison consume identical bootstrap indices, signs and innovations;
-   - renaming a plan does not change its numbers;
-   - n not a multiple of CHUNK is refused.
-7. **Costs:**
-   - extras may only raise costs;
-   - the 1× and 2× runs are both present;
-   - the sell tax is never charged twice;
-   - a stake below the minimum means no bet.
-8. **Edge:**
-   - Kelly stakes 0 without a validated edge;
-   - a fixture ModelCard whose re-run statistics do not match is refused, and one that matches resolves;
-   - an assumed edge never reaches the headline, and its column always prints the "without the edge you typed" ceiling.
-9. **Report and language guard:**
-   - the typical result comes before the average;
-   - the tax line, the base rates and the footer are present;
-   - the "not in these numbers" box is present;
-   - no zero probability is rendered;
-   - no banned word appears anywhere in the catalogue or in rendered output;
+   - buy-and-hold KRX at 1,000× is IMPOSSIBLE with N = 161× to 459× across 18 to 22 sessions;
+   - a bracket KRX leg is not flagged IMPOSSIBLE;
+   - limit-down carry at 2× (with the constant checked against `orders`);
+   - LOCKED_AT_HORIZON;
+   - STUCK_AT_START;
+   - outcomes sum to n, and `reached_by_deadline` is consistent with them;
+   - the forced exit at a rule date, a non-session date included;
+   - REACHED is measured after exit costs and tax.
+5. **Ledger:**
+   - both affordability inequalities hold after rounding and under 2× costs;
+   - a bold fraction is refused when the net win coefficient is ≤ 0;
+   - a stake below the minimum means no bet;
+   - the sell tax applies on sells only, per the book.
+6. **Refusals:** `UNSUPPORTED_PRODUCT`, `MULTI_LEG_UNSUPPORTED`, `LIMITS_UNSET`, `CALENDAR_UNSIGNED`,
+   `MODEL_NOT_FOR_LIMITED_VENUE`, `SYNTHETIC_REFUSED`, `NOT_TRADABLE` and `CARD_NOT_REPRODUCED`.
+7. **D13 replay:**
+   - the pure replay on fixture bars is deterministic;
+   - a statistics mismatch is refused;
+   - the replay never imports the study runner;
+   - Kelly uses the mean's lower bound, and gives 0 when conservative growth ≤ 0.
+8. **Seeds:** plans in one comparison share the same streams; renaming a plan changes nothing; a partial chunk is
+   refused.
+9. **Report:**
+   - the typical result comes first;
+   - the mean is computed from terminal values, overshoot included;
+   - the tax line, the base rates (with populations), the footer and the "not in these numbers" box are present;
+   - structural zeros are worded as structural, and no zero probability slot is rendered;
+   - no banned word appears in the catalogue or the output;
    - the K note and the moonshot caption are present.
 
 **Existing guards stay in force:**
-- `tests/acceptance.py` test_08 and test_09, and T-RO-01 (the static scan and the orders-import rule) cover both
-  packages;
-- T-RO-02, the KIS allowlist, is unaffected;
-- T-CTX-01 covers both packages once its prefixes are extended (section 4).
+- test_08, test_09 and T-RO-01 cover both packages;
+- T-RO-02 is unaffected;
+- T-CTX-01 covers both packages once its prefixes are extended.
 
 ## 9. Error handling
 
 - **Gate:**
-  - it never raises; any internal error is BLOCK;
-  - an invalid or unapproved table, instrument map or venue table is BLOCK for new exposure, CLI exit 3, and the alert
-    fires;
-  - a broken owner chain means owner state counts as absent, and the alert fires;
-  - `verify_permit` refuses on any mismatch.
-- **Odds (refuses rather than guesses).** It gives a named reason, never a number: `UNSCREENED`, `BLOCKED_LEG`,
-  `CALENDAR_UNSIGNED`, `LIMITS_UNSET`, `SYNTHETIC_REFUSED`, `NOT_TRADABLE`, `MULTI_LEG_UNSUPPORTED`,
-  `UNSUPPORTED_LEVERAGE_OR_SHORT`, `CARD_NOT_REPRODUCED`.
-  - A model that fails to fit is left out of the spread with a note. If every model fails, the plan is refused.
-  - A refused run never prints a probability.
-- **Alerts:** a failure of the check itself is alerted on every working channel.
-- **Paths:** everything is written under `~/.tradegen`, and every writer calls `refuse_quantgen`.
+  - it never raises;
+  - invalid, unapproved or unsigned state, or unsigned code, blocks new exposure (exit 3, alert), while exits follow
+    D11;
+  - a broken owner log means withdrawals are manual and closing orders use the snapshot;
+  - `verify_permit` refuses any mismatch.
+- **Odds** refuses with named reasons and never prints a probability from a refused run: `UNSCREENED`, `BLOCKED_LEG`,
+  `UNSUPPORTED_PRODUCT`, `MULTI_LEG_UNSUPPORTED`, `LIMITS_UNSET`, `CALENDAR_UNSIGNED`, `MODEL_NOT_FOR_LIMITED_VENUE`,
+  `SYNTHETIC_REFUSED`, `NOT_TRADABLE`, `CARD_NOT_REPRODUCED`, `SPECIAL_REGIME`. A model that fails its pilot check is
+  left out of the spread with a note.
+- **Alerts:** a failure of the check itself is alerted.
+- **Paths:** everything is written under `~/.tradegen`, with final-target checks (A0).
 
 ## 10. The guardrails, in plain language
 
 | Guardrail | What it protects you from | What you see | Who may change it |
 |---|---|---|---|
-| No-edge null | A model that quietly "makes money" with no edge | Nothing; it is the default | No one; only a tested edge adds a separate column |
-| HIDDEN_EDGE | A bug that hands a plan free money, or one that loses more than its costs | Red: "On average this model makes money without any edge" or "...loses more than its costs explain", "so do not use these numbers" | No one |
-| Ceiling | Believing a no-edge plan can beat 1 in 1,000 (1 in 2,000 with a floor at half the stake) | "No plan without a real edge can beat 1 in N." | It is maths |
-| CEILING_BREACH | Numbers that are impossible under no edge | Amber "at the ceiling within simulation noise; rerun with more paths", or red "do not use these numbers" | No one |
-| IMPOSSIBLE | Chasing a target the market cannot reach in time | "KRX's daily limit allows at most N× in these S sessions" (112× to 321× in 30 days) | It is a market fact for KRX; for other venues the card says it is a limit of the model |
-| Typical result first | Mistaking the average (jackpots included) for what usually happens | "The middle month ends with KRW M…" | No one |
-| Simulation precision | Mistaking counting noise for your real odds | "Counting noise alone: between 1 in A and 1 in B" | More paths narrow it |
-| Model spread | Trusting one model of the market | "Other models give 1 in A to 1 in B" | Adding models is allowed; removing one is not |
-| Checks at open and close | Thinking stops fire at intraday lows | "Price checks at the open and the close only" | A future intraday model needs its own martingale test |
-| 2× costs | Costs eating the edge | A second column at double costs | No one |
-| Minimum tickets / STUCK | A plan that cannot trade its size | "Can't open" / "left below the minimum order (effectively lost)" | The owner, through the approved venue table |
-| LIMIT_GAP | Assuming a stop always fills at its level | The worst overshoot below your floor | It is how markets gap |
-| Typed win rate | A guessed edge dressed up as odds | "Only as true as the win rate you typed… Without the edge you typed, no plan can beat 1 in M" | The owner types it; it never reaches the headline |
-| Tested edge | Trusting a backtest too much | "This column trusts strategy card <id>… Read it as the hopeful case" | Only a re-verified PASS card (D13) |
+| No-edge martingale | A model that quietly "makes money" with no edge, or timing rules exploiting old patterns | Nothing; it is the default | No one; edges get their own columns |
+| HIDDEN_EDGE | A bug that hands a plan free money, or one that loses more than its costs | Red with one of two wordings, or "diagnostic unavailable" | No one |
+| Ceiling | Believing a no-edge plan can beat 1 in 1,000 (1 in 2,000 with a floor at half the stake under floor-safe sizing) | "No plan without a real edge can beat 1 in N." | It is maths |
+| CEILING_BREACH | Impossible numbers | Amber "preliminary evidence…", or red "do not use these numbers" | No one |
+| IMPOSSIBLE | A buy-and-hold KRX target beyond the daily band | "KRX's daily band allows at most N× in these S sessions" (161× to 459× in 30 days) | It is a market rule for buy-and-hold; bracket plans get no such claim |
+| Estimated reference | Trusting an estimate as a proof | "estimated: … about X" | — |
+| Typical result first | Mistaking the jackpot-inflated average for the usual month | "The middle month ends with KRW M…" | No one |
+| Precision and model spread | Counting noise and one model mistaken for your real odds | "Counting noise alone: … ; other models give …" | Adding models is allowed |
+| Open/close checks | Thinking stops fire at intraday lows | "Price checks at the open and the close only" | A future intraday model needs its own martingale test |
+| Floor-safe sizing | Losses running past your floor | "Your floor holds even if this position goes to zero", or, for stop-based: "gaps can take you below your floor" | The owner chooses per leg |
+| 2× costs | Costs eating the edge | A second column | No one |
+| Minimum tickets / STUCK | A plan that cannot trade its size | "Can't open", or "left below the minimum order" | The owner, via the signed venue table |
+| LIMIT_GAP / LOCKED_AT_HORIZON | Assuming exits always fill | The worst overshoot; "still locked at the end" | It is how markets gap |
+| Typed win rate | A guessed edge dressed up as odds | "Only as true as the win rate you typed… about N recorded brackets…" | The owner types it; never in the headline |
+| Tested-strategy replay | Trusting a backtest too much, or borrowing it for another plan | "This replays strategy S_C3 exactly… the hopeful case" | Only an exact, re-verified replay (D13) |
 | Winner's curse | Picking the luckiest of many plans | "You compared K plans…", plus a fresh-seed confirmation | No one |
-| Stale rules | Trading on a rule that may have changed | New exposure blocked, plus alerts on every channel; exits stay open (D11) | The owner, by approving a re-reviewed table |
-| Grey cap, acknowledgement and auto-off | Unbounded OKX exposure, and trading OKX after 2026-12-03 | ACK_REQUIRED or BLOCK on OKX buys; the warning text you acknowledge | The owner, through the console (D12: loosening waits a day) |
-| GREY_LEG | Forgetting OKX's legal status | "This part uses OKX, a venue Korean law has not settled; your money there can be frozen." | — |
-| PROXY_DATA | OKX prices taken from Binance | "OKX prices are stood in by Binance prices; real OKX fills may differ." | — |
-| COST_DOMINATED | Costs driving the result | "Fees on each trade are larger than half a normal day's move; costs, not the market, drive this result." | — |
-| Language guard | Report text that sounds like advice | Nothing (the build fails instead) | The catalogue is reviewed |
+| Stale rules | Trading on a rule that may have changed | New exposure blocked, alerts on every channel; exits open | The owner signs a re-reviewed version |
+| OKX cap, acknowledgement and auto-off | Unbounded OKX exposure, or OKX after 2026-12-03 | ACK_REQUIRED or BLOCK on buys; the warning you acknowledge | The owner, signed; loosening waits a day (D12) |
+| Signed owner state (D14) | A script or agent acting as you | Unsigned changes are ignored, and exit 3 | Only your passphrase, in your own terminal |
+| Signed code hash | Silent changes to the gate | New exposure blocked until you sign the new code | You, after reviewing the diff |
+| Language guard | Report text that sounds like advice | Nothing (the build fails) | The catalogue is reviewed |
 
 ## 11. Owner inputs and open legal points
 
-**Owner acts.** Each goes through the console confirmation (D14). Claude never performs them.
-- Approve the rules table, the instrument map and the venue table, every month.
-- **Sign the calendar files** `holidays_KRX.yaml`, `kr_sessions.yaml`, `holidays_NYSE.yaml` and `kr_regime_tags.yaml`
-  before any KRX or US plan can be simulated. Claude may prepare a verification of them against KRX and NYSE sources.
-- Set `total_loss_floor_krw` and `daily_loss_krw` (D3). Until then the odds engine refuses.
-- Set `okx_equity_share`. While it is unset, OKX is blocked.
-- Record `age_of_majority`, and any course completions, deposit or cash snapshots and broker approvals.
-- Register withdrawal addresses.
+**Owner acts.** All are signed in the owner's own terminal (D14); Claude never performs them.
+- Generate the signing key, and confirm the public-key fingerprint printed in your own terminal.
+- Sign the code hash after reviewing each diff to `core/compliance` and `core/odds`.
+- Approve the rules table, the instrument map and the venue table, monthly.
+- **Sign the calendars** for KRX and US plans:
+  - set `signed_off_by` and each file's `content_md5` in `core/calendars/data/MANIFEST.yaml`, with the version and the
+    test ids the store requires;
+  - for `holidays_KRX.yaml`, `kr_sessions.yaml`, `holidays_NYSE.yaml`, `us_sessions.yaml` and `kr_regime_tags.yaml`.
 
-**Open legal points for Korean counsel** (the report's "Further review recommended", all 8):
-- Are Kalshi event contracts gambling, or overseas derivatives under FSCMA Art. 184①?
-- Does building this tool reach Criminal Act Art. 247 or National Sports Promotion Act Art. 26②? This bears on the
-  research-only GrokBot copy.
-- What is the user-side status of DEX perps and unregistered exchanges after 2026-12-03 and about 2027-02-18?
-- Does VAUPA Art. 10 reach overseas venues and DEXs?
-- Which FX reports apply to crypto moved to USD platforms?
-- Does sharing outputs need advisory registration? (Forbidden here by KR-CONDUCT-SIGNALS.)
-- Do Bybit's and Binance's terms restrict Korea, and **will Upbit and Bithumb keep allowing same-name transfers to
-  offshore venues?** This question gates D6's funding route.
-- What will the November–December 2026 votes decide: the crypto tax, the Digital Asset Basic Act and the single-stock
-  leverage cap?
+  Claude may prepare a source-checked verification first. Until this is done, only crypto plans run.
+- Set `total_loss_floor_krw`, `daily_loss_krw` and `okx_equity_share`.
+- Record `age_of_majority`, and register withdrawal addresses.
+
+**Open legal points for Korean counsel** (all 8 from the report):
+- Kalshi: gambling, or overseas derivatives?
+- Does building this tool reach Art. 247 or Art. 26②?
+- The user-side status of DEX perps and unregistered exchanges after 2026-12-03 and about 2027-02-18.
+- The territorial scope of VAUPA Art. 10.
+- FX reports for crypto moved to USD platforms.
+- Advisory registration for sharing outputs (forbidden here).
+- Bybit and Binance terms, and whether Upbit and Bithumb will keep allowing same-name transfers offshore. This gates
+  D6's funding route.
+- The November–December 2026 votes.
 
 ## 12. Risks
 
-- **The table goes out of date.** Mitigations: a monthly cadence, known-change dates, fail-closed review dates, and the
-  all-channel alert.
-- **Monthly approvals become a chore and get rubber-stamped.** Mitigation: the check lists exactly which rows changed
-  and which sources were re-read.
-- **The owner reads simulated odds as forecasts.** Mitigations: model-not-history wording, the typical result first, the
-  precision and spread lines, base rates, and the language guard.
-- **A typed win rate tempts the owner.** Mitigations: its own column, the bets-needed figure, the "without the edge"
-  ceiling, base rates.
-- **A backtest edge is trusted too much.** Mitigations: the re-verification under D13, the live multiplier, the
-  lower-bound Kelly, the hopeful-case wording.
-- **Claude or a script changes owner state.** Mitigations: the console confirmation (D14), approvals by hash rather than
-  by commit, head anchoring.
-- **A grey venue tightens suddenly.** Mitigations: auto-off, the acknowledgement, the cap, exits kept open (D11).
-- **The alerts depend on the PC being on.** Mitigation: the check runs at every app start, plus the in-app banner.
+- **The table goes out of date.** Mitigations: monthly review, known-change dates, fail-closed review dates, alerts on
+  every channel.
+- **Monthly approvals become rubber-stamped.** Mitigation: `--check` lists exactly which rows and sources changed.
+- **Simulated odds are read as forecasts.** Mitigations: model-not-history wording, the typical result first, spread,
+  base rates, the language guard.
+- **A typed win rate tempts the owner.** Mitigations: its own column, the p₀ and bets-needed line, the "without the
+  edge" ceiling.
+- **A backtest edge is over-trusted.** Mitigations: exact replay only, the live multiplier, lower-bound Kelly, the
+  hopeful-case wording.
+- **An agent or script acts as the owner.** Mitigations: signatures (D14), the signed code hash, diff review. The
+  remaining limit is stated in 6.4.
+- **A grey venue tightens suddenly.** Mitigations: auto-off, acknowledgement, cap, exits kept open (D11).
+- **The alerts depend on the PC being on.** Mitigations: the app-start check and the in-app banner.
 
 ## 13. Out of scope (later specs)
 
-- **Execution:** adapters, arming and sessions, single-use permits, the audit log, the halt record, `client_order_id`.
-- **Strategies:** strategy research (with `anthropic-skills:deep-research`); multi-leg, leveraged and short plans.
+- **Execution:** adapters, arming and sessions, atomic reservations, single-use permits, the audit log, the halt record,
+  reading live balances and broker answers (which lifts D16 row by row), and retiring the read-only guards
+  consciously.
+- **Strategies:** multi-leg, leveraged and short plans. Credit and lending stay out (D15).
 - **UI:** with design-system and design-critique.
-- **Compliance check:** `legal:compliance-check` per venue before any real-money feature ships.
-- **Deferred technique:** importance sampling, to add when a plan needs precision below about 1e-5; an intraday
-  price-path model, to add if open/close checks prove misleading; an OKX candle loader, to add if the Binance proxy
-  proves misleading.
+- **Compliance check:** `legal:compliance-check` per venue before real money.
+- **Deferred techniques:** importance sampling, an intraday martingale path model, an OKX candle loader, and modelling
+  special KRX reference-price regimes.
 
 ---
 
-## Appendix A: the pre-spec review that shaped section 7 (rev 1)
+## Appendix A: the pre-spec review (rev 1)
 
-Three critics (statistics, honesty, repo fit) reviewed the first odds-engine draft. Their must-fix items became rev 1:
+Three critics shaped section 7 before rev 1: zero arithmetic drift, the structural maximum, the floor in the ceiling,
+the exact optimum, noise-aware flags, simulation-precision wording, gaps and limit-down carry, the outcome partition,
+lower-bound Kelly, data refusals, cost and ticket tables, calendars, no ranking, the winner's curse, survivorship.
+Rounds 1 and 2 found several of those fixes incomplete.
 
-- zero arithmetic drift;
-- the structural maximum and IMPOSSIBLE;
-- the floor in the ceiling;
-- the exact optimum;
-- noise-aware flags;
-- "simulation precision";
-- gap-through fills and limit-down carry;
-- the four-way outcome partition;
-- lower-bound Kelly;
-- the refusals for synthetic and unloadable data;
-- cost and minimum-ticket tables;
-- the calendar;
-- no ranking;
-- the winner's curse;
-- survivorship.
+## Appendix B: round 1 rulings (on rev 1)
 
-Round 1 then found that several of those fixes were still incomplete; Appendix B rules on each.
+Gemini's findings are G-n and Gm-n. The Claude workflow's are L (legal), S (statistics), H-F (honesty),
+I (implementability), Z (safety) and the "missed" items. Each row gives where the fix lives in **rev 3**.
 
-## Appendix B: round 1 rulings
-
-Gemini's findings are G-n (Major) and Gm-n (Minor). Claude-workflow findings carry their dimension's prefix: L legal,
-S statistics, F honesty (H-F below), I implementability, Z safety, plus each dimension's "missed" items.
-
-| Finding | Ruling | Where |
+| Finding | Ruling | Rev 3 location |
 |---|---|---|
-| G-1, L5: US spot-crypto ETFs pass as us_etf_1x | Accepted | `us_crypto_etp`, KR-KIS-US-CRYPTO-ETP, KR-KIS-CRYPTO-DERIV, floor |
-| G-2, L7: Hyperliquid/Drift outcome markets; gopax; sportsbooks; Speed-On; offer-with-warning conditions | Accepted (D10 records the stricter choice) | 5.2, 5.3 |
-| G-3, L2, L9: single-stock overseas/inverse; cash-only 30M; derivative stages; short and lending requirements; credit designations; course hours as minimums | Accepted | 5.2, 5.3 |
-| L6: hard-block KRX derivatives as recourse leverage | Rejected (the report gates them) | — |
-| G-4, Z8, L3: no OKX → Upbit path; kind/instrument mismatch; name match below KRW 1M | Accepted | KR-OKX-WITHDRAW, 6.2 steps 1 and 5, registered addresses |
-| G-5, L4, L10: BitMart attribution; travel-rule date resolved; monthly cadence; wrong reasons and confidences | Accepted | 5.1, 5.3 |
-| G-5 effective_from blocks historical backtests | Rejected: the gate rules on live decisions as of today; rows now carry regime-start dates | 5.1 |
-| L1: referral links; copy-trading as lead; 환치기 | Accepted | KR-CONDUCT-PROMOTE, -OTHERS, -FX |
-| L8: three missing further-review questions; per-transfer acknowledgement | Accepted | 11, 6.2 step 5 |
-| G-6, S1, S-missed-2: bootstrap demeaning contradictory and not a martingale; no high; intraday extremes unfair | Accepted; redesigned as `SignFlipBootstrap` with open/close checks | 7.2 |
-| G-7, S3: FX covariance; KRX carry drift | Accepted: KRW series before sign-flipping; carry inside a martingale | 7.2 |
-| G-8: ceiling invalid under gap-through | Accepted: L_min | 7.4 |
-| G-9, S2, S6, S7: BetLeg inconsistent; bold stake undefined; optimum not an upper bound | Accepted: pathwise brackets, stake algebra, certified dynamic programme | 7.1, 7.2, 7.4 |
-| G-10, I-missed-3: multi-leg weights and calendars | Resolved by scope: one leg in this version | 1, 7.1 |
-| G-11, S4, H-F7, S-missed-1: average-first line misleading | Accepted: typical result first | 3, 7.5 |
-| S5: HIDDEN_EDGE 4-SE test invalid with jackpots | Accepted: empirical-Bernstein | 7.5 |
-| S8, I5: seeds contradict common random numbers | Accepted | 7.3 |
-| S9: structural_max for unlimited venues | Accepted | 7.4 |
-| S10: Bonferroni; precision example; parameter bootstrap | Accepted | 7.5 |
-| G-12, I1: orders import breaks T-RO-01 | Accepted: local constant, equality test | 4 |
-| G-13, I4: calendars unsigned | Accepted: CALENDAR_UNSIGNED; owner signs | 4, 9, 11 |
-| G-14, I3: History has closes only | Accepted: `core/odds/bars.py` | 4 |
-| G-15, I2: cost_per_side misuse; check_cost_policy wrong | Accepted | 4, 7.2 |
-| G-16: KRX stock tick table missing | Accepted: tick ladder in venues.yaml | 4, 7.2 |
-| G-17, I6: card registries; PASS cards exist | Accepted; D13 (owner chose the re-verified hopeful column) | 2, 7.2 |
-| G-18, Z6, L-missed-2: exits blocked after auto-off/staleness | Accepted; D11 (owner chose exits open) | 2, 6.2 step 3 |
-| G-19, Z4: owner log last-line edits, rollback, stdin piping | Accepted: row hash, head anchoring, console confirmation (D14) | 6.4 |
-| G-20, I-missed-1: unset limits | Accepted: LIMITS_UNSET | 6.4, 9 |
-| Gm-1 to Gm-5: seed API, git provenance, email recipient, writers, permit expiry | Accepted | 4, 5.4, 6.3, 7.3 |
-| Z1: forgeable Permit | Accepted: permit(intent, ctx), verify_permit | 6.3 |
-| Z2: NaN and unvalidated Context | Accepted | 6.2 step 1 |
-| Z3: YAML loader holes; hard-coded floor | Accepted | 5.1 |
-| Z5, L-missed-3, H-F6: acknowledgement not bound to warning text | Accepted: `warning:` field, render_warning, hash check | 5.1, 6.2 |
-| Z7: date semantics | Accepted: Asia/Seoul calendar date | 6.1 |
-| Z9: missing table mechanism | Accepted: RulesTable.invalid | 4, 9 |
-| Z10, I7: alerts split; exact-day triggers | Accepted | 5.4 |
-| Z-missed-1: limits loosened mid-streak | Accepted; D12 (owner chose tighten now, loosen next day) | 6.4 |
-| Z-missed-2, H-F1: approval by commit is not owner approval | Accepted: approvals by hash in the owner log | 5.1 |
-| H-F2: income tax; H-F5: the "not in these numbers" box | Accepted | 7.5 |
-| H-F3: leverage silently cut to 1x | Accepted: UNSUPPORTED_LEVERAGE_OR_SHORT | 7.1 |
-| H-F4, H-missed-1: typed win rate; ceiling dropped for the whole plan | Accepted: the ceiling is keyed per column | 7.4, 7.5 |
-| H-missed-2: base rates | Accepted | 3, 7.5 |
-| H-F8: language guard self-contradictory | Accepted: sentence catalogue, rewording, probability-slot regex | 7.5 |
-| H-F9, H-F10: plain-sentence fixes; section 10 completeness | Accepted | 7.5, 10 |
-| I8: dataclass field order; YAML dates | Accepted: kw_only; quoted dates | 6.1, 7.1, 5.1 |
-| I9: purity test technique; hermetic wrapper | Accepted | 8 |
-| I10: guard names; T-CTX-01 prefixes; naming traps | Accepted | 4, 8 |
-| H-missed-4: the realistic-odds line | Accepted | 3 |
+| G-1, L5 (crypto ETPs) | Accepted; narrowed in round 2 to spot-backed products | 5.1, 5.3 |
+| G-2, L7 (coverage gaps; offer-with-warning) | Accepted; D10 | 5.1, 5.3 |
+| G-3, L2, L9 (eligibility details) | Accepted, then superseded by D15 and D16 | 5.3 |
+| L6 (hard-block KRX derivatives) | Rejected: the report gates them; D16 now refuses them pending live evidence | 5.3 |
+| G-4, Z8, L3 (transfers) | Accepted | 5.3, 6.2 |
+| G-5, L4, L10 (dates and attributions) | Accepted; the backtest-dates objection rejected (live-decision gate) | 5.2, 5.3 |
+| L1, L8 (conduct tags; further-review questions) | Accepted | 5.3, 11 |
+| G-6, S1, S-missed-2 (bootstrap) | Accepted; rebuilt again in round 2 as the two-point kernel | 7.2 |
+| G-7, S3 (FX) | Accepted (KRW series) | 7.2 |
+| G-8 (ceiling and gaps) | Accepted; re-fixed in round 2 (floor-safe sizing) | 7.1, 7.4 |
+| G-9, S2, S6, S7 (bets, sizing, optimum) | Accepted; reworked in round 2 | 7.1, 7.4 |
+| G-10 (multi-leg) | Resolved by scope | 1, 7.1 |
+| G-11, S4, H-F7 (average first) | Accepted; fixed again in round 2 | 7.5 |
+| S5 (HIDDEN_EDGE) | Accepted; re-fixed in round 2 | 7.5 |
+| S8, I5 (seeds) | Accepted | 7.3 |
+| S9, S10 (structural maximum; precision) | Accepted; S9 re-fixed in round 2 | 7.4, 7.5 |
+| G-12 to G-16, I1 to I4 (repo facts) | Accepted | 4 |
+| G-17, I6 (cards) | Accepted; D13 | 7.2 |
+| G-18, Z6 (exits) | Accepted; D11 | 6.2 |
+| G-19, Z4, Z-missed-2, H-F1 (owner log) | Accepted; strengthened by D14 | 6.4 |
+| G-20 (unset limits) | Accepted | 6.4 |
+| Z1, Z2, Z3, Z5, Z7, Z9, Z10, I7 to I10 (safety and harness) | Accepted | 4, 5, 6, 8 |
+| H-F2 to H-F10, H-missed (honesty) | Accepted | 3, 7.5, 10 |
+
+## Appendix C: round 2 rulings (GPT on rev 2.1)
+
+| GPT finding | Ruling | Rev 3 location |
+|---|---|---|
+| Major 1: a 7-day cash snapshot cannot gate per-buy cash | Accepted; D16 (refused until live evidence; snapshots never accepted) | 2, 5.3, 6.4 |
+| Major 2: lending conditions incomplete | Superseded by D15 (no lending at all) | 5.3 |
+| Major 3: half-step clipping breaks the daily band (100 → 70 → 100 → 169) | Accepted: a two-point kernel with state-dependent probability inside the session band; GARCH-t not used for KRX | 7.2, 8 |
+| Major 4: the KRX bound is not market-wide | Accepted: restricted to buy-and-hold legs (161× to 459×); round trips acknowledged; section 3 corrected | 3, 7.4 |
+| Major 5: the stake equations miss fixed fees and side-specific tax | Accepted: the cost ledger with κ_b, κ_s, φ_b, φ_s; affordability inequalities; bold refusals | 7.1 |
+| Major 6: L_min is a one-check bound | Accepted: L_min = L only under floor-safe sizing, else 0 | 7.1, 7.4 |
+| Major 7: the dynamic programme is not certified | Accepted: renamed estimated reference; no red flags | 7.4 |
+| Major 8: empirical-Bernstein needs a bounded variable | Accepted: a deterministic range for bounded models; "unavailable" otherwise | 7.5 |
+| Major 9: an edge can be transferred; Kelly bound undefined | Accepted: D13 exact replay as its own plan type; the mean's lower bound defined | 7.2 |
+| Major 10: overshoot dropped; ever-reached versus terminal | Accepted: the mean from terminal values; `reached_by_deadline` | 7.3, 7.5 |
+| Major 11: claims overstated (estimates, the "always" caption, base rates) | Accepted | 3, 7.5 |
+| Major 12: asset class conflated with action and financing | Accepted: five independent axes; map-derived multiple and leverage | 5.1, 6.1 |
+| Major 13: contradictions in the D11 exits | Accepted: one decision table; snapshot and manual recovery | 6.2 |
+| Major 14: TTY plus an unkeyed chain cannot stop an agent | Accepted: D14 signing, signed code hash, the honest limit stated | 6.4 |
+| Major 15: grey-cap reservations double-counted; negative exposure | Accepted | 6.1, 6.2, 6.3 |
+| Major 16: final targets in reused writers | Accepted: task A0 | 4, 8 |
+| Minor 1: cost class by symbol shape | Accepted: cost book from the map | 4 |
+| Minor 2: replay contract | Accepted: three digests, pure replay | 7.2 |
+| Minor 3: spot versus futures ETFs; Gopax; tax | Accepted | 5.1, 5.3, 7.5 |
+| Minor 4: calendar signing procedure; endpoints; regime_tags KR-only | Accepted | 4, 11 |
+| Minor 5: the assumed-edge law; sample size | Accepted: tilted kernel; formula stated | 7.2 |
+| Minor 6: pw_block kind; GARCH tolerance; wording | Accepted | 7.2, 7.5 |
+| Minor 7: permit fields; approved-version storage | Accepted | 5.2, 6.3 |
+| L6 rejection, G-5 backtest rejection, G-10 scope | GPT agreed | — |
