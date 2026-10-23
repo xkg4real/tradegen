@@ -57,10 +57,8 @@ def checked_target(path, what: str = "path", *, within=None) -> Path:
 
 
 def _first_link(root: Path) -> str | None:
-    """The refusal message when `root` itself or an entry under it is a link, a folder under it cannot be listed, or
-    an entry cannot be stat'ed (fail closed); None when clean."""
-    if root.is_symlink() or root.is_junction():
-        return f"state root {root} is a symlink or junction; refused (A0)"
+    """The refusal message when an entry under `root` is a link, a folder under it cannot be listed, or an entry cannot
+    be stat'ed (fail closed); None when clean. `root` itself is judged by scan_links, outside the memo."""
 
     def unlisted(err: OSError) -> None:
         if not isinstance(err, FileNotFoundError):     # a folder removed since its listing holds no link
@@ -89,8 +87,12 @@ def _first_link(root: Path) -> str | None:
 
 def scan_links(root) -> None:
     """RuntimeError when `root` or any entry under it is a symlink, a junction or a hard link, or cannot be listed or
-    stat'ed. Memoised per resolved root, refusals included; a root that does not exist yet is not memoised."""
+    stat'ed. Memoised per resolved root, refusals included; a root that does not exist yet is not memoised. A root that
+    is itself a link is refused on every call and never memoised: it resolves to its target's key, so a memo verdict
+    would be shared with, or taken from, the clean target."""
     root = Path(root)
+    if root.is_symlink() or root.is_junction():
+        raise RuntimeError(f"state root {root} is a symlink or junction; refused (A0)")
     if not root.exists():
         return
     key = str(root.resolve())

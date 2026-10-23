@@ -162,6 +162,28 @@ def test_scan_links_refuses_junctions_and_hard_links():
         assert str(missing.resolve()) not in isolation._LINK_SCAN                  # scanned once it exists
 
 
+def test_scan_links_judges_a_linked_root_on_every_call():
+    """The memo is keyed on the resolved root, so a junction to a clean root shares its key: the link verdict must not
+    come from, or go into, the memo (either scan order)."""
+    with compliance_fixtures.temp_home(), _fake_quantgen() as (_state, _repo, scratch):
+        target, link = scratch / "target", scratch / "link"
+        target.mkdir()
+        (target / "f.txt").write_bytes(b"x")
+        _junction(link, target)
+        key = str(target.resolve())
+        isolation.scan_links(target)                                 # target first: clean, memoised
+        assert isolation._LINK_SCAN[key] is None
+        _refused(lambda: isolation.scan_links(link), "junction")     # the memo must not wave the junction through
+        os.environ["TRADEGEN_HOME"] = str(link)
+        _refused(isolation.state_root, "junction")
+        assert isolation._LINK_SCAN[key] is None                     # and the junction's refusal is not stored
+        isolation._LINK_SCAN.clear()
+        _refused(lambda: isolation.scan_links(link), "junction")     # junction first
+        assert key not in isolation._LINK_SCAN
+        isolation.scan_links(target)                                 # the clean target is still clean
+        assert isolation._LINK_SCAN[key] is None
+
+
 def test_scan_links_is_memoised_and_cleared_by_temp_home():
     with compliance_fixtures.temp_home() as outer, _fake_quantgen() as (state, _repo, scratch):
         root = scratch / "home"
