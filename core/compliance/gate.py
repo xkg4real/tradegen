@@ -312,7 +312,8 @@ def _grey(row, intent, ctx) -> list[str]:
         return out + [f"cap unset: {row.id}"]
     exposure = ctx.exposure.get(intent.venue)
     held = exposure.held_krw if exposure is not None else 0.0
-    others = (sum(v for k, v in exposure.reservations.items() if k != intent.reservation_id)
+    own = intent.reservation_id                     # only an intent that has a reservation excludes one
+    others = (sum(v for k, v in exposure.reservations.items() if own is None or k != own)
               if exposure is not None else 0.0)
     if held + others + intent.notional_krw > cap * ctx.equity_krw:
         out.append(f"cap exceeded: {row.id}")
@@ -406,14 +407,17 @@ def _preconditions(ctx, state) -> list[str]:
 
 
 def _positions(intent, ctx) -> list[str]:
-    """Caller-supplied positions (P19) must be finite and >= 0, and equity > 0; anything else blocks."""
+    """Caller-supplied positions (P19) must be finite and >= 0, equity > 0, and every reservation id a non-empty
+    str; anything else blocks."""
     bad = [] if _number(ctx.equity_krw) and ctx.equity_krw > 0 else ["equity_krw"]
     if type(intent.venue) is str and type(intent.symbol) is str:
         bad += [name for name, book in (("holdings", ctx.holdings), ("shorts", ctx.shorts))
                 if not _nonneg(_units(book, intent))]
         exposure = ctx.exposure.get(intent.venue)
-        if exposure is not None and not all(_nonneg(v) for v in (exposure.held_krw, *exposure.reservations.values(),
-                                                                   *exposure.promised_sell_units.values())):
+        if exposure is not None and not (
+                all(_nonneg(v) for v in (exposure.held_krw, *exposure.reservations.values(),
+                                         *exposure.promised_sell_units.values()))
+                and all(type(k) is str and k for k in exposure.reservations)):    # a reservation id is a real name
             bad.append("exposure")
     return [f"state: positions invalid ({', '.join(bad)})"] if bad else []
 

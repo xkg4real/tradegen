@@ -801,6 +801,22 @@ def test_okx_cap_age_and_auto_off_block():
     own = gate.decide(_t8_okx_buy(reservation_id="R1"), F.ctx(owner=owner, exposure={
         "okx": model.Exposure(held_krw=50_000.0, reservations={"R1": 50_000.0})}))
     assert own.verdict == model.ALLOW, own.reasons                         # its own reservation is not counted twice
+    # Only the intent's own reservation is excluded, and only when it has one: R2 alone pushes 60,000 + 50,000 over
+    # the cap; a lone big R1 is its own.
+    other = gate.decide(_t8_okx_buy(reservation_id="R1"), F.ctx(owner=owner, exposure={
+        "okx": model.Exposure(held_krw=0.0, reservations={"R1": 50_000.0, "R2": 60_000.0})}))
+    assert other.verdict == model.BLOCK and "cap exceeded: KR-OKX-SPOT" in other.reasons, other.reasons
+    lone = gate.decide(_t8_okx_buy(reservation_id="R1"), F.ctx(owner=owner, exposure={
+        "okx": model.Exposure(held_krw=0.0, reservations={"R1": 90_000.0})}))
+    assert lone.verdict == model.ALLOW, lone.reasons
+    # An intent with no reservation of its own counts every reservation, even one keyed None; such a key (or "" or
+    # a non-str) makes the positions invalid, and the cap sum alone refuses it too.
+    for key in (None, "", 7):
+        exp = {"okx": model.Exposure(held_krw=0.0, reservations={key: 900_000.0})}
+        d = gate.decide(_t8_okx_buy(), F.ctx(owner=owner, exposure=exp))
+        assert d.verdict == model.BLOCK and "state: positions invalid (exposure)" in d.reasons, (key, d.reasons)
+        assert gate._grey(_t8_row("KR-OKX-SPOT"), _t8_okx_buy(), F.ctx(owner=owner, exposure=exp)) == \
+            ["cap exceeded: KR-OKX-SPOT"], key
 
 
 def test_stale_row_blocks_new_exposure_but_not_exits():
