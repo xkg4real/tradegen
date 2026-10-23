@@ -246,7 +246,8 @@ def test_d16_rows_need_requires_live():
     assert ok.policy_ref == "D16" and ok.basis == {"legal", "policy"}
     _parse(_row(), _row(**{**lev, "policy_ref": "D160"}))          # D160 is not D16
     _parse(_row(), _row(**{**lev, "policy_ref": "D15", "treatment": "out_of_scope"}))
-    for ref in ("d16", "D-16", "D 16", "D16a", "owner decision 16", "D15,D16", "D15, D16,", 16, ["D16"]):
+    for ref in ("d16", "D-16", "D 16", "D16a", "owner decision 16", "D15,D16", "D15, D16,", 16, ["D16"],
+                "D016", "D15, D016"):
         _bad(_row(), _row(**{**lev, "policy_ref": ref}), "row T-LEV: policy_ref")
 
 

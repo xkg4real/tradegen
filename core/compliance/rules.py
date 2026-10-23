@@ -380,7 +380,7 @@ def _positive(value, where: str) -> float:
 
 _SYMBOL = re.compile(r"[A-Z0-9][A-Z0-9.\-]*")      # exact ids: no case variants of one symbol
 _CURRENCY = re.compile(r"[A-Z]{2,10}")
-_POLICY = re.compile(r"D[0-9]+(?:, D[0-9]+)*")      # owner decisions, e.g. "D16" or "D15, D16"
+_POLICY = re.compile(r"D[1-9][0-9]*(?:, D[1-9][0-9]*)*")      # owner decisions "D16" or "D15, D16"; no leading 0
 _ROW_ID = re.compile(r"[A-Z][A-Z0-9-]{0,63}")       # alerts and reasons quote it; no prose, no newlines
 
 
