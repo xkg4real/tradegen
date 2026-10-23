@@ -1,0 +1,164 @@
+# TRADEGEN instrument map (spec 5.1; plan decisions P9, P10, P11). DRAFT: only the bytes the owner signs as
+# `approved {kind: instruments}` are in force.
+# `class` is declared and must equal the class rules.py derives from asset, multiple and underlying.
+# `source` is an issuer or exchange page found in the repo research, or the UNVERIFIED marker.
+# KRX codes are quoted: the strict loader keeps 005930 a string only when it is quoted.
+# Coins: `currency` is KRW, the unit TRADEGEN values every holding in; each venue market's quote is in
+# core/odds/venues.yaml.
+schema: tradegen.instruments/1
+krx:
+  "005930":                      # Samsung Electronics common share
+    asset: krx_share
+    multiple: 1.0
+    underlying: null
+    class: share
+    cost_book: KRX_stock_book
+    currency: KRW
+    tax_basis: krx_small_holder_exempt
+    source: "UNVERIFIED: owner to confirm before approval"
+  "069500":                      # KODEX 200
+    asset: krx_etp
+    multiple: 1.0
+    underlying: index
+    class: etp_1x
+    cost_book: KRX_ETF_line
+    currency: KRW
+    tax_basis: krx_small_holder_exempt
+    source: "UNVERIFIED: owner to confirm before approval"
+  "252670":                      # KODEX 200 Futures Inverse 2X
+    asset: krx_etp
+    multiple: -2.0
+    underlying: index
+    class: etp_leveraged
+    cost_book: KRX_ETF_line
+    currency: KRW
+    tax_basis: unsupported         # futures-based leveraged ETF: tax treatment unverified
+    source: "https://www.samsungfund.com/etf/product/view.do?id=2ETF70"
+  "114800":                      # KODEX Inverse
+    asset: krx_etp
+    multiple: -1.0
+    underlying: index
+    class: etp_index_inverse
+    cost_book: KRX_ETF_line
+    currency: KRW
+    tax_basis: unsupported         # futures-based inverse ETF: tax treatment unverified
+    source: "UNVERIFIED: owner to confirm before approval"
+us:
+  TQQQ:                          # ProShares UltraPro QQQ, 3x daily
+    asset: us_etp
+    multiple: 3.0
+    underlying: index
+    class: etp_leveraged
+    cost_book: US_shares_KIS
+    currency: USD
+    tax_basis: overseas_22pct_over_2.5m
+    source: "UNVERIFIED: owner to confirm before approval"
+  SH:                            # ProShares Short S&P500, -1x daily
+    asset: us_etp
+    multiple: -1.0
+    underlying: index
+    class: etp_index_inverse
+    cost_book: US_shares_KIS
+    currency: USD
+    tax_basis: overseas_22pct_over_2.5m
+    source: "UNVERIFIED: owner to confirm before approval"
+  SPY:                           # SPDR S&P 500 ETF Trust
+    asset: us_etp
+    multiple: 1.0
+    underlying: index
+    class: etp_1x
+    cost_book: US_shares_KIS
+    currency: USD
+    tax_basis: overseas_22pct_over_2.5m
+    source: "https://www.ssga.com/us/en/intermediary/etfs/spdr-sp-500-etf-trust-spy"
+  AAPL:                          # Apple common share
+    asset: us_share
+    multiple: 1.0
+    underlying: null
+    class: share
+    cost_book: US_shares_KIS
+    currency: USD
+    tax_basis: overseas_22pct_over_2.5m
+    source: "UNVERIFIED: owner to confirm before approval"
+  IBIT:                          # iShares Bitcoin Trust (spot)
+    asset: us_etp
+    multiple: 1.0
+    underlying: crypto_spot
+    class: etp_crypto_spot
+    cost_book: US_shares_KIS
+    currency: USD
+    tax_basis: overseas_22pct_over_2.5m
+    source: "UNVERIFIED: owner to confirm before approval"
+  FBTC:                          # Fidelity Wise Origin Bitcoin Fund (spot)
+    asset: us_etp
+    multiple: 1.0
+    underlying: crypto_spot
+    class: etp_crypto_spot
+    cost_book: US_shares_KIS
+    currency: USD
+    tax_basis: overseas_22pct_over_2.5m
+    source: "UNVERIFIED: owner to confirm before approval"
+  ETHA:                          # iShares Ethereum Trust (spot)
+    asset: us_etp
+    multiple: 1.0
+    underlying: crypto_spot
+    class: etp_crypto_spot
+    cost_book: US_shares_KIS
+    currency: USD
+    tax_basis: overseas_22pct_over_2.5m
+    source: "UNVERIFIED: owner to confirm before approval"
+  GDLC:                          # Grayscale Crypto Index 5 (multi-coin spot basket)
+    asset: us_etp
+    multiple: 1.0
+    underlying: crypto_spot_basket
+    class: etp_crypto_spot
+    cost_book: US_shares_KIS
+    currency: USD
+    tax_basis: overseas_22pct_over_2.5m
+    source: "UNVERIFIED: owner to confirm before approval"
+  EZPZ:                          # Franklin Crypto Index (multi-coin spot basket)
+    asset: us_etp
+    multiple: 1.0
+    underlying: crypto_spot_basket
+    class: etp_crypto_spot
+    cost_book: US_shares_KIS
+    currency: USD
+    tax_basis: overseas_22pct_over_2.5m
+    source: "UNVERIFIED: owner to confirm before approval"
+  BITO:                          # ProShares Bitcoin Strategy (bitcoin futures)
+    asset: us_etp
+    multiple: 1.0
+    underlying: crypto_futures
+    class: etp_crypto_futures_1x
+    cost_book: US_shares_KIS
+    currency: USD
+    tax_basis: overseas_22pct_over_2.5m
+    source: "UNVERIFIED: owner to confirm before approval"
+crypto:
+  BTC:
+    asset: crypto_coin
+    multiple: 1.0
+    underlying: null
+    class: coin
+    cost_book: crypto_venue
+    currency: KRW
+    tax_basis: crypto_22pct_from_2027
+    source: "https://api.upbit.com/v1/market/all?is_details=false"
+  USDT:
+    asset: crypto_coin
+    multiple: 1.0
+    underlying: null
+    class: coin
+    cost_book: crypto_venue
+    currency: KRW
+    tax_basis: crypto_22pct_from_2027
+    source: "https://api.upbit.com/v1/market/all?is_details=false"
+  USDC:
+    asset: crypto_coin
+    multiple: 1.0
+    underlying: null
+    class: coin
+    cost_book: crypto_venue
+    currency: KRW
+    tax_basis: crypto_22pct_from_2027
+    source: "UNVERIFIED: owner to confirm before approval"

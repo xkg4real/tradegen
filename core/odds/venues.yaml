@@ -1,0 +1,49 @@
+# TRADEGEN venue facts (spec 5.1 "Venue facts"; plan decisions P1, P9, P22). DRAFT: only the bytes the owner signs
+# as `approved {kind: venues}` are in force. The compliance plan writes markets, settlement and deposits only; the
+# odds plan adds lots, minimums and ticks later, which changes this file's sha256 and needs a new approval.
+# A venue with no deposit entry for a coin credits none, so a withdrawal there fails closed.
+schema: tradegen.venues/1
+venues:
+  kis:
+    sections: [krx, us]
+    settlement: [KRW, USD]
+    quote_by_currency: true        # a KRX code trades for KRW, a US ticker for USD
+    deposits: []
+    source: "docs/superpowers/specs/2026-10-23-compliance-gate-and-odds-engine-design.md#5.1 venue facts"
+  upbit:
+    sections: [crypto]
+    settlement: [KRW]
+    markets: [[BTC, KRW], [USDT, KRW]]   # KRW-quoted only (P22)
+    default_quote: KRW
+    deposits:                       # UNVERIFIED: no repo source names the network; owner to confirm before approval
+      - {symbol: BTC, network: bitcoin, tag_required: false}
+    source: "https://api.upbit.com/v1/market/all?is_details=false"
+  bithumb:
+    sections: [crypto]
+    settlement: [KRW]
+    markets: [[BTC, KRW]]
+    default_quote: KRW
+    deposits: []
+    source: "https://api.bithumb.com/v1/market/all?isDetails=false"
+  coinone:
+    sections: [crypto]
+    settlement: [KRW]
+    markets: [[BTC, KRW]]
+    default_quote: KRW
+    deposits: []
+    source: "https://api.coinone.co.kr/public/v2/markets/KRW"
+  korbit:
+    sections: [crypto]
+    settlement: [KRW]
+    markets: [[BTC, KRW]]
+    default_quote: KRW
+    deposits: []
+    source: "UNVERIFIED: owner to confirm before approval"
+  okx:
+    sections: [crypto]
+    settlement: [USDT, USDC]
+    markets: [[BTC, USDT], [BTC, USDC]]
+    default_quote: USDT
+    deposits:                       # UNVERIFIED: no repo source names the network; owner to confirm before approval
+      - {symbol: BTC, network: bitcoin, tag_required: false}
+    source: "UNVERIFIED: owner to confirm before approval"

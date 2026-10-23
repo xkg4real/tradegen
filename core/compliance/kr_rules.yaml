@@ -1,0 +1,1090 @@
+# TRADEGEN rules table: venue rows and conduct rows (spec 5.2, 5.3; plan decisions P4, P12-P17, P23, P25).
+# DRAFT: only the bytes the owner signs as `approved {kind: rules}` are in force; `--check` diffs this file against
+# them. This is research, not legal advice: the open legal points of spec section 11 need Korean counsel.
+# effective_from (P16) is the earliest date a cited source carries for itself: a date in its URL, or the date the
+# research text gives that source (publication, notice, decision or terms update). A year alone does not count, and
+# neither does a statute's in-force date (a statute article's page counts as undated; a court decision's page counts
+# by its decision date). A row whose sources carry no such date uses the research date 2026-10-23. The comment above
+# each row names that source.
+# "2027-02-18" is the travel-rule date the FSC gives only as "about" (six months after promulgation, FSC
+# 2026-08-11); confirm it against the official gazette before relying on it.
+schema: tradegen.kr_rules/4
+scope: "Korean-resident individual, own funds only"
+known_changes: ["2026-12-03", "2027-01-01", "2027-02-18"]
+rows:
+  # effective_from: eToday 2015-05-19 (domestic verification line 14)
+  - id: KR-KIS-KRX-SHARE
+    kind: venue
+    match: {venue: [kis], asset: [krx_share], action: [buy, sell], financing: [cash]}
+    treatment: allow
+    reason: "KOSPI and KOSDAQ cash shares are legal at 1x; the daily band is 30% and the 2026 sell tax 0.20%"
+    basis: [legal]
+    sources:
+      - "https://www.etoday.co.kr/news/view/1127429"
+      - "https://www.segye.com/newsView/20260105516769"
+      - "https://biz.sbs.co.kr/amp/article/20000338432"
+    research:
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 21"
+      - "reports/Korean resident trading venue legality.md#L99"
+      - "reports/Korean resident trading venue legality.md#L137"
+    matrix_rows: [21]
+    confidence: high
+    effective_from: "2015-05-19"
+    review_by: "2026-11-23"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 21; lines 99 and 137"}]
+
+  # effective_from: eToday 2015-05-19 (domestic verification line 14)
+  - id: KR-KIS-KONEX
+    kind: venue
+    match: {venue: [kis], class: [konex_share], action: [buy, sell], financing: [cash]}
+    treatment: allow
+    reason: "KONEX cash shares are legal at 1x; the daily band is 15%, the sell tax 0.10%, and the KONEX deposit was abolished in 2022"
+    basis: [legal]
+    sources:
+      - "https://www.etoday.co.kr/news/view/1127429"
+      - "https://www.fsc.go.kr/no010101/77723"
+      - "https://www.segye.com/newsView/20260105516769"
+    research:
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 21"
+      - "reports/Korean resident trading venue legality.md#L137"
+    matrix_rows: [21]
+    confidence: high
+    effective_from: "2015-05-19"
+    review_by: "2026-11-23"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 21; line 137"}]
+
+  # effective_from: eToday 2015-05-19 (domestic verification line 14)
+  - id: KR-KIS-ETP-1X
+    kind: venue
+    match: {venue: [kis], class: [etp_1x], action: [buy, sell], financing: [cash]}
+    treatment: allow
+    reason: "Plain 1x ETFs and ETNs on KRX, and 1x US-listed ETFs through a Korean broker, are legal"
+    basis: [legal]
+    sources:
+      - "https://www.etoday.co.kr/news/view/1127429"
+      - "https://www.segye.com/newsView/20260105516769"
+      - "https://www.bok.or.kr/portal/main/contents.do?menuNo=200405"
+      - "https://www.intn.co.kr/news/articleView.html?idxno=2034122"
+      - "https://www.law.go.kr/lsLinkProc.do?lsClsCd=L&lsNm=%EC%9E%90%EB%B3%B8%EC%8B%9C%EC%9E%A5%EA%B3%BC%20%EA%B8%88%EC%9C%B5%ED%88%AC%EC%9E%90%EC%97%85%EC%97%90%20%EA%B4%80%ED%95%9C%20%EB%B2%95%EB%A5%A0%20%EC%8B%9C%ED%96%89%EB%A0%B9&joNo=018400000&mode=11"
+    research:
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 21"
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 31"
+      - "reports/Korean resident trading venue legality.md#L99"
+      - "research_notes/Korean resident trading venue legality/overseas_via_brokers.md#L24"
+    matrix_rows: [21, 31]
+    confidence: high
+    effective_from: "2015-05-19"
+    review_by: "2026-11-23"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix rows 21 and 31; line 99; overseas notes section 1"}]
+
+  # effective_from: Kakao Pay Securities notice 2026-05-08
+  - id: KR-KIS-ETP-INVERSE
+    kind: venue
+    match: {venue: [kis], class: [etp_index_inverse], action: [buy, sell], financing: [cash]}
+    treatment: allow
+    reason: "-1x index inverse ETPs fall outside the leveraged-ETP deposit: for US listings per broker notices, for KRX listings by inference only, so confirm with the broker"
+    basis: [legal]
+    sources:
+      - "https://www.kakaopaysec.com/customer/notice/dynamicBoardPageDetail.do?id=7216"
+      - "https://www.heraldk.com/article/2026051918101764619"
+      - "research_notes/Korean resident trading venue legality/domestic_securities_derivatives.md#L76"
+    research:
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 22"
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 33"
+      - "research_notes/Korean resident trading venue legality/overseas_via_brokers_verification.md#L39"
+    matrix_rows: [22, 33]
+    confidence: low
+    effective_from: "2026-05-08"
+    review_by: "2026-11-23"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix rows 22 and 33; domestic notes line 76; overseas verification line 39"}]
+
+  # effective_from: BizWatch 2025-11-17
+  - id: KR-KIS-ETP-LEV
+    kind: venue
+    match: {venue: [kis], class: [etp_leveraged], action: [buy], financing: [cash]}
+    treatment: gated
+    requires: {owner: [kofia_leveraged_1h], live: [deposit_krw_10m]}
+    max_leverage: 3.0
+    reason: "Domestic 2x and US-listed 2x and 3x ETPs need a KRW 10M deposit (US first-time buyers since 2026-05-22) and a 1h course; refused until live broker evidence exists (D16)"
+    basis: [legal, policy]
+    policy_ref: D16
+    sources:
+      - "https://news.bizwatch.co.kr/article/market/2025/11/17/0025"
+      - "https://www.heraldk.com/article/2026051918101764619"
+      - "https://fsc.go.kr/eng/pr010101/86182"
+      - "https://www.kakaopaysec.com/customer/notice/dynamicBoardPageDetail.do?id=7216"
+    research:
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 25"
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 32"
+      - "reports/Korean resident trading venue legality.md#L98"
+      - "reports/Korean resident trading venue legality.md#L135"
+      - "research_notes/Korean resident trading venue legality/domestic_securities_derivatives.md#L140"
+    matrix_rows: [25, 32]
+    confidence: high
+    effective_from: "2025-11-17"
+    review_by: "2026-11-23"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix rows 25 and 32; lines 98, 133 and 135; domestic notes line 140"}]
+
+  # effective_from: FSC via KDI EIEC and MTN 2026-07-16
+  - id: KR-KIS-SINGLE-ETP
+    kind: venue
+    match: {venue: [kis], class: [etp_single_stock], action: [buy], financing: [cash]}
+    treatment: gated
+    requires: {owner: [kofia_single_stock_3h, krx_mock_5h_5days], live: [cash_krw_30m]}
+    max_leverage: 2.0
+    reason: "Single-stock leveraged and inverse ETPs, domestic or overseas-listed, need KRW 30M in cash before every buy, a 3h course and 5h of KRX mock trading over 5 days; refused until live broker evidence exists (D16)"
+    basis: [legal, policy]
+    policy_ref: D16
+    sources:
+      - "https://eiec.kdi.re.kr/policy/materialView.do?num=284654"
+      - "https://news.mtn.co.kr/news-detail/2026071616232262750"
+      - "https://economist.co.kr/article/view/ecn202608120061"
+      - "https://fsc.go.kr/eng/pr010101/87405"
+    research:
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 26"
+      - "reports/Korean resident trading venue legality.md#L133"
+      - "reports/Korean resident trading venue legality.md#L135"
+      - "research_notes/Korean resident trading venue legality/domestic_securities_derivatives_verification.md#L20"
+    matrix_rows: [26]
+    confidence: high
+    effective_from: "2026-07-16"
+    review_by: "2026-11-23"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 26; lines 98, 133 and 135; domestic verification line 20"}]
+
+  # effective_from: FSC press reference 81456, 2024-01-12
+  - id: KR-KIS-CRYPTO-FUT-ETF
+    kind: venue
+    match: {venue: [kis], class: [etp_crypto_futures_1x], action: [buy, sell], financing: [cash]}
+    treatment: allow
+    reason: "The FSC treats overseas bitcoin-futures ETFs as permissible (2024-01-12, restated 2024-01-15); whether KIS lists BITO is unverified"
+    basis: [legal]
+    sources:
+      - "https://www.fsc.go.kr/no010101/81456"
+      - "https://fsc.go.kr/no010102/81467"
+      - "https://edaily.co.kr/News/Read?mediaCodeNo=257&newsId=01590806638757720"
+      - "https://kr.beincrypto.com/etf-42/"
+    research:
+      - "research_notes/QUANTGEN asset coverage expansion/crypto_wallets_connectivity.md#L163"
+      - "research_notes/QUANTGEN asset coverage expansion/kis_api_audit.md#L120"
+    matrix_rows: []
+    confidence: low
+    effective_from: "2024-01-12"
+    review_by: "2026-11-22"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "crypto wallets notes key question 4; KIS audit KQ5"}]
+    affected_by: ["2026-12-03"]
+
+  # effective_from: FSC press reference 81456, 2024-01-12
+  - id: KR-KIS-CRYPTO-SPOT-ETP
+    kind: venue
+    match: {venue: [kis], class: [etp_crypto_spot], action: [buy]}
+    treatment: hard_block
+    reason: "The FSC said on 2024-01-12 that brokering overseas spot crypto ETFs may breach the FSCMA, and the FSS halted GDLC and EZPZ in November 2025; selling a held position stays open (D11)"
+    basis: [legal]
+    sources:
+      - "https://www.fsc.go.kr/no010101/81456"
+      - "https://fsc.go.kr/no010102/81467"
+      - "https://www.investchosun.com/site/data/html_dir/2025/11/20/2025112080229.html"
+    research:
+      - "research_notes/QUANTGEN asset coverage expansion/crypto_wallets_connectivity.md#L163"
+      - "research_notes/QUANTGEN asset coverage expansion/kis_api_audit.md#L120"
+      - "reports/QUANTGEN asset coverage expansion.md#L64"
+    matrix_rows: []
+    confidence: low
+    effective_from: "2024-01-12"
+    review_by: "2026-11-22"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "crypto wallets notes key question 4; KIS audit KQ5; expansion report line 64"}]
+    affected_by: ["2026-12-03"]
+
+  # effective_from: FSC 2019-05-30 (the 2019 derivatives-market plan; domestic verification line 21)
+  - id: KR-KIS-KRX-DERIV
+    kind: venue
+    match: {venue: [kis], class: [krx_derivative], action: [buy, sell_short, write], financing: [cash]}
+    treatment: gated
+    requires: {owner: [kofia_derivatives_1h, krx_derivatives_mock_3h, broker_eligibility], live: [deposit_krw_10m, deposit_krw_20m]}
+    reason: "KOSPI200 futures and options need a broker deposit of KRW 10M (stage 1) or KRW 20M (stage 2: option writing, VKOSPI futures), at least 1h of course and 3h of mock trading; this row asks for the stage-2 deposit for every intent; refused until live broker evidence exists (D16)"
+    basis: [legal, policy]
+    policy_ref: D16
+    sources:
+      - "https://www.paxnet.co.kr/futures/guide"
+      - "https://www.fsc.go.kr/no010101/73717"
+      - "https://www.samsungpop.com/ux/kor/trading/giftoption/cmelinkgiftglobalmarket/futureOptionGuide.pop"
+      - "https://news.bizwatch.co.kr/article/market/2025/11/17/0025"
+    research:
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 27"
+      - "reports/Korean resident trading venue legality.md#L133"
+    matrix_rows: [27]
+    confidence: high
+    effective_from: "2019-05-30"
+    review_by: "2026-11-23"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 27; lines 98 and 133"}]
+
+  # effective_from: Asia Economy 2026-08-19
+  - id: KR-KIS-ELW
+    kind: venue
+    match: {venue: [kis], class: [elw], action: [buy], financing: [cash]}
+    treatment: gated
+    requires: {owner: [elw_course], live: [deposit_krw_15m]}
+    reason: "ELW needs a KRW 15M deposit for new clients and a course; refused until live broker evidence exists (D16)"
+    basis: [legal, policy]
+    policy_ref: D16
+    sources:
+      - "https://core.asiae.co.kr/article/2026081913544214024"
+    research:
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 28"
+      - "reports/Korean resident trading venue legality.md#L133"
+    matrix_rows: [28]
+    confidence: medium
+    effective_from: "2026-08-19"
+    review_by: "2026-11-23"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 28; lines 98 and 133"}]
+
+  # effective_from: Metro Seoul 2015-04-01
+  - id: KR-KIS-CREDIT
+    kind: venue
+    match: {venue: [kis], action: [any], financing: [credit, margin]}
+    treatment: out_of_scope
+    reason: "Credit buying is legal after broker screening (about 2.2x at the 45% deposit floor), but owner policy D15 refuses all credit"
+    basis: [policy]
+    policy_ref: D15
+    sources:
+      - "https://biz.sbs.co.kr/amp/article/20000336506"
+      - "https://www.metroseoul.co.kr/article/2015040100149"
+    research:
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 23"
+      - "reports/Korean resident trading venue legality.md#L102"
+      - "docs/superpowers/specs/2026-10-23-compliance-gate-and-odds-engine-design.md#2 D15"
+    matrix_rows: [23]
+    confidence: medium
+    effective_from: "2015-04-01"
+    review_by: "2026-11-23"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 23; lines 102 and 137; spec D15"}]
+
+  # effective_from: Kyunghyang 2021-05-02
+  - id: KR-KIS-SHORT
+    kind: venue
+    match: {venue: [kis], asset: [krx_share], action: [sell_short], financing: [cash]}
+    treatment: gated
+    requires: {owner: [short_course_30m, short_mock_1h], live: [broker_approval, collateral_105pct]}
+    reason: "Retail short selling resumed on 2025-03-31 with 105% collateral and broker approval; the 30-minute course and 1h of mock trading are the 2021 rules, unverified for 2025-26; refused until live broker evidence exists (D16)"
+    basis: [legal, policy]
+    policy_ref: D16
+    sources:
+      - "https://www.fsc.go.kr/no010101/84216"
+      - "https://www.khan.co.kr/article/202105021409001"
+      - "https://www.inews24.com/view/1362874"
+    research:
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 24"
+      - "research_notes/Korean resident trading venue legality/domestic_securities_derivatives.md#L36"
+      - "research_notes/Korean resident trading venue legality/domestic_securities_derivatives_verification.md#L18"
+    matrix_rows: [24]
+    confidence: low
+    effective_from: "2021-05-02"
+    review_by: "2026-11-23"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 24; line 137; domestic notes line 36; domestic verification line 18"}]
+
+  # effective_from: Ilgan NTN 2024-02-27
+  - id: KR-KIS-US-SHARE
+    kind: venue
+    match: {venue: [kis], asset: [us_share], action: [buy, sell], financing: [cash]}
+    treatment: allow
+    reason: "US stocks through a Korean broker are the route the law expects (Enforcement Decree Art. 184(1)); 1x cash"
+    basis: [legal]
+    sources:
+      - "https://www.bok.or.kr/portal/main/contents.do?menuNo=200405"
+      - "https://www.intn.co.kr/news/articleView.html?idxno=2034122"
+      - "https://www.law.go.kr/lsLinkProc.do?lsClsCd=L&lsNm=%EC%9E%90%EB%B3%B8%EC%8B%9C%EC%9E%A5%EA%B3%BC%20%EA%B8%88%EC%9C%B5%ED%88%AC%EC%9E%90%EC%97%85%EC%97%90%20%EA%B4%80%ED%95%9C%20%EB%B2%95%EB%A5%A0%20%EC%8B%9C%ED%96%89%EB%A0%B9&joNo=018400000&mode=11"
+    research:
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 31"
+      - "reports/Korean resident trading venue legality.md#L139"
+      - "research_notes/Korean resident trading venue legality/overseas_via_brokers.md#L18"
+    matrix_rows: [31]
+    confidence: high
+    effective_from: "2024-02-27"
+    review_by: "2026-11-23"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 31; lines 99 and 139; overseas notes section 1"}]
+
+  # effective_from: Samsung Securities notice, service opened 2024-04-15
+  - id: KR-KIS-US-OPTION
+    kind: venue
+    match: {venue: [kis], class: [option], action: [buy, sell], financing: [cash]}
+    treatment: gated
+    requires: {owner: [us_option_course_1h, us_option_mock_3h, broker_eligibility], live: []}
+    ack: per_session
+    warning: >-
+      You can lose the whole premium. A commission of US$0.99 to 5.90 a contract is 3 to 20% of a USD 30 account on
+      each side. Korean brokers offer these long only, after a 1-hour course and 3 hours of mock trading. TRADEGEN's
+      odds engine shows no odds for option legs.
+    reason: "Long-only US equity options through a Korean broker are legal after at least 1h of course and 3h of mock trading (from 2025-12-15); KIS's own long-only offer is unverified"
+    basis: [legal]
+    sources:
+      - "https://www.samsungpop.com/ux/kor/customer/notice/notice/noticeViewContent.do?MenuSeqNo=20804"
+      - "https://m.kbsec.com/go.able?linkcd=s060300010000&seq=10007347&idt=20240805"
+      - "https://www.wolyo.co.kr/news/articleView.html?idxno=316719"
+    research:
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 34"
+      - "reports/Korean resident trading venue legality.md#L101"
+      - "reports/Korean resident trading venue legality.md#L139"
+      - "research_notes/Korean resident trading venue legality/overseas_via_brokers.md#L67"
+    matrix_rows: [34]
+    confidence: low
+    effective_from: "2024-04-15"
+    review_by: "2026-11-23"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 34; lines 101 and 139; overseas notes section 3"}]
+
+  # effective_from: Samsung Securities notice, service opened 2024-04-15
+  - id: KR-KIS-US-OPTION-WRITE
+    kind: venue
+    match: {venue: [kis], class: [option], action: [write]}
+    treatment: hard_block
+    reason: "Writing options is recourse leverage (losses can exceed the account), and Korean brokers offer US options long only"
+    basis: [policy, platform]
+    sources:
+      - "https://www.samsungpop.com/ux/kor/customer/notice/notice/noticeViewContent.do?MenuSeqNo=20804"
+      - "https://m.kbsec.com/go.able?linkcd=s060300010000&seq=10007347&idt=20240805"
+    research:
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 34"
+      - "reports/Korean resident trading venue legality.md#L97"
+      - "research_notes/Korean resident trading venue legality/overseas_via_brokers.md#L73"
+    matrix_rows: [34]
+    confidence: medium
+    effective_from: "2024-04-15"
+    review_by: "2026-11-23"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 34; line 97; overseas notes line 73"}]
+
+  # effective_from: Newsis and Edaily 2017-12-06
+  - id: KR-KIS-CRYPTO-DERIV
+    kind: venue
+    match: {venue: [kis], class: [overseas_crypto_derivative], action: [any]}
+    treatment: hard_block
+    reason: "The FSC ruled on 2017-12-06 that bitcoin is not a qualifying underlying, so Korean brokers may not broker crypto derivatives; KIS shows CME crypto futures as quotes only (notice of 2025-10-21)"
+    basis: [legal]
+    sources:
+      - "https://www.newsis.com/view/NISX20171206_0000169057"
+      - "https://edaily.co.kr/News/Read?mediaCodeNo=257&newsId=02437046616155896"
+      - "https://securities.koreainvestment.com/main/customer/notice/Notice.jsp?cmd=TF04ga000002&num=45495"
+    research:
+      - "research_notes/QUANTGEN asset coverage expansion/crypto_wallets_connectivity.md#L163"
+      - "research_notes/QUANTGEN asset coverage expansion/kis_api_audit.md#L128"
+    matrix_rows: []
+    confidence: high
+    effective_from: "2017-12-06"
+    review_by: "2026-11-22"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "crypto wallets notes key question 4; KIS audit lines 128-129"}]
+    affected_by: ["2026-12-03"]
+
+  # effective_from: FSC 2023-07-19 (CFD professional-investor rule)
+  - id: KR-KIS-FUT-FX-CFD
+    kind: venue
+    match: {venue: [kis], class: [overseas_future, fx_pair, cfd], action: [any]}
+    treatment: hard_block
+    reason: "Overseas futures and FX margin are legal with conditions but are recourse leverage (losses can exceed the account); CFDs are for individual professional investors only"
+    basis: [legal, policy]
+    sources:
+      - "https://www.kiwoom.com/h/foreign/fofx/VFxMainView"
+      - "https://www.fsc.go.kr/no010101/80432"
+      - "https://casenote.kr/법령/자본시장과_금융투자업에_관한_법률/제166조의2"
+    research:
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 29"
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 30"
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 35"
+      - "reports/Korean resident trading venue legality.md#L97"
+    matrix_rows: [29, 30, 35]
+    confidence: high
+    effective_from: "2023-07-19"
+    review_by: "2026-11-23"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix rows 29, 30 and 35; lines 97 and 133"}]
+
+  # effective_from: FSC press release 2026-06-24
+  - id: KR-DOMESTIC-SPOT
+    kind: venue
+    match: {venue: [upbit, bithumb, coinone, korbit], class: [coin], action: [buy, sell], financing: [cash]}
+    treatment: allow
+    reason: "KRW spot on the FIU-registered exchanges is legal at 1x (Upbit minimum order KRW 5,000)"
+    basis: [legal]
+    sources:
+      - "https://docs.upbit.com/kr/docs/krw-market-info"
+      - "https://www.smarttoday.co.kr/ko-kr/articles/110976"
+      - "https://www.fsc.go.kr/no010101/87177"
+      - "https://casenote.kr/법령/가상자산_이용자_보호_등에_관한_법률/제10조"
+    research:
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 10"
+      - "reports/Korean resident trading venue legality.md#L143"
+      - "research_notes/Korean resident trading venue legality/crypto_domestic_and_overseas.md#L5"
+    matrix_rows: [10]
+    confidence: high
+    effective_from: "2026-06-24"
+    review_by: "2026-11-22"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 10; lines 99 and 143; crypto notes section 1"}]
+    affected_by: ["2026-12-03"]
+
+  # effective_from: BizWatch 2025-09-10
+  - id: KR-GOPAX
+    kind: venue
+    match: {venue: [gopax], action: [any]}
+    treatment: out_of_scope
+    reason: "Gopax's VASP renewal was reported pending in 2026, which conflicts with one note listing it as registered; not configured"
+    basis: [policy]
+    sources:
+      - "https://www.heraldk.com/article/2025101618140727930"
+      - "https://dealsite.co.kr/articles/163871"
+      - "https://news.bizwatch.co.kr/article/mobile/2025/09/10/0017"
+    research:
+      - "research_notes/Korean resident trading venue legality/crypto_domestic_and_overseas.md#L30"
+      - "research_notes/Korean resident trading venue legality/crypto_domestic_and_overseas.md#L45"
+      - "research_notes/Korean resident trading venue legality/crypto_domestic_and_overseas_verification.md#L34"
+      - "research_notes/QUANTGEN asset coverage expansion/crypto_wallets_connectivity.md#L18"
+    matrix_rows: []
+    confidence: low
+    effective_from: "2025-09-10"
+    review_by: "2026-11-22"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "crypto notes lines 30 and 45; crypto verification line 34; crypto wallets notes line 18"}]
+    affected_by: ["2026-12-03"]
+
+  # effective_from: FSC 2025-09-05
+  - id: KR-DOMESTIC-LENDING
+    kind: venue
+    match: {venue: [upbit, bithumb, coinone, korbit], action: [lend, borrow]}
+    treatment: out_of_scope
+    reason: "Domestic coin lending is legal under the FSC/DAXA guideline of 2025-09-05, but owner policy D15 refuses coin lending and borrowing"
+    basis: [policy]
+    policy_ref: D15
+    sources:
+      - "https://www.fsc.go.kr/no010101/85247"
+    research:
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 11"
+      - "reports/Korean resident trading venue legality.md#L102"
+      - "reports/Korean resident trading venue legality.md#L143"
+    matrix_rows: [11]
+    confidence: high
+    effective_from: "2025-09-05"
+    review_by: "2026-11-22"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 11; lines 102 and 143; spec D15"}]
+    affected_by: ["2026-12-03"]
+
+  # effective_from: Financial News 2026-07-22
+  - id: KR-DOMESTIC-CRYPTO-DERIV
+    kind: venue
+    match: {venue: [upbit, bithumb, coinone, korbit], class: [crypto_perp_or_future], action: [any]}
+    treatment: hard_block
+    reason: "Registered Korean exchanges offer no crypto futures, margin or perps, and no legal framework exists yet (the Digital Asset Basic Act is pending)"
+    basis: [platform, policy]
+    sources:
+      - "https://www.newspim.com/news/view/20260923000764"
+      - "https://www.fnnews.com/news/202607220842073088"
+    research:
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 12"
+      - "reports/Korean resident trading venue legality.md#L143"
+      - "research_notes/Korean resident trading venue legality/crypto_domestic_and_overseas.md#L11"
+    matrix_rows: [12]
+    confidence: high
+    effective_from: "2026-07-22"
+    review_by: "2026-11-22"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 12; line 143; crypto notes line 11"}]
+    affected_by: ["2026-12-03"]
+
+  # effective_from: FSC press release 2026-06-24
+  - id: KR-TRANSFER-OUT
+    kind: venue
+    match: {venue: [upbit, bithumb, coinone, korbit], class: [coin], action: [transfer_out], financing: [cash]}
+    treatment: allow
+    ack: per_transfer
+    reason: "Withdrawing coins is legal under the travel rule (KRW 1M threshold): only to an allowed or grey destination at a signed registered address, network and tag, and a grey destination needs a per-transfer acknowledgement of its warning; same-person-only rules start about 2027-02-18"
+    basis: [legal]
+    sources:
+      - "https://www.fsc.go.kr/no010101/87499"
+      - "https://www.m-economynews.com/mobile/article.html?no=69656"
+      - "https://www.law.go.kr/법령/외국환거래법/제32조"
+      - "https://www.lawtimes.co.kr/news/articleView.html?idxno=227951"
+      - "https://www.fsc.go.kr/no010101/87177"
+    research:
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 19"
+      - "reports/Korean resident trading venue legality.md#L149"
+      - "research_notes/Korean resident trading venue legality/crypto_domestic_and_overseas.md#L113"
+      - "research_notes/Korean resident trading venue legality/crypto_domestic_and_overseas_verification.md#L27"
+    matrix_rows: [19]
+    confidence: low
+    effective_from: "2026-06-24"
+    effective_until: "2027-02-18"
+    review_by: "2026-11-22"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 19; lines 149 and 154-156; crypto notes lines 113-130; crypto verification lines 27-28"}]
+    affected_by: ["2026-12-03", "2027-02-18"]
+
+  # effective_from: ZDNet Korea 2026-01-15
+  - id: KR-OKX-SPOT
+    kind: venue
+    match: {venue: [okx], class: [coin], action: [buy, sell], financing: [cash]}
+    treatment: grey
+    requires: {owner: [age_of_majority], live: []}
+    ack: per_session
+    grey: {cap_key: okx_equity_share, auto_off: "2026-12-03"}
+    warning: >-
+      OKX is not registered with Korea's FIU. The FSC tells users of unregistered exchanges to withdraw their money. You
+      get no Korean user protection, and withdrawals can be frozen. Upbit may stop transfers to OKX without notice. New
+      rules start on 2026-12-03 and about 2027-02-18. TRADEGEN turns OKX off on 2026-12-03 and caps everything you hold
+      on OKX at {cap} of your equity.
+    reason: "Operator unregistered with the FIU; no user penalty found; the FIU contests transfers to it; OKX restricts only derivatives and P2P for South Korea; the end date about 2027-02-18 is approximate"
+    basis: [legal]
+    sources:
+      - "https://www.fsc.go.kr/no010101/87177"
+      - "https://www.okx.com/help/risk-compliance-disclosure"
+      - "https://finance.biggo.com/news/84ec048d-c755-4cb1-9e6a-0d38fddb7920"
+      - "https://zdnet.co.kr/view/?no=20260115160058"
+      - "https://news.mtn.co.kr/article/2026102222290942305"
+      - "https://www.fsc.go.kr/no010101/87499"
+      - "https://www.lawtimes.co.kr/news/articleView.html?idxno=227951"
+    research:
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 14"
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 13"
+      - "reports/Korean resident trading venue legality.md#L145"
+      - "research_notes/Korean resident trading venue legality/crypto_domestic_and_overseas.md#L84"
+      - "research_notes/QUANTGEN asset coverage expansion/crypto_wallets_connectivity.md#L79"
+    matrix_rows: [14]
+    confidence: low
+    effective_from: "2026-01-15"
+    effective_until: "2027-02-18"
+    review_by: "2026-11-22"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix rows 13-15 and 19; lines 145 and 149; crypto notes section 3; crypto wallets notes line 79"}]
+    affected_by: ["2026-12-03", "2027-02-18"]
+
+  # effective_from: FSC press release 2026-06-24
+  - id: KR-OKX-WITHDRAW
+    kind: venue
+    match: {venue: [okx], class: [coin], action: [transfer_out]}
+    treatment: out_of_scope
+    reason: "Exit only (D11): coins leave OKX only to Upbit, Bithumb, Coinone or Korbit at a registered address, network and tag, which the gate treats as a withdrawal exit; any other destination is refused. Bithumb's new-customer transfer restriction is stayed pending litigation"
+    basis: [legal, policy]
+    policy_ref: D11
+    sources:
+      - "https://www.okx.com/help/risk-compliance-disclosure"
+      - "https://www.fsc.go.kr/no010101/87177"
+      - "https://www.fsc.go.kr/no010101/87499"
+      - "https://www.lawtimes.co.kr/news/articleView.html?idxno=227951"
+      - "https://news.mtn.co.kr/article/2026102222290942305"
+    research:
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 14"
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 19"
+      - "reports/Korean resident trading venue legality.md#L145"
+      - "research_notes/Korean resident trading venue legality/crypto_domestic_and_overseas_verification.md#L33"
+    matrix_rows: [14, 19]
+    confidence: medium
+    effective_from: "2026-06-24"
+    review_by: "2026-11-22"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix rows 14 and 19; lines 145 and 149; crypto verification line 33"}]
+    affected_by: ["2026-12-03", "2027-02-18"]
+
+  # effective_from: BigGo Finance 2026-07-26
+  - id: KR-OKX-DERIV
+    kind: venue
+    match: {venue: [okx], class: [crypto_perp_or_future], action: [any]}
+    treatment: hard_block
+    reason: "OKX's own disclosure restricts its derivatives services for South Korea"
+    basis: [platform]
+    sources:
+      - "https://www.okx.com/help/risk-compliance-disclosure"
+      - "https://finance.biggo.com/news/84ec048d-c755-4cb1-9e6a-0d38fddb7920"
+    research:
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 14"
+      - "reports/Korean resident trading venue legality.md#L94"
+      - "research_notes/Korean resident trading venue legality/crypto_domestic_and_overseas_verification.md#L41"
+    matrix_rows: [14]
+    confidence: high
+    effective_from: "2026-07-26"
+    review_by: "2026-11-22"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 14; lines 94 and 145; crypto verification line 41"}]
+    affected_by: ["2026-12-03"]
+
+  # effective_from: BigGo Finance 2026-07-26
+  - id: KR-OKX-P2P
+    kind: venue
+    match: {venue: [okx], action: [p2p_buy, p2p_sell]}
+    treatment: hard_block
+    reason: "OKX's own disclosure restricts its P2P services for South Korea"
+    basis: [platform]
+    sources:
+      - "https://www.okx.com/help/risk-compliance-disclosure"
+      - "https://finance.biggo.com/news/84ec048d-c755-4cb1-9e6a-0d38fddb7920"
+    research:
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 14"
+      - "reports/Korean resident trading venue legality.md#L145"
+      - "research_notes/Korean resident trading venue legality/crypto_domestic_and_overseas_verification.md#L41"
+    matrix_rows: [14]
+    confidence: high
+    effective_from: "2026-07-26"
+    review_by: "2026-11-22"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 14; line 145; crypto verification line 41"}]
+    affected_by: ["2026-12-03"]
+
+  # effective_from: Herald 2026-04-29
+  - id: KR-OFFSHORE-CEX
+    kind: venue
+    match: {venue: [binance, bybit, bitget], action: [any]}
+    treatment: out_of_scope
+    reason: "Binance, Bybit and Bitget are unregistered in Korea (grey for the user, and the FIU contests transfers to them); owner policy D10 keeps them out of scope"
+    basis: [policy]
+    policy_ref: D10
+    sources:
+      - "https://www.fsc.go.kr/no010101/87177"
+      - "https://news.mtn.co.kr/article/2026102222290942305"
+      - "https://www.heraldk.com/article/2026042922291956837"
+    research:
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 13"
+      - "reports/Korean resident trading venue legality.md#L103"
+      - "reports/Korean resident trading venue legality.md#L145"
+    matrix_rows: [13]
+    confidence: low
+    effective_from: "2026-04-29"
+    review_by: "2026-11-22"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 13; lines 103 and 145; spec D10"}]
+    affected_by: ["2026-12-03"]
+
+  # effective_from: KCSC block announced 2026-10-13 (Blockhead URL date)
+  - id: KR-STATE-BLOCKED
+    kind: venue
+    match: {venue: [kucoin, mexc, phemex, xtcom, bitrue, coinw, poloniex, btcc, bingx, digifinex], action: [any]}
+    treatment: hard_block
+    reason: "Korea blocked 27 unregistered exchange websites on 2026-10-13; the research names only these 10, so the other 17 are refused as unknown venues rather than listed here"
+    basis: [legal]
+    sources:
+      - "https://www.blockmedia.co.kr/archives/1150776"
+      - "https://biz.sbs.co.kr/amp/article/20000339576"
+      - "https://www.blockhead.co/2026/10/13/south-korea-blocks-websites-of-27-unregistered-overseas-exchanges-including-kucoin-mexc-bingx/"
+    research:
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 15"
+      - "reports/Korean resident trading venue legality.md#L145"
+      - "research_notes/Korean resident trading venue legality/crypto_domestic_and_overseas.md#L149"
+      - "research_notes/Korean resident trading venue legality/crypto_domestic_and_overseas_verification.md#L25"
+    matrix_rows: [15]
+    confidence: high
+    effective_from: "2026-10-13"
+    review_by: "2026-11-22"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 15; lines 94 and 145; crypto notes line 149; crypto verification line 25"}]
+    affected_by: ["2026-12-03"]
+
+  # effective_from: FSC press release 2025-03-26
+  - id: KR-BITMART
+    kind: venue
+    match: {venue: [bitmart], action: [any]}
+    treatment: hard_block
+    reason: "BitMart's app was among the 17 blocked on Google Play at the FIU's request in March 2025; Korean reports of the 2026-10-13 website block do not name it"
+    basis: [legal]
+    sources:
+      - "https://www.fsc.go.kr/no010101/84237"
+      - "https://www.mt.co.kr/stock/2025/03/26/2025032616073587057"
+    research:
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 15"
+      - "reports/Korean resident trading venue legality.md#L145"
+      - "research_notes/QUANTGEN asset coverage expansion/crypto_wallets_connectivity.md#L77"
+    matrix_rows: [15]
+    confidence: medium
+    effective_from: "2025-03-26"
+    review_by: "2026-11-22"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 15; line 145; crypto wallets notes line 77"}]
+    affected_by: ["2026-12-03"]
+
+  # effective_from: Hyperliquid terms, last updated 2026-06-15
+  - id: KR-HYPERLIQUID
+    kind: venue
+    match: {venue: [hyperliquid], action: [any]}
+    treatment: out_of_scope
+    reason: "Hyperliquid perps are grey (its terms do not name Korea; up to 40x); owner policy D10 keeps them out of scope, and enabling them needs a reviewed grey row with age 19+ and a liquidation-price warning; its outcome markets are hard-blocked by KR-CONDUCT-EVENT"
+    basis: [policy]
+    policy_ref: D10
+    sources:
+      - "https://app.hyperliquid.xyz/terms"
+      - "https://hyperliquid.gitbook.io/hyperliquid-docs/trading/margin-tiers"
+      - "https://casenote.kr/법령/가상자산_이용자_보호_등에_관한_법률/제19조"
+    research:
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 16"
+      - "reports/Korean resident trading venue legality.md#L82"
+      - "reports/Korean resident trading venue legality.md#L147"
+    matrix_rows: [16]
+    confidence: low
+    effective_from: "2026-06-15"
+    review_by: "2026-11-22"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 16; lines 82, 103 and 147; spec D10"}]
+    affected_by: ["2026-12-03"]
+
+  # effective_from: pump.fun terms, updated 2026-10-17
+  - id: KR-DEX
+    kind: venue
+    match: {venue: [pumpfun, jupiter, uniswap], action: [any]}
+    treatment: out_of_scope
+    reason: "pump.fun, Jupiter and Uniswap are grey (pump.fun's terms do not name South Korea and need the age of majority, 19); owner policy D10 keeps them out of scope, and enabling them needs age 19+ and no auto-buy of new tokens"
+    basis: [policy]
+    policy_ref: D10
+    sources:
+      - "https://pump.fun/docs/terms-and-conditions"
+    research:
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 17"
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 18"
+      - "reports/Korean resident trading venue legality.md#L83"
+      - "research_notes/Korean resident trading venue legality/crypto_domestic_and_overseas_verification.md#L30"
+    matrix_rows: [17, 18]
+    confidence: medium
+    effective_from: "2026-10-17"
+    review_by: "2026-11-22"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix rows 17 and 18; lines 83, 103 and 147; crypto verification lines 29-30"}]
+    affected_by: ["2026-12-03"]
+
+  # effective_from: Newsis 2026-08-18
+  - id: KR-DRIFT
+    kind: venue
+    match: {venue: [drift], action: [any]}
+    treatment: out_of_scope
+    reason: "Drift BET outcome markets are illegal in substance and hard-blocked by KR-CONDUCT-EVENT; Drift perps were not researched; owner policy D10 keeps Drift out of scope"
+    basis: [policy]
+    policy_ref: D10
+    sources:
+      - "https://www.newsis.com/view/NISX20260818_0003752716"
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 5"
+    research:
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 5"
+      - "reports/Korean resident trading venue legality.md#L92"
+    matrix_rows: [5]
+    confidence: low
+    effective_from: "2026-08-18"
+    review_by: "2026-11-22"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 5; lines 92 and 123; spec D10"}]
+    affected_by: ["2026-12-03"]
+
+  # effective_from: Kalshi Member Agreement S3 copy, last modified 2025-10-10
+  - id: KR-PREDICTION
+    kind: venue
+    match: {venue: [polymarket, kalshi, limitless, myriad, opinion, predictfun, robinhood, cryptocom, predictit], action: [any]}
+    treatment: hard_block
+    reason: "Staking on an event outcome is gambling under Criminal Act Art. 246, and police referred 18 Polymarket users to prosecutors in 2026; Kalshi's terms exclude members where trading is unlawful, and FSCMA Enforcement Decree Art. 184(1) may also apply; Kalshi perps, Robinhood, Crypto.com and PredictIt serve US customers only"
+    basis: [legal, platform]
+    sources:
+      - "https://www.newsis.com/view/NISX20260818_0003752716"
+      - "https://www.kwnews.co.kr/article/20260917501775"
+      - "https://www.law.go.kr/lsLinkProc.do?lsClsCd=L&lsNm=%ED%98%95%EB%B2%95&joNo=024600000&mode=11"
+      - "https://www.law.go.kr/lsLinkProc.do?lsClsCd=L&lsNm=%EC%9E%90%EB%B3%B8%EC%8B%9C%EC%9E%A5%EA%B3%BC%20%EA%B8%88%EC%9C%B5%ED%88%AC%EC%9E%90%EC%97%85%EC%97%90%20%EA%B4%80%ED%95%9C%20%EB%B2%95%EB%A5%A0%20%EC%8B%9C%ED%96%89%EB%A0%B9&joNo=018400000&mode=11"
+      - "https://docs.polymarket.com/api-reference/geoblock"
+      - "https://kalshi-public-docs.s3.amazonaws.com/kalshi-member-agreement.pdf"
+      - "https://web.archive.org/web/20260222050154/https://kalshi.com/docs/kalshi-member-agreement.pdf"
+      - "https://help.kalshi.com/en/articles/15357656-applying-for-perpetuals-access"
+      - "https://www.bonus.com/prediction-markets/crypto-com/"
+      - "https://cryptoslate.com/prediction-markets/predictit-review/"
+      - "https://tradeinformer.com/newsletter/limitless-predict-opinion-myriad-offshore-prediction-markets-are-already-here"
+    research:
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 1"
+      - "reports/Korean resident trading venue legality.md#L92"
+      - "reports/Korean resident trading venue legality.md#L123"
+      - "reports/Korean resident trading venue legality.md#L127"
+      - "research_notes/Korean resident trading venue legality/prediction_markets_gambling_verification.md#L8"
+    matrix_rows: [1, 2, 3, 4, 5, 6]
+    confidence: medium
+    effective_from: "2025-10-10"
+    review_by: "2026-11-23"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix rows 1-6; lines 92, 123, 125 and 127; prediction-market verification lines 8-20"}]
+
+  # effective_from: Supreme Court 2022도6462, 2022-11-30
+  - id: KR-SPORTSBOOK
+    kind: venue
+    match: {venue: [sportsbook], action: [any]}
+    treatment: hard_block
+    reason: "Betting on a foreign sports site from Korea is punishable under the National Sports Promotion Act Art. 48(3), up to 5 years or KRW 50M (Supreme Court 2022도6462)"
+    basis: [legal]
+    sources:
+      - "https://law.go.kr/LSW/precInfoP.do?mode=0&precSeq=232585"
+      - "https://www.law.go.kr/lsLinkProc.do?lsClsCd=L&lsNm=%EA%B5%AD%EB%AF%BC%EC%B2%B4%EC%9C%A1%EC%A7%84%ED%9D%A5%EB%B2%95&joNo=004800000&mode=11"
+      - "https://www.law.go.kr/lsLinkProc.do?lsClsCd=L&lsNm=%ED%98%95%EB%B2%95&joNo=000300000&mode=11"
+    research:
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 7"
+      - "reports/Korean resident trading venue legality.md#L93"
+      - "reports/Korean resident trading venue legality.md#L129"
+      - "research_notes/Korean resident trading venue legality/prediction_markets_gambling_verification.md#L12"
+    matrix_rows: [7]
+    confidence: high
+    effective_from: "2022-11-30"
+    review_by: "2026-11-23"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 7; lines 93 and 129; prediction-market verification line 12"}]
+
+  # effective_from: Ilgan NTN 2024-02-27
+  - id: KR-IBKR
+    kind: venue
+    match: {venue: [ibkr], action: [any]}
+    treatment: hard_block
+    reason: "A direct foreign-broker account is grey and leans non-compliant: general investors trade foreign securities through a Korean broker (Enforcement Decree Art. 184(1)), and unreported FX transactions carry fines up to KRW 100M"
+    basis: [legal]
+    sources:
+      - "https://www.law.go.kr/법령/외국환거래법/제32조"
+      - "https://www.interactivebrokers.com/en/trading/krx-exchange.php"
+      - "https://www.intn.co.kr/news/articleView.html?idxno=2034122"
+    research:
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 36"
+      - "reports/Korean resident trading venue legality.md#L97"
+      - "reports/Korean resident trading venue legality.md#L139"
+      - "research_notes/Korean resident trading venue legality/overseas_via_brokers.md#L95"
+    matrix_rows: [36]
+    confidence: medium
+    effective_from: "2024-02-27"
+    review_by: "2026-11-23"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 36; lines 97 and 139; overseas notes section 4"}]
+
+  # effective_from: Ilgan NTN 2024-02-27
+  - id: KR-RETAIL-APPS
+    kind: venue
+    match: {venue: [moomoo, webull, etoro], action: [any]}
+    treatment: hard_block
+    reason: "Moomoo's country list omits Korea and Webull and eToro eligibility is unknown; general investors trade foreign securities through a Korean broker (FX Transaction Regulation Art. 7-33(4))"
+    basis: [legal, platform]
+    sources:
+      - "https://www.moomoo.com/us/learn/moomoo-available-countries"
+      - "https://www.intn.co.kr/news/articleView.html?idxno=2034122"
+      - "https://www.bok.or.kr/portal/main/contents.do?menuNo=200405"
+    research:
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 37"
+      - "reports/Korean resident trading venue legality.md#L94"
+      - "reports/Korean resident trading venue legality.md#L139"
+      - "research_notes/Korean resident trading venue legality/overseas_via_brokers.md#L95"
+    matrix_rows: [37]
+    confidence: medium
+    effective_from: "2024-02-27"
+    review_by: "2026-11-23"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 37; lines 94, 97 and 139; overseas notes section 4"}]
+
+  # effective_from: FSC 2023-07-19
+  - id: KR-OFFSHORE-FX-CFD
+    kind: venue
+    match: {venue: [offshore_fx_cfd], action: [any]}
+    treatment: hard_block
+    reason: "Offshore FX and CFD brokers soliciting Koreans are grey to illegal: unlicensed business for the broker, and OTC derivatives for general investors are restricted"
+    basis: [legal]
+    sources:
+      - "https://casenote.kr/법령/자본시장과_금융투자업에_관한_법률/제166조의2"
+      - "https://www.fsc.go.kr/no010101/80432"
+    research:
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 38"
+      - "reports/Korean resident trading venue legality.md#L61"
+      - "reports/Korean resident trading venue legality.md#L97"
+    matrix_rows: [38]
+    confidence: low
+    effective_from: "2023-07-19"
+    review_by: "2026-11-23"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 38; lines 61, 97 and 133"}]
+
+  # effective_from: Sports Kyunghyang 2021-07-13 (Speed-On)
+  - id: KR-LOTTERY-RACING
+    kind: venue
+    match: {venue: [betman, lotto, speedon], action: [any]}
+    treatment: out_of_scope
+    reason: "Betman, Lotto and Speed-On are legal but capped and negative-EV by design, not trading; owner policy D10 keeps them out of scope, and sports bets stay blocked by the hard-coded floor whatever this row says"
+    basis: [policy]
+    policy_ref: D10
+    sources:
+      - "https://news.tf.co.kr/read/toto/2184980.htm"
+      - "https://sports.khan.co.kr/article/202302201513003"
+      - "https://v.daum.net/v/20260206134735534"
+      - "https://biz.sbs.co.kr/amp/article/20000290213"
+      - "https://sports.khan.co.kr/article/202107131624003"
+    research:
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 8"
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 9"
+      - "reports/Korean resident trading venue legality.md#L104"
+      - "research_notes/Korean resident trading venue legality/prediction_markets_gambling_verification.md#L18"
+    matrix_rows: [8, 9]
+    confidence: high
+    effective_from: "2021-07-13"
+    review_by: "2026-11-23"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix rows 8 and 9; lines 104 and 129; prediction-market verification lines 18-19; spec D10"}]
+
+  # effective_from: Supreme Court 2002도2518, decided 2004-04-23 (feasibility verification line 16)
+  - id: KR-CONDUCT-EVENT
+    kind: conduct
+    match: {venue: [any], asset: [event_contract]}
+    treatment: hard_block
+    reason: "Staking on an event outcome is gambling under Criminal Act Art. 246, which Art. 3 applies to Korean nationals abroad, whatever the venue"
+    basis: [legal]
+    sources:
+      - "https://www.law.go.kr/lsLinkProc.do?lsClsCd=L&lsNm=%ED%98%95%EB%B2%95&joNo=024600000&mode=11"
+      - "https://www.law.go.kr/lsLinkProc.do?lsClsCd=L&lsNm=%ED%98%95%EB%B2%95&joNo=000300000&mode=11"
+      - "https://casenote.kr/대법원/2002도2518"
+      - "https://www.newsis.com/view/NISX20260818_0003752716"
+      - "https://www.kwnews.co.kr/article/20260917501775"
+    research:
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 1"
+      - "reports/Korean resident trading venue legality.md#L92"
+      - "reports/Korean resident trading venue legality.md#L125"
+    matrix_rows: [1, 2, 3, 4, 5, 6]
+    confidence: high
+    effective_from: "2004-04-23"
+    review_by: "2026-11-23"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix rows 1-6; lines 58, 92, 123 and 125"}]
+
+  # effective_from: Supreme Court 2022도6462, 2022-11-30
+  - id: KR-CONDUCT-SPORTS
+    kind: conduct
+    match: {venue: [any], asset: [sports_bet]}
+    treatment: hard_block
+    reason: "Sports-result betting outside the designated issuer is punishable under the National Sports Promotion Act Art. 26(1) and 48(3); no venue is exempted, because the hard-coded floor blocks sports bets everywhere"
+    basis: [legal]
+    sources:
+      - "https://law.go.kr/LSW/precInfoP.do?mode=0&precSeq=232585"
+      - "https://www.law.go.kr/lsLinkProc.do?lsClsCd=L&lsNm=%EA%B5%AD%EB%AF%BC%EC%B2%B4%EC%9C%A1%EC%A7%84%ED%9D%A5%EB%B2%95&joNo=004800000&mode=11"
+      - "https://www.law.go.kr/법령/국민체육진흥법/제26조"
+    research:
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 3"
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 7"
+      - "reports/Korean resident trading venue legality.md#L93"
+    matrix_rows: [3, 7]
+    confidence: high
+    effective_from: "2022-11-30"
+    review_by: "2026-11-23"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix rows 3 and 7; lines 59, 93 and 129"}]
+
+  # effective_from: Gizmodo 2026-05-30
+  - id: KR-CONDUCT-ROUTE
+    kind: conduct
+    match: {venue: [any], when: [route_not_direct]}
+    treatment: hard_block
+    reason: "TRADEGEN never routes through a VPN or proxy: that breaches platform terms and reaches state-blocked sites; a VPN is not itself illegal under any Korean statute found"
+    basis: [policy, platform]
+    sources:
+      - "https://docs.polymarket.com/api-reference/geoblock"
+      - "https://app.hyperliquid.xyz/terms"
+      - "https://gizmodo.com/polymarket-cracks-down-on-vpn-users-as-legal-pressure-intensifies-in-dozens-of-countries-2000765379"
+    research:
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 15"
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 16"
+      - "reports/Korean resident trading venue legality.md#L79"
+      - "reports/Korean resident trading venue legality.md#L94"
+      - "research_notes/Korean resident trading venue legality/prediction_markets_gambling_verification.md#L17"
+    matrix_rows: [15, 16]
+    confidence: medium
+    effective_from: "2026-05-30"
+    review_by: "2026-11-22"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix rows 15 and 16; lines 79, 94, 125 and 147; prediction-market verification line 17"}]
+    affected_by: ["2026-12-03"]
+
+  # effective_from: Supreme Court 2024도10710, decided 2024-12-12 (judgment PDF; crypto verification line 24)
+  - id: KR-CONDUCT-OTHERS
+    kind: conduct
+    match: {venue: [any], when: [on_behalf_not_self]}
+    treatment: hard_block
+    reason: "Trading or transferring crypto for others for a fee makes a person an unregistered VASP (Supreme Court 2024도10710); orders copied to followers are not trading for oneself"
+    basis: [legal]
+    sources:
+      - "https://www.segye.com/newsView/20241229510093"
+      - "https://www.scourt.go.kr/sjudge/1746602881255_162801.pdf"
+    research:
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 20"
+      - "reports/Korean resident trading venue legality.md#L95"
+      - "research_notes/Korean resident trading venue legality/crypto_domestic_and_overseas_verification.md#L38"
+    matrix_rows: [20]
+    confidence: high
+    effective_from: "2024-12-12"
+    review_by: "2026-11-22"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 20; lines 95 and 145; crypto verification line 38"}]
+    affected_by: ["2026-12-03"]
+
+  # effective_from: Supreme Court 2024도10710, decided 2024-12-12 (judgment PDF; crypto verification line 24)
+  - id: KR-CONDUCT-COPY
+    kind: conduct
+    match: {venue: [any], tag: [copy_lead, copy_follow]}
+    treatment: hard_block
+    reason: "Leading or following copy-trading is trading for others (Supreme Court 2024도10710); TRADEGEN is single-user, own funds only"
+    basis: [legal]
+    sources:
+      - "https://www.segye.com/newsView/20241229510093"
+      - "https://www.scourt.go.kr/sjudge/1746602881255_162801.pdf"
+    research:
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 20"
+      - "reports/Korean resident trading venue legality.md#L95"
+      - "research_notes/Korean resident trading venue legality/crypto_domestic_and_overseas_verification.md#L38"
+    matrix_rows: [20]
+    confidence: high
+    effective_from: "2024-12-12"
+    review_by: "2026-11-22"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 20; lines 77 and 95; crypto verification line 38"}]
+    affected_by: ["2026-12-03"]
+
+  # effective_from: no dated source; research date 2026-10-23
+  - id: KR-CONDUCT-FX
+    kind: conduct
+    match: {venue: [any], tag: [fx_settlement]}
+    treatment: hard_block
+    reason: "Crypto-based FX settlement for others (환치기) breaches the Foreign Exchange Transactions Act where it is business-like; the exact article was not confirmed"
+    basis: [legal]
+    sources:
+      - "https://blog.decentlaw.io/crypto-foreign-exchange-law"
+      - "https://www.law.go.kr/법령/외국환거래법/제32조"
+    research:
+      - "research_notes/Korean resident trading venue legality/crypto_domestic_and_overseas.md#L112"
+      - "research_notes/Korean resident trading venue legality/crypto_domestic_and_overseas.md#L145"
+    matrix_rows: []
+    confidence: low
+    effective_from: "2026-10-23"
+    review_by: "2026-11-22"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "crypto notes section 3, lines 112 and 145"}]
+    affected_by: ["2026-12-03"]
+
+  # effective_from: FSC press release 82682, 2024-07-19 (crypto wallets notes line 293)
+  - id: KR-CONDUCT-SIGNALS
+    kind: conduct
+    match: {venue: [any], when: [publishes_signal]}
+    treatment: hard_block
+    reason: "TRADEGEN publishes no signals: automated price-moving posts fall under the Virtual Asset User Protection Act Art. 10, sports signals under the National Sports Promotion Act Art. 26(2), and sharing signals may need advisory registration, which was not researched"
+    basis: [legal, policy]
+    sources:
+      - "https://casenote.kr/법령/가상자산_이용자_보호_등에_관한_법률/제10조"
+      - "https://www.fsc.go.kr/no010101/82682"
+      - "https://www.law.go.kr/법령/국민체육진흥법/제26조"
+    research:
+      - "reports/Korean resident trading venue legality.md#L76"
+      - "reports/Korean resident trading venue legality.md#L77"
+      - "reports/Korean resident trading venue legality.md#L93"
+      - "reports/Korean resident trading venue legality.md#L96"
+      - "reports/Korean resident trading venue legality.md#L117"
+    matrix_rows: []
+    confidence: medium
+    effective_from: "2024-07-19"
+    review_by: "2026-11-22"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report lines 76, 77, 93, 96 and 117"}]
+    affected_by: ["2026-12-03"]
+
+  # effective_from: FSC press release 2026-06-24
+  - id: KR-CONDUCT-PROMOTE
+    kind: conduct
+    match: {venue: [any], tag: [unregistered_vasp_referral]}
+    treatment: hard_block
+    reason: "The FSC warned on 2026-06-24 that promoting unregistered exchanges for referral fees may be criminal (a warning, not a new rule); TRADEGEN stores and emits no referral, affiliate or invite codes"
+    basis: [legal]
+    sources:
+      - "https://www.fsc.go.kr/no010101/87177"
+      - "https://www.fnnews.com/news/202606241158060866"
+    research:
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 13"
+      - "reports/Korean resident trading venue legality.md#L95"
+      - "reports/Korean resident trading venue legality.md#L145"
+      - "research_notes/Korean resident trading venue legality/feasibility_base_rates_verification.md#L15"
+    matrix_rows: [13]
+    confidence: medium
+    effective_from: "2026-06-24"
+    review_by: "2026-11-22"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 13; lines 95 and 145; feasibility verification line 15"}]
+    affected_by: ["2026-12-03"]
+
+  # effective_from: FSC press release 82682, 2024-07-19 (crypto wallets notes line 293)
+  - id: KR-CONDUCT-MANIP
+    kind: conduct
+    match: {venue: [any], tag: [coordinated, self_match, spoof, layer, mnpi, false_statement, self_issued_coin]}
+    treatment: hard_block
+    reason: "The Virtual Asset User Protection Act Art. 10 bans insider trading, wash and matched trades, manipulation and fraud, and Art. 10(2)-(4) bind anyone; Art. 10(5) binds VASPs only, so blocking self-issued coins is owner policy"
+    basis: [legal, policy]
+    sources:
+      - "https://casenote.kr/법령/가상자산_이용자_보호_등에_관한_법률/제10조"
+      - "https://casenote.kr/법령/가상자산_이용자_보호_등에_관한_법률/제19조"
+      - "https://www.fsc.go.kr/no010101/82682"
+    research:
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 10"
+      - "reports/Korean resident trading venue legality.md#compliance-matrix row 16"
+      - "reports/Korean resident trading venue legality.md#L65"
+      - "reports/Korean resident trading venue legality.md#L96"
+      - "research_notes/Korean resident trading venue legality/crypto_domestic_and_overseas.md#L56"
+    matrix_rows: [10, 16]
+    confidence: high
+    effective_from: "2024-07-19"
+    review_by: "2026-11-22"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix rows 10 and 16; lines 65, 78 and 96; crypto notes section 2"}]
+    affected_by: ["2026-12-03"]
