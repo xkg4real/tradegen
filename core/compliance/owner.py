@@ -422,3 +422,137 @@ def append_system_entry(kind: str, data: dict, now: datetime) -> tuple[int, str]
             fh.flush()
             os.fsync(fh.fileno())
     return body["seq"], row
+
+
+# --------------------------------------------------------------------------- #
+# Owner state (Task 12; pure): what a verified log means on a given Asia/Seoul date (spec 6.4 Events, D12)
+# --------------------------------------------------------------------------- #
+import dataclasses  # noqa: E402
+import datetime as _dt  # noqa: E402
+
+from core.compliance import model, rules  # noqa: E402
+
+_LOG_STAMP = "%Y-%m-%dT%H:%M:%SZ"
+_LIMIT_KEYS = ("total_loss_floor_krw", "daily_loss_krw")
+_TIGHTER = {"okx_equity_share": lambda new, old: new <= old,           # a smaller cap
+            "total_loss_floor_krw": lambda new, old: new >= old,       # a larger floor
+            "daily_loss_krw": lambda new, old: new <= old}             # a smaller daily loss
+
+
+def _seoul_date(utc: str) -> _dt.date:
+    """The Asia/Seoul date of a log stamp "YYYY-MM-DDTHH:MM:SSZ"."""
+    moment = _dt.datetime.strptime(utc, _LOG_STAMP).replace(tzinfo=_dt.timezone.utc)
+    return moment.astimezone(model.KST).date()
+
+
+def _majority_date(birth_date: str) -> _dt.date:
+    """The day the owner turns 19, Korea's age of majority; a 29 February birthday counts from 1 March."""
+    born = rules.parse_date(birth_date, "birth_date")
+    try:
+        return born.replace(year=born.year + 19)
+    except ValueError:
+        return _dt.date(born.year + 19, 3, 1)
+
+
+def _up_to(check: LogCheck, now_utc: str) -> LogCheck:
+    """`check` without the entries stamped after `now_utc`: a future-dated entry counts only from its stamp on."""
+    return dataclasses.replace(check, entries=tuple(e for e in check.entries if e.utc <= now_utc))
+
+
+def owner_state(check: LogCheck, *, date: _dt.date, now_utc: str, session_id: str | None,
+                fingerprint_now: str, first_recorded: tuple[str, str] | None) -> model.OwnerState:
+    """What the verified log means on Asia/Seoul `date` at `now_utc`, for `session_id`. BROKEN when the check
+    failed, when the first fingerprint recorded in alerts.jsonl is not the log's first key (P20: "KEY CHANGED
+    since <date>"), or when entry data cannot be read. Entries stamped after `now_utc` are ignored."""
+    if not check.ok:
+        return model.OwnerState.broken(check.reason, head=check.head, fingerprint=fingerprint_now)
+    if first_recorded is not None and first_recorded[0] != check.first_key_fingerprint:
+        since = first_recorded[1][:10] or "an unknown date"
+        return model.OwnerState.broken(f"KEY CHANGED since {since}", head=check.head, fingerprint=fingerprint_now)
+    try:
+        return _owner_fold(_up_to(check, now_utc).entries, date, session_id, check.head, fingerprint_now)
+    except (KeyError, TypeError, ValueError, rules.Invalid) as exc:
+        return model.OwnerState.broken(f"owner log: unreadable entry data ({type(exc).__name__})",
+                                       head=check.head, fingerprint=fingerprint_now)
+
+
+def _owner_fold(entries, day: _dt.date, session_id, head, fingerprint_now) -> model.OwnerState:
+    """D12 over the entries in log order. An unset cap or limit counts as the tightest, so setting one is a
+    loosening. A tightening applies from its entry. A loosening counts only from the Asia/Seoul date after its
+    own, only when it took effect before the first system_halt, and never inside `session_id` while that session
+    has been armed, since its last disarm, from a date on or before the loosening's. A set floor is never below the
+    highest halted floor. The latest age_of_majority entry wins."""
+    halts = [(e.seq, _seoul_date(e.utc), float(e.data["floor_krw"])) for e in entries if e.kind == "system_halt"]
+    first_halt = min(halts, default=None)
+    halt_floor = max((floor for _, _, floor in halts), default=None)
+    # session id -> Asia/Seoul date of its first arming since its last disarm
+    armed: dict[str, _dt.date] = {}
+    for e in entries:
+        if e.kind == "session_armed":
+            armed.setdefault(e.data["session_id"], _seoul_date(e.utc))
+        elif e.kind == "system_disarm":
+            armed.pop(e.data["session_id"], None)
+    mine = armed.get(session_id) if session_id is not None else None
+
+    def loosening_counts(e) -> bool:
+        on = _seoul_date(e.utc)
+        return (on < day
+                and (first_halt is None or (e.seq < first_halt[0] and on < first_halt[1]))
+                and (mine is None or mine > on))
+
+    values: dict[str, float] = {}
+    majority: _dt.date | None = None
+    flags, addresses, session_acks, transfer_acks = set(), set(), set(), set()
+    for e in entries:
+        d = e.data
+        if e.kind in ("cap_set", "limit_set"):
+            pairs = [(d["key"], d["value"])] if e.kind == "cap_set" else [(k, d[k]) for k in _LIMIT_KEYS]
+            for key, value in pairs:
+                value, old = float(value), values.get(key)
+                if key in _TIGHTER and ((old is not None and _TIGHTER[key](value, old)) or loosening_counts(e)):
+                    values[key] = value
+        elif e.kind == "age_of_majority":
+            majority = _majority_date(d["birth_date"])             # every entry is parsed; the latest wins
+        elif e.kind == "course_completed":
+            flags.add(d["course"])
+        elif e.kind == "broker_approval":
+            flags.add(d["item"])
+        elif e.kind == "withdrawal_address":
+            addresses.add((d["venue"], d["symbol"], d["network"], d["address"], d["tag"] or ""))
+        elif e.kind == "session_ack":
+            session_acks.add((d["session_id"], d["row_id"], d["warning_sha256"]))
+        elif e.kind == "transfer_ack":
+            transfer_acks.add((d["intent_hash"], d["warning_sha256"]))
+    if majority is not None and majority <= day:
+        flags.add("age_of_majority")
+    if halt_floor is not None and "total_loss_floor_krw" in values:     # never below a halted floor, for good (D12)
+        values["total_loss_floor_krw"] = max(values["total_loss_floor_krw"], halt_floor)
+    return model.OwnerState(
+        status="OK", head=head, caps={k: v for k, v in values.items() if k == "okx_equity_share"},
+        limits={k: v for k, v in values.items() if k in _LIMIT_KEYS}, addresses=frozenset(addresses),
+        flags=frozenset(flags), halted_floors=frozenset(floor for _, _, floor in halts),
+        armed_sessions=frozenset(armed), session_acks=frozenset(session_acks),
+        transfer_acks=frozenset(transfer_acks), fingerprint=fingerprint_now)
+
+
+def in_force(check: LogCheck) -> dict[str, tuple[str, int]]:
+    """kind -> (sha256, seq) of the latest signed `approved` entry of each kind (spec 5.2 What is in force).
+    A superseded hash counts again only when a new entry signs it. A broken log approves nothing."""
+    out: dict[str, tuple[str, int]] = {}
+    for e in check.entries if check.ok else ():
+        if e.kind == "approved":
+            out[e.data["kind"]] = (e.data["sha256"], e.seq)
+    return out
+
+
+def history(check: LogCheck, kind: str) -> list[tuple[str, int]]:
+    """The earlier `approved` entries of `kind` as (sha256, seq), newest first; the one in force is left out."""
+    found = [(e.data["sha256"], e.seq) for e in (check.entries if check.ok else ())
+             if e.kind == "approved" and e.data["kind"] == kind]
+    return found[-2::-1]
+
+
+def code_approval(check: LogCheck) -> str | None:
+    """The sha256 named by the latest code_approved entry, or None."""
+    found = [e.data["sha256"] for e in (check.entries if check.ok else ()) if e.kind == "code_approved"]
+    return found[-1] if found else None

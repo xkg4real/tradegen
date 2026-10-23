@@ -593,3 +593,254 @@ def test_no_line_is_written_outside_the_temp_home():
     written = sorted(p.relative_to(home).as_posix() for p in home.rglob("*"))
     assert written == ["compliance", "compliance/owner.jsonl", "compliance/owner.jsonl.lock"], written
     assert _listing(real) == before
+
+
+# --------------------------------------------------------------------------- #
+# Task 12: owner state with D12, and the approvals in force. Pure: hand-built LogChecks, no key, no file.
+# --------------------------------------------------------------------------- #
+import datetime as _dt  # noqa: E402
+
+from core.compliance import model, owner  # noqa: E402
+
+_HA, _HB, _HC = "a" * 64, "b" * 64, "c" * 64
+
+
+def _state_kst(y: int, m: int, d: int, hh: int = 12, mm: int = 0, ss: int = 0) -> _dt.datetime:
+    return _dt.datetime(y, m, d, hh, mm, ss, tzinfo=model.KST)
+
+
+def _state_stamp(at: _dt.datetime) -> str:
+    return at.astimezone(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _state_log(*rows, first_fp: str = "SHA256:first") -> owner.LogCheck:
+    """A LogCheck that passed verification, over (kind, data, Asia/Seoul moment) rows numbered from seq 1."""
+    entries = tuple(owner.Entry(seq=n, utc=_state_stamp(at), kind=kind, data=data, row_sha256=f"{n:064x}",
+                                signed=kind not in owner.SYSTEM_KINDS)
+                    for n, (kind, data, at) in enumerate(rows, start=1))
+    head = (len(entries), entries[-1].row_sha256) if entries else (0, "")
+    return owner.LogCheck(ok=True, reason="", entries=entries, head=head, first_key_fingerprint=first_fp)
+
+
+def _state_at(check: owner.LogCheck, at: _dt.datetime, *, session_id=None, first_recorded=None):
+    return owner.owner_state(check, date=at.date(), now_utc=_state_stamp(at), session_id=session_id,
+                             fingerprint_now="SHA256:now", first_recorded=first_recorded)
+
+
+def _state_cap(value: float, at: _dt.datetime):
+    return ("cap_set", {"key": "okx_equity_share", "value": value}, at)
+
+
+def _state_limits(floor: float, daily: float, at: _dt.datetime):
+    return ("limit_set", {"total_loss_floor_krw": floor, "daily_loss_krw": daily}, at)
+
+
+def _state_approved(kind: str, sha: str, at: _dt.datetime):
+    return ("approved", {"kind": kind, "sha256": sha}, at)
+
+
+def test_state_in_force_takes_the_latest_approval_per_kind():
+    check = _state_log(_state_approved("rules", _HA, _state_kst(2026, 10, 1)),
+                       _state_approved("rules", _HB, _state_kst(2026, 10, 2)),
+                       _state_approved("instruments", _HC, _state_kst(2026, 10, 3)))
+    assert owner.in_force(check) == {"rules": (_HB, 2), "instruments": (_HC, 3)}
+    assert owner.history(check, "rules") == [(_HA, 1)], "the older hash is history only"
+    assert owner.history(check, "instruments") == [] and owner.history(check, "venues") == []
+
+
+def test_state_superseded_hash_counts_only_when_signed_again():
+    rows = [_state_approved("rules", _HA, _state_kst(2026, 10, 1)),
+            _state_approved("rules", _HB, _state_kst(2026, 10, 2))]
+    assert owner.in_force(_state_log(*rows))["rules"] == (_HB, 2)
+    again = _state_log(*rows, _state_approved("rules", _HA, _state_kst(2026, 10, 3)))
+    assert owner.in_force(again)["rules"] == (_HA, 3), "a new signed entry puts the old hash back in force"
+    assert owner.history(again, "rules") == [(_HB, 2), (_HA, 1)]
+
+
+def test_state_code_approval_is_the_latest():
+    assert owner.code_approval(_state_log()) is None
+    check = _state_log(("code_approved", {"sha256": _HA, "files": [["core/x.py", _HB]]}, _state_kst(2026, 10, 1)),
+                       ("code_approved", {"sha256": _HC, "files": [["core/x.py", _HA]]}, _state_kst(2026, 10, 2)))
+    assert owner.code_approval(check) == _HC
+
+
+def test_state_broken_check_means_no_owner_state():
+    signed = _state_log(_state_approved("rules", _HA, _state_kst(2026, 10, 1)),
+                        _state_approved("rules", _HB, _state_kst(2026, 10, 2)),
+                        ("code_approved", {"sha256": _HC, "files": [["core/x.py", _HA]]}, _state_kst(2026, 10, 3)),
+                        _state_cap(0.10, _state_kst(2026, 10, 4)))
+    broken = owner.LogCheck(ok=False, reason="line 3: bad signature on cap_set", entries=signed.entries,
+                            head=signed.head, first_key_fingerprint="")
+    state = _state_at(broken, _state_kst(2026, 10, 24))
+    assert state.status == "BROKEN" and not state.ok and state.reason == "line 3: bad signature on cap_set"
+    assert state.caps == {} and state.flags == frozenset() and state.fingerprint == "SHA256:now"
+    assert owner.in_force(broken) == {}, "a broken log's entries count for nothing"
+    assert owner.history(broken, "rules") == [] and owner.code_approval(broken) is None
+
+
+def test_state_cap_tightens_at_once():
+    check = _state_log(_state_cap(0.20, _state_kst(2026, 10, 20, 10)), _state_cap(0.10, _state_kst(2026, 10, 24, 10)))
+    assert _state_at(check, _state_kst(2026, 10, 20, 11)).caps == {}, "unset is the tightest: setting one waits"
+    assert _state_at(check, _state_kst(2026, 10, 21, 0)).caps == {"okx_equity_share": 0.20}
+    assert _state_at(check, _state_kst(2026, 10, 24, 9)).caps == {"okx_equity_share": 0.20}, "not stamped yet"
+    assert _state_at(check, _state_kst(2026, 10, 24, 10)).caps == {"okx_equity_share": 0.10}, "stamped this second"
+
+
+def test_state_cap_loosens_from_the_next_asia_seoul_date():
+    loosen = _state_kst(2026, 10, 24, 0, 30)
+    assert _state_stamp(loosen) == "2026-10-23T15:30:00Z", "still 23 October in UTC"
+    check = _state_log(_state_cap(0.10, _state_kst(2026, 10, 20)), _state_cap(0.30, loosen))
+    assert _state_at(check, _state_kst(2026, 10, 24, 12)).caps == {"okx_equity_share": 0.10}
+    assert _state_at(check, _state_kst(2026, 10, 24, 23, 59, 59)).caps == {"okx_equity_share": 0.10}
+    assert _state_at(check, _state_kst(2026, 10, 25, 0, 0, 0)).caps == {"okx_equity_share": 0.30}
+
+
+def test_state_loosening_waits_while_the_session_is_armed():
+    rows = [_state_cap(0.10, _state_kst(2026, 10, 20)),
+            ("session_armed", {"session_id": "S1"}, _state_kst(2026, 10, 22, 10)),
+            _state_cap(0.30, _state_kst(2026, 10, 22, 12)),
+            ("session_armed", {"session_id": "S2"}, _state_kst(2026, 10, 22, 13)),
+            ("session_armed", {"session_id": "S3"}, _state_kst(2026, 10, 23, 10))]
+    check, at = _state_log(*rows), _state_kst(2026, 10, 24)
+    assert _state_at(check, at).armed_sessions == {"S1", "S2", "S3"}
+    assert _state_at(check, at, session_id="S1").caps == {"okx_equity_share": 0.10}, "armed before it"
+    assert _state_at(check, at, session_id="S2").caps == {"okx_equity_share": 0.10}, "armed on its date"
+    assert _state_at(check, at, session_id="S3").caps == {"okx_equity_share": 0.30}, "armed after it took effect"
+    assert _state_at(check, at).caps == {"okx_equity_share": 0.30}, "no session: the loosening counts"
+    disarmed = _state_log(*rows, ("system_disarm", {"session_id": "S1", "reason": "session end"},
+                                  _state_kst(2026, 10, 23, 12)))
+    assert _state_at(disarmed, at, session_id="S1").caps == {"okx_equity_share": 0.30}
+    rearmed = _state_log(*rows, ("session_armed", {"session_id": "S1"}, _state_kst(2026, 10, 23, 11)))
+    assert _state_at(rearmed, at, session_id="S1").caps == {"okx_equity_share": 0.10}, "still armed from 22 October"
+
+
+def test_state_no_loosening_after_a_halt():
+    check = _state_log(_state_limits(21_000.0, 5_000.0, _state_kst(2026, 10, 10)),
+                       _state_cap(0.10, _state_kst(2026, 10, 10)),
+                       _state_cap(0.20, _state_kst(2026, 10, 12)),
+                       _state_cap(0.30, _state_kst(2026, 10, 14, 10)),
+                       ("system_halt", {"floor_krw": 21_000.0}, _state_kst(2026, 10, 14, 20)),
+                       _state_limits(10_000.0, 5_000.0, _state_kst(2026, 10, 16)),
+                       _state_cap(0.40, _state_kst(2026, 10, 16)))
+    state = _state_at(check, _state_kst(2026, 10, 24))
+    assert state.halted_floors == {21_000.0}
+    assert state.limits == {"total_loss_floor_krw": 21_000.0, "daily_loss_krw": 5_000.0}, "the floor stays"
+    assert state.caps == {"okx_equity_share": 0.20}, "0.20 took effect before the halt; 0.30 and 0.40 never do"
+    tighter = _state_log(_state_limits(21_000.0, 5_000.0, _state_kst(2026, 10, 10)),
+                         ("system_halt", {"floor_krw": 21_000.0}, _state_kst(2026, 10, 14)),
+                         _state_limits(30_000.0, 4_000.0, _state_kst(2026, 10, 24, 9)))
+    assert _state_at(tighter, _state_kst(2026, 10, 24, 10)).limits == {
+        "total_loss_floor_krw": 30_000.0, "daily_loss_krw": 4_000.0}, "a tightening still applies at once"
+
+
+def test_state_floor_loosening_below_a_halted_floor_is_ignored():
+    check = _state_log(_state_limits(21_000.0, 5_000.0, _state_kst(2026, 10, 10)),
+                       _state_limits(15_000.0, 5_000.0, _state_kst(2026, 10, 12)),     # in effect from 13 October
+                       ("system_halt", {"floor_krw": 21_000.0}, _state_kst(2026, 10, 14)))
+    assert _state_at(check, _state_kst(2026, 10, 13)).limits["total_loss_floor_krw"] == 15_000.0
+    assert _state_at(check, _state_kst(2026, 10, 24)).limits["total_loss_floor_krw"] == 21_000.0, "for good"
+    twice = _state_log(_state_limits(21_000.0, 5_000.0, _state_kst(2026, 10, 1)),
+                       ("system_halt", {"floor_krw": 21_000.0}, _state_kst(2026, 10, 5)),
+                       _state_limits(30_000.0, 5_000.0, _state_kst(2026, 10, 6)),
+                       ("system_halt", {"floor_krw": 30_000.0}, _state_kst(2026, 10, 8)))
+    assert _state_at(twice, _state_kst(2026, 10, 24)).limits == {
+        "total_loss_floor_krw": 30_000.0, "daily_loss_krw": 5_000.0}, "a second halt keeps the tightened floor"
+    only_halt = _state_log(("system_halt", {"floor_krw": 21_000.0}, _state_kst(2026, 10, 5)))
+    assert _state_at(only_halt, _state_kst(2026, 10, 24)).limits == {}, "an unset floor stays unset, the tightest"
+
+
+def test_state_daily_loss_tightens_and_loosens():
+    check = _state_log(_state_limits(21_000.0, 5_000.0, _state_kst(2026, 10, 10)),
+                       _state_limits(21_000.0, 3_000.0, _state_kst(2026, 10, 24, 10)),
+                       _state_limits(21_000.0, 8_000.0, _state_kst(2026, 10, 24, 12)),
+                       _state_limits(25_000.0, 9_000.0, _state_kst(2026, 10, 25, 10)))
+    assert _state_at(check, _state_kst(2026, 10, 24, 11)).limits["daily_loss_krw"] == 3_000.0
+    assert _state_at(check, _state_kst(2026, 10, 24, 13)).limits["daily_loss_krw"] == 3_000.0
+    assert _state_at(check, _state_kst(2026, 10, 25, 9)).limits["daily_loss_krw"] == 8_000.0
+    assert _state_at(check, _state_kst(2026, 10, 25, 11)).limits == {
+        "total_loss_floor_krw": 25_000.0, "daily_loss_krw": 8_000.0}, "the floor rises now, the daily loss tomorrow"
+    assert _state_at(check, _state_kst(2026, 10, 26)).limits == {
+        "total_loss_floor_krw": 25_000.0, "daily_loss_krw": 9_000.0}
+
+
+def test_state_age_of_majority_at_19():
+    check = _state_log(("age_of_majority", {"birth_date": "2007-10-24", "evidence": "id card"},
+                        _state_kst(2026, 10, 1)))
+    assert "age_of_majority" not in _state_at(check, _state_kst(2026, 10, 23, 23, 59, 59)).flags
+    assert "age_of_majority" in _state_at(check, _state_kst(2026, 10, 24, 0, 0, 0)).flags
+    leap = _state_log(("age_of_majority", {"birth_date": "2008-02-29", "evidence": "id card"},
+                       _state_kst(2026, 10, 1)))
+    assert "age_of_majority" not in _state_at(leap, _state_kst(2027, 2, 28)).flags
+    assert "age_of_majority" in _state_at(leap, _state_kst(2027, 3, 1)).flags
+    corrected = _state_log(("age_of_majority", {"birth_date": "2000-01-01", "evidence": "typo"},
+                            _state_kst(2026, 10, 1)),
+                           ("age_of_majority", {"birth_date": "2008-05-01", "evidence": "id card"},
+                            _state_kst(2026, 10, 2)))
+    assert "age_of_majority" not in _state_at(corrected, _state_kst(2026, 10, 24)).flags, "the latest entry wins"
+
+
+def test_state_course_and_broker_flags():
+    check = _state_log(("course_completed", {"course": "kofia_leveraged_1h", "evidence": "certificate"},
+                        _state_kst(2026, 10, 1)),
+                       ("broker_approval", {"item": "broker_eligibility", "evidence": "broker letter"},
+                        _state_kst(2026, 10, 2)))
+    assert _state_at(check, _state_kst(2026, 10, 24)).flags == {"kofia_leveraged_1h", "broker_eligibility"}
+
+
+def test_state_sessions_armed_until_disarmed():
+    rows = [("session_armed", {"session_id": "S1"}, _state_kst(2026, 10, 20)),
+            ("session_armed", {"session_id": "S2"}, _state_kst(2026, 10, 21)),
+            ("system_disarm", {"session_id": "S1", "reason": "kill switch"}, _state_kst(2026, 10, 22))]
+    assert _state_at(_state_log(*rows), _state_kst(2026, 10, 24)).armed_sessions == {"S2"}
+    rearmed = _state_log(*rows, ("session_armed", {"session_id": "S1"}, _state_kst(2026, 10, 23)))
+    assert _state_at(rearmed, _state_kst(2026, 10, 24)).armed_sessions == {"S1", "S2"}
+
+
+def test_state_acks_collected():
+    check = _state_log(("session_ack", {"session_id": "S1", "row_id": "KR-OKX-SPOT", "warning_sha256": _HA},
+                        _state_kst(2026, 10, 20)),
+                       ("transfer_ack", {"intent_hash": _HB, "warning_sha256": _HC}, _state_kst(2026, 10, 21)))
+    state = _state_at(check, _state_kst(2026, 10, 24))
+    assert state.session_acks == {("S1", "KR-OKX-SPOT", _HA)} and state.transfer_acks == {(_HB, _HC)}
+
+
+def test_state_addresses_use_an_empty_tag_for_null():
+    check = _state_log(("withdrawal_address", {"venue": "upbit", "symbol": "BTC", "network": "bitcoin",
+                                               "address": "bc1qtestaddress", "tag": None, "evidence": "screenshot"},
+                        _state_kst(2026, 10, 20)),
+                       ("withdrawal_address", {"venue": "upbit", "symbol": "XRP", "network": "xrp",
+                                               "address": "rTestAddress", "tag": "12345", "evidence": "screenshot"},
+                        _state_kst(2026, 10, 21)))
+    assert _state_at(check, _state_kst(2026, 10, 24)).addresses == {
+        ("upbit", "BTC", "bitcoin", "bc1qtestaddress", ""), ("upbit", "XRP", "xrp", "rTestAddress", "12345")}
+
+
+def test_state_key_changed_since_first_recorded():
+    check = _state_log(_state_cap(0.10, _state_kst(2026, 10, 1)), first_fp="SHA256:first")
+    at = _state_kst(2026, 10, 24)
+    changed = _state_at(check, at, first_recorded=("SHA256:other", "2026-10-20T00:00:00Z"))
+    assert changed.status == "BROKEN" and changed.reason == "KEY CHANGED since 2026-10-20" and changed.caps == {}
+    undated = _state_at(check, at, first_recorded=("SHA256:other", ""))
+    assert undated.reason == "KEY CHANGED since an unknown date", undated.reason
+    same = _state_at(check, at, first_recorded=("SHA256:first", "2026-10-20T00:00:00Z"))
+    assert same.ok and same.caps == {"okx_equity_share": 0.10}
+    assert _state_at(check, at).ok, "nothing recorded yet: nothing to compare"
+
+
+def test_state_future_entries_ignored():
+    at = _state_kst(2026, 10, 24)
+    check = _state_log(_state_cap(0.20, _state_kst(2026, 10, 20)), _state_cap(0.05, _state_kst(2026, 10, 25)),
+                       ("course_completed", {"course": "short_course_30m", "evidence": "certificate"},
+                        _state_kst(2026, 10, 25)),
+                       _state_approved("rules", _HA, _state_kst(2026, 10, 25)))
+    state = _state_at(check, at)
+    assert state.caps == {"okx_equity_share": 0.20} and "short_course_30m" not in state.flags
+    assert state.head == check.head, "the head is still the last line"
+    assert owner.in_force(owner._up_to(check, _state_stamp(at))) == {}, "load_context filters approvals the same way"
+
+
+def test_state_unreadable_entry_data_is_broken():
+    check = _state_log(("age_of_majority", {"birth_date": "2007/10/24", "evidence": "id card"},
+                        _state_kst(2026, 10, 1)))
+    state = _state_at(check, _state_kst(2026, 10, 24))
+    assert state.status == "BROKEN" and state.reason.startswith("owner log: unreadable entry data"), state.reason
