@@ -3,15 +3,14 @@
 Date: 2026-10-23.
 
 Status:
-- **Revision 2.**
+- **Revision 2.1**: rev 2 plus the owner decisions D11 to D14.
 - Round 1 was run on rev 1 (`6113c27`).
   - Gemini (Antigravity) said **REJECT**.
   - The Claude adversarial workflow (5 reviewers, each finding checked by a skeptic) confirmed most of the same points.
   - Both reviews are in `docs/superpowers/specs/2026-10-23-review-gate-odds/`. Appendix B gives a ruling on every
     finding.
 - GPT (Codex) referees round 2 after the Codex quota resets on 2026-10-27 19:16.
-- **Four owner decisions are marked "pending owner" (D11 to D14).** They need the owner's answer before the
-  implementation plan.
+- **The owner decided D11 to D14 on 2026-10-23**, taking the recommended option each time.
 - Implementation will be planned as two plans, compliance first and then odds, because odds depends on `screen()`.
 
 Inputs:
@@ -61,10 +60,10 @@ on these two interfaces: `decide()` / `verify_permit()` and `OddsReport`.
 | D8 | Execution is disarmed by default, armed per session by the owner only, with hard daily and total loss limits, a kill switch and an audit log. The owner adds trading-scope keys | decided; execution spec |
 | D9 | Approach A: rules as data, a pure `decide()` kernel, and a plan simulator | decided |
 | D10 | Grey venues other than OKX (Binance, Bybit, Bitget, Hyperliquid, pump.fun, Jupiter, Uniswap), and the lawful but non-trading Betman, Lotto and Speed-On, are `out_of_scope`, so they are blocked. Enabling one needs a reviewed `grey` row with the report's warning bundle (section 5.3) | follows D2/D6; stricter than the report |
-| D11 | **Exits stay open.** Stale rows, auto-off, unmet gates and caps block **new exposure only**. A reduce-only sell, or a withdrawal to an FIU-registered domestic exchange, is still allowed. Conduct rows and the hard-coded floor still apply | **pending owner** (narrows D5) |
-| D12 | **Loss limits and caps tighten at once and loosen slowly.** Raising the floor, lowering the daily limit or lowering the cap takes effect immediately. A loosening takes effect only from the next Asia/Seoul date, never inside an armed session, and never after a recorded halt | **pending owner** |
-| D13 | **Validated edges.** A strategy card counts as a "tested edge", shown in a labelled column and never in the headline, only if it is one of these: (a) a hash-chained registry verdict of PASS; or (b) a committed `validate.ModelCard` with decision PASS whose out-of-sample run TRADEGEN can re-create and re-verify. Today only (b) exists: `S_C3_crypto_trend_krwbtc`, a daily trend rule on KRW-BTC, out-of-sample Sharpe 1.22, 90% CI [0.62, 1.77] | **pending owner** |
-| D14 | **Owner confirmation.** Owner-only writes need an interactive console, with input from a TTY rather than a pipe, and the owner must retype a random code shown on screen | **pending owner** (PIN/HMAC alternative) |
+| D11 | **Exits stay open.** Stale rows, auto-off, unmet gates and caps block **new exposure only**. A reduce-only sell, or a withdrawal to an FIU-registered domestic exchange, is still allowed. Conduct rows and the hard-coded floor still apply | decided 2026-10-23 (narrows D5) |
+| D12 | **Loss limits and caps tighten at once and loosen slowly.** Raising the floor, lowering the daily limit or lowering the cap takes effect immediately. A loosening takes effect only from the next Asia/Seoul date, never inside an armed session, and never after a recorded halt | decided 2026-10-23 |
+| D13 | **Validated edges.** A strategy card counts as a "tested edge", shown in a labelled column and never in the headline, only if it is one of these: (a) a hash-chained registry verdict of PASS; or (b) a committed `validate.ModelCard` with decision PASS whose out-of-sample run TRADEGEN can re-create and re-verify. Today only (b) exists: `S_C3_crypto_trend_krwbtc`, a daily trend rule on KRW-BTC, out-of-sample Sharpe 1.22, 90% CI [0.62, 1.77] | decided 2026-10-23 |
+| D14 | **Owner confirmation.** Owner-only writes need an interactive console, with input from a TTY rather than a pipe, and the owner must retype a random code shown on screen | decided 2026-10-23 (console + retyped code; no PIN) |
 
 ## 3. The honest numbers, up front
 
@@ -455,13 +454,12 @@ class Permit:                       # only from ALLOW or ALLOW_EXIT, via permit(
    The kernel never raises. Any internal error becomes `BLOCK ("internal error: <type>")`. An invalid or unapproved
    rules table, instrument map or broken owner chain also gives BLOCK.
 2. **The hard-coded floor and the conduct rows** apply on every venue and to exits as well. Each one gives BLOCK.
-3. **Exits (D11, pending owner).** An exit is either a `sell` with `reduces_position = True` where exposure after the
+3. **Exits (D11).** An exit is either a `sell` with `reduces_position = True` where exposure after the
    intent is below exposure before it, or a `crypto_transfer` to an `allow`-row domestic exchange at a registered
    address.
    - If no venue row for the pair is `hard_block`, the result is `ALLOW_EXIT`.
    - Stale rows, auto-off, unmet gates and caps do not block exits. Even a `hard_block` venue row lets an exit through
      with a warning, so funds can always be withdrawn by lawful means.
-   - Without D11, exits fall through to step 4 like any other intent.
 4. **Venue rows.** Only rows in force on `ctx.date` count: `effective_from ≤ date`, and `effective_until` either null or
    later than `date`. All dates are Asia/Seoul calendar dates.
    - **No matching row:** BLOCK. When several rows match, **all** apply and the strictest result wins.
@@ -522,12 +520,12 @@ class Permit:                       # only from ALLOW or ALLOW_EXIT, via permit(
   - transfers: `withdrawal_address` {venue, address, evidence};
   - sessions: `session_armed` / `session_disarmed` {session_id} and `session_ack` {session_id, row_id, warning_sha256}.
     Arming itself is the execution spec's.
-- **Who writes it (D14, pending owner).** Writes go only through the owner-confirmation API:
+- **Who writes it (D14).** Writes go only through the owner-confirmation API:
   - it refuses unless stdin and stdout are interactive consoles (`CONIN$`/TTY);
   - it prints exactly what will be recorded, with a fresh random code, and the owner must retype that code;
   - a pipe or a script is refused (tested);
   - **Claude never writes this log, and never runs the confirmation API.**
-- **Tighten fast, loosen slow (D12, pending owner).**
+- **Tighten fast, loosen slow (D12).**
   - Raising the floor, lowering the daily limit and lowering a cap take effect at once.
   - A loosening takes effect only from the next Asia/Seoul date, never inside an armed session, and never once a halt
     for that floor is recorded. The halt record is defined in the execution spec.
@@ -637,7 +635,7 @@ The two models below are martingales by construction.
 - **`none`** is the default and is always the headline.
 - **`assumed`**: a typed win rate p for a bracket leg. The simulator replaces the martingale with a tilted law under
   which that bracket wins with probability p. It is shown only in its own column (section 7.5).
-- **`validated:<ref>`** (D13, pending owner):
+- **`validated:<ref>`** (D13):
   - (a) `chain:<card_id>.r<rev>@<results_md5>`, resolved through `cards.read_chain(config.macro_dir()/"cards"/"verdicts.jsonl", ...)`.
     This is structurally unavailable today, because the macro card schema has no out-of-sample return field.
   - (b) `modelcard:<path>@<results_md5>`, for a committed `validate.ModelCard` JSON with `decision: PASS`. TRADEGEN
@@ -873,12 +871,12 @@ with `TRADEGEN_HOME` set to a temp dir and price data from in-memory fixtures on
    - no acknowledgement gives ACK_REQUIRED;
    - an acknowledgement with a wrong `warning_sha256`, or from an old session, gives ACK_REQUIRED;
    - an unset cap, exposure over the cap, a missing age record, or a date ≥ 2026-12-03 gives BLOCK for a buy;
-   - **under D11:** a reduce-only sell on 2026-12-03 gives ALLOW_EXIT, and a withdrawal OKX → Upbit at a registered
+   - a reduce-only sell on 2026-12-03 gives ALLOW_EXIT, and a withdrawal OKX → Upbit at a registered
      address gives ALLOW_EXIT;
    - an unregistered address gives BLOCK;
    - Asia/Seoul boundaries: 2026-12-02T23:59:59+09:00 gives ALLOW (buy); 2026-12-03T00:00:00+09:00 gives BLOCK (buy).
 7. **Staleness and alerts:**
-   - a date after `review_by` blocks new exposure but not exits (under D11);
+   - a date after `review_by` blocks new exposure but not exits;
    - the due thresholds still fire after a missed run;
    - CLI exit codes 0, 1, 2 and 3;
    - the toast and the `--log` writer work with fake channels;
@@ -895,7 +893,7 @@ with `TRADEGEN_HOME` set to a temp dir and price data from in-memory fixtures on
    - editing the last line is detected;
    - truncation below a recorded head is detected;
    - piped stdin is refused by the confirmation API;
-   - a loosening is deferred to the next Asia/Seoul date and refused after a halt (under D12);
+   - a loosening is deferred to the next Asia/Seoul date and refused after a halt;
    - every path stays under `~/.tradegen` (`refuse_quantgen`).
 
 **odds**
@@ -934,7 +932,7 @@ with `TRADEGEN_HOME` set to a temp dir and price data from in-memory fixtures on
    - a stake below the minimum means no bet.
 8. **Edge:**
    - Kelly stakes 0 without a validated edge;
-   - under D13(b), a fixture ModelCard whose re-run statistics do not match is refused, and one that matches resolves;
+   - a fixture ModelCard whose re-run statistics do not match is refused, and one that matches resolves;
    - an assumed edge never reaches the headline, and its column always prints the "without the edge you typed" ceiling.
 9. **Report and language guard:**
    - the typical result comes before the average;
@@ -1002,7 +1000,6 @@ with `TRADEGEN_HOME` set to a temp dir and price data from in-memory fixtures on
 - Set `okx_equity_share`. While it is unset, OKX is blocked.
 - Record `age_of_majority`, and any course completions, deposit or cash snapshots and broker approvals.
 - Register withdrawal addresses.
-- Answer D11 to D14.
 
 **Open legal points for Korean counsel** (the report's "Further review recommended", all 8):
 - Are Kalshi event contracts gambling, or overseas derivatives under FSCMA Art. 184①?
@@ -1099,8 +1096,8 @@ S statistics, F honesty (H-F below), I implementability, Z safety, plus each dim
 | G-14, I3: History has closes only | Accepted: `core/odds/bars.py` | 4 |
 | G-15, I2: cost_per_side misuse; check_cost_policy wrong | Accepted | 4, 7.2 |
 | G-16: KRX stock tick table missing | Accepted: tick ladder in venues.yaml | 4, 7.2 |
-| G-17, I6: card registries; PASS cards exist | Accepted; D13 (pending owner) | 2, 7.2 |
-| G-18, Z6, L-missed-2: exits blocked after auto-off/staleness | Accepted; D11 (pending owner) | 2, 6.2 step 3 |
+| G-17, I6: card registries; PASS cards exist | Accepted; D13 (owner chose the re-verified hopeful column) | 2, 7.2 |
+| G-18, Z6, L-missed-2: exits blocked after auto-off/staleness | Accepted; D11 (owner chose exits open) | 2, 6.2 step 3 |
 | G-19, Z4: owner log last-line edits, rollback, stdin piping | Accepted: row hash, head anchoring, console confirmation (D14) | 6.4 |
 | G-20, I-missed-1: unset limits | Accepted: LIMITS_UNSET | 6.4, 9 |
 | Gm-1 to Gm-5: seed API, git provenance, email recipient, writers, permit expiry | Accepted | 4, 5.4, 6.3, 7.3 |
@@ -1111,7 +1108,7 @@ S statistics, F honesty (H-F below), I implementability, Z safety, plus each dim
 | Z7: date semantics | Accepted: Asia/Seoul calendar date | 6.1 |
 | Z9: missing table mechanism | Accepted: RulesTable.invalid | 4, 9 |
 | Z10, I7: alerts split; exact-day triggers | Accepted | 5.4 |
-| Z-missed-1: limits loosened mid-streak | Accepted; D12 (pending owner) | 6.4 |
+| Z-missed-1: limits loosened mid-streak | Accepted; D12 (owner chose tighten now, loosen next day) | 6.4 |
 | Z-missed-2, H-F1: approval by commit is not owner approval | Accepted: approvals by hash in the owner log | 5.1 |
 | H-F2: income tax; H-F5: the "not in these numbers" box | Accepted | 7.5 |
 | H-F3: leverage silently cut to 1x | Accepted: UNSUPPORTED_LEVERAGE_OR_SHORT | 7.1 |
