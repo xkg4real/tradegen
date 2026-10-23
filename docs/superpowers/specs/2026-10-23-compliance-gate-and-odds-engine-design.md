@@ -3,14 +3,18 @@
 Date: 2026-10-23.
 
 Status:
-- **Revision 3.**
+- **Revision 3.1.**
   - Round 1 reviewed rev 1: Gemini said REJECT, and the Claude 5×2 workflow confirmed most of its points (Appendix B).
   - Round 2 reviewed rev 2.1: GPT (Codex) said REJECT, with 16 major findings (Appendix C). The quota note in the brief
     proved stale.
+  - Round 3 reviewed rev 3 (Appendix D):
+    - GPT stopped at its usage limit, which resets 2026-10-30 14:40.
+    - Gemini's run ended in `status: ERROR`, and most of it reviewed text that is not in this spec. Its six findings
+      that do hold are folded in here.
   - The owner decided D11 to D16 on 2026-10-23.
   - All reviews are in `docs/superpowers/specs/2026-10-23-review-gate-odds/`.
-- Next: a convergence round (GPT and Gemini) on rev 3, then the owner's review, then two implementation plans. The
-  compliance plan comes first, because the odds engine depends on `screen()`.
+- Next: the owner's review, plus GPT's final check of this revision after 2026-10-30 14:40. Then two implementation
+  plans; the compliance plan comes first, because the odds engine depends on `screen()`.
 
 Inputs:
 - `reports/Korean resident trading venue legality.md`, with its notes in `research_notes/Korean resident trading venue legality/`;
@@ -524,8 +528,12 @@ class Context:
   - **Claude never runs it, never asks for the passphrase, and never writes owner entries.**
 - **Key changes.** The public-key fingerprint appears in every alert email. Rotating the key requires a signature by the
   old key, and an unexplained change is exit 3.
-- **The code hash.** The owner also signs `code_approved {sha256 of core/compliance + core/odds}`. If the code changes,
-  new exposure is BLOCK until the owner signs again.
+- **The code hash.** The owner also signs `code_approved {sha256}`. If the code changes, new exposure is BLOCK until the
+  owner signs again. The hash covers:
+  - `core/compliance` and `core/odds`;
+  - their **in-repo import closure**, found by an AST import scan: for example `config.py`, `core/isolation.py`,
+    `core/calendars/**`, the `core/quant` and `data/` modules they reach;
+  - the scan's output, so the signing prompt lists every file covered.
 - **The honest limit.** A process with the owner's file access could still edit the verifier itself. The owner's review
   of every diff to these two packages is the remaining boundary, and the plan makes that review a step of its own.
 - **The dependency.** The Python `cryptography` package (Ed25519, scrypt, AES-GCM) is installed into `.venv` only and
@@ -579,8 +587,12 @@ class Plan:
 
 **Affordability.** For every entry, after lot rounding and under each cost scenario (1× and 2×):
 - **always:** s(1 + κ_b) + φ_b ≤ W;
-- **floor-safe** (the default): s(1 + κ_b) + φ_b + φ_s ≤ W − L. Cash never falls below L plus the reserved exit
-  charge, so even a total loss of the position leaves L, and **L_min = L** (7.4);
+- **floor-safe** (the default): s(1 + κ_b) + φ_b + R_exit ≤ W − L. Cash never falls below L plus the reserved exit
+  charge, so even a total loss of the position leaves L, and **L_min = L** (7.4).
+  - R_exit is the **worst-case** exit charge: m_stress × m_carry × φ_s, with m_stress = 2 for the 2× cost scenario and
+    m_carry = 2 for the limit-down carry.
+  - This needs m_stress × m_carry × κ_s < 1, so the proportional charge can never exceed the position's value; a book
+    where that fails is refused;
 - **stop-based** (bracket legs only): s[d + κ_b + κ_s(1 − d)] + φ_b + φ_s ≤ W − L before gaps, with **L_min = 0**.
 
 **Fractions**
@@ -589,8 +601,12 @@ class Plan:
   distribution. That distribution is the replayed net daily returns shifted so their mean equals the lower 95% bound of
   the mean, times `LIVE_SHARPE_MULTIPLIER`. Zero exposure if conservative growth ≤ 0. Labelled "aims at long-run
   growth, not at reaching your target".
-- `bold()` (bracket legs): the largest s that satisfies affordability and does not overshoot T on a win:
-  s(u − κ_b − κ_s(1 + u)) − φ_b − φ_s ≥ T − W is the reaching condition, and s is reduced until it just holds.
+- `bold()` (bracket legs): s = min(s_reach, s_afford).
+  - s_reach is the smallest stake whose win reaches T net of costs: s(u − κ_b − κ_s(1 + u)) − φ_b − φ_s = T − W.
+  - s_afford is the largest stake the affordability rules allow.
+  - When one win cannot reach T (s_reach > s_afford), bold play stakes s_afford and tries again after a win, as
+    Dubins–Savage bold play does far from the goal.
+  - Lot rounding is downward.
 - **A bold fraction is refused** when the net win coefficient u − κ_b − κ_s(1 + u) is ≤ 0, or no affordable stake
   exists.
 
@@ -628,6 +644,11 @@ negative. Two traps ruled out in review:
   of that session. Venues without a daily limit use [0, ∞).
 - **Why it is exact.** E[next | p] = p holds algebraically. Prices never leave the band, and a price at a band edge stays
   there with probability 1, which a martingale bounded by that edge must do.
+- **Edge sessions.** A session that **opens at its band edge stays there until the close**. This is forced: inside a
+  capped band, a no-edge price that starts at the cap cannot move. Real limit-up or limit-down stocks can reverse
+  intraday, so such sessions are counted and flagged `BAND_EDGE_SESSIONS`.
+- **Ticks.** The band edges are rounded to the KRX tick ladder in `venues.yaml`: D up and U down, toward the reference,
+  as the exchange does.
 - **The reference price.** The KRX reference is the previous session's close. Special regimes (IPO days,
   reference-price resets) are not simulated; the leg refuses symbols in such a regime (flag `SPECIAL_REGIME`).
 - **Limit-down.** A check at D that would exit is a limit-down lock. The exit carries to the next session at 2× cost.
@@ -743,6 +764,7 @@ All owner-facing text comes from one reviewed **sentence catalogue** with numeri
      That average includes rare jackpots and is not what usually happens."
    - **Computing it.** X is the plain mean of terminal liquidation values, overshoots included, with its standard error.
      Y comes from the cost ledger. A difference between the two is what HIDDEN_EDGE tests.
+   - In the delisting stress column, Y reads "…from fees, tax and the delisting stress loss".
 3. **The headline pair:**
    - P(reached KRW 42,000,000 by the deadline, before income tax), using `reached_by_deadline`;
    - P(hit your floor or became unable to trade) = P(FLOOR) + P(STUCK), with the split;
@@ -780,8 +802,10 @@ All owner-facing text comes from one reviewed **sentence catalogue** with numeri
     - **`HIDDEN_EDGE`**, only where its variable is provably bounded:
       - It applies to two-point bootstrap legs, and to GARCH-t legs with bounded innovations.
       - X = W_τ + C_τ − W₀, with τ = the first of REACHED, FLOOR or the horizon; for this test both tracks stop at T.
-      - Its range R is deterministic: W_τ ∈ [L_min − gap, T·e^{m_max}], and C_τ is at most the number of check points
-        times the largest cost per check.
+      - Its range R is deterministic: W_τ ∈ [0, T·e^{m_max}], since losses stop at the account balance and one check
+        can multiply a position (≤ equity < T) by at most e^{m_max}. C_τ is at most the number of check points times
+        the largest cost per check. Everything is computed in log space.
+      - The delisting stress column is excluded from this test, because its jumps break E = 1 by design.
       - It is red when |mean X| exceeds the empirical-Bernstein bound √(2V·ln(4/δ)/n) + 7R·ln(4/δ)/(3(n − 1)), with
         δ = 1e-4.
       - Its two wordings: "makes money without any edge" and "loses more than its costs explain".
@@ -1107,3 +1131,29 @@ I (implementability), Z (safety) and the "missed" items. Each row gives where th
 | Minor 6: pw_block kind; GARCH tolerance; wording | Accepted | 7.2, 7.5 |
 | Minor 7: permit fields; approved-version storage | Accepted | 5.2, 6.3 |
 | L6 rejection, G-5 backtest rejection, G-10 scope | GPT agreed | — |
+
+## Appendix D: round 3 (on rev 3)
+
+- **GPT (Codex):** incomplete. The run hit the ChatGPT usage limit after about 77k tokens ("try again at Oct 30th,
+  2026 2:40 PM") and returned no review. The final GPT check runs on rev 3.1 after that time.
+- **Gemini (Antigravity):** invalid as a whole. The run ended `status: ERROR`, the review appears twice, and 7 of its 10
+  major findings attack content that does not exist in rev 3:
+  - `KRX_FUT` / `PAPER_ONLY`, `respect_floor`;
+  - edits to `core/engine/state.py`, `orders.py` or `evaluator.py`;
+  - compliance events written through `governance.append_event`;
+  - `_permit_lock` / `consume_permit`, `OrderIntent`, `LIVE_ELIGIBLE` / `PAUSED`;
+  - a GarchT-based S_C3 replay;
+  - a "Worked Example 3".
+
+  Those are rejected as not applicable. The findings that do hold against the real text were checked and are accepted
+  in rev 3.1:
+
+| Gemini r3 finding | Ruling | Rev 3.1 location |
+|---|---|---|
+| #3: band-edge opens are absorbing within a session; band tick rounding | Accepted: the absorption is forced by the no-edge law, so it is stated and flagged `BAND_EDGE_SESSIONS`; the band is rounded to the tick ladder | 7.2 |
+| #4: bold sizing when one win cannot reach T | Accepted: s = min(s_reach, s_afford) | 7.1 |
+| #5: the floor-safe reserve under 2× carry and 2× cost stress; delisting stress inside Y | Accepted: worst-case exit reserve R_exit; Y labelled in the stress column | 7.1, 7.5 |
+| #6: undefined "gap" in HIDDEN_EDGE's range | Accepted: lower bound 0, computed in log space; the stress column excluded | 7.5 |
+| Minor 1: the code-hash surface | Accepted: in-repo import closure | 6.4 |
+| Minor 3: T-CTX-01 prefixes | Already in rev 3 | 4 |
+| #1, #2, #7–#10, Minor 2 | Rejected: they review text not in this spec | — |
