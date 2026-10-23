@@ -813,7 +813,7 @@ Optional: `TRADEGEN_MACRO_DIR` moves the macro state out of `~/.tradegen/macro`.
 
 ```bash
 .venv/Scripts/python tests/run_all.py                  # every suite; writes qa/acceptance_results.json
-.venv/Scripts/python tests/run_all.py --suite macro    # one suite: cockpit, engine, ui, quant, ficc, expansion, macro, paper or grokteam
+.venv/Scripts/python tests/run_all.py --suite macro    # one suite: cockpit, engine, ui, quant, ficc, expansion, macro, paper, grokteam or compliance
 .venv/Scripts/python tests/run_all.py --milestone M8   # the exit set of a milestone (tests/macro_registry.csv)
 .venv/Scripts/python -m tests.macro_acceptance         # resync the registry's implemented_in column
 ```
