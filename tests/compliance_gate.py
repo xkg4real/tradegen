@@ -1020,6 +1020,19 @@ def _t9_names(node) -> set[str]:
     return out - {""}
 
 
+def _t9_scan(source: str, seeds=None) -> dict[str, set[str]]:
+    """{def name: forbidden names} for the module-level defs of `source` that `seeds` reach through the module's own
+    names; every def when `seeds` is None. The runtime traps patch module attributes, so only this scan sees an
+    aliased clock import (`from time import time as _now`) inside a def."""
+    defs = {n.name: n for n in _t9_ast.parse(source).body if isinstance(n, (_t9_ast.FunctionDef, _t9_ast.ClassDef))}
+    todo, seen = (set(defs) if seeds is None else set(seeds) & set(defs)), set()
+    while todo:
+        name = todo.pop()
+        seen.add(name)
+        todo |= (_t9_names(defs[name]) & set(defs)) - seen
+    return {name: _t9_names(defs[name]) & _T9_FORBIDDEN for name in sorted(seen)}
+
+
 class _T9Trap:
     """Stands in for a file, clock, zone or socket name: every use is recorded, then raises."""
 
@@ -1288,16 +1301,15 @@ def test_gate_call_graph_has_no_clock_zone_file_or_socket():
     used = {mod: {n.attr for n in _t9_ast.walk(tree) if isinstance(n, _t9_ast.Attribute)
                   and isinstance(n.value, _t9_ast.Name) and n.value.id == mod} for mod in ("model", "rules")}
     used["model"] |= from_model
-    used["rules"] |= {"InstrumentMap", "Venue"}            # .lookup, .is_market and .quote_for live there
-    for module in (model, rules):
-        defs = {n.name: n for n in _t9_ast.parse(_t9_inspect.getsource(module)).body
-                if isinstance(n, (_t9_ast.FunctionDef, _t9_ast.ClassDef))}
-        todo, seen = set(used[module.__name__.rsplit(".", 1)[1]]) & set(defs), set()
-        while todo:                                        # the module's own defs that decide() can reach
-            name = todo.pop()
-            seen.add(name)
-            todo |= (_t9_names(defs[name]) & set(defs)) - seen
-        assert len(seen) >= 3, (module.__name__, seen)
-        for name in sorted(seen):
-            hits = _t9_names(defs[name]) & _T9_FORBIDDEN
-            assert hits == set(), (module.__name__, name, hits)
+    classes = {"Review", "Row", "RulesTable", "Instrument", "InstrumentMap", "Venue", "VenueFacts"}
+    synthetic = ("class OwnerState:\n    @property\n    def ok(self):\n"
+                 "        from time import time as _now\n        return _now() > 0\n\n\n"
+                 "def clean():\n    return 1\n")
+    assert _t9_scan(synthetic) == {"OwnerState": {"time"}, "clean": set()}      # an aliased clock import is caught
+    scans = {"model": _t9_scan(_t9_inspect.getsource(model)),    # every def: OwnerState.ok runs on each decision
+             "rules": _t9_scan(_t9_inspect.getsource(rules), used["rules"] | classes)}     # what gate.py can reach
+    assert {"OwnerState", "Context", "ApprovedState"} <= set(scans["model"]) and classes <= set(scans["rules"]), scans
+    for module, scan in scans.items():
+        assert len(scan) >= 3, (module, scan)
+        for name, hits in scan.items():
+            assert hits == set(), (module, name, hits)
