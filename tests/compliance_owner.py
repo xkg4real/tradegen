@@ -920,7 +920,8 @@ def test_state_a_line_stamped_ahead_does_not_delay_an_arming():
         assert _state_at(check, at, session_id="S1").caps == {"okx_equity_share": 0.10}, "S1 armed on the loosening's date"
         assert _state_at(check, at).caps == {"okx_equity_share": 0.50}, "control: no session, so the loosening counts"
         later = _state_log(*rows[:3], ("session_armed", {"session_id": "S1"}, _state_kst(2026, 10, 23, 10)))
-        assert _state_at(later, _state_kst(2026, 10, 24, 12), session_id="S1").caps == {"okx_equity_share": 0.50},             "control: armed on the 23rd, after the loosening took effect"
+        control = _state_at(later, _state_kst(2026, 10, 24, 12), session_id="S1")
+        assert control.caps == {"okx_equity_share": 0.50}, "control: armed on the 23rd, after the loosening took effect"
 
 
 def test_state_a_disarm_stamped_ahead_does_not_delay_a_rearming():
@@ -957,3 +958,36 @@ def test_state_a_halt_stamped_far_ahead_does_not_shadow_the_real_one():
     alone = _state_at(_state_log(*loosen, bogus), _state_kst(2026, 10, 24))
     assert alone.caps == {"okx_equity_share": 0.50}, "control: nothing shows that halt came before 15 October"
     assert alone.halted_floors == {21_000.0}
+
+
+def _state_arming_rows(first_arming: _dt.datetime):
+    """cap 0.10, a loosening to 0.50 on 22 October, S1 armed at `first_arming`, then a line stamped 22 October 14:00."""
+    return [_state_cap(0.10, _state_kst(2026, 10, 20)), _state_cap(0.50, _state_kst(2026, 10, 22, 12)),
+            ("session_armed", {"session_id": "S1"}, first_arming),
+            _state_ahead(_state_kst(2026, 10, 22, 14))]
+
+
+def test_state_an_arming_stamped_ahead_still_blocks_a_loosening():
+    """An arming blocks a loosening early (D12) but arms the session late (it enables trading)."""
+    rows = _state_arming_rows(_state_kst(2099, 1, 1))
+    state = _state_at(_state_log(*rows), _state_kst(2026, 10, 23, 12), session_id="S1")
+    assert state.caps == {"okx_equity_share": 0.10}, "the line after it dates the arming no later than 22 October"
+    assert "S1" not in state.armed_sessions, "armed only from its stamp: it enables nothing yet"
+    assert _state_at(_state_log(*rows), _state_kst(2026, 10, 23, 12)).caps == {"okx_equity_share": 0.50}, "no session"
+    rearmed = _state_log(*rows, ("session_armed", {"session_id": "S1"}, _state_kst(2026, 10, 23, 10)))
+    for now in (_state_kst(2026, 10, 23, 12), _state_kst(2026, 10, 24, 12), _state_kst(2026, 10, 30)):
+        state = _state_at(rearmed, now, session_id="S1")
+        assert state.caps == {"okx_equity_share": 0.10} and "S1" in state.armed_sessions, now
+
+
+def test_state_a_rearming_does_not_move_the_blocking_date():
+    rows = _state_arming_rows(_state_kst(2026, 10, 23, 20))
+    check = _state_log(*rows, ("session_armed", {"session_id": "S1"}, _state_kst(2026, 10, 23, 10)))
+    for now in (_state_kst(2026, 10, 23, 12), _state_kst(2026, 10, 23, 21), _state_kst(2026, 10, 24, 12)):
+        assert _state_at(check, now, session_id="S1").caps == {"okx_equity_share": 0.10}, now
+    assert _state_at(check, _state_kst(2026, 10, 23, 12)).caps == {"okx_equity_share": 0.50}, "no session: it counts"
+    disarmed = _state_log(*rows, ("system_disarm", {"session_id": "S1", "reason": "kill switch"},
+                                  _state_kst(2026, 10, 23, 11)),
+                          ("session_armed", {"session_id": "S1"}, _state_kst(2026, 10, 24, 9)))
+    assert _state_at(disarmed, _state_kst(2026, 10, 24, 12), session_id="S1").caps == {"okx_equity_share": 0.50}, \
+        "a disarm clears the blocking date: S1 was armed again on the 24th, after the loosening took effect"

@@ -490,7 +490,8 @@ def _owner_fold(entries, day: _dt.date, now_utc: str, session_id, head, fingerpr
     (a system_halt or a session_armed) is dated as early as the log allows: by the earliest of its own stamp, the
     stamps of the lines after it, and `day`, so a line stamped ahead cannot push it later than the loosening it
     follows. The halt cutoff is the earliest halt date. An entry stamped after `now_utc` counts only when it is a
-    system_halt, a system_disarm or a tightening; a loosening stamped ahead never applies."""
+    system_halt, a system_disarm or a tightening; a loosening stamped ahead never applies. A session_armed stamped
+    after `now_utc` does not arm the session (armed_sessions) but still blocks loosenings, dated as above."""
     stamps = [_seoul_date(e.utc) for e in entries]
     late, seen = [], _dt.date.min
     for on in stamps:
@@ -505,14 +506,21 @@ def _owner_fold(entries, day: _dt.date, now_utc: str, session_id, head, fingerpr
     first_halt = min((seq for seq, _, _ in halts), default=None)
     halt_day = min((soon for _, soon, _ in halts), default=None)
     halt_floor = max((floor for _, _, floor in halts), default=None)
-    # session id -> the earliest date of its armings since its last disarm
-    armed: dict[str, _dt.date] = {}
+    # An arming blocks a loosening early but arms the session late (it enables trading):
+    # `blocking` takes every session_armed whatever its stamp, session id -> the earliest date of its armings
+    # since its last disarm; `armed` takes only the armings stamped by now.
+    blocking: dict[str, _dt.date] = {}
+    armed: set[str] = set()
     for e, _, soon in dated:
-        if e.kind == "session_armed" and e.utc <= now_utc:
-            armed[e.data["session_id"]] = min(armed.get(e.data["session_id"], soon), soon)
+        if e.kind == "session_armed":
+            sid = e.data["session_id"]
+            blocking[sid] = min(blocking.get(sid, soon), soon)
+            if e.utc <= now_utc:
+                armed.add(sid)
         elif e.kind == "system_disarm":
-            armed.pop(e.data["session_id"], None)
-    mine = armed.get(session_id) if session_id is not None else None
+            blocking.pop(e.data["session_id"], None)
+            armed.discard(e.data["session_id"])
+    mine = blocking.get(session_id) if session_id is not None else None
 
     def loosening_counts(e, on) -> bool:
         return (e.utc <= now_utc and on < day
