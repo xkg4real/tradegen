@@ -455,7 +455,9 @@ def _majority_date(birth_date: str) -> _dt.date:
 
 
 def _up_to(check: LogCheck, now_utc: str) -> LogCheck:
-    """`check` without the entries stamped after `now_utc`: a future-dated entry counts only from its stamp on."""
+    """`check` without the entries stamped after `now_utc`: a future-dated entry counts only from its stamp on.
+    For in_force, history and code_approval; owner_state applies its own rule (halts, disarms and tightenings
+    count before their stamp)."""
     return dataclasses.replace(check, entries=tuple(e for e in check.entries if e.utc <= now_utc))
 
 
@@ -463,53 +465,62 @@ def owner_state(check: LogCheck, *, date: _dt.date, now_utc: str, session_id: st
                 fingerprint_now: str, first_recorded: tuple[str, str] | None) -> model.OwnerState:
     """What the verified log means on Asia/Seoul `date` at `now_utc`, for `session_id`. BROKEN when the check
     failed, when the first fingerprint recorded in alerts.jsonl is not the log's first key (P20: "KEY CHANGED
-    since <date>"), or when entry data cannot be read. Entries stamped after `now_utc` are ignored."""
+    since <date>"), or when entry data cannot be read. An entry stamped after `now_utc` is ignored, except a
+    system_halt, a system_disarm and a tightening cap or limit: those only tighten, so they apply at once."""
     if not check.ok:
         return model.OwnerState.broken(check.reason, head=check.head, fingerprint=fingerprint_now)
     if first_recorded is not None and first_recorded[0] != check.first_key_fingerprint:
         since = first_recorded[1][:10] or "an unknown date"
         return model.OwnerState.broken(f"KEY CHANGED since {since}", head=check.head, fingerprint=fingerprint_now)
     try:
-        return _owner_fold(_up_to(check, now_utc).entries, date, session_id, check.head, fingerprint_now)
+        return _owner_fold(check.entries, date, now_utc, session_id, check.head, fingerprint_now)
     except (KeyError, TypeError, ValueError, rules.Invalid) as exc:
         return model.OwnerState.broken(f"owner log: unreadable entry data ({type(exc).__name__})",
                                        head=check.head, fingerprint=fingerprint_now)
 
 
-def _owner_fold(entries, day: _dt.date, session_id, head, fingerprint_now) -> model.OwnerState:
+def _owner_fold(entries, day: _dt.date, now_utc: str, session_id, head, fingerprint_now) -> model.OwnerState:
     """D12 over the entries in log order. An unset cap or limit counts as the tightest, so setting one is a
     loosening. A tightening applies from its entry. A loosening counts only from the Asia/Seoul date after its
     own, only when it took effect before the first system_halt, and never inside `session_id` while that session
     has been armed, since its last disarm, from a date on or before the loosening's. A set floor is never below the
-    highest halted floor. The latest age_of_majority entry wins."""
-    halts = [(e.seq, _seoul_date(e.utc), float(e.data["floor_krw"])) for e in entries if e.kind == "system_halt"]
+    highest halted floor. The latest age_of_majority entry wins.
+    Each entry is dated by the latest Asia/Seoul date among the lines up to and including it, so a late-signed
+    entry stamped back cannot count as older than the line before it. An entry stamped after `now_utc` counts only
+    when it is a system_halt, a system_disarm or a tightening; a loosening stamped ahead never applies."""
+    dated, seen = [], _dt.date.min
+    for e in entries:
+        seen = max(seen, _seoul_date(e.utc))
+        dated.append((e, seen))
+    halts = [(e.seq, on, float(e.data["floor_krw"])) for e, on in dated if e.kind == "system_halt"]
     first_halt = min(halts, default=None)
     halt_floor = max((floor for _, _, floor in halts), default=None)
-    # session id -> Asia/Seoul date of its first arming since its last disarm
+    # session id -> the date (as dated above) of its first arming since its last disarm
     armed: dict[str, _dt.date] = {}
-    for e in entries:
-        if e.kind == "session_armed":
-            armed.setdefault(e.data["session_id"], _seoul_date(e.utc))
+    for e, on in dated:
+        if e.kind == "session_armed" and e.utc <= now_utc:
+            armed.setdefault(e.data["session_id"], on)
         elif e.kind == "system_disarm":
             armed.pop(e.data["session_id"], None)
     mine = armed.get(session_id) if session_id is not None else None
 
-    def loosening_counts(e) -> bool:
-        on = _seoul_date(e.utc)
-        return (on < day
+    def loosening_counts(e, on) -> bool:
+        return (e.utc <= now_utc and on < day
                 and (first_halt is None or (e.seq < first_halt[0] and on < first_halt[1]))
                 and (mine is None or mine > on))
 
     values: dict[str, float] = {}
     majority: _dt.date | None = None
     flags, addresses, session_acks, transfer_acks = set(), set(), set(), set()
-    for e in entries:
+    for e, on in dated:
         d = e.data
+        if e.utc > now_utc and e.kind not in ("cap_set", "limit_set"):
+            continue
         if e.kind in ("cap_set", "limit_set"):
             pairs = [(d["key"], d["value"])] if e.kind == "cap_set" else [(k, d[k]) for k in _LIMIT_KEYS]
             for key, value in pairs:
                 value, old = float(value), values.get(key)
-                if key in _TIGHTER and ((old is not None and _TIGHTER[key](value, old)) or loosening_counts(e)):
+                if key in _TIGHTER and ((old is not None and _TIGHTER[key](value, old)) or loosening_counts(e, on)):
                     values[key] = value
         elif e.kind == "age_of_majority":
             majority = _majority_date(d["birth_date"])             # every entry is parsed; the latest wins

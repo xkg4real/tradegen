@@ -681,9 +681,11 @@ def test_state_broken_check_means_no_owner_state():
 def test_state_cap_tightens_at_once():
     check = _state_log(_state_cap(0.20, _state_kst(2026, 10, 20, 10)), _state_cap(0.10, _state_kst(2026, 10, 24, 10)))
     assert _state_at(check, _state_kst(2026, 10, 20, 11)).caps == {}, "unset is the tightest: setting one waits"
-    assert _state_at(check, _state_kst(2026, 10, 21, 0)).caps == {"okx_equity_share": 0.20}
-    assert _state_at(check, _state_kst(2026, 10, 24, 9)).caps == {"okx_equity_share": 0.20}, "not stamped yet"
+    assert _state_at(check, _state_kst(2026, 10, 21, 0)).caps == {"okx_equity_share": 0.10}, "stamped ahead, applies"
+    assert _state_at(check, _state_kst(2026, 10, 24, 9)).caps == {"okx_equity_share": 0.10}, "not stamped yet"
     assert _state_at(check, _state_kst(2026, 10, 24, 10)).caps == {"okx_equity_share": 0.10}, "stamped this second"
+    first = _state_log(_state_cap(0.20, _state_kst(2026, 10, 20, 10)))
+    assert _state_at(first, _state_kst(2026, 10, 21, 0)).caps == {"okx_equity_share": 0.20}, "alone, it applies next day"
 
 
 def test_state_cap_loosens_from_the_next_asia_seoul_date():
@@ -737,7 +739,10 @@ def test_state_floor_loosening_below_a_halted_floor_is_ignored():
     check = _state_log(_state_limits(21_000.0, 5_000.0, _state_kst(2026, 10, 10)),
                        _state_limits(15_000.0, 5_000.0, _state_kst(2026, 10, 12)),     # in effect from 13 October
                        ("system_halt", {"floor_krw": 21_000.0}, _state_kst(2026, 10, 14)))
-    assert _state_at(check, _state_kst(2026, 10, 13)).limits["total_loss_floor_krw"] == 15_000.0
+    assert _state_at(check, _state_kst(2026, 10, 13)).limits["total_loss_floor_krw"] == 21_000.0, "the halt is ahead"
+    no_halt = _state_log(_state_limits(21_000.0, 5_000.0, _state_kst(2026, 10, 10)),
+                         _state_limits(15_000.0, 5_000.0, _state_kst(2026, 10, 12)))
+    assert _state_at(no_halt, _state_kst(2026, 10, 13)).limits["total_loss_floor_krw"] == 15_000.0
     assert _state_at(check, _state_kst(2026, 10, 24)).limits["total_loss_floor_krw"] == 21_000.0, "for good"
     twice = _state_log(_state_limits(21_000.0, 5_000.0, _state_kst(2026, 10, 1)),
                        ("system_halt", {"floor_krw": 21_000.0}, _state_kst(2026, 10, 5)),
@@ -829,7 +834,7 @@ def test_state_key_changed_since_first_recorded():
 
 def test_state_future_entries_ignored():
     at = _state_kst(2026, 10, 24)
-    check = _state_log(_state_cap(0.20, _state_kst(2026, 10, 20)), _state_cap(0.05, _state_kst(2026, 10, 25)),
+    check = _state_log(_state_cap(0.20, _state_kst(2026, 10, 20)), _state_cap(0.50, _state_kst(2026, 10, 25)),
                        ("course_completed", {"course": "short_course_30m", "evidence": "certificate"},
                         _state_kst(2026, 10, 25)),
                        _state_approved("rules", _HA, _state_kst(2026, 10, 25)))
@@ -844,3 +849,58 @@ def test_state_unreadable_entry_data_is_broken():
                         _state_kst(2026, 10, 1)))
     state = _state_at(check, _state_kst(2026, 10, 24))
     assert state.status == "BROKEN" and state.reason.startswith("owner log: unreadable entry data"), state.reason
+
+
+def test_state_backdated_loosening_is_dated_by_the_log_before_it():
+    """An entry is never dated earlier than the line before it, so a late-signed, back-stamped loosening cannot skip D12."""
+    rows = [_state_cap(0.10, _state_kst(2026, 10, 20)),
+            ("session_armed", {"session_id": "S1"}, _state_kst(2026, 10, 24, 10)),
+            _state_cap(0.50, _state_kst(2026, 10, 23))]                      # written after the arming, stamped before
+    check, today, tomorrow = _state_log(*rows), _state_kst(2026, 10, 24, 12), _state_kst(2026, 10, 25, 12)
+    assert _state_at(check, today, session_id="S1").caps == {"okx_equity_share": 0.10}, "S1 was armed before it"
+    assert _state_at(check, today).caps == {"okx_equity_share": 0.10}, "dated 24 October, so it applies from the 25th"
+    assert _state_at(check, tomorrow).caps == {"okx_equity_share": 0.50}, "no session: the loosening counts"
+    assert _state_at(check, tomorrow, session_id="S1").caps == {"okx_equity_share": 0.10}, "S1 is still armed"
+    disarmed = _state_log(*rows, ("system_disarm", {"session_id": "S1", "reason": "session end"},
+                                  _state_kst(2026, 10, 24, 15)))
+    assert _state_at(disarmed, tomorrow, session_id="S1").caps == {"okx_equity_share": 0.50}
+    ahead = _state_log(_state_cap(0.10, _state_kst(2026, 10, 20)),
+                       ("course_completed", {"course": "short_course_30m", "evidence": "certificate"},
+                        _state_kst(2026, 10, 26)),                                # stamped two days ahead
+                       _state_cap(0.30, _state_kst(2026, 10, 22)))
+    assert _state_at(ahead, _state_kst(2026, 10, 26, 12)).caps == {"okx_equity_share": 0.10}, "dated 26 October"
+    assert _state_at(ahead, _state_kst(2026, 10, 27, 12)).caps == {"okx_equity_share": 0.30}
+
+
+def test_state_halt_and_disarm_apply_before_their_stamp():
+    """A halt or a disarm only tightens, so it counts at once even when the clock stepped back and it is stamped ahead."""
+    rows = [_state_limits(21_000.0, 5_000.0, _state_kst(2026, 10, 10)),
+            _state_limits(15_000.0, 5_000.0, _state_kst(2026, 10, 12)),         # a floor loosening, in effect from the 13th
+            _state_cap(0.10, _state_kst(2026, 10, 10)),
+            ("session_armed", {"session_id": "S1"}, _state_kst(2026, 10, 20))]
+    ahead = _state_kst(2026, 10, 24, 13)
+    check = _state_log(*rows, ("system_halt", {"floor_krw": 21_000.0}, ahead),
+                       ("system_disarm", {"session_id": "S1", "reason": "kill switch"}, ahead),
+                       _state_cap(0.30, _state_kst(2026, 10, 22)))                # written after the halt, stamped before
+    now = _state_kst(2026, 10, 24, 12)
+    state = _state_at(check, now, session_id="S1")
+    assert state.halted_floors == {21_000.0} and state.armed_sessions == frozenset()
+    assert state.limits["total_loss_floor_krw"] == 21_000.0, "the halted floor clamps the loosened one"
+    assert state.caps == {"okx_equity_share": 0.10}, "a loosening written after the halt never counts"
+    plain = _state_at(_state_log(*rows), now)
+    assert plain.armed_sessions == {"S1"} and plain.limits["total_loss_floor_krw"] == 15_000.0, "without them: as is"
+
+
+def test_state_future_tightening_applies_and_future_loosening_does_not():
+    now = _state_kst(2026, 10, 24, 12)
+    tomorrow = _state_kst(2026, 10, 25)
+    base = (_state_cap(0.20, _state_kst(2026, 10, 20)), _state_limits(21_000.0, 5_000.0, _state_kst(2026, 10, 10)))
+    assert _state_at(_state_log(*base, _state_cap(0.05, tomorrow)), now).caps == {"okx_equity_share": 0.05}
+    assert _state_at(_state_log(*base, _state_cap(0.50, tomorrow)), now).caps == {"okx_equity_share": 0.20}
+    assert _state_at(_state_log(_state_cap(0.20, tomorrow)), now).caps == {}, "a first cap is a loosening"
+    tighter = _state_at(_state_log(*base, _state_limits(25_000.0, 3_000.0, tomorrow)), now)
+    assert tighter.limits == {"total_loss_floor_krw": 25_000.0, "daily_loss_krw": 3_000.0}
+    mixed = _state_at(_state_log(*base, _state_limits(30_000.0, 8_000.0, tomorrow)), now)
+    assert mixed.limits == {"total_loss_floor_krw": 30_000.0, "daily_loss_krw": 5_000.0}, "per key: floor up, daily no"
+    later = _state_at(_state_log(*base, _state_cap(0.05, tomorrow), _state_cap(0.40, _state_kst(2026, 10, 22))), now)
+    assert later.caps == {"okx_equity_share": 0.05}, "a loosening written after it, stamped before it, waits"
