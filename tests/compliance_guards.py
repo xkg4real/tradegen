@@ -32,10 +32,13 @@ CORE_RAW_CI = ("private_key", "seed_phrase")            # these two hold for eve
 DEF_NAMES = frozenset({"transfer", "withdraw", "deposit_address"})
 HTTP_VERBS = frozenset({"post", "put", "delete", "patch", "request"})
 # core/compliance never needs the network: the alert email is sent by the scheduled Claude task and the toast is a
-# subprocess (P26). So no stdlib network module may be imported in any form, and the calls that open a connection
-# or fetch a URL are banned by name too (bare or as an attribute), as a second line behind the import ban.
-NETWORK_MODULES = ("urllib", "http", "socket", "ssl", "smtplib", "ftplib", "imaplib", "poplib", "nntplib",
-                   "telnetlib", "xmlrpc", "asyncio", "webbrowser")
+# subprocess (P26). So none of these stdlib modules may be imported in any form (a dotted name bans the module and
+# everything below it, not its parent: `import logging` and `import xml.etree.ElementTree` stay allowed), and the calls
+# that open a connection or fetch a URL are banned by name too (bare or as an attribute), as a second line behind the
+# import ban. A denylist of what can reach the network, not a proof: see the docstring of test_no_http_verb_calls.
+NETWORK_MODULES = ("urllib", "http", "socket", "_socket", "socketserver", "selectors", "ssl", "smtplib", "ftplib",
+                   "imaplib", "poplib", "nntplib", "telnetlib", "xmlrpc", "asyncio", "webbrowser", "multiprocessing",
+                   "wsgiref", "xml.sax", "xml.dom.pulldom", "xml.dom.expatbuilder", "logging.handlers")
 NETWORK_CALLS = frozenset({"urlopen", "urlretrieve", "create_connection"})
 FORBIDDEN_MODULES = ("core.engine.orders", "core.quant.forward_sim", "core.quant.refusal", "core.ficc.context_log",
                      "core.ficc.macro", "core.ficc.flows_log", "core.skills.macro_daily")
@@ -242,10 +245,15 @@ def test_no_function_named_transfer_withdraw_or_deposit_address():
 
 def test_no_http_verb_calls():
     """core/compliance never calls .post/.put/.delete/.patch/.request on anything (contract section 0), a dict-like
-    `.put` included, nor urlopen, urlretrieve or create_connection (bare or as an attribute). With the network modules
-    banned from its imports (test_imports_stay_on_the_allowlist), nothing in core/compliance can open a connection
-    through the stdlib, so no order, withdrawal, transfer or deposit string can reach one. The alert toast is a
-    powershell subprocess (P26); neither guard covers a subprocess."""
+    `.put` included, nor urlopen, urlretrieve or create_connection (bare or as an attribute). This is the second
+    line. The first is test_imports_stay_on_the_allowlist, which bans every import form of the stdlib modules that
+    open a connection or fetch a URL (NETWORK_MODULES: urllib, http, socket, ssl, the mail, ftp and telnet clients,
+    xmlrpc, asyncio, selectors, socketserver, wsgiref, multiprocessing, webbrowser, xml.sax and the xml.dom parsers
+    that fetch, logging.handlers). Together they catch a stdlib network call written in the ordinary ways; they do
+    not prove that core/compliance cannot reach the network. Not covered: a `subprocess` call (the P26 alert toast
+    is one; os.system, os.popen and os.startfile launch processes the same way), `ctypes`, and `getattr(module,
+    "name")` indirection. The last matters only when a banned module is also imported, so it is a gap in the second
+    line alone; the first two are left to review."""
     assert len(_http_hits(X, "requests.post(u)\nstore.put('transfer_ack', 1)\nx.delete()\ny.patch(z)\n"
                              "s.request('POST', u)\n")) == 5
     # a urllib POST with no verb method at all: only the urlopen call names it
@@ -285,8 +293,8 @@ def test_no_forbidden_module_import():
 def test_imports_stay_on_the_allowlist():
     """stdlib, yaml, cryptography (inside a function only), core.isolation and core.compliance.* (contract
     section 0), so the D14 signed closure stays core/__init__.py, core/isolation.py and core/compliance (P6). The
-    stdlib network modules are not allowed: core/compliance never needs the network (the alert email is sent by the
-    scheduled Claude task, the toast is a subprocess)."""
+    stdlib modules in NETWORK_MODULES are not allowed even though they are stdlib: core/compliance never needs the
+    network (the alert email is sent by the scheduled Claude task, the toast is a subprocess)."""
     for src in ("import numpy\n", "import config\n", "from core.quant import instruments\n",
                 "from core import isolation, quant\n", "from core.calendars.store import CalendarSet\n",
                 "def f():\n    import core.rules.governance\n", "import cryptography\n",
@@ -300,6 +308,17 @@ def test_imports_stay_on_the_allowlist():
         for src in (f"import {module}\n", f"import {module}.x\n", f"from {module} import x\n",
                     f"from {module}.x import y\n"):
             assert _allowlist_hits(X, src), src
+    # the modules a plain socket/urllib list misses: each can open a connection or fetch a URL on its own
+    for src in ("import multiprocessing.connection\n", "from multiprocessing import connection\n",
+                "import logging.handlers\n", "from logging import handlers\n",
+                "from logging.handlers import HTTPHandler\n", "import _socket\n", "import socketserver\n",
+                "import selectors\n", "from wsgiref import simple_server\n", "import xml.sax\n",
+                "from xml import sax\n", "from xml.dom import pulldom\n", "from xml.dom import expatbuilder\n",
+                "import xml.dom.expatbuilder\n"):
+        assert _allowlist_hits(X, src), src
+    # a banned SUB-module does not ban its parent package or its harmless siblings
+    assert not _allowlist_hits(X, "import logging\nfrom logging import getLogger\nimport xml.etree.ElementTree\n"
+                                  "from xml.etree import ElementTree\nfrom xml.dom import minidom\n")
     assert not _allowlist_hits(X, "import subprocess\nimport importlib.metadata\nfrom importlib import metadata\n"
                                   "import ipaddress, email.message, json\n")
     ok = ("from __future__ import annotations\nimport json, zoneinfo\nimport yaml\nfrom core import isolation\n"
