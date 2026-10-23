@@ -33,6 +33,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
 import config
+from core.isolation import checked_target
 
 try:
     import requests as _once                         # one attempt: the engine's quote path
@@ -154,9 +155,10 @@ class KISClient:
         return None
 
     def _store_token(self, token: str, expires_in: float) -> None:
+        target = checked_target(_TOKEN_PATH, "KIS token cache")      # A0: outside the try, so a refusal propagates
         try:
-            _TOKEN_PATH.parent.mkdir(parents=True, exist_ok=True)
-            _TOKEN_PATH.write_text(
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(
                 json.dumps({"access_token": token,
                             "expires_at": time.time() + float(expires_in)}),
                 encoding="utf-8",

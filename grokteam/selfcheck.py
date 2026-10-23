@@ -265,7 +265,12 @@ def test_calibration_recovers_identity():
 def test_cache_is_sha_checked():
     tmp = Path(tempfile.mkdtemp(prefix="grokteam_"))
     p = tmp / "x.json.gz"
-    B.write_cached(p, {"a": 1})
+    keep = B.DATA
+    try:
+        B.DATA = tmp                                           # write_cached refuses a path outside DATA (A0)
+        B.write_cached(p, {"a": 1})
+    finally:
+        B.DATA = keep
     B._MANIFESTS.clear()
     assert B.read_cached(p) == {"a": 1} and B.read_cached(tmp / "missing.json.gz") is None
     raw = bytearray(p.read_bytes())

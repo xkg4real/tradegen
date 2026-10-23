@@ -9,13 +9,17 @@ import tempfile
 from pathlib import Path
 from typing import Iterator
 
+from core import isolation
+
 
 @contextlib.contextmanager
 def temp_home() -> Iterator[Path]:
-    """A fresh TRADEGEN_HOME for one test; the previous value comes back and the dir is removed afterwards."""
+    """A fresh TRADEGEN_HOME for one test; the previous value comes back and the dir is removed afterwards. The
+    state-root link memo is cleared on the way in and out, so no verdict leaks between tests."""
     home = Path(tempfile.mkdtemp(prefix="tradegen_home_"))
     saved = os.environ.get("TRADEGEN_HOME")
     os.environ["TRADEGEN_HOME"] = str(home)
+    isolation._LINK_SCAN.clear()
     try:
         yield home
     finally:
@@ -23,4 +27,5 @@ def temp_home() -> Iterator[Path]:
             os.environ.pop("TRADEGEN_HOME", None)
         else:
             os.environ["TRADEGEN_HOME"] = saved
+        isolation._LINK_SCAN.clear()
         shutil.rmtree(home, ignore_errors=True)

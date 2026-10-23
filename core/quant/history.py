@@ -43,6 +43,7 @@ except Exception:                                    # pragma: no cover
 
 import config
 from core import markets
+from core.isolation import checked_target
 
 TRADING_DAYS = 252
 
@@ -447,6 +448,7 @@ def _cached(provider: str, fetch, symbol: str, days: int) -> History:
     if live and not h.status:
         h = replace(h, status="provisional_intraday")   # M1: a running last bar is never presented as a close
     if len(h) >= _CACHE_MIN_ROWS:
+        path = checked_target(path, "history cache")                # A0: outside the try, so a refusal propagates
         try:
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(json.dumps({"ts": time.time(), "live": live, "symbol": h.symbol,

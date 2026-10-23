@@ -61,6 +61,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import config as QC  # noqa: E402
+from core.isolation import checked_target  # noqa: E402
 from core.quant import garch as G  # noqa: E402
 
 OUT = Path(__file__).resolve().parent / "out" / "book"
@@ -132,14 +133,17 @@ def _manifest(folder: Path) -> dict[str, str]:
 
 def write_cached(path: Path, obj) -> None:
     """gzip JSON (mtime 0: equal content, equal bytes), tmp-then-replace, then its sha256 line in the folder's
-    MANIFEST.jsonl; a file without a manifest line reads as missing and is fetched again."""
+    MANIFEST.jsonl; a file without a manifest line reads as missing and is fetched again. A0: the file, its .tmp
+    and the MANIFEST each pass checked_target (inside DATA, no link) before anything is written."""
     raw = gzip.compress(json.dumps(obj, sort_keys=True, separators=(",", ":")).encode("utf-8"), mtime=0)
+    path = checked_target(path, "grokteam cache", within=DATA)
+    tmp = checked_target(path.with_name(path.name + ".tmp"), "grokteam cache tmp", within=DATA)
+    manifest = checked_target(path.parent / "MANIFEST.jsonl", "grokteam MANIFEST", within=DATA)
     path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_name(path.name + ".tmp")
     tmp.write_bytes(raw)
     os.replace(tmp, path)
     sha = hashlib.sha256(raw).hexdigest()
-    with open(path.parent / "MANIFEST.jsonl", "a", encoding="utf-8") as fh:
+    with open(manifest, "a", encoding="utf-8") as fh:
         fh.write(json.dumps({"file": path.name, "sha256": sha}) + "\n")
     _manifest(path.parent)[path.name] = sha
 

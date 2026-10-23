@@ -60,6 +60,7 @@ except Exception:                                    # pragma: no cover
 
 import config
 from core.ficc.common import TRADING_DAYS, UST_TENORS, FICCError
+from core.isolation import checked_target
 
 SOURCES = ("auto", "fred", "yfinance", "synthetic")
 G10_KRW = ("USD", "EUR", "JPY", "GBP", "AUD", "CAD", "CHF", "KRW")   # carry universe vs USD
@@ -211,7 +212,7 @@ def _yf_fetch(tickers: list[str], period: str) -> dict[str, Rows]:
 
 
 # --------------------------------------------------------------------------- #
-# Cache — memory + JSON on disk; never raises
+# Cache — memory + JSON on disk; never raises, except an A0 refusal of the final target
 # --------------------------------------------------------------------------- #
 _MEM: dict[str, tuple[float, Rows]] = {}
 _CACHE_LIVE_TTL = 600.0     # seconds a file whose last row may still be a running bar is served (TASK-M1-12)
@@ -270,10 +271,10 @@ def _cache_put(key: str, rows: Rows) -> None:
         return
     now = time.time()
     _MEM[key] = (now, rows)
+    target = checked_target(config.ficc_cache_dir() / f"{key}.json", "FICC cache")   # A0: a refusal propagates
     try:
-        d = config.ficc_cache_dir()
-        d.mkdir(parents=True, exist_ok=True)
-        (d / f"{key}.json").write_text(json.dumps({"ts": now, "rows": rows}), "utf-8")
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(json.dumps({"ts": now, "rows": rows}), "utf-8")
     except Exception:
         pass
 
@@ -448,7 +449,8 @@ def _fetch(provider: str, ids: list[str], days: int) -> dict[str, Rows]:
 
 def _provider_rows(provider: str, ids: list[str], days: int, *, not_before: float | None = None,
                    pit_store=None, retrieved_at_utc=None) -> tuple[dict[str, Rows], dict[str, str]]:
-    """Cache-first batch fetch. Never raises: returns (rows by id, failure reason by id).
+    """Cache-first batch fetch. Never raises, except an A0 refusal of a cache target (RuntimeError): returns
+    (rows by id, failure reason by id).
     A failed batch of several ids is retried one id at a time so one retired id
     does not take the whole sheet down.
 

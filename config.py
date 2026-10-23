@@ -51,6 +51,7 @@ def _present(name: str) -> bool:
 # and KIS token), so every mutable TRADEGEN path resolves under ~/.tradegen and the overrides carry TRADEGEN_
 # names: an OS-level QUANTGEN_* / NEXTGEN_* variable (which load_dotenv never overrides) cannot redirect it.
 from core.isolation import QUANTGEN_REPO, QUANTGEN_STATE, refuse_quantgen  # noqa: E402,F401  (also used by writers)
+import core.isolation as _isolation  # noqa: E402
 
 
 def state_path(env: str, default: Path) -> Path:
@@ -59,7 +60,9 @@ def state_path(env: str, default: Path) -> Path:
 
 
 def state_root() -> Path:
-    return state_path("TRADEGEN_HOME", Path.home() / ".tradegen")
+    """TRADEGEN_HOME, else ~/.tradegen; refused inside QUANTGEN and, once per process and root, when it holds a
+    symlink, a junction or a hard link (core.isolation.state_root; A0)."""
+    return _isolation.state_root()
 
 
 # --------------------------------------------------------------------------- #

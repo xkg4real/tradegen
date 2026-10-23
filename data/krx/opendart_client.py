@@ -25,6 +25,7 @@ from typing import Optional
 from xml.etree import ElementTree
 
 import config
+from core.isolation import checked_target
 
 try:
     from data.net import session as requests         # shared session: retry + backoff
@@ -101,9 +102,10 @@ class OpenDARTClient:
         return entries if isinstance(entries, dict) else None
 
     def _store_cache(self, entries: dict[str, dict]) -> None:
+        target = checked_target(_CACHE_PATH, "OpenDART cache")       # A0: outside the try, so a refusal propagates
         try:
-            _CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
-            _CACHE_PATH.write_text(
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(
                 json.dumps({"fetched_at": time.time(), "entries": entries},
                            ensure_ascii=False),
                 encoding="utf-8",
