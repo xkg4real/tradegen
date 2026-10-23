@@ -892,6 +892,8 @@ def test_shipped_d16_rows_need_live_evidence():
             assert r.treatment == "gated" and r.requires_live, r.id
     assert set(_t5_row(table, "KR-KIS-SHORT").requires_live) == {"broker_approval", "collateral_105pct"}
     assert set(_t5_row(table, "KR-KIS-SINGLE-ETP").requires_live) == {"cash_krw_30m"}
+    krx_deriv = _t5_row(table, "KR-KIS-KRX-DERIV")          # D16: broker eligibility is live evidence, not an owner snapshot
+    assert "broker_approval" in krx_deriv.requires_live and "broker_eligibility" not in krx_deriv.requires_owner
     assert not _t5_row(table, "KR-KIS-US-OPTION").requires_live      # gated on owner evidence, not D16
     assert _t5_row(table, "KR-KIS-ETP-LEV").max_leverage == 3.0
     assert _t5_row(table, "KR-KIS-SINGLE-ETP").max_leverage == 2.0
