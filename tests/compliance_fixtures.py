@@ -85,3 +85,56 @@ def intent(**overrides):
                   action="buy", quantity=0.001, notional_krw=50_000.0)
     fields.update(overrides)
     return M.Intent(**fields)
+
+
+# -- owner log fixtures (Task 11) --------------------------------------------------------------------------------
+# Never `from tests.compliance_fixtures import test_key` in a test module: the harness would collect it as a test.
+_OWNER_FIXTURES: dict = {}
+
+
+def test_key():
+    """The fixed test signing key (seed bytes 0..31), cached. NotRun PENDING until cryptography is installed."""
+    import importlib.util
+    from tests.notrun import NotRun
+    if "key" not in _OWNER_FIXTURES:
+        if importlib.util.find_spec("cryptography") is None:
+            raise NotRun("PENDING: cryptography not installed (Task 10)")
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+        _OWNER_FIXTURES["key"] = Ed25519PrivateKey.from_private_bytes(bytes(range(32)))
+    return _OWNER_FIXTURES["key"]
+
+
+def signed_entry(key, seq, prev_sha256, kind, data, utc="2026-10-23T00:00:00Z") -> bytes:
+    """One owner-log line in the spec 6.4 format, built independently of owner.py; signed by `key` unless None."""
+    import base64
+    from core.compliance import model
+    body = {"seq": seq, "prev_sha256": prev_sha256, "utc": utc, "kind": kind, "data": data}
+    row = model.sha256_hex(model.canonical_json(body))
+    line = {**body, "row_sha256": row}
+    if key is not None:
+        line["sig"] = base64.b64encode(key.sign(b"tradegen-owner-log/1\n" + row.encode("ascii"))).decode("ascii")
+    return (model.canonical_json(line) + "\n").encode("utf-8")
+
+
+def write_log(home: "Path", entries: "list[tuple[str, dict]]", key=None) -> "list[bytes]":
+    """Write `entries` as home/compliance/owner.jsonl chained from seq 1: owner kinds signed with `key` (default
+    test_key()), system kinds unsigned. Returns the lines written."""
+    import json
+    lines, prev = [], "0" * 64
+    for seq, (kind, data) in enumerate(entries, start=1):
+        signer = None if kind in ("system_halt", "system_disarm") else (key if key is not None else test_key())
+        lines.append(signed_entry(signer, seq, prev, kind, data))
+        prev = json.loads(lines[-1])["row_sha256"]
+    path = home / "compliance" / "owner.jsonl"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(b"".join(lines))
+    return lines
+
+
+def write_pubkey(path: "Path", key=None) -> None:
+    """Write the PEM SubjectPublicKeyInfo of `key` (default test_key()) to `path`."""
+    key = key if key is not None else test_key()
+    from cryptography.hazmat.primitives import serialization
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(key.public_key().public_bytes(serialization.Encoding.PEM,
+                                                   serialization.PublicFormat.SubjectPublicKeyInfo))

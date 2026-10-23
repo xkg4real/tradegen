@@ -1,0 +1,417 @@
+"""The owner log `~/.tradegen/compliance/owner.jsonl` (spec 6.4, P20): one canonical-JSON line per entry, chained by
+`prev_sha256`, owner entries Ed25519-signed, system entries (`system_halt`, `system_disarm`) unsigned and able only
+to tighten. Paths are computed at call time, so a test's TRADEGEN_HOME moves them. `cryptography` is imported only
+inside the functions that need it: without it the log never verifies (Task 10)."""
+from __future__ import annotations
+
+import base64
+import binascii
+import json
+import math
+import os
+import re
+import threading
+from collections.abc import Mapping
+from contextlib import contextmanager
+from dataclasses import dataclass
+from datetime import date, datetime
+from pathlib import Path
+
+from core.compliance import rules
+from core.compliance.model import canonical_json, iso_utc, sha256_hex
+from core.isolation import checked_target, state_root
+
+PUBKEY_PATH = Path(__file__).with_name("owner_pubkey.pem")   # the trust anchor; absent until owner act 1 (P24)
+
+OWNER_KINDS = frozenset({"approved", "code_approved", "course_completed", "broker_approval", "age_of_majority",
+    "cap_set", "limit_set", "withdrawal_address", "session_armed", "session_ack", "transfer_ack", "key_rotated"})
+SYSTEM_KINDS = frozenset({"system_halt", "system_disarm"})
+APPROVAL_KINDS = ("rules", "instruments", "venues", "calendar")
+SIG_DOMAIN = b"tradegen-owner-log/1\n"
+GENESIS_PREV = "0" * 64
+
+
+def home() -> Path:
+    """`<state root>/compliance`, resolved at call time. Computing a path creates nothing."""
+    return state_root() / "compliance"
+
+
+def log_path() -> Path:
+    return home() / "owner.jsonl"
+
+
+def store_dir() -> Path:
+    return home() / "approved"
+
+
+def snapshots_dir() -> Path:
+    return home() / "snapshots"
+
+
+def alerts_path() -> Path:
+    return home() / "alerts.jsonl"
+
+
+@dataclass(frozen=True, kw_only=True)
+class Entry:
+    seq: int
+    utc: str
+    kind: str
+    data: Mapping
+    row_sha256: str
+    signed: bool
+
+
+@dataclass(frozen=True, kw_only=True)
+class LogCheck:
+    ok: bool
+    reason: str
+    entries: tuple[Entry, ...]
+    head: tuple[int, str]                 # (seq, row_sha256) of the last line; (0, "") when empty or broken
+    first_key_fingerprint: str            # the key that signed entry 1 (P20); "" when broken
+
+
+# -- event data schemas (spec 6.4 "Events"; exact keys) ------------------------------------------------------------
+_HEX64 = re.compile(r"[0-9a-f]{64}")
+_UTC = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z")
+_ISO_DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
+_BODY_KEYS = ("seq", "prev_sha256", "utc", "kind", "data")
+_LINE_KEYS = frozenset(_BODY_KEYS) | {"row_sha256"}
+_ITEMS = rules.OWNER_REQUIREMENTS - {"age_of_majority"}     # that flag comes only from a birth date
+
+
+def _hex64(v) -> bool:
+    return isinstance(v, str) and _HEX64.fullmatch(v) is not None
+
+
+def _text(v) -> bool:
+    return isinstance(v, str) and v.strip() != ""
+
+
+def _number(v) -> bool:
+    """A JSON int or float, not bool, finite as a float; an int too large for a float is refused."""
+    try:
+        return type(v) in (int, float) and math.isfinite(v)
+    except OverflowError:
+        return False
+
+
+def _one_of(options):
+    return lambda v: isinstance(v, str) and v in options
+
+
+def _parses(v, pattern, parse) -> bool:
+    if not (isinstance(v, str) and pattern.fullmatch(v)):
+        return False
+    try:
+        parse(v)
+    except ValueError:
+        return False
+    return True
+
+
+def _iso_date(v) -> bool:
+    return _parses(v, _ISO_DATE, date.fromisoformat)
+
+
+def _utc(v) -> bool:
+    return _parses(v, _UTC, lambda s: datetime.strptime(s, "%Y-%m-%dT%H:%M:%SZ"))
+
+
+def _b64_of(n: int):
+    """Standard base64 with canonical padding of exactly `n` bytes."""
+    def check(v) -> bool:
+        if not isinstance(v, str):
+            return False
+        try:
+            raw = base64.b64decode(v, validate=True)
+        except (binascii.Error, ValueError):
+            return False
+        return len(raw) == n and base64.b64encode(raw).decode("ascii") == v
+    return check
+
+
+def _files(v) -> bool:
+    """[[relpath, sha256], ...], non-empty, sorted by path with no repeat (the order of code_files, Task 13)."""
+    if not (isinstance(v, list) and v and all(isinstance(f, list) and len(f) == 2 and _text(f[0]) and _hex64(f[1])
+                                              for f in v)):
+        return False
+    paths = [f[0] for f in v]
+    return paths == sorted(set(paths))
+
+
+_DATA = {
+    "approved": {"kind": _one_of(APPROVAL_KINDS), "sha256": _hex64},
+    "code_approved": {"sha256": _hex64, "files": _files},
+    "course_completed": {"course": _one_of(_ITEMS), "evidence": _text},
+    "broker_approval": {"item": _one_of(_ITEMS), "evidence": _text},
+    "age_of_majority": {"birth_date": _iso_date, "evidence": _text},
+    "cap_set": {"key": _one_of(("okx_equity_share",)), "value": lambda v: _number(v) and 0 < v <= 1},
+    "limit_set": {"total_loss_floor_krw": lambda v: _number(v) and v >= 0,
+                  "daily_loss_krw": lambda v: _number(v) and v > 0},
+    "withdrawal_address": {"venue": _one_of(rules.VENUES), "symbol": _text, "network": _text, "address": _text,
+                           "tag": lambda v: v is None or _text(v), "evidence": _text},
+    "session_armed": {"session_id": _text},
+    "session_ack": {"session_id": _text, "row_id": _text, "warning_sha256": _hex64},
+    "transfer_ack": {"intent_hash": _hex64, "warning_sha256": _hex64},
+    "key_rotated": {"old_pubkey_b64": _b64_of(32), "new_pubkey_b64": _b64_of(32)},   # P20: the walk needs both keys
+    "system_halt": {"floor_krw": lambda v: _number(v) and v >= 0},
+    "system_disarm": {"session_id": _text, "reason": _text},
+}
+
+
+def _data_problem(kind: str, data) -> str:
+    """"" when `data` has exactly the keys of `kind` with valid values, else what is wrong."""
+    schema = _DATA[kind]
+    if not isinstance(data, dict):
+        return "is not an object"
+    if set(data) != set(schema):
+        return f"keys {sorted(map(str, data))} are not {sorted(schema)}"
+    bad = sorted(k for k, ok in schema.items() if not ok(data[k]))
+    if bad:
+        return f"has invalid {', '.join(bad)}"
+    if kind == "code_approved" and data["sha256"] != sha256_hex(canonical_json(data["files"])):
+        return "sha256 is not the hash of its files"
+    return ""
+
+
+# -- reading and checking lines -----------------------------------------------------------------------------------
+def _log_lines(path: Path) -> list[bytes]:
+    """The log's lines, each with its b"\\n" (a torn last line has none, which the checks refuse); [] if absent."""
+    return path.read_bytes().splitlines(keepends=True) if path.exists() else []
+
+
+def _no_duplicates(pairs):
+    out = {}
+    for k, v in pairs:
+        if k in out:
+            raise ValueError(f"duplicate key {k!r}")
+        out[k] = v
+    return out
+
+
+def _parse_line(n: int, line, prev: str) -> tuple[Entry, dict]:
+    """Line `n` checked against the row_sha256 of the line before it; ValueError naming the first defect."""
+    if not isinstance(line, bytes) or not line.endswith(b"\n") or b"\n" in line[:-1] or b"\r" in line:
+        raise ValueError("not one newline-terminated line")
+    try:
+        obj = json.loads(line[:-1].decode("utf-8"), object_pairs_hook=_no_duplicates)
+    except (UnicodeDecodeError, ValueError) as exc:
+        raise ValueError(f"unreadable ({exc})") from None
+    if not isinstance(obj, dict):
+        raise ValueError("not a JSON object")
+    try:
+        same = canonical_json(obj).encode("utf-8") == line[:-1]
+    except (TypeError, ValueError):
+        same = False
+    if not same:
+        raise ValueError("not its canonical JSON")
+    kind = obj.get("kind")
+    if not isinstance(kind, str) or kind not in OWNER_KINDS | SYSTEM_KINDS:
+        raise ValueError(f"unknown kind {kind!r}")
+    signed = kind in OWNER_KINDS
+    if signed and "sig" not in obj:
+        raise ValueError(f"unsigned {kind} entry: only system_halt and system_disarm go unsigned")
+    if not signed and "sig" in obj:
+        raise ValueError(f"signature on a system entry ({kind})")
+    if set(obj) != _LINE_KEYS | ({"sig"} if signed else set()):
+        raise ValueError(f"line keys {sorted(obj)}")
+    if type(obj["seq"]) is not int or obj["seq"] != n:
+        raise ValueError(f"seq {obj['seq']!r}, expected {n}")
+    if obj["prev_sha256"] != prev:
+        raise ValueError("prev_sha256 does not chain to the line before")
+    if not _utc(obj["utc"]):
+        raise ValueError(f"utc {obj['utc']!r} is not YYYY-MM-DDTHH:MM:SSZ")
+    row = sha256_hex(canonical_json({k: obj[k] for k in _BODY_KEYS}))
+    if obj["row_sha256"] != row:
+        raise ValueError("row_sha256 does not recompute")
+    why = _data_problem(kind, obj["data"])
+    if why:
+        raise ValueError(f"{kind} data {why}")
+    if signed and not _b64_of(64)(obj["sig"]):
+        raise ValueError("sig is not base64 of 64 bytes")
+    return Entry(seq=n, utc=obj["utc"], kind=kind, data=obj["data"], row_sha256=row, signed=signed), obj
+
+
+def _structure(lines) -> tuple[list[tuple[Entry, dict]], str]:
+    """Every line parsed and chained, signatures not checked: ([(entry, line object), ...], "") when sound, else
+    ([], "line N: <defect>"). verify_log and append_system_entry share it."""
+    out: list[tuple[Entry, dict]] = []
+    prev = GENESIS_PREV
+    for n, line in enumerate(lines, start=1):
+        try:
+            entry, obj = _parse_line(n, line, prev)
+        except (ValueError, ArithmeticError, RecursionError) as exc:   # RecursionError: a deeply nested line
+            return [], f"line {n}: {exc}"
+        out.append((entry, obj))
+        prev = entry.row_sha256
+    return out, ""
+
+
+def fingerprint(pubkey_raw: bytes) -> str:
+    """"SHA256:" + the sha256 hex of the raw 32-byte public key (what the owner writes down away from the PC)."""
+    return "SHA256:" + sha256_hex(pubkey_raw)
+
+
+def read_pubkey(path: Path) -> bytes:
+    """The raw 32 bytes of the Ed25519 key in a PEM SubjectPublicKeyInfo file. FileNotFoundError when the file is
+    absent (P24), ImportError without cryptography (Task 10), ValueError for anything but an Ed25519 public key."""
+    data = Path(path).read_bytes()
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+    from cryptography.hazmat.primitives.serialization import load_pem_public_key
+    key = load_pem_public_key(data)
+    if not isinstance(key, Ed25519PublicKey):
+        raise ValueError(f"{Path(path).name}: not an Ed25519 public key")
+    return key.public_bytes_raw()
+
+
+def _broken(reason: str) -> LogCheck:
+    return LogCheck(ok=False, reason=reason, entries=(), head=(0, ""), first_key_fingerprint="")
+
+
+def verify_log(lines: list[bytes], pubkey_raw: bytes, anchors: list[tuple[int, str]]) -> LogCheck:
+    """Spec 6.4 BROKEN rules over the whole log: line structure and chain, every anchor, the key_rotated walk back
+    from `pubkey_raw` (owner_pubkey.pem) to the first key (P20), then every owner signature under the key in force at
+    its line. Never raises; a broken log yields no entries, head (0, "") and no fingerprint."""
+    try:
+        return _verify(lines, pubkey_raw, anchors)
+    except Exception as exc:                                    # never raises: anything unexpected is BROKEN
+        return _broken(f"internal error {type(exc).__name__}")
+
+
+def _verify(lines, pubkey_raw, anchors) -> LogCheck:
+    parsed, why = _structure(lines)
+    if why:
+        return _broken(why)
+    for seq, sha in anchors:
+        if seq < 1:
+            continue                                            # the head of an empty log anchors nothing
+        if seq > len(parsed):
+            return _broken(f"an anchor names entry #{seq} but the log has {len(parsed)} lines")
+        if parsed[seq - 1][0].row_sha256 != sha:
+            return _broken(f"line {seq}: row_sha256 differs from its anchor")
+    if not isinstance(pubkey_raw, bytes) or len(pubkey_raw) != 32:
+        return _broken("owner key is not a raw 32-byte Ed25519 public key")
+    key = pubkey_raw
+    for entry, _ in reversed(parsed):                           # P20: from the pinned key back to the first one
+        if entry.kind == "key_rotated":
+            if base64.b64decode(entry.data["new_pubkey_b64"]) != key:
+                return _broken(f"line {entry.seq}: key_rotated does not lead to the key in force after it "
+                               "(owner_pubkey.pem after the last rotation)")
+            key = base64.b64decode(entry.data["old_pubkey_b64"])
+    first = key
+    try:
+        from cryptography.exceptions import InvalidSignature
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+    except ImportError:
+        return _broken("cryptography missing: install it (Task 10)")
+    verifier = Ed25519PublicKey.from_public_bytes(first)
+    for entry, obj in parsed:
+        if entry.signed:
+            try:
+                verifier.verify(base64.b64decode(obj["sig"]), SIG_DOMAIN + entry.row_sha256.encode("ascii"))
+            except InvalidSignature:
+                return _broken(f"line {entry.seq}: bad signature on {entry.kind}")
+        if entry.kind == "key_rotated":
+            verifier = Ed25519PublicKey.from_public_bytes(base64.b64decode(entry.data["new_pubkey_b64"]))
+    head = (parsed[-1][0].seq, parsed[-1][0].row_sha256) if parsed else (0, "")
+    return LogCheck(ok=True, reason="", entries=tuple(e for e, _ in parsed), head=head,
+                    first_key_fingerprint=fingerprint(first))
+
+
+# -- anchors (spec 6.4 "Anchors") ---------------------------------------------------------------------------------
+def _json_object(raw: bytes, where: str) -> dict:
+    try:
+        doc = json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, ValueError, RecursionError) as exc:
+        raise ValueError(f"{where}: unreadable ({exc})") from None
+    if not isinstance(doc, dict):
+        raise ValueError(f"{where}: not a JSON object")
+    return doc
+
+
+def _alert_rows() -> list[dict]:
+    """Every alerts.jsonl row ([] when the file is absent). ValueError on an unreadable line and OSError on an
+    unreadable file; both mean a broken log (fail closed)."""
+    path = alerts_path()
+    if not path.exists():
+        return []
+    return [_json_object(line, f"alerts.jsonl line {n}")
+            for n, line in enumerate(path.read_bytes().splitlines(), start=1) if line.strip()]
+
+
+def _anchor(seq, sha, where: str) -> tuple[int, str]:
+    """(seq >= 1, 64 lower-case hex), or exactly (0, "") for the head of an empty log."""
+    if type(seq) is not int or seq < 0 or not (sha == "" if seq == 0 else _hex64(sha)):
+        raise ValueError(f"{where}: not an anchor ({seq!r}, {sha!r})")
+    return seq, sha
+
+
+def read_anchors() -> list[tuple[int, str]]:
+    """Every recorded (seq, row_sha256), sorted and unique: alerts.jsonl rows (head_seq, head_sha256), snapshot
+    files (their "head" pair) and the approved store's *.anchor.json files ({"seq", "row_sha256"}). ValueError on a
+    malformed anchor and OSError on a file that cannot be read; the caller treats both as a broken log."""
+    found = {_anchor(r.get("head_seq"), r.get("head_sha256"), "alerts.jsonl") for r in _alert_rows()}
+    for path in sorted(snapshots_dir().glob("*.json")):
+        head = _json_object(path.read_bytes(), path.name).get("head")
+        if not (isinstance(head, list) and len(head) == 2):
+            raise ValueError(f"{path.name}: no head anchor")
+        found.add(_anchor(head[0], head[1], path.name))
+    for path in sorted(store_dir().glob("*/*.anchor.json")):
+        doc = _json_object(path.read_bytes(), path.name)
+        found.add(_anchor(doc.get("seq"), doc.get("row_sha256"), path.name))
+    return sorted(found)
+
+
+# -- appending system entries --------------------------------------------------------------------------------------
+_APPEND_LOCK = threading.Lock()
+
+
+@contextmanager
+def _exclusive(path: Path):
+    """Serialise read-verify-append on the owner log across threads and processes: a sidecar `<log>.lock` holding
+    an OS byte lock (copied from core.quant.gate_ledger._exclusive, which this package may not import)."""
+    checked_target(path.parent, "owner log folder").mkdir(parents=True, exist_ok=True)
+    with _APPEND_LOCK, open(checked_target(str(path) + ".lock", "owner log lock"), "a+b") as fh:
+        if os.name == "nt":
+            import msvcrt
+            fh.seek(0)
+            msvcrt.locking(fh.fileno(), msvcrt.LK_LOCK, 1)       # retries for about 10 s, then raises
+        else:
+            import fcntl
+            fcntl.flock(fh, fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            if os.name == "nt":
+                fh.seek(0)
+                msvcrt.locking(fh.fileno(), msvcrt.LK_UNLCK, 1)
+            else:
+                fcntl.flock(fh, fcntl.LOCK_UN)
+
+
+def append_system_entry(kind: str, data: dict, now: datetime) -> tuple[int, str]:
+    """Append one unsigned system entry and return its (seq, row_sha256). Under the sidecar lock the chain is
+    re-checked first (appending needs no signature check), then one canonical line is appended with fsync.
+    ValueError on an owner kind, bad data or a naive `now`; RuntimeError on a broken chain or a linked target."""
+    if kind not in SYSTEM_KINDS:
+        raise ValueError(f"{kind!r} is not a system kind: owner entries come only from the owner's signer")
+    why = _data_problem(kind, data)
+    if why:
+        raise ValueError(f"{kind} data {why}")
+    utc = iso_utc(now)
+    path = log_path()
+    with _exclusive(path):
+        parsed, why = _structure(_log_lines(path))
+        if why:
+            raise RuntimeError(f"owner log is broken ({why}); nothing appended")
+        last = parsed[-1][0] if parsed else None
+        body = {"seq": last.seq + 1 if last else 1, "prev_sha256": last.row_sha256 if last else GENESIS_PREV,
+                "utc": utc, "kind": kind, "data": data}
+        row = sha256_hex(canonical_json(body))
+        line = (canonical_json({**body, "row_sha256": row}) + "\n").encode("utf-8")
+        with open(checked_target(path, "owner log"), "ab") as fh:
+            fh.write(line)
+            fh.flush()
+            os.fsync(fh.fileno())
+    return body["seq"], row
