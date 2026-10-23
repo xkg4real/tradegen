@@ -225,7 +225,9 @@ def test_structure_rules_need_no_key():
     assert _broken([DEEP]).startswith("line 1: maximum recursion depth exceeded")
     assert _broken([_relined(lines[0], kind="halt")]) == "line 1: unknown kind 'halt'"
     assert _broken([_relined(lines[0], extra="x")]).startswith("line 1: line keys")
-    for utc in ("2026-10-23 00:00:00", "2026-02-30T00:00:00Z"):
+    for utc in ("2026-10-23 00:00:00", "2026-02-30T00:00:00Z",
+                "２０２６-10-23T00:00:00Z",          # fullwidth year: strptime reads it, `\d` matches it
+                "٢٠٢٦-10-23T00:00:00Z"):         # Arabic-Indic year
         assert _broken([_relined(lines[0], utc=utc)]).startswith("line 1: utc")
 
 
@@ -349,6 +351,24 @@ def test_read_pubkey_round_trips_and_refuses_other_keys():
     _raises(lambda: owner.read_pubkey(_home() / "absent.pem"), FileNotFoundError, "")
 
 
+def _spki_pem(oid: bytes) -> bytes:
+    """A well-formed PEM SubjectPublicKeyInfo naming the algorithm `oid` (DER content bytes) with a 32-byte key."""
+    def der(tag: int, body: bytes) -> bytes:
+        return bytes([tag, len(body)]) + body                   # every length here is under 128
+    spki = der(0x30, der(0x30, der(0x06, oid)) + der(0x03, b"\x00" + bytes(range(32))))
+    return b"-----BEGIN PUBLIC KEY-----\n" + base64.b64encode(spki) + b"\n-----END PUBLIC KEY-----\n"
+
+
+def test_read_pubkey_turns_an_unsupported_key_type_into_a_value_error():
+    F.test_key()                                                # NotRun PENDING while cryptography is missing
+    pem = _home() / "owner_pubkey.pem"
+    pem.write_bytes(_spki_pem(bytes([0x2B, 0xCE, 0x0F, 0x01])))  # OID 1.3.9999.1: well-formed, no such algorithm
+    _raises(lambda: owner.read_pubkey(pem), ValueError, "not an Ed25519 public key")
+    pem.unlink()
+    pem.mkdir()                                                 # not a file: an OSError escapes, also a broken log
+    _raises(lambda: owner.read_pubkey(pem), OSError, "")
+
+
 # -- event data --------------------------------------------------------------------------------------------------
 def test_event_data_schemas_are_exact():
     tagged = {"venue": "upbit", "symbol": "XRP", "network": "ripple", "address": "rTEST", "tag": "12345",
@@ -385,6 +405,8 @@ def test_event_data_schemas_are_exact():
         ("course_completed", {"course": "kofia_leveraged_1h", "evidence": " "}),
         ("broker_approval", {"item": ["broker_eligibility"], "evidence": "x"}),
         ("age_of_majority", {"birth_date": "2005-02-30", "evidence": "x"}),
+        ("age_of_majority", {"birth_date": "２００５-03-01", "evidence": "x"}),
+        ("age_of_majority", {"birth_date": "٢٠٠٥-03-01", "evidence": "x"}),
         ("cap_set", {"key": "okx_equity_share", "value": 0}),
         ("cap_set", {"key": "okx_equity_share", "value": 1.5}),
         ("cap_set", {"key": "okx_equity_share", "value": True}),

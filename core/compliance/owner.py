@@ -73,8 +73,9 @@ class LogCheck:
 
 # -- event data schemas (spec 6.4 "Events"; exact keys) ------------------------------------------------------------
 _HEX64 = re.compile(r"[0-9a-f]{64}")
-_UTC = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z")
-_ISO_DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
+# ASCII digits only: `\d` also takes fullwidth and Arabic-Indic digits, and strptime reads some of them.
+_UTC = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z")
+_ISO_DATE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")
 _BODY_KEYS = ("seq", "prev_sha256", "utc", "kind", "data")
 _LINE_KEYS = frozenset(_BODY_KEYS) | {"row_sha256"}
 _ITEMS = rules.OWNER_REQUIREMENTS - {"age_of_majority"}     # that flag comes only from a birth date
@@ -255,11 +256,17 @@ def fingerprint(pubkey_raw: bytes) -> str:
 
 def read_pubkey(path: Path) -> bytes:
     """The raw 32 bytes of the Ed25519 key in a PEM SubjectPublicKeyInfo file. FileNotFoundError when the file is
-    absent (P24), ImportError without cryptography (Task 10), ValueError for anything but an Ed25519 public key."""
+    absent (P24), ImportError without cryptography (Task 10), ValueError for anything but an Ed25519 public key (a
+    key of another or an unsupported type included). Any other OSError (for example the pem is a directory) can also
+    escape; callers treat every exception from here as a broken log."""
     data = Path(path).read_bytes()
+    from cryptography.exceptions import UnsupportedAlgorithm
     from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
     from cryptography.hazmat.primitives.serialization import load_pem_public_key
-    key = load_pem_public_key(data)
+    try:
+        key = load_pem_public_key(data)
+    except (ValueError, UnsupportedAlgorithm) as exc:
+        raise ValueError(f"{Path(path).name}: not an Ed25519 public key ({exc})") from None
     if not isinstance(key, Ed25519PublicKey):
         raise ValueError(f"{Path(path).name}: not an Ed25519 public key")
     return key.public_bytes_raw()
