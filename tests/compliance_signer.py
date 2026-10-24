@@ -237,10 +237,49 @@ def test_main_refuses_without_isolated_mode():
     assert signer._isolated() == bool(sys.flags.isolated)
     with _env_without_claude(), _patched(signer.getpass, "getpass", _never), \
             _patched(signer, "_read_typed", _never), _patched(signer, "_claude_ancestor", lambda: False), \
-            _patched(sys, "stdin", _Tty()), _patched(signer, "_isolated", lambda: False):
+            _patched(signer, "_stdin_is_terminal", lambda: True), _patched(signer, "_isolated", lambda: False):
         code, _, err = _quiet(signer.main, ["keygen"])
     assert code == 2 and "python.exe -I" in err, (code, err)
     assert list(_home().iterdir()) == [], list(_home().iterdir())
+
+
+def test_a_null_device_is_not_a_terminal():
+    """On Windows isatty() is true for any character device, NUL included (`cmd /c "... < NUL"`), so stdin counts
+    as a terminal only when GetConsoleMode accepts its handle."""
+    with open(os.devnull) as nul, _env_without_claude(), _patched(signer.getpass, "getpass", _never), \
+            _patched(signer, "_read_typed", _never), _patched(signer, "_claude_ancestor", lambda: False), \
+            _patched(sys, "stdin", nul):
+        assert signer._stdin_is_terminal() is False
+        code, _, err = _quiet(signer.main, ["keygen"])
+    assert code == 2 and "stdin is not a terminal" in err, (code, err)
+    assert list(_home().iterdir()) == [], list(_home().iterdir())
+
+
+def test_stdin_terminal_check_follows_getconsolemode():
+    """The Windows branch asks kernel32.GetConsoleMode about stdin's handle; a refusal, an exception or a missing
+    stdin all mean "not a terminal". (A fake kernel32 stands in: no console is attached under the suite.)"""
+    if os.name != "nt":
+        raise NotRun("REFDATA: GetConsoleMode needs Windows")
+    import ctypes
+    asked = []
+
+    def fake_dll(answer):
+        def win_dll(name, use_last_error=False):
+            def get_console_mode(handle, mode):
+                asked.append((name, handle))
+                if isinstance(answer, Exception):
+                    raise answer
+                return answer
+            return type("K32", (), {"GetConsoleMode": staticmethod(get_console_mode)})()
+        return win_dll
+
+    with open(os.devnull) as nul, _patched(sys, "stdin", nul):
+        for answer, expected in ((1, True), (0, False), (OSError("boom"), False)):
+            with _patched(ctypes, "WinDLL", fake_dll(answer)):
+                assert signer._stdin_is_terminal() is expected, answer
+        assert [name for name, _ in asked] == ["kernel32"] * 3 and all(isinstance(h, int) for _, h in asked), asked
+    with _patched(sys, "stdin", None), _patched(ctypes, "WinDLL", fake_dll(1)):
+        assert signer._stdin_is_terminal() is False
 
 
 def test_claude_ancestor_walk():
@@ -252,6 +291,24 @@ def test_claude_ancestor_walk():
     if os.name == "nt":
         live = signer._process_table()
         assert live[os.getpid()][0] == os.getppid(), live.get(os.getpid())
+
+
+def test_claude_ancestor_check_fails_closed():
+    """Claude is ruled out only from a process table that holds this very process: a failed snapshot, an empty
+    table or a table without our pid all read as "cannot rule it out"."""
+    me = os.getpid()
+
+    def broken():
+        raise OSError("Process32FirstW failed")
+
+    for table in (lambda: {}, lambda: {me + 1: (0, "python.exe")}, broken,
+                  lambda: (_ for _ in ()).throw(TypeError("ctypes")), lambda: (_ for _ in ()).throw(ImportError("x"))):
+        with _patched(signer, "_process_table", table):
+            assert signer._claude_ancestor() is True, table
+    with _patched(signer, "_process_table", lambda: {me: (0, "python.exe")}):
+        assert signer._claude_ancestor() is False
+    with _patched(signer, "_process_table", lambda: {me: (7, "python.exe"), 7: (0, "Claude.exe")}):
+        assert signer._claude_ancestor() is True
 
 
 # --------------------------------------------------------------------------- #
@@ -328,6 +385,12 @@ def test_passphrase_rule():
     assert not signer.passphrase_ok("aaa aaa aaa aaa aaa")                      # one word five times
     assert not signer.passphrase_ok("123 456 789 012 345")                      # digits are not letters
     assert not signer.passphrase_ok("cat dog owl bee an1")                      # every word must be letters
+    assert not signer.passphrase_ok("a" + " " * 18 + "b")                        # blanks inside do not count either
+    assert not signer.passphrase_ok("Cat cat CAT cAt caT")                      # one word in five spellings
+    assert not signer.passphrase_ok("a b c d e f g h i j k l m n o p q r s")     # 19 characters, 18 blanks
+    assert signer.passphrase_ok("a b c d e f g h i j k l m n o p q r s t")       # 20 characters, blanks aside
+    assert signer.passphrase_ok("Cat dog OWL bee ANT") and signer.passphrase_ok("one two six ten Ten four")
+    assert signer.passphrase_ok("x" * 10 + " " * 5 + "y" * 10)
 
 
 def test_typed_code_rejects_a_burst():
@@ -841,6 +904,69 @@ def test_key_rotated_must_name_the_key_that_signs_it():
     assert not owner.verify_log(_log_lines(), _raw(key1), []).ok, "the old pem must not verify a rotated log"
 
 
+def _third_key():
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+    return Ed25519PrivateKey.from_private_bytes(bytes(range(2, 34)))
+
+
+def test_only_the_key_in_force_can_extend_the_log():
+    """A line signed by any other key passes _head but makes owner.verify_log fail under every pem, for good. So
+    under the lock, and before anything is written: after a key_rotated only its new key signs; with no rotation
+    only the key that signed the last owner line; a log with no owner line takes any key."""
+    _need_crypto()
+    key1, key2, key3 = fx.test_key(), _second_key(), _third_key()
+    armed = {"session_id": "S1"}
+    stamp = iter(f"2026-10-23T{h:02d}:00:00Z" for h in range(1, 24))
+    log = owner.log_path()
+
+    def refused(key, kind="session_armed", data=armed, fragment="key"):
+        before = log.read_bytes()
+        assert fragment in str(_raises(lambda: signer._commit(key, kind, data, utc=next(stamp)), ValueError))
+        assert log.read_bytes() == before, "a refused entry changed the log"
+
+    owner.append_system_entry("system_halt", {"floor_krw": 1.0}, datetime(2026, 10, 23, tzinfo=timezone.utc))
+    assert signer._commit(key3, "session_armed", armed, utc=next(stamp))[0] == 2   # no owner line yet: any key
+    refused(key1, fragment="did not sign the log's last owner entry #2")           # now key3 is the owner key
+    refused(key2)
+    assert signer._commit(key3, "session_armed", {"session_id": "S2"}, utc=next(stamp))[0] == 3
+    # rotate key3 -> key1; the old key is refused from then on, and so is every stranger
+    refused(key3, "key_rotated", {"old_pubkey_b64": _b64(key1), "new_pubkey_b64": _b64(key2)},
+            fragment="old_pubkey_b64 is not the key you unlocked")                 # names a key it is not
+    assert signer._commit(key3, "key_rotated", {"old_pubkey_b64": _b64(key3), "new_pubkey_b64": _b64(key1)},
+                          utc=next(stamp))[0] == 4
+    refused(key3, fragment="not the key in force since entry #4")                  # the retired key
+    refused(key2, fragment="not the key in force since entry #4")                  # a stranger
+    refused(key1, "key_rotated", {"old_pubkey_b64": _b64(key3), "new_pubkey_b64": _b64(key2)},
+            fragment="old_pubkey_b64 is not the key you unlocked")                 # right signer, wrong old key
+    assert signer._commit(key1, "session_armed", {"session_id": "S3"}, utc=next(stamp))[0] == 5
+    assert signer._commit(key1, "key_rotated", {"old_pubkey_b64": _b64(key1), "new_pubkey_b64": _b64(key2)},
+                          utc=next(stamp))[0] == 6
+    refused(key1, fragment="not the key in force since entry #6")
+    assert signer._commit(key2, "session_armed", {"session_id": "S4"}, utc=next(stamp))[0] == 7
+    check = owner.verify_log(_log_lines(), _raw(key2), [])
+    assert check.ok and check.first_key_fingerprint == owner.fingerprint(_raw(key3)), check.reason
+
+
+def test_a_command_with_the_wrong_key_stores_nothing():
+    """The key is judged right after the passphrase, before `approve` stores any bytes."""
+    _need_crypto()
+    key1, key2 = fx.test_key(), _second_key()
+    signer._commit(key1, "key_rotated", {"old_pubkey_b64": _b64(key1), "new_pubkey_b64": _b64(key2)}, utc=UTC)
+    draft = ROOT / "core" / "compliance" / "kr_rules.yaml"
+    before = owner.log_path().read_bytes()
+    argv = ["approve", "--kind", "rules", "--path", str(draft)]
+    with _patched(signer, "_confirm", lambda kind, data, head, utc: None):
+        for key, ok in ((key1, False), (key2, True)):
+            args = signer._parser().parse_args(argv)
+            with _patched(signer, "_unlock", lambda path, key=key: key):
+                if ok:
+                    assert _quiet(args.run, args)[0] == 0
+                    continue
+                assert "not the key in force" in str(_raises(lambda: _quiet(args.run, args), ValueError))
+            assert owner.log_path().read_bytes() == before and not owner.store_dir().exists()
+    assert owner.verify_log(_log_lines(), _raw(key2), owner.read_anchors()).ok
+
+
 def test_approve_refuses_an_empty_calendar_folder_before_any_prompt():
     empty = _home() / "empty_cal"
     empty.mkdir()
@@ -970,7 +1096,9 @@ def test_help_names_owner_acts_1_and_2():
     for needle in ("certutil -hashfile %USERPROFILE%\\tradegen-signer\\sign.py SHA256", "away from the PC",
                    "keygen", "code-approve", "owner_pubkey.pem", "at least 20 characters",
                    "at least 5 different words", "python.exe -I", "site-packages\\*.pth",
-                   "Claude never runs this file", "from the next Asia/Seoul date"):
+                   "Claude never runs this file", "from the next Asia/Seoul date", "blanks do not count",
+                   "Key rotation", "keygen --key NEW\\owner_key.enc", "event key_rotated", "copy NEW\\owner_key.pem",
+                   "owner_pubkey.pem", "pass --key NEW\\owner_key.enc to every command"):
         assert needle in text, needle
     assert "python.exe %USERPROFILE%" not in text, "every command line starts python.exe -I"
     parser = signer._parser()

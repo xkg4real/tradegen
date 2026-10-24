@@ -9,7 +9,8 @@ Owner act 1, once: set up the signer
      and write the hash on paper, away from the PC.
   3. Run
        C:\Users\whydi\OneDrive\Desktop\TRADEGEN\.venv\Scripts\python.exe -I %USERPROFILE%\tradegen-signer\sign.py keygen
-     Choose a passphrase of at least 20 characters, or at least 5 different words of 3 or more letters each.
+     Choose a passphrase of at least 20 characters (blanks do not count), or at least 5 different words of 3 or
+     more letters each (a changed capital does not make a word different).
      Write the fingerprint it prints on the same paper.
   4. Copy the .pem file it names to C:\Users\whydi\OneDrive\Desktop\TRADEGEN\core\compliance\owner_pubkey.pem.
 
@@ -37,6 +38,14 @@ Other commands
                             first one you set, applies only from the next Asia/Seoul date, never inside a session
                             armed on or before the day you set it, and never after a system_halt
   fingerprint               print the key file's fingerprint (no passphrase needed)
+
+Key rotation, only when the key must change (the old key signs the change, the log stays one chain)
+  1. keygen --key NEW\owner_key.enc      writes the new key file and NEW\owner_key.pem and prints the new raw public key
+  2. fingerprint                         prints the raw public key of the key file you use now (the old one)
+  3. event key_rotated --data JSON       {"old_pubkey_b64": OLD, "new_pubkey_b64": NEW}, unlocking the OLD key file
+  4. copy NEW\owner_key.pem over <repo>\core\compliance\owner_pubkey.pem
+  5. from then on pass --key NEW\owner_key.enc to every command. The signer refuses any key that is not the one in
+     force (after step 3 the old one), because a line signed by another key breaks the log for good.
 
 Claude never runs this file, never asks for your passphrase and never writes owner entries."""
 from __future__ import annotations
@@ -298,10 +307,11 @@ def _head(lines: list[bytes]) -> tuple[int, str]:
 # The key file (spec 6.4 "The key file")
 # --------------------------------------------------------------------------- #
 def passphrase_ok(passphrase: str) -> bool:
-    """At least 20 characters that are not all blank, or at least 5 different words of 3 or more letters each
-    (diceware-style: digits and repeated words do not count)."""
+    """At least 20 characters once every blank is left out, or at least 5 different words (compared without case)
+    of 3 or more letters each (diceware-style: digits, repeated words and a changed capital do not count)."""
     words = passphrase.split()
-    return len(passphrase.strip()) >= 20 or (len(set(words)) >= 5 and all(w.isalpha() and len(w) >= 3 for w in words))
+    return (sum(not c.isspace() for c in passphrase) >= 20
+            or (len({w.casefold() for w in words}) >= 5 and all(w.isalpha() and len(w) >= 3 for w in words)))
 
 
 def _derive(passphrase: str, salt: bytes) -> bytes:
@@ -754,9 +764,13 @@ def _has_claude_ancestor(pid: int, table: dict[int, tuple[int, str]]) -> bool:
 
 
 def _claude_ancestor() -> bool:
+    """Fails closed: True (Claude cannot be ruled out) unless a process table was read and holds this very process,
+    so a failed snapshot, an empty table or a table without our own pid never lets the signer run."""
     try:
         table = _process_table()
-    except (OSError, AttributeError, ValueError):         # no Toolhelp32 here: it cannot be ruled out
+    except Exception:
+        return True
+    if os.getpid() not in table:
         return True
     return _has_claude_ancestor(os.getpid(), table)
 
@@ -767,9 +781,20 @@ def _isolated() -> bool:
 
 
 def _stdin_is_terminal() -> bool:
+    """True when stdin is a real console. On Windows isatty() is true for any character device, NUL included, so
+    stdin counts only if GetConsoleMode accepts its handle; any failure (no stdin, a closed or odd one, no
+    ctypes) means "not a terminal"."""
     try:
-        return bool(sys.stdin.isatty())
-    except (AttributeError, ValueError):                  # no stdin at all, or a closed one: not a terminal
+        if os.name != "nt":
+            return bool(sys.stdin.isatty())
+        import ctypes
+        import msvcrt
+        from ctypes import wintypes
+        k32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        k32.GetConsoleMode.argtypes = (wintypes.HANDLE, ctypes.POINTER(wintypes.DWORD))
+        k32.GetConsoleMode.restype = wintypes.BOOL
+        return bool(k32.GetConsoleMode(msvcrt.get_osfhandle(sys.stdin.fileno()), ctypes.byref(wintypes.DWORD())))
+    except Exception:
         return False
 
 
@@ -846,11 +871,38 @@ def _utc_now() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+def _wrong_key(signing_key, kind: str, data: dict, lines: list[bytes]) -> str:
+    """"" when `signing_key` is the key owner.verify_log will expect on the line after `lines` (already checked by
+    _head), else why not. A line signed by any other key would make the log BROKEN under every pem, for good. The
+    key in force is: after the last key_rotated, its new_pubkey_b64; with no rotation, the key that signed the
+    last owner line; with no owner line yet, any key. A key_rotated must also name the key you unlocked as old."""
+    mine = signing_key.public_key().public_bytes_raw()
+    if kind == "key_rotated" and base64.b64decode(data["old_pubkey_b64"]) != mine:
+        return "key_rotated: old_pubkey_b64 is not the key you unlocked"
+    entries = [json.loads(line) for line in lines]
+    rotations = [e for e in entries if e["kind"] == "key_rotated"]
+    if rotations:
+        if base64.b64decode(rotations[-1]["data"]["new_pubkey_b64"]) != mine:
+            return (f"the key you unlocked ({fingerprint(mine)}) is not the key in force since entry "
+                    f"#{rotations[-1]['seq']} (key_rotated): pass --key with the new key file")
+        return ""
+    signed = [e for e in entries if e["kind"] in SCHEMAS]
+    if signed:
+        from cryptography.exceptions import InvalidSignature
+        try:
+            signing_key.public_key().verify(base64.b64decode(signed[-1]["sig"]),
+                                            SIG_DOMAIN + signed[-1]["row_sha256"].encode("ascii"))
+        except InvalidSignature:
+            return (f"the key you unlocked ({fingerprint(mine)}) did not sign the log's last owner entry "
+                    f"#{signed[-1]['seq']}: it is not the owner key of this log")
+    return ""
+
+
 def _commit(signing_key, kind: str, data: dict, *, utc: str, expect_head: tuple[int, str] | None = None
             ) -> tuple[int, str]:
     """Append one signed entry stamped `utc` under the sidecar lock and return (seq, row_sha256). The chain must
-    still end at `expect_head` (what the owner was shown) and `utc` may not be earlier than the last line's; an
-    approval's anchor is written after the line."""
+    still end at `expect_head` (what the owner was shown), `utc` may not be earlier than the last line's, and
+    `signing_key` must be the key in force (_wrong_key); an approval's anchor is written after the line."""
     check_data(kind, data)
     if not _utc(utc):
         raise ValueError(f"utc {utc!r} is not YYYY-MM-DDTHH:MM:SSZ; nothing was signed")
@@ -868,6 +920,9 @@ def _commit(signing_key, kind: str, data: dict, *, utc: str, expect_head: tuple[
         if utc < last:
             raise RuntimeError(f"the stamp {utc} is earlier than entry #{head[0]}'s {last}: check the PC clock; "
                                "nothing was signed")
+        why = _wrong_key(signing_key, kind, data, lines)
+        if why:
+            raise ValueError(f"{why}; nothing was signed")
         line, row = entry_line(signing_key, head[0] + 1, head[1] or GENESIS_PREV, kind, data, utc)
         with open(_checked(path, state_root()), "ab") as fh:
             fh.write(line)
@@ -886,13 +941,14 @@ def _sign(args, kind: str, data: dict, before=None) -> int:
     """Validate, stamp and show, take the typed code and the passphrase, run `before` (store writes), sign and
     append with exactly the stamp that was shown."""
     check_data(kind, data)
-    head = _head(_read_lines(_log_path()))
+    lines = _read_lines(_log_path())
+    head = _head(lines)
     utc = _utc_now()
     _confirm(kind, data, head, utc)
     signing_key = _unlock(_key_path(args))
-    unlocked = signing_key.public_key().public_bytes_raw()
-    if kind == "key_rotated" and base64.b64decode(data["old_pubkey_b64"]) != unlocked:
-        raise ValueError("key_rotated: old_pubkey_b64 is not the key you unlocked; nothing was signed")
+    why = _wrong_key(signing_key, kind, data, lines)         # early, so `before` stores nothing; _commit checks
+    if why:                                                  # again under the lock
+        raise ValueError(f"{why}; nothing was signed")
     if before is not None:
         before()
     seq, row = _commit(signing_key, kind, data, utc=utc, expect_head=head)
