@@ -53,14 +53,22 @@ def _decide(intent, ctx) -> Decision:
     reasons = _conduct(intent, state) + _positions(intent, ctx) + ([why] if why else []) + bad  # step 2
     if bad:
         return _decision(intent, ctx, state, BLOCK, "malformed", reasons + _floor_new(intent, inst))
-    if state is None:                         # nothing usable: exits are manual, new exposure is refused
+    if state is not None:
+        kind = _classify(intent, ctx, inst, venue)                                            # step 3
+    else:
         kind = _EXIT_KIND.get(intent.action, "new_exposure")
         if kind == "withdraw" and not _is(intent.destination_venue, rules.DOMESTIC_EXCHANGES):
             kind = "new_exposure"             # step 3: a transfer is an exit only toward a domestic exchange
+    if kind == "new_exposure":                # step 1 for new exposure: an earlier map serves exits only, and the
+        more = (["malformed: symbol", _manual(intent)]                    # caps count the stake, so it is > 0
+                if state is not None and _retired(state, venue, intent.symbol) else [])
+        more += [] if intent.notional_krw > 0 else ["malformed: notional_krw"]
+        if more:
+            return _decision(intent, ctx, state, BLOCK, "malformed", reasons + more + _floor_new(intent, inst))
+    if state is None:                         # nothing usable: exits are manual, new exposure is refused
         extra = _floor_new(intent, None) if kind == "new_exposure" else \
             [_WITHDRAW_MANUALLY if kind == "withdraw" else _CLOSE_MANUALLY]
         return _decision(intent, ctx, None, BLOCK, kind, reasons + extra)
-    kind = _classify(intent, ctx, inst, venue)                                                # step 3
     verdicts, warnings, ack = ([BLOCK] if reasons else []), [], None
     if kind != "new_exposure":                                                                # step 4
         verdict, more, warns = _exit(intent, ctx, state, kind, inst, venue)
@@ -147,16 +155,24 @@ def _validate(intent, ctx, state) -> tuple[rules.Instrument | None, rules.Venue 
         not transfer or _is(intent.destination_venue, rules.DOMESTIC_EXCHANGES))
     inst = _lookup(state, venue, intent.symbol, exit_action and intent.financing == "cash")
     if inst is None:
-        manual = [_WITHDRAW_MANUALLY if transfer else _CLOSE_MANUALLY] if exit_action else []
+        manual = [_manual(intent)] if exit_action else []
         return None, venue, [f"malformed: {f}" for f in bad + ["symbol"]] + manual
     if "asset" not in bad and intent.asset != inst.asset:
         bad.append("asset")
     if "multiple" not in bad and intent.multiple != inst.multiple:
         bad.append("multiple")
-    if "action" not in bad and "counter_symbol" not in bad and intent.action in rules.TRADE_ACTIONS and \
-            not venue.is_market(inst, intent.counter_symbol):
-        bad.append("counter_symbol")                          # not a listed market of this venue
-    return inst, venue, [f"malformed: {f}" for f in bad]
+    retired = _retired(state, venue, intent.symbol)
+    if "action" not in bad and "counter_symbol" not in bad and intent.action in rules.TRADE_ACTIONS:
+        # parse_venues lists only current symbols as markets, so a retired one sells for any settlement asset of a
+        # venue with explicit markets (step 3's close-long test); kis quotes by currency and needs no market list
+        if retired and intent.action == "sell" and not venue.quote_by_currency:
+            listed = intent.counter_symbol in venue.settlement
+        else:
+            listed = venue.is_market(inst, intent.counter_symbol)
+        if not listed:
+            bad.append("counter_symbol")                      # not a listed market of this venue
+    manual = [_manual(intent)] if retired and "counter_symbol" in bad else []
+    return inst, venue, [f"malformed: {f}" for f in bad] + manual
 
 
 def _conduct(intent, state) -> list[str]:
@@ -167,8 +183,8 @@ def _conduct(intent, state) -> list[str]:
     if _is(intent.asset, FLOOR_ALL_ASSETS):
         out.append(f"conduct: {intent.asset}")
     if state is not None and state.rules is not None:
-        # ponytail: the class seen here is ASSET_CLASS only, so a conduct row keyed on an ETP class never fires;
-        # the seed table has none (a test pins that). Pass the looked-up Instrument if one ever needs it.
+        # ponytail: the class seen here is ASSET_CLASS only, so the loader refuses a conduct row keyed on an ETP
+        # class. Pass the looked-up Instrument if one ever needs it.
         cls = rules.ASSET_CLASS.get(intent.asset) if _is(intent.asset, rules.ASSETS) else None
         out += [f"conduct: {row.id}" for row in state.rules.rows
                 if row.kind == "conduct" and _matches(row, intent, cls)]
@@ -306,12 +322,15 @@ def _row_check(row, intent, ctx) -> tuple[list[str], tuple | None]:
 
 def _grey(row, intent, ctx) -> list[str]:
     """D6: off from auto_off on; the cap must be set; the venue's held value (settlement assets included), plus
-    every other reservation, plus this notional must not exceed cap x equity."""
+    every other reservation, plus this notional must not exceed cap x equity. Holdings there with no exposure entry
+    would count as nothing held, so they are invalid positions."""
     out = [f"auto_off {row.auto_off}: {row.id}"] if ctx.date >= row.auto_off else []
+    exposure = ctx.exposure.get(intent.venue)
+    if exposure is None and any(type(k) is tuple and k[:1] == (intent.venue,) and v for k, v in ctx.holdings.items()):
+        out.append("state: positions invalid (exposure)")
     cap = _cap(row, ctx)
     if cap is None:
         return out + [f"cap unset: {row.id}"]
-    exposure = ctx.exposure.get(intent.venue)
     held = exposure.held_krw if exposure is not None else 0.0
     own = intent.reservation_id                     # only an intent that has a reservation excludes one
     others = (sum(v for k, v in exposure.reservations.items() if own is None or k != own)
@@ -331,7 +350,7 @@ def _slots(row, ctx) -> dict:
     """The warning slots of `row`: {"cap": "10%"} when its cap is set. An unset or unreadable cap (a broken owner
     log) reads "the share you set"; a grey row then blocks new exposure with "cap unset", so no ack signs it."""
     cap = _cap(row, ctx)
-    return {"cap": f"{cap:.0%}" if cap is not None else "the share you set"}
+    return {"cap": f"{cap * 100:g}%" if cap is not None else "the share you set"}
 
 
 def _stale(row) -> str:
@@ -442,6 +461,15 @@ def _lookup(state, venue, symbol, exits: bool):
         if inst is not None:
             return inst
     return None
+
+
+def _retired(state, venue, symbol) -> bool:
+    """The symbol is not in the map in force for the venue's sections (only an earlier map may know it)."""
+    return state.instruments.lookup(venue.sections, symbol) is None
+
+
+def _manual(intent) -> str:
+    return _WITHDRAW_MANUALLY if intent.action == "transfer_out" else _CLOSE_MANUALLY
 
 
 def _within_free(intent, ctx) -> bool:

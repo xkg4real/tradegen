@@ -183,7 +183,7 @@ def test_match_keys_and_vocabulary():
     for key, good in (("venue", "upbit"), ("asset", "crypto_coin"), ("class", "coin"), ("action", "buy"),
                       ("financing", "cash"), ("tag", "spoof"), ("when", "publishes_signal")):
         _bad(_row(match={"venue": ["upbit"], key: [good, "bogus"]}), f"match.{key}", "'bogus' is outside")
-        _parse(_row(match={"venue": ["upbit"], key: [good]}))
+        _parse(_row(treatment="hard_block", match={"venue": ["upbit"], key: [good]}))   # blocks: any one key will do
     _bad(_row(match={"venue": ["UPBIT"]}), "match.venue", "'UPBIT' is outside the vocabulary")
     _bad(_row(match={"venue": ["upbit"], "action": ["Buy"]}), "match.action", "'Buy' is outside")
     _bad(_row(match={}), "match: expected a non-empty mapping")
@@ -203,6 +203,53 @@ def test_any_only_on_hard_block_out_of_scope_and_conduct_rows():
     conduct = _row(kind="conduct", treatment="hard_block", match={"venue": ["any"], "asset": ["event_contract"]})
     assert _parse(conduct).rows[0].match["venue"] == {"any"}
     _bad(_row(treatment="hard_block", match={"venue": ["any", "kis"]}), "match.venue", "'any' is outside")
+
+
+def test_a_row_that_can_let_through_names_every_axis():
+    """A missing match key matches everything (fail open by omission): an allow, gated or grey row names action,
+    financing and a class or an asset, so a dropped financing cannot let a credit buy through. Blocking rows may
+    stay wide."""
+    full = {"venue": ["upbit"], "class": ["coin"], "action": ["buy", "sell"], "financing": ["cash"]}
+    base = _row(id="T-BASE")
+    make = {"allow": lambda m: _row(id="T-ROW", match=m, matrix_rows=[]),
+            "gated": lambda m: _row(id="T-ROW", match=m, matrix_rows=[], treatment="gated",
+                                    requires={"owner": ["age_of_majority"]}),
+            "grey": lambda m: _grey(id="T-ROW", match=m)}
+    for treatment, row in make.items():
+        assert _parse(base, row(full)).rows[1].treatment == treatment
+        asset = {**{k: v for k, v in full.items() if k != "class"}, "asset": ["crypto_coin"]}
+        assert _parse(base, row(asset)).rows[1].match["asset"] == {"crypto_coin"}      # an asset will do
+        for drop, missing in (("action", "['action']"), ("financing", "['financing']"),
+                              ("class", "['class or asset']")):
+            _bad(base, row({k: v for k, v in full.items() if k != drop}), "row T-ROW: match",
+                 f"an allow, gated or grey row names action, financing and a class or an asset; missing {missing}")
+        _bad(base, row({"venue": ["upbit"]}), "row T-ROW: match", "missing ['action', 'financing', 'class or asset']")
+    for treatment in ("hard_block", "out_of_scope"):
+        assert _parse(base, _row(id="T-ROW", treatment=treatment, match={"venue": ["upbit"]}, matrix_rows=[]))
+
+
+def test_a_gated_row_requires_something():
+    """A gated row with no requirement would act as an allow row."""
+    gated = {"id": "T-ROW", "treatment": "gated", "matrix_rows": []}
+    for requires in (_DROP, None, {}, {"owner": [], "live": []}, {"owner": None}):
+        _bad(_row(id="T-BASE"), _row(**gated, requires=requires), "row T-ROW: requires",
+             "a gated row requires owner or live evidence")
+    for requires in ({"owner": ["age_of_majority"]}, {"live": ["broker_approval"]}):
+        assert _parse(_row(id="T-BASE"), _row(**gated, requires=requires)).rows[1].treatment == "gated"
+
+
+def test_a_conduct_row_never_keys_on_an_etp_class():
+    """gate._conduct shows a conduct row the class of the asset itself (rules.ASSET_CLASS), never a derived ETP
+    class, so a conduct row keyed on one could never fire."""
+    etp = sorted(rules.CLASSES - set(rules.ASSET_CLASS.values()))
+    assert etp and all(c.startswith("etp_") for c in etp), etp
+    for cls in etp:
+        _bad(_row(id="T-COND", kind="conduct", treatment="hard_block", match={"venue": ["any"], "class": [cls]}),
+             "row T-COND: match.class", f"a conduct row sees an asset's own class, never ['{cls}']")
+    _bad(_row(id="T-COND", kind="conduct", treatment="hard_block", match={"class": ["share", "etp_1x"]}),
+         "never ['etp_1x']")
+    for cls in ("share", "coin", "any"):
+        assert _parse(_row(id="T-COND", kind="conduct", treatment="hard_block", match={"class": [cls]}))
 
 
 def test_conduct_rows_are_hard_block_and_venue_rows_name_venues():
@@ -237,14 +284,15 @@ def test_grey_rows_need_cap_auto_off_and_session_ack():
 
 def test_d16_rows_need_requires_live():
     lev = {"id": "T-LEV", "treatment": "gated", "basis": ["legal", "policy"], "policy_ref": "D16",
-           "match": {"venue": ["kis"], "class": ["etp_leveraged"], "action": ["buy"]}, "matrix_rows": [25, 32]}
+           "match": {"venue": ["kis"], "class": ["etp_leveraged"], "action": ["buy"], "financing": ["cash"]},
+           "matrix_rows": [25, 32]}
     _bad(_row(), _row(**lev), "row T-LEV: requires.live")
     _bad(_row(), _row(**lev, requires={"owner": ["kofia_leveraged_1h"]}), "row T-LEV: requires.live")
     _bad(_row(), _row(**{**lev, "policy_ref": "D15, D16"}), "row T-LEV: requires.live")
     ok = _parse(_row(), _row(**lev, requires={"owner": ["kofia_leveraged_1h"], "live": ["deposit_krw_10m"]})).rows[1]
     assert ok.requires_live == ("deposit_krw_10m",) and ok.requires_owner == ("kofia_leveraged_1h",)
     assert ok.policy_ref == "D16" and ok.basis == {"legal", "policy"}
-    _parse(_row(), _row(**{**lev, "policy_ref": "D160"}))          # D160 is not D16
+    _parse(_row(), _row(**{**lev, "policy_ref": "D160"}, requires={"owner": ["kofia_leveraged_1h"]}))   # not D16
     _parse(_row(), _row(**{**lev, "policy_ref": "D15", "treatment": "out_of_scope"}))
     for ref in ("d16", "D-16", "D 16", "D16a", "owner decision 16", "D15,D16", "D15, D16,", 16, ["D16"],
                 "D016", "D15, D016"):
@@ -883,6 +931,21 @@ def test_shipped_treatments_follow_spec_5_3():
             assert {"venue", "action", "financing"} <= set(r.match) and {"asset", "class"} & set(r.match), r.id
             assert r.match["financing"] == frozenset({"cash"}), r.id
             assert all("any" not in values for values in r.match.values()), r.id
+
+
+def test_shipped_rows_cannot_lose_an_axis():
+    """The review's reproductions on the shipped table: KR-DOMESTIC-SPOT without `financing` (it would ALLOW an
+    Upbit margin or credit buy), without `action` as well (sell_short, p2p_buy), and KR-KIS-US-OPTION gated on
+    nothing (an allow row) are each Invalid."""
+    raw = _t5_raw("rules")
+    spot = b"match: {venue: [upbit, bithumb, coinone, korbit], class: [coin], action: [buy, sell], financing: [cash]}"
+    option = b"requires: {owner: [us_option_course_1h, us_option_mock_3h, broker_eligibility], live: []}"
+    assert raw.count(spot) == 1 and raw.count(option) == 1
+    for old, new, has in (
+            (spot, spot.replace(b", financing: [cash]", b""), "missing ['financing']"),
+            (spot, spot.replace(b", action: [buy, sell], financing: [cash]", b""), "missing ['action', 'financing']"),
+            (option, b"requires: {owner: [], live: []}", "a gated row requires owner or live evidence")):
+        _refused(lambda: _t5_rules.parse_rules(raw.replace(old, new)), has)
 
 
 def test_shipped_d16_rows_need_live_evidence():

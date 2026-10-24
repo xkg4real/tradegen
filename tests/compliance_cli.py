@@ -277,6 +277,9 @@ def test_check_code_3_no_owner_key_reads_only():
     assert not any(line.startswith("code: UNSIGNED") for line in out["lines"]), out["lines"]
     assert last["head_seq"] == 0 and last["fingerprint"] == "", last
     assert sorted(p.name for p in home.iterdir()) == [], list(home.iterdir())               # --check wrote nothing
+    # no owner log and no snapshot: the gate sends every exit to the app, so exit 3 never says they stay open
+    assert out["lines"][-1].startswith("exit 3: ") and "exits stay open" not in out["lines"][-1], out["lines"]
+    assert "close or withdraw manually in the app" in out["lines"][-1], out["lines"]
 
 
 def test_check_code_3_unsigned_code():
@@ -529,11 +532,21 @@ def test_render_fixed_template_and_sanitises():
     summary = _sample(head_seq=12, head_sha256="a" * 64)
     alert = {"kind": "due", "row": "KR-OKX-SPOT", "field": "auto_off", "date": "2026-12-03", "days_left": 3,
              "threshold": 3}
-    subject, body = alerts.render(alert, summary)
+    first = "SHA256:" + "1" * 64
+    history = [_ok_row(_sample(fingerprint=""), utc="2026-10-20T00:00:00Z"),          # rows before the key carry none
+               _ok_row(_sample(fingerprint=first), utc="2026-10-23T09:00:00Z"),       # the first one recorded
+               _ok_row(_sample(), utc="2026-10-30T09:00:00Z")]
+    subject, body = alerts.render(alert, summary, history)
     assert subject == "TRADEGEN compliance: KR-OKX-SPOT auto_off in 3 days", subject
     assert body.splitlines()[0] == "Rule KR-OKX-SPOT: auto_off 2026-12-03, 3 days left.", body
-    assert "Owner log head: entry #12" in body and f"Key fingerprint: {FP}" in body, body
+    assert "Owner log head: entry #12" in body, body
+    assert f"Key now {FP}; first recorded {first} on 2026-10-23" in body, body           # spec 6.4: both, always
+    assert f"Key now {FP}; first recorded none yet" in alerts.render(alert, summary)[1]
+    junk = [{"fingerprint": "SHA256:" + "\n" * 64, "utc": "later"}, _ok_row(_sample())]    # never interpolated
+    assert "first recorded unknown on (unrecognised date)" in alerts.render(alert, summary, junk)[1]
     assert f"Sent only to {alerts.OWNER_ALERT_EMAIL}." in body, body
+    _, state = alerts.render({"kind": "state"}, summary, history)
+    assert "exits stay open" not in state and "close or withdraw manually in the app" in state, state
     late = {"kind": "overdue", "row": "KR-OKX-SPOT", "field": "auto_off", "date": "2026-12-03", "days_late": 0}
     subject, body = alerts.render(late, summary)
     assert subject == "TRADEGEN compliance: KR-OKX-SPOT auto_off reached", subject
@@ -543,7 +556,7 @@ def test_render_fixed_template_and_sanitises():
     subject, body = alerts.render(hostile, _sample(fingerprint="not a fingerprint"))
     text = subject + body
     assert "rm -rf" not in text and "soon" not in text and "reason" not in text, text
-    assert "(unrecognised id)" in text and "(unrecognised date)" in text and "Key fingerprint: unknown" in text
+    assert "(unrecognised id)" in text and "(unrecognised date)" in text and "Key now unknown" in text
     odd = {"kind": "overdue", "row": "KR-X", "field": ["review_by"], "date": "2026-11-22", "days_late": 1}
     assert "(unrecognised field)" in "".join(alerts.render(odd, summary))          # an unhashable field is no crash
 
@@ -660,12 +673,14 @@ def test_alerts_main_send_toasts_once_and_logs():
         code, _, shown = _run_main(alerts.main, ["--today", "2026-11-08", "--summary", json.dumps(summary)])
     assert code == 0 and shown["send"] is True and set(shown) == {"send", "subject", "body"}, shown
     assert calls == [(shown["subject"], shown["body"])], calls                            # once, same text
+    assert f"Key now {FP}; first recorded none yet" in shown["body"], shown["body"]      # nothing recorded before
     rows = _alerts_lines()
     assert [(r["channel"], r["result"]) for r in rows] == [("toast", "ok")], rows
     assert rows[0]["due"] == summary["due"], rows
     with _patched(alerts, "_toast", lambda title, body: False), _patched(subprocess, "run", _boom):
         code, _, shown = _run_main(alerts.main, ["--today", "2026-11-08", "--summary", json.dumps(_sample(code=3))])
     assert code == 0 and "The Windows toast could not be shown." in shown["body"], shown   # told on the others
+    assert f"Key now {FP}; first recorded {FP} on {rows[0]['utc'][:10]}" in shown["body"], shown["body"]
     assert [(r["channel"], r["result"]) for r in _alerts_lines()][-1] == ("toast", "fail")
 
 

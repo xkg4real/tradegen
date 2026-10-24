@@ -1098,8 +1098,9 @@ def test_help_names_owner_acts_1_and_2():
                    "at least 5 different words", "python.exe -I", "site-packages\\*.pth",
                    "Claude never runs this file", "from the next Asia/Seoul date", "blanks do not count",
                    "Key rotation", "keygen --key NEW\\owner_key.enc", "event key_rotated", "copy NEW\\owner_key.pem",
-                   "owner_pubkey.pem", "pass --key NEW\\owner_key.enc to every command"):
-        assert needle in text, needle
+                   "owner_pubkey.pem", "pass --key NEW\\owner_key.enc to every command",
+                   "reads BROKEN between steps 3 and 4", "write the new fingerprint on paper"):
+        assert needle in " ".join(text.split()), needle
     assert "python.exe %USERPROFILE%" not in text, "every command line starts python.exe -I"
     parser = signer._parser()
     assert parser.parse_args(["approve", "--kind", "calendar", "--path", "d"]).run is signer._cmd_approve

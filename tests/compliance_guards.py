@@ -42,11 +42,13 @@ NETWORK_MODULES = ("urllib", "http", "socket", "_socket", "socketserver", "selec
 NETWORK_CALLS = frozenset({"urlopen", "urlretrieve", "create_connection"})
 FORBIDDEN_MODULES = ("core.engine.orders", "core.quant.forward_sim", "core.quant.refusal", "core.ficc.context_log",
                      "core.ficc.macro", "core.ficc.flows_log", "core.skills.macro_daily")
-# Star and dynamic imports hide what a file loads from these guards and from the D14 closure (P6).
+# Star and dynamic imports hide what a file loads from these guards and from the D14 closure (P6). pydoc (locate),
+# timeit, code and cProfile import or run code named in a string, so they count as dynamic imports too.
 # importlib.metadata stays allowed: owner.py reads the RECORD files with it. core/ probes for cryptography with a
 # lazy `import` inside try/except ImportError; importlib.util.find_spec is for tests only.
 DYNAMIC_NAMES = frozenset({"__import__", "import_module", "exec_module", "load_module", "exec", "eval"})
-DYNAMIC_MODULES = ("importlib.util", "importlib.machinery", "runpy", "pkgutil", "zipimport")
+DYNAMIC_MODULES = ("importlib.util", "importlib.machinery", "runpy", "pkgutil", "zipimport", "pydoc", "timeit",
+                   "code", "cProfile")
 # base name -> attributes that read the clock
 CLOCKS = {"datetime": {"now", "utcnow", "today"}, "date": {"today"},
           "time": {"time", "time_ns", "monotonic", "monotonic_ns", "perf_counter", "perf_counter_ns", "localtime",
@@ -248,12 +250,16 @@ def test_no_http_verb_calls():
     `.put` included, nor urlopen, urlretrieve or create_connection (bare or as an attribute). This is the second
     line. The first is test_imports_stay_on_the_allowlist, which bans every import form of the stdlib modules that
     open a connection or fetch a URL (NETWORK_MODULES: urllib, http, socket, ssl, the mail, ftp and telnet clients,
-    xmlrpc, asyncio, selectors, socketserver, wsgiref, multiprocessing, webbrowser, xml.sax and the xml.dom parsers
-    that fetch, logging.handlers). Together they catch a stdlib network call written in the ordinary ways; they do
-    not prove that core/compliance cannot reach the network. Not covered: a `subprocess` call (the P26 alert toast
-    is one; os.system, os.popen and os.startfile launch processes the same way), `ctypes`, and `getattr(module,
-    "name")` indirection. The last matters only when a banned module is also imported, so it is a gap in the second
-    line alone; the first two are left to review."""
+    xmlrpc, asyncio, selectors, socketserver, wsgiref, multiprocessing, webbrowser, logging.handlers, xml.sax, which
+    opens a URL given as a system id, and two xml.dom modules that are not fetchers themselves: pulldom, built on
+    xml.sax, and expatbuilder, which imports xml.dom.xmlbuilder). Together they catch a stdlib network call written
+    in the ordinary ways; they do not prove that core/compliance cannot reach the network. Not covered: a
+    `subprocess` call (the P26 alert toast is one; os.system, os.popen and os.startfile launch processes the same
+    way), `ctypes`, and reaching a network API through an allowed module, by attribute or by `getattr(module,
+    "name")`. That needs no banned import and no banned name: the allowed xml.dom.minidom hands out an
+    xml.dom.xmlbuilder DOMBuilder whose parseURI opens a URL with urllib.request
+    (`minidom.getDOMImplementation().createDOMBuilder(1, None).parseURI(url)`), and an allowed module that imports
+    a banned one carries it as an attribute. All three are left to review."""
     assert len(_http_hits(X, "requests.post(u)\nstore.put('transfer_ack', 1)\nx.delete()\ny.patch(z)\n"
                              "s.request('POST', u)\n")) == 5
     # a urllib POST with no verb method at all: only the urlopen call names it
@@ -279,10 +285,16 @@ def test_no_forbidden_module_import():
                 "import importlib\nm = importlib.import_module('numpy')\n", "m = __import__('numpy')\n",
                 "from importlib import import_module as im\n", "import importlib.util\n",
                 "from importlib import util\n", "import runpy\n", "import pkgutil\n", "exec(src)\n", "eval(src)\n",
-                "spec.loader.exec_module(m)\n"):
+                "spec.loader.exec_module(m)\n", "import pydoc\n", "from pydoc import locate\n",
+                "from timeit import timeit\n", "import timeit\n", "import code\n", "from code import interact\n",
+                "import cProfile\n", "from cProfile import run\n"):
         assert _dynamic_hits(X, src), src
+    for module in DYNAMIC_MODULES:                      # every banned module, in each import form
+        for src in (f"import {module}\n", f"import {module}.x\n", f"from {module} import x\n"):
+            assert _dynamic_hits(X, src), src
     assert not _dynamic_hits(X, "import importlib.metadata\nfrom importlib import metadata\n"
-                                "v = importlib.metadata.distribution('PyYAML')\nimport json\n")
+                                "v = importlib.metadata.distribution('PyYAML')\nimport json\nimport codecs\n"
+                                "import profile_notes\nfrom core.compliance import code_files\n")
     assert not _dynamic_hits(X, "def f():\n    try:\n        import cryptography.hazmat.primitives.asymmetric.ed25519\n"
                                 "    except ImportError:\n        return None\n")    # the core/ missing-package probe
     hits = [h for rel, src in _scope(COMPLIANCE, ODDS).items()
@@ -488,8 +500,9 @@ def test_cryptography_is_pinned_installed_and_usable():
     for name in ("requirements.txt", "constraints.txt"):
         lines = (ROOT / name).read_bytes().decode("utf-8").splitlines()
         assert lines.count(pin) == 1, f"{name} must pin {pin} exactly once"
-    deps = tomllib.loads((ROOT / "pyproject.toml").read_bytes().decode("utf-8"))["project"]["dependencies"]
-    assert deps.count(pin) == 1, f"pyproject.toml dependencies must pin {pin} exactly once"
+    project = tomllib.loads((ROOT / "pyproject.toml").read_bytes().decode("utf-8"))["project"]
+    assert project["dependencies"].count(pin) == 1, f"pyproject.toml dependencies must pin {pin} exactly once"
+    assert project["requires-python"] == ">=3.12", "rules.calendar_stream calls Path.is_junction (Python 3.12)"
     dist = importlib.metadata.distribution("cryptography")
     assert dist.version == "49.0.0", f"cryptography {dist.version} is installed, not 49.0.0"
     where = Path(dist.locate_file("")).resolve()

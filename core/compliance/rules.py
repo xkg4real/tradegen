@@ -451,6 +451,15 @@ def _row(item, index: int, known: tuple[date, ...]) -> Row:
     match = _match(item["match"], f"{where}: match", treatment)
     if kind == "venue" and "venue" not in match:
         raise Invalid(f"{where}: match: a venue row names its venues")
+    if treatment not in _BLOCKING:              # a missing key matches everything, so a row that can let an intent
+        missing = sorted({"action", "financing"} - set(match)) + ([] if {"class", "asset"} & set(match)
+                                                                  else ["class or asset"])   # through names each axis
+        if missing:
+            raise Invalid(f"{where}: match: an allow, gated or grey row names action, financing and a class or an "
+                          f"asset; missing {missing}")
+    etp = sorted(match.get("class", frozenset()) - {"any", *ASSET_CLASS.values()})
+    if kind == "conduct" and etp:               # gate._conduct shows a conduct row ASSET_CLASS classes only
+        raise Invalid(f"{where}: match.class: a conduct row sees an asset's own class, never {etp}")
 
     requires = {} if item.get("requires") is None else item["requires"]
     _keys(requires, f"{where}: requires", frozenset(), frozenset({"owner", "live"}))
@@ -481,6 +490,8 @@ def _row(item, index: int, known: tuple[date, ...]) -> Row:
             raise Invalid(f"{where}: policy_ref: expected 'D<n>' or 'D<n>, D<n>, ...', got {policy_ref!r}")
         if "D16" in policy_ref.split(", ") and not live:
             raise Invalid(f"{where}: requires.live: a D16 row needs live broker evidence (requires.live)")
+    if treatment == "gated" and not (owner or live):                         # else it would act as an allow row
+        raise Invalid(f"{where}: requires: a gated row requires owner or live evidence")
 
     matrix = [] if item.get("matrix_rows") is None else item["matrix_rows"]
     if (not isinstance(matrix, list)
@@ -770,7 +781,8 @@ _LABELS = {"rules": "rules row", "instruments": "instrument", "venues": "venue"}
 _LISTED = ("sources", "research")                  # spec 12: --check names each entry added or removed
 _MEANING = {0: "nothing is due", 1: "something is due within 14 days", 2: "something is overdue",
             3: "new exposure is blocked (invalid or unapproved state, unsigned code, a broken owner log or a "
-               "changed key); exits stay open",
+               "changed key); closing orders go through on the last approved snapshot, with none (as before owner "
+               "act 1) close or withdraw manually in the app, and under a broken owner log withdraw manually",
             4: "the check itself failed"}
 
 

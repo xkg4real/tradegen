@@ -41,11 +41,15 @@ Other commands
 
 Key rotation, only when the key must change (the old key signs the change, the log stays one chain)
   1. keygen --key NEW\owner_key.enc      writes the new key file and NEW\owner_key.pem and prints the new raw public key
+                                         and its fingerprint: write the new fingerprint on paper, away from the PC
   2. fingerprint                         prints the raw public key of the key file you use now (the old one)
   3. event key_rotated --data JSON       {"old_pubkey_b64": OLD, "new_pubkey_b64": NEW}, unlocking the OLD key file
-  4. copy NEW\owner_key.pem over <repo>\core\compliance\owner_pubkey.pem
+  4. copy NEW\owner_key.pem over <repo>\core\compliance\owner_pubkey.pem, right after step 3. The owner log reads
+     BROKEN between steps 3 and 4 (the repo key is still the old one), so until the copy, --check exits 3, new
+     exposure is blocked and withdrawals are manual.
   5. from then on pass --key NEW\owner_key.enc to every command. The signer refuses any key that is not the one in
-     force (after step 3 the old one), because a line signed by another key breaks the log for good.
+     force (the old one until step 3, the new one after it), because a line signed by another key breaks the log
+     for good.
 
 Claude never runs this file, never asks for your passphrase and never writes owner entries."""
 from __future__ import annotations

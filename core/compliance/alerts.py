@@ -1,8 +1,8 @@
 """Owner alerts for the daily compliance check (spec 5.4, D5; P26). `due()` decides from the --check summary and
-the alerts.jsonl history which alerts are owed today; `render()` fills a fixed template with ids, dates and numbers
-only, never rule free text; `_toast()` shows a Windows notification; `log()` appends the alerts.jsonl row, which
-also anchors the owner log (seq, row_sha256) and records the key fingerprint (P20). The iOS push and the email are
-sent by the daily Claude task, and only to OWNER_ALERT_EMAIL."""
+the alerts.jsonl history which alerts are owed today; `render()` fills a fixed template with ids, dates, numbers
+and key fingerprints only, never rule free text; `_toast()` shows a Windows notification; `log()` appends the
+alerts.jsonl row, which also anchors the owner log (seq, row_sha256) and records the key fingerprint (P20). The iOS
+push and the email are sent by the daily Claude task, and only to OWNER_ALERT_EMAIL."""
 from __future__ import annotations
 
 import json
@@ -34,7 +34,9 @@ _LINES = {"summary_missing": "The daily --check printed no readable summary line
                              "code. Treat new exposure as blocked and run the check by hand.",
           "failed": "The --check itself failed (exit 4). Treat new exposure as blocked and run the check by hand.",
           "state": "The --check found an invalid or unapproved table, unsigned code, a broken owner log or a "
-                   "changed key (exit 3). New exposure is blocked; exits stay open (D11)."}
+                   "changed key (exit 3). New exposure is blocked. Closing orders still go through on the last "
+                   "approved snapshot; with none (as before owner act 1), close or withdraw manually in the app. "
+                   "Under a broken owner log, withdraw manually in the exchange app (D11)."}
 _OVERDUE = {"review_by": ("review overdue", "review by {when} has passed ({n} days late). New exposure under it "
                           "is blocked; exits stay open."),
             "auto_off": ("auto_off reached", "auto_off {when} is reached ({n} days ago). New exposure under it is "
@@ -92,6 +94,12 @@ def _valid_summary(summary) -> bool:
             and (code > 2 or code == (2 if summary["overdue"] else 1 if summary["due"] else 0)))
 
 
+def _first(history) -> dict | None:
+    """The first alerts.jsonl row that recorded a key fingerprint (P20: the key is held to it), or None."""
+    return next((r for r in history if isinstance(r, dict) and isinstance(r.get("fingerprint"), str)
+                 and r["fingerprint"]), None)
+
+
 def _sent(history: list) -> set:
     """(row, field, date, threshold) of every due item that a "push" or "email" alert row with result "ok" already
     carried. The toast shows on the PC only and is logged before the daily task sends anything, so it is no proof
@@ -118,8 +126,7 @@ def due(summary: dict | None, history: list[dict], today: date) -> list[dict]:
         return [{"kind": "summary_missing"}]
     out = [{"kind": "failed"}] if summary["code"] == 4 else []
     if summary["code"] == 3:
-        first = next((r for r in history if isinstance(r, dict) and isinstance(r.get("fingerprint"), str)
-                      and r["fingerprint"]), None)
+        first = _first(history)
         if first is not None and summary["fingerprint"] and summary["fingerprint"] != first["fingerprint"]:
             out.append({"kind": "key_changed", "since": str(first.get("utc", ""))[:10]})
         out.append({"kind": "state"})
@@ -183,20 +190,27 @@ def _line(alert: dict) -> str:
     return _LINES.get(kind, "Unrecognised alert: run the check by hand.")
 
 
-def _footer(summary) -> str:
+def _footer(summary, history=()) -> str:
+    """The owner-log head, the key fingerprint now and the first one recorded in `history` (spec 6.4: every alert
+    email keeps it), with its date."""
     ok = _valid_summary(summary)
     fp = summary["fingerprint"] if ok else ""
-    shown = fp if _FINGERPRINT.fullmatch(fp) else "none recorded yet" if ok and fp == "" else "unknown"
+    shown = fp if _FINGERPRINT.fullmatch(fp) else "none" if ok and fp == "" else "unknown"
+    row = _first(history)
+    first = "none yet" if row is None else (
+        f"{row['fingerprint'] if _FINGERPRINT.fullmatch(row['fingerprint']) else 'unknown'} on "
+        f"{_when(str(row.get('utc', ''))[:10])}")
     return "\n".join((f"Owner log head: entry #{summary['head_seq'] if ok else '?'}",
-                      f"Key fingerprint: {shown}",
+                      f"Key now {shown}; first recorded {first}",
                       "Check by hand: .venv/Scripts/python.exe -m core.compliance.rules --check",
                       f"Sent only to {OWNER_ALERT_EMAIL}."))
 
 
-def render(alert: dict, summary: dict) -> tuple[str, str]:
+def render(alert: dict, summary: dict, history=()) -> tuple[str, str]:
     """(subject, body) from the fixed template (spec 5.4): row id, field, date and days left, the owner-log head as
-    "entry #seq" and the key fingerprint. Only ids, dates and integers are interpolated, each re-validated."""
-    return _subject(alert), _line(alert) + "\n\n" + _footer(summary)
+    "entry #seq", the key fingerprint now and the first one recorded in `history` (alerts.jsonl rows, oldest
+    first). Only ids, dates, integers and fingerprints are interpolated, each re-validated."""
+    return _subject(alert), _line(alert) + "\n\n" + _footer(summary, history)
 
 
 def _toast(title: str, body: str) -> bool:
@@ -310,13 +324,14 @@ def main(argv=None) -> int:
             return 0
         today = (rules.parse_date(args.today, "--today") if args.today is not None
                  else now.astimezone(model.KST).date())
-        alerts = due(summary, _history(), today)
+        history = _history()
+        alerts = due(summary, history, today)
         if not alerts:
             print(json.dumps({"send": False, "subject": "", "body": ""}, ensure_ascii=True))
             return 0
         subject = render(alerts[0], summary)[0] + (f" (+{len(alerts) - 1} more)" if len(alerts) > 1 else "")
         lines = [_line(a) for a in alerts]
-        shown = _toast(subject, "\n".join(lines) + "\n\n" + _footer(summary))
+        shown = _toast(subject, "\n".join(lines) + "\n\n" + _footer(summary, history))
         code = 0
         if not shown:
             lines.append("The Windows toast could not be shown.")
@@ -327,7 +342,7 @@ def main(argv=None) -> int:
                          "hand.")
             print(f"log failed: {type(exc).__name__}: {exc}", file=sys.stderr)
             code = 1
-        body = "\n".join(lines) + "\n\n" + _footer(summary)
+        body = "\n".join(lines) + "\n\n" + _footer(summary, history)
         print(json.dumps({"send": True, "subject": subject, "body": body}, ensure_ascii=True))
         return code
     except BaseException as exc:                    # argparse errors and SystemExit included: never a traceback

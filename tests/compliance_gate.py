@@ -329,36 +329,68 @@ def test_withdraw_classification():
 
 
 def test_history_maps_serve_exits_only():
-    full = F.approved()
-    entries = {k: v for k, v in full.instruments.entries.items() if k != ("us", "IBIT")}
-    state = dataclasses.replace(full, instruments=dataclasses.replace(full.instruments, entries=entries),
-                                history_maps=(full.instruments,))
+    """Spec 6.2 steps 0 and 3 on states that rules.approved_state builds from real bytes, as load_context does. A
+    coin retired from the map leaves venues.yaml too (parse_venues takes current symbols only), so its sell closes
+    the long by its own test (cash, within the free units, for a settlement asset of the venue), not by a listed
+    market. An earlier map never serves new exposure, and an exit it cannot classify is sent to the app."""
+    old_map, old_venues = F.shipped_bytes("instruments"), F.shipped_bytes("venues")
+    usdt = old_map[old_map.index(b"  USDT:\n"):old_map.index(b"  USDC:\n")]
+    ibit = old_map[old_map.index(b"  IBIT:"):old_map.index(b"  FBTC:")]
+    market = b"markets: [[BTC, KRW], [USDT, KRW]]"
+    assert old_map.count(usdt) == old_map.count(ibit) == old_venues.count(market) == 1
+    no_usdt, venues = old_map.replace(usdt, b""), old_venues.replace(market, b"markets: [[BTC, KRW]]")
+    assert not F.approved(instruments=no_usdt).valid                     # the venue file must drop USDT as well
+    kept = F.approved(instruments=no_usdt, venues=venues, history=(old_map,))
+    lost = F.approved(instruments=no_usdt, venues=venues)
+    assert kept.valid and lost.valid and kept.history_maps and not lost.history_maps, (kept.reason, lost.reason)
+    usdt_address = ("upbit", "USDT", "ethereum", "0xfixtureaddress", "")
+    held = {("upbit", "USDT"): 100.0, ("okx", "USDT"): 100.0}
+    owner = _t8_okx_owner(addresses=frozenset({usdt_address, ("bithumb", *usdt_address[1:])}))
+    okx = {"okx": model.Exposure(held_krw=0.0)}
+    c = F.ctx(active=kept, holdings=held, owner=owner, exposure=okx)
+
+    def usdt_intent(**changes) -> model.Intent:
+        return F.intent(**{"symbol": "USDT", "quantity": 10.0, **changes})
+
+    def withdraw(**changes) -> model.Intent:
+        return _t7_withdraw(**{"symbol": "USDT", "quantity": 10.0, "destination_address": usdt_address[3],
+                               "destination_network": "ethereum", **changes})
+
+    sell = gate.decide(usdt_intent(action="sell"), c)                    # upbit lists no USDT market any more
+    assert sell.verdict == model.ALLOW_EXIT and sell.kind == "close_long" and sell.reasons == (), sell.reasons
+    buy = gate.decide(usdt_intent(), c)                                  # new exposure: the map in force only
+    assert buy.verdict == model.BLOCK and buy.kind == "malformed" and buy.reasons == ("malformed: symbol",)
+    credit = gate.decide(usdt_intent(action="sell", financing="credit"), c)     # not an exit (D15): not found
+    assert credit.verdict == model.BLOCK and "malformed: symbol" in credit.reasons, credit.reasons
+    for i, manual in (
+            (usdt_intent(action="sell", counter_symbol="BTC"), "close manually in the broker app"),   # not settlement
+            (usdt_intent(venue="okx", counter_symbol="USDC", action="sell"),       # a settlement asset sold: no exit
+             "close manually in the broker app"),
+            (withdraw(), "withdraw manually in the exchange app"),               # the deposit facts list no USDT
+            (withdraw(venue="upbit", destination_venue="bithumb"), "withdraw manually in the exchange app")):
+        d = gate.decide(i, c)
+        assert d.verdict == model.BLOCK and d.kind == "malformed" and manual in d.reasons, (i, d.reasons)
+        assert {"malformed: symbol", "malformed: counter_symbol"} & set(d.reasons), (i, d.reasons)
+    offshore = gate.decide(withdraw(venue="upbit", destination_venue="okx"), c)   # no exit: no earlier map
+    assert offshore.reasons == ("malformed: symbol",), offshore.reasons
+    gone = F.ctx(active=lost, holdings=held, owner=owner, exposure=okx)
+    for i, manual in ((usdt_intent(action="sell"), "close manually in the broker app"),
+                      (withdraw(), "withdraw manually in the exchange app")):
+        d = gate.decide(i, gone)
+        assert d.verdict == model.BLOCK and {"malformed: symbol", manual} <= set(d.reasons), d.reasons
+    broken = F.ctx(owner=model.OwnerState.broken("bad signature on entry 4"), snapshot=kept, holdings=held)
+    snap = gate.decide(usdt_intent(action="sell"), broken)               # D11: the snapshot keeps its earlier maps
+    assert snap.verdict == model.ALLOW_EXIT and snap.kind == "close_long", snap.reasons
+    w = gate.decide(withdraw(), broken)
+    assert w.verdict == model.BLOCK and w.reasons == ("withdraw manually in the exchange app",), w.reasons
+    # kis quotes by currency and lists no markets, so a retired ticker sells for its currency as before
+    no_ibit = F.approved(instruments=old_map.replace(ibit, b""), history=(old_map,))
+    assert no_ibit.valid, no_ibit.reason
     held = {("kis", "IBIT"): 2.0}
-    sell = gate.decide(_t7_kis("IBIT", action="sell"), F.ctx(active=state, holdings=held))
-    assert sell.kind == "close_long" and not _t7_has(sell, "malformed: "), sell.reasons
-    buy = gate.decide(_t7_kis("IBIT"), F.ctx(active=state, holdings=held))
-    assert buy.kind == "malformed" and "malformed: symbol" in buy.reasons
-    gone = F.ctx(active=dataclasses.replace(state, history_maps=()), holdings=held)
-    d = gate.decide(_t7_kis("IBIT", action="sell"), gone)
-    assert d.verdict == model.BLOCK and {"malformed: symbol", "close manually in the broker app"} <= set(d.reasons)
-    # A transfer is an exit (history-map lookup, manual advice) only toward a domestic exchange (spec 6.2 steps 0, 3).
-    no_btc = dataclasses.replace(full.instruments, entries={k: v for k, v in full.instruments.entries.items()
-                                                            if k != ("crypto", "BTC")})
-    both = {("upbit", "BTC"): 1.0, ("okx", "BTC"): 1.0}
-    kept = F.ctx(active=dataclasses.replace(full, instruments=no_btc, history_maps=(full.instruments,)),
-                 holdings=both, owner=_t7_owner())
-    lost = F.ctx(active=dataclasses.replace(full, instruments=no_btc, history_maps=()), holdings=both,
-                 owner=_t7_owner())
-    offshore = gate.decide(_t7_withdraw(venue="upbit", destination_venue="okx"), kept)   # superseded map: no service
-    assert offshore.kind == "malformed" and "malformed: symbol" in offshore.reasons, offshore.reasons
-    assert gate.decide(_t7_withdraw(), kept).kind == "withdraw"                          # okx -> upbit: found
-    assert gate.decide(F.intent(action="sell"), kept).kind == "close_long"               # a sell: found
-    credit = gate.decide(F.intent(action="sell", financing="credit"), kept)              # not an exit (D15): not found
-    assert credit.kind == "malformed" and "malformed: symbol" in credit.reasons, credit.reasons
-    for source, dest, manual in (("upbit", "okx", False), ("upbit", "polymarket", False), ("okx", "upbit", True)):
-        d = gate.decide(_t7_withdraw(venue=source, destination_venue=dest), lost)
-        assert d.kind == "malformed" and "malformed: symbol" in d.reasons, (dest, d.reasons)
-        assert ("withdraw manually in the exchange app" in d.reasons) is manual, (dest, d.reasons)
+    sold = gate.decide(_t7_kis("IBIT", action="sell"), F.ctx(active=no_ibit, holdings=held))
+    assert sold.verdict == model.ALLOW_EXIT and sold.kind == "close_long" and sold.reasons == (), sold.reasons
+    bought = gate.decide(_t7_kis("IBIT"), F.ctx(active=no_ibit, holdings=held))
+    assert bought.kind == "malformed" and bought.reasons == ("malformed: symbol",), bought.reasons
 
 
 def test_reasons_ranked_and_verdicts_combined():
@@ -524,6 +556,15 @@ def test_render_warning_fills_only_the_cap_slot():
     assert gate.render_warning(dataclasses.replace(row, warning="bad {"), {"cap": "5%"}) == ""
     assert gate.render_warning(_t8_row("KR-DOMESTIC-SPOT"), {"cap": "10%"}) == ""
     assert gate.render_warning(None, {}) == ""                                      # never raises
+
+
+def test_the_cap_text_keeps_its_digits():
+    """{cap} shows the cap the owner signed, so the warning an ack signs says it: 0.5% is not "0%", 12.5% not "12%"."""
+    row = _t8_row("KR-OKX-SPOT")
+    for cap, text in ((0.1, "10%"), (0.005, "0.5%"), (0.125, "12.5%"), (0.333, "33.3%"), (1, "100%")):
+        slots = gate._slots(row, F.ctx(owner=_t8_owner(caps={"okx_equity_share": cap})))
+        assert slots == {"cap": text}, (cap, slots)
+        assert f"at {text} of your equity." in gate.render_warning(row, slots)
 
 
 def test_verdicts_follow_the_rows():
@@ -817,6 +858,35 @@ def test_okx_cap_age_and_auto_off_block():
         assert d.verdict == model.BLOCK and "state: positions invalid (exposure)" in d.reasons, (key, d.reasons)
         assert gate._grey(_t8_row("KR-OKX-SPOT"), _t8_okx_buy(), F.ctx(owner=owner, exposure=exp)) == \
             ["cap exceeded: KR-OKX-SPOT"], key
+
+
+def test_new_exposure_needs_a_stake_and_its_grey_venue_exposure():
+    """The caps count caller numbers, so they fail closed: new exposure with notional_krw <= 0 is malformed on every
+    row (the review's 1000-BTC OKX buy at notional 0 sat under the cap), and on a grey venue holdings without an
+    exposure entry for it are invalid positions. Exits need no stake."""
+    held, okx = {("upbit", "BTC"): 1.0}, {"okx": model.Exposure(held_krw=0.0)}
+    deposit = _t8_to_okx()
+    owner = _t8_okx_owner(addresses=frozenset({_T7_ADDRESS, _T8_OKX_ADDRESS}),
+                          transfer_acks=frozenset({(model.intent_hash(i), _t8_okx_ack()[2])
+                                                   for i in (deposit, dataclasses.replace(deposit, notional_krw=0.0))}))
+    for i, c in ((_t8_okx_buy(quantity=1000.0, notional_krw=0.0), F.ctx(owner=owner, exposure=okx)),
+                 (F.intent(notional_krw=0.0), F.ctx()), (_t7_kis("005930", notional_krw=0.0), F.ctx()),
+                 (dataclasses.replace(deposit, notional_krw=0.0), F.ctx(owner=owner, holdings=held, exposure=okx)),
+                 (F.intent(notional_krw=0.0), F.ctx(active=model.ApprovedState.invalid("rules: unapproved")))):
+        d = gate.decide(i, c)
+        assert d.verdict == model.BLOCK and d.kind == "malformed" and "malformed: notional_krw" in d.reasons, \
+            (i, d.reasons)
+    stake = gate.screen(_t9_plan("kis", "005930", F.ctx().date, 5), F.ctx(), 0.0)
+    assert not stake.allowed and "malformed: notional_krw" in stake.decision.reasons, stake.decision.reasons
+    sell = gate.decide(F.intent(action="sell", notional_krw=0.0), F.ctx(holdings=held))
+    assert sell.verdict == model.ALLOW_EXIT and sell.kind == "close_long", sell.reasons
+    on_okx = {("okx", "BTC"): 0.5, **held}                               # held on OKX, but no OKX exposure given
+    for i in (_t8_okx_buy(), deposit):
+        d = gate.decide(i, F.ctx(owner=owner, holdings=on_okx))
+        assert d.verdict == model.BLOCK and "state: positions invalid (exposure)" in d.reasons, (i, d.reasons)
+        given = F.ctx(owner=owner, holdings=on_okx, exposure={"okx": model.Exposure(held_krw=40_000.0)})
+        assert gate.decide(i, given).verdict == model.ALLOW, (i, gate.decide(i, given).reasons)
+    assert gate.decide(_t8_okx_buy(), F.ctx(owner=owner, holdings=held)).verdict == model.ALLOW   # nothing on OKX
 
 
 def test_stale_row_blocks_new_exposure_but_not_exits():
@@ -1228,9 +1298,10 @@ def test_screen_verdicts():
 def test_purity_no_file_clock_zone_or_network():
     rng = random.Random(9)
     held = {("upbit", "BTC"): 1.0, ("okx", "BTC"): 0.01, ("kis", "IBIT"): 2.0}
-    contexts = [F.ctx(holdings=held, shorts={("kis", "005930"): 3.0},
+    okx = {"okx": model.Exposure(held_krw=1_000.0)}                     # a grey venue's holdings need their value
+    contexts = [F.ctx(holdings=held, shorts={("kis", "005930"): 3.0}, exposure=okx,
                       owner=_t8_okx_owner(addresses=frozenset({_T7_ADDRESS, _T8_OKX_ADDRESS}))),
-                F.ctx(holdings=held),
+                F.ctx(holdings=held, exposure=okx),
                 F.ctx(active=_t7_with_option(F.approved()), date=_T8_DAY(2026, 12, 3), holdings=held,
                       owner=_t8_owner()),
                 F.ctx(owner=model.OwnerState.broken("bad signature on entry 4"), snapshot=F.approved(),
