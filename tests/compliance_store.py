@@ -96,7 +96,7 @@ def test_calendar_store_matches_calendar_sha256():
     """P21: the calendar set is stored as a folder of its 17 files, named by rules.calendar_sha256."""
     data_dir = ROOT / "core" / "calendars" / "data"
     files = sorted(p.name for p in data_dir.iterdir() if p.is_file())
-    stream = owner._calendar_stream(data_dir)
+    stream = rules.calendar_stream(data_dir)
     with F.temp_home() as home:
         sha = F.store_blob(home, "calendar", stream, (2, "c" * 64))
         assert sha == rules.calendar_sha256(data_dir), "the stream is not what calendar_sha256 hashes"
@@ -108,6 +108,23 @@ def test_calendar_store_matches_calendar_sha256():
         assert owner.store_get("calendar", sha) is None, "a file added to a stored set went unnoticed"
         for junk in (b"", b"x", b"a\0b", b"b\0x\0a\0y\0", b"../up\0x\0"):
             _raises(lambda: owner.store_put("calendar", junk, (2, "c" * 64)), ValueError)
+
+
+def test_a_stored_calendar_set_with_a_link_is_not_stored():
+    """One framing (rules.calendar_stream): a junction inside a stored calendar folder is refused, where reading the
+    folder as plain files would skip it and still match the hash."""
+    import _winapi
+    data_dir = ROOT / "core" / "calendars" / "data"
+    with F.temp_home() as home:
+        sha = F.store_blob(home, "calendar", rules.calendar_stream(data_dir), (2, "c" * 64))
+        stored = owner.store_dir() / "calendar" / sha
+        assert owner.store_get("calendar", sha) == rules.calendar_stream(data_dir)
+        elsewhere = home / "elsewhere"
+        elsewhere.mkdir()
+        _winapi.CreateJunction(str(elsewhere), str(stored / "linked"))
+        assert owner.store_get("calendar", sha) is None, "a stored calendar set holding a link was served"
+        assert "is a link" in str(_raises(lambda: rules.calendar_stream(stored), rules.Invalid))
+        assert rules.calendar_sha256(data_dir) == sha, "the real set still hashes to its stream"
 
 
 def test_code_files_is_the_import_closure():
@@ -135,8 +152,9 @@ def test_code_files_is_the_import_closure():
 
 def test_code_files_counts_lazy_imports_and_skips_main_and_type_checking():
     """P6 on a synthetic tree: a function-level import, relative imports (`.` and `..`) and an in-repo module outside
-    core/ count, every ancestor __init__.py joins, and the TYPE_CHECKING (bare or `typing.`) and __main__ bodies do
-    not (their else branch does)."""
+    core/ count, every ancestor __init__.py joins, and the TYPE_CHECKING (bare from typing, or `typing.`) and
+    `__name__ == "__main__"` bodies do not (their else branch does). Anything else is scanned, because its body can run
+    at import: an `!=` test, a bare TYPE_CHECKING that is a local (or rebound) name, and `not TYPE_CHECKING`."""
     sources = {
         "config.py": "",
         "core/__init__.py": "",
@@ -148,6 +166,14 @@ def test_code_files_counts_lazy_imports_and_skips_main_and_type_checking():
                                  "def f():\n    import config\n    from core.pkg import lazy\n    return config, lazy\n"
                                  "if __name__ == \"__main__\":\n    import core.cli\n"
                                  "else:\n    import core.kept\n"),
+        "core/compliance/b.py": "if __name__ != \"__main__\":\n    import core.neq\n",
+        "core/compliance/c.py": "TYPE_CHECKING = True\nif TYPE_CHECKING:\n    import core.local_tc\n",
+        "core/compliance/d.py": ("from typing import TYPE_CHECKING\nTYPE_CHECKING = True\n"
+                                 "if TYPE_CHECKING:\n    import core.rebound\n"),
+        "core/compliance/e.py": "from typing import TYPE_CHECKING\nif not TYPE_CHECKING:\n    import core.negated\n",
+        "core/compliance/f.py": "if \"__main__\" == __name__:\n    import core.rev_cli\n",
+        "core/neq.py": "", "core/local_tc.py": "", "core/rebound.py": "", "core/negated.py": "",
+        "core/rev_cli.py": "",
         "core/pkg/__init__.py": "",
         "core/pkg/lazy.py": "from . import sibling\nfrom .. import upper\n",
         "core/pkg/sibling.py": "import json\n",
@@ -162,7 +188,10 @@ def test_code_files_counts_lazy_imports_and_skips_main_and_type_checking():
         repo = {name for name, _ in owner.code_files(root) if not name.startswith("venv:")}
     assert repo == {"config.py", "core/__init__.py", "core/compliance/__init__.py", "core/compliance/a.py",
                     "core/kept.py", "core/pkg/__init__.py", "core/pkg/lazy.py", "core/pkg/sibling.py",
-                    "core/upper.py"}, sorted(repo)
+                    "core/upper.py",
+                    "core/compliance/b.py", "core/compliance/c.py", "core/compliance/d.py", "core/compliance/e.py",
+                    "core/compliance/f.py",
+                    "core/neq.py", "core/local_tc.py", "core/rebound.py", "core/negated.py"}, sorted(repo)
 
 
 def test_snapshot_is_write_once_and_rebuilt_from_the_store():

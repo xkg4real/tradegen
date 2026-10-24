@@ -631,13 +631,6 @@ def _write_new(path: Path, data: bytes) -> bool:
     return True
 
 
-def _calendar_stream(data_dir: Path) -> bytes:
-    """The bytes rules.calendar_sha256 hashes (P21): every regular file directly in `data_dir`, sorted by the name
-    string, as name, NUL, content, NUL. store_put("calendar", ...) takes this stream; calendar files hold no NUL."""
-    files = sorted((p for p in Path(data_dir).iterdir() if p.is_file()), key=lambda p: p.name)
-    return b"".join(p.name.encode("utf-8") + b"\0" + p.read_bytes() + b"\0" for p in files)
-
-
 def _calendar_files(raw: bytes) -> list[tuple[str, bytes]]:
     """A calendar stream back into its (name, bytes) files; ValueError unless it is one."""
     parts = raw.split(b"\0")
@@ -652,7 +645,7 @@ def _calendar_files(raw: bytes) -> list[tuple[str, bytes]]:
 
 def store_put(kind: str, raw: bytes, anchor: tuple[int, str]) -> str:
     """Copies approved bytes into the write-once store under their sha256 and returns it: <kind>/<sha256>.yaml,
-    or the directory calendar/<sha256>/ (then `raw` is the calendar stream), plus <kind>/<sha256>.anchor.json
+    or the directory calendar/<sha256>/ (then `raw` is rules.calendar_stream of the set), plus <kind>/<sha256>.anchor.json
     holding the approval's owner-log anchor. Stored bytes never change: other bytes under the same name are an
     error. An existing anchor is kept, since it already anchors an earlier approval of the same bytes (P34)."""
     if kind not in APPROVAL_KINDS:
@@ -675,39 +668,72 @@ def store_put(kind: str, raw: bytes, anchor: tuple[int, str]) -> str:
 
 
 def store_get(kind: str, sha256: str) -> bytes | None:
-    """The stored bytes named `sha256`, or None when they are missing or no longer hash to their name."""
+    """The stored bytes named `sha256`, or None when they are missing, unreadable, hold a link (a calendar set) or no
+    longer hash to their name."""
     if kind not in APPROVAL_KINDS or not _hex64(sha256):
         return None
     path = store_dir() / kind / (sha256 if kind == "calendar" else f"{sha256}.yaml")
     try:
-        raw = _calendar_stream(path) if kind == "calendar" else path.read_bytes()
-    except OSError:
+        raw = rules.calendar_stream(path) if kind == "calendar" else path.read_bytes()
+    except (OSError, rules.Invalid):
         return None
     return raw if model.sha256_hex(raw) == sha256 else None
 
 
-def _skipped(node: ast.AST) -> bool:
-    """`if TYPE_CHECKING:` and `if __name__ == "__main__":` bodies are outside the code closure (P6)."""
+def _binds(tree: ast.AST, name: str) -> int:
+    """How many times `name` is bound anywhere in `tree`, at any depth: by an import, an assignment of any kind, a
+    def or class, a parameter, an except-as or a match capture (a keyword argument of that name counts too, which
+    only makes callers scan more)."""
+    count = 0
+    for n in ast.walk(tree):
+        if isinstance(n, ast.alias):
+            bound = n.asname or n.name.split(".")[0]
+        elif isinstance(n, ast.Name):
+            bound = n.id if not isinstance(n.ctx, ast.Load) else None
+        else:
+            bound = getattr(n, "name", None) or getattr(n, "arg", None) or getattr(n, "rest", None)
+        count += bound == name
+    return count
+
+
+def _typing_flag(tree: ast.AST) -> bool:
+    """True when the bare name TYPE_CHECKING in `tree` is the one from `from typing import TYPE_CHECKING` and is
+    never bound anywhere else; a local `TYPE_CHECKING = True` is code that runs (P6)."""
+    imported = any(isinstance(n, ast.ImportFrom) and n.level == 0 and n.module == "typing"
+                   and any(a.name == "TYPE_CHECKING" and a.asname is None for a in n.names)
+                   for n in ast.walk(tree))
+    return imported and _binds(tree, "TYPE_CHECKING") == 1
+
+
+def _skipped(node: ast.AST, bare_flag: bool) -> bool:
+    """Whether `node` is an `if` whose body never runs at import and so is outside the code closure (P6):
+    `if typing.TYPE_CHECKING:`, `if TYPE_CHECKING:` when `bare_flag` (see _typing_flag), and a single `==`
+    comparison of `__name__` with "__main__" in either order. Every other test (`!=`, `not TYPE_CHECKING`, a local
+    TYPE_CHECKING) is scanned, since its body can run at import."""
     if not isinstance(node, ast.If):
         return False
     t = node.test
-    if (isinstance(t, ast.Name) and t.id == "TYPE_CHECKING") or (isinstance(t, ast.Attribute)
-                                                                and t.attr == "TYPE_CHECKING"):
-        return True
-    return (isinstance(t, ast.Compare) and isinstance(t.left, ast.Name) and t.left.id == "__name__"
-            and any(isinstance(c, ast.Constant) and c.value == "__main__" for c in t.comparators))
+    if isinstance(t, ast.Name):
+        return t.id == "TYPE_CHECKING" and bare_flag
+    if isinstance(t, ast.Attribute):
+        return t.attr == "TYPE_CHECKING" and isinstance(t.value, ast.Name) and t.value.id == "typing"
+    if isinstance(t, ast.Compare) and len(t.ops) == 1 and isinstance(t.ops[0], ast.Eq):
+        sides = [t.left, *t.comparators]
+        return (any(isinstance(s, ast.Name) and s.id == "__name__" for s in sides)
+                and any(isinstance(s, ast.Constant) and s.value == "__main__" for s in sides))
+    return False
 
 
-def _import_nodes(node: ast.AST):
+def _import_nodes(node: ast.AST, bare_flag: bool):
     """Every import statement at any depth, function bodies included; a skipped `if` keeps its `else`."""
-    if _skipped(node):
+    if _skipped(node, bare_flag):
         for child in node.orelse:
-            yield from _import_nodes(child)
+            yield from _import_nodes(child, bare_flag)
         return
     if isinstance(node, (ast.Import, ast.ImportFrom)):
         yield node
     for child in ast.iter_child_nodes(node):
-        yield from _import_nodes(child)
+        yield from _import_nodes(child, bare_flag)
 
 
 def _module_file(root: Path, dotted: str) -> Path | None:
@@ -725,7 +751,8 @@ def _repo_imports(root: Path, path: Path) -> set[Path]:
     """The in-repo files `path` imports, relative imports resolved against its package."""
     package = list(path.relative_to(root).parent.parts)
     names: set[str] = set()
-    for node in _import_nodes(ast.parse(path.read_bytes())):
+    tree = ast.parse(path.read_bytes())
+    for node in _import_nodes(tree, _typing_flag(tree)):
         if isinstance(node, ast.Import):
             names.update(alias.name for alias in node.names)
             continue

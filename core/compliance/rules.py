@@ -1,6 +1,6 @@
 """Compliance rules data: the closed vocabulary, the strict YAML loader, the class derivation, and the parsers of
 the rules table, the instrument map and the venue facts with their hashes and the approved state (spec 5.1, 5.2).
-No clock, no network, no writes; `calendar_sha256` is the only file reader. A doubt about a file is `Invalid`,
+No clock, no network, no writes; `calendar_stream` (and `calendar_sha256` through it) is the only file reader. A doubt about a file is `Invalid`,
 never a guess."""
 from __future__ import annotations
 
@@ -705,22 +705,28 @@ def file_sha256(raw: bytes) -> str:
     return hashlib.sha256(raw).hexdigest()
 
 
-def calendar_sha256(data_dir: Path) -> str:
-    """P21: sha256 over every regular file directly in `data_dir`, sorted by name, each framed as
+def calendar_stream(data_dir: Path) -> bytes:
+    """P21: every regular file directly in `data_dir`, sorted by the name string, each framed as
     name + NUL + bytes + NUL (macro_artifacts.tree_hash's framing). A link in or as the directory is Invalid;
-    subdirectories are not part of a calendar set."""
+    subdirectories are not part of a calendar set. The one framing of the calendar set: calendar_sha256 hashes it
+    and the owner's approved store (owner.store_put, owner.store_get) takes and rebuilds it."""
     root = Path(data_dir)
     if root.is_symlink() or root.is_junction() or not root.is_dir():
         raise Invalid(f"calendar: {root} is not a plain directory")
-    digest = hashlib.sha256()
     with os.scandir(root) as listing:
         found = sorted(listing, key=lambda e: e.name)
+    parts = []
     for e in found:
         if e.is_symlink() or e.is_junction():
             raise Invalid(f"calendar: {e.name} is a link")
         if e.is_file(follow_symlinks=False):
-            digest.update(e.name.encode("utf-8") + b"\0" + Path(e.path).read_bytes() + b"\0")
-    return digest.hexdigest()
+            parts.append(e.name.encode("utf-8") + b"\0" + Path(e.path).read_bytes() + b"\0")
+    return b"".join(parts)
+
+
+def calendar_sha256(data_dir: Path) -> str:
+    """P21: sha256 of calendar_stream(data_dir)."""
+    return hashlib.sha256(calendar_stream(data_dir)).hexdigest()
 
 
 def approved_state(rules_raw: bytes, instruments_raw: bytes, venues_raw: bytes, *, seq: int,
