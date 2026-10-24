@@ -12,3 +12,5 @@ gs-quant>=1.0
 # QUANTGEN FICC core — keyless market data (FRED, Yahoo Finance)
 yfinance>=0.2
 pandas-datareader>=0.10
+# TRADEGEN compliance gate: owner-log signatures (exact pin, spec 6.4)
+cryptography==49.0.0

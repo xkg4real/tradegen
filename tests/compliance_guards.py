@@ -475,3 +475,50 @@ def test_suite_is_registered_in_run_all_and_readme():
     assert any(n.startswith("compliance/compliance_guards/") for n in names), names
     assert "paper, grokteam or compliance" in (ROOT / "tests" / "run_all.py").read_text(encoding="utf-8")
     assert "paper, grokteam or compliance" in (ROOT / "README.md").read_text(encoding="utf-8")
+
+
+def test_cryptography_is_pinned_installed_and_usable():
+    """Task 10 (spec 6.4 "The dependency"): cryptography==49.0.0 is pinned once each in requirements.txt, the
+    pyproject dependencies and constraints.txt, is loaded from TRADEGEN's .venv (never the global user site), and
+    offers every API owner.py, the signer and their tests use: raw and PEM Ed25519 keys, key generation,
+    sign/verify, an X25519 key to refuse, scrypt and AES-256-GCM."""
+    import importlib.metadata
+    import tomllib
+    pin = "cryptography==49.0.0"
+    for name in ("requirements.txt", "constraints.txt"):
+        lines = (ROOT / name).read_bytes().decode("utf-8").splitlines()
+        assert lines.count(pin) == 1, f"{name} must pin {pin} exactly once"
+    deps = tomllib.loads((ROOT / "pyproject.toml").read_bytes().decode("utf-8"))["project"]["dependencies"]
+    assert deps.count(pin) == 1, f"pyproject.toml dependencies must pin {pin} exactly once"
+    dist = importlib.metadata.distribution("cryptography")
+    assert dist.version == "49.0.0", f"cryptography {dist.version} is installed, not 49.0.0"
+    where = Path(dist.locate_file("")).resolve()
+    assert where.is_relative_to((ROOT / ".venv").resolve()), f"cryptography loaded from {where}, not .venv"
+    from cryptography.exceptions import InvalidSignature
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey, Ed25519PublicKey
+    from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+    from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
+    signing_key = Ed25519PrivateKey.from_private_bytes(bytes(range(32)))
+    assert signing_key.private_bytes_raw() == bytes(range(32))
+    assert len(Ed25519PrivateKey.generate().private_bytes_raw()) == 32
+    verifier = Ed25519PublicKey.from_public_bytes(signing_key.public_key().public_bytes_raw())
+    message = b"tradegen-owner-log/1\n" + b"0" * 64
+    signature = signing_key.sign(message)
+    assert len(signature) == 64
+    verifier.verify(signature, message)
+    try:
+        verifier.verify(signature, message + b"!")
+    except InvalidSignature:
+        pass
+    else:
+        raise AssertionError("a signature verified over other bytes")
+    spki = serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo
+    pem = verifier.public_bytes(*spki)
+    assert serialization.load_pem_public_key(pem).public_bytes_raw() == verifier.public_bytes_raw()
+    other = X25519PrivateKey.from_private_bytes(bytes(32)).public_key().public_bytes(*spki)
+    assert not isinstance(serialization.load_pem_public_key(other), Ed25519PublicKey)
+    key = Scrypt(salt=bytes(16), length=32, n=2 ** 4, r=8, p=1).derive(b"a test passphrase, not the owner's")
+    sealed = AESGCM(key).encrypt(bytes(12), bytes(range(32)), b"header")
+    assert AESGCM(key).decrypt(bytes(12), sealed, b"header") == bytes(range(32))
