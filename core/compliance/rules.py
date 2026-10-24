@@ -851,15 +851,18 @@ def _draft_lines(ctx, root: Path) -> list[str]:
             continue
         if kind == "instruments":
             draft_map = table                           # the venues draft is read against the instruments draft
-        lines += [f"  {_LABELS[kind]} {item}" for item in _changed(_keyed(getattr(active, kind)), _keyed(table))]
+        lines += [f"  {_LABELS[kind]} {item}"
+                  for item in _changed(_keyed(kind, getattr(active, kind)), _keyed(kind, table))]
     return lines
 
 
-def _keyed(table) -> dict:
-    """A parsed table's entries by key: rule rows by id, instruments as "section/symbol", venues by id."""
-    if isinstance(table, RulesTable):
+def _keyed(kind: str, table) -> dict:
+    """A parsed table's entries by key, for the `kind` it was parsed as: rule rows by id, instruments as
+    "section/symbol", venues by id. It goes by kind, not by class: run as `python -m`, this file is a second copy
+    of the module that owner.py imports, and the classes of the two copies are different."""
+    if kind == "rules":
         return {r.id: r for r in table.rows}
-    if isinstance(table, InstrumentMap):
+    if kind == "instruments":
         return {"/".join(key): inst for key, inst in table.entries.items()}
     return dict(table.venues)
 
@@ -917,13 +920,18 @@ def main(argv=None) -> int:
     """`python -m core.compliance.rules --check [--today YYYY-MM-DD]` (spec 5.4). Prints the human lines, then
     exactly one JSON line with _SUMMARY_KEYS, and returns the exit code. Everything that stops the check itself is
     exit 4: argparse errors and --help, a bad --today, a missing cryptography package, any exception. --today is an
-    Asia/Seoul date; its default is the only wall clock in this module."""
+    Asia/Seoul date; its default is the only wall clock in this module. Run as `python -m`, this file is a second
+    copy of core.compliance.rules (owner.py imports the other one), so it hands over to that copy's main: one set
+    of classes and one set of names (tests patch those)."""
     import argparse
     import json
     import sys
     from datetime import datetime
 
     from core.compliance import model
+    from core.compliance import rules as canonical
+    if canonical.main is not main:
+        return canonical.main(argv)
     for stream in (sys.stdout, sys.stderr):
         try:
             stream.reconfigure(encoding="utf-8", errors="replace")

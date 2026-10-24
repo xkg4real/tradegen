@@ -11,8 +11,10 @@ import importlib.util
 import io
 import json
 import os
+import runpy
 import subprocess
 import sys
+import warnings
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
@@ -131,6 +133,32 @@ def _check_main(argv) -> tuple[int, list[str], dict]:
 
 def _boom(*_a, **_k):
     raise AssertionError("must not be called here")
+
+
+def _run_module(name: str, argv: list[str]) -> tuple[int, list[str]]:
+    """(exit code, stdout lines) of `python -m <name> <argv>` run in this process with runpy: the file executes as
+    `__main__`, a second copy beside the module that owner.py and this test import. sys.argv, `__main__` and the
+    module's own entry in sys.modules are restored afterwards."""
+    keys = ("__main__", name)
+    saved_argv, saved = sys.argv, {k: sys.modules.get(k) for k in keys}
+    out, code = io.StringIO(), None
+    sys.argv = [name, *argv]
+    try:
+        with contextlib.redirect_stdout(out), warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)          # runpy: the module is already in sys.modules
+            try:
+                runpy.run_module(name, run_name="__main__", alter_sys=True)
+            except SystemExit as exc:
+                code = exc.code
+    finally:
+        sys.argv = saved_argv
+        for key, module in saved.items():
+            if module is None:
+                sys.modules.pop(key, None)
+            else:
+                sys.modules[key] = module
+    assert code is not None, "the module did not exit"
+    return code, out.getvalue().splitlines()
 
 
 def _sample(**over) -> dict:
@@ -392,6 +420,25 @@ def test_check_main_exit_4_on_missing_cryptography():
     assert list(_home().iterdir()) == [], list(_home().iterdir())
 
 
+def test_check_runs_as_main_module_with_a_differing_draft():
+    """`python -m core.compliance.rules --check` runs the file as `__main__`, a second copy beside the module that
+    owner.py imports, so the classes of the copy are not the ones in the approved state. A draft that differed from
+    the signed table once made that run exit 4 (AttributeError in the diff). It must give the imported main's result."""
+    first, _ = _dates()
+    today = first - timedelta(days=15)
+    doc = _shipped_doc("rules")
+    rid = doc["rows"][0]["id"]
+    doc["rows"][0]["reason"] = UNIQUE
+    with _signed_home(rules_raw=_dump(doc)):
+        code, lines = _run_module("core.compliance.rules", ["--check", "--today", today.isoformat()])
+        want = rules.check(today)
+    last = json.loads(lines[-1])
+    assert tuple(last) == rules._SUMMARY_KEYS and last["code"] == code, (code, lines)
+    assert code in (0, 1), lines                                       # not 4
+    assert f"  rules row {rid}: reason changed" in lines, lines
+    assert lines[:-1] == want["lines"] and last == _summary(want), lines
+
+
 # --------------------------------------------------------------------------- #
 # alerts.due / render / log / _toast / main
 # --------------------------------------------------------------------------- #
@@ -422,6 +469,21 @@ def test_due_thresholds_once_each():
     assert alerts.due(at2, history, day - timedelta(days=2)) == []                              # 3-day alert sent once
     failed = [_ok_row(at14, result="fail")]
     assert [a["threshold"] for a in alerts.due(at13, failed, day - timedelta(days=13))] == [14]  # a failed send repeats
+
+
+def test_due_toast_alone_is_not_delivery():
+    """The toast shows on the PC only. A threshold counts as sent when a push or email row is ok (the daily task logs
+    those after it sends), so a toast ok beside an email fail is owed again the next day."""
+    day = date(2026, 11, 22)
+    at14 = _sample(code=1, due=[_due_item(today=day - timedelta(days=14))])
+    at13 = _sample(code=1, due=[_due_item(today=day - timedelta(days=13))])
+    toast = {**_ok_row(at14), "channel": "toast"}
+    next_day = day - timedelta(days=13)
+    assert [a["threshold"] for a in alerts.due(at13, [toast], next_day)] == [14]
+    assert [a["threshold"] for a in alerts.due(at13, [toast, _ok_row(at14, result="fail")], next_day)] == [14]
+    assert [a["threshold"] for a in alerts.due(at13, [{**toast, "channel": "sms"}], next_day)] == [14]
+    assert alerts.due(at13, [toast, {**_ok_row(at14), "channel": "push"}], next_day) == []
+    assert alerts.due(at13, [toast, _ok_row(at14)], next_day) == []
 
 
 def test_due_missed_run_still_alerts():
@@ -616,6 +678,19 @@ def test_alerts_main_still_prints_the_alert_when_logging_fails():
     assert code == 1 and shown["send"] is True and calls == [shown["subject"]], (code, shown, calls)
     assert shown["subject"] == "TRADEGEN compliance: new exposure is blocked (exit 3)", shown
     assert "Recording this alert in alerts.jsonl failed" in shown["body"], shown          # the push and email say so
+
+
+def test_alerts_runs_as_main_module():
+    """`python -m core.compliance.alerts` runs the file as `__main__`, a second copy: it must still use the
+    module-level _toast seam of the imported module, so tests (and the daily task) go through one set of names."""
+    calls = []
+    summary = _sample(code=1, due=[_due_item(today=date(2026, 11, 8))])
+    with _patched(alerts, "_toast", lambda title, body: calls.append((title, body)) or True),             _patched(subprocess, "run", _boom):
+        code, lines = _run_module("core.compliance.alerts",
+                                  ["--today", "2026-11-08", "--summary", json.dumps(summary)])
+    shown = json.loads(lines[-1])
+    assert code == 0 and shown["send"] is True and calls == [(shown["subject"], shown["body"])], (code, lines, calls)
+    assert [(r["channel"], r["result"]) for r in _alerts_lines()] == [("toast", "ok")], _alerts_lines()
 
 
 def test_alerts_main_nothing_owed_sends_nothing():

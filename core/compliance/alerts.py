@@ -18,6 +18,7 @@ from core.isolation import checked_target
 OWNER_ALERT_EMAIL = "sapientia@korea.ac.kr"
 _CHANNELS = ("toast", "push", "email")
 _RESULTS = ("ok", "fail")
+_SENT_CHANNELS = ("push", "email")      # the channels that reach the owner away from the PC
 _FIELDS = ("review_by", "auto_off", "effective_until")
 _THRESHOLDS = (3, 14)                  # spec 5.4: the first run at or below 14 days left, again at or below 3
 _MISSING = {"code": 4, "due": [], "overdue": [], "head_seq": 0, "head_sha256": "", "fingerprint": ""}
@@ -92,10 +93,13 @@ def _valid_summary(summary) -> bool:
 
 
 def _sent(history: list) -> set:
-    """(row, field, date, threshold) of every due item that an alert row with result "ok" already carried."""
+    """(row, field, date, threshold) of every due item that a "push" or "email" alert row with result "ok" already
+    carried. The toast shows on the PC only and is logged before the daily task sends anything, so it is no proof
+    that the owner was told."""
     out = set()
     for row in history:
-        if not (isinstance(row, dict) and row.get("result") == "ok" and isinstance(row.get("due"), list)):
+        if not (isinstance(row, dict) and row.get("channel") in _SENT_CHANNELS and row.get("result") == "ok"
+                and isinstance(row.get("due"), list)):
             continue
         for item in row["due"]:
             if isinstance(item, dict) and _int(item.get("days_left")):
@@ -108,8 +112,8 @@ def due(summary: dict | None, history: list[dict], today: date) -> list[dict]:
     """The alerts owed today, most severe first (spec 5.4). Every day: a missing or malformed summary, exit 4,
     exit 3 (headed by KEY CHANGED when its key fingerprint is not the first one recorded; owner_state accepts a
     signed rotation, which stays exit 0), each overdue item. Once per threshold: a row date at or below 14 days
-    left, then at or below 3, counted as sent only when an "ok" row in `history` (alerts.jsonl, oldest first)
-    carried it, so a missed or failed run alerts on the next one. Pure."""
+    left, then at or below 3, counted as sent only when a "push" or "email" row with result "ok" in `history`
+    (alerts.jsonl, oldest first) carried it, so a missed or failed run alerts on the next one. Pure."""
     if not _valid_summary(summary):
         return [{"kind": "summary_missing"}]
     out = [{"kind": "failed"}] if summary["code"] == 4 else []
@@ -282,6 +286,10 @@ def main(argv=None) -> int:
     told in the printed body (spec 5.4: a failed channel is announced on the others); the write failure also exits
     1. Exit 0 done, 1 refused or not recorded."""
     import argparse
+
+    from core.compliance import alerts as canonical
+    if canonical.main is not main:                  # run as `python -m`: this file is a second copy of the module
+        return canonical.main(argv)                 # that tests and the daily task name; use that copy's names
     for stream in (sys.stdout, sys.stderr):
         try:
             stream.reconfigure(encoding="utf-8", errors="replace")
