@@ -585,3 +585,406 @@ def code_approval(check: LogCheck) -> str | None:
     """The sha256 named by the latest code_approved entry, or None."""
     found = [e.data["sha256"] for e in (check.entries if check.ok else ()) if e.kind == "code_approved"]
     return found[-1] if found else None
+
+
+# --------------------------------------------------------------------------- #
+# Approved store, D14 code hash and snapshots (Task 13; spec 5.2 What is in force, 6.4; P6, P21, P34)
+# --------------------------------------------------------------------------- #
+import ast  # noqa: E402
+import importlib.metadata  # noqa: E402
+import json  # noqa: E402
+import os  # noqa: E402
+from pathlib import Path  # noqa: E402
+
+from core.isolation import checked_target  # noqa: E402
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+_TABLES = ("rules", "instruments", "venues")
+_RECORD_DISTS = ("cryptography", "PyYAML")        # their RECORD files stand for the installed packages (P6)
+
+
+def _write_new(path: Path, data: bytes) -> bool:
+    """Creates `path` holding `data`; False, writing nothing, when it already exists. The bytes go to a fresh temp
+    file in the compliance home (fsync) and os.rename moves it into place, so a crash never leaves a torn file under
+    the final name; on Windows the rename refuses an existing target, which keeps the file write-once. Every folder
+    and file must resolve inside the compliance home and be no link (A0)."""
+    root = home()
+    checked_target(path.parent, "compliance folder", within=root)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    checked_target(path, "compliance file", within=root)
+    if path.exists():
+        return False
+    tmp = checked_target(root / f".{path.name}.{os.urandom(6).hex()}.tmp", "compliance temp file", within=root)
+    try:
+        with open(tmp, "xb") as fh:
+            fh.write(data)
+            fh.flush()
+            os.fsync(fh.fileno())
+        # ponytail: a POSIX rename replaces a target that appeared since exists(); use os.link off Windows
+        os.rename(tmp, path)
+    except FileExistsError:                            # Windows: `path` appeared since the check (write-once)
+        tmp.unlink(missing_ok=True)
+        return False
+    except BaseException:
+        tmp.unlink(missing_ok=True)
+        raise
+    return True
+
+
+def _calendar_stream(data_dir: Path) -> bytes:
+    """The bytes rules.calendar_sha256 hashes (P21): every regular file directly in `data_dir`, sorted by the name
+    string, as name, NUL, content, NUL. store_put("calendar", ...) takes this stream; calendar files hold no NUL."""
+    files = sorted((p for p in Path(data_dir).iterdir() if p.is_file()), key=lambda p: p.name)
+    return b"".join(p.name.encode("utf-8") + b"\0" + p.read_bytes() + b"\0" for p in files)
+
+
+def _calendar_files(raw: bytes) -> list[tuple[str, bytes]]:
+    """A calendar stream back into its (name, bytes) files; ValueError unless it is one."""
+    parts = raw.split(b"\0")
+    if len(parts) < 3 or len(parts) % 2 == 0 or parts[-1] != b"":
+        raise ValueError("store: not a calendar stream")
+    files = [(parts[i].decode("utf-8"), parts[i + 1]) for i in range(0, len(parts) - 1, 2)]
+    names = [name for name, _ in files]
+    if names != sorted(set(names)) or any(name in ("", ".", "..") or Path(name).name != name for name in names):
+        raise ValueError("store: calendar file names must be plain, unique and sorted")
+    return files
+
+
+def store_put(kind: str, raw: bytes, anchor: tuple[int, str]) -> str:
+    """Copies approved bytes into the write-once store under their sha256 and returns it: <kind>/<sha256>.yaml,
+    or the directory calendar/<sha256>/ (then `raw` is the calendar stream), plus <kind>/<sha256>.anchor.json
+    holding the approval's owner-log anchor. Stored bytes never change: other bytes under the same name are an
+    error. An existing anchor is kept, since it already anchors an earlier approval of the same bytes (P34)."""
+    if kind not in APPROVAL_KINDS:
+        raise ValueError(f"store: unknown kind {kind!r}")
+    if not isinstance(raw, bytes):
+        raise TypeError("store: raw must be bytes")
+    seq, row_sha256 = anchor
+    if isinstance(seq, bool) or not isinstance(seq, int) or seq < 1 or not _hex64(row_sha256):
+        raise ValueError("store: the anchor must be (seq >= 1, row_sha256)")
+    sha = model.sha256_hex(raw)
+    base = store_dir() / kind
+    blobs = ([(base / sha / name, data) for name, data in _calendar_files(raw)] if kind == "calendar"
+             else [(base / f"{sha}.yaml", raw)])
+    for path, data in blobs:
+        if not _write_new(path, data) and path.read_bytes() != data:
+            raise RuntimeError(f"store: {kind}/{path.relative_to(base).as_posix()} exists with other bytes")
+    _write_new(base / f"{sha}.anchor.json",
+               model.canonical_json({"seq": seq, "row_sha256": row_sha256}).encode("utf-8"))
+    return sha
+
+
+def store_get(kind: str, sha256: str) -> bytes | None:
+    """The stored bytes named `sha256`, or None when they are missing or no longer hash to their name."""
+    if kind not in APPROVAL_KINDS or not _hex64(sha256):
+        return None
+    path = store_dir() / kind / (sha256 if kind == "calendar" else f"{sha256}.yaml")
+    try:
+        raw = _calendar_stream(path) if kind == "calendar" else path.read_bytes()
+    except OSError:
+        return None
+    return raw if model.sha256_hex(raw) == sha256 else None
+
+
+def _skipped(node: ast.AST) -> bool:
+    """`if TYPE_CHECKING:` and `if __name__ == "__main__":` bodies are outside the code closure (P6)."""
+    if not isinstance(node, ast.If):
+        return False
+    t = node.test
+    if (isinstance(t, ast.Name) and t.id == "TYPE_CHECKING") or (isinstance(t, ast.Attribute)
+                                                                and t.attr == "TYPE_CHECKING"):
+        return True
+    return (isinstance(t, ast.Compare) and isinstance(t.left, ast.Name) and t.left.id == "__name__"
+            and any(isinstance(c, ast.Constant) and c.value == "__main__" for c in t.comparators))
+
+
+def _import_nodes(node: ast.AST):
+    """Every import statement at any depth, function bodies included; a skipped `if` keeps its `else`."""
+    if _skipped(node):
+        for child in node.orelse:
+            yield from _import_nodes(child)
+        return
+    if isinstance(node, (ast.Import, ast.ImportFrom)):
+        yield node
+    for child in ast.iter_child_nodes(node):
+        yield from _import_nodes(child)
+
+
+def _module_file(root: Path, dotted: str) -> Path | None:
+    """The repo file of an in-repo module name; None for stdlib, third-party and attribute names."""
+    parts = dotted.split(".")
+    if not all(part.isidentifier() for part in parts):
+        return None
+    for candidate in (root.joinpath(*parts[:-1], parts[-1] + ".py"), root.joinpath(*parts, "__init__.py")):
+        if candidate.is_file():
+            return candidate
+    return None
+
+
+def _repo_imports(root: Path, path: Path) -> set[Path]:
+    """The in-repo files `path` imports, relative imports resolved against its package."""
+    package = list(path.relative_to(root).parent.parts)
+    names: set[str] = set()
+    for node in _import_nodes(ast.parse(path.read_bytes())):
+        if isinstance(node, ast.Import):
+            names.update(alias.name for alias in node.names)
+            continue
+        base = package[:len(package) - node.level + 1] if node.level else []
+        module = ".".join(base + ([node.module] if node.module else []))
+        if module:
+            names.add(module)
+            names.update(f"{module}.{alias.name}" for alias in node.names)
+    return {f for name in names if (f := _module_file(root, name)) is not None}
+
+
+def code_files(repo_root: Path) -> list[tuple[str, str]]:
+    """Sorted (relative POSIX path, sha256) of the D14 code closure (P6): core/compliance/*.py and core/odds/*.py,
+    every in-repo file they import at any depth, every ancestor package __init__.py, and the RECORD files of the
+    cryptography and PyYAML installs of the running interpreter as venv:<dist>-<version>.dist-info/RECORD (absent
+    when not installed)."""
+    root = Path(repo_root)
+    todo = [p for sub in ("compliance", "odds") for p in sorted((root / "core" / sub).glob("*.py"))]
+    seen: set[Path] = set()
+    while todo:
+        path = todo.pop()
+        if path in seen:
+            continue
+        seen.add(path)
+        todo.extend(_repo_imports(root, path))
+        todo.extend(d / "__init__.py" for d in path.parents
+                    if d != root and d.is_relative_to(root) and (d / "__init__.py").is_file())
+    out = {p.relative_to(root).as_posix(): model.sha256_hex(p.read_bytes()) for p in seen}
+    for name in _RECORD_DISTS:
+        try:
+            dist = importlib.metadata.distribution(name)
+        except importlib.metadata.PackageNotFoundError:
+            continue
+        record = next((f for f in dist.files or () if f.name == "RECORD" and f.parent.name.endswith(".dist-info")),
+                      None)
+        if record is not None:
+            out[f"venv:{name}-{dist.version}.dist-info/RECORD"] = model.sha256_hex(Path(record.locate()).read_bytes())
+    return sorted(out.items())
+
+
+def code_hash(repo_root: Path) -> str:
+    """The D14 code hash the owner signs as code_approved: sha256 of the canonical JSON of code_files."""
+    return model.sha256_hex(model.canonical_json(code_files(repo_root)))
+
+
+def write_snapshot(state: model.ApprovedState, head: tuple[int, str]) -> Path:
+    """Keeps a verified approved state for D11 recovery as snapshots/<seq:08d>-<state_hash[:16]>.json: the
+    in-force hashes (their bytes stay in the store) and the owner-log head, which read_anchors uses as an anchor.
+    Written once: a snapshot of the same state keeps its first head (P34); one with other content is an error."""
+    if not state.valid:
+        raise ValueError("snapshot: only a valid approved state is kept")
+    body = {"state_seq": state.seq, "state_hash": state.state_hash, "hashes": dict(state.hashes)}
+    path = snapshots_dir() / f"{state.seq:08d}-{state.state_hash[:16]}.json"
+    if not _write_new(path, model.canonical_json({**body, "head": list(head)}).encode("utf-8")):
+        try:
+            kept = json.loads(path.read_bytes())
+        except ValueError:
+            kept = None
+        if not isinstance(kept, dict) or {k: kept.get(k) for k in body} != body:
+            raise RuntimeError(f"snapshot: {path.name} exists with other content")
+    return path
+
+
+def _stored_history(current: str, below_seq: int) -> tuple[bytes, ...]:
+    """Earlier approved instrument maps from the store (anchor seq below `below_seq`), newest first: the exit
+    fallback of spec 6.2 step 0 when the log cannot be read."""
+    found = []
+    for anchor in sorted((store_dir() / "instruments").glob("*.anchor.json")):
+        sha = anchor.name[:-len(".anchor.json")]
+        try:
+            seq = json.loads(anchor.read_bytes())["seq"]
+        except (OSError, ValueError, KeyError, TypeError):
+            continue
+        if sha != current and isinstance(seq, int) and seq < below_seq:
+            raw = store_get("instruments", sha)
+            if raw is not None:
+                found.append((seq, raw))
+    return tuple(raw for _, raw in sorted(found, key=lambda t: t[0], reverse=True))
+
+
+def latest_snapshot() -> model.ApprovedState | None:
+    """The newest snapshot (by name, so highest seq) whose stored bytes are intact, rebuilt; None when there is
+    none. Never raises: a malformed or unreadable file is skipped, and a refused state root (A0) gives None."""
+    try:
+        paths = sorted(snapshots_dir().glob("*.json"), key=lambda p: p.name, reverse=True)
+    except (OSError, RuntimeError):                    # RuntimeError: the state root holds a link (A0)
+        return None
+    for path in paths:
+        try:
+            snap = json.loads(path.read_bytes())
+            if not (isinstance(snap, dict) and isinstance(snap.get("hashes"), dict)):
+                continue
+            seq, hashes = snap.get("state_seq"), snap["hashes"]
+            if isinstance(seq, bool) or not isinstance(seq, int):
+                continue
+            raws = [store_get(kind, hashes.get(kind)) for kind in _TABLES]
+            if None in raws:
+                continue
+            state = rules.approved_state(*raws, seq=seq, history_raws=_stored_history(hashes["instruments"], seq))
+            if (state.valid and state.state_hash == snap.get("state_hash")
+                    and path.name == f"{seq:08d}-{state.state_hash[:16]}.json"):
+                return state
+        except (OSError, ValueError, RuntimeError):     # RuntimeError: RecursionError or an A0 refusal
+            continue
+    return None
+
+
+# --------------------------------------------------------------------------- #
+# load_context (Task 13): the only producer of Context (spec 6.4; P19, P20, P24)
+# --------------------------------------------------------------------------- #
+import math  # noqa: E402
+from collections.abc import Mapping  # noqa: E402
+from types import MappingProxyType  # noqa: E402
+
+_CRYPTOGRAPHY_MISSING = "cryptography missing: install it (Task 10)"    # verify_log's text too (Task 11)
+_EMPTY = MappingProxyType({})
+
+
+def _amount(value) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value) and value >= 0
+
+
+def _amounts(mapping, key_ok) -> bool:
+    return isinstance(mapping, Mapping) and all(key_ok(k) and _amount(v) for k, v in mapping.items())
+
+
+def _venue_symbol(key) -> bool:
+    return isinstance(key, tuple) and len(key) == 2 and all(isinstance(part, str) for part in key)
+
+
+def _text_key(key) -> bool:
+    return isinstance(key, str)
+
+
+def _positions_problem(positions) -> str:
+    """"" when `positions` is a Positions of finite amounts >= 0 with equity > 0 (P19), else the field at fault."""
+    if not isinstance(positions, model.Positions):
+        return "not a Positions"
+    if not _amount(positions.equity_krw) or positions.equity_krw <= 0:
+        return "equity_krw"
+    for name in ("holdings", "shorts"):
+        if not _amounts(getattr(positions, name), _venue_symbol):
+            return name
+    if not isinstance(positions.exposure, Mapping):
+        return "exposure"
+    for venue, held in positions.exposure.items():
+        if not (isinstance(venue, str) and isinstance(held, model.Exposure) and _amount(held.held_krw)
+                and _amounts(held.reservations, _text_key) and _amounts(held.promised_sell_units, _text_key)):
+            return "exposure"
+    return ""
+
+
+def _frozen(mapping: Mapping) -> Mapping:
+    """A read-only copy, so the caller cannot change what a sealed context holds after ctx_hash was taken."""
+    return MappingProxyType({k: float(v) for k, v in mapping.items()})
+
+
+def _first_recorded() -> tuple[str, str] | None:
+    """(fingerprint, utc) of the first alerts.jsonl row that records a fingerprint (P20), or None."""
+    for row in _alert_rows():
+        if isinstance(row.get("fingerprint"), str) and row["fingerprint"]:
+            return row["fingerprint"], str(row.get("utc", ""))
+    return None
+
+
+def _owner_now(day: _dt.date, now_utc: str, session_id: str | None) -> tuple[model.OwnerState, LogCheck | None]:
+    """The owner state, and the log check behind it, against the repo public key. A missing cryptography package
+    is reported first (spec 6.4), then a missing key (P24); every unreadable input is BROKEN saying why."""
+    try:
+        import cryptography.hazmat.primitives.asymmetric.ed25519  # noqa: F401  (a lazy probe, never module level)
+    except ImportError:
+        return model.OwnerState.broken(_CRYPTOGRAPHY_MISSING), None
+    if not PUBKEY_PATH.is_file():
+        return model.OwnerState.broken("no owner key yet: owner act 1"), None
+    try:
+        pubkey_raw = read_pubkey(PUBKEY_PATH)
+    except ImportError:
+        return model.OwnerState.broken(_CRYPTOGRAPHY_MISSING), None
+    except Exception as exc:                            # unreadable, or not an Ed25519 public key
+        return model.OwnerState.broken(f"owner key unreadable ({type(exc).__name__})"), None
+    fp = fingerprint(pubkey_raw)
+    try:
+        anchors, lines, first = read_anchors(), _log_lines(log_path()), _first_recorded()
+    except (OSError, ValueError, RuntimeError) as exc:  # RuntimeError: an A0 link refusal naming the entry
+        return model.OwnerState.broken(f"owner log unreadable: {exc}", fingerprint=fp), None
+    check = verify_log(lines, pubkey_raw, anchors)
+    state = owner_state(check, date=day, now_utc=now_utc, session_id=session_id, fingerprint_now=fp,
+                        first_recorded=first)
+    return state, check
+
+
+def _approved_now(check: LogCheck) -> model.ApprovedState:
+    """The tables named by the latest signed approvals, with their bytes from the store (spec 5.2)."""
+    approvals = in_force(check)
+    raws = {}
+    for kind in _TABLES:
+        if kind not in approvals:
+            return model.ApprovedState.invalid(f"unapproved: no signed approval for {kind}")
+        raws[kind] = store_get(kind, approvals[kind][0])
+        if raws[kind] is None:
+            return model.ApprovedState.invalid(f"store: {kind} {approvals[kind][0][:12]} missing or altered")
+    current = approvals["instruments"][0]
+    earlier = tuple(raw for sha, _ in history(check, "instruments")
+                    if sha != current and (raw := store_get("instruments", sha)) is not None)
+    return rules.approved_state(raws["rules"], raws["instruments"], raws["venues"],
+                                seq=max(approvals[kind][1] for kind in _TABLES), history_raws=earlier)
+
+
+def load_context(now: _dt.datetime, positions: model.Positions, *, session_id: str | None = None) -> model.Context:
+    """The only producer of Context (spec 6.4). Hashes the code on disk, verifies the owner log against the repo
+    public key, loads the in-force tables from the store, snapshots a good state and reads the latest snapshot.
+    `positions` is the caller's (P19): validated, copied read-only, then hashed into ctx_hash. Never raises, except
+    ValueError for a naive or out-of-range `now`; anything else fails closed: nothing in force, nothing signed,
+    owner state BROKEN."""
+    if not isinstance(now, _dt.datetime):
+        raise ValueError(f"load_context: now must be an aware datetime, got {now!r}")
+    try:
+        now_utc = model.iso_utc(now)                   # ValueError on a naive datetime
+        day = now.astimezone(model.KST).date()
+    except OverflowError:
+        raise ValueError(f"load_context: now is out of range, got {now!r}") from None
+    try:
+        return _context(day, now_utc, positions, session_id)
+    except Exception as exc:
+        why = f"load_context: internal error {type(exc).__name__}"
+        return model.seal_context(date=day, active=model.ApprovedState.invalid(why), snapshot=None,
+                                  owner=model.OwnerState.broken(why), code_hash="", code_signed=False,
+                                  session=model.SessionState(), equity_krw=0.0, holdings=_EMPTY, shorts=_EMPTY,
+                                  exposure=_EMPTY)
+
+
+def _context(day: _dt.date, now_utc: str, positions, session_id) -> model.Context:
+    if session_id is not None and not (isinstance(session_id, str) and session_id):
+        raise TypeError("session_id must be None or a non-empty string")
+    owner, check = _owner_now(day, now_utc, session_id)
+    check = _up_to(check, now_utc) if check is not None else None
+    active = _approved_now(check) if owner.ok else model.ApprovedState.invalid(f"owner log: {owner.reason}")
+    try:
+        current = code_hash(REPO_ROOT)
+    except (OSError, SyntaxError, ValueError):
+        current = ""
+    signed = owner.ok and bool(current) and code_approval(check) == current
+    if active.valid:
+        try:
+            write_snapshot(active, owner.head)
+        except (OSError, RuntimeError, ValueError) as exc:
+            active = model.ApprovedState.invalid(f"snapshot: {exc}")
+    snapshot = latest_snapshot()
+    problem = _positions_problem(positions)
+    if problem:
+        active, snapshot = model.ApprovedState.invalid(f"positions: {problem}"), None
+        equity, holdings, shorts, exposure = 0.0, _EMPTY, _EMPTY, _EMPTY
+    else:
+        equity, holdings, shorts = float(positions.equity_krw), _frozen(positions.holdings), _frozen(positions.shorts)
+        exposure = MappingProxyType({
+            venue: model.Exposure(held_krw=float(e.held_krw), reservations=_frozen(e.reservations),
+                                  promised_sell_units=_frozen(e.promised_sell_units))
+            for venue, e in positions.exposure.items()})
+    return model.seal_context(
+        date=day, active=active, snapshot=snapshot, owner=owner, code_hash=current, code_signed=signed,
+        session=model.SessionState(session_id=session_id, armed=session_id in owner.armed_sessions),
+        equity_krw=equity, holdings=holdings, shorts=shorts, exposure=exposure)

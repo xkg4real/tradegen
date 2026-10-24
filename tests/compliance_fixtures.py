@@ -138,3 +138,12 @@ def write_pubkey(path: "Path", key=None) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(key.public_key().public_bytes(serialization.Encoding.PEM,
                                                    serialization.PublicFormat.SubjectPublicKeyInfo))
+
+
+# -- approved store fixture (Task 13) ----------------------------------------------------------------------------
+def store_blob(home: Path, kind: str, raw: bytes, anchor: tuple[int, str]) -> str:
+    """owner.store_put into the temp home `home` (refused for any other home); returns the blob's sha256."""
+    from core.compliance import owner
+    if not owner.store_dir().is_relative_to(home):
+        raise AssertionError(f"store_blob: {owner.store_dir()} is outside the temp home {home}")
+    return owner.store_put(kind, raw, anchor)
