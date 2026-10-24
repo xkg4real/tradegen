@@ -1,7 +1,9 @@
 """Compliance rules data: the closed vocabulary, the strict YAML loader, the class derivation, and the parsers of
-the rules table, the instrument map and the venue facts with their hashes and the approved state (spec 5.1, 5.2).
-No clock, no network, no writes; `calendar_stream` (and `calendar_sha256` through it) is the only file reader. A doubt about a file is `Invalid`,
-never a guess."""
+the rules table, the instrument map and the venue facts with their hashes and the approved state (spec 5.1, 5.2),
+plus the `--check` CLI (spec 5.4). No network. The data functions take no clock and write nothing, and `calendar_stream`
+(and `calendar_sha256` through it) is the only file reader among them. check() also reads the repo drafts and writes
+nothing itself (the only write is load_context's snapshot of a valid state); only main() reads the clock. A doubt
+about a file is `Invalid`, never a guess."""
 from __future__ import annotations
 
 import codecs
@@ -754,3 +756,196 @@ def approved_state(rules_raw: bytes, instruments_raw: bytes, venues_raw: bytes, 
         return ApprovedState.invalid(exc.reason)
     except Exception as exc:                                  # never raises: an internal error is invalid too
         return ApprovedState.invalid(f"internal error {type(exc).__name__}")
+
+
+# --------------------------------------------------------------------------- #
+# --check (spec 5.4): what the daily job runs. Exit 0 nothing due, 1 due within 14 days, 2 overdue, 3 new exposure
+# blocked, 4 the check itself failed.
+# --------------------------------------------------------------------------- #
+_SUMMARY_KEYS = ("code", "due", "overdue", "head_seq", "head_sha256", "fingerprint")   # the final JSON line
+_DUE_DAYS = 14
+_DRAFTS = (("rules", "core/compliance/kr_rules.yaml"), ("instruments", "core/compliance/instruments.yaml"),
+           ("venues", "core/odds/venues.yaml"))
+_LABELS = {"rules": "rules row", "instruments": "instrument", "venues": "venue"}
+_LISTED = ("sources", "research")                  # spec 12: --check names each entry added or removed
+_MEANING = {0: "nothing is due", 1: "something is due within 14 days", 2: "something is overdue",
+            3: "new exposure is blocked (invalid or unapproved state, unsigned code, a broken owner log or a "
+               "changed key); exits stay open",
+            4: "the check itself failed"}
+
+
+def check(today: date, *, repo_root: Path | None = None) -> dict:
+    """The --check as data, as of the end of `today` (an Asia/Seoul date). load_context does the checking: the
+    tables in force from the store, the owner log (chain, signatures, anchors), the key fingerprint against the first
+    one recorded and the signed code hash. This adds the rows of the table in force that are due within 14 days or
+    overdue, each repo draft against the version in force, and the calendar set. Returns _SUMMARY_KEYS plus
+    "lines"; it writes nothing itself. A missing cryptography package raises ImportError here, so main() exits 4."""
+    import cryptography.hazmat.primitives.asymmetric.ed25519  # noqa: F401  (spec 5.4: a missing package is exit 4)
+    from datetime import datetime
+
+    from core.compliance import model, owner
+    root = Path(repo_root) if repo_root is not None else Path(__file__).resolve().parents[2]
+    moment = datetime(today.year, today.month, today.day, 23, 59, 59, tzinfo=model.KST)
+    ctx = owner.load_context(moment, model.Positions(equity_krw=1.0))     # positions play no part in it (P19)
+    problems = []
+    if not ctx.active.valid:
+        problems.append(f"state: INVALID: {ctx.active.reason}")
+    if not ctx.owner.ok:
+        problems += [f"owner log: BROKEN: {ctx.owner.reason}", "code: signature not checked (owner log not usable)"]
+    elif not ctx.code_signed:
+        problems.append(f"code: UNSIGNED: the code hash on disk {ctx.code_hash[:16]} is not the latest "
+                        "code_approved; sign it after reviewing the diff")
+    due, overdue = [], []
+    for row in (ctx.active.rules.rows if ctx.active.valid else ()):
+        for name in ("review_by", "auto_off", "effective_until"):
+            when = getattr(row, name)
+            if when is None:
+                continue
+            left = (when - today).days
+            # the gate's dates: stale only after the review_by day; auto_off and effective_until bind on their own
+            if left < 0 or (left == 0 and name != "review_by"):
+                overdue.append({"row": row.id, "field": name, "date": when.isoformat(), "days_late": -left})
+            elif left <= _DUE_DAYS:
+                due.append({"row": row.id, "field": name, "date": when.isoformat(), "days_left": left})
+    due.sort(key=lambda i: (i["date"], i["row"], i["field"]))
+    overdue.sort(key=lambda i: (i["date"], i["row"], i["field"]))
+    code = 3 if problems else 2 if overdue else 1 if due else 0
+    seq, head_sha = ctx.owner.head
+    lines = [f"TRADEGEN compliance check for {today.isoformat()} (Asia/Seoul)"]
+    lines += problems or ["tables, owner log and code signature: OK"]
+    lines.append(f"owner log head: entry #{seq}; key fingerprint {ctx.owner.fingerprint or 'none'}")
+    lines += _draft_lines(ctx, root)
+    lines.append(_calendar_line(ctx, root, moment))
+    lines += [f"due: {i['row']} {i['field']} {i['date']} ({i['days_left']} days left)" for i in due]
+    lines += [f"overdue: {i['row']} {i['field']} {i['date']} ({i['days_late']} days late)" for i in overdue]
+    lines.append(f"exit {code}: {_MEANING[code]}")
+    return {"code": code, "due": due, "overdue": overdue, "head_seq": seq, "head_sha256": head_sha,
+            "fingerprint": ctx.owner.fingerprint, "lines": lines}
+
+
+def _draft_lines(ctx, root: Path) -> list[str]:
+    """Each repo draft against the version in force (spec 5.2: a draft counts only once signed) and, for a draft
+    that differs, its changed rule rows, instruments and venues (spec 12)."""
+    active = ctx.active if ctx.active.valid else None
+    lines, draft_map = [], None
+    for kind, rel in _DRAFTS:
+        path = root / rel
+        if not path.is_file():
+            lines.append(f"{kind}: no draft at {rel}")
+            continue
+        raw = path.read_bytes()
+        sha = file_sha256(raw)
+        in_force = active.hashes.get(kind, "") if active is not None else ""
+        if sha == in_force:
+            lines.append(f"{kind}: the draft is the version in force ({sha[:16]})")
+            continue
+        lines.append(f"{kind}: the draft {sha[:16]} is not the version in force ({in_force[:16] or 'none'}); "
+                     "it counts only once signed")
+        if active is None:
+            continue
+        try:
+            table = (parse_rules(raw) if kind == "rules" else parse_instruments(raw) if kind == "instruments"
+                     else parse_venues(raw, draft_map if draft_map is not None else active.instruments))
+        except Invalid as exc:
+            lines.append(f"  {kind} draft INVALID: {exc}")
+            continue
+        if kind == "instruments":
+            draft_map = table                           # the venues draft is read against the instruments draft
+        lines += [f"  {_LABELS[kind]} {item}" for item in _changed(_keyed(getattr(active, kind)), _keyed(table))]
+    return lines
+
+
+def _keyed(table) -> dict:
+    """A parsed table's entries by key: rule rows by id, instruments as "section/symbol", venues by id."""
+    if isinstance(table, RulesTable):
+        return {r.id: r for r in table.rows}
+    if isinstance(table, InstrumentMap):
+        return {"/".join(key): inst for key, inst in table.entries.items()}
+    return dict(table.venues)
+
+
+def _changed(old: dict, new: dict) -> list[str]:
+    """"<key>: added", "<key>: removed" or "<key>: <field>, <field> changed", sorted by key. A changed _LISTED
+    field also gets one line per entry added or removed, repr'd so that no entry can pass for a line of its own."""
+    from core.compliance import model
+    out = []
+    for key in sorted(set(old) | set(new)):
+        if key not in old:
+            out.append(f"{key}: added")
+        elif key not in new:
+            out.append(f"{key}: removed")
+        else:
+            a, b = model.jsonable(old[key]), model.jsonable(new[key])
+            fields = sorted(f for f in a if a[f] != b.get(f))
+            if fields:
+                out.append(f"{key}: {', '.join(fields)} changed")
+            for f in (f for f in _LISTED if f in fields):
+                out += [f"{key}: {f} added {x!r}" for x in b[f] if x not in a[f]]
+                out += [f"{key}: {f} removed {x!r}" for x in a[f] if x not in b[f]]
+    return out
+
+
+def _calendar_line(ctx, root: Path, moment) -> str:
+    """The calendar draft (P21) against the latest calendar approval signed by `moment` (load_context's cut-off),
+    whose stored copy must be intact. The Context does not carry it, so the log is read and verified once more."""
+    from core.compliance import model, owner
+    if not ctx.owner.ok:
+        return "calendar: not checked (owner log not usable)"
+    try:
+        log = owner.verify_log(owner._log_lines(owner.log_path()), owner.read_pubkey(owner.PUBKEY_PATH),
+                               owner.read_anchors())
+    except (OSError, ValueError, RuntimeError):         # an unreadable key, anchor or log file means BROKEN (Task 11)
+        return "calendar: not checked (owner log not usable)"
+    if not log.ok:
+        return "calendar: not checked (owner log not usable)"
+    signed = owner.in_force(owner._up_to(log, model.iso_utc(moment))).get("calendar", ("", 0))[0]
+    if not signed:
+        return "calendar: no signed approval, so KRX and US plans are refused (crypto plans only)"
+    if owner.store_get("calendar", signed) is None:
+        return f"calendar: the signed version {signed[:16]} is missing or altered in the store"
+    try:                                                # the one framing (Task 13), read once and hashed here
+        draft = model.sha256_hex(calendar_stream(root / "core" / "calendars" / "data"))
+    except (Invalid, OSError):                          # a link, a missing folder or an unreadable file: no draft
+        draft = ""
+    if draft == signed:
+        return f"calendar: the draft is the version in force ({signed[:16]})"
+    return (f"calendar: the draft {draft[:16] or 'none'} is not the version in force ({signed[:16]}); it counts "
+            "only once signed")
+
+
+def main(argv=None) -> int:
+    """`python -m core.compliance.rules --check [--today YYYY-MM-DD]` (spec 5.4). Prints the human lines, then
+    exactly one JSON line with _SUMMARY_KEYS, and returns the exit code. Everything that stops the check itself is
+    exit 4: argparse errors and --help, a bad --today, a missing cryptography package, any exception. --today is an
+    Asia/Seoul date; its default is the only wall clock in this module."""
+    import argparse
+    import json
+    import sys
+    from datetime import datetime
+
+    from core.compliance import model
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError):
+            pass
+    try:
+        parser = argparse.ArgumentParser(prog="python -m core.compliance.rules", exit_on_error=False)
+        parser.add_argument("--check", action="store_true", help="check tables, owner log, code hash and key")
+        parser.add_argument("--today", help="an Asia/Seoul date, YYYY-MM-DD (default: today)")
+        args = parser.parse_args(argv)
+        if not args.check:
+            raise ValueError("nothing to do: pass --check")
+        today = parse_date(args.today, "--today") if args.today is not None else datetime.now(model.KST).date()
+        result = check(today)
+    except BaseException as exc:                    # spec 5.4: a failure of the check itself is exit 4, never 0-3
+        result = {"code": 4, "due": [], "overdue": [], "head_seq": 0, "head_sha256": "", "fingerprint": "",
+                  "lines": [f"check failed: {type(exc).__name__}: {exc}", f"exit 4: {_MEANING[4]}"]}
+    for line in result["lines"]:
+        print(line)
+    print(json.dumps({k: result[k] for k in _SUMMARY_KEYS}, ensure_ascii=True))
+    return result["code"]
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
