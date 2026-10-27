@@ -156,7 +156,8 @@ exit 0
   The run includes cockpit test_21 (tests/acceptance.py:318). When KIS keys are set, it makes the quote-only calls
   that every earlier full run made: through `KRXGateway().daily` a KIS token request on a cache miss (cached in
   TRADEGEN's own `~/.tradegen/kis_token.json`, kis_client.py:53) and a daily-price GET, and through `.filings` an
-  OpenDART GET when that key is set. This plan accepts them here, once per full run; Task 7 keeps them out of its
+  OpenDART GET when that key is set. They are read-only quotation calls: none places an order or reads an account.
+  The controller accepts them here, once per full run, and no key check is added; Task 7 keeps them out of its
   per-suite runs.
 
 ```bash
@@ -455,8 +456,9 @@ git commit -m "docs(plan): execution ledger of the compliance follow-up" -m "Eve
          - copy the merged file;
          - run the same `certutil` line;
          - write the new hash on paper.
-       - Either way, run the signer from Windows Terminal opened from the Start menu; an editor's terminal can be
-         refused.
+       - Either way, run the signer from Windows Terminal opened from the Start menu. The fail-closed ancestor walk
+         of Task 5 refuses a VS Code integrated terminal (its parent chain stops at a launcher that has exited); the
+         controller accepts this as a stated limit.
      - **Owner act 2, one code signature, after the odds plan lands.** It covers this plan's closure changes
        (`core/compliance/rules.py`, `owner.py`, `alerts.py`) and the odds plan's together.
        - Before signing, read the hashed files: every file the signing prompt lists. Today these are
@@ -481,3 +483,7 @@ git commit -m "docs(plan): execution ledger of the compliance follow-up" -m "Eve
          default, not a fault.
        - If Step 6 skipped: Claude did not run `--check` against your home, because with your key it would write a
          snapshot there. Run it yourself to see the current state.
+       - From owner act 1 until a check exits 0, 1 or 2, alerts.jsonl records no key fingerprint (Task 6), and new
+         exposure stays blocked throughout: the fingerprint you write on paper at act 1 is the only reference for
+         your key, so keep that paper. The first fingerprint is recorded with the first alert of a check that exits
+         1 or 2 (an exit-0 check sends no alert).

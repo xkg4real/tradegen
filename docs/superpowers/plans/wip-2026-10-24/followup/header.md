@@ -41,12 +41,25 @@ stated; the drift rule). These depart from rev 3.2 in stricter directions and ar
 - 5.3: the KR-KIS-KRX-DERIV reason text;
 - 6.4 "The code hash": an `if TYPE_CHECKING:`, `if typing.TYPE_CHECKING:` or `__name__ == "__main__"` guard is
   skipped only while the module neither rebinds its name nor uses a route that changes it without a binding (an
-  attribute store, setattr, globals, sys.modules and the like). Stated limit: another module changing
-  `typing.TYPE_CHECKING` before this one is imported is not seen; the owner's review of each hashed diff covers it;
+  attribute store, setattr, globals, sys.modules, a frame's f_globals or f_locals and the like). Stated limit:
+  another module changing `typing.TYPE_CHECKING` before this one is imported, or a route through `getattr`
+  (`getattr(sys, "modules")["typing"] = ...`), is not seen; the owner's review of each hashed diff covers it;
 - 6.4 "Where it runs": the signer also refuses when its parent chain breaks before a Windows session process (a
   claude.exe anywhere in the chain still refuses, even above one);
 - 6.4 "Public key and fingerprint": `alerts.jsonl` records a fingerprint only from a check with exit 0, 1 or 2;
-- 4 "Isolation residual": the KIS token and ficc cache targets are checked before their side effects.
+- 4 "Isolation residual": the KIS token and ficc cache targets are checked before their side effects;
+- stated limits the controller accepted at this plan's final review (none loosens a rule):
+  - 6.4 "Public key and fingerprint" (Task 6): between owner act 1 and the first check that exits 0, 1 or 2, no
+    fingerprint is recorded, and the paper fingerprint from owner act 1 is the only reference; new exposure stays
+    blocked throughout, since every check exits 3 until owner acts 2 and 3 (an exit-0 check writes no alerts row,
+    so the first recorded fingerprint comes with the first alert of an exit 1 or 2 check; Task 6 gives the timing);
+  - 4 "Isolation residual" (Task 7): kis_client's token read path is left as is (`_cached_token()` reads the token
+    file before any check; a read, not a write, so outside A0 and R8);
+  - 6.4 "Where it runs" (Task 5): the fail-closed ancestor walk refuses VS Code integrated terminals (their chain
+    stops at a launcher that has exited), so the owner signs from Windows Terminal opened from the Start menu;
+  - R4 (Task 4): the frame route is closed (`f_globals`, `f_locals` are route names); `getattr` cannot be listed
+    (gate.py, model.py, rules.py, alerts.py and `owner._binds` call it), so `getattr(sys, "modules")["typing"]`
+    stays a stated limit.
 GPT's final check runs after 2026-10-30 14:40. This plan does not wait for it: a valid finding that touches built code
 becomes a new task with its own failing test.
 
@@ -101,7 +114,8 @@ needs a fresh `code_approved`; once the owner approves a table (owner act 3), ev
 - Work on branch `compliance-followup`, which Task 1 creates from main's HEAD at execution time, not from a pinned
   hash. First, on `main`, `git status --short` and `git diff --stat 995534b HEAD -- . ':!docs'` must both print
   nothing (only docs changed since the compliance merge `995534b`); if either prints anything, stop and report.
-  Commit once per task. End each commit message with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
+  Commit once per task (Task 8: the full-run record, the ledger, and a repeat record after a review fix wave). End
+  each commit message with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
 
 **Drift rule.** This plan was written against main `5816d3c`, which equals `995534b` outside docs/. It executes first,
 after this plan, the odds plan and the E1 plan are committed to main as docs.
@@ -149,6 +163,21 @@ rulings R2-10 to R2-13; R9 to R13 are readings this plan adds where a ruling is 
 anything. GPT's 2026-10-30 check should read this list together with the spec. Appendix A (the interface contract)
 gives each one's exact old and new text.
 
+The ruling ids cited in the tasks and in Appendix A:
+- F1 to F8: the controller's follow-up rulings of 2026-10-24 on the parked and deferred items of the compliance
+  plan's execution ledger; R1 to R8 below restate them, one for one.
+- R2-10: pstats and tracemalloc join the dynamic-module ban (stricter than F1). R2-11: the branch starts from main's
+  HEAD at execution time, checked, not pinned. R2-12: R4's denylist limit is accepted as stated. R2-13: the drift
+  rule of Global Constraints. (Round-2 rulings R2-1 to R2-9 concern the odds plan only.)
+- O1, O2, O3, O5: rulings of the odds plan, cited where this plan touches it. O1: the signed odds core
+  (`core/odds/`) and its import allowlist ("everything injected"; `core/oddsdata/` is outside it). O2: the odds
+  plan's own guards, which import this plan's guard lists instead of copying them. O3: the compliance-side
+  prerequisites the odds plan's first tasks do (the venues parser keys, `calendar_in_force`, `grey_rows`, the move
+  of the signed-home fixtures). O5: `review_by` and rule dates inside a simulated horizon.
+- P<n> are the compliance plan's own decisions (its header), D<n> the spec's decisions.
+
+The decisions:
+
 - R1 (F1, amended by R2-10) `tests/compliance_guards.py` only. `NETWORK_MODULES` goes from 22 to 26 entries:
   `xml.dom` replaces `xml.dom.pulldom` and `xml.dom.expatbuilder`, and `antigravity`, `ctypes`, `_ctypes`, `_ssl`,
   `_overlapped` join. `DYNAMIC_MODULES` goes from 9 to 29: `importlib` replaces `importlib.util` and
@@ -176,10 +205,12 @@ gives each one's exact old and new text.
   exactly once in the module, by a plain `import typing`; `if __name__ == "__main__":` only when `__name__` is bound
   nowhere. A binding is not the only way to change these names, so no guard counts at all in a module that stores to
   an attribute `TYPE_CHECKING` or `__name__` or uses `setattr`, `delattr`, `globals`, `vars`, `locals`, `modules`,
-  `__dict__`, `builtins` or `__builtins__` (none of the 8 closure files does). Both files stay character-identical in
-  the closure helpers, and a test compares their source. Stated limit, accepted as stated by round-2 ruling R2-12:
-  the route list is a denylist, so another module changing `typing.TYPE_CHECKING` before this one is imported, or a
-  name built at run time, is not seen; the owner's review of each hashed diff covers it.
+  `__dict__`, `builtins`, `__builtins__`, `f_globals` or `f_locals` (none of the 8 closure files does; the two frame
+  names close the frame route, by the controller's ruling at the final review). Both files stay character-identical
+  in the closure helpers, and a test compares their source. Stated limit, accepted as stated by round-2 ruling
+  R2-12: the route list is a denylist, so another module changing `typing.TYPE_CHECKING` before this one is
+  imported, or a name built at run time, is not seen (`getattr` cannot be listed, so `getattr(sys,
+  "modules")["typing"]` is one); the owner's review of each hashed diff covers it.
 - R5 (F5) `sign._has_claude_ancestor`, repo copy only: a parent missing from the process table, a pid-reuse cycle or
   more than 256 steps now refuse (True), where they returned False, unless the walk has already passed a Windows
   session process (R11). The walk still reaches every process the old one did, so a claude.exe anywhere in the chain
@@ -228,8 +259,9 @@ Companion documents:
 - **Appendix A** below is the interface contract the tasks were drafted against. Where a task's text and Appendix A
   differ, the task wins.
 - **The repo facts** this plan rests on are the `followup` area of the 2026-10-24 repo map (each with file:line
-  evidence), re-checked against the tree at `995534b` while the contract was drafted. Whether that map is committed
-  beside the plan is the coordinator's call.
+  evidence), re-checked against the tree at `995534b` while the contract was drafted. It is committed beside this
+  plan as `docs/superpowers/plans/2026-10-24-compliance-followup-repo-map.md`; where it and the tasks disagree, the
+  tasks win.
 
 ## File map
 
@@ -249,7 +281,7 @@ Companion documents:
 | `core/ficc/data.py` | modify (off the closure) | 7 | R8 target check before the memory cache |
 | `tests/compliance_isolation.py` | modify | 7 | R8 tests |
 | `README.md` (CRLF), `qa/acceptance_results.json` (CRLF) | modify | 8 | the compliance count row and Total row; the full run |
-| `docs/superpowers/plans/2026-10-24-compliance-followup-execution-ledger.md` | NOT written by the plan | - | the executor writes it during and after execution |
+| `docs/superpowers/plans/2026-10-24-compliance-followup-execution-ledger.md` | commit only (Task 8 Step 8); the executor writes it | 8 | the executor's record of every task, review, fix and drift ruling |
 | `core/compliance/owner_pubkey.pem` | NOT created | - | appears only after owner act 1 (P24) |
 
 ## Owner gates during execution
@@ -262,7 +294,8 @@ after it.
 1. **The signer copy.** Owner act 1 is not done, so copy the merged `tools/signer/sign.py` when you do it. If you
    already copied an earlier version: read the diff of `tools/signer/sign.py`, run
    `certutil -hashfile "$env:USERPROFILE\tradegen-signer\sign.py" SHA256` in Windows Terminal (PowerShell), and
-   write the new hash on paper.
+   write the new hash on paper. Sign from Windows Terminal opened from the Start menu: the fail-closed ancestor walk
+   (Task 5) refuses a VS Code integrated terminal, whose parent chain stops at a launcher that has exited.
 2. **One code signature, after the odds plan lands.** Owner act 2 signs the code hash once, covering this plan's and
    the odds plan's closure changes. Read the hashed files first, in full for the first signature: R4's stated limit
    relies on that review.

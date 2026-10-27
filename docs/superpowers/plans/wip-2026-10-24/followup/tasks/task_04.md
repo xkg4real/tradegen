@@ -36,12 +36,15 @@ What this task does and why:
   `if __name__ == "__main__":` is skipped even when the module rebinds `__name__` (owner.py:720-723). So
   `typing = SimpleNamespace(TYPE_CHECKING=True)` or `__name__ = "__main__"` hides an import that does run from the
   D14 closure (ledger:208), and so do `typing.TYPE_CHECKING = True`, `setattr(typing, ...)`,
-  `globals()["__name__"] = ...` and `sys.modules["typing"] = ...`, which change the names without binding them.
+  `globals()["__name__"] = ...`, `sys.modules["typing"] = ...` and `sys._getframe().f_globals["__name__"] = ...`,
+  which change the names without binding them.
 - After: `typing.TYPE_CHECKING` counts only when `typing` is bound exactly once in the module, by a plain
   `import typing`; the `__main__` test counts only when `__name__` is bound nowhere in the module; the bare
   `TYPE_CHECKING` keeps today's `_typing_flag` rule. A module that stores to an attribute `TYPE_CHECKING` or
   `__name__`, or uses any Name or attribute `setattr`, `delattr`, `globals`, `vars`, `locals`, `modules`, `__dict__`,
-  `builtins` or `__builtins__`, trusts no guard at all, the bare one included. Every change only scans more.
+  `builtins`, `__builtins__`, `f_globals` or `f_locals`, trusts no guard at all, the bare one included. Every change
+  only scans more. `f_globals` and `f_locals` (a frame's namespaces) are route names by a controller ruling at the
+  plan's final review, so the frame route is closed too.
 - The signer's copy (sign.py:597-718, "a copy of owner.code_files (P6)") gets the identical text, and a new test
   compares the source of the seven closure-scan helpers in the two files, so a hardening in one cannot be forgotten in
   the other; `test_code_files_match_owner` keeps comparing their outputs on the real and the synthetic tree.
@@ -49,10 +52,12 @@ What this task does and why:
   (10 entries: `core/__init__.py`, `core/isolation.py`, `core/compliance/__init__.py`, `alerts.py`, `gate.py`,
   `model.py`, `owner.py`, `rules.py`, and the PyYAML and cryptography RECORD rows), and no closure file uses any of the
   route names, so `rules.py` and `model.py` keep their bare `TYPE_CHECKING` skip and `rules.py` and `alerts.py` their
-  `__main__` skip. Of the ten synthetic modules below, today's helpers hide all ten targets and the new ones hide none;
-  the eight route cases asserted directly on `_guards` each void all three guards. For the odds plan: a core/odds
-  module that uses any route name anywhere (a `vars()` call, a name `modules`, `.__dict__`) trusts no guard, so its
-  `if TYPE_CHECKING:` and `__main__` imports count in the D14 closure (and `test_code_files_is_the_import_closure`
+  `__main__` skip. Of the twelve synthetic modules below, today's helpers hide all twelve targets and the new ones
+  hide none; the eight route cases asserted directly on `_guards` each void all three guards. Re-checked on a scratch
+  copy at the plan's final assembly with the two frame routes added: no closure file names `f_globals` or
+  `f_locals`, the real closure files keep the guards named above, and the frame modules r.py and s.py hide their
+  targets today and not after this task. For the odds plan: a core/odds module that uses any route name anywhere (a
+  `vars()` call, a name `modules`, `.__dict__`) trusts no guard, so its `if TYPE_CHECKING:` and `__main__` imports count in the D14 closure (and `test_code_files_is_the_import_closure`
   turns red if one names a repo file outside its expected set: core/__init__.py, core/isolation.py,
   core/compliance/*.py, core/odds/*.py). The same holds for E1's execution/*.py once its Task 9 adds them to the
   closure: keep TYPE_CHECKING-only imports out of a closure module that uses a route name.
@@ -62,21 +67,26 @@ What this task does and why:
   `tools/signer/sign.py`, re-hashes it in Windows Terminal (PowerShell) with the certutil line of Task 8 Step 9,
   `certutil -hashfile "$env:USERPROFILE\tradegen-signer\sign.py" SHA256`, and re-records the hash on paper (Task 5
   changes sign.py again; one owner act after the merge covers both).
-- Stated limit (spec rev 3.3; accepted as stated, RULINGS_ROUND2 R2-12): the route list is a denylist. Another module
+- Stated limit (spec rev 3.3; accepted as stated, round-2 ruling R2-12): the route list is a denylist. Another module
   changing `typing.TYPE_CHECKING` before this one is imported, or a name built at run time, is not seen; the owner's
   review of each hashed file's diff is the barrier there. The `_guards` docstring names the first of these (its text
-  is fixed by Appendix A section 6.1). In-module routes the list misses include these, each confirmed in the sandbox (2026-10-24) to
-  still hide an import that runs: a frame's globals (`sys._getframe().f_globals["__name__"] = "__main__"`), an
-  attribute fetched by string (`getattr(sys, "modules")["typing"] = ...`), a dunder call
-  (`typing.__setattr__("TYPE_CHECKING", True)`, `object.__setattr__(typing, "TYPE_CHECKING", True)`) and a
-  from-import alias of a route name (`from sys import modules as m`, `from builtins import setattr as s`,
-  `from builtins import globals as g`). No Task 1 guard sees them either (sys and builtins are on no list). Each is
-  plain to read in a hashed diff. Listing `getattr` or `__setattr__` would void every guard of rules.py (`getattr` at
-  rules.py:813, :867), model.py (`getattr` at :37, :198 and `object.__setattr__` at model.py:199) and alerts.py
-  (alerts.py:223); today's closure would stay the same, because their guarded bodies import only closure files
-  (model.py:17-18, rules.py:24-25) or nothing (rules.py:970, alerts.py:353), but Appendix A section 6.1 fixes the route list, so this
-  task leaves those names and alias names out.
-- Departures from Appendix A (the task wins): Appendix A section 6.4 lists only the ten synthetic files for
+  is fixed by Appendix A section 6.1).
+  - The frame route is closed: by the controller's ruling at the final review, `f_globals` and `f_locals` are route
+    names, so a module that touches a frame's namespaces (`sys._getframe().f_globals["__name__"] = "__main__"`,
+    `sys._getframe().f_locals["TYPE_CHECKING"] = True`) trusts no guard (the synthetic modules r.py and s.py).
+  - In-module routes the list still misses, each confirmed on a scratch copy (2026-10-24) to still hide an import that
+    runs: an attribute fetched by string (`getattr(sys, "modules")["typing"] = ...`), a dunder call
+    (`typing.__setattr__("TYPE_CHECKING", True)`, `object.__setattr__(typing, "TYPE_CHECKING", True)`) and a
+    from-import alias of a route name (`from sys import modules as m`, `from builtins import setattr as s`,
+    `from builtins import globals as g`). No Task 1 guard sees them either (sys and builtins are on no list). Each is
+    plain to read in a hashed diff.
+  - `getattr` cannot be listed: gate.py (:111-112, :127, :398, :623-625), model.py (:37, :198), rules.py (:813, :867),
+    alerts.py (:223) and `owner._binds` itself (owner.py:694) call it, so listing it would void the guards of every
+    closure file that calls it; `__setattr__` likewise (model.py:199). Today's closure would stay the same, because
+    the guarded bodies import only closure files (model.py:17-18, rules.py:24-25) or nothing (rules.py:970,
+    alerts.py:353), but Appendix A section 6.1 fixes the route list, so this task leaves those names and alias names
+    out. `getattr(sys, "modules")["typing"]` stays a stated limit.
+- Departures from Appendix A (the task wins): Appendix A section 6.4 lists only the twelve synthetic files for
   tests/compliance_store.py. This task also adds `import ast` there (Edit T0) and, after the expected set (Edit T3),
   one assert that `owner._guards` trusts all three guards of a plain module plus eight direct `owner._guards` route
   asserts (delattr, vars, locals, `__dict__`, builtins, `__builtins__`, a `__name__` attribute store, a `del` of
@@ -120,11 +130,11 @@ import datetime as _dt
     at import: an `!=` test, a bare TYPE_CHECKING that is a local (or rebound) name, and `not TYPE_CHECKING`; and a
     guard whose name the module rebinds or never imports plainly (typing rebound, `import os as typing`, no `import
     typing`, `__name__` assigned or a parameter), or that the module can change without a binding (an attribute store,
-    setattr, globals(), sys.modules), is scanned too (R4)."""
+    setattr, globals(), sys.modules, a frame's f_globals or f_locals), is scanned too (R4)."""
 ```
 
-  **Edit T2**, same function, the `sources` dict: ten synthetic modules after `f.py` and their ten empty targets after
-  `core/rev_cli.py`. Old text (exact):
+  **Edit T2**, same function, the `sources` dict: twelve synthetic modules after `f.py` (h.py to q.py, then the frame
+  routes r.py and s.py) and their twelve empty targets after `core/rev_cli.py`. Old text (exact):
 
 ```python
         "core/compliance/f.py": "if \"__main__\" == __name__:\n    import core.rev_cli\n",
@@ -154,12 +164,17 @@ import datetime as _dt
                                  "import typing\nif typing.TYPE_CHECKING:\n    import core.modules_typing\n"),
         "core/compliance/q.py": ("import typing\ntyping.TYPE_CHECKING = True\nfrom typing import TYPE_CHECKING\n"
                                  "if TYPE_CHECKING:\n    import core.stored_bare\n"),
+        "core/compliance/r.py": ("import sys\nsys._getframe().f_globals[\"__name__\"] = \"__main__\"\n"
+                                 "if __name__ == \"__main__\":\n    import core.frame_main\n"),
+        "core/compliance/s.py": ("import sys\nfrom typing import TYPE_CHECKING\n"
+                                 "sys._getframe().f_locals[\"TYPE_CHECKING\"] = True\n"
+                                 "if TYPE_CHECKING:\n    import core.frame_bare\n"),
         "core/neq.py": "", "core/local_tc.py": "", "core/rebound.py": "", "core/negated.py": "",
         "core/rev_cli.py": "",
         "core/rebound_typing.py": "", "core/rebound_main.py": "", "core/alias_typing.py": "",
         "core/unbound_typing.py": "", "core/param_main.py": "", "core/stored_typing.py": "",
         "core/setattr_typing.py": "", "core/globals_main.py": "", "core/modules_typing.py": "",
-        "core/stored_bare.py": "",
+        "core/stored_bare.py": "", "core/frame_main.py": "", "core/frame_bare.py": "",
 ```
 
   **Edit T3**, same function, the expected set, then direct asserts on `owner._guards` for the routes the synthetic
@@ -177,11 +192,11 @@ import datetime as _dt
                     "core/compliance/f.py",
                     "core/compliance/h.py", "core/compliance/i.py", "core/compliance/j.py", "core/compliance/k.py",
                     "core/compliance/l.py", "core/compliance/m.py", "core/compliance/n.py", "core/compliance/o.py",
-                    "core/compliance/p.py", "core/compliance/q.py",
+                    "core/compliance/p.py", "core/compliance/q.py", "core/compliance/r.py", "core/compliance/s.py",
                     "core/rebound_typing.py", "core/rebound_main.py", "core/alias_typing.py",
                     "core/unbound_typing.py", "core/param_main.py", "core/stored_typing.py",
                     "core/setattr_typing.py", "core/globals_main.py", "core/modules_typing.py",
-                    "core/stored_bare.py",
+                    "core/stored_bare.py", "core/frame_main.py", "core/frame_bare.py",
                     "core/neq.py", "core/local_tc.py", "core/rebound.py", "core/negated.py"}, sorted(repo)
     trusted = "import typing\nfrom typing import TYPE_CHECKING\n"
     assert owner._guards(ast.parse(trusted)) == (True, True, True)
@@ -221,12 +236,17 @@ import datetime as _dt
                                  "import typing\nif typing.TYPE_CHECKING:\n    import core.modules_typing\n"),
         "core/compliance/q.py": ("import typing\ntyping.TYPE_CHECKING = True\nfrom typing import TYPE_CHECKING\n"
                                  "if TYPE_CHECKING:\n    import core.stored_bare\n"),
+        "core/compliance/r.py": ("import sys\nsys._getframe().f_globals[\"__name__\"] = \"__main__\"\n"
+                                 "if __name__ == \"__main__\":\n    import core.frame_main\n"),
+        "core/compliance/s.py": ("import sys\nfrom typing import TYPE_CHECKING\n"
+                                 "sys._getframe().f_locals[\"TYPE_CHECKING\"] = True\n"
+                                 "if TYPE_CHECKING:\n    import core.frame_bare\n"),
         "core/neq.py": "", "core/local_tc.py": "", "core/rebound.py": "", "core/negated.py": "",
         "core/rev_cli.py": "",
         "core/rebound_typing.py": "", "core/rebound_main.py": "", "core/alias_typing.py": "",
         "core/unbound_typing.py": "", "core/param_main.py": "", "core/stored_typing.py": "",
         "core/setattr_typing.py": "", "core/globals_main.py": "", "core/modules_typing.py": "",
-        "core/stored_bare.py": "",
+        "core/stored_bare.py": "", "core/frame_main.py": "", "core/frame_bare.py": "",
 ```
 
   **Edit T5**, `tests/compliance_signer.py`, the end of `test_code_files_match_owner` (its expected set) and the
@@ -246,10 +266,10 @@ def test_store_layout_matches_owner_store_put():
         "core/compliance/f.py", "core/compliance/g.py",
         "core/compliance/h.py", "core/compliance/i.py", "core/compliance/j.py", "core/compliance/k.py",
         "core/compliance/l.py", "core/compliance/m.py", "core/compliance/n.py", "core/compliance/o.py",
-        "core/compliance/p.py", "core/compliance/q.py",
+        "core/compliance/p.py", "core/compliance/q.py", "core/compliance/r.py", "core/compliance/s.py",
         "core/rebound_typing.py", "core/rebound_main.py", "core/alias_typing.py", "core/unbound_typing.py",
         "core/param_main.py", "core/stored_typing.py", "core/setattr_typing.py", "core/globals_main.py",
-        "core/modules_typing.py", "core/stored_bare.py",
+        "core/modules_typing.py", "core/stored_bare.py", "core/frame_main.py", "core/frame_bare.py",
         "core/neq.py", "core/local_tc.py", "core/rebound.py", "core/negated.py"}, mine
 
 
@@ -285,11 +305,12 @@ Get-CimInstance Win32_Process -Filter "Name LIKE 'python%'" | Where-Object { $_.
 
   Expected: a traceback, then the line
   `FAIL compliance_store/test_code_files_counts_lazy_imports_and_skips_main_and_type_checking AssertionError: [...]`,
-  whose list (the closure today's helpers build) names `core/compliance/h.py` to `core/compliance/q.py` but none of
-  the ten targets `core/alias_typing.py`, `core/globals_main.py`, `core/modules_typing.py`, `core/param_main.py`,
-  `core/rebound_main.py`, `core/rebound_typing.py`, `core/setattr_typing.py`, `core/stored_bare.py`,
-  `core/stored_typing.py`, `core/unbound_typing.py` (the expected-set assert fails before the `owner._guards` asserts
-  run, so there is no AttributeError); and, ending, `28/29 passed, 1 failed, 0 not run` (exit code 1).
+  whose list (the closure today's helpers build) names `core/compliance/h.py` to `core/compliance/s.py` but none of
+  the twelve targets `core/alias_typing.py`, `core/frame_bare.py`, `core/frame_main.py`, `core/globals_main.py`,
+  `core/modules_typing.py`, `core/param_main.py`, `core/rebound_main.py`, `core/rebound_typing.py`,
+  `core/setattr_typing.py`, `core/stored_bare.py`, `core/stored_typing.py`, `core/unbound_typing.py` (the
+  expected-set assert fails before the `owner._guards` asserts run, so there is no AttributeError); and, ending,
+  `28/29 passed, 1 failed, 0 not run` (exit code 1).
 
   Overlap check again, then:
 
@@ -304,7 +325,7 @@ FAIL compliance_signer/test_closure_scan_helpers_are_identical_in_owner_and_sign
 ```
 
   and `FAIL compliance_signer/test_code_files_match_owner AssertionError: [('config.py', ...), ...]` (the signer's
-  closure of the synthetic tree, with the same ten targets missing; the signer and owner.py still agree with each
+  closure of the synthetic tree, with the same twelve targets missing; the signer and owner.py still agree with each
   other, so it is the expected-set assertion that fails); ending `36/38 passed, 2 failed, 0 not run` (exit code 1).
   Any other failure: stop and rule.
 
@@ -345,11 +366,13 @@ def _guards(tree: ast.AST) -> tuple[bool, bool, bool]:
     plain `import typing`; the `__main__` test needs `__name__` bound nowhere in the module. A rebound name
     (typing = SimpleNamespace(TYPE_CHECKING=True), __name__ = "__main__") loses its guard, and a module that can
     change these names without binding them (an attribute store of TYPE_CHECKING or __name__, or any setattr,
-    delattr, globals, vars, locals, modules, __dict__, builtins or __builtins__) trusts no guard: the guarded body
-    is scanned. Not seen: another module changing typing.TYPE_CHECKING first (the review of each hashed diff)."""
+    delattr, globals, vars, locals, modules, __dict__, builtins, __builtins__, f_globals or f_locals) trusts no
+    guard: the guarded body is scanned. Not seen: another module changing typing.TYPE_CHECKING first (the review of
+    each hashed diff)."""
     plain = any(isinstance(n, ast.Import) and any(a.name == "typing" and a.asname is None for a in n.names)
                 for n in ast.walk(tree))
-    routes = {"setattr", "delattr", "globals", "vars", "locals", "modules", "__dict__", "builtins", "__builtins__"}
+    routes = {"setattr", "delattr", "globals", "vars", "locals", "modules", "__dict__", "builtins", "__builtins__",
+              "f_globals", "f_locals"}
     if any((isinstance(n, ast.Name) and n.id in routes) or (isinstance(n, ast.Attribute) and (n.attr in routes or (
             n.attr in ("TYPE_CHECKING", "__name__") and not isinstance(n.ctx, ast.Load)))) for n in ast.walk(tree)):
         return False, False, False
@@ -432,11 +455,12 @@ git diff --stat --ignore-cr-at-eol
 git grep -n -E "bare_flag|_import_nodes\(tree, _typing_flag" -- core/compliance/owner.py tools/signer/sign.py
 ```
 
-  Expected: the two stat outputs identical, with the per-file counts `core/compliance/owner.py | 42`,
-  `tests/compliance_signer.py | 36`, `tests/compliance_store.py | 40`, `tools/signer/sign.py | 42` (each followed by
-  its `+`/`-` bar) and `4 files changed, 135 insertions(+), 25 deletions(-)` (owner.py and sign.py 30 insertions and
-  12 deletions each; the signer test 36 insertions; the store test 39 insertions and 1 deletion); the `git grep`
-  prints nothing (exit code 1).
+  Expected: the two stat outputs identical, with the per-file counts `core/compliance/owner.py | 44`,
+  `tests/compliance_signer.py | 41`, `tests/compliance_store.py | 45`, `tools/signer/sign.py | 44` (each followed by
+  its `+`/`-` bar) and `4 files changed, 149 insertions(+), 25 deletions(-)` (owner.py and sign.py 32 insertions and
+  12 deletions each; the signer test 41 insertions; the store test 44 insertions and 1 deletion; `git diff
+  --no-index --numstat` on scratch copies of the four files with Edits T0-T5 and O1-O3 applied, at the plan's final
+  assembly); the `git grep` prints nothing (exit code 1).
 
 - [ ] **Step 4: Run to verify it passes**
 
@@ -489,5 +513,5 @@ git diff --cached --stat --ignore-cr-at-eol
   The two stat outputs must be identical (all four files are LF; the counts of Step 3). Then:
 
 ```bash
-git commit -m "fix(compliance): closure scan skips a guard only while its name is unbound and unmutated" -m "R4 (ledger:208): owner._guards and its character-identical signer copy; a rebound typing or __name__, or an attribute store, setattr, globals or sys.modules route, voids the guard; source-equality test added." -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+git commit -m "fix(compliance): closure scan skips a guard only while its name is unbound and unmutated" -m "R4 (ledger:208): owner._guards and its character-identical signer copy; a rebound typing or __name__, or an attribute store, setattr, globals, sys.modules or frame f_globals/f_locals route, voids the guard; source-equality test added." -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ```

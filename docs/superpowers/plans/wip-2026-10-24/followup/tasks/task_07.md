@@ -55,8 +55,9 @@ What this task changes, and what it leaves alone:
   - The cockpit's read-only scans (test_08, test_09) run directly in Step 4. Step 4 does not add `--suite cockpit`:
     with KIS keys set, test_21 sends real KIS requests, the token POST to `/oauth2/tokenP` on a cache miss
     (kis_client.py:181) and the read-only daily-chart quotation GET (`KISClient.daily`, kis_client.py:273-281).
-    The rest of the cockpit suite, test_21 included, runs once, in Task 8 Step 2's full run, and Task 8 Step 2
-    states how that call is handled. This task makes no KIS call.
+    The rest of the cockpit suite, test_21 included, runs once, in Task 8 Step 2's full run. There, when KIS keys
+    are set, test_21 makes that read-only KIS quotation call, as every earlier full run did; the controller accepts
+    this, and no key check is added. This task makes no KIS call.
   - engine test_89 replaces `client.token` (tests/engine_acceptance.py:1376).
   - T-RO-02 refuses in `_get` before any token (tests/macro_m1_pit.py:1073).
   - `_cache_put` changes only when `checked_target` refuses, and then it raises as before.
@@ -67,7 +68,8 @@ What this task changes, and what it leaves alone:
     root is refused by the link scan (kis_client.py:53 calls `config.state_root()` at import; the scan is memoised
     per root, refusals included, `scan_links` at core/isolation.py:99-102). A link created after that scan is read
     by `_cached_token()` unchecked, and a valid token in it is used. That is a read and no write, so it is outside
-    A0 and R8.
+    A0 and R8. The controller rules that this token read path is left as is (a stated limit in the plan header's
+    "Spec" list).
   - The `core/ficc/data.py` module docstring ("Cache failures are ignored, never raised") predates A0. It is not
     rewritten here.
 - **Drift.** No earlier task of this plan touches these three files. Under the DRIFT RULE, re-read each file before

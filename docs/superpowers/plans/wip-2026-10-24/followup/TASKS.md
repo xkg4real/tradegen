@@ -82,18 +82,22 @@ command. Module runs: `.venv/Scripts/python.exe -m tests.compliance_acceptance <
 ## Task 4: The D14 closure scan trusts a guard only while its name is unbound and unmutated (ledger:208; spec 6.4 "The code hash"; R4; C6)
 - `core/compliance/owner.py` (LF, closure file) and `tools/signer/sign.py` (LF, off the closure), identical text:
   new `_guards(tree)` after `_typing_flag` (C6.1: the binding counts, and no guard at all in a module with an
-  attribute store of TYPE_CHECKING or `__name__` or a setattr/delattr/globals/vars/locals/modules/`__dict__`/builtins
-  route), `_skipped(node, guards)` (C6.2), `_import_nodes` takes `guards`, and `_repo_imports` passes `_guards(tree)`
-  (C6.3; owner.py:755, sign.py:678).
-- Tests (failing first): `tests/compliance_store.py` :153-194 and `tests/compliance_signer.py` :630-677 gain the ten
-  synthetic files h.py to q.py and their ten targets (C6.4; today's owner.py hides all ten); new
-  `test_closure_scan_helpers_are_identical_in_owner_and_signer` in tests/compliance_signer.py (fails first with
-  AttributeError: no `_guards`).
+  attribute store of TYPE_CHECKING or `__name__` or a setattr/delattr/globals/vars/locals/modules/`__dict__`/builtins/
+  `f_globals`/`f_locals` route; the frame names by the controller's final-review ruling), `_skipped(node, guards)`
+  (C6.2), `_import_nodes` takes `guards`, and `_repo_imports` passes `_guards(tree)` (C6.3; owner.py:755, sign.py:678).
+- Tests (failing first): `tests/compliance_store.py` :153-194 and `tests/compliance_signer.py` :630-677 gain the twelve
+  synthetic files h.py to s.py (r.py and s.py the frame routes) and their twelve targets (C6.4; today's owner.py hides
+  all twelve); new `test_closure_scan_helpers_are_identical_in_owner_and_signer` in tests/compliance_signer.py (fails
+  first with AttributeError: no `_guards`).
+- Beyond the contract (the task's "Departures from Appendix A"): `import ast` in tests/compliance_store.py, one
+  trusted-module assert and eight direct `owner._guards` route asserts (delattr, vars, locals, `__dict__`, builtins,
+  `__builtins__`, a `__name__` attribute store, a `del` of `TYPE_CHECKING`).
 - State: the real closure (10 entries) is unchanged and no closure file uses a mutation route (checked in-process
   2026-10-24); owner.py moves the code hash (no `code_approved` exists yet); sign.py changes need the owner act of C7
   (copy, re-hash, re-record). State the limit, which the controller accepts as stated (R2-12): the route list is a
   denylist, so another module changing `typing.TYPE_CHECKING` first, or a name built at run time, is not seen; the
-  owner's diff review of the hashed files covers it.
+  owner's diff review of the hashed files covers it. The frame route is closed; `getattr(sys, "modules")["typing"]`
+  stays a stated limit (getattr cannot be listed: gate.py, model.py, rules.py, alerts.py and owner._binds use it).
 - Verify: `compliance_store/` -> `29/29 passed`; `compliance_signer/` -> `38/38 passed, 0 failed, 0 not run`;
   `--suite compliance` -> 0 failed (325 rows).
 - Commit: `fix(compliance): closure scan skips a guard only while its name is unbound and unmutated`.
@@ -108,6 +112,11 @@ command. Module runs: `.venv/Scripts/python.exe -m tests.compliance_acceptance <
   claude.exe above a process named winlogon.exe refuse); `test_claude_ancestor_check_fails_closed` gains the
   exited-parent case;
   `test_main_refuses_claude_parent_and_non_tty_stdin` asserts "has exited" in the refusal (C7.3).
+- Beyond the contract (the task's "Departures from Appendix A"): `test_help_names_owner_acts_1_and_2` gains the two
+  new help needles (it already pins help needles, C7.2); `test_claude_ancestor_walk` gains the `shell` and `service`
+  cases and the `_SESSION_ROOTS` pin; the owner act uses PowerShell syntax.
+- Accepted limit (controller): the fail-closed walk refuses VS Code integrated terminals, so the owner signs from
+  Windows Terminal opened from the Start menu (header owner gates, Task 8 hand-off).
 - State the evidence for R11 in the task (the live chains of 2026-10-24), that every chain refused today stays
   refused, and the honest limits (COM activation and the desktop shell drop the claude.exe ancestor, so the passphrase
   and the typed code remain the barrier; a reused pid above a session process that now runs claude.exe refuses).
@@ -122,6 +131,10 @@ command. Module runs: `.venv/Scripts/python.exe -m tests.compliance_acceptance <
   before the `_in_log` check; the docstring sentence of C8.
 - `tests/compliance_cli.py`: new `test_log_records_a_fingerprint_only_from_codes_0_to_2` after :592-623 (fails first:
   the code-3 row records `SHA256:000...`).
+- Beyond the contract (the task's "Departures from Appendix A"): the test also logs codes 0 and 2 and checks that
+  they keep their fingerprints, checks the nine keys of every row, and calls `due()` (KEY CHANGED still owed).
+- Accepted limit (controller): between owner act 1 and the first check that exits 0, 1 or 2 no fingerprint is
+  recorded; the paper fingerprint of owner act 1 is the only reference; new exposure stays blocked throughout.
 - Verify: `compliance_cli/` -> `36/36 passed, 0 failed, 0 not run`; `--suite compliance` -> 0 failed (326 rows).
 - Commit: `fix(alerts): record a key fingerprint only from a check that verified the log`.
 
@@ -133,7 +146,8 @@ command. Module runs: `.venv/Scripts/python.exe -m tests.compliance_acceptance <
   credential read, no POST, victim bytes unchanged; fails first with "token request failed"); the ficc test at
   :295-306 asserts the refused key is not in `D._MEM` (fails first).
 - Both files are outside the D14 closure. State that R8 takes "KIS token burnt on refusal" off the execution carry list
-  (ledger:239).
+  (ledger:239). Accepted limit (controller): kis_client's token read path (`_cached_token()`) is left as is. Cockpit
+  test_21 runs only in Task 8's full run.
 - Verify: `compliance_isolation/` -> `16/17 passed, 0 failed, 1 not run`; `--suite compliance` -> 0 failed (327 rows);
   then `--suite engine`, `--suite macro`, `--suite expansion`, `--suite ficc`, `--suite quant`, each 0 failed, restoring
   `qa/acceptance_results.json` after each.
@@ -142,17 +156,22 @@ command. Module runs: `.venv/Scripts/python.exe -m tests.compliance_acceptance <
 ## Task 8 (written by the coordinator, not a drafter): Full run, README, hand-off
 - Full suite with the overlap check: `.venv/Scripts/python.exe tests/run_all.py; echo "exit $?"` -> 0 failed.
   Expected: compliance 327 rows (325 PASS / 2 NOT_RUN); full 1176 rows (1053 PASS / 123 NOT_RUN). The run's numbers
-  win.
+  win. With KIS keys set, cockpit test_21 makes a read-only KIS quotation call, as every earlier full run did; the
+  controller accepts this, and no key check is added.
 - `README.md` (CRLF, Edit tool): the compliance row's count (README.md:839) and the Total row (README.md:840), today's
   date; `git diff --stat` equals `--ignore-cr-at-eol`.
 - Real-home `--check`: list `~/.tradegen/compliance`, run `.venv/Scripts/python.exe -m core.compliance.rules --check`,
   expect exit 3 and an unchanged listing.
-- Commit `README.md` and `qa/acceptance_results.json`: `test: full run after the compliance follow-up`.
+- Commit `README.md` and `qa/acceptance_results.json`: `test: full run after the compliance follow-up` (Step 5).
+- Final review (Step 7); after a fix wave, repeat the full run and commit the repeat record:
+  `test: full run after the final review wave` (optional: only when a fix commit was made).
 - The execution ledger `docs/superpowers/plans/2026-10-24-compliance-followup-execution-ledger.md` is the executor's,
-  written during and after execution; the plan does not write it.
-- Hand-off: the owner acts of this plan (copy the updated signer at owner act 1, or re-hash an existing copy; sign the
-  code hash once at owner act 2, after the odds plan lands; approve the edited rules table at owner act 3); then merge
-  per superpowers:finishing-a-development-branch and start the odds plan from the merged main.
+  written during and after execution; the plan does not write its content. Step 8 commits it before the merge:
+  `docs(plan): execution ledger of the compliance follow-up`.
+- Hand-off: the owner acts of this plan (copy the updated signer at owner act 1, or re-hash an existing copy, and sign
+  from Windows Terminal opened from the Start menu; sign the code hash once at owner act 2, after the odds plan lands;
+  approve the edited rules table at owner act 3); then merge per superpowers:finishing-a-development-branch and start
+  the odds plan from the merged main.
 
 ## Coverage
 
@@ -166,12 +185,12 @@ F1 to F8 as amended by RULINGS_ROUND2 (R2-10 to R2-13); R2-1 to R2-9 concern the
 | R2-13 DRIFT RULE | every task | every edited file | each Edit an exact old/new pair with its anchor; a one-line ledger ruling per drift |
 | F2 loader (D15 content, D15 label, D16 content incl. ETP assets with no class axis, review_by, max_leverage, {cap}, 15 exact pins) | 2 | core/compliance/rules.py, tests/compliance_tables.py, tests/compliance_cli.py | five new loader tests, `test_shipped_rows_that_can_let_through_are_pinned_exactly`, three rewritten assertions (tables:295, :316; cli:576-577), extended `test_max_leverage` |
 | F3 KRX-DERIV reason | 3 | core/compliance/kr_rules.yaml, tests/compliance_tables.py | extended `test_shipped_d16_rows_need_live_evidence` |
-| F4 closure scan (owner.py + sign.py identical; binding and mutation routes) | 4 | core/compliance/owner.py, tools/signer/sign.py, tests/compliance_store.py, tests/compliance_signer.py | extended synthetic trees in both files; new `test_closure_scan_helpers_are_identical_in_owner_and_signer` |
-| F5 ancestor walk fails closed (repo copy; owner act for the owner's copy) | 5 (owner act in 8) | tools/signer/sign.py, tests/compliance_signer.py | rewritten `test_claude_ancestor_walk`, extended `test_claude_ancestor_check_fails_closed`, refusal text |
-| F6 fingerprint only from codes 0-2 | 6 | core/compliance/alerts.py, tests/compliance_cli.py | new `test_log_records_a_fingerprint_only_from_codes_0_to_2` |
+| F4 closure scan (owner.py + sign.py identical; binding and mutation routes, frame routes f_globals/f_locals by the final-review ruling) | 4 | core/compliance/owner.py, tools/signer/sign.py, tests/compliance_store.py, tests/compliance_signer.py | extended synthetic trees in both files (twelve modules h.py to s.py); new `test_closure_scan_helpers_are_identical_in_owner_and_signer`; beyond the contract (Task 4): `import ast` and eight direct `owner._guards` route asserts in tests/compliance_store.py |
+| F5 ancestor walk fails closed (repo copy; owner act for the owner's copy) | 5 (owner act in 8) | tools/signer/sign.py, tests/compliance_signer.py | rewritten `test_claude_ancestor_walk`, extended `test_claude_ancestor_check_fails_closed`, refusal text; beyond the contract (Task 5): the two new needles of `test_help_names_owner_acts_1_and_2`, the `shell` and `service` cases and the `_SESSION_ROOTS` pin |
+| F6 fingerprint only from codes 0-2 | 6 | core/compliance/alerts.py, tests/compliance_cli.py | new `test_log_records_a_fingerprint_only_from_codes_0_to_2` (beyond the contract: codes 0 and 2 logged, nine keys checked, `due()` called) |
 | F7 suite-list check | 1 | tests/compliance_guards.py | rewritten `test_suite_is_registered_in_run_all_and_readme` with `_suite_names` controls |
 | F8 KIS token before POST; ficc `_MEM` after the check | 7 | data/krx/kis_client.py, core/ficc/data.py, tests/compliance_isolation.py | new `test_kis_token_is_refused_before_the_token_request`; extended `test_ficc_cache_writer_refuses_a_hard_linked_target` |
-| Final: full run, README row (CRLF), ledger by the executor | 8 | README.md, qa/acceptance_results.json | full run 0 failed; real-home `--check` exit 3, nothing written |
+| Final: full run, README row (CRLF), ledger by the executor | 8 | README.md, qa/acceptance_results.json, the execution ledger (commit only) | full run 0 failed; real-home `--check` exit 3, nothing written; record commit, optional repeat record after a review fix wave, ledger commit |
 
 Not in scope (C11; the plan lists each with its reason): H2 (to E2, the execution halt writer with a trusted clock;
 ledger:188, :239); T2 (a documented limit: the owner's key plus a backdated clock; ledger:189); the snapshot

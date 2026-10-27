@@ -60,7 +60,8 @@ Design notes (read before Step 1):
   approved, and sooner when a date is closer. Until then the alert footer reads "first recorded none yet", and the
   fingerprint written on paper at owner act 1 is the only reference, including against a swap of key and log
   together. Throughout, a check exits 0 to 2 only when the owner log verifies against the key file; what the window
-  lacks is the alerts.jsonl reference for the key itself.
+  lacks is the alerts.jsonl reference for the key itself. The controller accepts this window as a stated limit (the
+  plan header's "Spec" list): new exposure stays blocked until a check exits 0, 1 or 2.
 - Drift rule. Task 2 lands first and rewrites tests/compliance_cli.py:576-577 inside `test_render_has_no_rule_free_text`
   (above this task's anchor), two lines for two, so the tests/compliance_cli.py line numbers cited here do not move;
   no earlier task of this plan touches alerts.py. Before each Edit, re-read the file

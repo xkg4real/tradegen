@@ -5,18 +5,19 @@ Repo: `C:\Users\whydi\OneDrive\Desktop\TRADEGEN` (git, tree clean, no other bran
 (`git diff --stat 995534b 5816d3c -- . ':!docs'` prints nothing, 2026-10-24). The plan executes first, from main's
 HEAD after this plan, the odds plan and the E1 plan are committed there (docs only; Task 1 checks it, R13).
 Spec: `docs/superpowers/specs/2026-10-23-compliance-gate-and-odds-engine-design.md` rev 3.2. The owner approved it.
-Rulings: `scratchpad/odds_plan/RULINGS.md` section "Compliance follow-up plan" (F1 to F8, controller rulings on the
-parked and deferred items), amended by `scratchpad/odds_plan/RULINGS_ROUND2.md` R2-10 to R2-13 (where they differ,
-round 2 wins). They are restated below as R1 to R8 with exact before and after values; R9 to R13 are the
+Rulings: the controller's follow-up rulings F1 to F8 (on the parked and deferred items), amended by the round-2
+rulings R2-10 to R2-13 (where they differ, round 2 wins); the plan header defines each, and the odds rulings O1, O2,
+O3 and O5 cited below. They are restated below as R1 to R8 with exact before and after values; R9 to R13 are the
 readings this contract adds where a ruling is silent. Where a ruling and the spec differ, the ruling wins and is
 listed for spec rev 3.3 (header, "Spec").
-Repo facts: `scratchpad/odds_plan/map/followup.md` (sections 0-8) and `map/DIGEST.md` section 8. Every path:line
-below was re-read in the tree at `995534b` on 2026-10-24; outside docs/ that tree is the tree at `5816d3c`, and the
-docs files cited here (the spec, the ledger, the compliance plan) are unchanged since `995534b`.
+Repo facts: the repo map `docs/superpowers/plans/2026-10-24-compliance-followup-repo-map.md` (sections 0-8) and
+section 8 of the 2026-10-24 map digest (not committed; each item it adds is cited here by its ledger line). Every
+path:line below was re-read in the tree at `995534b` on 2026-10-24; outside docs/ that tree is the tree at
+`5816d3c`, and the docs files cited here (the spec, the ledger, the compliance plan) are unchanged since `995534b`.
 Ledger: `docs/superpowers/plans/2026-10-23-compliance-gate-execution-ledger.md` (245 lines), cited as `ledger:<n>`.
 
-Everything below is fixed. If a task needs a name that is not here, it defines it inside its own module as a private
-helper (leading underscore) and says so in its Interfaces block. Never rename anything here.
+The tasks were drafted against this contract. Names a task added are private helpers listed in its Interfaces
+block. Where a task's text and this appendix differ, the task wins.
 
 ## 0. Global rules (every task obeys these; the plan copies them into "Global Constraints")
 
@@ -39,13 +40,14 @@ helper (leading underscore) and says so in its Interfaces block. Never rename an
   existing files only with the Edit tool, never `sed -i`. Git Bash `grep`/`sed` strip the CR on display (a CRLF
   README shows `grep -c $'\r'` = 0), so check endings with `git ls-files --eol <path>` or Python bytes, never grep.
   Before each commit: `git diff --cached --stat` must equal `git diff --cached --stat --ignore-cr-at-eol`.
-- Work on branch `compliance-followup`, which Task 1 creates from main's HEAD at execution time (R13, RULINGS_ROUND2
+- Work on branch `compliance-followup`, which Task 1 creates from main's HEAD at execution time (R13, round-2 ruling
   R2-11), never from a pinned hash. Before it branches, Task 1 checks on `main` that `git status --short` and
   `git diff --stat 995534b HEAD -- . ':!docs'` both print nothing (only docs changed since the compliance merge); if
   either prints anything, stop and report: every line number and count in this plan rests on that tree. Commit once
-  per task with the repo-local identity (already set) and end each message with
+  per task (Task 8: the full-run record, the ledger, and a repeat record after a review fix wave) with the
+  repo-local identity (already set) and end each message with
   `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
-- DRIFT RULE (RULINGS_ROUND2 R2-13). Every Edit in a task is an exact old-text/new-text pair quoted from the tree at
+- DRIFT RULE (round-2 ruling R2-13). Every Edit in a task is an exact old-text/new-text pair quoted from the tree at
   `5816d3c` and names its anchor: the function, constant, test, YAML row or table row it sits in. A cited line number
   is that of `995534b` (the same as `5816d3c` outside docs/) and only helps find the anchor; line numbers also shift
   as earlier tasks of this plan land (Task 2 before Tasks 3 and 6, Task 4 before Task 5), and then the anchor wins.
@@ -54,7 +56,7 @@ helper (leading underscore) and says so in its Interfaces block. Never rename an
   ledger (`docs/superpowers/plans/2026-10-24-compliance-followup-execution-ledger.md`); if the change no longer makes
   sense, stop and rule. This plan runs first, so outside docs/ no earlier plan has changed its files (Task 1's check);
   the odds and E1 plans carry the same rule for the files this plan changes (section 12).
-- Guards that scan `core/**/*.py` stay exactly as in the compliance plan (Appendix A.0; raw text includes docstrings
+- Guards that scan `core/**/*.py` stay exactly as in the compliance plan (its Appendix A.0; raw text includes docstrings
   and comments): no upper-case `CANO` (so never `CANONICAL`), `KIS_ACCOUNT`, `ACNT_PRDT_CD`; no `order_cash`,
   `order-cash`, `place_order`, `submit_order`, `TTTC0802U`, `TTTC0801U`, `VTTC0802U`; no `private_key` or
   `seed_phrase` in any form; no def or call named `transfer`, `withdraw`, `deposit_address`; no `.post/.put/.delete/
@@ -89,7 +91,7 @@ Each task that implements one cites it as "Plan decision R<n>". None of them loo
     zipimport, pydoc, timeit, code, cProfile`. After, 29 entries: the two `importlib.*` entries become one `importlib`
     (first), then `runpy, pkgutil, zipimport, pydoc, timeit, code, cProfile` as before, then `profile, pdb, bdb, trace,
     doctest, unittest, logging.config, pickle, _pickle, shelve, marshal, site, ensurepip, venv, tkinter, _tkinter,
-    turtle, turtledemo, idlelib`, then `pstats, tracemalloc` (RULINGS_ROUND2 R2-10: their own APIs load files,
+    turtle, turtledemo, idlelib`, then `pstats, tracemalloc` (round-2 ruling R2-10: their own APIs load files,
     `pstats.Stats` with marshal and `tracemalloc.Snapshot.load` with pickle; stricter than F1, which listed them as
     needing no ban). New constant `DYNAMIC_EXEMPT = "importlib.metadata"` (with everything below it).
   - The bare builtin `compile`: new constant `DYNAMIC_BARE = frozenset({"compile"})`, matched on `ast.Name` only, so
@@ -148,14 +150,18 @@ Each task that implements one cites it as "Plan decision R<n>". None of them loo
   nowhere in the module (`owner._binds(tree, "__name__") == 0`). `_typing_flag` (owner.py:699-705) is unchanged. A
   binding is not the only way to change these names, so (a stricter reading of F4) no guard counts at all, the bare
   `TYPE_CHECKING` included, in a module that stores to an attribute `TYPE_CHECKING` or `__name__` or uses any Name or
-  attribute `setattr`, `delattr`, `globals`, `vars`, `locals`, `modules`, `__dict__`, `builtins` or `__builtins__`
-  (`typing.TYPE_CHECKING = True`, `setattr(typing, ...)`, `globals()["__name__"] = ...`, `sys.modules["typing"] =
-  ...` each hide an import today). The two files stay character-identical in these helpers (a new source-equality
-  test, section 6.4); `test_code_files_match_owner` (tests/compliance_signer.py:630-677) keeps their outputs in step.
-  Checked in-process on 2026-10-24: the real closure (10 entries) is unchanged, and no closure file uses any of those
-  names. Stated limit (spec rev 3.3; the controller accepts it as stated, RULINGS_ROUND2 R2-12): the route list is a
-  denylist, so another module changing `typing.TYPE_CHECKING` before this one is imported, or a name built at run
-  time, is not seen; the owner's review of each hashed file's diff is the barrier there.
+  attribute `setattr`, `delattr`, `globals`, `vars`, `locals`, `modules`, `__dict__`, `builtins`, `__builtins__`,
+  `f_globals` or `f_locals` (`typing.TYPE_CHECKING = True`, `setattr(typing, ...)`, `globals()["__name__"] = ...`,
+  `sys.modules["typing"] = ...`, `sys._getframe().f_globals["__name__"] = ...` each hide an import today; the two
+  frame names were added by the controller's ruling at the plan's final review). The two files stay
+  character-identical in these helpers (a new source-equality test, section 6.4); `test_code_files_match_owner`
+  (tests/compliance_signer.py:630-677) keeps their outputs in step. Checked in-process on 2026-10-24, and again with
+  the frame names at the final assembly: the real closure (10 entries) is unchanged, and no closure file uses any of
+  those names. Stated limit (spec rev 3.3; the controller accepts it as stated, round-2 ruling R2-12): the route list
+  is a denylist, so another module changing `typing.TYPE_CHECKING` before this one is imported, or a name built at
+  run time, is not seen; the owner's review of each hashed file's diff is the barrier there. `getattr` stays off the
+  list, so `getattr(sys, "modules")["typing"] = ...` is a stated limit too: gate.py, model.py, rules.py, alerts.py and
+  `owner._binds` call `getattr`, and listing it would void their guards.
 - **R5 (F5) Signer ancestor walk, `tools/signer/sign.py` `_has_claude_ancestor` (sign.py:758-767), repo copy only.**
   Before: the walk returns False (no Claude ancestor, so signing may go on) when it reaches a pid missing from the
   table, a cycle or 256 steps (ledger:233). After: it returns True (Claude cannot be ruled out, refuse) in each of these
@@ -218,8 +224,8 @@ Each task that implements one cites it as "Plan decision R<n>". None of them loo
   walked too, so if it now runs claude.exe the signer refuses (as today) until Claude is closed.
 - **R12 (reading of R8) the KIS check stays twice.** `_store_token` keeps its own `checked_target` (kis_client.py:158),
   which still guards a direct call (tests/compliance_isolation.py:247-258); the new call in `token()` is one line.
-- **R13 (order and signatures, RULINGS "Order of the plans", amended by R2-11 and R2-13).** This plan runs first, on
-  `compliance-followup` from main's HEAD at execution time (no pinned hash: by then main holds this plan, the odds
+- **R13 (order and signatures, the controller's ruling on the order of the plans, amended by R2-11 and R2-13).**
+  This plan runs first, on `compliance-followup` from main's HEAD at execution time (no pinned hash: by then main holds this plan, the odds
   plan and the E1 plan as docs commits after `995534b`, and Task 1 checks that nothing outside docs/ changed); the
   odds plan runs second and E1 third, each from main after the one before merges, each under the DRIFT RULE (section
   0). GPT's check after 2026-10-30 14:40 is not waited for: a valid finding that touches built code becomes a new task
@@ -297,10 +303,10 @@ DYNAMIC_MODULES = ("importlib", "runpy", "pkgutil", "zipimport", "pydoc", "timei
                    "pstats", "tracemalloc")
 DYNAMIC_EXEMPT = "importlib.metadata"               # and everything below it (R9)
 ```
-Dry run (2026-10-24, `followup/sandbox_round2/make_and_probe.py`, a sandbox copy of the guards file with this block
-and section 3.4): 29 distinct entries; every entry in each import form, `import pstats`, `from pstats import Stats`,
-`import tracemalloc` and `from tracemalloc import Snapshot` are hits; the section 3.6 negative controls are not; no hit
-in core/compliance, core/odds or the R2/R4 sandbox copies of rules.py and owner.py; longest line 120 characters.
+Dry run (2026-10-24, on a scratch copy of the guards file with this block and section 3.4): 29 distinct entries;
+every entry in each import form, `import pstats`, `from pstats import Stats`, `import tracemalloc` and
+`from tracemalloc import Snapshot` are hits; the section 3.6 negative controls are not; no hit in core/compliance,
+core/odds or the R2/R4 scratch copies of rules.py and owner.py; longest line 120 characters.
 
 ### 3.4 `_dynamic_hits` (guards:146-157), new text with one new helper above it
 ```python
@@ -421,9 +427,10 @@ only "one suite: " lines today.)
 
 ### 3.10 Interfaces this produces for the odds plan
 `NETWORK_MODULES`, `DYNAMIC_MODULES`, `DYNAMIC_NAMES`, `DYNAMIC_BARE`, `DYNAMIC_EXEMPT`, `_dynamic_module`,
-`_dynamic_hits`, `CLOCKS` in `tests/compliance_guards.py`. The odds guards (RULINGS O2) import them; they do not copy.
-They test an import target with `_dynamic_module` (which honours DYNAMIC_EXEMPT), never with a raw prefix match over
-DYNAMIC_MODULES: since `importlib` is a DYNAMIC_MODULES entry, a raw match would also drop `importlib.metadata`.
+`_dynamic_hits`, `CLOCKS` in `tests/compliance_guards.py`. The odds guards (odds ruling O2) import them; they do not
+copy. They test an import target with `_dynamic_module` (which honours DYNAMIC_EXEMPT), never with a raw prefix match
+over DYNAMIC_MODULES: since `importlib` is a DYNAMIC_MODULES entry, a raw match would also drop `importlib.metadata`.
+- `_suite_names(text)` (used by the E1 plan's registration test; name and signature fixed).
 
 Expected after Task 1: `-m tests.compliance_acceptance compliance_guards/` prints `16/16 passed, 0 failed, 0 not run`.
 
@@ -545,7 +552,7 @@ New, placed after `test_d16_rows_need_requires_live` (tables:300), names fixed:
   "row T-ALLOW: warning: only a grey row states a {cap}")`; a gated row with `ack: per_session`, an owner requirement
   and `warning: "at most {cap} of your equity"` gives `"row T-GATED: warning: only a grey row"` (the ledger:146 case);
   `"literal {{cap}} braces"` still parses on an allow row; `"{cap}" in _parse(_row(), _grey()).rows[1].warning`.
-New, in the Task 5 block after `test_shipped_okx_spot_is_the_d6_grey_row` (tables:968-981):
+New, in the compliance plan's Task 5 block after `test_shipped_okx_spot_is_the_d6_grey_row` (tables:968-981):
 - `test_shipped_rows_that_can_let_through_are_pinned_exactly` with module constant `_T5_PINNED` (section 4.5): the set
   of shipped ids whose treatment is allow, gated or grey equals `set(_T5_PINNED)`, and for each id
   `({k: set(v) for k, v in r.match.items()}, r.requires_owner, r.requires_live, r.treatment) == _T5_PINNED[id]`.
@@ -628,20 +635,27 @@ def _guards(tree: ast.AST) -> tuple[bool, bool, bool]:
     plain `import typing`; the `__main__` test needs `__name__` bound nowhere in the module. A rebound name
     (typing = SimpleNamespace(TYPE_CHECKING=True), __name__ = "__main__") loses its guard, and a module that can
     change these names without binding them (an attribute store of TYPE_CHECKING or __name__, or any setattr,
-    delattr, globals, vars, locals, modules, __dict__, builtins or __builtins__) trusts no guard: the guarded body
-    is scanned. Not seen: another module changing typing.TYPE_CHECKING first (the review of each hashed diff)."""
+    delattr, globals, vars, locals, modules, __dict__, builtins, __builtins__, f_globals or f_locals) trusts no
+    guard: the guarded body is scanned. Not seen: another module changing typing.TYPE_CHECKING first (the review of
+    each hashed diff)."""
     plain = any(isinstance(n, ast.Import) and any(a.name == "typing" and a.asname is None for a in n.names)
                 for n in ast.walk(tree))
-    routes = {"setattr", "delattr", "globals", "vars", "locals", "modules", "__dict__", "builtins", "__builtins__"}
+    routes = {"setattr", "delattr", "globals", "vars", "locals", "modules", "__dict__", "builtins", "__builtins__",
+              "f_globals", "f_locals"}
     if any((isinstance(n, ast.Name) and n.id in routes) or (isinstance(n, ast.Attribute) and (n.attr in routes or (
             n.attr in ("TYPE_CHECKING", "__name__") and not isinstance(n.ctx, ast.Load)))) for n in ast.walk(tree)):
         return False, False, False
     return _typing_flag(tree), plain and _binds(tree, "typing") == 1, _binds(tree, "__name__") == 0
 ```
 Dry run (2026-10-24, sandbox copies of owner.py and sign.py with sections 6.1-6.3): the real closure is the same 10
-entries; the seven helpers are source-identical; the synthetic tree of section 6.4 hides none of its ten targets
-(today's owner.py hides all ten); rules.py and model.py keep the bare TYPE_CHECKING skip and rules.py and alerts.py
-the `__main__` skip; every new line is within 120 characters.
+entries; the seven helpers are source-identical; the synthetic tree of section 6.4 hides none of its targets
+(today's owner.py hides all of them); rules.py and model.py keep the bare TYPE_CHECKING skip and rules.py and
+alerts.py the `__main__` skip; every new line is within 120 characters. `f_globals` and `f_locals` joined the route
+list by the controller's ruling at the plan's final review (a frame's namespaces change `__name__` or
+`TYPE_CHECKING` with no binding: `sys._getframe().f_globals["__name__"] = "__main__"`); re-checked then on scratch
+copies: no closure file names either, the same guards hold, and the two frame modules r.py and s.py of section 6.4
+hide their targets today and not after. `getattr` is not listed (gate.py, model.py, rules.py, alerts.py and
+`owner._binds` call it), so `getattr(sys, "modules")["typing"] = ...` stays a stated limit (R4).
 
 ### 6.2 `_skipped` (owner.py:708-724; sign.py:631-647), new text, identical in both files
 ```python
@@ -686,13 +700,17 @@ def _skipped(node: ast.AST, guards: tuple[bool, bool, bool]) -> bool:
   `"core/compliance/o.py": "globals()[\"__name__\"] = \"__main__\"\nif __name__ == \"__main__\":\n    import core.globals_main\n"`,
   `"core/compliance/p.py": "import sys\nimport types\nsys.modules[\"typing\"] = types.SimpleNamespace(TYPE_CHECKING=True)\nimport typing\nif typing.TYPE_CHECKING:\n    import core.modules_typing\n"`,
   `"core/compliance/q.py": "import typing\ntyping.TYPE_CHECKING = True\nfrom typing import TYPE_CHECKING\nif TYPE_CHECKING:\n    import core.stored_bare\n"`,
-  and the ten empty targets `core/rebound_typing.py`, `core/rebound_main.py`, `core/alias_typing.py`,
+  `"core/compliance/r.py": "import sys\nsys._getframe().f_globals[\"__name__\"] = \"__main__\"\nif __name__ == \"__main__\":\n    import core.frame_main\n"`,
+  `"core/compliance/s.py": "import sys\nfrom typing import TYPE_CHECKING\nsys._getframe().f_locals[\"TYPE_CHECKING\"] = True\nif TYPE_CHECKING:\n    import core.frame_bare\n"`,
+  and the twelve empty targets `core/rebound_typing.py`, `core/rebound_main.py`, `core/alias_typing.py`,
   `core/unbound_typing.py`, `core/param_main.py`, `core/stored_typing.py`, `core/setattr_typing.py`,
-  `core/globals_main.py`, `core/modules_typing.py`, `core/stored_bare.py`. The expected set gains `core/compliance/h.py`
-  .. `q.py` and the ten targets. The docstring gains: "and a guard whose name the module rebinds or never imports
-  plainly (typing rebound, `import os as typing`, no `import typing`, `__name__` assigned or a parameter), or that the
-  module can change without a binding (an attribute store, setattr, globals(), sys.modules), is scanned too (R4)".
-- `tests/compliance_signer.py` `test_code_files_match_owner` (:630-677): the same ten sources, ten targets and
+  `core/globals_main.py`, `core/modules_typing.py`, `core/stored_bare.py`, `core/frame_main.py`, `core/frame_bare.py`.
+  The expected set gains `core/compliance/h.py` .. `s.py` and the twelve targets. The docstring gains: "and a guard
+  whose name the module rebinds or never imports plainly (typing rebound, `import os as typing`, no `import typing`,
+  `__name__` assigned or a parameter), or that the module can change without a binding (an attribute store, setattr,
+  globals(), sys.modules, a frame's f_globals or f_locals), is scanned too (R4)". (r.py and s.py, the frame routes,
+  were added by the controller's ruling at the plan's final review.)
+- `tests/compliance_signer.py` `test_code_files_match_owner` (:630-677): the same twelve sources, twelve targets and
   expected-set entries (its synthetic tree also holds `core/compliance/g.py`, which stays).
 - New `tests/compliance_signer.py` test, placed after `test_code_files_match_owner`:
 ```python
@@ -749,8 +767,8 @@ Help text: the "Every time, before you type the passphrase" list (sign.py:22-31)
     stop at a launcher that has exited);`. The module docstring's sign.py:3 `run under Claude, under a claude.exe
 parent process, without a terminal on stdin, or without python.exe -I.` becomes two lines:
 `run under Claude, under a claude.exe parent process, when its parent chain stops before a Windows session process,`
-/ `without a terminal on stdin, or without python.exe -I.` No test pins the help text or the docstring (grep,
-2026-10-24).
+/ `without a terminal on stdin, or without python.exe -I.` test_help_names_owner_acts_1_and_2 pins help needles;
+Task 5 adds the two new ones.
 
 ### 7.3 Tests (`tests/compliance_signer.py`)
 - `test_claude_ancestor_walk` (:285-293), rewritten (two flips: :289 cycle and :290 empty table now True):
@@ -869,7 +887,7 @@ Expected after Task 7: `compliance_isolation/` `16/17 passed, 0 failed, 1 not ru
   tests), so H2 is latent. tests/compliance_owner.py:958-960 keeps pinning today's behaviour.
 - **T2** (ledger:189): a documented limit; it needs the owner's own key and a backdated signer clock, and the signer
   shows the stamp (sign.py `_confirm`). The only outside time source (alerts.jsonl rows) would change owner_state's pure
-  signature (A.8.3).
+  signature (the compliance plan's Appendix A.8.3).
 - **Snapshot cross-check** (ledger:204): within spec 6.4's stated limits (exits only, under a broken log).
 - **Every other item on the execution carry list** (ledger:239 except "KIS token burnt on refusal", which R8 takes;
   ledger:244; ledger:155).
@@ -883,34 +901,38 @@ Expected after Task 7: `compliance_isolation/` `16/17 passed, 0 failed, 1 not ru
   (ledger:202, :203); store_get framing (ledger:209); alerts row and stdout edge cases (ledger:216, :218, :220); signer
   state_root and keygen edge cases (ledger:230, :231); the signer's pem-beside-the-key and keygen-text items, the rest
   of ledger:233 after R5 and the final wave; ancestor junctions of the state root (ledger:86, a design question). The
-  ACCEPT items of DIGEST 8.5 (ledger:65-67, :71, :92, :94, :105, :147, :148, :186, :115, :134) stay accepted, and so do
-  the ACCEPT lines of map/followup.md section 8: ledger:84, :102, :116, :124, :125, :132, :136, :138, :161, :172, :196,
-  :205. Every line of map/followup.md section 8 not named in this plan keeps its class there.
+  ACCEPT items of the map digest's section 8.5 (ledger:65-67, :71, :92, :94, :105, :147, :148, :186, :115, :134) stay
+  accepted, and so do the ACCEPT lines of the repo map's section 8: ledger:84, :102, :116, :124, :125, :132, :136,
+  :138, :161, :172, :196, :205. Every line of the repo map's section 8 not named in this plan keeps its class there.
 - **Already closed, so not re-raised:** ledger:74, :80, :133, :145 by the final fix wave (ledger:238); :75 and :242 by
   R1; :103, :113, :146, :243 by R2; :118 by R3; :208 by R4; the walk part of :233 by R5, in line with the :229 ruling
   that a refusal check fails closed (its rotation-help part was fixed at :238); :219 by R6; :69 by R7; :81, :82 by R8.
 - **Execution-side items:** ledger:144 (a derived destination buy keeps the source's asset and multiple; no shipped
   path), :150 (a transfer's reservation_id carried into the destination buy) and :157 (a permit issued with session_id
   None), the same family as the carried session and reservation items.
-- **Odds-side items:** the venues parser keys, `calendar_in_force`, `grey_rows`, the fixtures move (RULINGS O3), the
+- **Odds-side items:** the venues parser keys, `calendar_in_force`, `grey_rows`, the fixtures move (odds ruling O3), the
   zero stake (ledger:244), the yfinance cache, KONEX structural_max; ledger:68 (the guards' clean asserts over core/odds
   become non-vacuous once it holds .py files) and :101 (never `asdict` or `deepcopy` a Row: `match` is a
   MappingProxyType). The odds plan owns them.
-- **Documented limits from the repo map (DIGEST 8.2, 8.4):** the D14 seeds are non-recursive (owner.py:773 `.glob`)
-  while the guards scan with rglob (guards:69), so a .py file in a core/compliance subfolder is scanned but is in the
+- **Documented limits from the map digest (its sections 8.2 and 8.4):** the D14 seeds are non-recursive
+  (owner.py:773 `.glob`) while the guards scan with rglob (guards:69), so a .py file in a core/compliance subfolder is scanned but is in the
   closure only once a closure file imports it (none exists today; the odds guards refuse a core/odds subfolder); a
   package `__getattr__` re-export (core/calendars/__init__.py:224-229) escapes D14, and neither allowlist lets
   core/compliance or core/odds import that package; `screen` ignores `effective_from` (gate.py:645-648), so a row that
-  starts mid-horizon is not flagged (nothing is lost today; the odds plan reads the screening flags, RULINGS O5).
+  starts mid-horizon is not flagged (nothing is lost today; the odds plan reads the screening flags, odds ruling O5).
 - **Owner acts:** OKX USDT/USDC deposit networks (ledger:112, :120); copying the updated signer (section 7); signing.
 
-## 12. Effects on the odds plan (it runs second)
+## 12. Effects on the odds and E1 plans (they run second and third)
 
 - Line numbers the odds rulings cite move once this merges: rules.py (`_VENUE_OPTIONAL` at :636-642 moves down by
-  31 lines, section 4), tests/compliance_tables.py (`minimum_krw` at :633 moves down by several dozen lines, the
-  new tests sit after :300), tests/compliance_store.py (the signed-home helpers at :242-299 move down by about 20 to
-  30 lines, the ten synthetic files of section 6.4), and tests/compliance_guards.py:488-489 is gone (R7). The byte pins
-  in tests/compliance_gate.py do not move (that file is not edited).
+  31 lines, section 4), tests/compliance_tables.py (`minimum_krw` at :633 moves to about :739; the new tests sit
+  after :300), tests/compliance_store.py (the signed-home helpers at :242-299 move down by 43 lines, for example
+  `_pubkey_at` 247 -> 290: Task 4's `import ast`, the twelve synthetic files of section 6.4 and its route asserts),
+  and tests/compliance_guards.py:488-489 is gone (R7). The byte pins in tests/compliance_gate.py do not move (that
+  file is not edited).
+- `_T5_PINNED` (Task 2) pins the 15 shipped non-blocking rows; a change to one updates its pin in the same commit.
+- R4: a closure module using a route name trusts no guard; keep TYPE_CHECKING-only imports out of such modules
+  (core/odds now, execution/ for E1).
 - The odds plan is written against main `5816d3c`, before this plan's code exists, and E1 likewise; both carry the
   DRIFT RULE (R2-13, section 0) for the files this plan changes (core/compliance/rules.py, owner.py, alerts.py,
   kr_rules.yaml, tests/compliance_guards.py, tests/compliance_tables.py, tests/compliance_store.py,
@@ -920,11 +942,12 @@ Expected after Task 7: `compliance_isolation/` `16/17 passed, 0 failed, 1 not ru
   names and changes bodies), so every name they anchor on still exists after it merges.
 - New `core/odds/*.py` files must pass the widened DYNAMIC_* lists (no pickle, marshal, unittest, logging.config,
   pstats, tracemalloc, importlib other than metadata, no attribute of the name `importlib` but `metadata`, bare
-  compile). `core/oddsdata/` is outside both guard scopes (RULINGS O1, O2). The odds guards read the lists from
+  compile). `core/oddsdata/` is outside both guard scopes (odds rulings O1, O2). The odds guards read the lists from
   `tests/compliance_guards.py` at test time and pin no entry count, so R2-10 binds core/odds with no odds code
-  change; only the odds contract's prose list of the F1 additions (odds/CONTRACT.md, the "no import of
-  `importlib.util`, ..." bullet) lacks `pstats` and `tracemalloc` (raised for the odds drafts, not edited here).
+  change; only the odds plan's prose list of the F1 additions (its Appendix A, the "no import of
+  `importlib.util`, ..." bullet) lacked `pstats` and `tracemalloc` when this contract was drafted (raised for the
+  odds drafts, not edited here).
 - The odds guards' allowlist ("the stdlib minus NETWORK_MODULES and DYNAMIC_MODULES") tests each import target with
   `compliance_guards._dynamic_module`, never a raw prefix match over DYNAMIC_MODULES, so `importlib.metadata` stays
-  allowed as the odds contract says (section 3.10).
+  allowed as the odds plan's Appendix A says (section 3.10).
 - The odds suite registers `odds` in tests/run_all.py:113 and README.md:816 with no compliance test change (R7).

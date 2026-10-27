@@ -23,10 +23,10 @@ No product file and no table changes. `tests/` is outside the D14 closure, so th
     `importlib.metadata`).
   - `_dynamic_hits(rel: str, src: str) -> list[str]`: signature unchanged. New hit texts:
     `"<rel>:<line>: importlib.<attr>"` and `"<rel>:<line>: compile"`.
-  - `_suite_names(text: str) -> list[str]` (Appendix A section 3.9). The odds guards do not import it, but the E1
-    plan's `tests/execution_guards.py` does, as `CG._suite_names`, in its registration test (E1 contract section 0.6,
-    e1/CONTRACT.md:192 and :205; section 4.5, :865 and :909), so its name and signature are fixed like the names of
-    Appendix A section 3.10. The odds plan adds `odds` to the two suite lists without touching a compliance test.
+  - `_suite_names(text: str) -> list[str]` (Appendix A sections 3.9 and 3.10). The odds guards do not import it, but
+    the E1 plan's `tests/execution_guards.py` does, as `CG._suite_names`, in its registration test (the E1 plan's
+    Appendix A sections 0.6 and 4.5), so its name and signature are fixed like the names of Appendix A section 3.10.
+    The odds plan adds `odds` to the two suite lists without touching a compliance test.
   - New test `test_bare_compile_and_importlib_submodules_are_dynamic`. No name is renamed or removed.
 
 **Plan decisions used:** R1 (as amended by round-2 ruling R2-10), R7, R9, R13 (as amended by R2-11); the drift rule

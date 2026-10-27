@@ -62,17 +62,17 @@ Design notes (read before Step 1):
 - Departures from Appendix A (the task wins): Edit 2 adds the `shell` and `service` cases, the `roots` pin of
   `_SESSION_ROOTS`, a docstring and assertion messages to Appendix A section 7.3's test; Edit 3 adds a docstring
   change and an assertion message; Edit 4 adds two needles to test_help_names_owner_acts_1_and_2, which section 7.3
-  does not list (section 7.2's "No test pins the help text or the docstring" is wrong: that test already pins help
-  needles, and Edit 4 adds the two new ones); Edit 7's comment and docstring differ (Step 3 notes); the owner act
-  uses PowerShell syntax where section 7.3's uses Command Prompt syntax.
+  does not list (that test already pins help needles, as section 7.2 says, and Edit 4 adds the two new ones); Edit
+  7's comment and docstring differ (Step 3 notes); the owner act uses PowerShell syntax where section 7.3's uses
+  Command Prompt syntax.
 - Honest limits (R11, spec 6.4): a process started through COM activation or the desktop shell has no claude.exe
   ancestor, so this check stays defence in depth; the passphrase and the typed code are the barrier. A session
   process is recognised by its file name only, so a chain that passes a process carrying one of those names and
   then breaks, with no claude.exe on the way, passes (today any break passed). A reused pid above a session
   process is walked too, so if it now runs claude.exe the signer refuses, as today, until Claude is closed.
 - Drift rule (Global Constraints; Appendix A section 0). Task 4 lands first and inserts `_guards` above `_skipped`
-  in sign.py, so the sign.py lines cited here sit about 18 lines lower; it adds tests to
-  `test_code_files_match_owner` and a new test after it, so `test_help_names_owner_acts_1_and_2`
+  in sign.py, so the sign.py lines cited here below :631 (`_has_claude_ancestor`, `_refusal`) sit 20 lines lower;
+  it adds tests to `test_code_files_match_owner` and a new test after it, so `test_help_names_owner_acts_1_and_2`
   (tests/compliance_signer.py:1094) sits lower too. Neither changes any text quoted below. Before each Edit, re-read
   the file and find the anchor; if the quoted old text differs only because an earlier plan changed it, apply the
   same change to the current text, keep that earlier behaviour, and add one line to

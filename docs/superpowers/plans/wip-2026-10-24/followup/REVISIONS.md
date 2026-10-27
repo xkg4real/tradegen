@@ -36,3 +36,20 @@ tests/compliance_guards.py with the new C3.3 block and the C3.4 functions and ru
 Cross-plan note (not edited here): odds/CONTRACT.md's prose list of the F1 additions (the "no import of
 `importlib.util`, ..." bullet, about line 97) lacks `pstats` and `tracemalloc`. The odds guards read the lists from
 tests/compliance_guards.py at test time, so the code is bound either way.
+
+## Round 3 (final assembly): controller amendments and rulings
+
+Checked in `followup/sandbox_assemble/` (read-only on the repo): `verify_t4.py` applies task_04.md's Edits T0-T5 and
+O1-O3 to scratch copies of the four repo files (each old text occurs once), prints `git diff --no-index --numstat`,
+and probes the old and new helpers on the synthetic sources and the real closure files.
+
+| # | Amendment / ruling | Change | Where |
+|---|---|---|---|
+| 1 | C12 numbers and two bullets | `minimum_krw` :633 moves to about :739; the store helpers move down by 43 lines (`_pubkey_at` 247 -> 290). The controller's 38 / 285 predates the two frame modules of ruling 5 (+5 lines; numstat +44 -1 on the store test). New bullets: the `_T5_PINNED` pin rule, and the R4 TYPE_CHECKING advice for core/odds and execution/. Heading now "Effects on the odds and E1 plans". | CONTRACT 12 |
+| 2 | C3.10 `_suite_names` | Bullet added: used by the E1 plan's registration test; name and signature fixed. | CONTRACT 3.10 |
+| 3 | C7.2 help pin | "No test pins the help text" replaced by "test_help_names_owner_acts_1_and_2 pins help needles; Task 5 adds the two new ones"; Task 5's departure line no longer calls 7.2 wrong. | CONTRACT 7.2; task_05 |
+| 4 | Commits and departures | File map ledger row "commit only (Task 8 Step 8); the executor writes it"; "Commit once per task (Task 8: the full-run record, the ledger, and a repeat record after a review fix wave)" in Global Constraints and C0; TASKS Task 8 lists the ledger commit and the optional repeat record; TASKS Tasks 4, 5, 6 and Coverage F4/F5/F6 name what each task adds beyond the contract (the three task files already had their "Departures from Appendix A" lines). | header; CONTRACT 0; TASKS |
+| 5 | Ruling: frame routes | `f_globals`, `f_locals` join `_guards`'s route set (one Edit O1 text, applied to owner.py and sign.py alike, so the copies stay identical; the verify script confirms all seven helpers identical). Synthetic modules r.py (`sys._getframe().f_globals["__name__"]`, `__main__` guard) and s.py (`f_locals["TYPE_CHECKING"]`, bare guard) and targets `core/frame_main.py`, `core/frame_bare.py` in both synthetic trees: today's helpers hide both targets, the new ones hide neither. No closure file names either; the real closure keeps its guards. Stated limit rewritten: the frame route is closed; `getattr(sys, "modules")["typing"]` stays (getattr: gate.py, model.py, rules.py, alerts.py, owner._binds). Step 2/3 expectations updated (twelve targets; owner.py and sign.py +32 -12, store +44 -1, signer +41; 149 insertions, 25 deletions); Task 5's sign.py shift is now 20 lines. | task_04, task_05; CONTRACT 1 (R4), 6.1, 6.4; header R4 and Spec; TASKS Task 4, Coverage F4 |
+| 6 | Ruling: cockpit test_21 | Task 8 Step 2 and Task 7: test_21 makes a read-only KIS quotation call when KIS keys are set, as every earlier full run did; accepted; no key check added. | task_07, task_08; TASKS Task 8 |
+| 7 | Rulings: accepted limits | Task 6 fingerprint window, Task 7 token read path, Task 5 VS Code refusal (Windows Terminal from the Start menu) added to the header's Spec list; Windows Terminal also in the header's owner gates and Task 8's hand-off; Task 6 window also in Task 8's "What to expect". | header; task_06, task_07, task_08; TASKS |
+| 8 | Names | References use Appendix A / round-2 ruling / odds ruling ids; the header defines F1-F8, R2-10 to R2-13, O1, O2, O3, O5; no scratch file names remain in the assembled plan. | all tasks; CONTRACT; header |
