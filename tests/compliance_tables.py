@@ -292,11 +292,113 @@ def test_d16_rows_need_requires_live():
     ok = _parse(_row(), _row(**lev, requires={"owner": ["kofia_leveraged_1h"], "live": ["deposit_krw_10m"]})).rows[1]
     assert ok.requires_live == ("deposit_krw_10m",) and ok.requires_owner == ("kofia_leveraged_1h",)
     assert ok.policy_ref == "D16" and ok.basis == {"legal", "policy"}
-    _parse(_row(), _row(**{**lev, "policy_ref": "D160"}, requires={"owner": ["kofia_leveraged_1h"]}))   # not D16
+    _bad(_row(), _row(**{**lev, "policy_ref": "D160"}, requires={"owner": ["kofia_leveraged_1h"]}),
+         "row T-LEV: requires.live: a row matching ['etp_leveraged']")         # not D16 by label, D16 by content
+    one_x = {**lev["match"], "class": ["etp_1x"]}                               # D160 is not D16, nor is etp_1x
+    _parse(_row(), _row(**{**lev, "policy_ref": "D160", "match": one_x}, requires={"owner": ["kofia_leveraged_1h"]}))
     _parse(_row(), _row(**{**lev, "policy_ref": "D15", "treatment": "out_of_scope"}))
     for ref in ("d16", "D-16", "D 16", "D16a", "owner decision 16", "D15,D16", "D15, D16,", 16, ["D16"],
                 "D016", "D15, D016"):
         _bad(_row(), _row(**{**lev, "policy_ref": ref}), "row T-LEV: policy_ref")
+
+
+def test_d15_rows_never_let_credit_margin_lending_or_borrowing_through():
+    """D15 by content (R2, ledger:243): an allow, gated or grey row never matches financing credit or margin, nor
+    action lend or borrow, whatever its policy_ref says. Blocking rows may (KR-KIS-CREDIT, KR-DOMESTIC-LENDING), and
+    sell_short is D16 (spec:70), never D15."""
+    coin = {"venue": ["upbit"], "class": ["coin"], "action": ["buy", "sell"], "financing": ["cash"]}
+    for make in (lambda m: _row(match=m),
+                 lambda m: _row(match=m, treatment="gated", requires={"owner": ["age_of_majority"]})):
+        for financing in (["cash", "margin"], ["credit"], ["margin"]):
+            _bad(make({**coin, "financing": financing}),
+                 "row T-ALLOW: match.financing: an allow, gated or grey row never matches")
+        for action in (["buy", "lend"], ["borrow"]):
+            _bad(make({**coin, "action": action}),
+                 "row T-ALLOW: match.action: an allow, gated or grey row never matches")
+    assert _bad(_row(match={**coin, "financing": ["credit"]})) == (
+        "rules: row T-ALLOW: match.financing: an allow, gated or grey row never matches ['credit'] (D15: no credit "
+        "buying)")
+    assert _bad(_row(match={**coin, "action": ["buy", "lend", "borrow"]})) == (
+        "rules: row T-ALLOW: match.action: an allow, gated or grey row never matches ['borrow', 'lend'] (D15: no coin "
+        "lending or borrowing)")
+    okx = {"venue": ["okx"], "class": ["coin"], "action": ["buy", "sell"], "financing": ["cash", "margin"]}
+    _bad(_row(), _grey(match=okx), "row T-GREY: match.financing", "['margin'] (D15")
+    _bad(_row(), _grey(match={**okx, "financing": ["cash"], "action": ["buy", "borrow"]}), "row T-GREY: match.action",
+         "['borrow'] (D15")
+    wide = {**coin, "action": ["buy", "lend", "borrow"], "financing": ["credit", "margin"]}
+    for treatment in ("hard_block", "out_of_scope"):
+        row = _parse(_row(), _row(id="T-D15", treatment=treatment, match=wide, matrix_rows=[])).rows[1]
+        assert row.match["financing"] == {"credit", "margin"} and row.match["action"] == {"buy", "lend", "borrow"}
+    short = {"venue": ["kis"], "asset": ["krx_share"], "action": ["buy", "sell_short"], "financing": ["cash"]}
+    row = _parse(_row(), _row(id="T-SHORT", treatment="gated", match=short, requires={"live": ["broker_approval"]},
+                              matrix_rows=[])).rows[1]
+    assert row.match["action"] == {"buy", "sell_short"} and row.requires_live == ("broker_approval",)
+
+
+def test_a_d15_row_is_blocking():
+    """D15 by label (R2): a row citing D15 is hard_block or out_of_scope, as a row citing D16 needs requires.live."""
+    d15 = {"id": "T-D15", "policy_ref": "D15", "basis": ["policy"], "matrix_rows": []}
+    for row in (_row(**d15), _row(**d15, treatment="gated", requires={"owner": ["age_of_majority"]}), _grey(**d15)):
+        _bad(_row(), row, "row T-D15: treatment: a D15 row is hard_block or out_of_scope")
+    assert _bad(_row(), _row(**d15)) == ("rules: row T-D15: treatment: a D15 row is hard_block or out_of_scope (D15 "
+                                         "only keeps credit and lending out)")
+    for ref in ("D15", "D10, D15"):
+        for treatment in ("hard_block", "out_of_scope"):
+            row = _parse(_row(), _row(**{**d15, "policy_ref": ref}, treatment=treatment)).rows[1]
+            assert (row.policy_ref, row.treatment) == (ref, treatment)
+
+
+def test_d16_by_content_needs_requires_live():
+    """D16 by content (R2): a row that can let an intent through and matches sell_short, a leveraged or single-stock
+    ETP, a KRX derivative or an ELW needs requires.live, whatever its policy_ref says. A row with no class axis that
+    names an ETP asset matches every class that asset derives to, the leveraged and single-stock ones included."""
+    kis = {"venue": ["kis"], "action": ["buy"], "financing": ["cash"]}
+    matches = ({**kis, "asset": ["krx_share"], "action": ["sell_short"]}, {**kis, "class": ["etp_1x", "etp_leveraged"]},
+               {**kis, "class": ["etp_single_stock"]}, {**kis, "class": ["krx_derivative"]},
+               {**kis, "asset": ["krx_derivative"]}, {**kis, "class": ["elw"]}, {**kis, "asset": ["elw"]},
+               {**kis, "asset": ["krx_etp"]}, {**kis, "asset": ["us_etp"]})
+    live = {"owner": ["age_of_majority"], "live": ["broker_approval"]}
+    for m in matches:
+        d16 = {"id": "T-D16", "match": m, "matrix_rows": []}
+        _bad(_row(), _row(**d16, treatment="gated", requires={"owner": ["age_of_majority"]}),
+             "row T-D16: requires.live: a row matching")
+        _bad(_row(), _row(**d16), "row T-D16: requires.live: a row matching")
+        gated = _parse(_row(), _row(**d16, treatment="gated", requires=live)).rows[1]
+        assert gated.requires_live == ("broker_approval",), m
+        assert _parse(_row(), _row(**d16, treatment="out_of_scope")).rows[1].treatment == "out_of_scope"
+    assert _bad(_row(), _row(id="T-D16", match=matches[1], matrix_rows=[])) == (
+        "rules: row T-D16: requires.live: a row matching ['etp_leveraged'] needs live broker evidence (D16)")
+    assert _bad(_row(), _row(id="T-D16", match=matches[7], matrix_rows=[])) == (
+        "rules: row T-D16: requires.live: a row matching ['etp_leveraged', 'etp_single_stock'] needs live broker "
+        "evidence (D16)")
+    one_x = _row(id="T-1X", match={**kis, "asset": ["krx_etp"], "class": ["etp_1x"]}, matrix_rows=[])
+    assert _parse(_row(), one_x).rows[1].match["class"] == {"etp_1x"}          # a class axis decides
+    sell_short = {"venue": ["okx"], "class": ["coin"], "action": ["buy", "sell_short"], "financing": ["cash"]}
+    _bad(_row(), _grey(match=sell_short), "row T-GREY: requires.live: a row matching ['sell_short']")
+
+
+def test_review_by_is_not_before_the_latest_review():
+    """R2 (ledger:103): review_by is never before the row's latest review, the earliest legal value being the review
+    day itself; an earlier date is a typo, never a schedule."""
+    assert _parse(_row(review_by="2026-10-23")).rows[0].review_by == date(2026, 10, 23)
+    assert _bad(_row(review_by="2026-10-22")) == (
+        "rules: row T-ALLOW: review_by: 2026-10-22 is before the review of 2026-10-23")
+    two = [{"date": "2026-09-01", "by": "a", "checked": "x"}, {"date": "2026-10-23", "by": "b", "checked": "y"}]
+    _bad(_row(reviews=two, review_by="2026-10-01"),
+         "row T-ALLOW: review_by: 2026-10-01 is before the review of 2026-10-23")      # the latest review counts
+
+
+def test_only_a_grey_row_states_a_cap():
+    """R2 (ledger:146): only a grey row's warning has the {cap} slot, so the cap text an owner acks in a per_session
+    warning is always a grey row's signed cap."""
+    _bad(_row(warning="OKX is capped at {cap} of your equity."), "row T-ALLOW: warning: only a grey row states a {cap}")
+    gated = _row(id="T-GATED", treatment="gated", ack="per_session", requires={"owner": ["age_of_majority"]},
+                 warning="at most {cap} of your equity", matrix_rows=[])
+    _bad(_row(), gated, "row T-GATED: warning: only a grey row states a {cap}")
+    _bad(_row(), _row(id="T-OOS", treatment="out_of_scope", warning="{cap}", matrix_rows=[]),
+         "row T-OOS: warning: only a grey row states a {cap}")
+    assert _parse(_row(warning="literal {{cap}} braces")).rows[0].warning == "literal {{cap}} braces"
+    assert "{cap}" in _parse(_row(), _grey()).rows[1].warning
 
 
 def test_requires_items_in_vocabulary():
@@ -313,7 +415,7 @@ def test_requires_items_in_vocabulary():
 
 
 def test_warning_slots():
-    for text in ("OKX is capped at {cap} of your equity.", "no slot at all", "literal {{cap}} braces", ""):
+    for text in ("no slot at all", "literal {{cap}} braces", ""):    # {cap}: test_only_a_grey_row_states_a_cap
         assert _parse(_row(warning=text)).rows[0].warning == text
     for text, has in (("{equity} of x", "slot {equity}"), ("{cap!r}", "slot {cap}"), ("{cap:>5}", "slot {cap}"),
                       ("{}", "slot {}"), ("{0}", "slot {0}"), ("{cap.real}", "slot {cap.real}"),
@@ -411,6 +513,10 @@ def test_max_leverage():
     for bad in (0, -1, -0.5, True, "2", [1]):
         _bad(_row(max_leverage=bad), "row T-ALLOW: max_leverage")
     _bad(_row(max_leverage=10 ** 400), "rules: line ", "has more than 18 digits")      # Invalid, never OverflowError
+    assert _parse(_row(max_leverage=10)).rows[0].max_leverage == 10.0                 # R2: 10 itself is legal
+    for bad in (10.5, 11, 1e6):
+        _bad(_row(max_leverage=bad), "row T-ALLOW: max_leverage: at most 10")
+    assert _bad(_row(max_leverage=10.5)) == "rules: row T-ALLOW: max_leverage: at most 10, got 10.5"
 
 
 # --------------------------------------------------------------------------- #
@@ -957,6 +1063,8 @@ def test_shipped_d16_rows_need_live_evidence():
     assert set(_t5_row(table, "KR-KIS-SINGLE-ETP").requires_live) == {"cash_krw_30m"}
     krx_deriv = _t5_row(table, "KR-KIS-KRX-DERIV")          # D16: broker eligibility is live evidence, not an owner snapshot
     assert "broker_approval" in krx_deriv.requires_live and "broker_eligibility" not in krx_deriv.requires_owner
+    assert "broker approval" in krx_deriv.reason, krx_deriv.reason   # the reason names what requires.live asks (ledger:118)
+    assert krx_deriv.reason.startswith("KOSPI200 futures and options need broker approval, "), krx_deriv.reason   # R3
     assert not _t5_row(table, "KR-KIS-US-OPTION").requires_live      # gated on owner evidence, not D16
     assert _t5_row(table, "KR-KIS-ETP-LEV").max_leverage == 3.0
     assert _t5_row(table, "KR-KIS-SINGLE-ETP").max_leverage == 2.0
@@ -979,6 +1087,77 @@ def test_shipped_okx_spot_is_the_d6_grey_row():
     assert _t5_row(table, "KR-KIS-US-OPTION").ack == "per_session"
     assert _t5_row(table, "KR-TRANSFER-OUT").ack == "per_transfer"
     assert {r.id for r in table.rows if r.ack is not None} == {"KR-OKX-SPOT", "KR-KIS-US-OPTION", "KR-TRANSFER-OUT"}
+
+
+_T5_PINNED = {                                   # (match, requires_owner, requires_live, treatment), ledger:113
+    "KR-KIS-KRX-SHARE": ({"venue": {"kis"}, "asset": {"krx_share"}, "action": {"buy", "sell"}, "financing": {"cash"}},
+                         (), (), "allow"),
+    "KR-KIS-KONEX": ({"venue": {"kis"}, "class": {"konex_share"}, "action": {"buy", "sell"}, "financing": {"cash"}},
+                     (), (), "allow"),
+    "KR-KIS-ETP-1X": ({"venue": {"kis"}, "class": {"etp_1x"}, "action": {"buy", "sell"}, "financing": {"cash"}},
+                      (), (), "allow"),
+    "KR-KIS-ETP-INVERSE": ({"venue": {"kis"}, "class": {"etp_index_inverse"}, "action": {"buy", "sell"},
+                            "financing": {"cash"}}, (), (), "allow"),
+    "KR-KIS-ETP-LEV": ({"venue": {"kis"}, "class": {"etp_leveraged"}, "action": {"buy"}, "financing": {"cash"}},
+                       ("kofia_leveraged_1h",), ("deposit_krw_10m",), "gated"),
+    "KR-KIS-SINGLE-ETP": ({"venue": {"kis"}, "class": {"etp_single_stock"}, "action": {"buy"}, "financing": {"cash"}},
+                          ("kofia_single_stock_3h", "krx_mock_5h_5days"), ("cash_krw_30m",), "gated"),
+    "KR-KIS-CRYPTO-FUT-ETF": ({"venue": {"kis"}, "class": {"etp_crypto_futures_1x"}, "action": {"buy", "sell"},
+                               "financing": {"cash"}}, (), (), "allow"),
+    "KR-KIS-KRX-DERIV": ({"venue": {"kis"}, "class": {"krx_derivative"}, "action": {"buy", "sell_short", "write"},
+                          "financing": {"cash"}}, ("kofia_derivatives_1h", "krx_derivatives_mock_3h"),
+                         ("broker_approval", "deposit_krw_10m", "deposit_krw_20m"), "gated"),
+    "KR-KIS-ELW": ({"venue": {"kis"}, "class": {"elw"}, "action": {"buy"}, "financing": {"cash"}},
+                   ("elw_course",), ("deposit_krw_15m",), "gated"),
+    "KR-KIS-SHORT": ({"venue": {"kis"}, "asset": {"krx_share"}, "action": {"sell_short"}, "financing": {"cash"}},
+                     ("short_course_30m", "short_mock_1h"), ("broker_approval", "collateral_105pct"), "gated"),
+    "KR-KIS-US-SHARE": ({"venue": {"kis"}, "asset": {"us_share"}, "action": {"buy", "sell"}, "financing": {"cash"}},
+                        (), (), "allow"),
+    "KR-KIS-US-OPTION": ({"venue": {"kis"}, "class": {"option"}, "action": {"buy", "sell"}, "financing": {"cash"}},
+                         ("us_option_course_1h", "us_option_mock_3h", "broker_eligibility"), (), "gated"),
+    "KR-DOMESTIC-SPOT": ({"venue": {"bithumb", "coinone", "korbit", "upbit"}, "class": {"coin"},
+                          "action": {"buy", "sell"}, "financing": {"cash"}}, (), (), "allow"),
+    "KR-TRANSFER-OUT": ({"venue": {"bithumb", "coinone", "korbit", "upbit"}, "class": {"coin"},
+                         "action": {"transfer_out"}, "financing": {"cash"}}, (), (), "allow"),
+    "KR-OKX-SPOT": ({"venue": {"okx"}, "class": {"coin"}, "action": {"buy", "sell"}, "financing": {"cash"}},
+                    ("age_of_majority",), (), "grey"),
+}
+
+
+def _t5_pin_misses(table) -> list[str]:
+    """The ids where the allow, gated and grey rows of `table` and _T5_PINNED differ: an id in only one of the two,
+    or a row whose (match, requires_owner, requires_live, treatment) is not its pin."""
+    rows = {r.id: r for r in table.rows if r.treatment in ("allow", "gated", "grey")}
+    misses = sorted(set(rows) ^ set(_T5_PINNED))
+    for rid in sorted(set(rows) & set(_T5_PINNED)):
+        r = rows[rid]
+        if ({k: set(v) for k, v in r.match.items()}, r.requires_owner, r.requires_live, r.treatment) != _T5_PINNED[rid]:
+            misses.append(rid)
+    return misses
+
+
+def test_shipped_rows_that_can_let_through_are_pinned_exactly():
+    """The 15 shipped rows that can let an intent through, pinned exactly (R2). ledger:113: widening an allow row
+    (sell_short on KR-KIS-US-SHARE, p2p_buy on KR-DOMESTIC-SPOT) passed every test of the compliance plan's Task 5.
+    Now the loader refuses the first (D16 by content) and the pin catches the second, a dropped owner requirement,
+    and a row leaving or entering the set; a deliberate change to one of these rows edits its pin in the same commit."""
+    raw = _t5_raw("rules")
+    spot = b"match: {venue: [upbit, bithumb, coinone, korbit], class: [coin], action: [buy, sell], financing: [cash]}"
+    us = b"match: {venue: [kis], asset: [us_share], action: [buy, sell], financing: [cash]}"
+    option = b"requires: {owner: [us_option_course_1h, us_option_mock_3h, broker_eligibility], live: []}"
+    one_x = b"match: {venue: [kis], class: [etp_1x], action: [buy, sell], financing: [cash]}\n    treatment: allow\n"
+    etp = b"match: {venue: [kis], class: [etp_crypto_spot], action: [buy]}\n    treatment: hard_block\n"
+    opened = etp.replace(b"[buy]}", b"[buy], financing: [cash]}").replace(b"hard_block", b"allow")
+    assert all(raw.count(old) == 1 for old in (spot, us, option, one_x, etp))
+    for old, new, missed in ((spot, spot.replace(b"[buy, sell]", b"[buy, sell, p2p_buy]"), ["KR-DOMESTIC-SPOT"]),
+                             (option, option.replace(b", broker_eligibility", b""), ["KR-KIS-US-OPTION"]),
+                             (one_x, one_x.replace(b"allow", b"hard_block"), ["KR-KIS-ETP-1X"]),   # a row leaves
+                             (etp, opened, ["KR-KIS-CRYPTO-SPOT-ETP"])):           # a blocking row turns allow
+        assert _t5_pin_misses(_t5_rules.parse_rules(raw.replace(old, new))) == missed, missed
+    _refused(lambda: _t5_rules.parse_rules(raw.replace(us, us.replace(b"[buy, sell]", b"[buy, sell, sell_short]"))),
+             "row KR-KIS-US-SHARE: requires.live: a row matching ['sell_short']")
+    table, _, _ = _t5_shipped()
+    assert len(_T5_PINNED) == 15 and _t5_pin_misses(table) == [], _t5_pin_misses(table)
 
 
 def test_shipped_okx_warning_has_only_the_cap_slot():
