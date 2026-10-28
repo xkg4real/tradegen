@@ -574,7 +574,7 @@ def test_render_has_no_rule_free_text():
     for row in doc["rows"]:
         row["reason"] = UNIQUE
         if row.get("warning"):
-            row["warning"] = UNIQUE + " {cap}"
+            row["warning"] = UNIQUE + (" {cap}" if row["treatment"] == "grey" else "")   # R2: {cap} is grey-only
     raw = _dump(doc)
     assert all(r.reason == UNIQUE for r in rules.parse_rules(raw).rows)
     with _signed_home(rules_raw=raw):

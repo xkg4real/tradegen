@@ -404,6 +404,12 @@ _ROW_OPTIONAL = frozenset({"requires", "ack", "grey", "max_leverage", "warning",
                            "effective_until", "affected_by"})
 _BLOCKING = frozenset({"hard_block", "out_of_scope"})      # conduct rows are hard_block, so `any` is legal there
 _MAX_REVIEW_DAYS = 31
+_MAX_LEVERAGE = 10.0                                       # R2: a typo cannot sign 1e6x
+_D15_FINANCING = frozenset({"credit", "margin"})           # D15: no credit buying (margin included, ledger:131)
+_D15_ACTIONS = frozenset({"lend", "borrow"})               # D15: no coin lending or borrowing
+_D16_ACTIONS = frozenset({"sell_short"})                   # D16 by content (spec:70), whatever policy_ref says
+_D16_CLASSES = frozenset({"etp_leveraged", "etp_single_stock", "krx_derivative", "elw"})
+_D16_ASSETS = frozenset({"krx_derivative", "elw"})
 
 
 def _match(value, where: str, treatment: str) -> Mapping[str, frozenset]:
@@ -457,6 +463,14 @@ def _row(item, index: int, known: tuple[date, ...]) -> Row:
         if missing:
             raise Invalid(f"{where}: match: an allow, gated or grey row names action, financing and a class or an "
                           f"asset; missing {missing}")
+        credit = sorted(match["financing"] & _D15_FINANCING)
+        if credit:
+            raise Invalid(f"{where}: match.financing: an allow, gated or grey row never matches {credit} (D15: no "
+                          "credit buying)")
+        lending = sorted(match["action"] & _D15_ACTIONS)
+        if lending:
+            raise Invalid(f"{where}: match.action: an allow, gated or grey row never matches {lending} (D15: no coin "
+                          "lending or borrowing)")
     etp = sorted(match.get("class", frozenset()) - {"any", *ASSET_CLASS.values()})
     if kind == "conduct" and etp:               # gate._conduct shows a conduct row ASSET_CLASS classes only
         raise Invalid(f"{where}: match.class: a conduct row sees an asset's own class, never {etp}")
@@ -481,15 +495,30 @@ def _row(item, index: int, known: tuple[date, ...]) -> Row:
     warning = _warning(item.get("warning"), f"{where}: warning")
     if ack == "per_session" and not warning.strip():                         # the owner acks its sha256
         raise Invalid(f"{where}: warning: an ack: per_session row needs the warning it acknowledges")
-    if treatment == "grey" and "cap" not in {slot for _, slot, _, _ in string.Formatter().parse(warning)}:
+    slots = {slot for _, slot, _, _ in string.Formatter().parse(warning)}
+    if treatment == "grey" and "cap" not in slots:
         raise Invalid(f"{where}: warning: a grey row states its {{cap}}")
+    if treatment != "grey" and "cap" in slots:                               # the cap is a grey row's (ledger:146)
+        raise Invalid(f"{where}: warning: only a grey row states a {{cap}}")
     leverage = 1.0 if item.get("max_leverage") is None else _positive(item["max_leverage"], f"{where}: max_leverage")
+    if leverage > _MAX_LEVERAGE:
+        raise Invalid(f"{where}: max_leverage: at most {_MAX_LEVERAGE:g}, got {leverage!r}")
     policy_ref = item.get("policy_ref")
     if policy_ref is not None:
         if not isinstance(policy_ref, str) or not _POLICY.fullmatch(policy_ref):
             raise Invalid(f"{where}: policy_ref: expected 'D<n>' or 'D<n>, D<n>, ...', got {policy_ref!r}")
         if "D16" in policy_ref.split(", ") and not live:
             raise Invalid(f"{where}: requires.live: a D16 row needs live broker evidence (requires.live)")
+        if "D15" in policy_ref.split(", ") and treatment not in _BLOCKING:
+            raise Invalid(f"{where}: treatment: a D15 row is hard_block or out_of_scope (D15 only keeps credit and "
+                          "lending out)")
+    classes = match.get("class", frozenset())
+    if "class" not in match and match.get("asset", frozenset()) & ETP_ASSETS:   # no class axis: it matches every
+        classes = frozenset({"etp_leveraged", "etp_single_stock"})               # class an ETP derives to
+    d16 = sorted((match.get("action", frozenset()) & _D16_ACTIONS) | (classes & _D16_CLASSES)
+                 | (match.get("asset", frozenset()) & _D16_ASSETS))
+    if treatment not in _BLOCKING and d16 and not live:
+        raise Invalid(f"{where}: requires.live: a row matching {d16} needs live broker evidence (D16)")
     if treatment == "gated" and not (owner or live):                         # else it would act as an allow row
         raise Invalid(f"{where}: requires: a gated row requires owner or live evidence")
 
@@ -521,6 +550,8 @@ def _row(item, index: int, known: tuple[date, ...]) -> Row:
             raise Invalid(f"{where}: affected_by: {d} is not in known_changes")
     review_by = parse_date(item["review_by"], f"{where}: review_by")
     latest = max(r.date for r in reviews)
+    if review_by < latest:                                                   # a typo, never a schedule (ledger:103)
+        raise Invalid(f"{where}: review_by: {review_by} is before the review of {latest}")
     if (review_by - latest).days > _MAX_REVIEW_DAYS:                         # P15: monthly
         raise Invalid(f"{where}: review_by: {review_by} is more than 31 days after the review of {latest}")
     upcoming = [d for d in affected if d > latest]
