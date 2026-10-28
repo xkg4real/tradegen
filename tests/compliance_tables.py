@@ -1063,6 +1063,8 @@ def test_shipped_d16_rows_need_live_evidence():
     assert set(_t5_row(table, "KR-KIS-SINGLE-ETP").requires_live) == {"cash_krw_30m"}
     krx_deriv = _t5_row(table, "KR-KIS-KRX-DERIV")          # D16: broker eligibility is live evidence, not an owner snapshot
     assert "broker_approval" in krx_deriv.requires_live and "broker_eligibility" not in krx_deriv.requires_owner
+    assert "broker approval" in krx_deriv.reason, krx_deriv.reason   # the reason names what requires.live asks (ledger:118)
+    assert krx_deriv.reason.startswith("KOSPI200 futures and options need broker approval, "), krx_deriv.reason   # R3
     assert not _t5_row(table, "KR-KIS-US-OPTION").requires_live      # gated on owner evidence, not D16
     assert _t5_row(table, "KR-KIS-ETP-LEV").max_leverage == 3.0
     assert _t5_row(table, "KR-KIS-SINGLE-ETP").max_leverage == 2.0

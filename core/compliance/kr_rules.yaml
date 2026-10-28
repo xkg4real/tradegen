@@ -201,7 +201,7 @@ rows:
     match: {venue: [kis], class: [krx_derivative], action: [buy, sell_short, write], financing: [cash]}
     treatment: gated
     requires: {owner: [kofia_derivatives_1h, krx_derivatives_mock_3h], live: [broker_approval, deposit_krw_10m, deposit_krw_20m]}
-    reason: "KOSPI200 futures and options need a broker deposit of KRW 10M (stage 1) or KRW 20M (stage 2: option writing, VKOSPI futures), at least 1h of course and 3h of mock trading; this row asks for the stage-2 deposit for every intent; refused until live broker evidence exists (D16)"
+    reason: "KOSPI200 futures and options need broker approval, a broker deposit of KRW 10M (stage 1) or KRW 20M (stage 2: option writing, VKOSPI futures), at least 1h of course and 3h of mock trading; this row asks for the stage-2 deposit for every intent; refused until live broker evidence exists (D16)"
     basis: [legal, policy]
     policy_ref: D16
     sources:
