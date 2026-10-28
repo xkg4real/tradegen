@@ -655,8 +655,35 @@ def test_code_files_match_owner():
         "core/compliance/e.py": "from typing import TYPE_CHECKING\nif not TYPE_CHECKING:\n    import core.negated\n",
         "core/compliance/f.py": "if \"__main__\" == __name__:\n    import core.rev_cli\n",
         "core/compliance/g.py": "def main():\n    from core.compliance import g\n    return g\n",   # rules.main's shape
+        "core/compliance/h.py": ("import types\nimport typing\ntyping = types.SimpleNamespace(TYPE_CHECKING=True)\n"
+                                 "if typing.TYPE_CHECKING:\n    import core.rebound_typing\n"),
+        "core/compliance/i.py": "__name__ = \"__main__\"\nif __name__ == \"__main__\":\n    import core.rebound_main\n",
+        "core/compliance/j.py": "import os as typing\nif typing.TYPE_CHECKING:\n    import core.alias_typing\n",
+        "core/compliance/k.py": "if typing.TYPE_CHECKING:\n    import core.unbound_typing\n",
+        "core/compliance/l.py": ("def main(__name__=None):\n    return __name__\n"
+                                 "if __name__ == \"__main__\":\n    import core.param_main\n"),
+        "core/compliance/m.py": ("import typing\ntyping.TYPE_CHECKING = True\n"
+                                 "if typing.TYPE_CHECKING:\n    import core.stored_typing\n"),
+        "core/compliance/n.py": ("import typing\nsetattr(typing, \"TYPE_CHECKING\", True)\n"
+                                 "if typing.TYPE_CHECKING:\n    import core.setattr_typing\n"),
+        "core/compliance/o.py": ("globals()[\"__name__\"] = \"__main__\"\n"
+                                 "if __name__ == \"__main__\":\n    import core.globals_main\n"),
+        "core/compliance/p.py": ("import sys\nimport types\n"
+                                 "sys.modules[\"typing\"] = types.SimpleNamespace(TYPE_CHECKING=True)\n"
+                                 "import typing\nif typing.TYPE_CHECKING:\n    import core.modules_typing\n"),
+        "core/compliance/q.py": ("import typing\ntyping.TYPE_CHECKING = True\nfrom typing import TYPE_CHECKING\n"
+                                 "if TYPE_CHECKING:\n    import core.stored_bare\n"),
+        "core/compliance/r.py": ("import sys\nsys._getframe().f_globals[\"__name__\"] = \"__main__\"\n"
+                                 "if __name__ == \"__main__\":\n    import core.frame_main\n"),
+        "core/compliance/s.py": ("import sys\nfrom typing import TYPE_CHECKING\n"
+                                 "sys._getframe().f_locals[\"TYPE_CHECKING\"] = True\n"
+                                 "if TYPE_CHECKING:\n    import core.frame_bare\n"),
         "core/neq.py": "", "core/local_tc.py": "", "core/rebound.py": "", "core/negated.py": "",
         "core/rev_cli.py": "",
+        "core/rebound_typing.py": "", "core/rebound_main.py": "", "core/alias_typing.py": "",
+        "core/unbound_typing.py": "", "core/param_main.py": "", "core/stored_typing.py": "",
+        "core/setattr_typing.py": "", "core/globals_main.py": "", "core/modules_typing.py": "",
+        "core/stored_bare.py": "", "core/frame_main.py": "", "core/frame_bare.py": "",
         "core/pkg/__init__.py": "",
         "core/pkg/lazy.py": "from . import sibling\nfrom .. import upper\n",
         "core/pkg/sibling.py": "import json\n",
@@ -674,7 +701,21 @@ def test_code_files_match_owner():
         "core/pkg/__init__.py", "core/pkg/lazy.py", "core/pkg/sibling.py", "core/upper.py",
         "core/compliance/b.py", "core/compliance/c.py", "core/compliance/d.py", "core/compliance/e.py",
         "core/compliance/f.py", "core/compliance/g.py",
+        "core/compliance/h.py", "core/compliance/i.py", "core/compliance/j.py", "core/compliance/k.py",
+        "core/compliance/l.py", "core/compliance/m.py", "core/compliance/n.py", "core/compliance/o.py",
+        "core/compliance/p.py", "core/compliance/q.py", "core/compliance/r.py", "core/compliance/s.py",
+        "core/rebound_typing.py", "core/rebound_main.py", "core/alias_typing.py", "core/unbound_typing.py",
+        "core/param_main.py", "core/stored_typing.py", "core/setattr_typing.py", "core/globals_main.py",
+        "core/modules_typing.py", "core/stored_bare.py", "core/frame_main.py", "core/frame_bare.py",
         "core/neq.py", "core/local_tc.py", "core/rebound.py", "core/negated.py"}, mine
+
+
+def test_closure_scan_helpers_are_identical_in_owner_and_signer():
+    """R4: the signer's copy of the D14 closure scan is owner.py's, character for character, so a hardening in one
+    file cannot be forgotten in the other (test_code_files_match_owner compares outputs on chosen trees only)."""
+    import inspect
+    for name in ("_binds", "_typing_flag", "_guards", "_skipped", "_import_nodes", "_module_file", "_repo_imports"):
+        assert inspect.getsource(getattr(signer, name)) == inspect.getsource(getattr(owner, name)), name
 
 
 def test_store_layout_matches_owner_store_put():

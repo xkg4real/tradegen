@@ -4,6 +4,7 @@ only inside it; owner logs are signed with the fixed test key, and owner.PUBKEY_
 repo key is never read or written)."""
 from __future__ import annotations
 
+import ast
 import contextlib
 import datetime as _dt
 import importlib.metadata
@@ -154,7 +155,10 @@ def test_code_files_counts_lazy_imports_and_skips_main_and_type_checking():
     """P6 on a synthetic tree: a function-level import, relative imports (`.` and `..`) and an in-repo module outside
     core/ count, every ancestor __init__.py joins, and the TYPE_CHECKING (bare from typing, or `typing.`) and
     `__name__ == "__main__"` bodies do not (their else branch does). Anything else is scanned, because its body can run
-    at import: an `!=` test, a bare TYPE_CHECKING that is a local (or rebound) name, and `not TYPE_CHECKING`."""
+    at import: an `!=` test, a bare TYPE_CHECKING that is a local (or rebound) name, and `not TYPE_CHECKING`; and a
+    guard whose name the module rebinds or never imports plainly (typing rebound, `import os as typing`, no `import
+    typing`, `__name__` assigned or a parameter), or that the module can change without a binding (an attribute store,
+    setattr, globals(), sys.modules, a frame's f_globals or f_locals), is scanned too (R4)."""
     sources = {
         "config.py": "",
         "core/__init__.py": "",
@@ -172,8 +176,35 @@ def test_code_files_counts_lazy_imports_and_skips_main_and_type_checking():
                                  "if TYPE_CHECKING:\n    import core.rebound\n"),
         "core/compliance/e.py": "from typing import TYPE_CHECKING\nif not TYPE_CHECKING:\n    import core.negated\n",
         "core/compliance/f.py": "if \"__main__\" == __name__:\n    import core.rev_cli\n",
+        "core/compliance/h.py": ("import types\nimport typing\ntyping = types.SimpleNamespace(TYPE_CHECKING=True)\n"
+                                 "if typing.TYPE_CHECKING:\n    import core.rebound_typing\n"),
+        "core/compliance/i.py": "__name__ = \"__main__\"\nif __name__ == \"__main__\":\n    import core.rebound_main\n",
+        "core/compliance/j.py": "import os as typing\nif typing.TYPE_CHECKING:\n    import core.alias_typing\n",
+        "core/compliance/k.py": "if typing.TYPE_CHECKING:\n    import core.unbound_typing\n",
+        "core/compliance/l.py": ("def main(__name__=None):\n    return __name__\n"
+                                 "if __name__ == \"__main__\":\n    import core.param_main\n"),
+        "core/compliance/m.py": ("import typing\ntyping.TYPE_CHECKING = True\n"
+                                 "if typing.TYPE_CHECKING:\n    import core.stored_typing\n"),
+        "core/compliance/n.py": ("import typing\nsetattr(typing, \"TYPE_CHECKING\", True)\n"
+                                 "if typing.TYPE_CHECKING:\n    import core.setattr_typing\n"),
+        "core/compliance/o.py": ("globals()[\"__name__\"] = \"__main__\"\n"
+                                 "if __name__ == \"__main__\":\n    import core.globals_main\n"),
+        "core/compliance/p.py": ("import sys\nimport types\n"
+                                 "sys.modules[\"typing\"] = types.SimpleNamespace(TYPE_CHECKING=True)\n"
+                                 "import typing\nif typing.TYPE_CHECKING:\n    import core.modules_typing\n"),
+        "core/compliance/q.py": ("import typing\ntyping.TYPE_CHECKING = True\nfrom typing import TYPE_CHECKING\n"
+                                 "if TYPE_CHECKING:\n    import core.stored_bare\n"),
+        "core/compliance/r.py": ("import sys\nsys._getframe().f_globals[\"__name__\"] = \"__main__\"\n"
+                                 "if __name__ == \"__main__\":\n    import core.frame_main\n"),
+        "core/compliance/s.py": ("import sys\nfrom typing import TYPE_CHECKING\n"
+                                 "sys._getframe().f_locals[\"TYPE_CHECKING\"] = True\n"
+                                 "if TYPE_CHECKING:\n    import core.frame_bare\n"),
         "core/neq.py": "", "core/local_tc.py": "", "core/rebound.py": "", "core/negated.py": "",
         "core/rev_cli.py": "",
+        "core/rebound_typing.py": "", "core/rebound_main.py": "", "core/alias_typing.py": "",
+        "core/unbound_typing.py": "", "core/param_main.py": "", "core/stored_typing.py": "",
+        "core/setattr_typing.py": "", "core/globals_main.py": "", "core/modules_typing.py": "",
+        "core/stored_bare.py": "", "core/frame_main.py": "", "core/frame_bare.py": "",
         "core/pkg/__init__.py": "",
         "core/pkg/lazy.py": "from . import sibling\nfrom .. import upper\n",
         "core/pkg/sibling.py": "import json\n",
@@ -191,7 +222,19 @@ def test_code_files_counts_lazy_imports_and_skips_main_and_type_checking():
                     "core/upper.py",
                     "core/compliance/b.py", "core/compliance/c.py", "core/compliance/d.py", "core/compliance/e.py",
                     "core/compliance/f.py",
+                    "core/compliance/h.py", "core/compliance/i.py", "core/compliance/j.py", "core/compliance/k.py",
+                    "core/compliance/l.py", "core/compliance/m.py", "core/compliance/n.py", "core/compliance/o.py",
+                    "core/compliance/p.py", "core/compliance/q.py", "core/compliance/r.py", "core/compliance/s.py",
+                    "core/rebound_typing.py", "core/rebound_main.py", "core/alias_typing.py",
+                    "core/unbound_typing.py", "core/param_main.py", "core/stored_typing.py",
+                    "core/setattr_typing.py", "core/globals_main.py", "core/modules_typing.py",
+                    "core/stored_bare.py", "core/frame_main.py", "core/frame_bare.py",
                     "core/neq.py", "core/local_tc.py", "core/rebound.py", "core/negated.py"}, sorted(repo)
+    trusted = "import typing\nfrom typing import TYPE_CHECKING\n"
+    assert owner._guards(ast.parse(trusted)) == (True, True, True)
+    for route in ("delattr(typing, 'x')", "vars(typing)", "locals()", "typing.__dict__", "import builtins\nbuiltins",
+                  "__builtins__", "typing.__name__ = 'x'", "del typing.TYPE_CHECKING"):
+        assert owner._guards(ast.parse(trusted + route + "\n")) == (False, False, False), route
 
 
 def test_snapshot_is_write_once_and_rebuilt_from_the_store():
