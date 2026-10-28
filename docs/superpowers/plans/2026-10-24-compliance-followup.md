@@ -116,6 +116,10 @@ needs a fresh `code_approved`; once the owner approves a table (owner act 3), ev
   nothing (only docs changed since the compliance merge `995534b`); if either prints anything, stop and report.
   Commit once per task (Task 8: the full-run record, the ledger, and a repeat record after a review fix wave). End
   each commit message with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
+- Pushing (round-3 ruling G3-3, 2026-10-28; the repo is public by the owner's choice): after each task's review
+  passes, the controller pushes the branch (`git push -u origin compliance-followup` the first time, `git push` after
+  that). No subagent pushes. The plan ends in one pull request; Task 8's merge step becomes "open the pull request",
+  and merging it stays the owner's choice.
 
 **Drift rule.** This plan was written against main `5816d3c`, which equals `995534b` outside docs/. It executes first,
 after this plan, the odds plan and the E1 plan are committed to main as docs.

@@ -499,7 +499,7 @@ and rule.
   reference of the earlier construction (the demeaned gross g resampled in blocks of mean 10, 100,000 paths, 30
   days, exit after a day below -3% and re-enter the next day) has a mean gross value above 1 by more than 4 SE on the
   real series; the sleeve never exceeds cash - L at entry; the card's text renders 0.79, 0.73, +0.43, +0.03 to +0.83,
-  "40%", the growth line "3.0%" against "2.7%" at 30 days, and the ceiling line under the tested column; a replay leg
+  "40%", the growth line "2.9%" against "2.6%" over the 29 daily moves of a 30-day horizon (RULINGS_ROUND3 O3-15), and the ceiling line under the tested column; a replay leg
   runs on venues whose upbit entry has `lot` and `min_order` but no `fee_extras` (R2-5), while a buy-and-hold upbit
   leg on the same venues is NOT_TRADABLE, and a replay leg on venues without the upbit lot is NOT_TRADABLE. Budget:
   three replays at about 5 s each.

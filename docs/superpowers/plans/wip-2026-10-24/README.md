@@ -1,11 +1,17 @@
-# Work in progress: three implementation plans (2026-10-24 to 2026-10-27)
+# The parts behind three implementation plans (2026-10-24 to 2026-10-28)
 
-This folder holds the unfinished work behind three implementation plans, so it can be continued from GitHub. Nothing
-here is code that runs; every file is plan material. When a plan is finished it is assembled into
-`docs/superpowers/plans/<date>-<name>.md` and this folder can go.
+All three plans are finished and assembled. Each is self-contained (header, tasks, and its contract as Appendix A)
+and wins over the parts in this folder:
+
+- `docs/superpowers/plans/2026-10-24-compliance-followup.md` (8 tasks) and its `-repo-map.md`;
+- `docs/superpowers/plans/2026-10-24-odds-engine.md` (19 tasks) and its `-repo-map.md`;
+- `docs/superpowers/plans/2026-10-24-e1-account-inquiry.md` (14 tasks) and its `-repo-map.md`.
+
+This folder is kept as the record of how they were drafted, reviewed and ruled. Nothing here is code that runs, and it
+can go once the three plans have executed.
 
 > This is research and software design, not legal, tax or investment advice; neither TRADEGEN nor its author is a
-> licensed advisor. No plan without a real edge that keeps its floor can beat about 1 in 1,000 (1 in 2,000 with the
+> licensed advisor. No plan without a real edge that keeps its floor can beat about 1 in 1,000 (1 in 1,999 with the
 > floor at half the stake); the research estimates the practical chance of 1,000x in a month at 0.01% or less.
 
 ## The three plans and the order they execute in
@@ -18,21 +24,22 @@ here is code that runs; every file is plan material. When a plan is finished it 
 Specs: `docs/superpowers/specs/2026-10-23-compliance-gate-and-odds-engine-design.md` (rev 3.2) and
 `docs/superpowers/specs/2026-10-24-e1-account-inquiry-design.md` (rev 1, approved 2026-10-24).
 
-## Status when this folder was committed
+## Status (2026-10-28)
 
-| Plan | Contract and task scope | Task drafts | What is left |
-|---|---|---|---|
-| Compliance follow-up | done, critiqued, revised (`followup/`) | all 8 drafted, each reviewed and revised; a consistency pass found 11 issues and fixed all 8 files | controller review of the drafts' open issues (below), then assemble and commit the plan |
-| Odds engine | done, critiqued, revised; round-2 rulings folded (`odds/`, 19 tasks) | only `tasks/task_02.md` (written as the spend limit hit; never reviewed) | draft Tasks 1 and 3-18, review, revise, consistency; Task 19 is written at assembly |
-| E1 | done, critiqued, revised; round-2 rulings folded (`e1/`, 14 tasks) | `task_01`, `task_04`, `task_08`, `task_09`, `task_11` exist but are NOT verified: 1 and 9 were cut off mid-draft, 4 and 11 were never reviewed, 8 was reviewed (8 issues) but not revised | redraft or verify those five, draft 2, 3, 5, 6, 7, 10, 12, review, revise, consistency; Tasks 13 and 14 are written at assembly |
+| Plan | State |
+|---|---|
+| Compliance follow-up | assembled 2026-10-27 (`48f4004`); the push-as-you-go rule (G3-3) added 2026-10-28 |
+| Odds engine | Tasks 1-18 drafted, reviewed, revised; a consistency pass (15 findings, all fixed); Task 19 written and reviewed at assembly; a final two-lens review of the whole plan (9 issues, all fixed) |
+| E1 | Tasks 1-12 drafted, reviewed, revised; a consistency pass (12 findings, all fixed); Tasks 13 and 14 written and reviewed at assembly; a final two-lens review (11 issues, all fixed) |
 
-The drafting stopped on 2026-10-25 around 01:12 KST when the account hit its monthly spend limit (the error named a
-weekly reset on 2026-10-27 17:00 KST). No repo code was changed by any of this work.
+None of the plans has executed yet, and no repo code has changed. The drafting paused on 2026-10-25 at the account's
+spend limit and resumed on 2026-10-27.
 
 ## What each file is
 
 - `rulings/`: the binding decisions for the contract drafters. `RULINGS.md` and `RULINGS_ROUND2.md` cover the odds and
-  follow-up plans; `E1_RULINGS.md` and `E1_RULINGS_ROUND2.md` cover E1. Later files amend earlier ones.
+  follow-up plans; `E1_RULINGS.md` and `E1_RULINGS_ROUND2.md` cover E1; `RULINGS_ROUND3.md` rules on the drafts' open
+  issues for all three. Later files amend earlier ones.
 - `map/`: about 400 verified repo facts with file:line evidence (one file per area, merged in `DIGEST.md`, which ends
   with the 32 odds design questions and how they were answered).
 - `venues/`: official-docs research on the KIS, Upbit and OKX read-only APIs; each file ends with an independent
@@ -67,21 +74,16 @@ Odds:
   everything else refused until it has its own feed and signed minimums;
 - SPECIAL_REGIME: refuse a KRX symbol whose history starts fewer than 60 sessions before the plan start.
 
-## Controller rulings still to make before assembly
+## Controller rulings
 
-- Follow-up Task 4: two routes the closure-scan denylist misses (`sys._getframe().f_globals["__name__"]` and
-  `getattr(sys, "modules")["typing"]`): accept as a stated limit, or add `f_globals`/`f_locals` to the routes.
-- Follow-up Task 5: the fail-closed ancestor walk refuses 228 of 721 processes on the owner's PC, VS Code terminals
-  included; the owner must sign from Windows Terminal opened from the Start menu. Say so in the hand-off.
-- Follow-up Task 6 and the others: read each task's open issues in the drafting results before assembly.
-- E1 round 2 (E1_RULINGS_ROUND2.md, E1R2-9): KIS inquiry sends nothing until the code is owner-signed. Stricter than
-  the approved spec; the owner was told and may overrule.
+Every open question is ruled. `rulings/RULINGS_ROUND3.md` (2026-10-28) holds G3-1 to G3-5 for every plan, O3-1 to
+O3-22 for the odds plan and E3-1 to E3-8 for E1; each either refuses more or fixes which task owns a piece of work, and
+none loosens a check. The follow-up's two earlier questions are settled in its plan (the closure scan covers
+`f_globals`; the owner signs from Windows Terminal opened from the Start menu). E1R2-9 (KIS sends nothing until the
+code is owner-signed) stands; the owner may overrule it.
 
 ## How to continue
 
-1. Finish the follow-up: review its open issues, assemble `followup/header.md` + `followup/tasks/task_01..08.md` into
-   `docs/superpowers/plans/2026-10-24-compliance-followup.md`, self-review, commit.
-2. Draft the odds tasks (groups in the workflow's args: [1], [2,3]->[4], [5], [6], [7]->[8], [9]->[10], [11], [12],
-   [15,16], [13]->[14], [17], [18]), then review, revise, consistency, and assemble with a coordinator-written Task 19.
-3. Same for E1 (groups [1], [2]->[3], [4], [5,6,7], [8], [9]->[10], [11], [12]; Tasks 13 and 14 at assembly).
-4. Each finished plan is then executed with subagent-driven development, in the order above, with a review per task.
+Execute the plans with subagent-driven development, one branch and one pull request each, in this order: the
+compliance follow-up (`compliance-followup`), then the odds engine (`odds-engine`), then E1 (`e1-account-inquiry`).
+The controller pushes each branch after every reviewed task (G3-3); merging each pull request is the owner's choice.

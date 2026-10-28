@@ -35,9 +35,11 @@ quoted below was read in the tree at `5816d3c`; the DRIFT RULE (0.6) says what t
   (spec 12).
 
 ### 0.2 The never-live rule
-- No test and no plan step makes a network call to any venue, with one exception: the owner-gated first live
-  `python -m execution.poll --once` at the very end of the plan (Task 14), run only after the owner says in chat that
-  the keys are in `.env`.
+- No test and no plan step makes a network call to any venue, except the owner-gated live
+  `python -m execution.poll --once` runs of Task 14. The first runs only after the owner says in chat that the keys
+  are in `.env` (Step 5). The first live KIS read runs only after the owner says in chat that the code is signed
+  (Step 6). Any later one runs only when the owner asks for it in chat (Step 5 item 6). Each is `--once`, never the
+  loop, never under the KEYLESS prefix.
 - Every E1 test runs with `execution.transport._send` replaced by a refusing stub (section 3); a probe test proves an
   unpatched send is refused under the suite.
 - No test starts a process that imports `execution` (`subprocess`, `os.system`, `os.popen`, `multiprocessing`,
@@ -79,6 +81,8 @@ quoted below was read in the tree at `5816d3c`; the DRIFT RULE (0.6) says what t
   `.venv/Scripts/python.exe -c "from tests.macro_m0_harness import test_t_ro_01_no_order_cancel_withdrawal_or_transfer_path as t, test_t_ro_01_orders_module_reached_only_through_the_engine as u; t(); u(); print('T-RO-01 ok')"`.
   Never run `python -m tests.macro_acceptance` (its `__main__` resyncs the registry).
 - Never run two suites at once. The E1 suite stays under 60 s (X8).
+- Give every `--suite` command the Bash tool's `timeout: 300000`; `--suite odds` and the full run (Task 13) get
+  `timeout: 600000`, and the full run, which takes longer than that, runs with `run_in_background`.
 
 ### 0.4 Files, line endings and commits
 - New files are UTF-8, no BOM, LF endings.
@@ -94,6 +98,9 @@ quoted below was read in the tree at `5816d3c`; the DRIFT RULE (0.6) says what t
 - Commit once per task with the repo-local identity. End each message with a trailer naming the model that wrote
   the commit, for example `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>` or
   `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`.
+- Pushing (round-3 ruling G3-3; the repo is public by the owner's choice): after each task's review passes, the
+  controller pushes the branch (`git push -u origin e1-account-inquiry` the first time, `git push` after that). No
+  subagent pushes. The plan ends in one pull request; merging it stays the owner's choice.
 - Work on branch `e1-account-inquiry`; Task 1 creates it with `git switch -c e1-account-inquiry` from an up-to-date,
   clean `main`.
 
@@ -368,8 +375,9 @@ this change"; a line number is a hint at `5816d3c`, never the anchor. Before eac
   with `value_krw >= threshold`, breaks the chain, so `live_evidence = frozenset()`. Each poll with an ok KIS
   snapshot judges every requirement it can and appends a record for a requirement only when that requirement has no
   record yet, when its `met` differs from the requirement's last record, or when that last record's own `utc` falls
-  on an earlier Seoul date than the poll's `now` (a daily heartbeat on the first such poll of each Seoul day). This is
-  E1R2-3 (spec rev 2), replacing spec 6's one record per requirement per poll (about 1,150 lines a day at 5-minute
+  on another Asia/Seoul date than the poll's `now` (normally an earlier one, a daily heartbeat on the first such poll
+  of each Seoul day; a record dated ahead after a clock correction is re-stamped at once; Task 10 Design note 5).
+  This is E1R2-3 (spec rev 2), replacing spec 6's one record per requirement per poll (about 1,150 lines a day at 5-minute
   polls, each re-verified by every `load_context`); it writes about four lines a day plus one per change. The fold
   below is unchanged and gives the same `live_evidence` as one record per poll would on the same history: the latest
   record has the same `met` and the same Seoul date (the heartbeat dates it on the last polled day), and the met run
@@ -548,14 +556,14 @@ this change"; a line number is a hint at `5816d3c`, never the anchor. Before eac
 | `tests/macro_m0_harness.py` | modify | 1 | LF | no | T-RO-01 per-file text exceptions |
 | `tests/run_all.py` | modify | 1 | CRLF | no | register the `execution` suite |
 | `README.md` | modify | 1, 13 | CRLF | no | suite list (Task 1); status bullet, cockpit row, compliance row count, execution row, Total (Task 13) |
-| `docs/superpowers/plans/2026-10-24-e1-account-inquiry-execution-ledger.md` | create | 1, 13, 14 | LF | no | drift rulings, deferred minors, the full run's totals |
+| `docs/superpowers/plans/2026-10-24-e1-account-inquiry-execution-ledger.md` | create | 1, 10, 11, 12, 13, 14, and any task that records a drift ruling | LF | no | drift rulings, deferred minors, the full run's totals |
 | `tests/compliance_gate.py` | modify | 9 | LF | no | new D16 reason texts, the lift test |
 | `tests/compliance_model.py` | modify | 9 | LF | no | the Context-field case list |
 | `tests/compliance_store.py` | modify | 9 | LF | no | closure test adds `execution/*.py` |
 | `tests/compliance_signer.py` | modify | 9 | LF | no | lockstep test adds `execution/*.py` |
 | `tests/execution_acceptance.py` | create | 1 | LF | no | suite aggregator, `_wrap`, `-m` runner |
 | `tests/execution_fixtures.py` | create | 1-7 | LF | no | `isolated()`, `STRAYS`, `REAL_SEND`, `fake_keys()`, `serve()`, response dicts, `snap()` |
-| `tests/execution_guards.py` | create | 1, 2 | LF | no | static guards, exactness tests, transport-only path, harness self-tests, registration |
+| `tests/execution_guards.py` | create | 1, 2, 3 (Task 3: `_headers` and `_TokenRejected` join TRANSPORT_ONLY) | LF | no | static guards, exactness tests, transport-only path, harness self-tests, registration |
 | `tests/execution_keys.py` | create | 2 | LF | no | keys.py |
 | `tests/execution_transport.py` | create | 2, 3 | LF | no | transport and token |
 | `tests/execution_snapshot.py` | create | 4 | LF | no | records and JSONL helpers |
@@ -563,7 +571,7 @@ this change"; a line number is a hint at `5816d3c`, never the anchor. Before eac
 | `tests/execution_upbit.py` | create | 6 | LF | no | Upbit |
 | `tests/execution_okx.py` | create | 7 | LF | no | OKX |
 | `tests/execution_positions.py` | create | 8 | LF | no | positions |
-| `tests/execution_evidence.py` | create | 9, 10 | LF | no | the fold, `load_context`, the gate lift, the writer |
+| `tests/execution_evidence.py` | create | 9, 10 | LF | no | the fold, `load_context`, the writer |
 | `tests/execution_checks.py` | create | 11 | LF | no | every check row, the catalogue scan, the once-a-day rule |
 | `tests/execution_poll.py` | create | 12 | LF | no | the poller end to end, CLI exits, pending, mark-sent |
 | `qa/acceptance_results.json` | modify | 13 | CRLF | no | the full run (committed once) |
@@ -651,9 +659,10 @@ def fake_keys(**overrides) -> Iterator[None]        # Task 2: os.environ.update(
                                                     # override removes that name; restores every name afterwards
 @contextlib.contextmanager
 def serve(routes: Mapping, *, date: str = DATE_HEADER) -> Iterator[list[dict]]   # Task 3
-def kis_routes(**changes) -> dict                   # Task 5: path -> body, the KIS fixtures below
-def upbit_routes(**changes) -> dict                 # Task 6
-def okx_routes(**changes) -> dict                   # Task 7
+def kis_routes(**changes) -> dict                   # Task 5: (method, path) -> answer for serve(); a keyword named
+                                                    # after a KIS_ROUTES key replaces that answer (None drops it)
+def upbit_routes(**changes) -> dict                 # Task 6: the same form; routes merge with |
+def okx_routes(**changes) -> dict                   # Task 7: the same form
 def snap(venue: str, **fields) -> "Snapshot"        # Task 4: an ok snapshot stamped NOW, overridable
 ```
 - `isolated(home)` (tests are zero-argument, so they read the module lists `TOASTS`, `SLEEPS` and `STRAYS`); it imports
@@ -1620,7 +1629,8 @@ def record(kis: Snapshot, now: datetime) -> list[dict]       # appends the due r
 - `due(rows, requirement, met, now)`: with `last` = the last row of `rows` (the verified chain) naming `requirement`,
   True when there is none, when `last["met"] != met`, or when the Seoul date of `last["utc"]` is before the Seoul date
   of `now` (the daily heartbeat). `value_krw` alone never makes a record due: the fold reads only `met`, the dates
-  and the chain.
+  and the chain. Task 10's ledger ruling supersedes "before": it compares the Seoul dates with `!=`, so a record dated
+  ahead of `now` after a clock correction is re-stamped at once (Task 10 Design note 5).
 - Line format (`evidence.jsonl`):
   `{"met":true,"prev_sha256":"<64 hex>","requirement":"deposit_krw_10m","row_sha256":"<64 hex>","seq":1,"snapshot_sha256":"<64 hex>","utc":"2026-10-24T00:00:00Z","value_krw":21000.0}`.
 - Only `evidence.py` writes the file, and only inside a poll holding `poll.lock`.
@@ -1835,8 +1845,9 @@ if __name__ == "__main__":
   `YYYY-MM-DDTHH:MM:SSZ`. Any argument error prints the reason and returns 4 (argparse's `SystemExit` is caught).
 - Loop and `--once`: `main` sets `transport._clock = lambda: datetime.now(timezone.utc)`, takes `poll.lock` (held for
   the process's lifetime: `open(checked_target(lock_path(), ...), "a+b")`, `msvcrt.locking(fd, msvcrt.LK_NBLCK, 1)`,
-  else `fcntl.flock(LOCK_EX | LOCK_NB)`); a held lock prints `another E1 poller holds poll.lock; exiting` and returns
-  `EXIT_LOCKED` (0; E1R2-1), having polled nothing. Each poll reads `now = datetime.now(timezone.utc)` in `main`,
+  else `fcntl.flock(LOCK_EX | LOCK_NB)`; Task 12 tries 5 times, 0.2 s apart through `_sleep`, so the test wrapper's
+  instant probe never makes a starting poller exit); a lock still held prints
+  `another E1 poller holds poll.lock; exiting` and returns `EXIT_LOCKED` (0; E1R2-1), having polled nothing. Each poll reads `now = datetime.now(timezone.utc)` in `main`,
   calls `poll_once(now)` and prints the summary as one JSON line. A crash (any exception out of `poll_once`) prints
   one JSON line `{"crash": type(exc).__name__, "at": "<file name>:<line>"}` from the innermost frame of
   `traceback.extract_tb(exc.__traceback__)` (never `str(exc)`, E37) and runs the crash path (16.2). `--once` returns 0,
@@ -2024,8 +2035,9 @@ numbers are kept, so "open issue N" in a task or in section 19 means item N here
    `another E1 poller holds poll.lock; exiting` and exits 0, so a duplicate at-logon start is not a failed run in
    Task Scheduler. Argument errors stay 4. (E7, E23, C16; Task 12.)
 2. **evidence.jsonl growth.** Ruled E1R2-3 (spec rev 2): a record for a requirement only when its `met` changes, or
-   when its last record is dated on an earlier Seoul date (a daily heartbeat on the first poll of each Seoul day),
-   about four lines a day instead of about 1,150. Lifting, re-blocking and the 7-day expiry are unchanged, and a test
+   when its last record is dated on another Asia/Seoul date than the poll's (normally an earlier one, a daily
+   heartbeat on the first poll of each Seoul day; a record dated ahead after a clock correction is re-stamped at
+   once; Task 10 Design note 5), about four lines a day instead of about 1,150. Lifting, re-blocking and the 7-day expiry are unchanged, and a test
    proves the fold gives the same `live_evidence` as one record per poll. (E18, C14; Task 10.)
 3. **inquiry.jsonl growth.** Ruled E1R2-4 (spec rev 2): daily files `execution/inquiry-YYYYMMDD.jsonl` (the Seoul
    date of the poll), never deleted; each poll opens only yesterday's and today's. (E30, C8, C16.2; Tasks 4, 12.)

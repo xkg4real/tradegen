@@ -3,11 +3,15 @@
 **Files:**
 - Create: `execution/checks.py` (LF, UTF-8, no BOM)
 - Create: `tests/execution_checks.py` (LF, UTF-8, no BOM)
+- Modify: `docs/superpowers/plans/2026-10-24-e1-account-inquiry-execution-ledger.md` (anchor: the `## Deferred minors`
+  heading; LF): one C15.2 ruling, Step 5 (plus a one-line drift ruling only if Step 4 finds the closure test renamed)
 - Test: `tests/execution_checks.py`
 
-No existing file is edited, so the DRIFT RULE (Global Constraints 0.6) has no anchor here. `MODULES` of
+The only existing file this task edits is the ledger (Task 1 created it). Its anchor is the `## Deferred minors`
+heading, so ruling lines that earlier tasks added above the heading do not affect the edit. `MODULES` of
 `tests/execution_acceptance.py` already lists `execution_checks` (Task 1, contract 3.1); the aggregator skipped it while
-the file did not exist. If `execution/checks.py` or `tests/execution_checks.py` already exists, stop and rule.
+the file did not exist. Step 1's first command checks that entry, and that neither `execution/checks.py` nor
+`tests/execution_checks.py` exists yet (if either does, stop and rule).
 
 **Interfaces:**
 - Consumes:
@@ -29,14 +33,16 @@ the file did not exist. If `execution/checks.py` or `tests/execution_checks.py` 
     `{(venue, symbol, network, address, tag or "")}`, `OwnerState.broken(reason)`), `Positions` (`.equity_krw`,
     `.exposure`), `Exposure.held_krw`, `KST`, `iso_utc`, `canonical_json`, `sha256_hex`. The owner keys come from
     `core/compliance/owner.py` (`_DATA` `cap_set`/`limit_set`, and `_owner_fold`): `caps["okx_equity_share"]`,
-    `limits["total_loss_floor_krw"]`, `limits["daily_loss_krw"]`.
+    `limits["total_loss_floor_krw"]`, `limits["daily_loss_krw"]`. The follow-up and odds plans both edit owner.py
+    before E1 runs, so Step 1 probes these keys (`owner._LIMIT_KEYS`, `owner._TIGHTER`).
   - Task 1 (`tests.execution_fixtures`): `NOW` (2026-10-24 00:00:00 UTC, 09:00 KST). Nothing else from the fixtures:
     the tests build their snapshots with `snapshot.Snapshot` and `snapshot.failed` directly, so no test
     leans on the defaults of Task 4's `snap()`.
 - Produces (`execution/checks.py`, exactly contract section 15; pure: no clock, no file, no network):
   - constants `KINDS` (13), `VENUE_NAMES`, `KEY_EXPIRY_WARN = timedelta(days=30)`, `OUTAGE_POLLS = 3`,
     `CLOCK_SKEW_S = 60`, `STAMP`, `INT_SLOTS`, `TIME_SLOTS`, `ITEM_SLOTS`, `NOT_SET_ITEMS` (11 strings), `TEXT`
-    (24 text_keys, the contract 15.3 catalogue verbatim, checked against the contract's text offline);
+    (24 text_keys, the contract 15.3 catalogue verbatim; `test_text_is_the_contract_catalogue_and_render_fills_it`
+    pins it by the SHA-256 of its canonical JSON, computed from contract 15.3's block);
   - `@dataclass(frozen=True, kw_only=True)` records `Alert(venue, kind, level, text_key, slots={})`,
     `Prior(last_ok, fails)`, `Limits(total_loss_floor_krw, daily_loss_krw, okx_equity_share, day_start_equity_krw,
     day_start_utc)`;
@@ -57,7 +63,9 @@ the file did not exist. If `execution/checks.py` or `tests/execution_checks.py` 
     alerts only (a clear has no slots). `--pending` renders a read-back row only after `verify_row(row)` is True,
     as `checks.render(checks.Alert(venue=row["venue"], kind=row["kind"], level=row["level"],
     text_key=row["text_key"], slots=row["slots"]))`. `due` reads all of `alerts.jsonl` and returns `fresh` already
-    sorted (amber and info before red), so the poller writes `fresh + clears` in that order.
+    sorted (amber and info before red), so the poller writes `fresh + clears` in that order. `Alert` cannot be
+    hashed: its `slots` is a dict, and a frozen dataclass hashes every field. Key alerts by `(venue, text_key)`, and
+    never put an `Alert` in a set or use one as a dict key.
 
 **Plan decisions used:** E7 (pure checks, catalogue, leak scan), E19 (dedupe per `(venue, text_key)` per Seoul date,
 a level rise fires at once, only evaluated checks clear), E20 (ADDRESS_LIST compares `(currency, address,
@@ -71,7 +79,7 @@ Design notes (read before Step 3; each is a choice inside contract 15, none chan
   D15_BORROW, D15_EARN, HARD_BLOCK_EVENTS and HARD_BLOCK_DERIVATIVE only for `okx`; KEY_EXPIRY, ADDRESS_CHANGED and
   ADDRESS_UNSIGNED only for `upbit`. Their sentences name that venue, so raising them elsewhere would say something
   false. Rows without a parenthesised venue (KEY_MISSING, KEY_AUTH, FOREIGN_ORDER, HOLDINGS_*, D15_LOAN, OUTAGE,
-  CLOCK_SKEW) run on every venue.
+  CLOCK_SKEW) run on every venue. `test_venue_scoped_rows_fire_only_on_their_venue` pins both halves.
 - **Which rows need an ok snapshot.** As the table says: KEY_EXPIRY, FOREIGN_ORDER, HOLDINGS_*, ADDRESS_*, D15_LOAN and
   D15_EARN need `ok`; KEY_MISSING, KIS_UNSIGNED, KEY_AUTH, KEY_OKX_SELF_CHECK, D15_BORROW and HARD_BLOCK_* read the
   flags (a failed OKX self-check is an `ok: false` snapshot that carries its flags); OUTAGE needs `not ok`; CLOCK_SKEW
@@ -79,11 +87,19 @@ Design notes (read before Step 3; each is a choice inside contract 15, none chan
 - **`due` counts only rows that verify.** Contract 15.2 skips a row that is not a dict or whose text_key is not in
   TEXT; this task skips every row for which `verify_row` is False (a superset), so a malformed or forged line in
   `alerts.jsonl` can neither mute nor clear an alert, and `due` never raises on a bad row (a raise would crash every
-  poll into OUTAGE_CRASH). Every row `row()` writes verifies (tested), so nothing the poller writes is lost.
-- **A stamp must name a real instant.** `_is_stamp` is `STAMP.fullmatch` plus `datetime.fromisoformat` (which reads
-  the `Z` as UTC on Python 3.11+): `"2026-13-40T00:00:00Z"` matches STAMP but is refused, for `utc` and every
-  `TIME_SLOTS` value in `verify_row`, for `key_expiry` and for inquiry rows. So `--pending`'s KST conversion (Task 12)
-  never meets a month 13.
+  poll into OUTAGE_CRASH, and `alerts.jsonl` is never rotated). Every row `row()` writes verifies (tested), so nothing
+  the poller writes is lost. This note and the next one read C15.2 more strictly than its text does. Step 5 records
+  them in the ledger as one ruling.
+- **A stamp must name a real instant with a Seoul date.** `_is_stamp` is `STAMP.fullmatch` plus
+  `_seoul(_instant(value))`. `datetime.fromisoformat` reads the `Z` as UTC on Python 3.11+ and raises `ValueError` on
+  `"2026-13-40T00:00:00Z"`. The conversion to `model.KST` raises `OverflowError` from `"9999-12-31T15:00:00Z"` on,
+  because that instant is 10000-01-01 in Seoul. Both kinds of stamp are refused: for `utc` and every `TIME_SLOTS` value
+  in `verify_row`, for `key_expiry`, and for inquiry rows. So `due`, `priors`, `day_start` and `--pending`'s KST
+  conversion (Task 12) never meet either kind. C15.2 asks only for the STAMP fullmatch.
+- **CLOCK_SKEW rounds half to even.** `seconds` is the contract's `round(abs(clock_offset_s))`. Python's `round` takes
+  a half to the even integer, so an offset in (60, 60.5] fires, because it is more than 60, but the alert says
+  "60 seconds away". This task keeps the contract's formula, and `test_clock_skew_reads_the_offset_at_receipt` pins
+  60.5 -> 60 and 61.6 -> 62.
 - **A broken owner log hides every limit.** `limits_from` gives None for the floor, the daily loss and the cap while
   `owner.ok` is False (spec 6.4: then every owner fact counts as absent); those checks are then "not set".
 - **Rows that do not load are skipped.** `priors` and `day_start` read inquiry rows through `_load`: a row that
@@ -104,16 +120,26 @@ Design notes (read before Step 3; each is a choice inside contract 15, none chan
 Get-CimInstance Win32_Process -Filter "Name LIKE 'python%'" | Where-Object { $_.CommandLine -match 'run_all' } | Select-Object ProcessId,Name,CommandLine
 ```
 
-  Then from the repo root in Git Bash:
+  Then from the repo root in Git Bash. The one overlap check covers both Python commands of this block, and nothing in
+  the block writes:
 
 ```bash
+test ! -e execution/checks.py && test ! -e tests/execution_checks.py && grep -c '"execution_checks"' tests/execution_acceptance.py
 .venv/Scripts/python.exe -c "from execution import positions, snapshot; import dataclasses; print(snapshot.VENUES, sorted(f.name for f in dataclasses.fields(snapshot.Snapshot)), snapshot.failed, snapshot.dump, snapshot.load, positions.live_positions, sep='\n')"
+.venv/Scripts/python.exe -c "from core.compliance import owner; from tests import execution_fixtures as EF; print(owner._LIMIT_KEYS, sorted(owner._TIGHTER), EF.NOW)"
 ```
 
-  Expected: `('kis', 'upbit', 'okx')`, then the 21 field names `['cash', 'clock_offset_s', 'deposit_krw', 'deposits',
-  'earn', 'error', 'fills', 'flags', 'holdings', 'key_expiry', 'loans', 'ok', 'open_orders', 'prices_krw',
-  'response_sha256', 'server_utc', 'snapshot_sha256', 'utc', 'venue', 'withdrawal_addresses', 'withdrawals']`, then
-  four function reprs.
+  Expected:
+  - From the first line, `1`. No output means that one of the two files already exists, and `0` means MODULES lacks
+    the entry. Either way, stop and rule.
+  - From the second line, `('kis', 'upbit', 'okx')`, then the 21 field names `['cash', 'clock_offset_s', 'deposit_krw',
+    'deposits', 'earn', 'error', 'fills', 'flags', 'holdings', 'key_expiry', 'loans', 'ok', 'open_orders',
+    'prices_krw', 'response_sha256', 'server_utc', 'snapshot_sha256', 'utc', 'venue', 'withdrawal_addresses',
+    'withdrawals']`, then four function reprs.
+  - From the third line, `('total_loss_floor_krw', 'daily_loss_krw') ['daily_loss_krw', 'okx_equity_share',
+    'total_loss_floor_krw'] 2026-10-24 00:00:00+00:00` (all on one line). These are the owner keys that `limits_from`
+    reads, and the fixture clock.
+  - Any other answer on the second or third line is a drift ruling (C0.6).
 
   Create `tests/execution_checks.py` (whole file, LF):
 
@@ -268,6 +294,17 @@ def test_catalogue_kinds_levels_and_slots_are_consistent():
     assert not any("; " in item for item in checks.NOT_SET_ITEMS)       # the join stays splittable
 
 
+def test_text_is_the_contract_catalogue_and_render_fills_it():
+    # The SHA-256 of contract 15.3's catalogue as canonical JSON: a slip in any key, kind, level or sentence fails.
+    assert model.sha256_hex(model.canonical_json(dict(checks.TEXT))) == (
+        "1055607ceb02cde19b81297fba5476709e1760278ef626a4b93900828e1fa258")
+    order = checks.Alert(venue="upbit", kind="FOREIGN_ORDER", level="red", text_key="FOREIGN_ORDER", slots={"n": 1})
+    assert checks.render(order) == "Upbit shows 1 open order(s). E1 places no orders: check the Upbit app now."
+    note = checks.Alert(venue="all", kind="NOT_SET", level="info", text_key="NOT_SET",
+                        slots={"skipped": "FLOOR: not set"})
+    assert checks.render(note) == "Checks skipped (not set): FLOOR: not set."
+
+
 def test_a_quiet_poll_raises_nothing_and_skips_nothing():
     owner = _owner()
     assert _run(_new()) == {}
@@ -299,6 +336,22 @@ def test_key_missing_unsigned_and_auth_errors():
     assert _run(_new(upbit=_failed("upbit", frozenset({"auth_error"})))) == {("upbit", "KEY_AUTH"): {}}
     assert _run(_new(kis=_failed("kis", frozenset({"auth_error"})))) == {("kis", "KEY_AUTH"): {}}
     assert _run(_new(upbit=_failed("upbit"))) == {}                           # 1 failed poll: nothing yet
+
+
+def test_venue_scoped_rows_fire_only_on_their_venue():
+    # The table's "(okx)", "(upbit)" and "(kis)" rows name that venue in their sentence, so nowhere else.
+    okx_only = frozenset({"okx_perm", "okx_spot_borrow", "EVENTS", "derivative_position"})
+    assert _run(_new(kis=_failed("kis", okx_only))) == {}
+    assert _run(_new(upbit=_failed("upbit", UNSIGNED))) == {}
+    kis = _snap("kis", cash={"KRW": 30_000.0}, key_expiry=model.iso_utc(NOW + timedelta(days=1)), earn={"x": 1.0},
+                withdrawal_addresses=(snapshot.Address(currency="BTC", net_type="BTC", address=ADDRESS),))
+    prev = _prev(kis=checks.Prior(last_ok=_snap("kis", cash={"KRW": 30_000.0}), fails=0))
+    assert _run(_new(kis=kis), prev) == {}
+    # The same inputs on their own venue do fire (positive control).
+    assert set(_run(_new(okx=_failed("okx", okx_only)))) == {
+        ("okx", "KEY_OKX_SELF_CHECK"), ("okx", "D15_BORROW"), ("okx", "HARD_BLOCK_EVENTS"),
+        ("okx", "HARD_BLOCK_DERIVATIVE")}
+    assert _run(_new(kis=_failed("kis", UNSIGNED))) == {("kis", "KIS_UNSIGNED"): {}}
 
 
 def test_okx_self_check_counts_its_failed_checks():
@@ -363,10 +416,11 @@ def test_holdings_change_mixed_case_counts_fills_deposits_and_withdrawals():
                 fills=(snapshot.Move(id="u-done-1", symbol="BTC", counter="KRW", side="buy", units=0.0001),),
                 deposits=(snapshot.Move(id="u-dep-1", symbol="ETH", side="in", units=0.01),
                           snapshot.Move(id="u-dep-2", symbol="KRW", side="in", units=1_000.0)),
-                withdrawals=(snapshot.Move(id="u-wd-1", symbol="XRP", side="out", units=1.0),))
+                withdrawals=(snapshot.Move(id="u-wd-1", symbol="XRP", side="out", units=1.0),
+                             snapshot.Move(id="u-wd-2", symbol="ADA", side="out", units=1.0)))
     found = _run(_new(upbit=now), _prev(upbit=checks.Prior(last_ok=last, fails=0)))
     # 5 changed: BTC (fill), ETH (deposit), XRP (withdrawal) explained; SOL and DOGE not. The KRW deposit names no
-    # changed holding (KRW is cash), so it is not counted.
+    # changed holding (KRW is cash) and the ADA withdrawal names an unchanged one, so neither is counted.
     assert found == {("upbit", "HOLDINGS_UNEXPLAINED"): {"n": 5, "k": 2, "fills": 1, "deposits": 1,
                                                          "withdrawals": 1}}, found
     assert _run(_new(upbit=now)) == {}                                      # no previous ok snapshot: no compare
@@ -419,6 +473,9 @@ def test_d15_borrow_loans_and_earn():
     zero = _snap("okx", holdings={"USDT": snapshot.Holding(units=10.0)}, prices_krw={"USDT": 1_000.0},
                  loans={"liab:USDT": 0.0}, earn={"asset_valuation": 0.0})
     assert _run(_new(okx=zero)) == {}
+    # A failed snapshot's loans are not read: the row needs ok.
+    failed = snapshot.Snapshot(venue="kis", utc=UTC, ok=False, error="kis: x", loans={"loan_amt": 1.0})
+    assert _run(_new(kis=failed)) == {}
 
 
 def test_hard_block_events_and_derivatives():
@@ -439,6 +496,8 @@ def test_floor_at_the_floor_and_1_krw_above():
 def test_daily_loss_at_the_limit_and_1_krw_less():
     since = "2026-10-23T15:00:00Z"                                          # 00:00 KST, today's first poll
     assert _run(_new(), start=(65_000.0, since)) == {("all", "DAILY_LOSS"): {"since": since}}
+    later = "2026-10-23T15:05:00Z"                                          # the slot is the day start's own utc
+    assert _run(_new(), start=(65_000.0, later)) == {("all", "DAILY_LOSS"): {"since": later}}
     assert _run(_new(), start=(64_999.0, since)) == {}                      # a loss of 4,999
     assert _run(_new(), start=None) == {}                                   # no day start: nothing to compare
 
@@ -459,6 +518,9 @@ def test_outage_on_the_third_failed_poll():
         ("upbit", "OUTAGE"): {"n": 3, "when": UTC}}
     assert _run(_new(kis=_failed("kis")), _prev(kis=checks.Prior(last_ok=None, fails=7))) == {
         ("kis", "OUTAGE"): {"n": 8, "when": UTC}}
+    # `when` is the failed snapshot's own utc, not the poll's clock.
+    assert _run(_new(upbit=_failed("upbit")), _prev(upbit=checks.Prior(last_ok=None, fails=2)),
+                now=NOW + timedelta(minutes=1)) == {("upbit", "OUTAGE"): {"n": 3, "when": UTC}}
     # Not an outage: KEY_MISSING and KIS_UNSIGNED already say why (E31, E42).
     assert _run(_new(upbit=_failed("upbit", KEYS_MISSING)), _prev(upbit=checks.Prior(last_ok=None, fails=9))) == {
         ("upbit", "KEY_MISSING"): {}}
@@ -472,6 +534,8 @@ def test_clock_skew_reads_the_offset_at_receipt():
     assert _run(_new(kis=kis(clock_offset_s=60.0))) == {}
     assert _run(_new(kis=kis(clock_offset_s=61.0))) == {("kis", "CLOCK_SKEW"): {"seconds": 61}}
     assert _run(_new(kis=kis(clock_offset_s=-61.4))) == {("kis", "CLOCK_SKEW"): {"seconds": 61}}
+    assert _run(_new(kis=kis(clock_offset_s=61.6))) == {("kis", "CLOCK_SKEW"): {"seconds": 62}}     # rounded
+    assert _run(_new(kis=kis(clock_offset_s=60.5))) == {("kis", "CLOCK_SKEW"): {"seconds": 60}}     # half to even
     # A correct clock: KIS answered 90 s after the poll started (read last, E39), with its clock 0.5 s ahead.
     late = kis(server_utc=model.iso_utc(NOW + timedelta(seconds=90)), clock_offset_s=0.5)
     assert _run(_new(kis=late)) == {}
@@ -523,6 +587,10 @@ def test_priors_end_a_fail_streak_at_missing_keys_or_unsigned_code():
     state = {"inquiry": rows(*[_failed("okx", KEYS_MISSING)] * 3), "alerts": []}
     out = _poll(state, _new(okx=_failed("okx")), NOW)
     assert out["prev"]["okx"].fails == 0 and ("okx", "OUTAGE") not in out["raw"], out
+    # The same once the code is signed: the first real KIS failure after unsigned polls counts from 0.
+    state = {"inquiry": rows(*[_failed("kis", UNSIGNED)] * 3), "alerts": []}
+    out = _poll(state, _new(kis=_failed("kis")), NOW)
+    assert out["prev"]["kis"].fails == 0 and ("kis", "OUTAGE") not in out["raw"], out
 
 
 def test_three_real_failures_raise_outage_and_a_recovery_clears_it():
@@ -575,6 +643,10 @@ def test_not_set_returns_only_listed_items_and_reaches_every_one():
                     assert len(set(items)) == len(items), items
                     seen |= set(items)
     assert seen == checks.NOT_SET_ITEMS, sorted(checks.NOT_SET_ITEMS - seen)
+    # code_unsigned is a KIS item only: on another venue it skips nothing.
+    owner = _owner()
+    upbit_unsigned = _new(upbit=_failed("upbit", UNSIGNED))
+    assert "KIS: code not signed" not in checks.not_set(upbit_unsigned, owner, checks.limits_from(owner, None), None)
 
 
 # --------------------------------------------------------------------------- #
@@ -653,6 +725,9 @@ def test_due_clears_only_evaluated_keys_and_a_cleared_key_fires_again():
     assert clears == [checks.Alert(venue="upbit", kind="FOREIGN_ORDER", level="clear", text_key="FOREIGN_ORDER",
                                    slots={})]
     assert checks.row(clears[0], UTC)["sent"] is True and checks.verify_row(_stored(clears, NOW)[0])
+    # An ok venue's OUTAGE evaluation is the recovery: it clears the poller's OUTAGE_CRASH too (contract 15.1).
+    crash = checks.Alert(venue="kis", kind="OUTAGE", level="amber", text_key="OUTAGE_CRASH", slots={"when": UTC})
+    assert _due_run([([crash], set()), ([], {("kis", "OUTAGE")})]) == [(["OUTAGE_CRASH"], []), ([], ["OUTAGE_CRASH"])]
 
 
 def test_a_flaky_venue_neither_clears_nor_refires_foreign_order():
@@ -702,6 +777,19 @@ def test_due_ignores_rows_that_do_not_verify():
     assert [a.text_key for a in fresh] == ["FOREIGN_ORDER"]               # no forged row mutes it
 
 
+def test_a_stamp_past_the_last_seoul_date_is_refused_and_never_raises():
+    # 9999-12-31T15:00:00Z is 10000-01-01 in Seoul, which datetime cannot hold: refused, never an OverflowError.
+    order = _alert("upbit", "FOREIGN_ORDER")
+    good = _stored([order], NOW)[0]
+    assert checks.verify_row(dict(good, utc="9999-12-31T14:59:59Z"))        # 9999-12-31 23:59:59 KST: still a date
+    late = dict(good, utc="9999-12-31T23:59:59Z")
+    assert checks.verify_row(late) is False
+    fresh, _clears = checks.due([order], frozenset(), [late], NOW)
+    assert [a.text_key for a in fresh] == ["FOREIGN_ORDER"]
+    forged = _forged(json.loads(snapshot.dump(_snap("upbit"))), utc="9999-12-31T23:59:59Z")
+    assert checks.day_start([forged], NOW) is None and checks.priors([forged])["upbit"].last_ok is None
+
+
 # --------------------------------------------------------------------------- #
 # Rows, priors and the day start
 # --------------------------------------------------------------------------- #
@@ -712,8 +800,9 @@ def test_row_sent_flags_and_shape():
         assert set(r) == {"kind", "level", "sent", "slots", "text_key", "utc", "venue"}
         assert r["sent"] is (level == "info") and (r["kind"], r["level"], r["utc"]) == (kind, level, UTC)
     clear = checks.Alert(venue="kis", kind="OUTAGE", level="clear", text_key="OUTAGE")
-    assert checks.row(clear, UTC) == {"kind": "OUTAGE", "level": "clear", "sent": True, "slots": {},
-                                      "text_key": "OUTAGE", "utc": UTC, "venue": "kis"}
+    later = "2026-10-24T00:05:00Z"                                          # the row carries the utc it is given
+    assert checks.row(clear, later) == {"kind": "OUTAGE", "level": "clear", "sent": True, "slots": {},
+                                        "text_key": "OUTAGE", "utc": later, "venue": "kis"}
     assert checks.row(_alert("kis", "FOREIGN_ORDER"), UTC)["sent"] is False
     assert checks.row(_alert("kis", "OUTAGE"), UTC)["sent"] is False
 
@@ -744,6 +833,7 @@ def test_verify_row_refuses_anything_else():
         dict(good, venue="binance"), dict(good, venue=["upbit"]),
         dict(good, sent="false"), dict(good, sent=0),
         dict(good, utc="2026-10-24 00:00:00"), dict(good, utc="2026-13-40T00:00:00Z"), dict(good, utc=None),
+        dict(good, utc="9999-12-31T23:59:59Z"),                             # no Seoul date (10000-01-01)
         dict(good, slots=dict(good["slots"], n=True)),                      # a bool in an int slot
         dict(good, slots=dict(good["slots"], n="2")),                       # a str in an int slot
         dict(good, slots=dict(good["slots"], n=2.0)),
@@ -879,7 +969,9 @@ FAIL execution_checks/import ImportError: cannot import name 'checks' from 'exec
 0/1 passed, 1 failed, 0 not run
 ```
 
-  and exit code 1.
+  and exit code 1 (the path in parentheses is the repo's `execution/__init__.py` as Python prints it). Any other
+  failure (a `NameError`, an `AttributeError` on `snapshot` or `positions`, a test failing) means an earlier task's
+  name differs from the Interfaces block: stop and rule (C0.6).
 
 - [ ] **Step 3: Implement**
 
@@ -1296,12 +1388,13 @@ def _has_start(limits: Limits) -> bool:
 
 
 def _is_stamp(value: object) -> bool:
-    """A model.iso_utc string that names a real instant (STAMP alone admits month 13)."""
+    """A model.iso_utc string that names a real instant with a Seoul date (STAMP alone admits month 13, and
+    9999-12-31T15:00:00Z and later overflow in KST)."""
     if not isinstance(value, str) or STAMP.fullmatch(value) is None:
         return False
     try:
-        _instant(value)
-    except ValueError:
+        _seoul(_instant(value))
+    except (ValueError, OverflowError):
         return False
     return True
 
@@ -1325,8 +1418,8 @@ def _seoul(moment: datetime) -> date:
 .venv/Scripts/python.exe -m tests.execution_acceptance execution_checks/
 ```
 
-  Expected: 40 `PASS execution_checks/test_...` lines, then `40/40 passed, 0 failed, 0 not run` (exit code 0; about
-  a second).
+  Expected: 43 `PASS execution_checks/test_...` lines, then `43/43 passed, 0 failed, 0 not run` (exit code 0; a few
+  seconds, almost all of it the per-test wrapper).
 
   Overlap check, then the execution guards, whose scans now include `execution/checks.py` (import allowlist, no clock,
   no write, no verb call, the token rules, no rebinding):
@@ -1347,7 +1440,9 @@ def _seoul(moment: datetime) -> date:
 ```
 
   Expected: `PASS compliance_store/test_code_files_is_the_import_closure`, then `1/1 passed, 0 failed, 0 not run`
-  (exit code 0).
+  (exit code 0). `0/0 passed` means an earlier plan renamed that test: find it with
+  `grep -n "def test_code_files" tests/compliance_store.py`, run it by its new name and record a one-line drift ruling
+  in the E1 execution ledger (C0.6).
 
   Overlap check, then the repo-wide read-only guards over the runtime surface, `execution/` included (T-RO-01,
   test_08, test_09; this calls the test functions directly and writes nothing):
@@ -1370,17 +1465,40 @@ git grep --untracked -n -E "CANO|KIS_ACCOUNT|ACNT_PRDT_CD|subprocess|multiproces
 
 - [ ] **Step 5: Commit**
 
+  First record in the ledger the two design notes that read C15.2 strictly ("`due` counts only rows that verify" and
+  "A stamp must name a real instant with a Seoul date"). Use the Edit tool and keep LF. The anchor is the
+  `## Deferred minors` heading. It occurs once, so any ruling lines that earlier tasks added above it stay as they
+  are. Old text:
+
+```text
+## Deferred minors
+```
+
+  New text:
+
+```text
+- Task 11 (C15.2 read strictly, no drift): `due` skips every alerts.jsonl row that `verify_row` refuses, and
+  `verify_row` (utc and TIME_SLOTS) and the inquiry-row loader need a real instant with a Seoul date, not only a
+  STAMP fullmatch, so a malformed or forged line can neither mute an alert nor crash a poll.
+
+## Deferred minors
+```
+
+  Then:
+
 ```bash
 git status --short
-git add execution/checks.py tests/execution_checks.py
+git add execution/checks.py tests/execution_checks.py docs/superpowers/plans/2026-10-24-e1-account-inquiry-execution-ledger.md
 git diff --cached --stat
 git diff --cached --stat --ignore-cr-at-eol
 ```
 
-  `git status --short` lists exactly the two new files (`?? execution/checks.py`, `?? tests/execution_checks.py`).
-  The two stat outputs must be identical (both files are LF). Then, with the trailer naming the model that writes
-  the commit (Global Constraints 0.4):
+  `git status --short` lists exactly three lines:
+  ` M docs/superpowers/plans/2026-10-24-e1-account-inquiry-execution-ledger.md`, `?? execution/checks.py` and
+  `?? tests/execution_checks.py`. The two stat outputs must be identical, and both must
+  read `3 files changed` (all three files are LF). Then commit. In the trailer, replace `<the committing model>` with
+  the name of the model that writes this commit, for example `Claude Sonnet 5.5` or `Claude Opus 5.5` (contract 0.4):
 
 ```bash
-git commit -m "feat(execution): poll checks, alert catalogue and the once-a-day rule" -m "Task 11: execution/checks.py (pure: no clock, no file, no network) and tests/execution_checks.py; execution/*.py is in the D14 code hash since Task 9, so the code hash changes again (nothing is signed yet)." -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+git commit -m "feat(execution): poll checks, alert catalogue and the once-a-day rule" -m "Task 11: execution/checks.py (pure: no clock, no file, no network) and tests/execution_checks.py, with the ledger noting the strict reading of C15.2; execution/*.py is in the D14 code hash since Task 9, so the code hash changes again; the owner signs the final hash after the plan (spec 12)." -m "Co-Authored-By: <the committing model> <noreply@anthropic.com>"
 ```

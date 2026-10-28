@@ -50,9 +50,11 @@ whatever it cannot price honestly.
 
 **Spec:** `docs/superpowers/specs/2026-10-23-compliance-gate-and-odds-engine-design.md` (rev 3.2). The owner's rulings
 of 2026-10-24 (O1 to O15) override it where they say so, as amended by the controller's round-2 rulings (R2-1 to R2-9
-and R2-13 for this plan), which win where they disagree. Every departure is a plan decision below, is listed under
-"For spec rev 3.3" (R2-3), and is folded into rev 3.3 at GPT's checkpoint after 2026-10-30 14:40. This plan does not
-wait for that check: a valid finding that touches built code becomes a new task with its own failing test.
+and R2-13 for this plan), which win where they disagree. The controller's round-3 rulings of 2026-10-28
+(`RULINGS_ROUND3`: G3-1 to G3-5 for both plans, O3-1 to O3-22 for this one) amend both and win over every task text.
+Every departure is a plan decision below, is listed under "For spec rev 3.3" (R2-3, O3-19), and is folded into rev 3.3
+at GPT's checkpoint after 2026-10-30 14:40. This plan does not wait for that check: a valid finding that touches built
+code becomes a new task with its own failing test.
 
 > This is research and software design, not legal or investment advice; TRADEGEN and its author are not licensed
 > advisors. The odds it prints describe rules the owner wrote, run in a model; a higher chance of reaching the target
@@ -60,9 +62,10 @@ wait for that check: a valid finding that touches built code becomes a new task 
 
 ## For spec rev 3.3
 
-The controller accepted these departures from rev 3.2 as plan decisions (R2-3). Each one makes a check stricter or
-makes a printed claim true where the spec's fixed text could be false. They are listed here so the owner and GPT's
-check after 2026-10-30 14:40 see them; Task 19 folds them into rev 3.3.
+The controller accepted these departures from rev 3.2 as plan decisions (R2-3; the round-3 ones by O3-19, one bullet
+each). Each one makes a check stricter or makes a printed claim true where the spec's fixed text could be false. They
+are listed here so the owner and GPT's check after 2026-10-30 14:40 see them. Task 19 hands them to the rev 3.3
+fold, a docs change on main after GPT's check (T19-5); no task of this plan edits the spec.
 - 4 "Layout": `bars.py` moves to the unsigned sibling `core/oddsdata/`. The signed core copies what it runs from the
   repo, each copy with an equality test, and takes the rest as passed-in data whose hashes it recomputes where it
   can. `repo_anchor` and `tree_hash` come from copies in `core/oddsdata/inputs.py`, with equality tests (Q1, O1, R2-6).
@@ -84,9 +87,38 @@ check after 2026-10-30 14:40 see them; Task 19 folds them into rev 3.3.
   hand-off gives it to E2 (Q46 item 6, R2-4).
 - 9 spread members: `garch_refit` pilot-checks each of its 20 refits and is dropped if any fails (Q31, R2-8).
 - O3's wording, not the spec: `calendar_in_force` and `_calendar_line` share `_calendar_approval` (Q19).
+- 7.1 legs (O3-6): MULTI_LEG_UNSUPPORTED is for two or more legs; an empty legs list or a non-Leg item is
+  UNSUPPORTED_PRODUCT sub `file`.
+- 4 "Bars" (Task 15): each series is dated on its own market's date (the KRX date for KIS, the New York date for US
+  bars, Yahoo's own date for KRW=X, the UTC date for crypto); `simulate` applies the Seoul close date d + 1 where it
+  dates a check (Q6, Q22).
+- 7.2 and 7.3 (O3-17, Task 10): a daily-loss breach stops trading for the rest of that Asia/Seoul date whatever names
+  the exit; `worst_gap` counts a locked stop's queued fill; `force_exit_from` also blocks entries; the delisting sale
+  pays the normal exit charge at p(1 - h); an entry at the limit-up price fills (spec 7.2 locks only exits).
+- 7.5 number formats (Task 12 D1): `fmt_order` takes its format from the ceiling c, not from lb, so a red
+  CEILING_BREACH card never prints its ceiling as "0.00%".
+- 7.5 ceiling (Task 12 D2): every rendered ceiling below 1% is the exact "1 in N" of `bold.ceiling_one_in`, never
+  1/c of the float ceiling floored, which can come out one off.
+- 7.5 flags (Task 12 D3, O3-10): ABOVE_ESTIMATED_REFERENCE and BELOW_RESOLUTION read `headline.reached`, the plain
+  first-passage count, on both tracks.
+- 7.5 HIDDEN_EDGE (O3-18): the range fixed before the run is set in `simulate._column` right after `run_column`
+  (Task 14), and two columns compare with a nan `x_range` read as 0.0.
+- 7.5 replay card (O3-15, Task 17): the growth line uses h = checks - 1 = 29 daily moves on a 30-day horizon ("2.9%"
+  against "2.6%"), the column the engine runs; `block_growth(R1, 10, 30) = 1.029918` stays a separate pin.
+- 7.5 "Comparing plans" (Task 18): the CLI loads one `owner.load_context` per distinct stake in an invocation, not one
+  per plan; within one invocation those contexts are equal.
 Two changes are not departures. The KRX stock sell floor now follows spec 4 "Costs" literally: the tax sits inside
 `cost_per_side`'s floor (R2-1). A replay leg needs only the signed lot and minimum, as spec 7.2 says (R2-5, so Q46
 item 7 is withdrawn).
+
+Stated and accepted limits (round 3; none loosens a check):
+- O3-14: a KRX or US plan run after owner acts 1 to 3 and 5 but before act 4 makes its read-only quote calls before
+  `simulate` refuses CALENDAR_UNSIGNED. They are quote reads only, as cockpit test_21 already makes; no account or
+  order call.
+- O3-17: an entry at the limit-up price fills in the odds engine, while `core/engine/orders.simulate_fill` refuses
+  it. It is recorded as a deferred minor and handed to E3, whose adapters use the venue's own answers.
+- O3-22: `first_stake = floor_units(cap x W0) x p0` can exceed cap x equity by one ulp, which the gate would BLOCK as
+  "cap exceeded". It is handed to E2, with the limit-up entries.
 
 ## Global Constraints
 
@@ -124,6 +156,18 @@ map.
 - One suite: `.venv/Scripts/python.exe tests/run_all.py --suite odds` (or `compliance`, `cockpit`). This rewrites the
   tracked `qa/acceptance_results.json`. Restore it with `git checkout -- qa/acceptance_results.json` afterwards. Only
   Task 19 commits that file.
+- KEYLESS: every `tests/run_all.py` command (any `--suite`, cockpit included, and the full run) starts with this
+  prefix right before `.venv/Scripts/python.exe`:
+  `KIS_APP_KEY='<unset>' KIS_APP_SECRET='<unset>' KIS_ACCOUNT_8='<unset>' KIS_ACCOUNT_PD='<unset>' UPBIT_ACCESS_KEY='<unset>' UPBIT_SECRET_KEY='<unset>' OKX_API_KEY='<unset>' OKX_API_SECRET='<unset>' OKX_API_PASSPHRASE='<unset>' OPENDART_API_KEY='<unset>' KRX_API_KEY='<unset>' FMP_API_KEY='<unset>' ANTHROPIC_API_KEY='<unset>' GS_CLIENT_ID='<unset>' GS_CLIENT_SECRET='<unset>' FINVIZ_API_KEY='<unset>' ALPACA_API_KEY='<unset>' ALPACA_SECRET_KEY='<unset>' FXMACRODATA_API_KEY='<unset>'`
+  `load_dotenv` never overrides a set variable and `config._clean` reads `<unset>` as unset, so cockpit test_21
+  cannot call KIS or OpenDART and no KIS token is issued. The cockpit count stays 47/47 (test_21 only checks that a
+  reason is given). Never read or print a value from `.env`.
+- Timeouts: every `.venv/Scripts/python.exe -m tests.*` command gets the Bash tool `timeout: 300000`; every
+  `--suite odds` and `--suite compliance` command gets `timeout: 600000`, and `--suite cockpit` `timeout: 300000`.
+  Each `--suite` command runs as its own Bash command and ends with the restore chained by `;`, never `&&`:
+  `; echo "exit $?"; git checkout -- qa/acceptance_results.json`. The 120 s default kills `compliance_store/` and
+  the odds suite, and a killed command skips whatever is chained after it. A task that does not repeat these rules
+  inherits them, as it inherits the overlap check.
 - After every task that touches `core/compliance`, `core/odds` or `tests/compliance_*`: also
   `-m tests.compliance_acceptance compliance_guards/` and `compliance_store/`.
 - After every task that changes `core/`: the core-wide scans `-m tests.macro_m0_harness`, `-m tests.macro_tf_gov`,
@@ -141,6 +185,10 @@ map.
 - Work on branch `odds-engine`, which Task 1 creates from main's HEAD after the compliance follow-up has merged.
   Commit once per task. End each commit message with the `Co-Authored-By:` line of the model that wrote the commit;
   this controller's is `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
+- Pushing (round-3 ruling G3-3; the repo is public by the owner's choice): after each task's review passes, the
+  controller pushes the branch (`git push -u origin odds-engine` the first time, `git push` after that). No subagent
+  pushes. The plan ends in one pull request (Task 19 Step 10); merging it stays the owner's choice
+  (superpowers:finishing-a-development-branch).
 - Execution ledger: `docs/superpowers/plans/2026-10-24-odds-engine-execution-ledger.md` (LF). Task 1 starts it; it
   holds the merged line numbers, every drift ruling, the R2-9 margins and the runs. It stays untracked until Task 19
   commits it, so a `git status --short` check allows exactly that one `??` line.
@@ -229,7 +277,8 @@ drafter decisions where spec and rulings are silent, and Q46 lists the departure
 A decision the round-2 rulings amend or accept names its R2 item. None of them loosens anything: R2-1 removed the one
 place where a ruling charged less than the repo's own cost function. GPT's checkpoint reads this list together with
 the spec. The full text of each, and the map from the DIGEST's design questions DQ1 to DQ32 to the decision that
-answers it, is in Appendix A section 1 (the interface contract).
+answers it, is in Appendix A section 1 (the interface contract). The round-3 rulings G3-1 to G3-5 and O3-1 to O3-22
+follow Q46.
 
 - Q1 (OWNER, O1) Everything injected: signed core `core/odds/{plan,costs,models,simulate,bold,report}.py` plus
   `venues.yaml`; unsigned `core/oddsdata/{bars,replay,inputs,run}.py`; copies with equality tests (the provenance
@@ -306,6 +355,80 @@ answers it, is in Appendix A section 1 (the interface contract).
   handed to E2, new refusals, HIDDEN_EDGE unavailable with no finite range; item 7 withdrawn by R2-5). The list above
   under "For spec rev 3.3" spells them out.
 
+The controller's round-3 rulings of 2026-10-28 (`RULINGS_ROUND3`) rule the open issues the task drafters reported.
+Each accepts a reading that refuses more or fixes which task owns a piece of work; none loosens a check. Where a task
+text and one of them differ, the ruling wins. For both plans:
+- G3-1 Expected counts: every count a task prints comes from the drafts, not from a run on the merged tree. A run with
+  0 failed and a different count passes; the executor writes its count and the reason in the ledger. A FAIL never
+  passes.
+- G3-2 Time budgets: a module over its target (Appendix A 3.4) is recorded in the ledger with its measured time; no
+  test is weakened or dropped to fit. A module over twice its target is a ruling for the controller, who may split it.
+- G3-3 Pushing: the controller pushes `odds-engine` after each task's review passes and opens one pull request at the
+  end; no subagent pushes (Global Constraints, "Files, line endings and commits").
+- G3-4 Real-home watch: a run that spans 09:00 to 09:10 KST can see the daily alert job write to the real
+  `~/.tradegen/compliance` or `~/.tradegen/execution`. Write one ledger line and rerun outside that window.
+- G3-5 The drafting sandboxes (repo copies under the scratchpad, about 165 MB) are not plan material.
+For this plan:
+- O3-1 Task 1's stricter readings: `_CORE_ALSO_BANNED` binds `core/odds` only; `core.compliance` imports are limited
+  to model, rules, gate and owner; `core/odds` holds only the Q1 files, `venues.yaml` and `__pycache__`; the name
+  `open` counts as file I/O when read. Binding on Tasks 5 to 14: no local name `open` in `core/odds`.
+- O3-2 Task 1 imports `CG._suite_names` from `tests.compliance_guards` (the name is fixed for E1 too).
+- O3-3 `tests/odds_acceptance._main` imports `tests.odds_acceptance as suite`, so `REAL_SEAMS` is the imported
+  module's; Task 15's seam tests depend on it.
+- O3-4 Task 3: `effective_from: "2026-10-02"` (the research note's as-of date) is the conservative date; the owner
+  may sign a better-sourced one. The kis lot and min_order cite
+  `research_notes/Korean resident trading venue legality/domestic_securities_derivatives.md` line 161 (Appendix A
+  4.2; Task 3's `_T5_KIS_LOTS` pins that path).
+- O3-5 Task 4: `calendar_in_force` checks the whole owner state (stricter than the old line). The unused
+  `import contextlib` in `tests/compliance_store.py` stays, because the follow-up's Edit T0 anchors on it.
+- O3-6 Task 5: the `series()` fixture defaults to `start=None` (the walk ends the day before the plan's start);
+  MULTI_LEG_UNSUPPORTED is for two or more legs; an empty legs list or a non-Leg item is UNSUPPORTED_PRODUCT sub
+  `file`. Task 18's `load_plans` turns JSON ints for `stake_krw`, `target_krw` and `fx_krw_per_usd` into floats and
+  builds `Plan(leg=<Leg>)` from a one-item list. Appendix A 3.2, 5.3 and 14.2 follow.
+- O3-7 STATE_UNUSABLE sub `code` and LIMITS_UNSET sub `cap` have no `sub.*` text: Task 12's render prints the code's
+  `why.*` sentence and ignores a sub that has no `sub.*` key.
+- O3-8 Task 6: an OKX cap that is not a finite number in (0, 1] gives `first_stake` 0.0, never TypeError (the gate's
+  `_cap` rule); `kappa_bound` runs over every distinct date and returns `math.inf` for `p_min <= 0`, which Tasks 12
+  and 14 render as `hidden.unbounded`; the ladder `effective_from` check runs on every ladder.
+- O3-9 Task 11's engine-run test makes one run, one chunk of 20,000 paths through `OF.chunk(20_000)`, on Terms built
+  directly with every contract 6.2 field (T11-2, T11-3). It asserts `col.rungs == (k, k, k, 0, k)` and
+  `-1e-6 <= excess <= 0.01` beside the 99.9% Clopper-Pearson check. "Leaves no path running" and "some path ends
+  within KRW 1 of T" are dropped: a lot of 1e-12 BTC with a KRW 0 minimum never reaches the floor. A failure is a
+  ruling, never a reseed. Appendix A 16.1 follows.
+- O3-10 Task 12: the catalogue keys `label.yes` and `label.no` join contract 10.4 (193 keys) and the catalogue sha
+  pin; `flags_for` reads `headline.reached`. Task 12 renders the replay card lines; Task 17 fills the `replay`
+  mapping only and never edits `render` (DRIFT RULE if the lines are already there).
+- O3-11 Task 14 wires `report.hidden_range` into bootstrap columns before passing `hidden_edge(headline)`, so a
+  bootstrap card never prints the GARCH-t sentence; the consistency check confirms it.
+- O3-12 Task 15: `read_cached(source, symbol, start, end)` and `write_cached(part, start, end, now)`, the key's end
+  being the first non-final date; a manifest line that does not parse fails the cache closed.
+- O3-13 Task 16: the KR md5s are in file-id order (`holidays_KRX`, `kr_regime_tags`, `kr_sessions`), and Tasks 12 to
+  14 and 18 follow that order; `begin_run`'s extra ValueErrors before any write are accepted.
+- O3-14 Task 18: `--help` exits 0; one `replay_s_c3()` result serves every replay plan of one invocation (its inputs
+  are the same cache). The quote reads a KRX or US plan makes before CALENDAR_UNSIGNED are a stated limit (above).
+- O3-15 Task 17's replay growth line uses h = checks - 1 = 29 daily moves on a 30-day horizon ("2.9%" against
+  "2.6%"), because that is the column the engine runs; `block_growth(R1, 10, 30) = 1.029918` stays a separate pin.
+  Appendix A Q38 and 16.1 follow; "For spec rev 3.3" carries it.
+- O3-16 `simulate.context_provenance(ctx)` is public (Task 13). Task 18 passes it to the CLI's own refusal cards, so
+  every card it prints carries provenance except the loader's card, which has no context.
+- O3-17 Task 10's readings are accepted and listed under "For spec rev 3.3"; the limit-up entries, which
+  `core/engine/orders.simulate_fill` refuses, are a deferred minor handed to E3 (a stated limit, above).
+- O3-18 The HIDDEN_EDGE range is set in `simulate._column` right after `run_column` (Task 14), not inside
+  `run_column`; `ColumnStats` compare through
+  `dataclasses.replace(col, brackets=None, x_range=0.0 if math.isnan(col.x_range) else col.x_range)` (Tasks 9, 13).
+  Both are Appendix A 10.1 and 10.3 errata.
+- O3-19 Every departure the drafts point at is one bullet under "For spec rev 3.3". Task 12 D4 (`label.yes`,
+  `label.no`, 193 keys) and D5 (`replay.noedge` right after the model line of a replay card) are Appendix A 10.4
+  errata.
+- O3-20 File ownership follows the tasks (the file map below and Appendix A 2): `tests/odds_fixtures.py` Tasks 1, 5,
+  9, 13 and 14 (Task 13 adds `calendar_signed`, `CAL_SHA`, `spy`, `owner_with`, `fresh_series`, `weekdays`,
+  `pipeline_inputs`, `pipeline`; Task 14 adds `members`, `garch_series`); `core/odds/report.py` Tasks 9 and 12;
+  `tests/odds_simulate.py` Tasks 9, 10, 17; `tests/odds_pipeline.py` Tasks 13, 14, 17.
+- O3-21 Measured margins that differ from the contract's sandbox numbers but still hold (Task 8's R2-9 margins on
+  the real pilot stream) are accepted; the executor records the printed values under "Runs".
+- O3-22 E2 hand-off items from the odds drafts: the one-ulp `first_stake` overshoot of the OKX cap and the odds
+  engine's limit-up entries (O3-17); both are stated limits (above).
+
 ## File map
 
 | Path | Status | Task(s) | Responsibility |
@@ -316,7 +439,7 @@ answers it, is in Appendix A section 1 (the interface contract).
 | `core/odds/models.py` | create | 7, 8, 17 | block length, index generator, two-point kernel, seeds, GARCH-t copy and pilot, D13 pins, Kelly, block growth |
 | `core/odds/simulate.py` | create | 9, 10, 13, 14, 17 | the path engine, the pipeline, the columns and the spread |
 | `core/odds/bold.py` | create | 11 | ceiling, structural maximum, bracket reference, brackets needed, exact bold play |
-| `core/odds/report.py` | create | 9, 12, 13, 14, 17 | column stats, statistics and number formats, flags, the sentence catalogue, rendering, the language guard |
+| `core/odds/report.py` | create | 9, 12 | column stats, statistics and number formats, flags, the sentence catalogue, rendering, the language guard |
 | `core/odds/venues.yaml` | modify | 3 | the sourced lots, minimums and KRX stock ladder (draft; needs the owner's approval) |
 | `core/oddsdata/__init__.py` | create (0 bytes) | 1 | package marker |
 | `core/oddsdata/bars.py` | create | 15 | data seams, loaders, finality, KRW composition, the bars cache |
@@ -327,11 +450,15 @@ answers it, is in Appendix A section 1 (the interface contract).
 | `core/compliance/owner.py` | modify | 4 | `calendar_in_force` |
 | `core/compliance/gate.py` | modify | 4 | `grey_rows` |
 | `tests/odds_acceptance.py` | create | 1 | suite aggregator, wrapper, seams and `REAL_SEAMS`, watches, `-m` runner |
-| `tests/odds_fixtures.py` | create | 1, 5, 9, 13 | swaps, fixture venues, series, plans, contexts, inputs |
+| `tests/odds_fixtures.py` | create | 1, 5, 9, 13, 14 | swaps, fixture venues, series, plans, contexts, inputs, pipeline runs, spies, members |
 | `tests/odds_guards.py` | create | 1 | odds-own static guards, closure test, registration, harness self-tests |
-| `tests/odds_plan.py`, `odds_costs.py`, `odds_models.py`, `odds_garch.py`, `odds_simulate.py`, `odds_locks.py`, `odds_bold.py`, `odds_report.py`, `odds_pipeline.py`, `odds_columns.py`, `odds_bars.py`, `odds_inputs.py`, `odds_replay.py`, `odds_cli.py` | create | 5 to 18 | one test module per task |
+| `tests/odds_simulate.py` | create | 9, 10, 17 | the path engine's tests (O3-20) |
+| `tests/odds_pipeline.py` | create | 13, 14, 17 | the pipeline's tests (O3-20) |
+| `tests/odds_plan.py`, `odds_costs.py`, `odds_models.py`, `odds_garch.py`, `odds_locks.py`, `odds_bold.py`, `odds_report.py`, `odds_columns.py`, `odds_bars.py`, `odds_inputs.py`, `odds_replay.py`, `odds_cli.py` | create | 5 to 18 | one test module per task |
 | `tests/compliance_tables.py`, `tests/compliance_gate.py`, `tests/compliance_fixtures.py`, `tests/compliance_store.py` | modify | 2, 3, 4 | compliance-side tests and the moved fixtures |
-| `tests/run_all.py`, `README.md` | modify | 1, 19 | register the `odds` suite; record the full run |
+| `tests/run_all.py` | modify | 1 | register the `odds` suite |
+| `README.md` | modify | 1, 19 | register the `odds` suite; record the full run |
+| `qa/acceptance_results.json` | modify (full run only, CRLF; restored after every other run) | 19 | the committed record of the KEYLESS full run |
 | `docs/superpowers/plans/2026-10-24-odds-engine-execution-ledger.md` | create (untracked until Task 19) | 1, every task, 19 | merged line numbers, drift rulings (R2-13), R2-9 margins, runs |
 
 No `tests/macro_*.py` file changes: the odds twins of the macro state-path test live in `tests/odds_bars.py` and
@@ -341,14 +468,16 @@ No `tests/macro_*.py` file changes: the odds twins of the macro state-path test 
 
 1. None inside the plan: no download, no install, no signature and no scheduled task is needed.
 2. **After this plan: the owner acts of spec section 11 that the odds engine needs.** Until they are done, every odds
-   run is refused (STATE_UNUSABLE, LIMITS_UNSET, CALENDAR_UNSIGNED or NOT_TRADABLE); that is the designed safe
-   default, not a fault:
+   run is refused (STATE_UNUSABLE, LIMITS_UNSET, CALENDAR_UNSIGNED, NOT_TRADABLE or, for OKX, SCREEN_BLOCKED); that
+   is the designed safe default, not a fault:
    - set up the signer and sign the code hash (owner acts 1 and 2);
    - add explicit fixed charges (`fee_extras`, 0 allowed) and the missing lots to `core/odds/venues.yaml`, then
      approve the venues file with the rules table and the instrument map (owner act 3); the S_C3 replay leg needs
      only the Upbit lot beside the shipped Upbit minimum (R2-5);
    - sign the calendar set (owner act 4; only crypto plans run until then);
    - set `total_loss_floor_krw`, `daily_loss_krw` and `okx_equity_share` (owner act 5; they take effect from the next
-     Asia/Seoul day).
+     Asia/Seoul day);
+   - record `age_of_majority` and the withdrawal entries (owner act 6; KR-OKX-SPOT requires it, so only OKX plans
+     wait for it).
 
 ---

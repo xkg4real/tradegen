@@ -40,14 +40,18 @@ on 2026-10-24. The gate's rules come from `docs/superpowers/specs/2026-10-23-com
 (rev 3.2). The E1 rulings X1 to X9 fill the spec's gaps and are restated below as E1 to E9. The controller's
 round-2 rulings E1R2-1 to E1R2-12 (2026-10-25) amend them and rule every open issue (listed at the end). The plan is
 written against `main` at `5816d3c` and executes third, after the compliance follow-up and the odds plan (X1).
+The controller's round-3 rulings of 2026-10-28 (G3-1 to G3-5 for both plans, E3-1 to E3-8 for this one) rule the
+open issues the task drafters reported; where a task's text and one of them differ, the ruling wins (Decisions).
 
 **For E1 spec rev 2.** Three round-2 rulings depart from the approved spec rev 1. The plan builds them as ruled;
 the spec's next revision should take them in:
 - **E1R2-3, evidence written on change (spec 6).** `evidence.jsonl` gets a record for a requirement only when its
-  `met` value changes, or when its last record is dated on an earlier Asia/Seoul date (a daily heartbeat on the first
-  poll of each Seoul day), instead of one record per requirement per poll: about four lines a day instead of about
-  1,150. The lifting, re-blocking and 7-day expiry rules of spec 6 are unchanged, and a test proves the fold gives the
-  same `live_evidence` as one record per poll would on the same history (E18, Task 10).
+  `met` value changes, or when its last record is dated on another Asia/Seoul date than the poll's (normally an
+  earlier one, a daily heartbeat on the first poll of each Seoul day; a record dated ahead after a clock correction is
+  re-stamped at once, where the ruling's "earlier" would keep it; Task 10 Design note 5), instead of one record per
+  requirement per poll: about four lines a day instead of about 1,150. The lifting, re-blocking and 7-day expiry
+  rules of spec 6 are unchanged, and a test proves the fold gives the same `live_evidence` as one record per poll
+  would on the same history, a clock stepped back included (E18, Task 10).
 - **E1R2-4, daily inquiry files (spec 4 "State files").** Inquiry records go to `execution/inquiry-YYYYMMDD.jsonl`,
   one file per Asia/Seoul date of the poll, in place of the single `inquiry.jsonl`; nothing is ever deleted, and each
   poll opens only yesterday's and today's files (E30, Tasks 4 and 12).
@@ -80,6 +84,21 @@ the spec's next revision should take them in:
   (1 in 2,000 with the floor at half the stake), and the research puts the practical chance of 1,000x in a month at
   0.01% or less.
 
+**Stated limits the round-3 rulings accept** (2026-10-28; none loosens a check):
+- **An empty account (E3-5).** `live_positions` gives `Positions(equity_krw=0.0)` for an account that holds nothing,
+  so FLOOR can still fire on it, while the gate's `owner._positions_problem` refuses `equity_krw <= 0`. E1 never
+  passes live positions to `load_context` (E24), so this binds nothing here; it is an E2 hand-off item.
+- **An OKX algo row without `px` (E3-4).** Algo orders are read with `price=px or None`. OKX names the prices of some
+  algo types otherwise, so such a live row fails OKX closed until a follow-up reads those fields (E1R2-5).
+- **The signed-home memo (E3-8).** Task 12's tests memoise the signed `load_context` per Seoul date to fit the 60 s
+  suite budget (its `ponytail:` comment names the ceiling); the E24 test still runs the real function unsigned. If
+  the suite still runs over 60 s, G3-2 applies: the ledger records the time and no test is weakened.
+- **Loss alarms need all three venues.** FLOOR, DAILY_LOSS and OKX_CAP stay off (recorded on the PC only, E43)
+  until the signed limits exist and KIS, Upbit and OKX all read ok; Task 14 tells the owner so in plain words.
+- **The 09:00 window (G3-4).** The real-home watch can see the daily alert job write to the real
+  `~/.tradegen/compliance` or `~/.tradegen/execution` between 09:00 and 09:10 KST. A run that spans that window gets
+  one ledger line and is rerun outside it.
+
 > This is software design, not legal, tax or investment advice. Neither TRADEGEN nor its author is a licensed
 > advisor.
 
@@ -100,9 +119,11 @@ Every task's requirements include this section. It is section 0 of the E1 interf
   (spec 12).
 
 ### 0.2 The never-live rule
-- No test and no plan step makes a network call to any venue, with one exception: the owner-gated first live
-  `python -m execution.poll --once` at the very end of the plan (Task 14), run only after the owner says in chat that
-  the keys are in `.env`.
+- No test and no plan step makes a network call to any venue, except the owner-gated live
+  `python -m execution.poll --once` runs of Task 14. The first runs only after the owner says in chat that the keys
+  are in `.env` (Step 5). The first live KIS read runs only after the owner says in chat that the code is signed
+  (Step 6). Any later one runs only when the owner asks for it in chat (Step 5 item 6). Each is `--once`, never the
+  loop, never under the KEYLESS prefix.
 - Every E1 test runs with `execution.transport._send` replaced by a refusing stub (section 3); a probe test proves an
   unpatched send is refused under the suite.
 - No test starts a process that imports `execution` (`subprocess`, `os.system`, `os.popen`, `multiprocessing`,
@@ -144,6 +165,8 @@ Every task's requirements include this section. It is section 0 of the E1 interf
   `.venv/Scripts/python.exe -c "from tests.macro_m0_harness import test_t_ro_01_no_order_cancel_withdrawal_or_transfer_path as t, test_t_ro_01_orders_module_reached_only_through_the_engine as u; t(); u(); print('T-RO-01 ok')"`.
   Never run `python -m tests.macro_acceptance` (its `__main__` resyncs the registry).
 - Never run two suites at once. The E1 suite stays under 60 s (X8).
+- Give every `--suite` command the Bash tool's `timeout: 300000`; `--suite odds` and the full run (Task 13) get
+  `timeout: 600000`, and the full run, which takes longer than that, runs with `run_in_background`.
 
 ### 0.4 Files, line endings and commits
 - New files are UTF-8, no BOM, LF endings.
@@ -159,6 +182,9 @@ Every task's requirements include this section. It is section 0 of the E1 interf
 - Commit once per task with the repo-local identity. End each message with a trailer naming the model that wrote
   the commit, for example `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>` or
   `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`.
+- Pushing (round-3 ruling G3-3; the repo is public by the owner's choice): after each task's review passes, the
+  controller pushes the branch (`git push -u origin e1-account-inquiry` the first time, `git push` after that). No
+  subagent pushes. The plan ends in one pull request; merging it stays the owner's choice.
 - Work on branch `e1-account-inquiry`; Task 1 creates it with `git switch -c e1-account-inquiry` from an up-to-date,
   clean `main`.
 
@@ -284,8 +310,9 @@ this change"; a line number is a hint at `5816d3c`, never the anchor. Before eac
 
 The tasks cite these as E1 to E43. E1 to E9 restate the rulings X1 to X9; E10 on are this plan's own; E1R2-n
 marks where a round-2 ruling amended one. None of them loosens anything. The full interface contract (module names,
-signatures, record formats, the catalogue, the anchors) is the E1 CONTRACT the tasks were drafted against; where a
-task's text and the contract differ, the task wins.
+signatures, record formats, the catalogue, the anchors) is the E1 CONTRACT the tasks were drafted against (Appendix
+A); where a task's text and the contract differ, the task wins. The round-3 rulings G3-1 to G3-5 and E3-1 to E3-8,
+listed after E43, win over both.
 
 - **E1 (X1) Order and drift.** E1 runs third, after the compliance follow-up and the odds plan have merged; branch
   `e1-account-inquiry` from that day's main. The DRIFT RULE of 0.6 binds every edit. The suite-list literal guard
@@ -426,8 +453,9 @@ task's text and the contract differ, the task wins.
   research kis.md 5.1 (`tot_evlu_amt` = securities + D+2 deposit).
 - **E17 Positions fail closed.** `live_positions(snapshots, now)` (the 15-minute rule needs `now`) returns `None` when
   any of the three venues is missing, not ok, stamped more than 15 minutes before `now` or after it, holds a symbol or
-  cash currency without a KRW price, or has a negative value. KIS overseas covers the US only (`OVRS_EXCG_CD=NASD`,
-  `TR_CRCY_CD=USD`), matching the instrument map; each KIS list is read on its first page only
+  cash currency without a KRW price, or has a negative value, and when a venue sum is not finite (E3-5). KIS
+  overseas covers the US only (`OVRS_EXCG_CD=NASD`, `TR_CRCY_CD=USD`), matching the instrument map; each KIS list is
+  read on its first page only
   (`# ponytail: first page only; a 51st holding or 101st fill is missed; add tr_cont paging when the account grows`).
   Source: spec 6, research kis.md 4.8.
 - **E18 Evidence, exactly.** The vocabulary is the four E1 items with their thresholds, owned by owner.py:
@@ -436,8 +464,9 @@ task's text and the contract differ, the task wins.
   with `value_krw >= threshold`, breaks the chain, so `live_evidence = frozenset()`. Each poll with an ok KIS
   snapshot judges every requirement it can and appends a record for a requirement only when that requirement has no
   record yet, when its `met` differs from the requirement's last record, or when that last record's own `utc` falls
-  on an earlier Seoul date than the poll's `now` (a daily heartbeat on the first such poll of each Seoul day). This is
-  E1R2-3 (spec rev 2), replacing spec 6's one record per requirement per poll (about 1,150 lines a day at 5-minute
+  on another Asia/Seoul date than the poll's `now` (normally an earlier one, a daily heartbeat on the first such poll
+  of each Seoul day; a record dated ahead after a clock correction is re-stamped at once; Task 10 Design note 5).
+  This is E1R2-3 (spec rev 2), replacing spec 6's one record per requirement per poll (about 1,150 lines a day at 5-minute
   polls, each re-verified by every `load_context`); it writes about four lines a day plus one per change. The fold
   below is unchanged and gives the same `live_evidence` as one record per poll would on the same history: the latest
   record has the same `met` and the same Seoul date (the heartbeat dates it on the last polled day), and the met run
@@ -484,10 +513,10 @@ task's text and the contract differ, the task wins.
   live positions are never passed in. Source: spec 4 step 5 "the owner state (load_context)", spec 6.4 "every caller
   goes through load_context", E1R2-9.
 - **E25 OKX classification.** Algo orders: one `orders-algo-pending` call per `ordType` in `("conditional", "oco",
-  "trigger", "move_order_stop", "iceberg", "twap", "chase")`. A `MARGIN` position counts as a loan (D15); a `SWAP`,
-  `FUTURES` or `OPTION` position with `pos != "0"` sets flag `derivative_position`; `instType == "EVENTS"` in any
-  position, open order or fill sets flag `EVENTS`; a `pos == "0"` row is ignored. Source: okx.md 5.2, 5.5, skeptic
-  corrections 6-8.
+  "trigger", "move_order_stop", "iceberg", "twap", "chase")`. A `MARGIN` position counts as a loan (D15); any other
+  non-EVENTS position with `pos != "0"` (`SWAP`, `FUTURES`, `OPTION` and any type OKX adds; E3-4) sets flag
+  `derivative_position`; `instType == "EVENTS"` in any position, open order or fill sets flag `EVENTS`; a
+  `pos == "0"` row is ignored. Source: okx.md 5.2, 5.5, skeptic corrections 6-8, E3-4.
 - **E26 Loans and earn.** KIS loans: `tot_loan_amt` (inquire-balance output2), the sum of `loan_amt` (output1),
   `crdt_fncg_amt` and `thdt_rcvb_amt` (asset summary), `rcvb_amt` (integrated margin). OKX loans: each
   `details[].liab`, each flexible-loan `loanData[].amt`, each MARGIN position. OKX earn: each Simple Earn `amt`, the
@@ -590,6 +619,42 @@ task's text and the contract differ, the task wins.
   PC. Each item is one of `checks.NOT_SET_ITEMS`, which `verify_row` checks. No new file: spec 4's state files stay
   as listed, with E30's daily inquiry files. Source: E1R2-12.
 
+The controller's round-3 rulings (2026-10-28) rule the open issues the task drafters reported. Each accepts a reading
+that refuses more or fixes which task owns a piece of work; none loosens a check. Where a task's text and one of
+them differ, the ruling wins. For both plans:
+- **G3-1 Expected counts.** Every count a task prints comes from the drafts, not from a run on the merged tree. A run
+  with 0 failed and a different count passes; the executor writes the run's count and the reason in the ledger. A
+  FAIL never passes.
+- **G3-2 Time budgets.** A module over its target (the E1 suite: 60 s, X8) is recorded in the ledger with its
+  measured time; no test is weakened or dropped to fit. Over twice its target is a ruling for the controller, who
+  may split it.
+- **G3-3 Pushing.** The repo is public (owner, 2026-10-24). The controller pushes the feature branch after each
+  task's review passes and opens one pull request per plan at the end; merging stays the owner's choice
+  (superpowers:finishing-a-development-branch). No subagent pushes. Global Constraints 0.4 gives the commands.
+- **G3-4 Real-home watch.** A run that spans 09:00 to 09:10 KST can see the daily alert job write to the real
+  `~/.tradegen/compliance` or `~/.tradegen/execution`. Write one ledger line and rerun outside that window.
+- **G3-5 Sandbox leftovers.** The drafting sandboxes under the scratchpad (repo copies, about 165 MB) are not plan
+  material and are not copied into the WIP folder.
+For this plan:
+- **E3-1 Task 1's stricter guards** are accepted: the extra `os` write calls, `Path.symlink_to` and `hardlink_to`, a
+  one-argument `.replace()`, a non-constant open mode, an uncalled `os.system`, the import allowlist forms.
+- **E3-2 Task 4's file helpers.** `write_lines` opens `"a+b"`; `load` turns `RecursionError` into `ValueError`;
+  `Snapshot.flags` becomes a frozenset. Binding on Tasks 10 and 12: `write_lines` is called only inside
+  `exclusive()` on the same folder.
+- **E3-3 Routes keyed `(method, path)`** (Task 5), so the three venues' routes merge with `|`; CONTRACT 3.2's comment
+  follows, and Task 12's `_routes()` accepts either key form. Binding on Tasks 3, 5, 6, 7 and 12.
+- **E3-4 Task 7's stricter readings** are accepted: any EVENTS row sets flag `EVENTS`; any other nonzero non-MARGIN
+  position sets `derivative_position` (E25). A live algo row without `px` is an E1R2-5 live follow-up (stated
+  limits).
+- **E3-5 Non-finite sums.** `live_positions` returns None when a venue sum is not finite (E17). An empty account is
+  `Positions(equity_krw=0.0)`, which `owner._positions_problem` refuses: an E2 hand-off item (stated limits).
+- **E3-6 `checks.Alert` is `kw_only=True`.** CONTRACT 15 wins over 16.2's positional examples; every caller names
+  every field. Binding on Task 12.
+- **E3-7 Task 11's readings** are accepted: `due` skips any row that fails `verify_row`; `_is_stamp` requires a real
+  instant; `limits_from` gives None while `owner.ok` is False.
+- **E3-8 Task 12's test-only memo** of the signed `load_context` per Seoul date is accepted with its `ponytail:`
+  comment; the E24 test still calls the real function unsigned. Over the 60 s suite budget, G3-2 applies.
+
 ## File map
 
 | Path | Status | Task | Endings | In the D14 code hash (signed) | Responsibility |
@@ -614,14 +679,14 @@ task's text and the contract differ, the task wins.
 | `tests/macro_m0_harness.py` | modify | 1 | LF | no | T-RO-01 per-file text exceptions |
 | `tests/run_all.py` | modify | 1 | CRLF | no | register the `execution` suite |
 | `README.md` | modify | 1, 13 | CRLF | no | suite list (Task 1); status bullet, cockpit row, compliance row count, execution row, Total (Task 13) |
-| `docs/superpowers/plans/2026-10-24-e1-account-inquiry-execution-ledger.md` | create | 1, 13, 14 | LF | no | drift rulings, deferred minors, the full run's totals |
+| `docs/superpowers/plans/2026-10-24-e1-account-inquiry-execution-ledger.md` | create | 1, 10, 11, 12, 13, 14, and any task that records a drift ruling | LF | no | drift rulings, deferred minors, the full run's totals |
 | `tests/compliance_gate.py` | modify | 9 | LF | no | new D16 reason texts, the lift test |
 | `tests/compliance_model.py` | modify | 9 | LF | no | the Context-field case list |
 | `tests/compliance_store.py` | modify | 9 | LF | no | closure test adds `execution/*.py` |
 | `tests/compliance_signer.py` | modify | 9 | LF | no | lockstep test adds `execution/*.py` |
 | `tests/execution_acceptance.py` | create | 1 | LF | no | suite aggregator, `_wrap`, `-m` runner |
 | `tests/execution_fixtures.py` | create | 1-7 | LF | no | `isolated()`, `STRAYS`, `REAL_SEND`, `fake_keys()`, `serve()`, response dicts, `snap()` |
-| `tests/execution_guards.py` | create | 1, 2 | LF | no | static guards, exactness tests, transport-only path, harness self-tests, registration |
+| `tests/execution_guards.py` | create | 1, 2, 3 (Task 3: `_headers` and `_TokenRejected` join TRANSPORT_ONLY) | LF | no | static guards, exactness tests, transport-only path, harness self-tests, registration |
 | `tests/execution_keys.py` | create | 2 | LF | no | keys.py |
 | `tests/execution_transport.py` | create | 2, 3 | LF | no | transport and token |
 | `tests/execution_snapshot.py` | create | 4 | LF | no | records and JSONL helpers |
@@ -629,13 +694,13 @@ task's text and the contract differ, the task wins.
 | `tests/execution_upbit.py` | create | 6 | LF | no | Upbit |
 | `tests/execution_okx.py` | create | 7 | LF | no | OKX |
 | `tests/execution_positions.py` | create | 8 | LF | no | positions |
-| `tests/execution_evidence.py` | create | 9, 10 | LF | no | the fold, `load_context`, the gate lift, the writer |
+| `tests/execution_evidence.py` | create | 9, 10 | LF | no | the fold, `load_context`, the writer |
 | `tests/execution_checks.py` | create | 11 | LF | no | every check row, the catalogue scan, the once-a-day rule |
 | `tests/execution_poll.py` | create | 12 | LF | no | the poller end to end, CLI exits, pending, mark-sent |
 | `qa/acceptance_results.json` | modify | 13 | CRLF | no | the full run (committed once) |
 
 Every `execution/*.py` joins the D14 code hash in Task 9 (the `code_files` seeds); before that it is outside it.
-Nothing is signed yet (no owner key), so the change blocks nothing today; after main-spec owner act 1 (the signing
+Nothing is signed yet (no owner key; Task 9 checks it first), so the change blocks nothing today; after main-spec owner act 1 (the signing
 key), any later edit of these files blocks new exposure in the gate until the owner signs again. The poller also
 sends no KIS request unless that poll's sealed context says `code_signed` (E42, E1R2-9); Upbit and OKX, whose keys
 are read-only, poll regardless. `pyproject.toml` is not changed (E41).
@@ -653,8 +718,9 @@ temp file `.kis_token.<hex>.tmp`.
 
 1. **Before Task 1.** The compliance follow-up plan and the odds plan have merged to main (X1). If not, stop.
 2. **Task 9.** The D14 code hash changes (the closure now covers `execution/*.py`, and `tools/signer/sign.py`
-   changes in lockstep). Nothing is signed yet, so nothing breaks today; once the owner has a signing key (main-spec
-   owner act 1), the owner re-verifies the signer copy and signs the new code hash (E1 owner act 5).
+   changes in lockstep). Task 9 first checks that `core/compliance/owner_pubkey.pem` is absent; if the owner key
+   exists it stops and asks you before the hash changes. Once the owner has a signing key (main-spec owner act 1),
+   the owner re-verifies the signer copy and signs the new code hash (E1 owner act 5).
 3. **Task 14.** Approve the new prompt of `tradegen-compliance-daily` (CONTRACT section 18; shown as a computed diff
    against the live prompt). It may send E1's alerts only to you: the same iOS push and the same email to
    `sapientia@korea.ac.kr`. Claude changes the task only after your explicit yes.
@@ -673,13 +739,16 @@ temp file `.kis_token.<hex>.tmp`.
 
 The controller ruled every open issue on 2026-10-25 (E1R2-1 to E1R2-12); the tasks implement the rulings. The
 numbers are kept, so "open issue N" in a task means item N here. The contract's section 20 holds the same list.
+The open issues the task drafters reported later are ruled by the round-3 rulings G3-1 to G3-5 and E3-1 to E3-8
+(Decisions, after E43).
 
 1. **Lock exit code.** Ruled E1R2-1 (spec 4 wins over X7): `EXIT_LOCKED = 0`; a second poller prints
    `another E1 poller holds poll.lock; exiting` and exits 0, so a duplicate at-logon start is not a failed run in
    Task Scheduler. Argument errors stay 4. (E7, E23, C16; Task 12.)
 2. **evidence.jsonl growth.** Ruled E1R2-3 (spec rev 2): a record for a requirement only when its `met` changes, or
-   when its last record is dated on an earlier Seoul date (a daily heartbeat on the first poll of each Seoul day),
-   about four lines a day instead of about 1,150. Lifting, re-blocking and the 7-day expiry are unchanged, and a test
+   when its last record is dated on another Asia/Seoul date than the poll's (normally an earlier one, a daily
+   heartbeat on the first poll of each Seoul day; a record dated ahead after a clock correction is re-stamped at
+   once; Task 10 Design note 5), about four lines a day instead of about 1,150. Lifting, re-blocking and the 7-day expiry are unchanged, and a test
    proves the fold gives the same `live_evidence` as one record per poll. (E18, C14; Task 10.)
 3. **inquiry.jsonl growth.** Ruled E1R2-4 (spec rev 2): daily files `execution/inquiry-YYYYMMDD.jsonl` (the Seoul
    date of the poll), never deleted; each poll opens only yesterday's and today's. (E30, C8, C16.2; Tasks 4, 12.)

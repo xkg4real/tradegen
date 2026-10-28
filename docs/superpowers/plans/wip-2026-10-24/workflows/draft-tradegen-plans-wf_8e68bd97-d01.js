@@ -73,8 +73,7 @@ function draftPrompt(p, tasks, extra) {
 
 const results = {}
 for (const p of PLANS) {
-  phase('Rulings')
-  await agent(`${rules(p)}\n\nYOUR JOB: the latest rulings file (${p.rulings[p.rulings.length - 1]}) amends earlier decisions. Fold every ruling in it that concerns the ${p.label} plan into ${p.dir}/CONTRACT.md, ${p.dir}/TASKS.md and ${p.dir}/header.md (edit them in place; keep numbering and the coverage tables consistent; add the DRIFT RULE to Global Constraints if it is not there). Append a list of what you changed to ${p.dir}/REVISIONS.md. Return a one-paragraph summary.`, { label: `rulings:${p.key}`, phase: 'Rulings' })
+  if (!p.skipRulings) await agent(`${rules(p)}\n\nYOUR JOB: the latest rulings file (${p.rulings[p.rulings.length - 1]}) amends earlier decisions. Fold every ruling in it that concerns the ${p.label} plan into ${p.dir}/CONTRACT.md, ${p.dir}/TASKS.md and ${p.dir}/header.md (edit them in place; keep numbering and the coverage tables consistent; add the DRIFT RULE to Global Constraints if it is not there). Append a list of what you changed to ${p.dir}/REVISIONS.md. Return a one-paragraph summary.`, { label: `rulings:${p.key}`, phase: 'Rulings' })
 
   const drafted = await pipeline(p.groups, async (g) => {
     const first = await agent(draftPrompt(p, g.tasks), { label: `draft:${p.key}:${g.tasks.join('+')}`, phase: 'Draft', schema: DRAFT_SCHEMA })

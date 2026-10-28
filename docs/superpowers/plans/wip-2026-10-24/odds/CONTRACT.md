@@ -6,8 +6,10 @@ RULINGS_ROUND2 R2-11) has merged (RULINGS "Order of the plans").
 Spec: `docs/superpowers/specs/2026-10-23-compliance-gate-and-odds-engine-design.md` rev 3.2. The rulings in
 `scratchpad/odds_plan/RULINGS.md` (O1 to O15) override it where they say so, and
 `scratchpad/odds_plan/RULINGS_ROUND2.md` (R2-1 to R2-9 and R2-13 for this plan; R2-10 to R2-12 bind the follow-up)
-amends them and wins where they disagree. Every departure is listed in section 1 (Q46) and in the plan header under
-"For spec rev 3.3" (R2-3), so it can be folded into spec rev 3.3.
+amends them and wins where they disagree. `scratchpad/odds_plan/RULINGS_ROUND3.md` (2026-10-28: G3-1 to G3-5 for both
+plans, O3-1 to O3-22 for this one) rules the task drafters' open issues and wins over every task text; this contract
+follows it where O3-6, O3-9, O3-15, O3-18, O3-19 and O3-20 say so. Every departure is listed in section 1 (Q46) and in
+the plan header under "For spec rev 3.3" (R2-3, O3-19), so it can be folded into spec rev 3.3.
 Repo facts: `scratchpad/odds_plan/map/DIGEST.md` and the per-area maps beside it. Compliance plan:
 `docs/superpowers/plans/2026-10-23-compliance-gate.md` (header P1 to P39, Appendix A); its execution ledger
 `docs/superpowers/plans/2026-10-23-compliance-gate-execution-ledger.md`.
@@ -356,7 +358,8 @@ RULINGS_ROUND2.md amends or accepts names its R2 item.
   is reported):
   1. PARTIAL_CHUNK;
   2. product: UNSUPPORTED_PRODUCT (sub `start` when `plan.start != ctx.date`, the gate's own rule at `gate.py:633-634`),
-     MULTI_LEG_UNSUPPORTED; the class and multiple checks only when `ctx.active` is usable;
+     MULTI_LEG_UNSUPPORTED (two or more legs; an empty legs list or a non-Leg item is UNSUPPORTED_PRODUCT sub `file`,
+     O3-6); the class and multiple checks only when `ctx.active` is usable;
   3. STATE_UNUSABLE (sub `code` when `ctx.code_signed` is false: `screen` would BLOCK it anyway, and the precheck
      then refuses before any data load);
   4. LIMITS_UNSET (both limit keys; for an OKX leg also the OKX cap);
@@ -503,9 +506,11 @@ RULINGS_ROUND2.md amends or accepts names its R2 item.
     0 (`replay_returns` asserts max a + 2 max c < 1).
   - **TESTED_REPLAY** moves the sleeve by R1_t = R_t - mean(R) + LIVE_SHARPE_MULTIPLIER x mean(R) (net, no separate
     cost), resampled in stationary blocks of mean 10. Blocks keep the strategy's streaks, so the column's average
-    H-day growth is above the independent-days value (1 + mean R1)^H: 2.99% against 2.70% at H = 30. The card prints
-    both (`replay.growth`, from `models.block_growth`, exact), so "40% of its average return removed" is never read
-    against the wrong baseline.
+    h-move growth is above the independent-days value (1 + mean R1)^h. The sleeve enters at the first close and moves
+    at the later ones, so a 30-day horizon has h = checks - 1 = 29 moves: 2.889% against 2.613% ("2.9%" against
+    "2.6%", RULINGS_ROUND3 O3-15). The card prints both (`replay.growth`, from `models.block_growth`, exact), so "40%
+    of its average return removed" is never read against the wrong baseline. The earlier 2.99% against 2.70% is h =
+    30, a column no engine runs; `block_growth(R1, 10, 30) = 1.029918` stays a separate pin.
   - **The replay engine** holds a sleeve s = the rule stake (kelly or fixed) sized by `costs.rule_units` with sizing
     `floor_safe`, `mult = 0.0` and the replay terms of `costs.terms(..., replay=True)` (phi_buy = phi_sell = 0, no
     `fee_extras` read, R2-5; so kappa = phi = R_exit = 0 and s <= cash - L: L_min = L), checks at the close only,
@@ -604,7 +609,7 @@ instants), though `CalendarSet` still reads `data/macro` for KRX Saturdays, stat
 | `core/odds/models.py` | create, extend | LF | yes | 7, 8, 17 |
 | `core/odds/simulate.py` | create, extend | LF | yes | 9, 10, 13, 14, 17 |
 | `core/odds/bold.py` | create | LF | yes | 11 |
-| `core/odds/report.py` | create (ColumnStats, LADDER, COST_DOMINATED_SHARE only), extend | LF | yes | 9, 12, 13, 14, 17 |
+| `core/odds/report.py` | create (ColumnStats, LADDER, COST_DOMINATED_SHARE only), extend | LF | yes | 9, 12 (O3-20) |
 | `core/odds/venues.yaml` | modify | LF | data (venues approval) | 3 |
 | `core/oddsdata/__init__.py` | create, 0 bytes | - | no | 1 |
 | `core/oddsdata/bars.py` | create | LF | no | 15 |
@@ -615,8 +620,10 @@ instants), though `CalendarSet` still reads `data/macro` for KRX Saturdays, stat
 | `core/compliance/owner.py` | modify | LF | yes | 4 |
 | `core/compliance/gate.py` | modify | LF | yes | 4 |
 | `tests/odds_acceptance.py` | create | LF | - | 1 |
-| `tests/odds_fixtures.py` | create, extend | LF | - | 1, 5, 9, 13 |
+| `tests/odds_fixtures.py` | create, extend | LF | - | 1, 5, 9, 13, 14 (O3-20) |
 | `tests/odds_guards.py` | create | LF | - | 1 |
+| `tests/odds_simulate.py` | create, extend | LF | - | 9, 10, 17 (O3-20) |
+| `tests/odds_pipeline.py` | create, extend | LF | - | 13, 14, 17 (O3-20) |
 | `tests/odds_plan.py` ... `tests/odds_cli.py` (MODULES) | create | LF | - | 5 to 18 |
 | `tests/compliance_tables.py` | modify | LF | - | 2, 3 |
 | `tests/compliance_fixtures.py` | modify | LF | - | 4 |
@@ -668,7 +675,7 @@ fake `data.krx.kis_client` / `data.crypto.crypto_client`) with save/restore and 
 `tests.odds_acceptance.REAL_SEAMS["_yf_download"](...)`; it never reloads `bars` (a reload would leave the seams
 unpatched for the rest of the test).
 
-### 3.2 `tests/odds_fixtures.py` (Task 1 creates; Tasks 5, 9, 13 extend). Not in MODULES. No `test_*` names.
+### 3.2 `tests/odds_fixtures.py` (Task 1 creates; Tasks 5, 9, 13, 14 extend, O3-20). Not in MODULES. No `test_*` names.
 ```python
 @contextlib.contextmanager
 def chunk(n: int = 2_000) -> Iterator[None]        # swaps core.odds.simulate.CHUNK = n, DEFAULT_PATHS = {track: n for
@@ -683,8 +690,10 @@ ODDS_VENUES: bytes                                  # Task 5: a complete fixture
     # min_order {KRW: 5000}, fee_extras 0/0; okx lot {default: 1e-8}, min_order {USDT: 1}, fee_extras 0/0. Every
     # source is "UNVERIFIED: owner to confirm before approval". It parses VALID against the shipped instrument map.
 def venues_with(**changes) -> bytes                # Task 5: ODDS_VENUES with one venue's odds keys replaced
-def series(*, symbol="KRW-BTC", source="UPBIT", n=600, seed=1, start="2024-01-01", vol=0.02, open_gap=0.0,
-           price=50_000_000.0, step_days=1) -> plan.Series      # Task 5: a synthetic random walk with md5 filled
+def series(*, symbol="KRW-BTC", source="UPBIT", n=600, seed=1, start=None, vol=0.02, open_gap=0.0,
+           price=50_000_000.0, step_days=1) -> plan.Series      # Task 5: a synthetic random walk with md5 filled;
+    # start=None (O3-6) ends the walk on 2026-10-22, the day before plan()'s start; an explicit start sets the first
+    # date
 def plan(**changes) -> plan.Plan                   # Task 5: default compounding upbit BTC buy-and-hold, stake 42,000,
     # target 42,000,000, fx 1,400.0, start 2026-10-23 (F.ctx's date), horizon 10, model bootstrap, fixed(1.0)
 def odds_ctx(**overrides) -> model.Context         # Task 5: F.ctx(active=F.approved(venues=ODDS_VENUES),
@@ -696,6 +705,10 @@ def even_rows(m: float, n: int = 400) -> plan.Series   # Task 9: open = previous
 @contextlib.contextmanager
 def calendar_signed(sha: str) -> Iterator[None]   # Task 13: swaps core.compliance.owner.calendar_in_force for
                                                   # `lambda now: sha` (save/restore); unit tests of later KRX steps only
+# Task 13 also adds (O3-20): CAL_SHA, spy(target, name), owner_with(**changes), fresh_series(n=600, *, end=...),
+#   weekdays(start, horizon_days), pipeline_inputs(plan_obj, series_obj, **changes), pipeline(...);
+# Task 14 adds: members(*names) (swaps simulate.MEMBERS) and garch_series(n=600, *, seed=7, end=..., ...).
+# Task 13 and Task 14 give the exact signatures.
 ```
 Dates: every fixture built on `F.ctx` (date 2026-10-23) uses start 2026-10-23; every CLI plan file and every
 `full_home` test runs at `F.NOW` (2026-10-24 09:00 KST, a Saturday, so the first KRX session is 2026-10-26) and uses
@@ -732,7 +745,8 @@ buy-and-hold), and one (`odds_columns/test_tilt_pilot_runs_at_the_real_chunk`) r
 the real CHUNK in force. The PARTIAL_CHUNK test runs at the real CHUNK and refuses before simulating. Per-module
 targets: guards 5 s, plan 2 s, costs 2 s, models 6 s, garch 25 s, simulate 18 s, locks 12 s, bold 12 s, report 12 s,
 pipeline 20 s, columns 30 s, bars 4 s, inputs 12 s, replay 20 s, cli 20 s (about 3.3 minutes in all, O13's "about 3
-minutes").
+minutes"). Task 11's engine-run test runs one 20,000-path chunk (`OF.chunk(20_000)`, O3-9 T11-3). A module over its
+target is recorded in the ledger with its measured time; no test is weakened or dropped to fit (RULINGS_ROUND3 G3-2).
 
 ## 4. Compliance-side prerequisites (Tasks 2-4)
 
@@ -927,7 +941,8 @@ def instrument(plan: Plan, ctx) -> tuple[rules.Venue | None, rules.Instrument | 
     # valid; else (None, None)
 def section(plan: Plan, ctx) -> str | None     # the instrument's section ("krx" | "us" | "crypto")
 def check_plan(plan, ctx) -> Refusal | None    # the product refusals of Q24, in this order:
-    # leg a list or tuple: MULTI_LEG_UNSUPPORTED unless exactly one Leg (then that leg is checked);
+    # leg a list or tuple: MULTI_LEG_UNSUPPORTED for two or more items; UNSUPPORTED_PRODUCT sub "file" when it is
+    #   empty or an item is not a Leg; exactly one Leg: that leg is checked (RULINGS_ROUND3 O3-6);
     # types and ranges (Q25) -> UNSUPPORTED_PRODUCT sub "file" (name) | "track" | "numbers" | "start" (not a date, or
     #   start != ctx.date) | "horizon" | "model" | "sizing" | "fraction" | "bracket" | "edge" | "replay";
     # venue not in VENUES_OK -> sub "venue"; okx symbol != "BTC" -> sub "feed";
@@ -1369,7 +1384,7 @@ phi_buy - r_exit) / (1 + kappa)` (`kappa`: the buy side's base rate at p0, `cost
 side's charges are already inside r), interpolation clamped at the grid ends (below l_min reads V(l_min) = 0 unless
 l_min >= target). Returns `V[n_checks](w0)`. It never drives a red flag.
 
-## 10. `core/odds/report.py` (Tasks 9, 12, 13, 14, 17)
+## 10. `core/odds/report.py` (Tasks 9, 12; Tasks 13, 14, 17 and 18 only call it, O3-20)
 
 ### 10.1 Types
 ```python
@@ -1391,7 +1406,8 @@ class ColumnStats:
     wins: int; losses: int; unresolved: int
     brackets: tuple[np.ndarray, np.ndarray] | None = field(default=None, compare=False, repr=False)
         # (r, d) of up to BRACKET_SAMPLE brackets of chunk 0; outside ==, repr and every hash (arrays compare
-        # element-wise); a test comparing two columns uses dataclasses.replace(col, brackets=None)
+        # element-wise); a test comparing two columns uses (erratum, O3-18; Tasks 9, 13; nan != nan)
+        # dataclasses.replace(col, brackets=None, x_range=0.0 if math.isnan(col.x_range) else col.x_range)
     band_edge_share: float; band_edge_sessions: int; worst_gap: float; trades: int
         # band_edge_sessions: simulated sessions that opened at a band edge; trades: paths with an entry fill
 @dataclass(frozen=True, kw_only=True)
@@ -1523,11 +1539,15 @@ Replay no-edge columns: `V_max = T x (1 + max a)`, `C_max = mult x max c x V_max
 C_max` (no kappa and no phi; before tau cash + sleeve < T). A unit test plants a kappa bound with k_x just under 1
 (finite range) and at 1 (unbounded).
 `def hidden_range(*, target, phi_buy, phi_sell, kappa_bound, m_max, n_checks, carry=CARRY) -> float` (bootstrap)
-and `def replay_range(*, target, a_max, c_max, n_checks) -> float` (replay) compute it; `run_column` stores the value
-in `ColumnStats.x_range` (nan for garch). Resolution printed: the bound b in KRW, as % of the stake, and the blind spot
+and `def replay_range(*, target, a_max, c_max, n_checks) -> float` (replay) compute it; `simulate._column` sets the
+value in `ColumnStats.x_range` right after `run_column` (Task 14; nan for garch), not `run_column` itself (erratum,
+RULINGS_ROUND3 O3-18). Task 14 wires `hidden_range` into bootstrap columns before `hidden_edge(headline)` runs, so
+a bootstrap card never prints the GARCH-t sentence (O3-11). Resolution printed: the bound b in KRW, as % of the stake, and the blind spot
 `fmt_blind(b / (T - L_min))`, which is "1 in floor((T - L_min) / b)" below 1% (Q46: never the spec's ceil).
 
 ### 10.4 The sentence catalogue (`CATALOGUE: Mapping[str, str]`, exact texts; slots in braces)
+193 keys: the 191 below plus `label.yes` and `label.no` (erratum, RULINGS_ROUND3 O3-10 and O3-19, Task 12 D4).
+Task 12 pins the sha256 of the whole catalogue, so any changed character fails it.
 Model and sizing:
 - `model.bootstrap` "Model: a two-point bootstrap of the daily moves of {symbol} in won, {first} to {last} ({rows} sessions), in which nobody has an edge. Price checks at the open and the close only."
 - `model.garch` "Model: GARCH-t fitted to the daily won returns of {symbol}, {first} to {last} ({rows} sessions), in which nobody has an edge. Price checks at the close only."
@@ -1582,7 +1602,7 @@ Columns:
 - `assumed.ceiling` "Without the edge you typed, no plan that keeps this floor can beat {c}."; `assumed.ceilingnf` "Without the edge you typed, no plan can beat {c}." (for floor-protected sizing the three lines render spec 7.5's text exactly)
 - `replay.lead` "This replays a tested bitcoin trend strategy (S_C3) on its own {y0}–{y1} out-of-sample results, with {cut}% of its average return removed. Most of that return came from bitcoin rising in those years, which the no-edge column leaves out: just holding bitcoin then had a Sharpe ratio of {bench}, against {cutsr} for this replay after the cut. Its tested advantage over holding bitcoin was {diff} Sharpe (90% range {lo} to {hi}). Backtest edges often shrink or vanish in live trading; read this as the hopeful case."
   (The literal "S_C3" is the card's public id and the one allowed underscore token; `guard` exempts exactly "S_C3".)
-- `replay.growth` "Resampled in blocks that keep its streaks, this column's average growth over {h} days is {g}, against {g0} if its days were independent." (Q38; g from `models.block_growth`, g0 = (1 + mean R1)^h - 1, both `f"{100 x:.1f}%"`)
+- `replay.growth` "Resampled in blocks that keep its streaks, this column's average growth over {h} days is {g}, against {g0} if its days were independent." (Q38; h = checks - 1, so 29 on a 30-day horizon, O3-15; g from `models.block_growth`, g0 = (1 + mean R1)^h - 1, both `f"{100 x:.1f}%"`)
 - `replay.noedge` "No-edge column: the same strategy's daily moves, each given a fair coin for its direction, with its costs kept."
 Flags:
 - `hidden.gain` "BUG CHECK FAILED: this plan makes money without any edge (average KRW {x}, limit KRW {b}). Do not use these numbers."
@@ -1634,7 +1654,7 @@ Closing boxes:
 - `compare.r` "This plan has been run in {r} comparisons, each on its own market seed; the highest-looking of its figures is the luckiest of {r}."
 - `compare.fresh` "Before arming, this plan must be run again on a fresh market seed; that rerun belongs to execution and is not built yet." (R2-4: not built by this plan; the hand-off gives it to E2, which arms)
 - `plan.head` "Plan {i} of {k} ({hash})"
-- `prov.head` "Recorded with this report:"; `prov.line` "{label}: {value}"; labels `prov.code` "code hash", `prov.signed` "code signed", `prov.owner` "owner log entry", `prov.key` "key fingerprint", `prov.tables` "tables in force", `prov.data` "price history", `prov.calendar` "calendar", `prov.seed` "market seed", `prov.paths` "paths and chunk", `prov.versions` "NumPy, SciPy, cryptography", `prov.repo` "repository", `prov.tree` "tree hash", `prov.comparison` "comparison and run", `prov.model` "model and members", `prov.edge` "edge source"; value labels `label.bootstrap` "two-point bootstrap", `label.garch` "GARCH-t", `label.replay` "tested-strategy replay", `edge.none` "none", `edge.assumed` "a typed win rate", `edge.replay` "the S_C3 replay".
+- `prov.head` "Recorded with this report:"; `prov.line` "{label}: {value}"; labels `prov.code` "code hash", `prov.signed` "code signed", `prov.owner` "owner log entry", `prov.key` "key fingerprint", `prov.tables` "tables in force", `prov.data` "price history", `prov.calendar` "calendar", `prov.seed` "market seed", `prov.paths` "paths and chunk", `prov.versions` "NumPy, SciPy, cryptography", `prov.repo` "repository", `prov.tree` "tree hash", `prov.comparison` "comparison and run", `prov.model` "model and members", `prov.edge` "edge source"; value labels `label.bootstrap` "two-point bootstrap", `label.garch` "GARCH-t", `label.replay` "tested-strategy replay", `edge.none` "none", `edge.assumed` "a typed win rate", `edge.replay` "the S_C3 replay"; and (erratum, O3-10, Task 12 D4) `label.yes` "yes", `label.no` "no", the `prov.signed` value of the `code_signed` bool.
 - `footer` "These numbers describe rules you wrote, run in a model. They are not advice, and TRADEGEN does not recommend any plan. A higher chance of reaching the target does not make a plan better."
 ```python
 BANNED_WORDS = ("best", "optimal", "recommended", "safe", "guaranteed", "sure", "ideal", "risk-free", "low-risk",
@@ -1647,7 +1667,8 @@ def guard(text: str) -> list[str]
     # "S_C3", any "{" or "}"
 ```
 Render order (`render`): plan head; red flags (HIDDEN_EDGE failed, CEILING_BREACH red: "Do not use these numbers"
-comes before any number, Q46); model; sizing; OKX cap; FX; Kelly label; typical (median, floor); average; headline
+comes before any number, Q46); model (on a replay card `replay.noedge` right after it: erratum, O3-19, Task 12 D5);
+sizing; OKX cap; FX; Kelly label; typical (median, floor); average; headline
 pair; ladder; plain sentence (or `structural.*`, Q44); tax; ceiling; research estimate; five base rates; the other
 columns (stress 2x, delisting, assumed, replay), each with its typical, floor and average lines, and the edge
 columns with their ceiling line; amber flags, then info flags; not in these numbers; limits; comparison lines (K
@@ -1788,10 +1809,12 @@ if __name__ == "__main__":
 ### 14.2 Plan file
 `{"schema": "tradegen.odds_plan/1", "plans": [<plan>, ...]}`; a plan object has exactly `name`, `track`, `stake_krw`,
 `target_krw`, `fx_krw_per_usd`, `start` ("YYYY-MM-DD"), `horizon_days`, `leg` (or `legs`, a list: MULTI_LEG_UNSUPPORTED
-unless it holds one), `fraction` ({"kind": "fixed" | "kelly" | "bold", "value": number | null}); a leg object has
-`venue`, `symbol`, `model`, `bracket` ({"take_profit", "stop"} or null), `sizing`, `edge_source`, `assumed_p`.
-Numbers: int or float, never bool. Anything else (bad JSON, unknown or missing keys, wrong types) -> UNSUPPORTED_PRODUCT
-sub `file` for that plan (the whole file when it does not parse).
+for two or more legs, UNSUPPORTED_PRODUCT sub `file` when it is empty or an item is not a leg object; a one-item list
+builds `Plan(leg=<Leg>)`, O3-6), `fraction` ({"kind": "fixed" | "kelly" | "bold", "value": number | null}); a leg
+object has `venue`, `symbol`, `model`, `bracket` ({"take_profit", "stop"} or null), `sizing`, `edge_source`,
+`assumed_p`. Numbers: int or float, never bool; `load_plans` turns JSON ints for `stake_krw`, `target_krw` and
+`fx_krw_per_usd` into floats (O3-6). Anything else (bad JSON, unknown or missing keys, wrong types) ->
+UNSUPPORTED_PRODUCT sub `file` for that plan (the whole file when it does not parse).
 
 ## 15. `tests/odds_guards.py` (Task 1)
 Checkers `(rel, source) -> [hit, ...]`, each with a synthetic positive control, reusing `tests.compliance_guards`
@@ -1845,6 +1868,9 @@ missing or broken module handled and an empty run exits 1). Synthetic offenders 
   max |g| 0.16899731, max c 0.001. Exact block growth (block 10): the demeaned gross g of the earlier Q38 gives
   E[prod(1 + g)] - 1 = +0.2745% over 30 days and +4.10% over 365 (the trap, measured by the critic at 13 SE on 400,000
   paths), R1 2.9918% over 30 days against 2.7045% for independent days (Monte Carlo 2.967% +/- 0.031%), R 4.84%.
+  The card's growth line uses the 29 moves a 30-day replay column makes (h = checks - 1; RULINGS_ROUND3 O3-15, Task
+  17): `block_growth(R1, 10, 29) - 1` = 2.889% against `(1 + mean R1)^29 - 1` = 2.613%, printed "2.9%" against
+  "2.6%"; the h = 30 value 1.029918 stays the separate `block_growth` pin.
 - GARCH corruption (`garch_fix.py`, the contract's fixture fit nu 5.618, and a BTC-like fit nu 5.63): c + 2e-6 per
   node fails check 1 everywhere (max |expm1| 2.0e-6); ratio x 3 fails check 2 (max z 7.4 at 30 steps, 13.9 at 90;
   BTC-like 22.1 and 41.7); zero log drift fails check 2 at 90 steps (6.2; BTC-like 18.6) but not at 30 on the fixture
@@ -1857,6 +1883,12 @@ missing or broken module handled and an empty run exits 1). Synthetic offenders 
 - Bold engine (critic's `bold_engine.py`, zero costs, m = 0.5): with a KRW 5,000 minimum P(T) = 5.169% (CI 5.101% to
   5.239%) against the ceiling 6.667%, inside the exact fair-game bracket (W0 - L - min)/(T - L - min) <= P <= (W0 -
   L)/(T - L); with a 1 KRW minimum 6.607% (CI 6.530% to 6.684%) contains it. So the engine test runs with no minimum.
+  Engine-run test (RULINGS_ROUND3 O3-9, Task 11): one run, one chunk of 20,000 paths through `OF.chunk(20_000)`
+  (T11-3), on `costs.Terms` built directly with every 6.2 field (T11-2). It asserts `col.rungs == (k, k, k, 0, k)`,
+  `-1e-6 <= excess <= 0.01` with `excess = col.mean - (k T + (n - k) L) / n`, and that the 99.9% Clopper-Pearson
+  interval of k contains the ceiling; there is no second short run. "Leaves no path running" and "some path ends
+  within KRW 1 of T" are dropped: a lot of 1e-12 BTC with a KRW 0 minimum never reaches the floor (measured: 0
+  AT_FLOOR, 18,692 RUNNING, 1,308 REACHED over 366 days). A failure is a ruling, never a reseed.
 - Weekdays: 2026-10-23 Friday, 2026-10-24 Saturday, 2026-12-03 Thursday.
 
 ### 16.2 Added for RULINGS_ROUND2 (sandbox `scratchpad/odds_plan/odds/sandbox_round2fold/`, 2026-10-25, `-I -B`)
