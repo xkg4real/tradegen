@@ -173,6 +173,7 @@ class KISClient:
             cached = self._cached_token()
             if cached:
                 return cached
+            checked_target(_TOKEN_PATH, "KIS token cache")      # A0: refuse before the POST burns an issuance (R8)
             app_key, app_secret = config.kis_credentials()
             try:
                 # Plain requests, one attempt: issuance is rate-limited, and a
