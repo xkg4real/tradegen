@@ -199,12 +199,16 @@ def test_code_files_counts_lazy_imports_and_skips_main_and_type_checking():
         "core/compliance/s.py": ("import sys\nfrom typing import TYPE_CHECKING\n"
                                  "sys._getframe().f_locals[\"TYPE_CHECKING\"] = True\n"
                                  "if TYPE_CHECKING:\n    import core.frame_bare\n"),
+        "core/compliance/t.py": ("import types\nimport typing\nclass M(types.ModuleType):\n"
+                                 "    TYPE_CHECKING = property(lambda self: True)\ntyping.__class__ = M\n"
+                                 "if typing.TYPE_CHECKING:\n    import core.class_typing\n"),
         "core/neq.py": "", "core/local_tc.py": "", "core/rebound.py": "", "core/negated.py": "",
         "core/rev_cli.py": "",
         "core/rebound_typing.py": "", "core/rebound_main.py": "", "core/alias_typing.py": "",
         "core/unbound_typing.py": "", "core/param_main.py": "", "core/stored_typing.py": "",
         "core/setattr_typing.py": "", "core/globals_main.py": "", "core/modules_typing.py": "",
         "core/stored_bare.py": "", "core/frame_main.py": "", "core/frame_bare.py": "",
+        "core/class_typing.py": "",
         "core/pkg/__init__.py": "",
         "core/pkg/lazy.py": "from . import sibling\nfrom .. import upper\n",
         "core/pkg/sibling.py": "import json\n",
@@ -225,10 +229,11 @@ def test_code_files_counts_lazy_imports_and_skips_main_and_type_checking():
                     "core/compliance/h.py", "core/compliance/i.py", "core/compliance/j.py", "core/compliance/k.py",
                     "core/compliance/l.py", "core/compliance/m.py", "core/compliance/n.py", "core/compliance/o.py",
                     "core/compliance/p.py", "core/compliance/q.py", "core/compliance/r.py", "core/compliance/s.py",
+                    "core/compliance/t.py",
                     "core/rebound_typing.py", "core/rebound_main.py", "core/alias_typing.py",
                     "core/unbound_typing.py", "core/param_main.py", "core/stored_typing.py",
                     "core/setattr_typing.py", "core/globals_main.py", "core/modules_typing.py",
-                    "core/stored_bare.py", "core/frame_main.py", "core/frame_bare.py",
+                    "core/stored_bare.py", "core/frame_main.py", "core/frame_bare.py", "core/class_typing.py",
                     "core/neq.py", "core/local_tc.py", "core/rebound.py", "core/negated.py"}, sorted(repo)
     trusted = "import typing\nfrom typing import TYPE_CHECKING\n"
     assert owner._guards(ast.parse(trusted)) == (True, True, True)
