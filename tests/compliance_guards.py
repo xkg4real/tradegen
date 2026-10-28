@@ -13,6 +13,7 @@ import ast
 import contextlib
 import io
 import os
+import re
 import sys
 import types
 from pathlib import Path
@@ -38,17 +39,33 @@ HTTP_VERBS = frozenset({"post", "put", "delete", "patch", "request"})
 # import ban. A denylist of what can reach the network, not a proof: see the docstring of test_no_http_verb_calls.
 NETWORK_MODULES = ("urllib", "http", "socket", "_socket", "socketserver", "selectors", "ssl", "smtplib", "ftplib",
                    "imaplib", "poplib", "nntplib", "telnetlib", "xmlrpc", "asyncio", "webbrowser", "multiprocessing",
-                   "wsgiref", "xml.sax", "xml.dom.pulldom", "xml.dom.expatbuilder", "logging.handlers")
+                   "wsgiref", "xml.sax", "xml.dom", "logging.handlers", "antigravity", "ctypes", "_ctypes", "_ssl",
+                   "_overlapped")
 NETWORK_CALLS = frozenset({"urlopen", "urlretrieve", "create_connection"})
 FORBIDDEN_MODULES = ("core.engine.orders", "core.quant.forward_sim", "core.quant.refusal", "core.ficc.context_log",
                      "core.ficc.macro", "core.ficc.flows_log", "core.skills.macro_daily")
-# Star and dynamic imports hide what a file loads from these guards and from the D14 closure (P6). pydoc (locate),
-# timeit, code and cProfile import or run code named in a string, so they count as dynamic imports too.
-# importlib.metadata stays allowed: owner.py reads the RECORD files with it. core/ probes for cryptography with a
+# Star and dynamic imports hide what a file loads from these guards and from the D14 closure (P6). Each module below
+# imports or runs code named in a string or read from data: importlib (every submodule but metadata), runpy, pkgutil,
+# zipimport, pydoc (locate), timeit, code, cProfile, profile, pdb, bdb, trace and doctest (exec of a string), unittest
+# (mock.patch targets, the loader's __import__), logging.config (class strings, and a TCP listener), pickle, _pickle,
+# shelve and marshal (objects and code from bytes), site (.pth lines are exec'd), ensurepip and venv (pip through
+# runpy), tkinter, _tkinter, turtle, turtledemo and idlelib (a Tcl interpreter with sockets; idlelib exec), pstats
+# and tracemalloc (they load files with marshal and pickle: pstats.Stats, tracemalloc.Snapshot.load). The builtin
+# compile() is banned as a bare name only, so re.compile stays legal (builtins.compile is left to review).
+# importlib.metadata stays allowed: owner.py reads the RECORD files with it. `import importlib.metadata` binds the
+# name importlib, so any other attribute of it (importlib.util, importlib._bootstrap) is a hit too; its
+# EntryPoint.load imports by string through an attribute, which this scan does not see. faulthandler stays allowed
+# (R1): it runs no string and opens nothing. A denylist, not a proof: codeop and dis (they compile a string, which
+# types.FunctionType runs), _frozen_importlib, _frozen_importlib_external and _imp (importlib's bootstrap under other
+# names) and _interpreters (run_string) are not on it and are left to review. core/ probes for cryptography with a
 # lazy `import` inside try/except ImportError; importlib.util.find_spec is for tests only.
 DYNAMIC_NAMES = frozenset({"__import__", "import_module", "exec_module", "load_module", "exec", "eval"})
-DYNAMIC_MODULES = ("importlib.util", "importlib.machinery", "runpy", "pkgutil", "zipimport", "pydoc", "timeit",
-                   "code", "cProfile")
+DYNAMIC_BARE = frozenset({"compile"})               # an ast.Name only: re.compile is an attribute
+DYNAMIC_MODULES = ("importlib", "runpy", "pkgutil", "zipimport", "pydoc", "timeit", "code", "cProfile", "profile",
+                   "pdb", "bdb", "trace", "doctest", "unittest", "logging.config", "pickle", "_pickle", "shelve",
+                   "marshal", "site", "ensurepip", "venv", "tkinter", "_tkinter", "turtle", "turtledemo", "idlelib",
+                   "pstats", "tracemalloc")
+DYNAMIC_EXEMPT = "importlib.metadata"               # and everything below it (R9)
 # base name -> attributes that read the clock
 CLOCKS = {"datetime": {"now", "utcnow", "today"}, "date": {"today"},
           "time": {"time", "time_ns", "monotonic", "monotonic_ns", "perf_counter", "perf_counter_ns", "localtime",
@@ -143,16 +160,25 @@ def _forbidden_hits(rel: str, src: str) -> list[str]:
     return hits
 
 
+def _dynamic_module(target: str) -> bool:
+    """A dotted import target in DYNAMIC_MODULES (or below one), unless it is DYNAMIC_EXEMPT or below it (R9)."""
+    if target == DYNAMIC_EXEMPT or target.startswith(DYNAMIC_EXEMPT + "."):
+        return False
+    return any(target == m or target.startswith(m + ".") for m in DYNAMIC_MODULES)
+
+
 def _dynamic_hits(rel: str, src: str) -> list[str]:
     tree, hits = ast.parse(src), []
     for node, module, names, _f in _imports(rel, tree):
-        targets = [module] + [f"{module}.{n}" for n in names]
-        if ("*" in names or DYNAMIC_NAMES.intersection(names)
-                or any(t == m or t.startswith(m + ".") for t in targets for m in DYNAMIC_MODULES)):
+        targets = [f"{module}.{n}" for n in names] or [module]     # `from importlib import metadata` is that module
+        if "*" in names or DYNAMIC_NAMES.intersection(names) or any(_dynamic_module(t) for t in targets):
             hits.append(f"{rel}:{node.lineno}: star or dynamic import from {module}")
     for node, _f in _walk(tree):
         name = node.id if isinstance(node, ast.Name) else node.attr if isinstance(node, ast.Attribute) else None
-        if name in DYNAMIC_NAMES:
+        via = isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name) and node.value.id == "importlib"
+        if via and name != "metadata":                  # `import importlib.metadata` binds the name importlib (R9)
+            hits.append(f"{rel}:{node.lineno}: importlib.{name}")
+        elif name in DYNAMIC_NAMES or (isinstance(node, ast.Name) and node.id in DYNAMIC_BARE):
             hits.append(f"{rel}:{node.lineno}: {name}")
     return hits
 
@@ -249,17 +275,17 @@ def test_no_http_verb_calls():
     """core/compliance never calls .post/.put/.delete/.patch/.request on anything (contract section 0), a dict-like
     `.put` included, nor urlopen, urlretrieve or create_connection (bare or as an attribute). This is the second
     line. The first is test_imports_stay_on_the_allowlist, which bans every import form of the stdlib modules that
-    open a connection or fetch a URL (NETWORK_MODULES: urllib, http, socket, ssl, the mail, ftp and telnet clients,
-    xmlrpc, asyncio, selectors, socketserver, wsgiref, multiprocessing, webbrowser, logging.handlers, xml.sax, which
-    opens a URL given as a system id, and two xml.dom modules that are not fetchers themselves: pulldom, built on
-    xml.sax, and expatbuilder, which imports xml.dom.xmlbuilder). Together they catch a stdlib network call written
-    in the ordinary ways; they do not prove that core/compliance cannot reach the network. Not covered: a
-    `subprocess` call (the P26 alert toast is one; os.system, os.popen and os.startfile launch processes the same
-    way), `ctypes`, and reaching a network API through an allowed module, by attribute or by `getattr(module,
-    "name")`. That needs no banned import and no banned name: the allowed xml.dom.minidom hands out an
-    xml.dom.xmlbuilder DOMBuilder whose parseURI opens a URL with urllib.request
-    (`minidom.getDOMImplementation().createDOMBuilder(1, None).parseURI(url)`), and an allowed module that imports
-    a banned one carries it as an attribute. All three are left to review."""
+    open a connection or fetch a URL (NETWORK_MODULES: urllib, http, socket, ssl and _ssl, the mail, ftp and telnet
+    clients, xmlrpc, asyncio and _overlapped, selectors, socketserver, wsgiref, multiprocessing, webbrowser and
+    antigravity, which opens a URL at import, logging.handlers, xml.sax, which opens a URL given as a system id, the
+    whole xml.dom package, whose xmlbuilder DOMBuilder.parseURI opens a URL with urllib.request and which minidom and
+    xml.dom.getDOMImplementation() both hand out, and ctypes and _ctypes, which call any DLL). Together they catch a
+    stdlib network call written in the ordinary ways; they do not prove that core/compliance cannot reach the
+    network. Not covered: a `subprocess` call (the P26 alert toast is one; os.system, os.popen, os.startfile and
+    _winapi launch processes the same way), sqlite3's Connection.load_extension, which loads any DLL as ctypes does,
+    and reaching a network API through an allowed module, by attribute or by `getattr(module, "name")`: an allowed
+    module that imports a banned one carries it as an attribute (mailbox carries socket, concurrent.futures.process
+    carries multiprocessing.connection). All three are left to review."""
     assert len(_http_hits(X, "requests.post(u)\nstore.put('transfer_ack', 1)\nx.delete()\ny.patch(z)\n"
                              "s.request('POST', u)\n")) == 5
     # a urllib POST with no verb method at all: only the urlopen call names it
@@ -272,8 +298,8 @@ def test_no_http_verb_calls():
 
 def test_no_forbidden_module_import():
     """core.engine.orders in every form (T-RO-01 misses `from core.engine import orders`), the forward simulator,
-    the refusal legs and the protected context modules, at module or function level; and no star or dynamic import,
-    which would hide one from this scan and load code the D14 closure never signed (P6)."""
+    the refusal legs and the protected context modules, at module or function level; and no star or dynamic import
+    or bare compile(), which would hide one from this scan and load code the D14 closure never signed (P6)."""
     for src in ("from core.engine import orders\n", "import core.engine.orders as o\n",
                 "from core.engine.orders import OrderBook\n", "from ..engine import orders\n",
                 "def f():\n    from core.quant import forward_sim\n", "from core.ficc import macro\n",
@@ -287,7 +313,15 @@ def test_no_forbidden_module_import():
                 "from importlib import util\n", "import runpy\n", "import pkgutil\n", "exec(src)\n", "eval(src)\n",
                 "spec.loader.exec_module(m)\n", "import pydoc\n", "from pydoc import locate\n",
                 "from timeit import timeit\n", "import timeit\n", "import code\n", "from code import interact\n",
-                "import cProfile\n", "from cProfile import run\n"):
+                "import cProfile\n", "from cProfile import run\n", "import importlib\n",
+                "import importlib.resources\n", "from importlib import resources\n", "import profile\n",
+                "import pdb\n", "from bdb import Bdb\n", "import trace\n", "import doctest\n", "import unittest.mock\n",
+                "from unittest import mock\n", "from logging import config\n", "import logging.config\n",
+                "from logging.config import dictConfig\n", "import pickle\n", "import _pickle\n", "import shelve\n",
+                "import marshal\n", "import site\n", "import ensurepip\n", "import venv\n", "import tkinter\n",
+                "from tkinter import Tcl\n", "import _tkinter\n", "import turtle\n", "import turtledemo\n",
+                "import idlelib.run\n", 'x = compile(s, "x", "exec")\n', "import pstats\n",
+                "from pstats import Stats\n", "import tracemalloc\n", "from tracemalloc import Snapshot\n"):
         assert _dynamic_hits(X, src), src
     for module in DYNAMIC_MODULES:                      # every banned module, in each import form
         for src in (f"import {module}\n", f"import {module}.x\n", f"from {module} import x\n"):
@@ -295,11 +329,33 @@ def test_no_forbidden_module_import():
     assert not _dynamic_hits(X, "import importlib.metadata\nfrom importlib import metadata\n"
                                 "v = importlib.metadata.distribution('PyYAML')\nimport json\nimport codecs\n"
                                 "import profile_notes\nfrom core.compliance import code_files\n")
+    assert not _dynamic_hits(X, "from importlib.metadata import distribution, PackageNotFoundError\nimport traceback\n"
+                                "import faulthandler\nimport logging\nfrom logging import getLogger\n"
+                                "_P = re.compile(r'x')\n")    # not banned (R1); pstats and tracemalloc are (R2-10)
     assert not _dynamic_hits(X, "def f():\n    try:\n        import cryptography.hazmat.primitives.asymmetric.ed25519\n"
                                 "    except ImportError:\n        return None\n")    # the core/ missing-package probe
     hits = [h for rel, src in _scope(COMPLIANCE, ODDS).items()
             for h in _forbidden_hits(rel, src) + _dynamic_hits(rel, src)]
     assert not hits, hits
+
+
+def test_bare_compile_and_importlib_submodules_are_dynamic():
+    """The builtin compile() turns a string into code (types.FunctionType can then run it with no exec or eval), so the
+    bare name is banned; re.compile is an attribute and stays legal. Every importlib import but importlib.metadata is
+    dynamic (importlib.resources imports a package named by a string), and so is every attribute of the name
+    importlib but metadata, which `import importlib.metadata` binds (R9)."""
+    for src in ('x = compile(s, "x", "exec")\n', "f = compile\n", "compile = None\n", "import importlib\n",
+                "import importlib.resources\n", "from importlib import resources\n", "import importlib.abc\n",
+                "import importlib._bootstrap\n", "from importlib import metadata, util\n",
+                "import importlib.metadata\nm = importlib.util.spec_from_file_location('m', p)\n",
+                "import importlib.metadata\nimportlib._bootstrap._load(s)\n",
+                "import importlib.metadata\nimportlib.reload(m)\n"):
+        assert _dynamic_hits(X, src), src
+    assert _dynamic_module("importlib.util") and not _dynamic_module("importlib.metadata.x")
+    assert not _dynamic_hits(X, "_P = re.compile(r'x')\nself.compile()\nm.compile\n")
+    assert not _dynamic_hits(X, "import importlib.metadata\nfrom importlib import metadata\n"
+                                "from importlib.metadata import distribution, PackageNotFoundError\n"
+                                "import importlib.metadata as md\nv = importlib.metadata.version('PyYAML')\n")
 
 
 def test_imports_stay_on_the_allowlist():
@@ -326,11 +382,14 @@ def test_imports_stay_on_the_allowlist():
                 "from logging.handlers import HTTPHandler\n", "import _socket\n", "import socketserver\n",
                 "import selectors\n", "from wsgiref import simple_server\n", "import xml.sax\n",
                 "from xml import sax\n", "from xml.dom import pulldom\n", "from xml.dom import expatbuilder\n",
-                "import xml.dom.expatbuilder\n"):
+                "import xml.dom.expatbuilder\n", "import xml.dom\n", "from xml.dom import minidom\n",
+                "import xml.dom.minidom\n", "import xml.dom.xmlbuilder\n", "from xml import dom\n",
+                "from xml.dom.minidom import parseString\n", "import antigravity\n", "import ctypes\n",
+                "from ctypes import wintypes\n", "import _ctypes\n", "import _ssl\n", "import _overlapped\n"):
         assert _allowlist_hits(X, src), src
     # a banned SUB-module does not ban its parent package or its harmless siblings
     assert not _allowlist_hits(X, "import logging\nfrom logging import getLogger\nimport xml.etree.ElementTree\n"
-                                  "from xml.etree import ElementTree\nfrom xml.dom import minidom\n")
+                                  "from xml.etree import ElementTree\n")
     assert not _allowlist_hits(X, "import subprocess\nimport importlib.metadata\nfrom importlib import metadata\n"
                                   "import ipaddress, email.message, json\n")
     ok = ("from __future__ import annotations\nimport json, zoneinfo\nimport yaml\nfrom core import isolation\n"
@@ -480,13 +539,23 @@ def test_aggregator_skips_missing_and_isolates_broken_modules():
 # --------------------------------------------------------------------------- #
 # Registration
 # --------------------------------------------------------------------------- #
+def _suite_names(text: str) -> list[str]:
+    """The names of the first hand-written "one suite: a, b or c" list in `text` ([] when there is none)."""
+    line = next((s for s in text.splitlines() if "one suite: " in s), "")
+    listed = line.split("one suite: ", 1)[1].rstrip('")').strip() if line else ""
+    return [n for n in re.split(r", | or ", listed) if n]
+
+
 def test_suite_is_registered_in_run_all_and_readme():
-    """`tests/run_all.py --suite compliance` selects this suite, and both hand-written suite lists name it."""
+    """`tests/run_all.py --suite compliance` selects this suite, and both hand-written suite lists name it; the check
+    reads the list, so adding a suite to either list breaks nothing (R7)."""
     from tests import run_all
     names = [n for n, _f in run_all.select(run_all.tests(), suite="compliance")]
     assert any(n.startswith("compliance/compliance_guards/") for n in names), names
-    assert "paper, grokteam or compliance" in (ROOT / "tests" / "run_all.py").read_text(encoding="utf-8")
-    assert "paper, grokteam or compliance" in (ROOT / "README.md").read_text(encoding="utf-8")
+    assert _suite_names('help="run one suite: cockpit, compliance or odds")') == ["cockpit", "compliance", "odds"]
+    assert "compliance" not in _suite_names("x  # one suite: cockpit or paper\n") and _suite_names("none\n") == []
+    for path in (ROOT / "tests" / "run_all.py", ROOT / "README.md"):
+        assert "compliance" in _suite_names(path.read_text(encoding="utf-8")), path.name
 
 
 def test_cryptography_is_pinned_installed_and_usable():
