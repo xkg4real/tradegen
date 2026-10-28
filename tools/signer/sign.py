@@ -623,27 +623,28 @@ def _binds(tree: ast.AST, name: str) -> int:
 
 
 def _typing_flag(tree: ast.AST) -> bool:
-    """True when the bare name TYPE_CHECKING in `tree` is the one from `from typing import TYPE_CHECKING` and is
-    never bound anywhere else; a local `TYPE_CHECKING = True` is code that runs (P6)."""
+    """True when the bare name TYPE_CHECKING in `tree` is the one from a top-level `from typing import
+    TYPE_CHECKING` and is never bound anywhere else; a local `TYPE_CHECKING = True` is code that runs (P6)."""
     imported = any(isinstance(n, ast.ImportFrom) and n.level == 0 and n.module == "typing"
                    and any(a.name == "TYPE_CHECKING" and a.asname is None for a in n.names)
-                   for n in ast.walk(tree))
+                   for n in tree.body)
     return imported and _binds(tree, "TYPE_CHECKING") == 1
 
 
 def _guards(tree: ast.AST) -> tuple[bool, bool, bool]:
     """Which `if` guards of `tree` may skip their body (P6, R4): (bare TYPE_CHECKING, typing.TYPE_CHECKING,
     __name__ == "__main__"). The bare name needs _typing_flag; `typing.` needs `typing` bound exactly once, by a
-    plain `import typing`; the `__main__` test needs `__name__` bound nowhere in the module. A rebound name
-    (typing = SimpleNamespace(TYPE_CHECKING=True), __name__ = "__main__") loses its guard, and a module that can
-    change these names without binding them (an attribute store of TYPE_CHECKING, __name__ or __class__, or any
-    setattr, delattr, globals, vars, locals, modules, __dict__, builtins, __builtins__, f_globals or f_locals)
-    trusts no guard: the guarded body is scanned. Not seen: another module changing typing.TYPE_CHECKING first
-    (the review of each hashed diff)."""
+    plain `import typing`; both imports count only as top-level statements of the module (one inside a function, a
+    class, an `if` or a `try` does not); the `__main__` test needs `__name__` bound nowhere in the module. A rebound
+    name (typing = SimpleNamespace(TYPE_CHECKING=True), __name__ = "__main__") loses its guard, and a module that
+    can change these names without binding them (an attribute store of TYPE_CHECKING, __name__ or __class__, or any
+    setattr, delattr, globals, vars, locals, modules, __dict__, builtins, __builtins__, f_globals, f_locals,
+    f_builtins, __globals__, get_referents or get_referrers) trusts no guard: the guarded body is scanned. Not seen:
+    another module changing typing.TYPE_CHECKING first (the review of each hashed diff)."""
     plain = any(isinstance(n, ast.Import) and any(a.name == "typing" and a.asname is None for a in n.names)
-                for n in ast.walk(tree))
+                for n in tree.body)
     routes = {"setattr", "delattr", "globals", "vars", "locals", "modules", "__dict__", "builtins", "__builtins__",
-              "f_globals", "f_locals"}
+              "f_globals", "f_locals", "f_builtins", "__globals__", "get_referents", "get_referrers"}
     if any((isinstance(n, ast.Name) and n.id in routes) or (isinstance(n, ast.Attribute) and (n.attr in routes or (
             n.attr in ("TYPE_CHECKING", "__name__", "__class__") and not isinstance(n.ctx, ast.Load))))
            for n in ast.walk(tree)):
