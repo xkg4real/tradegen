@@ -51,14 +51,17 @@ FORBIDDEN_MODULES = ("core.engine.orders", "core.quant.forward_sim", "core.quant
 # shelve and marshal (objects and code from bytes), site (.pth lines are exec'd), ensurepip and venv (pip through
 # runpy), tkinter, _tkinter, turtle, turtledemo and idlelib (a Tcl interpreter with sockets; idlelib exec), pstats
 # and tracemalloc (they load files with marshal and pickle: pstats.Stats, tracemalloc.Snapshot.load). The builtin
-# compile() is banned as a bare name only, so re.compile stays legal (builtins.compile is left to review).
-# importlib.metadata stays allowed: owner.py reads the RECORD files with it. `import importlib.metadata` binds the
-# name importlib, so any other attribute of it (importlib.util, importlib._bootstrap) is a hit too; its
-# EntryPoint.load imports by string through an attribute, which this scan does not see. faulthandler stays allowed
-# (R1): it runs no string and opens nothing. A denylist, not a proof: codeop and dis (they compile a string, which
-# types.FunctionType runs), _frozen_importlib, _frozen_importlib_external and _imp (importlib's bootstrap under other
-# names) and _interpreters (run_string) are not on it and are left to review. core/ probes for cryptography with a
-# lazy `import` inside try/except ImportError; importlib.util.find_spec is for tests only.
+# compile() is banned as a bare name and as an imported name (`from builtins import compile as c`), so re.compile stays
+# legal (builtins.compile is left to review). importlib.metadata stays allowed: owner.py reads the RECORD files with it.
+# `import importlib.metadata` binds the name importlib, so any other attribute of it (importlib.util,
+# importlib._bootstrap) is a hit too; its EntryPoint.load imports by string through an attribute, which this scan does
+# not see. faulthandler stays allowed (R1): it runs no string and opens nothing. A denylist, not a proof: codeop and dis
+# (they compile a string, which types.FunctionType runs), _frozen_importlib, _frozen_importlib_external and _imp
+# (importlib's bootstrap under other names), _interpreters (run_string), breakpoint() and sys.breakpointhook
+# (PYTHONBREAKPOINT names a callable), string annotations evaluated by typing.get_type_hints or
+# inspect.get_annotations(eval_str=True), functools.singledispatch's register, and importlib.metadata through an alias
+# or getattr are not on it and are left to review. core/ probes for cryptography with a lazy `import` inside try/except
+# ImportError; importlib.util.find_spec is for tests only.
 DYNAMIC_NAMES = frozenset({"__import__", "import_module", "exec_module", "load_module", "exec", "eval"})
 DYNAMIC_BARE = frozenset({"compile"})               # an ast.Name only: re.compile is an attribute
 DYNAMIC_MODULES = ("importlib", "runpy", "pkgutil", "zipimport", "pydoc", "timeit", "code", "cProfile", "profile",
@@ -171,7 +174,8 @@ def _dynamic_hits(rel: str, src: str) -> list[str]:
     tree, hits = ast.parse(src), []
     for node, module, names, _f in _imports(rel, tree):
         targets = [f"{module}.{n}" for n in names] or [module]     # `from importlib import metadata` is that module
-        if "*" in names or DYNAMIC_NAMES.intersection(names) or any(_dynamic_module(t) for t in targets):
+        if ("*" in names or (DYNAMIC_NAMES | DYNAMIC_BARE).intersection(names)
+                or any(_dynamic_module(t) for t in targets)):
             hits.append(f"{rel}:{node.lineno}: star or dynamic import from {module}")
     for node, _f in _walk(tree):
         name = node.id if isinstance(node, ast.Name) else node.attr if isinstance(node, ast.Attribute) else None
@@ -349,7 +353,8 @@ def test_bare_compile_and_importlib_submodules_are_dynamic():
                 "import importlib._bootstrap\n", "from importlib import metadata, util\n",
                 "import importlib.metadata\nm = importlib.util.spec_from_file_location('m', p)\n",
                 "import importlib.metadata\nimportlib._bootstrap._load(s)\n",
-                "import importlib.metadata\nimportlib.reload(m)\n"):
+                "import importlib.metadata\nimportlib.reload(m)\n",
+                "from builtins import compile as c\nc(s, 'x', 'exec')\n"):
         assert _dynamic_hits(X, src), src
     assert _dynamic_module("importlib.util") and not _dynamic_module("importlib.metadata.x")
     assert not _dynamic_hits(X, "_P = re.compile(r'x')\nself.compile()\nm.compile\n")
