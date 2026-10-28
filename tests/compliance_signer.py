@@ -221,7 +221,7 @@ def test_main_refuses_claude_parent_and_non_tty_stdin():
             _patched(signer, "_read_typed", _never):
         with _patched(signer, "_claude_ancestor", lambda: True), _patched(sys, "stdin", _Tty()):
             code, _, err = _quiet(signer.main, ["keygen"])
-        assert code == 2 and "claude.exe" in err, (code, err)
+        assert code == 2 and "claude.exe" in err and "has exited" in err, (code, err)
         with _patched(signer, "_claude_ancestor", lambda: False), _patched(sys, "stdin", io.StringIO("")):
             code, _, err = _quiet(signer.main, ["keygen"])
         assert code == 2 and "stdin is not a terminal" in err, (code, err)
@@ -283,19 +283,39 @@ def test_stdin_terminal_check_follows_getconsolemode():
 
 
 def test_claude_ancestor_walk():
+    """R5, R11: a claude.exe anywhere in the chain refuses, even above a session process, and so does a walk that
+    breaks (an exited parent, a pid-reuse cycle, more than 256 steps) before it has passed a session process."""
     table = {10: (9, "python.exe"), 9: (8, "cmd.exe"), 8: (7, "Claude.exe"), 7: (0, "explorer.exe")}
     assert signer._has_claude_ancestor(10, table) is True
     assert signer._has_claude_ancestor(9, {**table, 8: (7, "WindowsTerminal.exe")}) is False
-    assert signer._has_claude_ancestor(1, {1: (2, "a.exe"), 2: (1, "b.exe")}) is False      # pid-reuse cycle ends
-    assert signer._has_claude_ancestor(5, {}) is False
+    terminal = {20: (21, "python.exe"), 21: (22, "powershell.exe"), 22: (23, "WindowsTerminal.exe"),
+                23: (24, "svchost.exe"), 24: (25, "services.exe"), 25: (99, "wininit.exe")}      # 99 has exited
+    assert signer._has_claude_ancestor(20, terminal) is False, "the owner's Windows Terminal chain (R11)"
+    shell = {50: (51, "python.exe"), 51: (52, "cmd.exe"), 52: (53, "Explorer.EXE")}             # 53 has exited
+    assert signer._has_claude_ancestor(50, shell) is False, "a console started from explorer.exe, any case (R11)"
+    renamed = {1: (2, "python.exe"), 2: (3, "winlogon.exe"), 3: (4, "bash.exe"), 4: (5, "claude.exe"),
+               5: (0, "explorer.exe")}                       # cmd.exe saved as winlogon.exe, run under Claude
+    assert signer._has_claude_ancestor(1, renamed) is True, "a session process name never ends the walk"
+    assert signer._has_claude_ancestor(1, {1: (2, "a.exe"), 2: (1, "b.exe")}) is True, "a pid-reuse cycle refuses"
+    assert signer._has_claude_ancestor(5, {}) is True, "an empty table refuses"
+    exited = {30: (31, "python.exe"), 31: (32, "Code.exe")}                                    # 32 has exited
+    assert signer._has_claude_ancestor(30, exited) is True, "an editor terminal whose launcher has exited"
+    assert signer._has_claude_ancestor(40, {40: (41, "python.exe"), 41: (0, "CLAUDE.EXE")}) is True, "any case"
+    deep = {**{n: (n + 1, "python.exe") for n in range(1, 300)}, 300: (0, "wininit.exe")}
+    assert signer._has_claude_ancestor(1, deep) is True, "the 256-step cap refuses"
+    service = {60: (61, "python.exe"), 61: (62, "svchost.exe")}                                # 62 has exited
+    assert signer._has_claude_ancestor(60, service) is True, "svchost.exe is no session process"
+    roots = frozenset({"explorer.exe", "services.exe", "wininit.exe", "winlogon.exe"})
+    assert signer._SESSION_ROOTS == roots, "exactly the four session processes: one more makes the walk looser (R11)"
     if os.name == "nt":
         live = signer._process_table()
         assert live[os.getpid()][0] == os.getppid(), live.get(os.getpid())
 
 
 def test_claude_ancestor_check_fails_closed():
-    """Claude is ruled out only from a process table that holds this very process: a failed snapshot, an empty
-    table or a table without our pid all read as "cannot rule it out"."""
+    """Claude is ruled out only from a process table that holds this very process and whose parent chain reaches
+    pid 0 or passes a Windows session process: a failed snapshot, an empty table, a table without our pid or a
+    parent that has exited all read as "cannot rule it out" (R5)."""
     me = os.getpid()
 
     def broken():
@@ -307,6 +327,8 @@ def test_claude_ancestor_check_fails_closed():
             assert signer._claude_ancestor() is True, table
     with _patched(signer, "_process_table", lambda: {me: (0, "python.exe")}):
         assert signer._claude_ancestor() is False
+    with _patched(signer, "_process_table", lambda: {me: (me + 1, "python.exe")}):
+        assert signer._claude_ancestor() is True, "a parent that has exited refuses (R5)"
     with _patched(signer, "_process_table", lambda: {me: (7, "python.exe"), 7: (0, "Claude.exe")}):
         assert signer._claude_ancestor() is True
 
@@ -1146,7 +1168,9 @@ def test_help_names_owner_acts_1_and_2():
                    "Claude never runs this file", "from the next Asia/Seoul date", "blanks do not count",
                    "Key rotation", "keygen --key NEW\\owner_key.enc", "event key_rotated", "copy NEW\\owner_key.pem",
                    "owner_pubkey.pem", "pass --key NEW\\owner_key.enc to every command",
-                   "reads BROKEN between steps 3 and 4", "write the new fingerprint on paper"):
+                   "reads BROKEN between steps 3 and 4", "write the new fingerprint on paper",
+                   "open Windows Terminal yourself from the Start menu",               # R5, R11
+                   "when its parent chain stops before a Windows session process"):
         assert needle in " ".join(text.split()), needle
     assert "python.exe %USERPROFILE%" not in text, "every command line starts python.exe -I"
     parser = signer._parser()

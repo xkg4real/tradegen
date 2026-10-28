@@ -1,6 +1,7 @@
 r"""TRADEGEN owner signer (spec 6.4, D14). You keep this one file outside the repo and run it only in your own
 Windows Terminal. It uses the standard library and `cryptography`, never imports the TRADEGEN repo, and refuses to
-run under Claude, under a claude.exe parent process, without a terminal on stdin, or without python.exe -I.
+run under Claude, under a claude.exe parent process, when its parent chain stops before a Windows session process,
+without a terminal on stdin, or without python.exe -I.
 
 Owner act 1, once: set up the signer
   1. Copy tools\signer\sign.py from the repo to %USERPROFILE%\tradegen-signer\sign.py. Read all of it.
@@ -20,6 +21,8 @@ Owner act 2, after you have reviewed every diff of the files it lists: sign the 
   Run it again whenever --check reports "code: UNSIGNED" and you have reviewed the change.
 
 Every time, before you type the passphrase
+  - open Windows Terminal yourself from the Start menu (an editor's terminal can be refused: its parent chain may
+    stop at a launcher that has exited);
   - start it with python.exe -I, as above. -I keeps the folder of sign.py, the current folder and PYTHON*
     variables off the import path, so no .py file placed next to sign.py runs while you type;
   - run the certutil line again and compare it with the paper; on any difference stop and type nothing;
@@ -776,14 +779,26 @@ def _process_table() -> dict[int, tuple[int, str]]:
     return table
 
 
+# Windows session processes: a user's chain normally passes one of these before its top parent exits (R11).
+_SESSION_ROOTS = frozenset({"explorer.exe", "services.exe", "wininit.exe", "winlogon.exe"})
+
+
 def _has_claude_ancestor(pid: int, table: dict[int, tuple[int, str]]) -> bool:
-    """True when `pid` or any ancestor in `table` runs claude.exe (any version, any case); pid reuse cycles end."""
-    seen = set()
-    while pid in table and pid not in seen and len(seen) < 256:
+    """True when `pid` or any ancestor in `table` runs claude.exe (any version, any case), even above a Windows
+    session process (a process name is only a file name). The walk goes on to pid 0 or until it breaks: at a pid
+    missing from the table (a parent that has exited), a pid-reuse cycle or 256 steps. A break returns True (Claude
+    cannot be ruled out) unless the walk has passed a session process (_SESSION_ROOTS): a user chain's top parent
+    has normally exited (explorer.exe's, wininit.exe's), and Windows Terminal runs under svchost.exe, services.exe
+    and wininit.exe (R11)."""
+    seen, rooted = set(), False
+    while pid != 0:
+        if pid not in table or pid in seen or len(seen) >= 256:
+            return not rooted
         seen.add(pid)
         parent, exe = table[pid]
         if exe.lower() == "claude.exe":
             return True
+        rooted = rooted or exe.lower() in _SESSION_ROOTS
         pid = parent
     return False
 
@@ -829,7 +844,8 @@ def _refusal() -> str:
     if names:
         return f"{names[0]} is set: run me in your own terminal, never under Claude"
     if _claude_ancestor():
-        return "a parent process is claude.exe: run me in your own terminal, never under Claude"
+        return ("a parent process is claude.exe, or the parent chain stops at a process that has exited: open Windows "
+                "Terminal yourself from the Start menu and run me there, never under Claude")
     if not _stdin_is_terminal():
         return "stdin is not a terminal: type the passphrase yourself"
     if not _isolated():
