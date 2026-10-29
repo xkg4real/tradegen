@@ -234,18 +234,16 @@ def _clock_hits_in(rel: str, src: str, allowed: tuple[str, ...] = ()) -> list[st
     `datetime64('now')`, `Timestamp('today')`)."""
     clocks = {k: set(CG.CLOCKS.get(k, ())) | _MORE_CLOCKS.get(k, set()) for k in {*CG.CLOCKS, *_MORE_CLOCKS}}
     tree, hits, alias = ast.parse(src), [], {}
-    for n in ast.walk(tree):                            # `import time as t`, `from email import utils as eu`
-        if isinstance(n, ast.Import):
-            alias.update({a.asname or a.name: a.name.rpartition(".")[2] for a in n.names
-                          if a.name.rpartition(".")[2] in clocks})
-        elif isinstance(n, ast.ImportFrom):             # from any module (T1-R1-2): `from pandas import Timestamp as T`
-            alias.update({a.asname or a.name: a.name for a in n.names if a.name in clocks})
+    for n in ast.walk(tree):                            # `import time as t`, `from email import utils as eu`, from
+        if isinstance(n, (ast.Import, ast.ImportFrom)):  # any module (T1-R1-2): the map is file-wide, so a name keeps
+            for a in n.names:                           # EVERY name it is imported as: none hides another (T1-RR1-1)
+                alias.setdefault(a.asname or a.name, set()).add(a.name.rpartition(".")[2])
     for node, funcs in CG._walk(tree):
         if rel in allowed and "main" in funcs:
             continue
         if isinstance(node, ast.Attribute):
-            if isinstance(node.value, ast.Name):        # the raw name and its alias: the map is file-wide and the
-                bases = (node.value.id, alias.get(node.value.id, node.value.id))   # last import wins (T1-RR1-1)
+            if isinstance(node.value, ast.Name):        # the raw name and every name it is imported as
+                bases = (node.value.id, *sorted(alias.get(node.value.id, ())))
             else:
                 bases = (getattr(node.value, "attr", None),)
             base = next((b for b in bases if node.attr in clocks.get(b, ())), None)
@@ -405,7 +403,10 @@ def test_core_odds_reads_no_clock():
                 "from email.utils import formatdate\n", "x = pd.Timestamp.now()\n", "x = pd.Timestamp('today')\n",
                 "from email import utils as eu\nx = eu.localtime()\n",
                 "import time\ndef _u():\n    from email import utils as time\nx = time.time()\n",
-                "import time\ndef _u():\n    import email.utils as time\nx = time.time()\n"):
+                "import time\ndef _u():\n    import email.utils as time\nx = time.time()\n",
+                "import time as t\ndef _u():\n    from email import utils as t\nx = t.time()\n",
+                "import time as t\ndef _u():\n    import email.utils as t\nx = t.time()\n",
+                "import email.utils as eu\ndef _u():\n    from datetime import date as eu\nx = eu.localtime()\n"):
         assert _clock_hits_in(X, src), src
     main = "def main():\n    return datetime.now(timezone.utc)\n"
     assert _clock_hits_in(XD, main, allowed=(RUN,)) and not _clock_hits_in(RUN, main, allowed=(RUN,))
