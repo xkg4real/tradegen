@@ -639,12 +639,12 @@ def _guards(tree: ast.AST) -> tuple[bool, bool, bool]:
     name (typing = SimpleNamespace(TYPE_CHECKING=True), __name__ = "__main__") loses its guard, and a module that
     can change these names without binding them (an attribute store of TYPE_CHECKING, __name__ or __class__, or any
     setattr, delattr, globals, vars, locals, modules, __dict__, builtins, __builtins__, f_globals, f_locals,
-    f_builtins, __globals__, get_referents or get_referrers) trusts no guard: the guarded body is scanned. Not seen:
-    another module changing typing.TYPE_CHECKING first (the review of each hashed diff)."""
+    f_builtins, __globals__, get_referents, get_referrers or get_objects) trusts no guard: the guarded body is scanned.
+    Not seen: another module changing typing.TYPE_CHECKING first (the review of each hashed diff)."""
     plain = any(isinstance(n, ast.Import) and any(a.name == "typing" and a.asname is None for a in n.names)
                 for n in tree.body)
     routes = {"setattr", "delattr", "globals", "vars", "locals", "modules", "__dict__", "builtins", "__builtins__",
-              "f_globals", "f_locals", "f_builtins", "__globals__", "get_referents", "get_referrers"}
+              "f_globals", "f_locals", "f_builtins", "__globals__", "get_referents", "get_referrers", "get_objects"}
     if any((isinstance(n, ast.Name) and n.id in routes) or (isinstance(n, ast.Attribute) and (n.attr in routes or (
             n.attr in ("TYPE_CHECKING", "__name__", "__class__") and not isinstance(n.ctx, ast.Load))))
            for n in ast.walk(tree)):

@@ -715,6 +715,10 @@ def test_code_files_match_owner():
         "core/compliance/y.py": ("import sys, types\ndef _never():\n    import typing\n"
                                  "sys._getframe().f_builtins[\"typing\"] = types.SimpleNamespace(TYPE_CHECKING=True)\n"
                                  "if typing.TYPE_CHECKING:\n    import core.builtins_typing\n"),
+        "core/compliance/z.py": ("import gc, typing\nfor o in gc.get_objects():\n"
+                                 "    if isinstance(o, dict) and o.get(\"__name__\") == \"typing\":\n"
+                                 "        o[\"TYPE_CHECKING\"] = True\n"
+                                 "if typing.TYPE_CHECKING:\n    import core.gc_objects_typing\n"),
         "core/neq.py": "", "core/local_tc.py": "", "core/rebound.py": "", "core/negated.py": "",
         "core/rev_cli.py": "",
         "core/rebound_typing.py": "", "core/rebound_main.py": "", "core/alias_typing.py": "",
@@ -723,7 +727,7 @@ def test_code_files_match_owner():
         "core/stored_bare.py": "", "core/frame_main.py": "", "core/frame_bare.py": "",
         "core/class_typing.py": "",
         "core/fn_globals_main.py": "", "core/fn_globals_typing.py": "", "core/fn_globals_bare.py": "",
-        "core/gc_typing.py": "", "core/builtins_typing.py": "",
+        "core/gc_typing.py": "", "core/builtins_typing.py": "", "core/gc_objects_typing.py": "",
         "core/pkg/__init__.py": "",
         "core/pkg/lazy.py": "from . import sibling\nfrom .. import upper\n",
         "core/pkg/sibling.py": "import json\n",
@@ -745,12 +749,12 @@ def test_code_files_match_owner():
         "core/compliance/l.py", "core/compliance/m.py", "core/compliance/n.py", "core/compliance/o.py",
         "core/compliance/p.py", "core/compliance/q.py", "core/compliance/r.py", "core/compliance/s.py",
         "core/compliance/t.py", "core/compliance/u.py", "core/compliance/v.py", "core/compliance/w.py",
-        "core/compliance/x.py", "core/compliance/y.py",
+        "core/compliance/x.py", "core/compliance/y.py", "core/compliance/z.py",
         "core/rebound_typing.py", "core/rebound_main.py", "core/alias_typing.py", "core/unbound_typing.py",
         "core/param_main.py", "core/stored_typing.py", "core/setattr_typing.py", "core/globals_main.py",
         "core/modules_typing.py", "core/stored_bare.py", "core/frame_main.py", "core/frame_bare.py",
         "core/class_typing.py", "core/fn_globals_main.py", "core/fn_globals_typing.py", "core/fn_globals_bare.py",
-        "core/gc_typing.py", "core/builtins_typing.py",
+        "core/gc_typing.py", "core/builtins_typing.py", "core/gc_objects_typing.py",
         "core/neq.py", "core/local_tc.py", "core/rebound.py", "core/negated.py"}, mine
 
 
