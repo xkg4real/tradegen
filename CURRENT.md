@@ -1,20 +1,20 @@
 ---
-status: checkpoint
-reason: milestone
+status: handoff
+reason: usage_limit_weekly
 from: claude
 task: odds-engine
 cycle: 2026-10-27
-done_ids: odds-1, odds-2, odds-3, odds-4, odds-5
-next_ids: odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr
-updated_at: 2026-10-29T17:05:11+09:00
+done_ids: odds-1, odds-2, odds-3, odds-4, odds-5, odds-6
+next_ids: odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr
+updated_at: 2026-10-29T17:36:05+09:00
 stale_after_hours: 3
 waiting_on: none
 work_branch: odds-engine
-work_commit: 66acd15
+work_commit: 1a7eaba
 uncommitted_changes: yes
 pr: none
-usage_weekly_pct: 95
-usage_5h_pct: 10
+usage_weekly_pct: 97
+usage_5h_pct: 15
 usage_resets_at: 2026-11-03T17:00:00+09:00
 session: local b1492ead-23f3-4704-b198-5b5fc445ad00 (Claude desktop, owner's Windows PC)
 ---
@@ -23,10 +23,10 @@ session: local b1492ead-23f3-4704-b198-5b5fc445ad00 (Claude desktop, owner's Win
 
 ## 0. 한 줄 요약
 
-컴플라이언스 후속 계획은 끝나 `main`에 병합됐습니다(`f3bedd3`, PR #3). 지금은 odds 계획(19개 Task)을 Claude가 Task마다
-구현, 검토, 수정 순서로 실행하고 있습니다. Task 1부터 Task 5까지는 끝나 push했습니다(`66acd15`). 다음은 Task 6입니다.
-주간 사용량은 95%입니다. Claude는 Task를 시작하기 전마다 사용량을 보고, 97% 이상이면 이 문서를 `status: handoff`로 바꿉니다.
-이어받는 쪽이 가장 먼저 할 일은 그때의 `next_ids` 첫 항목입니다.
+Claude의 주간 사용량이 97%에 이르러, odds 계획 Task 6까지 끝내고 여기서 인수인계합니다(소유자 규칙은 98%, Task 중간에 끊기지
+않게 Task 경계에서 멈춤). 컴플라이언스 후속 계획은 `main`에 병합됐고(`f3bedd3`), odds 계획 Task 1~6은 모두 검토를 거쳐
+`odds-engine`에 push됐습니다(끝 `1a7eaba`). 이어받는 쪽이 가장 먼저 할 일은 odds-7(계획 Task 7: `core/odds/models.py` 1부)입니다.
+Claude는 화요일 2026-11-03 17:00(KST) 사용량이 다시 채워진 뒤 이 문서와 LEDGER를 먼저 읽고 이어갑니다.
 
 ## 1. 목표와 완료 조건
 
@@ -76,20 +76,21 @@ session: local b1492ead-23f3-4704-b198-5b5fc445ad00 (Claude desktop, owner's Win
 - [x] odds-3 출처가 붙은 odds 값을 venues.yaml에(`core/odds/venues.yaml`, `tests/compliance_tables.py`) — 커밋 `f37661c`, LEDGER 기록함
 - [x] odds-4 컴플라이언스 도우미 calendar_in_force, grey_rows, 서명된 홈 픽스처(`core/compliance/`, `tests/compliance_*`) — 커밋 `07bb309`, LEDGER 기록함
 - [x] odds-5 계획 타입, 주입 입력, 상품·상태·데이터 점검(`core/odds/plan.py`, `tests/odds_plan.py`) — 커밋 `66acd15`, LEDGER 기록함
-- [ ] odds-6 비용, 거래소 조건, 밴드, 감당 가능성, 투입액(`core/odds/costs.py`) ← **다음**
-- [ ] odds-7 ~ odds-19, odds-final, odds-pr
+- [x] odds-6 비용, 거래소 조건, 밴드, 감당 가능성, 투입액(`core/odds/costs.py`, `tests/odds_costs.py`) — 커밋 `1a7eaba`, LEDGER 기록함
+- [ ] odds-7 두 점 부트스트랩, 블록 길이, 인덱스 생성기, 시드(`core/odds/models.py` 1부) ← **다음**
+- [ ] odds-8 ~ odds-19, odds-final, odds-pr
 
-**마지막으로 통과한 검증 (odds-5 구현 보고, `66acd15`, 키 미설정):**
+**마지막으로 통과한 검증 (odds-6 구현 보고, `1a7eaba`, 키 미설정):**
 
 ```
-.venv/Scripts/python.exe tests/run_all.py --suite odds    # KEYLESS 접두어, 66acd15
-43/43 passed, 0 failed, 0 not run   # odds_guards 18 + odds_plan 25, 계획과 같음
-odds_plan/ 25/25, compliance_guards 16/16, compliance_store 36/36, cockpit 47/47
+.venv/Scripts/python.exe tests/run_all.py --suite odds    # KEYLESS 접두어, 1a7eaba
+66/66 passed, 0 failed, 0 not run   # odds_guards 18 + odds_plan 25 + odds_costs 23, 계획과 같음
+odds_costs/ 23/23, compliance_guards 16/16, compliance_store 36/36, cockpit 47/47
 ```
 
 ## 5. 중단 지점
 
-- `odds-engine`의 원격 끝은 `66acd15`(Task 5 끝)입니다. Claude가 Task 3을 진행 중이면 그 커밋은 검토가 끝난 뒤 push됩니다.
+- `odds-engine`의 원격 끝은 `1a7eaba`(Task 6 끝)입니다. 진행 중인 Claude 작업은 없습니다.
 - 커밋되지 않은 파일은 계획의 실행 장부(`docs/superpowers/plans/2026-10-24-odds-engine-execution-ledger.md`, 추적 안 됨)
   하나입니다. 그 사본이 `context/odds-engine/execution-ledger.md`입니다.
 - Claude의 진행 장부(`.superpowers/sdd/2026-10-24-odds-engine/progress.md`)는 git에 올라가지 않아 사본을 `context/`에 둡니다.
@@ -114,7 +115,8 @@ odds_plan/ 25/25, compliance_guards 16/16, compliance_store 36/36, cockpit 47/47
    레포의 실행 장부 파일로 커밋합니다.
 5. **스스로 검토 후 커밋과 push.** Task 하나에 커밋 하나(계획이 수정 커밋을 허용하면 더). `gpt/odds-engine`에 push하고 LEDGER에
    한 줄을 덧붙입니다. 완료 기준: 그 Task 절의 마지막 Step이 적은 테스트 수와 결과(실패 0)와 커밋.
-6. **odds-19.** 계획 Task 19의 Step 1~7까지 합니다(P6). Step 8(최종 검토와 그 수정)은 odds-final입니다.
+6. **odds-19.** 계획 Task 19의 Step 1~7까지 합니다(P6). Step 8(최종 검토와 그 수정)은 odds-final입니다. odds-final의 수정에는
+   `context/odds-engine/execution-ledger.md`의 "left to the final review's fix wave"와 "for the final review" 항목들(Task 2~6)을 함께 넣습니다.
    **odds-pr(PR 열기)은 Claude가 합니다.** 이어받는 쪽은 PR을 열지 않고, `returned`로 돌려줄 때 준비 상태를 적습니다.
 
 수치가 계획과 다를 때: 리눅스 클라우드에서는 Windows 전용 테스트가 미실행이 되거나 심볼릭 링크 테스트가 실행되어 수치가 달라질 수
