@@ -50,6 +50,10 @@ rulings, deferred minors and runs here. It stays untracked until Task 19 commits
 - Task 1 fix round 3 (commit 418d9bb, re-review 2 of T1-RR1-1, `tests/odds_guards.py` only, stricter): `_clock_hits_in`'s alias map keeps every name an alias is imported as (a set per name, so no later import hides an earlier one), and the Attribute check tests the raw name and each of them; `import time as t` with a nested `from email import utils as t` or `import email.utils as t` and then `t.time()`, and `import email.utils as eu` with a nested `from datetime import date as eu` and then `eu.localtime()`, are hits and offenders in `test_core_odds_reads_no_clock`. Still 18 test functions; odds_guards/ and `--suite odds` both 18/18 passed, 0 failed, 0 not run.
 - Task 1 left to review (after fix round 3): `_aliases` (the write guard's map, unchanged since 68082a5) also keeps only the last import of a name, so `import shutil as sh` with a nested `import json as sh` and then `sh.rmtree(d)` is not a hit (probe: []).
 - Task 1 left to review (after fix round 2): an aliased constructor call (`from pandas import Timestamp as T` / `T('now')`, `from numpy import datetime64 as d` / `d('now')`) is not a hit, since the Call check matches the names `datetime64` and `Timestamp` only; and a `match` on anything but the bare name `__name__` (`match (__name__,):`) is not a hit.
+- Task 2 left to the final review's fix wave (controller ruling on review minors T2-R1-1, T2-R1-2; code correct today):
+  `test_venue_shape_rules` has no case for a non-list `tick_ladder` row of length 2 (`{"a": 0, "b": 1}`), a non-str
+  book key, or a missing `books` or `phi_buy`; and `odds_sources` is tested only with all four odds keys or none, never
+  some (one `lot`-only venue should give `(("lot", src),)`). Each fix is one stricter line inside an existing test.
 
 ## Runs
 - Task 1: -m tests.odds_acceptance odds_guards/: 18/18 passed, 0 failed, 0 not run
