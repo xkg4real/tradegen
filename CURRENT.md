@@ -4,13 +4,13 @@ reason: milestone
 from: claude
 task: odds-engine
 cycle: 2026-10-27
-done_ids: odds-1
-next_ids: odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr
-updated_at: 2026-10-29T15:14:11+09:00
+done_ids: odds-1, odds-2
+next_ids: odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr
+updated_at: 2026-10-29T15:17:06+09:00
 stale_after_hours: 3
 waiting_on: none
 work_branch: odds-engine
-work_commit: 418d9bb
+work_commit: bd6a51e
 uncommitted_changes: yes
 pr: none
 usage_weekly_pct: 95
@@ -24,9 +24,9 @@ session: local b1492ead-23f3-4704-b198-5b5fc445ad00 (Claude desktop, owner's Win
 ## 0. 한 줄 요약
 
 컴플라이언스 후속 계획은 끝나 `main`에 병합됐습니다(`f3bedd3`, PR #3). 지금은 odds 계획(19개 Task)을 Claude가 Task마다
-구현, 검토, 수정 순서로 실행하고 있습니다. Task 1은 끝나 push했고(`418d9bb`), Task 2는 구현 커밋 `bd6a51e`(로컬, push 전)가
-검토 중입니다. 주간 사용량이 95%라서, Claude는 Task 2 검토가 끝나면 push하고 이 문서를 `status: handoff`로 바꿀 예정입니다.
-이어받는 쪽이 가장 먼저 할 일은 그때의 `next_ids` 첫 항목(아마 odds-3)입니다.
+구현, 검토, 수정 순서로 실행하고 있습니다. Task 1과 Task 2는 끝나 push했습니다(`bd6a51e`). 다음은 Task 3입니다.
+주간 사용량은 95%입니다. Claude는 Task를 시작하기 전마다 사용량을 보고, 97% 이상이면 이 문서를 `status: handoff`로 바꿉니다.
+이어받는 쪽이 가장 먼저 할 일은 그때의 `next_ids` 첫 항목입니다.
 
 ## 1. 목표와 완료 조건
 
@@ -65,14 +65,16 @@ session: local b1492ead-23f3-4704-b198-5b5fc445ad00 (Claude desktop, owner's Win
 | P7~P84(사소한 것): preflight.md의 제안대로, 단 새 테스트 함수를 만들지 않고 기존 함수 안에 넣음 | 계획의 테스트 수와 고정값을 지키기 위해 | 새 테스트 함수: 모든 수치가 바뀜 |
 | Task 1 검토 수정 3회 뒤 남은 한계 3건(별칭 생성자 호출, `__name__`이 아닌 match, 쓰기 가드의 별칭 덮어쓰기)은 검토에 맡김 | 계획 코드가 쓰지 않는 고의적 난독화이고, core/odds와 core/oddsdata의 모든 diff를 사람이 검토함 | 4번째 수정: 효과보다 비용이 큼 |
 | 수치가 계획과 다르면 실패가 0일 때만 통과로 보고 이유를 적음 | round-3 ruling G3-1. 이 PC는 Windows 개발자 모드라 심볼릭 링크 테스트 2개가 실행됨 | 수치를 맞추려 테스트를 고침: G3-2 위반 |
-| 주간 사용량 95%에서 Task 2가 끝나면 인수인계 | Task 하나가 98%를 넘길 수 있어 Task 경계에서 멈춤 | 98%까지 진행: Task 중간에서 끊길 위험 |
+| Task 시작 전마다 사용량을 확인하고 97% 이상이면 Task 경계에서 인수인계 | Task 2 검토(하위 에이전트 약 37만 토큰) 뒤에도 주간 사용량이 95% 그대로라 Task 하나가 1%보다 적게 씀. 소유자 규칙은 98% | 95%에서 바로 인수인계: GPT 확인 설정 전이라 아무도 일하지 않는 시간이 생김 |
+| Task 2 검토의 사소한 지적 T2-R1-1, T2-R1-2(테스트 4줄)는 최종 검토의 수정 한 번에 묶음 | 코드는 지금 맞고, 각 수정은 기존 테스트 안의 더 엄격한 한 줄 | 지금 수정 라운드: 같은 결과에 라운드 하나가 더 듦 |
 
 ## 4. 진행 상황
 
 - [x] fu 컴플라이언스 후속 계획 전체 — `main` `f3bedd3`, LEDGER 기록함
 - [x] odds-1 브랜치, 패키지, odds 스위트와 가드 — 커밋 `68082a5`..`418d9bb`, LEDGER 기록함
-- [ ] odds-2 venues 파서의 odds 키(`core/compliance/rules.py`, `tests/compliance_tables.py`) ← 구현 커밋 `bd6a51e`(push 전), **검토 중**
-- [ ] odds-3 ~ odds-19, odds-final, odds-pr
+- [x] odds-2 venues 파서의 odds 키(`core/compliance/rules.py`, `tests/compliance_tables.py`) — 커밋 `bd6a51e`, LEDGER 기록함
+- [ ] odds-3 출처가 붙은 odds 값을 venues.yaml에(`core/odds/venues.yaml`) ← **다음**
+- [ ] odds-4 ~ odds-19, odds-final, odds-pr
 
 **마지막으로 통과한 검증 (odds-2 구현 보고, `bd6a51e`, 키 미설정):**
 
@@ -85,8 +87,7 @@ compliance_guards/ 16/16, compliance_store/ 29/29, odds_guards/ 18/18, --suite c
 
 ## 5. 중단 지점
 
-- `odds-engine`의 원격 끝은 `418d9bb`입니다. Task 2의 `bd6a51e`는 로컬에만 있고 검토 중입니다. 검토가 끝나면 Claude가
-  push하고 이 문서를 고칩니다. 이 문서가 `checkpoint`인 동안 `bd6a51e`는 원격에 없습니다.
+- `odds-engine`의 원격 끝은 `bd6a51e`(Task 2 끝)입니다. Claude가 Task 3을 진행 중이면 그 커밋은 검토가 끝난 뒤 push됩니다.
 - 커밋되지 않은 파일은 계획의 실행 장부(`docs/superpowers/plans/2026-10-24-odds-engine-execution-ledger.md`, 추적 안 됨)
   하나입니다. 그 사본이 `context/odds-engine/execution-ledger.md`입니다.
 - Claude의 진행 장부(`.superpowers/sdd/2026-10-24-odds-engine/progress.md`)는 git에 올라가지 않아 사본을 `context/`에 둡니다.
