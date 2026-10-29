@@ -737,6 +737,96 @@ def test_venue_shape_rules():
     bad(lambda d: d[v]["upbit"].update(settlement=[]), "venues: upbit: settlement: expected a non-empty list")
     bad(lambda d: d[v]["upbit"].pop("source"), "venues: upbit: missing key(s) ['source']")
     bad(lambda d: d[v]["upbit"].update(minimum_krw=5000), "venues: upbit: unknown key(s) ['minimum_krw']")
+    # The odds keys (odds plan Task 2, Q17): only their exact names, a source each, then one refusal per rule.
+    imap = _map()                           # parsed once: from here on, bad re-parses only the venue file
+
+    def bad(mutate, *has):
+        vdoc = _venues_doc()
+        mutate(vdoc)
+        _refused(lambda: rules.parse_venues(_dump(vdoc), imap), *has)
+
+    lot, low = {"source": "s", "units": {"BTC": 1e-8}}, {"source": "s", "quote": {"KRW": 5000}}
+    fees = {"source": "s", "phi_buy": 0, "phi_sell": 0}
+    ticks = {"source": "s", "effective_from": "2026-10-02", "books": {"KRX_stock_book": [[0, 1], [2000, 5]]}}
+    for near in ("lots", "lot_size", "minimum", "min_orders", "fees", "fee_extra", "tick", "ticks", "odds_sources"):
+        bad(lambda d, k=near: d[v]["upbit"].update({k: dict(lot)}), f"venues: upbit: unknown key(s) [{near!r}]")
+    for key, value, vid in (("lot", lot, "upbit"), ("min_order", low, "upbit"), ("fee_extras", fees, "upbit"),
+                            ("tick_ladder", ticks, "kis")):
+        at = f"venues: {vid}: {key}"
+        bad(lambda d, k=key, w=vid: d[v][w].update({k: None}), f"{at}: expected a mapping")
+        bad(lambda d, k=key, x=value, w=vid: d[v][w].update({k: {f: x[f] for f in x if f != "source"}}),
+            f"{at}: missing key(s) ['source']")
+        bad(lambda d, k=key, x=value, w=vid: d[v][w].update({k: {**x, "source": " "}}),
+            f"{at}: source: expected a non-empty string")
+        bad(lambda d, k=key, x=value, w=vid: d[v][w].update({k: {**x, "step": 1}}), f"{at}: unknown key(s) ['step']")
+    up, tl = "venues: upbit", "venues: kis: tick_ladder"
+    bad(lambda d: d[v]["upbit"].update(lot={"source": "s"}), f"{up}: lot: missing key(s) ['units']")
+    bad(lambda d: d[v]["upbit"].update(lot={**lot, "units": {}}),
+        f"{up}: lot: units: expected a non-empty mapping of symbol (or default) to a step")
+    bad(lambda d: d[v]["upbit"].update(lot={**lot, "units": [1]}), f"{up}: lot: units: expected a non-empty mapping")
+    bad(lambda d: d[v]["upbit"].update(lot={**lot, "units": {"btc": 1}}),
+        f"{up}: lot: units: 'btc' is not a symbol of sections ['crypto']")
+    bad(lambda d: d[v]["upbit"].update(lot={**lot, "units": {"005930": 1}}),
+        f"{up}: lot: units: '005930' is not a symbol of sections ['crypto']")
+    bad(lambda d: d[v]["upbit"].update(lot={**lot, "units": {5930: 1}}),       # pre-flight P10: a YAML int key
+        f"{up}: lot: units: 5930 is not a symbol of sections ['crypto']")
+    for step in (0, -1, True, "1"):
+        bad(lambda d, s=step: d[v]["upbit"].update(lot={**lot, "units": {"BTC": s}}),
+            f"{up}: lot: units: BTC: expected a finite number > 0, got {step!r}")
+    bad(lambda d: d[v]["upbit"].update(min_order={"source": "s"}), f"{up}: min_order: missing key(s) ['quote']")
+    bad(lambda d: d[v]["upbit"].update(min_order={**low, "quote": []}),
+        f"{up}: min_order: quote: expected a non-empty mapping of settlement asset to a minimum")
+    bad(lambda d: d[v]["upbit"].update(min_order={**low, "quote": {"USDT": 1}}),
+        f"{up}: min_order: quote: 'USDT' is not one of the settlement assets ['KRW']")
+    bad(lambda d: d[v]["upbit"].update(min_order={**low, "quote": {5000: 1}}),  # pre-flight P10: a YAML int key
+        f"{up}: min_order: quote: 5000 is not one of the settlement assets ['KRW']")
+    bad(lambda d: d[v]["upbit"].update(min_order={**low, "quote": {"KRW": -1}}),
+        f"{up}: min_order: quote: KRW: expected a finite number >= 0, got -1")
+    bad(lambda d: d[v]["upbit"].update(fee_extras={**fees, "phi_sell": -1}),
+        f"{up}: fee_extras: phi_sell: expected a finite number >= 0, got -1")
+    bad(lambda d: d[v]["upbit"].update(fee_extras={**fees, "phi_buy": "0"}),
+        f"{up}: fee_extras: phi_buy: expected a finite number >= 0, got '0'")
+    bad(lambda d: d[v]["upbit"].update(fee_extras={**fees, "phi_buy": False}),
+        f"{up}: fee_extras: phi_buy: expected a finite number >= 0, got False")
+    bad(lambda d: d[v]["upbit"].update(fee_extras={"source": "s", "phi_buy": 0}),
+        f"{up}: fee_extras: missing key(s) ['phi_sell']")
+    bad(lambda d: d[v]["kis"].update(tick_ladder={**ticks, "books": {"KRX_ETF_line": [[0, 1], [2000, 5]]}}),
+        f"{tl}: books: KRX_ETF_line: its ladder is core/quant/instruments.py's")
+    bad(lambda d: d[v]["kis"].update(tick_ladder={**ticks, "books": {"KRX_stock": [[0, 1]]}}),
+        f"{tl}: books: 'KRX_stock' is not one of ['KRX_stock_book', 'US_shares_KIS', 'crypto_venue']")
+    bad(lambda d: d[v]["kis"].update(tick_ladder={**ticks, "books": {"crypto_venue": [[0, 1]]}}),
+        f"{tl}: books: crypto_venue is the cost book of no symbol in sections ['krx', 'us']")
+    bad(lambda d: d[v]["upbit"].update(tick_ladder={**ticks, "books": {"KRX_stock_book": [[0, 1]]}}),
+        f"{up}: tick_ladder: books: KRX_stock_book is the cost book of no symbol in sections ['crypto']")
+    bad(lambda d: d[v]["kis"].update(tick_ladder={**ticks, "books": {}}),
+        f"{tl}: books: expected a non-empty mapping of cost book to [[price_from, tick], ...]")
+    bad(lambda d: d[v]["kis"].update(tick_ladder={**ticks, "books": [["KRX_stock_book", [[0, 1]]]]}),
+        f"{tl}: books: expected a non-empty mapping of cost book to [[price_from, tick], ...]")
+    bad(lambda d: d[v]["kis"].update(tick_ladder={**ticks, "books": {"KRX_stock_book": {"0": 1}}}),
+        f"{tl}: books: KRX_stock_book: expected a non-empty list of [price_from, tick] rows")
+    bad(lambda d: d[v]["upbit"].update(min_order={**low, "quote": ["KRW"]}),
+        f"{up}: min_order: quote: expected a non-empty mapping of settlement asset to a minimum")
+    bad(lambda d: d[v]["kis"].update(tick_ladder={**ticks, "books": {"KRX_stock_book": []}}),
+        f"{tl}: books: KRX_stock_book: expected a non-empty list of [price_from, tick] rows")
+    bad(lambda d: d[v]["kis"].update(tick_ladder={**ticks, "books": {"KRX_stock_book": [[0, 1, 2]]}}),
+        f"{tl}: books: KRX_stock_book: [0, 1, 2] is not a [price_from, tick] row")
+    bad(lambda d: d[v]["kis"].update(tick_ladder={**ticks, "books": {"KRX_stock_book": [[1, 1], [2000, 5]]}}),
+        f"{tl}: books: KRX_stock_book: the first price_from must be 0, got 1")
+    for rows in ([[0, 1], [2000, 5], [2000, 10]], [[0, 1], [5000, 10], [2000, 5]]):
+        bad(lambda d, r=rows: d[v]["kis"].update(tick_ladder={**ticks, "books": {"KRX_stock_book": r}}),
+            f"{tl}: books: KRX_stock_book: price_from {rows[2][0]!r} is not above the row before")
+    bad(lambda d: d[v]["kis"].update(tick_ladder={**ticks, "books": {"KRX_stock_book": [[0, 0]]}}),
+        f"{tl}: books: KRX_stock_book: tick: expected a finite number > 0, got 0")
+    bad(lambda d: d[v]["kis"].update(tick_ladder={**ticks, "books": {"KRX_stock_book": [[0, 1], [-5, 1]]}}),
+        f"{tl}: books: KRX_stock_book: price_from: expected a finite number >= 0, got -5")
+    bad(lambda d: d[v]["kis"].update(tick_ladder={**ticks, "books": {"KRX_stock_book": [[False, 1]]}}),
+        f"{tl}: books: KRX_stock_book: price_from: expected a finite number >= 0, got False")
+    bad(lambda d: d[v]["kis"].update(tick_ladder={**ticks, "effective_from": "20261002"}),
+        f"{tl}: effective_from: expected a quoted YYYY-MM-DD date, got '20261002'")
+    bad(lambda d: d[v]["kis"].update(tick_ladder={**ticks, "effective_from": "2026-13-01"}),
+        f"{tl}: effective_from: '2026-13-01' is not a calendar date")
+    bad(lambda d: d[v]["kis"].update(tick_ladder={"source": "s", "books": ticks["books"]}),
+        f"{tl}: missing key(s) ['effective_from']")
     bad(lambda d: d[v].update(okx="not a mapping"), "venues: okx: expected a mapping")
     vdoc = _venues_doc()
     vdoc["venues"]["okx"]["markets"] = []                                # a markets venue may list none yet
@@ -767,6 +857,124 @@ def test_deposit_entries():
     assert _facts(vdoc).venues["upbit"].deposits == frozenset()
     vdoc["venues"]["upbit"]["deposits"] = [btc, {**btc, "network": "lightning"}]
     assert _facts(vdoc).venues["upbit"].deposits == {("BTC", "bitcoin", False), ("BTC", "lightning", False)}
+
+
+# --------------------------------------------------------------------------- #
+# Venue odds keys (odds plan Task 2; Q17): lot, min_order, fee_extras, tick_ladder
+# --------------------------------------------------------------------------- #
+_KRX_LADDER = [[0, 1], [2000, 5], [5000, 10], [20000, 50], [50000, 100], [200000, 500], [500000, 1000]]
+
+
+def _odds_venues_doc() -> dict:
+    """_venues_doc() with all four odds keys on kis and upbit and none on okx, written out of order on purpose."""
+    doc = _venues_doc()
+    doc["venues"]["kis"].update(
+        tick_ladder={"source": "https://example.invalid/ticks", "effective_from": "2026-10-02",
+                     "books": {"US_shares_KIS": [[0, 0.01]], "KRX_stock_book": _KRX_LADDER}},
+        lot={"source": "https://example.invalid/kis-lot", "units": {"default": 1, "005930": 1}},
+        min_order={"source": "https://example.invalid/kis-min", "quote": {"USD": 0, "KRW": 0}},
+        fee_extras={"source": "https://example.invalid/kis-fees", "phi_buy": 0, "phi_sell": 0.0})
+    doc["venues"]["upbit"].update(
+        lot={"source": _T5_UNVERIFIED, "units": {"default": 1e-8}},
+        min_order={"source": _T5_UNVERIFIED, "quote": {"KRW": 5000}},
+        fee_extras={"source": _T5_UNVERIFIED, "phi_buy": 12.5, "phi_sell": 0},
+        tick_ladder={"source": _T5_UNVERIFIED, "effective_from": "2026-01-01", "books": {"crypto_venue": [[0, 1]]}})
+    return doc
+
+
+def test_venue_odds_keys_parse_to_exact_tuples():
+    facts = _facts(_odds_venues_doc())
+    kis, upbit, okx = facts.venues["kis"], facts.venues["upbit"], facts.venues["okx"]
+    ladder = tuple((float(p), float(t)) for p, t in _KRX_LADDER)
+    assert kis.lot == (("005930", 1.0), ("default", 1.0)) and kis.min_order == (("KRW", 0.0), ("USD", 0.0))
+    assert kis.fee_extras == (0.0, 0.0)                        # an explicit 0 is a signed value (O11)
+    assert kis.tick_ladder == (("KRX_stock_book", "2026-10-02", ladder),
+                               ("US_shares_KIS", "2026-10-02", ((0.0, 0.01),)))
+    assert kis.odds_sources == (("fee_extras", "https://example.invalid/kis-fees"),
+                                ("lot", "https://example.invalid/kis-lot"),
+                                ("min_order", "https://example.invalid/kis-min"),
+                                ("tick_ladder", "https://example.invalid/ticks"))
+    assert upbit.lot == (("default", 1e-8),) and upbit.min_order == (("KRW", 5000.0),)
+    assert upbit.fee_extras == (12.5, 0.0) and upbit.tick_ladder == (("crypto_venue", "2026-01-01", ((0.0, 1.0),)),)
+    assert upbit.odds_sources == tuple((k, _T5_UNVERIFIED) for k in ("fee_extras", "lot", "min_order", "tick_ladder"))
+    numbers = [n for _, n in (*kis.lot, *kis.min_order, *upbit.lot, *upbit.min_order)]
+    numbers += [*kis.fee_extras, *upbit.fee_extras] + [x for _, _, rows in kis.tick_ladder for row in rows for x in row]
+    assert numbers and all(type(n) is float for n in numbers), numbers        # a YAML int is stored as a float
+    assert (okx.lot, okx.min_order, okx.fee_extras, okx.tick_ladder, okx.odds_sources) == ((), (), None, (), ())
+    assert okx == _facts().venues["okx"]                     # an absent key is the default, so the leg is not tradable
+    assert kis.markets == frozenset() and kis.quote_by_currency and kis.settlement == {"KRW", "USD"}
+    assert upbit.markets == {("BTC", "KRW"), ("USDT", "KRW")} and upbit.default_quote == "KRW"
+    assert len({kis, upbit, okx}) == 3                       # every field stays hashable
+    _need_model()
+    from core.compliance import model
+    state = rules.approved_state(_table(_row()), _dump(_map_doc()), _dump(_odds_venues_doc()), seq=1)
+    assert state.valid and state.venues.venues["upbit"] == upbit, state.reason
+    assert model.jsonable(upbit)["min_order"] == [["KRW", 5000.0]]          # seal_context can hash the new fields
+
+
+def test_venue_odds_lookups_fall_back_and_answer_none():
+    facts = _facts(_odds_venues_doc())
+    kis, upbit, okx = facts.venues["kis"], facts.venues["upbit"], facts.venues["okx"]
+    assert kis.lot_for("005930") == 1.0 and kis.lot_for("TQQQ") == 1.0      # TQQQ: the venue's default step
+    assert upbit.lot_for("BTC") == upbit.lot_for("XRP") == 1e-8 and okx.lot_for("BTC") is None
+    vdoc = _odds_venues_doc()
+    vdoc["venues"]["kis"]["lot"]["units"] = {"005930": 10, "AAPL": 0.5}    # no default: every other symbol has none
+    narrow = _facts(vdoc).venues["kis"]
+    assert (narrow.lot_for("005930"), narrow.lot_for("AAPL"), narrow.lot_for("TQQQ")) == (10.0, 0.5, None)
+    assert kis.min_order_for("KRW") == kis.min_order_for("USD") == 0.0
+    assert upbit.min_order_for("KRW") == 5000.0 and upbit.min_order_for("USDT") is None
+    assert okx.min_order_for("USDT") is None
+    assert kis.ladder_for("KRX_stock_book") == ("2026-10-02", tuple((float(p), float(t)) for p, t in _KRX_LADDER))
+    assert kis.ladder_for("US_shares_KIS") == ("2026-10-02", ((0.0, 0.01),))
+    assert kis.ladder_for("KRX_ETF_line") is None and upbit.ladder_for("crypto_venue") == ("2026-01-01", ((0.0, 1.0),))
+    assert okx.ladder_for("crypto_venue") is None
+    for venue in (kis, upbit, okx):
+        assert venue.lot_for(None) is None and venue.lot_for(["BTC"]) is None and venue.min_order_for(None) is None
+        assert venue.min_order_for(["KRW"]) is None and venue.ladder_for(None) is None
+
+
+def test_venue_odds_lookups_are_pure_tuple_lookups():
+    """lot_for, min_order_for and ladder_for read only the Venue's own tuples: the gate's purity tests scan every
+    Venue method (following any module-level def it names) and trap rules.date, rules.Path and rules.os, so no
+    parse_date, file, clock or zone name, and no name of a module-level def of rules.py."""
+    import ast
+    import inspect
+    import textwrap
+    banned = {"parse_date", "date", "datetime", "Path", "os", "open", "read_bytes", "read_text", "scandir", "now",
+              "today", "time", "ZoneInfo", "zoneinfo", "environ", "getenv"}
+    defs = {n.name for n in ast.parse(inspect.getsource(rules)).body if isinstance(n, (ast.FunctionDef, ast.ClassDef))}
+    for fn in (rules.Venue.lot_for, rules.Venue.min_order_for, rules.Venue.ladder_for):
+        tree = ast.parse(textwrap.dedent(inspect.getsource(fn)))
+        names = {n.id for n in ast.walk(tree) if isinstance(n, ast.Name)}
+        names |= {n.attr for n in ast.walk(tree) if isinstance(n, ast.Attribute)}
+        assert names & banned == set(), (fn.__name__, names & banned)
+        assert names & defs == set(), (fn.__name__, names & defs)              # the gate's scan follows these
+        own = {n.attr for n in ast.walk(tree) if isinstance(n, ast.Attribute)
+               and isinstance(n.value, ast.Name) and n.value.id == "self"}
+        assert own <= {"lot", "min_order", "tick_ladder"}, (fn.__name__, own)
+        assert not any(isinstance(n, (ast.Import, ast.ImportFrom)) for n in ast.walk(tree)), fn.__name__
+
+
+def test_check_extras_lives_in_the_parser():
+    """Spec 4 "Costs": extras may only raise costs. A negative fixed charge makes the venue file, and so the whole
+    approved state, INVALID; it never reaches the odds engine (O3)."""
+    _need_model()
+    vdoc = _odds_venues_doc()
+    vdoc["venues"]["upbit"]["fee_extras"]["phi_sell"] = -1
+    state = rules.approved_state(_table(_row()), _dump(_map_doc()), _dump(vdoc), seq=1)
+    want = "venues: upbit: fee_extras: phi_sell: expected a finite number >= 0, got -1"
+    assert not state.valid and state.reason == want, state.reason
+    for value in (float("nan"), float("inf"), -float("inf"), -0.5, True, None, "0", [0]):
+        _refused(lambda value=value: rules._check_extras({"source": "s", "phi_buy": value, "phi_sell": 0}, "w"),
+                 f"w: phi_buy: expected a finite number >= 0, got {value!r}")
+    assert rules._check_extras({"source": "s", "phi_buy": 0, "phi_sell": 250}, "w") == (0.0, 250.0)
+    _refused(lambda: rules._check_extras({"source": "", "phi_buy": 0, "phi_sell": 0}, "w"),
+             "w: source: expected a non-empty string")
+    _refused(lambda: rules._odds_number(float("nan"), "w", positive=True), "w: expected a finite number > 0, got nan")
+    _refused(lambda: rules._odds_number(0.0, "w", positive=True), "w: expected a finite number > 0, got 0.0")
+    assert rules._odds_number(0, "w", positive=False) == 0.0
+    assert str(rules._odds_number(-0.0, "w", positive=False)) == "0.0"     # stored unsigned: never shown as -0.0
+    assert type(rules._odds_number(3, "w", positive=True)) is float
 
 
 # --------------------------------------------------------------------------- #
