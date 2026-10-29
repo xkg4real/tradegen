@@ -244,11 +244,12 @@ def _clock_hits_in(rel: str, src: str, allowed: tuple[str, ...] = ()) -> list[st
         if rel in allowed and "main" in funcs:
             continue
         if isinstance(node, ast.Attribute):
-            if isinstance(node.value, ast.Name):
-                base = alias.get(node.value.id, node.value.id)
+            if isinstance(node.value, ast.Name):        # the raw name and its alias: the map is file-wide and the
+                bases = (node.value.id, alias.get(node.value.id, node.value.id))   # last import wins (T1-RR1-1)
             else:
-                base = getattr(node.value, "attr", None)
-            if node.attr in clocks.get(base, ()):
+                bases = (getattr(node.value, "attr", None),)
+            base = next((b for b in bases if node.attr in clocks.get(b, ())), None)
+            if base:
                 hits.append(f"{rel}:{node.lineno}: {base}.{node.attr}")
         elif isinstance(node, ast.ImportFrom) and (node.module == "time" or any(
                 a.name in clocks.get((node.module or "").rpartition(".")[2], ()) for a in node.names)):
@@ -402,7 +403,9 @@ def test_core_odds_reads_no_clock():
                 "import email.utils\nx = email.utils.localtime()\n", "import uuid as u\nx = u.uuid1()\n",
                 "from email import utils\nx = utils.formatdate()\n", "import email.utils as eu\nx = eu.localtime()\n",
                 "from email.utils import formatdate\n", "x = pd.Timestamp.now()\n", "x = pd.Timestamp('today')\n",
-                "from email import utils as eu\nx = eu.localtime()\n"):
+                "from email import utils as eu\nx = eu.localtime()\n",
+                "import time\ndef _u():\n    from email import utils as time\nx = time.time()\n",
+                "import time\ndef _u():\n    import email.utils as time\nx = time.time()\n"):
         assert _clock_hits_in(X, src), src
     main = "def main():\n    return datetime.now(timezone.utc)\n"
     assert _clock_hits_in(XD, main, allowed=(RUN,)) and not _clock_hits_in(RUN, main, allowed=(RUN,))
