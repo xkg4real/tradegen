@@ -63,7 +63,7 @@ FORBIDDEN_MODULES = ("core.engine.orders", "core.quant.forward_sim", "core.quant
 # or getattr are not on it and are left to review. core/ probes for cryptography with a lazy `import` inside try/except
 # ImportError; importlib.util.find_spec is for tests only.
 DYNAMIC_NAMES = frozenset({"__import__", "import_module", "exec_module", "load_module", "exec", "eval"})
-DYNAMIC_BARE = frozenset({"compile"})               # an ast.Name only: re.compile is an attribute
+DYNAMIC_BARE = frozenset({"compile"})               # an ast.Name or an imported name: re.compile is an attribute
 DYNAMIC_MODULES = ("importlib", "runpy", "pkgutil", "zipimport", "pydoc", "timeit", "code", "cProfile", "profile",
                    "pdb", "bdb", "trace", "doctest", "unittest", "logging.config", "pickle", "_pickle", "shelve",
                    "marshal", "site", "ensurepip", "venv", "tkinter", "_tkinter", "turtle", "turtledemo", "idlelib",
