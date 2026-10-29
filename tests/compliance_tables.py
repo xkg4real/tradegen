@@ -1535,3 +1535,63 @@ def test_shipped_urls_come_from_the_research():
         assert urls, kind
         for url in urls:
             assert url.encode("utf-8") in known, (kind, url)
+
+
+# --------------------------------------------------------------------------- #
+# Odds plan Task 3 (Q18): the sourced odds values of the shipped venues.yaml. No research source gives a fixed
+# charge, an Upbit, OKX or US lot, or a US or OKX minimum, so those stay absent and every leg is not tradable until
+# the owner adds them (an explicit 0 included) and approves the venues file (O11; a replay leg needs only the Upbit
+# lot, R2-5).
+# --------------------------------------------------------------------------- #
+_T5_KIS_LOTS = "research_notes/Korean resident trading venue legality/domestic_securities_derivatives.md#L161"
+_T5_KIS_TICKS = "https://global.krx.co.kr/contents/GLB/06/0602/0602010201/GLB0602010201T3.jsp"
+_T5_UPBIT_MIN = "https://docs.upbit.com/kr/docs/krw-market-info"
+
+
+def test_shipped_venue_odds_values_are_the_sourced_ones():
+    _, _, facts = _t5_shipped()
+    v = facts.venues
+    kis, upbit = v["kis"], v["upbit"]
+    assert kis.odds_sources == (("lot", _T5_KIS_LOTS), ("min_order", _T5_KIS_LOTS),
+                                ("tick_ladder", _T5_KIS_TICKS)), kis.odds_sources
+    assert kis.lot == (("005930", 1.0), ("069500", 1.0)) and kis.min_order == (("KRW", 0.0),)
+    ladder = tuple((float(p), float(t)) for p, t in _KRX_LADDER)
+    assert kis.tick_ladder == (("KRX_stock_book", "2026-10-02", ladder),), kis.tick_ladder
+    assert upbit.odds_sources == (("min_order", _T5_UPBIT_MIN),) and upbit.min_order == (("KRW", 5000.0),)
+    assert upbit.lot == () and upbit.tick_ladder == ()
+    for vid, venue in v.items():
+        assert venue.fee_extras is None, vid                 # no fixed charge is researched: not tradable (O11)
+        if vid not in ("kis", "upbit"):
+            assert (venue.lot, venue.min_order, venue.tick_ladder, venue.odds_sources) == ((), (), (), ()), vid
+        for key, source in venue.odds_sources:
+            assert _t5_ref_ok(source) or source == _T5_UNVERIFIED, (vid, key, source)
+    assert kis.lot_for("005930") == kis.lot_for("069500") == 1.0 and kis.lot_for("SPY") is None
+    assert kis.min_order_for("KRW") == 0.0 and kis.min_order_for("USD") is None    # a US leg has no signed minimum
+    assert upbit.lot_for("BTC") is None and upbit.min_order_for("KRW") == 5000.0
+    assert kis.ladder_for("KRX_stock_book") == ("2026-10-02", ladder) and kis.ladder_for("KRX_ETF_line") is None
+    # _t5_ref_ok only checks that a cited line exists; pin what the research says for every shipped value
+    path, _, anchor = _T5_KIS_LOTS.partition("#")
+    lines = (_T5_REPO / path).read_bytes().splitlines()
+    stocks, etfs = lines[160].decode("utf-8"), lines[162].decode("utf-8")
+    assert anchor == "L161" and stocks.startswith("| KOSPI/KOSDAQ cash stocks"), stocks
+    assert f"| {kis.lot_for('005930'):g} share |" in stocks, stocks     # the parsed lot is the one the research gives
+    assert etfs.startswith("| Plain 1x ETF/ETN") and f"| {kis.lot_for('069500'):g} unit |" in etfs, etfs
+    e2 = (_T5_REPO / "QUANTGEN_techfund_research_bundle" / "QUANTGEN_techfund_research" / "research_notes"
+          / "E2_nyse_microstructure_execution.md").read_bytes().decode("utf-8").splitlines()
+    bands = e2[307:314]                              # lines 308-314: the seven KRX price bands and their ticks
+    nums = [[float(n.replace(",", "")) for n in _t5_re.findall(r"\d[\d,]*", band)] for band in bands]
+    research = tuple((0.0 if "| below " in band else n[0], n[-1]) for band, n in zip(bands, nums))
+    assert research == ladder and _T5_KIS_TICKS in e2[315], research
+    day = _t5_date.fromisoformat(kis.tick_ladder[0][1])        # the parsed effective_from is the research's date
+    assert e2[2].startswith(f"As of {day.day} {day:%B %Y}."), e2[2]
+    up = (_T5_REPO / "research_notes" / "Korean resident trading venue legality"
+          / "crypto_domestic_and_overseas_verification.md").read_bytes().decode("utf-8").splitlines()[20]
+    assert f"Upbit {upbit.min_order_for('KRW'):,.0f} KRW minimum is confirmed" in up and _T5_UPBIT_MIN in up, up
+    # the header clause of CONTRACT 4.2, word for word, in place of the old "ticks later" clause; line 4 unchanged
+    head = _t5_raw("venues").split(b"\nschema:", 1)[0].decode("utf-8")
+    flat = " ".join(line.removeprefix("# ") for line in head.splitlines())
+    clause = ("The compliance plan writes markets, settlement and deposits only; the odds plan added the sourced "
+              "lots, minimums and the KRX stock tick ladder; every other odds value is absent until the owner adds "
+              "it, so those legs are not tradable, and this file's sha256 changed, so it needs a new approval.")
+    assert clause in flat and "ticks later" not in head and head.endswith(
+        "\n# A venue with no deposit entry for a coin credits none, so a withdrawal there fails closed."), head
