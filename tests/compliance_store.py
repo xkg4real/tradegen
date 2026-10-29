@@ -623,6 +623,9 @@ def test_signed_home_helpers_are_the_public_fixtures():
         finally:
             tempfile.tempdir = saved
         assert not (home / "k.pem").exists() and not owner.log_path().exists()
+    with F.temp_home() as home, F.temp_home() as other, _pubkey_at(other / "k.pem"):   # in the temp dir, not in home
+        _raises(lambda: _owner_key(home), AssertionError)
+        assert not (other / "k.pem").exists()
 
 
 def test_full_home_signs_the_odds_keywords():
@@ -674,8 +677,9 @@ def test_calendar_in_force_is_the_sha_of_the_intact_signed_copy():
 
 
 def test_calendar_in_force_is_none_without_an_ok_owner_log():
-    """Q19: no owner key, an internal error, a changed key or a broken log give ("log", ""), so None, even with a
-    calendar approval in the log."""
+    """Q19: no owner key, a read error (OSError, ValueError or RuntimeError), a changed key or a broken log give
+    ("log", ""), so None, even with a calendar approval in the log. Any other internal error propagates out of
+    _calendar_approval, so --check exits 4 (spec 5.4, T4-R1-1), while calendar_in_force fails closed to None."""
     stream = _fixture_calendar()
     with F.temp_home() as home, _pubkey_at(home / "absent.pem"):
         assert _calendar_now(NOW) == ("log", "")                     # before owner act 1 there is no key at all
@@ -684,13 +688,23 @@ def test_calendar_in_force_is_none_without_an_ok_owner_log():
         assert _calendar_now(NOW) == ("ok", model.sha256_hex(stream))
 
         def boom(*args):
-            raise RuntimeError("an internal error")
+            raise RuntimeError("a refused link")
+
+        def bug(*args):
+            raise TypeError("a bug")
 
         saved, owner._owner_now = owner._owner_now, boom
         try:
-            assert _calendar_now(NOW) == ("log", "")                 # any error but the ValueError fails closed
+            assert _calendar_now(NOW) == ("log", "")                 # _calendar_approval: a read error is "log"
         finally:
             owner._owner_now = saved
+        saved, owner.store_get = owner.store_get, bug
+        try:
+            _raises(lambda: owner._calendar_approval(NOW), TypeError)   # _calendar_approval: any other error raises
+            assert owner.calendar_in_force(NOW) is None                 # calendar_in_force: it fails closed
+        finally:
+            owner.store_get = saved
+        assert _calendar_now(NOW)[0] == "ok"
         row = {"utc": "2026-10-20T00:00:00Z", "channel": "toast", "result": "ok", "code": 3, "due": [],
                "overdue": [], "head_seq": 0, "head_sha256": "", "fingerprint": "SHA256:" + "e" * 64}
         owner.alerts_path().write_bytes(model.canonical_json(row).encode("utf-8") + b"\n")

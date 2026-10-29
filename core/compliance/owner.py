@@ -1047,8 +1047,9 @@ def _calendar_approval(now: _dt.datetime) -> tuple[str, str]:
     tables: ("log", "") when the owner state at `now` is not OK (no key, cryptography missing, an unreadable or broken
     log, KEY CHANGED); ("none", "") when no calendar approval is stamped by then; ("store", sha256) when its stored
     copy is missing or altered; ("ok", sha256) otherwise. ValueError for a non-datetime, naive or out-of-range `now`
-    (load_context's checks); any other failure is ("log", ""). rules._calendar_line maps the four outcomes onto its
-    lines; calendar_in_force keeps "ok" only."""
+    (load_context's checks). An OSError, ValueError or RuntimeError while reading the log or the store is ("log",
+    ""); any other exception propagates, so --check exits 4 (spec 5.4). rules._calendar_line maps the four outcomes
+    onto its lines; calendar_in_force keeps "ok" only."""
     if not isinstance(now, _dt.datetime):
         raise ValueError(f"calendar approval: now must be an aware datetime, got {now!r}")
     try:
@@ -1064,7 +1065,7 @@ def _calendar_approval(now: _dt.datetime) -> tuple[str, str]:
         if not sha:
             return "none", ""
         return ("ok" if store_get("calendar", sha) is not None else "store"), sha
-    except Exception:                                  # fail closed: an internal error counts as an unusable log
+    except (OSError, ValueError, RuntimeError):        # an unreadable key, anchor, log or store file (Task 11)
         return "log", ""
 
 
@@ -1072,6 +1073,12 @@ def calendar_in_force(now: _dt.datetime) -> str | None:
     """The sha256 of the calendar set in force at `now` (O6): the latest calendar approval stamped by `now`, under an
     OK owner state, whose stored copy is intact; None otherwise. The odds engine prices a KRX or US leg only when
     this is the sha of the calendar set it was given. Reads the owner log and the store as load_context does;
-    ValueError for a non-datetime, naive or out-of-range `now`, and nothing else raises."""
-    outcome, sha = _calendar_approval(now)
+    ValueError for a non-datetime, naive or out-of-range `now`, and nothing else raises: any internal error is None
+    (fails closed, A.4.3)."""
+    try:
+        outcome, sha = _calendar_approval(now)
+    except ValueError:                                 # only the `now` check: a read's ValueError is ("log", "")
+        raise
+    except Exception:                                  # fail closed: an internal error means no calendar in force
+        return None
     return sha if outcome == "ok" else None
