@@ -35,3 +35,123 @@ def pilots(n: int = 2_000, nodes: int = 64) -> Iterator[None]:
         yield
     finally:
         models.PILOT_PATHS, sim.TILT_PILOT, models.PILOT_NODES = saved
+
+
+# --------------------------------------------------------------------------- #
+# Task 5: fixture venues, series, plans and contexts (contract 3.2). Each function imports core.odds when called,
+# so this module still imports where core/odds/plan.py does not exist.
+# --------------------------------------------------------------------------- #
+import copy as _copy  # noqa: E402
+import dataclasses as _dataclasses  # noqa: E402
+import datetime as _dt  # noqa: E402
+
+import yaml as _yaml  # noqa: E402
+
+_UNVERIFIED = "UNVERIFIED: owner to confirm before approval"
+_ODDS_KEYS = ("lot", "min_order", "fee_extras", "tick_ladder")
+_LEG_FIELDS = ("venue", "symbol", "model", "bracket", "sizing", "edge_source", "assumed_p")
+_KRX_LADDER = [[0, 1], [2000, 5], [5000, 10], [20000, 50], [50000, 100], [200000, 500], [500000, 1000]]
+
+
+def _zero_extras() -> dict:
+    return {"source": _UNVERIFIED, "phi_buy": 0, "phi_sell": 0}
+
+
+_ODDS_DOC = {"schema": "tradegen.venues/1", "venues": {
+    "kis": {"sections": ["krx", "us"], "settlement": ["KRW", "USD"], "quote_by_currency": True, "deposits": [],
+            "source": _UNVERIFIED,
+            "lot": {"source": _UNVERIFIED, "units": {"005930": 1, "069500": 1, "default": 1}},
+            "min_order": {"source": _UNVERIFIED, "quote": {"KRW": 0, "USD": 0}},
+            "fee_extras": _zero_extras(),
+            "tick_ladder": {"source": _UNVERIFIED, "effective_from": "2026-10-02",
+                            "books": {"KRX_stock_book": _KRX_LADDER}}},
+    "upbit": {"sections": ["crypto"], "settlement": ["KRW"], "markets": [["BTC", "KRW"], ["USDT", "KRW"]],
+              "default_quote": "KRW", "deposits": [{"symbol": "BTC", "network": "bitcoin", "tag_required": False}],
+              "source": _UNVERIFIED,
+              "lot": {"source": _UNVERIFIED, "units": {"default": 1e-8}},
+              "min_order": {"source": _UNVERIFIED, "quote": {"KRW": 5000}},
+              "fee_extras": _zero_extras()},
+    "okx": {"sections": ["crypto"], "settlement": ["USDT", "USDC"], "markets": [["BTC", "USDT"], ["BTC", "USDC"]],
+            "default_quote": "USDT", "deposits": [{"symbol": "BTC", "network": "bitcoin", "tag_required": False}],
+            "source": _UNVERIFIED,
+            "lot": {"source": _UNVERIFIED, "units": {"default": 1e-8}},
+            "min_order": {"source": _UNVERIFIED, "quote": {"USDT": 1}},
+            "fee_extras": _zero_extras()}}}
+
+
+class _NoAliases(_yaml.SafeDumper):
+    """A dumper that never writes &anchors or *aliases (the strict loader refuses both)."""
+
+    def ignore_aliases(self, data) -> bool:
+        return True
+
+
+def _dump(doc: dict) -> bytes:
+    return _yaml.dump(doc, Dumper=_NoAliases, sort_keys=False, default_flow_style=None, allow_unicode=True,
+                      width=1000).encode("utf-8")
+
+
+ODDS_VENUES: bytes = _dump(_ODDS_DOC)
+
+
+def venues_with(**changes) -> bytes:
+    """ODDS_VENUES with odds keys replaced, per venue: venues_with(upbit={"fee_extras": None, "lot": {"units":
+    {"BTC": 1e-4}}}). A mapping replaces the whole key (its "source" defaults to the UNVERIFIED literal); None
+    removes the key. Only kis, upbit and okx and the four odds keys can be named (KeyError otherwise)."""
+    doc = _copy.deepcopy(_ODDS_DOC)
+    for vid, keys in changes.items():
+        entry = doc["venues"][vid]
+        for key, value in keys.items():
+            if key not in _ODDS_KEYS:
+                raise KeyError(f"venues_with: {key!r} is not an odds key {_ODDS_KEYS}")
+            if value is None:
+                entry.pop(key, None)
+            else:
+                entry[key] = {"source": _UNVERIFIED, **_copy.deepcopy(value)}
+    return _dump(doc)
+
+
+def series(*, symbol="KRW-BTC", source="UPBIT", n=600, seed=1, start=None, vol=0.02, open_gap=0.0,
+           price=50_000_000.0, step_days=1):
+    """A synthetic random walk as a plan.Series (adjustment "", status "final") with its md5 filled: close-to-close
+    log moves N(0, vol); each open is the previous close times exp(open_gap x N(0, 1)), the first one `price`.
+    `start` (ISO) is the first date; None ends the series on 2026-10-22, the day before plan()'s start."""
+    import numpy as np
+    from core.odds import plan as P
+    first = (_dt.date(2026, 10, 22) - _dt.timedelta(days=(n - 1) * step_days) if start is None
+             else _dt.date.fromisoformat(start))
+    dates = tuple((first + _dt.timedelta(days=i * step_days)).isoformat() for i in range(n))
+    z = np.random.default_rng(seed).standard_normal((2, n))
+    close = price * np.exp(np.cumsum(vol * z[0]))
+    open_ = np.concatenate(([price], close[:-1])) * np.exp(open_gap * z[1])
+    o, c = tuple(float(x) for x in open_), tuple(float(x) for x in close)
+    return P.Series(symbol=symbol, source=source, dates=dates, open=o, close=c, adjustment="", status="final",
+                    md5=P.series_md5(symbol, source, dates, o, c, "", "final"))
+
+
+def plan(**changes):
+    """The default plan (contract 3.2): compounding Upbit BTC buy-and-hold, stake KRW 42,000, target KRW 42,000,000,
+    fx 1,400.0, start 2026-10-23 (F.ctx's date), horizon 10, bootstrap, fixed(1.0). A Leg field (venue, symbol,
+    model, bracket, sizing, edge_source, assumed_p) changes the leg, `leg=` replaces it, any other key changes the
+    plan; stake_krw, target_krw and fx_krw_per_usd given as an int become a float."""
+    from core.odds import plan as P
+    leg_changes = {k: changes.pop(k) for k in _LEG_FIELDS if k in changes}
+    leg = changes.pop("leg", P.Leg(venue="upbit", symbol="BTC", model="bootstrap"))
+    if leg_changes:
+        leg = _dataclasses.replace(leg, **leg_changes)
+    fields = dict(name="fixture plan", track="compounding", stake_krw=42_000.0, target_krw=42_000_000.0,
+                  fx_krw_per_usd=1_400.0, start=_dt.date(2026, 10, 23), horizon_days=10, fraction=P.fixed(1.0))
+    fields.update(changes)
+    for key in ("stake_krw", "target_krw", "fx_krw_per_usd"):
+        if type(fields[key]) is int:
+            fields[key] = float(fields[key])
+    return P.Plan(leg=leg, **fields)
+
+
+def odds_ctx(**overrides):
+    """F.ctx with ODDS_VENUES approved and equity KRW 42,000; F.ctx's owner (floor KRW 21,000, daily loss KRW 5,000,
+    OKX cap 0.10), signed code and date 2026-10-23 otherwise. Any field can be overridden."""
+    from tests import compliance_fixtures as F
+    fields = {"active": F.approved(venues=ODDS_VENUES), "equity_krw": 42_000.0}
+    fields.update(overrides)
+    return F.ctx(**fields)
