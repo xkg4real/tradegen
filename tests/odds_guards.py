@@ -38,12 +38,14 @@ _COMPLIANCE_MODULES = ("model", "rules", "gate", "owner")   # O1: the compliance
 _FILE_MODULES = ("io", "os", "pathlib", "shutil", "tempfile", "glob", "fileinput", "mmap", "sqlite3", "dbm", "csv",
                  "zipfile", "tarfile", "gzip", "bz2", "lzma", "builtins", "scipy.io", "numpy.lib.npyio",
                  "numpy.lib.format", "numpy.lib._npyio_impl", "numpy.lib._format_impl")
-# The modules that run a process or native code, reach the OS file API under another name, reach a file or the
-# registry by another route (linecache, filecmp, configparser, py_compile, logging's FileHandler, xml.etree's parse,
-# winreg, scipy.datasets; pre-flight P11) or compile a string, which no core/odds file needs either.
+# The modules that run a process or native code, reach the OS file API under another name (_io and _pyio, and
+# ntpath, posixpath and genericpath, the homes of os.path; fix T1-R1-1), reach a file or the registry by another
+# route (linecache, filecmp, configparser, py_compile, logging's FileHandler, xml.etree's parse, winreg,
+# scipy.datasets; pre-flight P11) or compile a string, which no core/odds file needs either.
 _CORE_ALSO_BANNED = ("subprocess", "_winapi", "nt", "posix", "_io", "codeop", "dis", "_frozen_importlib",
                      "_frozen_importlib_external", "_imp", "_interpreters", "numpy.ctypeslib", "linecache", "filecmp",
-                     "configparser", "py_compile", "winreg", "scipy.datasets", "logging", "xml.etree")
+                     "configparser", "py_compile", "winreg", "scipy.datasets", "logging", "xml.etree", "_pyio",
+                     "ntpath", "posixpath", "genericpath")
 # names that read or write a file, called as an attribute (np.load, Path.read_text) or imported by name (from numpy
 # import load); `.replace` only on the name os
 _IO_ATTRS = frozenset({"open", "read_text", "read_bytes", "write_text", "write_bytes", "mkdir", "unlink", "rename",
@@ -232,11 +234,11 @@ def _clock_hits_in(rel: str, src: str, allowed: tuple[str, ...] = ()) -> list[st
     `datetime64('now')`, `Timestamp('today')`)."""
     clocks = {k: set(CG.CLOCKS.get(k, ())) | _MORE_CLOCKS.get(k, set()) for k in {*CG.CLOCKS, *_MORE_CLOCKS}}
     tree, hits, alias = ast.parse(src), [], {}
-    for n in ast.walk(tree):                            # `import time as t`, `from datetime import date as D`
+    for n in ast.walk(tree):                            # `import time as t`, `from email import utils as eu`
         if isinstance(n, ast.Import):
             alias.update({a.asname or a.name: a.name.rpartition(".")[2] for a in n.names
                           if a.name.rpartition(".")[2] in clocks})
-        elif isinstance(n, ast.ImportFrom) and n.module == "datetime":
+        elif isinstance(n, ast.ImportFrom):             # from any module (T1-R1-2): `from pandas import Timestamp as T`
             alias.update({a.asname or a.name: a.name for a in n.names if a.name in clocks})
     for node, funcs in CG._walk(tree):
         if rel in allowed and "main" in funcs:
@@ -259,16 +261,19 @@ def _clock_hits_in(rel: str, src: str, allowed: tuple[str, ...] = ()) -> list[st
 
 
 def _main_hits(rel: str, src: str, allowed: tuple[str, ...] = ()) -> list[str]:
-    """Every comparison with `__name__` (a `__main__` test in either operand order, `!=` included), except, in an
-    allowed file, one top-level block that is exactly `if __name__ == "__main__":` / `raise SystemExit(main())`."""
+    """Every comparison with `__name__` (a `__main__` test in either operand order, `!=` included) and every `match
+    __name__:` (T1-R1-3), except, in an allowed file, one top-level block that is exactly `if __name__ == "__main__":`
+    / `raise SystemExit(main())`."""
     tree = ast.parse(src)
     exact = {id(n.test) for n in tree.body if rel in allowed and isinstance(n, ast.If) and not n.orelse
              and ast.unparse(n.test) == "__name__ == '__main__'"
              and [ast.unparse(s) for s in n.body] == ["raise SystemExit(main())"]}
     return [f"{rel}:{n.lineno}: a __main__ test; only {allowed or 'no file'} may hold one, exactly "
             "`raise SystemExit(main())`"
-            for n in ast.walk(tree) if isinstance(n, ast.Compare) and id(n) not in exact
-            and any(isinstance(s, ast.Name) and s.id == "__name__" for s in (n.left, *n.comparators))]
+            for n in ast.walk(tree) if id(n) not in exact and any(
+                isinstance(s, ast.Name) and s.id == "__name__"
+                for s in ((n.left, *n.comparators) if isinstance(n, ast.Compare)
+                          else (n.subject,) if isinstance(n, ast.Match) else ()))]
 
 
 def _reexport_hits(rel: str, src: str, root: Path = ROOT) -> list[str]:
@@ -396,7 +401,8 @@ def test_core_odds_reads_no_clock():
                 "from numpy import datetime64\nx = datetime64('now')\n", "import uuid\nx = uuid.uuid1()\n",
                 "import email.utils\nx = email.utils.localtime()\n", "import uuid as u\nx = u.uuid1()\n",
                 "from email import utils\nx = utils.formatdate()\n", "import email.utils as eu\nx = eu.localtime()\n",
-                "from email.utils import formatdate\n", "x = pd.Timestamp.now()\n", "x = pd.Timestamp('today')\n"):
+                "from email.utils import formatdate\n", "x = pd.Timestamp.now()\n", "x = pd.Timestamp('today')\n",
+                "from email import utils as eu\nx = eu.localtime()\n"):
         assert _clock_hits_in(X, src), src
     main = "def main():\n    return datetime.now(timezone.utc)\n"
     assert _clock_hits_in(XD, main, allowed=(RUN,)) and not _clock_hits_in(RUN, main, allowed=(RUN,))
@@ -413,10 +419,11 @@ def test_core_odds_has_no_main_block():
     run only through core.oddsdata.run); the one exact block allowed elsewhere is checked by the same checker."""
     exact = 'if __name__ == "__main__":\n    raise SystemExit(main())\n'
     for src in (exact, "if '__main__' == __name__:\n    main()\n", 'if __name__ != "__main__":\n    pass\n',
-                'def f():\n    if __name__ == "__main__":\n        pass\n', 'x = __name__ == "__main__"\n'):
+                'def f():\n    if __name__ == "__main__":\n        pass\n', 'x = __name__ == "__main__"\n',
+                "match __name__:\n    case '__main__':\n        main()\n"):
         assert _main_hits(X, src), src
     assert not _main_hits(RUN, exact, allowed=(RUN,))
-    assert not _main_hits(X, "name = __name__\nmain = '__main__'\n")
+    assert not _main_hits(X, "name = __name__\nmain = '__main__'\nmatch name:\n    case '__main__':\n        pass\n")
     hits = [h for rel, src in _files(ODDS).items() for h in _main_hits(rel, src)]
     assert not hits, hits
 
@@ -539,7 +546,8 @@ def test_oddsdata_clock_only_in_run_main():
     assert _clock_hits_in(XD, main, allowed=(RUN,)) and not _clock_hits_in(RUN, main, allowed=(RUN,))
     for src in ("def load(now=datetime.now()):\n    pass\n", "def other():\n    return time.time()\n",
                 "STARTED = datetime.now()\n", "from time import monotonic\n",
-                "def other():\n    return pd.Timestamp.now(tz='UTC')\n", "def other():\n    return uuid.uuid1()\n"):
+                "def other():\n    return pd.Timestamp.now(tz='UTC')\n", "def other():\n    return uuid.uuid1()\n",
+                "from pandas import Timestamp as T\ndef other():\n    return T.now()\n"):
         assert _clock_hits_in(RUN, src, allowed=(RUN,)), src
     hits = [h for rel, src in _files(ODDSDATA).items() for h in _clock_hits_in(rel, src, allowed=(RUN,))]
     assert not hits, hits
@@ -553,7 +561,8 @@ def test_oddsdata_main_block_only_in_run():
     for src in ('if __name__ == "__main__":\n    main()\n',
                 'if __name__ == "__main__":\n    import sys\n    raise SystemExit(main())\n',
                 exact + "else:\n    pass\n", "if '__main__' == __name__:\n    raise SystemExit(main())\n",
-                'def g():\n    if __name__ == "__main__":\n        raise SystemExit(main())\n'):
+                'def g():\n    if __name__ == "__main__":\n        raise SystemExit(main())\n',
+                "match __name__:\n    case '__main__':\n        raise SystemExit(main())\n"):
         assert _main_hits(RUN, src, allowed=(RUN,)), src
     hits = [h for rel, src in _files(ODDSDATA).items() for h in _main_hits(rel, src, allowed=(RUN,))]
     assert not hits, hits
