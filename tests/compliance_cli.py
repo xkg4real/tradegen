@@ -628,6 +628,29 @@ def _canonical_line(row: dict) -> bytes:
     return model.canonical_json(row).encode("utf-8") + b"\n"
 
 
+def test_log_records_a_fingerprint_only_from_codes_0_to_2():
+    """R6 (ledger:219): the key is held to the first fingerprint alerts.jsonl records (P20), so a code 3 or 4
+    summary, which can come from a key the log does not verify, records "" and never becomes that first one, and a
+    later check with that key still owes KEY CHANGED. Codes 0 and 2 keep theirs here (code 1 in
+    test_log_rows_carry_anchor_and_fingerprint)."""
+    now = datetime(2026, 10, 23, 0, 0, tzinfo=timezone.utc)
+    other = "SHA256:" + "0" * 64
+    late = [{"row": "KR-X", "field": "review_by", "date": "2026-11-22", "days_late": 1}]
+    alerts.log("email", "ok", _sample(code=3, fingerprint=other), now)
+    alerts.log("push", "ok", _sample(code=4, fingerprint=other), now)
+    fingerprints = [r["fingerprint"] for r in _alerts_lines()]
+    assert fingerprints == ["", ""], fingerprints
+    assert owner._first_recorded() is None and alerts._first(alerts._history()) is None
+    alerts.log("email", "ok", _sample(code=0), now)
+    alerts.log("push", "ok", _sample(code=2, overdue=late, fingerprint=other), now)
+    rows = _alerts_lines()
+    assert [(r["code"], r["fingerprint"]) for r in rows] == [(3, ""), (4, ""), (0, FP), (2, other)], rows
+    assert all(set(r) == {"utc", "channel", "result", *rules._SUMMARY_KEYS} for r in rows), rows
+    assert owner._first_recorded() == (FP, "2026-10-23T00:00:00Z"), owner._first_recorded()
+    owed = alerts.due(_sample(code=3, fingerprint=other), rows, date(2026, 10, 24))
+    assert owed == [{"kind": "key_changed", "since": "2026-10-23"}, {"kind": "state"}], owed
+
+
 def test_log_refuses_bad_input_and_writes_nothing():
     now = datetime(2026, 10, 23, tzinfo=timezone.utc)
     for args in (("sms", "ok", _sample(), now), ("push", "maybe", _sample(), now),

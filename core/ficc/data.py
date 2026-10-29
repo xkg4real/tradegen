@@ -270,8 +270,8 @@ def _cache_put(key: str, rows: Rows) -> None:
     if float(config.FICC_CACHE_TTL_SECONDS) <= 0:
         return
     now = time.time()
-    _MEM[key] = (now, rows)
     target = checked_target(config.ficc_cache_dir() / f"{key}.json", "FICC cache")   # A0: a refusal propagates
+    _MEM[key] = (now, rows)   # after the check: a refused put never reaches memory (R8)
     try:
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(json.dumps({"ts": now, "rows": rows}), "utf-8")

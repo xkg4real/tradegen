@@ -1,8 +1,8 @@
 """Owner alerts for the daily compliance check (spec 5.4, D5; P26). `due()` decides from the --check summary and
 the alerts.jsonl history which alerts are owed today; `render()` fills a fixed template with ids, dates, numbers
 and key fingerprints only, never rule free text; `_toast()` shows a Windows notification; `log()` appends the
-alerts.jsonl row, which also anchors the owner log (seq, row_sha256) and records the key fingerprint (P20). The iOS
-push and the email are sent by the daily Claude task, and only to OWNER_ALERT_EMAIL."""
+alerts.jsonl row, which also anchors the owner log (seq, row_sha256) and records the key fingerprint (P20) only
+from codes 0-2. The iOS push and the email are sent by the daily Claude task, and only to OWNER_ALERT_EMAIL."""
 from __future__ import annotations
 
 import json
@@ -242,7 +242,9 @@ def _in_log(seq: int, sha: str) -> bool:
 def log(channel: str, result: str, summary: dict, now: datetime) -> None:
     """Append one alerts.jsonl row, canonical JSON {utc, channel, result, code, due, overdue, head_seq,
     head_sha256, fingerprint}. Its head is an owner-log anchor (spec 6.4) and the first fingerprint recorded is the
-    one the key is held to (P20). ValueError before anything is written for an unknown channel or result, a
+    one the key is held to (P20), so a row keeps the summary's fingerprint only when its code is 0, 1 or 2; a code 3
+    or 4 summary (a broken log, KEY CHANGED, a failed check) can come from a key the log does not verify, and its
+    row records an empty fingerprint. ValueError before anything is written for an unknown channel or result, a
     malformed summary, a naive `now`, or a head that is not that line of owner.jsonl (append-only, so the check
     holds under the lock too). The append takes the owner-log sidecar lock: a torn line would be BROKEN for good."""
     from core.compliance import owner
@@ -252,6 +254,8 @@ def log(channel: str, result: str, summary: dict, now: datetime) -> None:
         raise ValueError("log: not a --check summary")
     row = {"utc": model.iso_utc(now), "channel": channel, "result": result,
            **{k: summary[k] for k in rules._SUMMARY_KEYS}}
+    if summary["code"] > 2:                     # R6: a code 3 or 4 summary may name a key the log does not verify
+        row["fingerprint"] = ""
     if not _in_log(summary["head_seq"], summary["head_sha256"]):
         raise ValueError(f"log: owner log entry #{summary['head_seq']} does not have that row_sha256")
     path = owner.alerts_path()

@@ -221,7 +221,7 @@ def test_main_refuses_claude_parent_and_non_tty_stdin():
             _patched(signer, "_read_typed", _never):
         with _patched(signer, "_claude_ancestor", lambda: True), _patched(sys, "stdin", _Tty()):
             code, _, err = _quiet(signer.main, ["keygen"])
-        assert code == 2 and "claude.exe" in err, (code, err)
+        assert code == 2 and "claude.exe" in err and "has exited" in err, (code, err)
         with _patched(signer, "_claude_ancestor", lambda: False), _patched(sys, "stdin", io.StringIO("")):
             code, _, err = _quiet(signer.main, ["keygen"])
         assert code == 2 and "stdin is not a terminal" in err, (code, err)
@@ -283,19 +283,39 @@ def test_stdin_terminal_check_follows_getconsolemode():
 
 
 def test_claude_ancestor_walk():
+    """R5, R11: a claude.exe anywhere in the chain refuses, even above a session process, and so does a walk that
+    breaks (an exited parent, a pid-reuse cycle, more than 256 steps) before it has passed a session process."""
     table = {10: (9, "python.exe"), 9: (8, "cmd.exe"), 8: (7, "Claude.exe"), 7: (0, "explorer.exe")}
     assert signer._has_claude_ancestor(10, table) is True
     assert signer._has_claude_ancestor(9, {**table, 8: (7, "WindowsTerminal.exe")}) is False
-    assert signer._has_claude_ancestor(1, {1: (2, "a.exe"), 2: (1, "b.exe")}) is False      # pid-reuse cycle ends
-    assert signer._has_claude_ancestor(5, {}) is False
+    terminal = {20: (21, "python.exe"), 21: (22, "powershell.exe"), 22: (23, "WindowsTerminal.exe"),
+                23: (24, "svchost.exe"), 24: (25, "services.exe"), 25: (99, "wininit.exe")}      # 99 has exited
+    assert signer._has_claude_ancestor(20, terminal) is False, "the owner's Windows Terminal chain (R11)"
+    shell = {50: (51, "python.exe"), 51: (52, "cmd.exe"), 52: (53, "Explorer.EXE")}             # 53 has exited
+    assert signer._has_claude_ancestor(50, shell) is False, "a console started from explorer.exe, any case (R11)"
+    renamed = {1: (2, "python.exe"), 2: (3, "winlogon.exe"), 3: (4, "bash.exe"), 4: (5, "claude.exe"),
+               5: (0, "explorer.exe")}                       # cmd.exe saved as winlogon.exe, run under Claude
+    assert signer._has_claude_ancestor(1, renamed) is True, "a session process name never ends the walk"
+    assert signer._has_claude_ancestor(1, {1: (2, "a.exe"), 2: (1, "b.exe")}) is True, "a pid-reuse cycle refuses"
+    assert signer._has_claude_ancestor(5, {}) is True, "an empty table refuses"
+    exited = {30: (31, "python.exe"), 31: (32, "Code.exe")}                                    # 32 has exited
+    assert signer._has_claude_ancestor(30, exited) is True, "an editor terminal whose launcher has exited"
+    assert signer._has_claude_ancestor(40, {40: (41, "python.exe"), 41: (0, "CLAUDE.EXE")}) is True, "any case"
+    deep = {**{n: (n + 1, "python.exe") for n in range(1, 300)}, 300: (0, "wininit.exe")}
+    assert signer._has_claude_ancestor(1, deep) is True, "the 256-step cap refuses"
+    service = {60: (61, "python.exe"), 61: (62, "svchost.exe")}                                # 62 has exited
+    assert signer._has_claude_ancestor(60, service) is True, "svchost.exe is no session process"
+    roots = frozenset({"explorer.exe", "services.exe", "wininit.exe", "winlogon.exe"})
+    assert signer._SESSION_ROOTS == roots, "exactly the four session processes: one more makes the walk looser (R11)"
     if os.name == "nt":
         live = signer._process_table()
         assert live[os.getpid()][0] == os.getppid(), live.get(os.getpid())
 
 
 def test_claude_ancestor_check_fails_closed():
-    """Claude is ruled out only from a process table that holds this very process: a failed snapshot, an empty
-    table or a table without our pid all read as "cannot rule it out"."""
+    """Claude is ruled out only from a process table that holds this very process and whose parent chain reaches
+    pid 0 or passes a Windows session process: a failed snapshot, an empty table, a table without our pid or a
+    parent that has exited all read as "cannot rule it out" (R5)."""
     me = os.getpid()
 
     def broken():
@@ -307,6 +327,8 @@ def test_claude_ancestor_check_fails_closed():
             assert signer._claude_ancestor() is True, table
     with _patched(signer, "_process_table", lambda: {me: (0, "python.exe")}):
         assert signer._claude_ancestor() is False
+    with _patched(signer, "_process_table", lambda: {me: (me + 1, "python.exe")}):
+        assert signer._claude_ancestor() is True, "a parent that has exited refuses (R5)"
     with _patched(signer, "_process_table", lambda: {me: (7, "python.exe"), 7: (0, "Claude.exe")}):
         assert signer._claude_ancestor() is True
 
@@ -655,8 +677,57 @@ def test_code_files_match_owner():
         "core/compliance/e.py": "from typing import TYPE_CHECKING\nif not TYPE_CHECKING:\n    import core.negated\n",
         "core/compliance/f.py": "if \"__main__\" == __name__:\n    import core.rev_cli\n",
         "core/compliance/g.py": "def main():\n    from core.compliance import g\n    return g\n",   # rules.main's shape
+        "core/compliance/h.py": ("import types\nimport typing\ntyping = types.SimpleNamespace(TYPE_CHECKING=True)\n"
+                                 "if typing.TYPE_CHECKING:\n    import core.rebound_typing\n"),
+        "core/compliance/i.py": "__name__ = \"__main__\"\nif __name__ == \"__main__\":\n    import core.rebound_main\n",
+        "core/compliance/j.py": "import os as typing\nif typing.TYPE_CHECKING:\n    import core.alias_typing\n",
+        "core/compliance/k.py": "if typing.TYPE_CHECKING:\n    import core.unbound_typing\n",
+        "core/compliance/l.py": ("def main(__name__=None):\n    return __name__\n"
+                                 "if __name__ == \"__main__\":\n    import core.param_main\n"),
+        "core/compliance/m.py": ("import typing\ntyping.TYPE_CHECKING = True\n"
+                                 "if typing.TYPE_CHECKING:\n    import core.stored_typing\n"),
+        "core/compliance/n.py": ("import typing\nsetattr(typing, \"TYPE_CHECKING\", True)\n"
+                                 "if typing.TYPE_CHECKING:\n    import core.setattr_typing\n"),
+        "core/compliance/o.py": ("globals()[\"__name__\"] = \"__main__\"\n"
+                                 "if __name__ == \"__main__\":\n    import core.globals_main\n"),
+        "core/compliance/p.py": ("import sys\nimport types\n"
+                                 "sys.modules[\"typing\"] = types.SimpleNamespace(TYPE_CHECKING=True)\n"
+                                 "import typing\nif typing.TYPE_CHECKING:\n    import core.modules_typing\n"),
+        "core/compliance/q.py": ("import typing\ntyping.TYPE_CHECKING = True\nfrom typing import TYPE_CHECKING\n"
+                                 "if TYPE_CHECKING:\n    import core.stored_bare\n"),
+        "core/compliance/r.py": ("import sys\nsys._getframe().f_globals[\"__name__\"] = \"__main__\"\n"
+                                 "if __name__ == \"__main__\":\n    import core.frame_main\n"),
+        "core/compliance/s.py": ("import sys\nfrom typing import TYPE_CHECKING\n"
+                                 "sys._getframe().f_locals[\"TYPE_CHECKING\"] = True\n"
+                                 "if TYPE_CHECKING:\n    import core.frame_bare\n"),
+        "core/compliance/t.py": ("import types\nimport typing\nclass M(types.ModuleType):\n"
+                                 "    TYPE_CHECKING = property(lambda self: True)\ntyping.__class__ = M\n"
+                                 "if typing.TYPE_CHECKING:\n    import core.class_typing\n"),
+        "core/compliance/u.py": ("def _f():\n    pass\n_f.__globals__[\"__name__\"] = \"__main__\"\n"
+                                 "if __name__ == \"__main__\":\n    import core.fn_globals_main\n"),
+        "core/compliance/v.py": ("import typing\ntyping.cast.__globals__[\"TYPE_CHECKING\"] = True\n"
+                                 "if typing.TYPE_CHECKING:\n    import core.fn_globals_typing\n"),
+        "core/compliance/w.py": ("import typing\ntyping.cast.__globals__[\"TYPE_CHECKING\"] = True\n"
+                                 "from typing import TYPE_CHECKING\n"
+                                 "if TYPE_CHECKING:\n    import core.fn_globals_bare\n"),
+        "core/compliance/x.py": ("import gc, typing\ngc.get_referents(typing)[0][\"TYPE_CHECKING\"] = True\n"
+                                 "if typing.TYPE_CHECKING:\n    import core.gc_typing\n"),
+        "core/compliance/y.py": ("import sys, types\ndef _never():\n    import typing\n"
+                                 "sys._getframe().f_builtins[\"typing\"] = types.SimpleNamespace(TYPE_CHECKING=True)\n"
+                                 "if typing.TYPE_CHECKING:\n    import core.builtins_typing\n"),
+        "core/compliance/z.py": ("import gc, typing\nfor o in gc.get_objects():\n"
+                                 "    if isinstance(o, dict) and o.get(\"__name__\") == \"typing\":\n"
+                                 "        o[\"TYPE_CHECKING\"] = True\n"
+                                 "if typing.TYPE_CHECKING:\n    import core.gc_objects_typing\n"),
         "core/neq.py": "", "core/local_tc.py": "", "core/rebound.py": "", "core/negated.py": "",
         "core/rev_cli.py": "",
+        "core/rebound_typing.py": "", "core/rebound_main.py": "", "core/alias_typing.py": "",
+        "core/unbound_typing.py": "", "core/param_main.py": "", "core/stored_typing.py": "",
+        "core/setattr_typing.py": "", "core/globals_main.py": "", "core/modules_typing.py": "",
+        "core/stored_bare.py": "", "core/frame_main.py": "", "core/frame_bare.py": "",
+        "core/class_typing.py": "",
+        "core/fn_globals_main.py": "", "core/fn_globals_typing.py": "", "core/fn_globals_bare.py": "",
+        "core/gc_typing.py": "", "core/builtins_typing.py": "", "core/gc_objects_typing.py": "",
         "core/pkg/__init__.py": "",
         "core/pkg/lazy.py": "from . import sibling\nfrom .. import upper\n",
         "core/pkg/sibling.py": "import json\n",
@@ -674,7 +745,25 @@ def test_code_files_match_owner():
         "core/pkg/__init__.py", "core/pkg/lazy.py", "core/pkg/sibling.py", "core/upper.py",
         "core/compliance/b.py", "core/compliance/c.py", "core/compliance/d.py", "core/compliance/e.py",
         "core/compliance/f.py", "core/compliance/g.py",
+        "core/compliance/h.py", "core/compliance/i.py", "core/compliance/j.py", "core/compliance/k.py",
+        "core/compliance/l.py", "core/compliance/m.py", "core/compliance/n.py", "core/compliance/o.py",
+        "core/compliance/p.py", "core/compliance/q.py", "core/compliance/r.py", "core/compliance/s.py",
+        "core/compliance/t.py", "core/compliance/u.py", "core/compliance/v.py", "core/compliance/w.py",
+        "core/compliance/x.py", "core/compliance/y.py", "core/compliance/z.py",
+        "core/rebound_typing.py", "core/rebound_main.py", "core/alias_typing.py", "core/unbound_typing.py",
+        "core/param_main.py", "core/stored_typing.py", "core/setattr_typing.py", "core/globals_main.py",
+        "core/modules_typing.py", "core/stored_bare.py", "core/frame_main.py", "core/frame_bare.py",
+        "core/class_typing.py", "core/fn_globals_main.py", "core/fn_globals_typing.py", "core/fn_globals_bare.py",
+        "core/gc_typing.py", "core/builtins_typing.py", "core/gc_objects_typing.py",
         "core/neq.py", "core/local_tc.py", "core/rebound.py", "core/negated.py"}, mine
+
+
+def test_closure_scan_helpers_are_identical_in_owner_and_signer():
+    """R4: the signer's copy of the D14 closure scan is owner.py's, character for character, so a hardening in one
+    file cannot be forgotten in the other (test_code_files_match_owner compares outputs on chosen trees only)."""
+    import inspect
+    for name in ("_binds", "_typing_flag", "_guards", "_skipped", "_import_nodes", "_module_file", "_repo_imports"):
+        assert inspect.getsource(getattr(signer, name)) == inspect.getsource(getattr(owner, name)), name
 
 
 def test_store_layout_matches_owner_store_put():
@@ -1099,7 +1188,9 @@ def test_help_names_owner_acts_1_and_2():
                    "Claude never runs this file", "from the next Asia/Seoul date", "blanks do not count",
                    "Key rotation", "keygen --key NEW\\owner_key.enc", "event key_rotated", "copy NEW\\owner_key.pem",
                    "owner_pubkey.pem", "pass --key NEW\\owner_key.enc to every command",
-                   "reads BROKEN between steps 3 and 4", "write the new fingerprint on paper"):
+                   "reads BROKEN between steps 3 and 4", "write the new fingerprint on paper",
+                   "open Windows Terminal yourself from the Start menu",               # R5, R11
+                   "when its parent chain stops before a Windows session process"):
         assert needle in " ".join(text.split()), needle
     assert "python.exe %USERPROFILE%" not in text, "every command line starts python.exe -I"
     parser = signer._parser()

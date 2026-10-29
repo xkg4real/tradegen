@@ -258,6 +258,38 @@ def test_kis_token_writer_refuses_a_hard_linked_target():
         assert victim.read_bytes() == VICTIM
 
 
+def test_kis_token_is_refused_before_the_token_request():
+    """R8 (compliance-gate ledger:81): on a cache miss token() checks the cache target before it reads a credential
+    or sends the token request, so a refused target burns no token issuance (KIS rate-limits issuance hard).
+    _store_token keeps its own check for a direct call (R12, the test above)."""
+    from data.krx import kis_client
+    calls = []
+
+    class _Once:                                        # stands in for requests: records the POST, then fails
+        @staticmethod
+        def post(url, **_kw):
+            calls.append(f"POST {url}")
+            raise ConnectionError("the token request was sent")
+
+    with _fake_quantgen() as (state, _repo, scratch):
+        target = scratch / "kis_token.json"
+        victim = _hard_linked(state, target)            # VICTIM is not a token, so the cache misses
+        keep = (kis_client._TOKEN_PATH, kis_client._once, config.kis_credentials)
+        try:
+            kis_client._TOKEN_PATH, kis_client._once = target, _Once
+            config.kis_credentials = lambda: calls.append("credentials") or ("k", "s")   # the T-RO-02 recorder
+            client = object.__new__(kis_client.KISClient)
+            client.ready, client.base_url, client.timeout_s = True, "https://example.invalid", 1.0
+            _refused(client.token, "hard link")
+            assert calls == [], calls                   # no credential read, no token request
+            kis_client._TOKEN_PATH = scratch / "clean" / "kis_token.json"   # control: a clean target reaches the POST
+            _refused(client.token, "token request failed: ConnectionError")
+            assert calls == ["credentials", "POST https://example.invalid/oauth2/tokenP"], calls
+        finally:
+            kis_client._TOKEN_PATH, kis_client._once, config.kis_credentials = keep
+        assert victim.read_bytes() == VICTIM
+
+
 def test_opendart_cache_writer_refuses_a_hard_linked_target():
     from data.krx import opendart_client
     with _fake_quantgen() as (state, _repo, scratch):
@@ -300,9 +332,13 @@ def test_ficc_cache_writer_refuses_a_hard_linked_target():
         try:
             config.FICC_CACHE_TTL_SECONDS, config.ficc_cache_dir = 3600.0, (lambda: scratch)
             _refused(lambda: D._cache_put("A0_PROBE_1", [("2026-10-22", 1.0)]), "hard link")
+            assert "A0_PROBE_1" not in D._MEM, "a refused key was cached in memory"
+            D._cache_put("A0_PROBE_2", [("2026-10-22", 1.0)])                # control: a clean key is cached
+            assert "A0_PROBE_2" in D._MEM, "a clean key was not cached in memory"
         finally:
             config.FICC_CACHE_TTL_SECONDS, config.ficc_cache_dir = keep
             D._MEM.pop("A0_PROBE_1", None)
+            D._MEM.pop("A0_PROBE_2", None)
         assert victim.read_bytes() == VICTIM
 
 

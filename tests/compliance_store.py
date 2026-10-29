@@ -4,6 +4,7 @@ only inside it; owner logs are signed with the fixed test key, and owner.PUBKEY_
 repo key is never read or written)."""
 from __future__ import annotations
 
+import ast
 import contextlib
 import datetime as _dt
 import importlib.metadata
@@ -154,7 +155,12 @@ def test_code_files_counts_lazy_imports_and_skips_main_and_type_checking():
     """P6 on a synthetic tree: a function-level import, relative imports (`.` and `..`) and an in-repo module outside
     core/ count, every ancestor __init__.py joins, and the TYPE_CHECKING (bare from typing, or `typing.`) and
     `__name__ == "__main__"` bodies do not (their else branch does). Anything else is scanned, because its body can run
-    at import: an `!=` test, a bare TYPE_CHECKING that is a local (or rebound) name, and `not TYPE_CHECKING`."""
+    at import: an `!=` test, a bare TYPE_CHECKING that is a local (or rebound) name, and `not TYPE_CHECKING`; and a
+    guard whose name the module rebinds or never imports plainly at its top level (typing rebound, `import os as
+    typing`, no `import typing`, one inside a function only, `__name__` assigned or a parameter), or that the module
+    can change without a binding (an attribute store, `__class__` included, setattr, globals(), sys.modules, a
+    function's __globals__, a frame's f_globals, f_locals or f_builtins, gc.get_referents, gc.get_referrers or
+    gc.get_objects), is scanned too (R4)."""
     sources = {
         "config.py": "",
         "core/__init__.py": "",
@@ -172,8 +178,57 @@ def test_code_files_counts_lazy_imports_and_skips_main_and_type_checking():
                                  "if TYPE_CHECKING:\n    import core.rebound\n"),
         "core/compliance/e.py": "from typing import TYPE_CHECKING\nif not TYPE_CHECKING:\n    import core.negated\n",
         "core/compliance/f.py": "if \"__main__\" == __name__:\n    import core.rev_cli\n",
+        "core/compliance/h.py": ("import types\nimport typing\ntyping = types.SimpleNamespace(TYPE_CHECKING=True)\n"
+                                 "if typing.TYPE_CHECKING:\n    import core.rebound_typing\n"),
+        "core/compliance/i.py": "__name__ = \"__main__\"\nif __name__ == \"__main__\":\n    import core.rebound_main\n",
+        "core/compliance/j.py": "import os as typing\nif typing.TYPE_CHECKING:\n    import core.alias_typing\n",
+        "core/compliance/k.py": "if typing.TYPE_CHECKING:\n    import core.unbound_typing\n",
+        "core/compliance/l.py": ("def main(__name__=None):\n    return __name__\n"
+                                 "if __name__ == \"__main__\":\n    import core.param_main\n"),
+        "core/compliance/m.py": ("import typing\ntyping.TYPE_CHECKING = True\n"
+                                 "if typing.TYPE_CHECKING:\n    import core.stored_typing\n"),
+        "core/compliance/n.py": ("import typing\nsetattr(typing, \"TYPE_CHECKING\", True)\n"
+                                 "if typing.TYPE_CHECKING:\n    import core.setattr_typing\n"),
+        "core/compliance/o.py": ("globals()[\"__name__\"] = \"__main__\"\n"
+                                 "if __name__ == \"__main__\":\n    import core.globals_main\n"),
+        "core/compliance/p.py": ("import sys\nimport types\n"
+                                 "sys.modules[\"typing\"] = types.SimpleNamespace(TYPE_CHECKING=True)\n"
+                                 "import typing\nif typing.TYPE_CHECKING:\n    import core.modules_typing\n"),
+        "core/compliance/q.py": ("import typing\ntyping.TYPE_CHECKING = True\nfrom typing import TYPE_CHECKING\n"
+                                 "if TYPE_CHECKING:\n    import core.stored_bare\n"),
+        "core/compliance/r.py": ("import sys\nsys._getframe().f_globals[\"__name__\"] = \"__main__\"\n"
+                                 "if __name__ == \"__main__\":\n    import core.frame_main\n"),
+        "core/compliance/s.py": ("import sys\nfrom typing import TYPE_CHECKING\n"
+                                 "sys._getframe().f_locals[\"TYPE_CHECKING\"] = True\n"
+                                 "if TYPE_CHECKING:\n    import core.frame_bare\n"),
+        "core/compliance/t.py": ("import types\nimport typing\nclass M(types.ModuleType):\n"
+                                 "    TYPE_CHECKING = property(lambda self: True)\ntyping.__class__ = M\n"
+                                 "if typing.TYPE_CHECKING:\n    import core.class_typing\n"),
+        "core/compliance/u.py": ("def _f():\n    pass\n_f.__globals__[\"__name__\"] = \"__main__\"\n"
+                                 "if __name__ == \"__main__\":\n    import core.fn_globals_main\n"),
+        "core/compliance/v.py": ("import typing\ntyping.cast.__globals__[\"TYPE_CHECKING\"] = True\n"
+                                 "if typing.TYPE_CHECKING:\n    import core.fn_globals_typing\n"),
+        "core/compliance/w.py": ("import typing\ntyping.cast.__globals__[\"TYPE_CHECKING\"] = True\n"
+                                 "from typing import TYPE_CHECKING\n"
+                                 "if TYPE_CHECKING:\n    import core.fn_globals_bare\n"),
+        "core/compliance/x.py": ("import gc, typing\ngc.get_referents(typing)[0][\"TYPE_CHECKING\"] = True\n"
+                                 "if typing.TYPE_CHECKING:\n    import core.gc_typing\n"),
+        "core/compliance/y.py": ("import sys, types\ndef _never():\n    import typing\n"
+                                 "sys._getframe().f_builtins[\"typing\"] = types.SimpleNamespace(TYPE_CHECKING=True)\n"
+                                 "if typing.TYPE_CHECKING:\n    import core.builtins_typing\n"),
+        "core/compliance/z.py": ("import gc, typing\nfor o in gc.get_objects():\n"
+                                 "    if isinstance(o, dict) and o.get(\"__name__\") == \"typing\":\n"
+                                 "        o[\"TYPE_CHECKING\"] = True\n"
+                                 "if typing.TYPE_CHECKING:\n    import core.gc_objects_typing\n"),
         "core/neq.py": "", "core/local_tc.py": "", "core/rebound.py": "", "core/negated.py": "",
         "core/rev_cli.py": "",
+        "core/rebound_typing.py": "", "core/rebound_main.py": "", "core/alias_typing.py": "",
+        "core/unbound_typing.py": "", "core/param_main.py": "", "core/stored_typing.py": "",
+        "core/setattr_typing.py": "", "core/globals_main.py": "", "core/modules_typing.py": "",
+        "core/stored_bare.py": "", "core/frame_main.py": "", "core/frame_bare.py": "",
+        "core/class_typing.py": "",
+        "core/fn_globals_main.py": "", "core/fn_globals_typing.py": "", "core/fn_globals_bare.py": "",
+        "core/gc_typing.py": "", "core/builtins_typing.py": "", "core/gc_objects_typing.py": "",
         "core/pkg/__init__.py": "",
         "core/pkg/lazy.py": "from . import sibling\nfrom .. import upper\n",
         "core/pkg/sibling.py": "import json\n",
@@ -191,7 +246,27 @@ def test_code_files_counts_lazy_imports_and_skips_main_and_type_checking():
                     "core/upper.py",
                     "core/compliance/b.py", "core/compliance/c.py", "core/compliance/d.py", "core/compliance/e.py",
                     "core/compliance/f.py",
+                    "core/compliance/h.py", "core/compliance/i.py", "core/compliance/j.py", "core/compliance/k.py",
+                    "core/compliance/l.py", "core/compliance/m.py", "core/compliance/n.py", "core/compliance/o.py",
+                    "core/compliance/p.py", "core/compliance/q.py", "core/compliance/r.py", "core/compliance/s.py",
+                    "core/compliance/t.py", "core/compliance/u.py", "core/compliance/v.py", "core/compliance/w.py",
+                    "core/compliance/x.py", "core/compliance/y.py", "core/compliance/z.py",
+                    "core/rebound_typing.py", "core/rebound_main.py", "core/alias_typing.py",
+                    "core/unbound_typing.py", "core/param_main.py", "core/stored_typing.py",
+                    "core/setattr_typing.py", "core/globals_main.py", "core/modules_typing.py",
+                    "core/stored_bare.py", "core/frame_main.py", "core/frame_bare.py", "core/class_typing.py",
+                    "core/fn_globals_main.py", "core/fn_globals_typing.py", "core/fn_globals_bare.py",
+                    "core/gc_typing.py", "core/builtins_typing.py", "core/gc_objects_typing.py",
                     "core/neq.py", "core/local_tc.py", "core/rebound.py", "core/negated.py"}, sorted(repo)
+    trusted = "import typing\nfrom typing import TYPE_CHECKING\n"
+    assert owner._guards(ast.parse(trusted)) == (True, True, True)
+    nested = "def f():\n    import typing\n    from typing import TYPE_CHECKING\n"      # top level only
+    assert owner._guards(ast.parse(nested)) == (False, False, True)
+    for route in ("delattr(typing, 'x')", "vars(typing)", "locals()", "typing.__dict__", "import builtins\nbuiltins",
+                  "__builtins__", "typing.__name__ = 'x'", "del typing.TYPE_CHECKING",
+                  "import sys\nsys._getframe().f_builtins", "import gc\ngc.get_referrers(typing)",
+                  "import gc\ngc.get_objects()"):
+        assert owner._guards(ast.parse(trusted + route + "\n")) == (False, False, False), route
 
 
 def test_snapshot_is_write_once_and_rebuilt_from_the_store():

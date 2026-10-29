@@ -697,43 +697,65 @@ def _binds(tree: ast.AST, name: str) -> int:
 
 
 def _typing_flag(tree: ast.AST) -> bool:
-    """True when the bare name TYPE_CHECKING in `tree` is the one from `from typing import TYPE_CHECKING` and is
-    never bound anywhere else; a local `TYPE_CHECKING = True` is code that runs (P6)."""
+    """True when the bare name TYPE_CHECKING in `tree` is the one from a top-level `from typing import
+    TYPE_CHECKING` and is never bound anywhere else; a local `TYPE_CHECKING = True` is code that runs (P6)."""
     imported = any(isinstance(n, ast.ImportFrom) and n.level == 0 and n.module == "typing"
                    and any(a.name == "TYPE_CHECKING" and a.asname is None for a in n.names)
-                   for n in ast.walk(tree))
+                   for n in tree.body)
     return imported and _binds(tree, "TYPE_CHECKING") == 1
 
 
-def _skipped(node: ast.AST, bare_flag: bool) -> bool:
+def _guards(tree: ast.AST) -> tuple[bool, bool, bool]:
+    """Which `if` guards of `tree` may skip their body (P6, R4): (bare TYPE_CHECKING, typing.TYPE_CHECKING,
+    __name__ == "__main__"). The bare name needs _typing_flag; `typing.` needs `typing` bound exactly once, by a
+    plain `import typing`; both imports count only as top-level statements of the module (one inside a function, a
+    class, an `if` or a `try` does not); the `__main__` test needs `__name__` bound nowhere in the module. A rebound
+    name (typing = SimpleNamespace(TYPE_CHECKING=True), __name__ = "__main__") loses its guard, and a module that
+    can change these names without binding them (an attribute store of TYPE_CHECKING, __name__ or __class__, or any
+    setattr, delattr, globals, vars, locals, modules, __dict__, builtins, __builtins__, f_globals, f_locals,
+    f_builtins, __globals__, get_referents, get_referrers or get_objects) trusts no guard: the guarded body is scanned.
+    Not seen: another module changing typing.TYPE_CHECKING first (the review of each hashed diff)."""
+    plain = any(isinstance(n, ast.Import) and any(a.name == "typing" and a.asname is None for a in n.names)
+                for n in tree.body)
+    routes = {"setattr", "delattr", "globals", "vars", "locals", "modules", "__dict__", "builtins", "__builtins__",
+              "f_globals", "f_locals", "f_builtins", "__globals__", "get_referents", "get_referrers", "get_objects"}
+    if any((isinstance(n, ast.Name) and n.id in routes) or (isinstance(n, ast.Attribute) and (n.attr in routes or (
+            n.attr in ("TYPE_CHECKING", "__name__", "__class__") and not isinstance(n.ctx, ast.Load))))
+           for n in ast.walk(tree)):
+        return False, False, False
+    return _typing_flag(tree), plain and _binds(tree, "typing") == 1, _binds(tree, "__name__") == 0
+
+
+def _skipped(node: ast.AST, guards: tuple[bool, bool, bool]) -> bool:
     """Whether `node` is an `if` whose body never runs at import and so is outside the code closure (P6):
-    `if typing.TYPE_CHECKING:`, `if TYPE_CHECKING:` when `bare_flag` (see _typing_flag), and a single `==`
-    comparison of `__name__` with "__main__" in either order. Every other test (`!=`, `not TYPE_CHECKING`, a local
-    TYPE_CHECKING) is scanned, since its body can run at import."""
+    `if TYPE_CHECKING:`, `if typing.TYPE_CHECKING:` and a single `==` comparison of `__name__` with "__main__" in
+    either order, each only while `guards` (see _guards) trusts its name. Every other test (`!=`, `not
+    TYPE_CHECKING`, a local or rebound name) is scanned, since its body can run at import."""
     if not isinstance(node, ast.If):
         return False
+    bare, dotted, main = guards
     t = node.test
     if isinstance(t, ast.Name):
-        return t.id == "TYPE_CHECKING" and bare_flag
+        return t.id == "TYPE_CHECKING" and bare
     if isinstance(t, ast.Attribute):
-        return t.attr == "TYPE_CHECKING" and isinstance(t.value, ast.Name) and t.value.id == "typing"
+        return dotted and t.attr == "TYPE_CHECKING" and isinstance(t.value, ast.Name) and t.value.id == "typing"
     if isinstance(t, ast.Compare) and len(t.ops) == 1 and isinstance(t.ops[0], ast.Eq):
         sides = [t.left, *t.comparators]
-        return (any(isinstance(s, ast.Name) and s.id == "__name__" for s in sides)
+        return (main and any(isinstance(s, ast.Name) and s.id == "__name__" for s in sides)
                 and any(isinstance(s, ast.Constant) and s.value == "__main__" for s in sides))
     return False
 
 
-def _import_nodes(node: ast.AST, bare_flag: bool):
+def _import_nodes(node: ast.AST, guards: tuple[bool, bool, bool]):
     """Every import statement at any depth, function bodies included; a skipped `if` keeps its `else`."""
-    if _skipped(node, bare_flag):
+    if _skipped(node, guards):
         for child in node.orelse:
-            yield from _import_nodes(child, bare_flag)
+            yield from _import_nodes(child, guards)
         return
     if isinstance(node, (ast.Import, ast.ImportFrom)):
         yield node
     for child in ast.iter_child_nodes(node):
-        yield from _import_nodes(child, bare_flag)
+        yield from _import_nodes(child, guards)
 
 
 def _module_file(root: Path, dotted: str) -> Path | None:
@@ -752,7 +774,7 @@ def _repo_imports(root: Path, path: Path) -> set[Path]:
     package = list(path.relative_to(root).parent.parts)
     names: set[str] = set()
     tree = ast.parse(path.read_bytes())
-    for node in _import_nodes(tree, _typing_flag(tree)):
+    for node in _import_nodes(tree, _guards(tree)):
         if isinstance(node, ast.Import):
             names.update(alias.name for alias in node.names)
             continue
