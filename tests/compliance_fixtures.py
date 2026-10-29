@@ -147,3 +147,103 @@ def store_blob(home: Path, kind: str, raw: bytes, anchor: tuple[int, str]) -> st
     if not owner.store_dir().is_relative_to(home):
         raise AssertionError(f"store_blob: {owner.store_dir()} is outside the temp home {home}")
     return owner.store_put(kind, raw, anchor)
+
+
+# -- signed temp homes (moved from tests/compliance_store.py by the odds plan, Task 4, Q21) ---------------------
+# compliance_store binds its old private names to these, so its tests are unchanged; the odds suite builds the same
+# homes. A home is signed with the fixed test key only, inside a temp TRADEGEN_HOME: owner_key refuses a pem and
+# sign an owner log outside the temp dir (so never the repo's trust anchor or the real ~/.tradegen), and approve a
+# state root outside its `home`, each before it writes. owner is imported inside each helper, as in store_blob, so
+# temp_home never depends on owner.py importing.
+import datetime as _dt  # noqa: E402
+import json as _json  # noqa: E402
+
+from core.compliance import model as _model  # noqa: E402
+
+TABLES = ("rules", "instruments", "venues")
+NOW = _dt.datetime(2026, 10, 24, 9, 0, tzinfo=_model.KST)
+HELD = _model.Positions(equity_krw=1_000_000.0, holdings={("upbit", "BTC"): 0.01})
+
+
+@contextlib.contextmanager
+def pubkey_at(path: Path):
+    """owner.PUBKEY_PATH pointed at `path` for the block, restored afterwards."""
+    from core.compliance import owner
+    saved = owner.PUBKEY_PATH
+    owner.PUBKEY_PATH = path
+    try:
+        yield path
+    finally:
+        owner.PUBKEY_PATH = saved
+
+
+def owner_key(home: Path):
+    """The test key, its pem written to owner.PUBKEY_PATH, which must lie inside the temp home `home` and inside the
+    temp dir, so the repo's trust anchor is never written, even for a `home` that holds the repo. NotRun PENDING
+    without cryptography."""
+    from core.compliance import owner
+    path = owner.PUBKEY_PATH
+    if not path.is_relative_to(home):
+        raise AssertionError(f"owner_key: {path} is outside the temp home {home}")
+    if not path.resolve().is_relative_to(Path(tempfile.gettempdir()).resolve()):
+        raise AssertionError(f"owner_key: {path} is outside the temp dir {tempfile.gettempdir()}")
+    key = test_key()
+    write_pubkey(path, key)
+    return key
+
+
+def sign(key, kind: str, data: dict, utc: str = "2026-10-23T00:00:00Z") -> tuple[int, str]:
+    """Appends one signed owner entry to the temp home's log; returns its anchor (seq, row_sha256). Refused before
+    the owner log is read or written when it is not inside the temp dir, so the real ~/.tradegen is never written."""
+    from core.compliance import owner
+    path = owner.log_path()
+    if not path.resolve().is_relative_to(Path(tempfile.gettempdir()).resolve()):
+        raise AssertionError(f"sign: {path} is not inside a temp TRADEGEN_HOME")
+    lines = path.read_bytes().splitlines() if path.is_file() else []
+    prev = _json.loads(lines[-1])["row_sha256"] if lines else owner.GENESIS_PREV
+    line = signed_entry(key, len(lines) + 1, prev, kind, data, utc)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "ab") as fh:
+        fh.write(line)
+    return len(lines) + 1, _json.loads(line)["row_sha256"]
+
+
+def approve(home: Path, key, kind: str, raw: bytes) -> str:
+    """Signs `approved {kind, sha256}` for `raw` and stores the bytes with that entry as their anchor; refused before
+    anything is written when the state root is not the temp home `home`."""
+    from core.compliance import owner
+    if not owner.home().is_relative_to(home):
+        raise AssertionError(f"approve: {owner.home()} is outside the temp home {home}")
+    return store_blob(home, kind, raw, sign(key, "approved", {"kind": kind, "sha256": _model.sha256_hex(raw)}))
+
+
+def other_code(key, utc: str = "2026-10-23T00:00:00Z") -> None:
+    """Signs a code_approved that names a hash other than the code on disk."""
+    from core.compliance import owner
+    files = sorted([list(f) for f in owner.code_files(owner.REPO_ROOT)] + [["core/compliance/zz.py", "0" * 64]])
+    sign(key, "code_approved", {"sha256": _model.sha256_hex(_model.canonical_json(files)), "files": files}, utc)
+
+
+def full_home(home: Path, *, rules_raw: bytes | None = None, venues_raw: bytes | None = None,
+              calendar_raw: bytes | None = None, limits: dict | None = None, cap: float | None = None):
+    """The test key at owner.PUBKEY_PATH, the three shipped drafts (or `rules_raw`, `venues_raw`) approved and
+    stored, the current code hash signed and the owner's age recorded; then, only when given, `calendar_raw` (a
+    rules.calendar_stream blob) approved as kind calendar, `limits` signed as limit_set and `cap` as the
+    okx_equity_share cap_set. Every entry is stamped 2026-10-23T00:00:00Z, so a limit or cap counts from NOW's date
+    on (D12). Returns the key. NotRun PENDING without cryptography."""
+    from core.compliance import owner
+    key = owner_key(home)
+    given = {"rules": rules_raw, "venues": venues_raw}
+    for kind in TABLES:
+        raw = given.get(kind)
+        approve(home, key, kind, raw if raw is not None else shipped_bytes(kind))
+    files = [list(f) for f in owner.code_files(owner.REPO_ROOT)]
+    sign(key, "code_approved", {"sha256": owner.code_hash(owner.REPO_ROOT), "files": files})
+    sign(key, "age_of_majority", {"birth_date": "2000-01-01", "evidence": "test fixture"})
+    if calendar_raw is not None:
+        approve(home, key, "calendar", calendar_raw)
+    if limits is not None:
+        sign(key, "limit_set", dict(limits))
+    if cap is not None:
+        sign(key, "cap_set", {"key": "okx_equity_share", "value": cap})
+    return key

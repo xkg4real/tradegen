@@ -1037,3 +1037,41 @@ def _context(day: _dt.date, now_utc: str, positions, session_id) -> model.Contex
         date=day, active=active, snapshot=snapshot, owner=owner, code_hash=current, code_signed=signed,
         session=model.SessionState(session_id=session_id, armed=session_id in owner.armed_sessions),
         equity_krw=equity, holdings=holdings, shorts=shorts, exposure=exposure)
+
+
+# --------------------------------------------------------------------------- #
+# The signed calendar set in force (odds plan Task 4, Q19; spec 4 "Calendars", 6.3; P21, O6)
+# --------------------------------------------------------------------------- #
+def _calendar_approval(now: _dt.datetime) -> tuple[str, str]:
+    """The latest `approved {kind: calendar}` stamped at or before `now`, read the way load_context reads the
+    tables: ("log", "") when the owner state at `now` is not OK (no key, cryptography missing, an unreadable or broken
+    log, KEY CHANGED); ("none", "") when no calendar approval is stamped by then; ("store", sha256) when its stored
+    copy is missing or altered; ("ok", sha256) otherwise. ValueError for a non-datetime, naive or out-of-range `now`
+    (load_context's checks); any other failure is ("log", ""). rules._calendar_line maps the four outcomes onto its
+    lines; calendar_in_force keeps "ok" only."""
+    if not isinstance(now, _dt.datetime):
+        raise ValueError(f"calendar approval: now must be an aware datetime, got {now!r}")
+    try:
+        now_utc = model.iso_utc(now)                   # ValueError on a naive datetime
+        day = now.astimezone(model.KST).date()
+    except OverflowError:
+        raise ValueError(f"calendar approval: now is out of range, got {now!r}") from None
+    try:
+        state, check = _owner_now(day, now_utc, None)
+        if not state.ok or check is None:
+            return "log", ""
+        sha = in_force(_up_to(check, now_utc)).get("calendar", ("", 0))[0]
+        if not sha:
+            return "none", ""
+        return ("ok" if store_get("calendar", sha) is not None else "store"), sha
+    except Exception:                                  # fail closed: an internal error counts as an unusable log
+        return "log", ""
+
+
+def calendar_in_force(now: _dt.datetime) -> str | None:
+    """The sha256 of the calendar set in force at `now` (O6): the latest calendar approval stamped by `now`, under an
+    OK owner state, whose stored copy is intact; None otherwise. The odds engine prices a KRX or US leg only when
+    this is the sha of the calendar set it was given. Reads the owner log and the store as load_context does;
+    ValueError for a non-datetime, naive or out-of-range `now`, and nothing else raises."""
+    outcome, sha = _calendar_approval(now)
+    return sha if outcome == "ok" else None

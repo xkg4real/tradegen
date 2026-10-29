@@ -1063,21 +1063,17 @@ def _changed(old: dict, new: dict) -> list[str]:
 
 def _calendar_line(ctx, root: Path, moment) -> str:
     """The calendar draft (P21) against the latest calendar approval signed by `moment` (load_context's cut-off),
-    whose stored copy must be intact. The Context does not carry it, so the log is read and verified once more."""
+    whose stored copy must be intact. The Context does not carry it, so owner._calendar_approval, which
+    owner.calendar_in_force shares (odds plan Q19), reads and verifies the log once more."""
     from core.compliance import model, owner
     if not ctx.owner.ok:
         return "calendar: not checked (owner log not usable)"
-    try:
-        log = owner.verify_log(owner._log_lines(owner.log_path()), owner.read_pubkey(owner.PUBKEY_PATH),
-                               owner.read_anchors())
-    except (OSError, ValueError, RuntimeError):         # an unreadable key, anchor or log file means BROKEN (Task 11)
+    outcome, signed = owner._calendar_approval(moment)
+    if outcome == "log":                                # an unreadable key, anchor or log file means BROKEN (Task 11)
         return "calendar: not checked (owner log not usable)"
-    if not log.ok:
-        return "calendar: not checked (owner log not usable)"
-    signed = owner.in_force(owner._up_to(log, model.iso_utc(moment))).get("calendar", ("", 0))[0]
-    if not signed:
+    if outcome == "none":
         return "calendar: no signed approval, so KRX and US plans are refused (crypto plans only)"
-    if owner.store_get("calendar", signed) is None:
+    if outcome == "store":
         return f"calendar: the signed version {signed[:16]} is missing or altered in the store"
     try:                                                # the one framing (Task 13), read once and hashed here
         draft = model.sha256_hex(calendar_stream(root / "core" / "calendars" / "data"))
