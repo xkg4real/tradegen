@@ -14,8 +14,8 @@ KRX legs move inside each session's daily band [D, U] (costs.band around the pre
 at the session's D cannot fill: it is locked and queued until the first check strictly above that D, and then fills
 at a flat 2x exit charge (LIMIT_DOWN_CARRY_COST_MULTIPLIER); a position still locked at the horizon is valued the
 same way. The daily loss stop works on Asia/Seoul dates, the rule dates of the screening stop entries (Q5) and force
-an exit, and a delisting column sells at p (1 - h) at the first check after the first entry (Q29). Not simulated
-yet, and refused with ValueError by `_check_spec` rather than priced without it: the replay engine.
+an exit, and a delisting column sells at p (1 - h) at the first check after the first entry (Q29). A replay
+column (engine "replay", Task 17) moves a sleeve by the D13 replay's own days instead of a price (`_run_replay`).
 Pure except `simulate`'s calendar step, which reads the signed calendar through owner.calendar_in_force for KRX and
 US legs (Q42); no clock, no network.
 """
@@ -297,6 +297,14 @@ def _paths(spec: PathSpec, prices: Iterator[tuple], n: int, record: bool) -> dic
 
 
 def _run_paths(spec: PathSpec, *, n: int, chunk: int, seed: bytes) -> dict[str, np.ndarray]:
+    """Any n >= 1 paths of chunk `chunk`: the replay engine for engine "replay" (Task 17), the price paths below
+    otherwise."""
+    if spec.engine == "replay":
+        return _run_replay(spec, n=n, chunk=chunk, seed=seed)
+    return _run_price_paths(spec, n=n, chunk=chunk, seed=seed)
+
+
+def _run_price_paths(spec: PathSpec, *, n: int, chunk: int, seed: bytes) -> dict[str, np.ndarray]:
     """The state machine of contract 8.4 over n >= 1 paths of chunk `chunk`: the per-path arrays run_column merges,
     plus "p" (terminal price), "entries", "cash_min", "carried" (queued locked exits filled) and "stake" (the
     largest entry notional, KRW), and the bracket sample "br_r", "br_d" (chunk 0, when record_brackets). Draws
@@ -328,6 +336,13 @@ _MERGED = ("v", "cost", "x", "outcome", "fp", "entered", "wins", "losses", "unre
 
 
 def run_column(spec: PathSpec, *, n: int, seed: bytes, key: str, member: str, scenario: str) -> report.ColumnStats:
+    """One column: the replay merge for engine "replay" (Task 17), the price-path merge below otherwise."""
+    if spec.engine == "replay":
+        return _replay_column(spec, n=n, seed=seed, key=key, member=member, scenario=scenario)
+    return _price_column(spec, n=n, seed=seed, key=key, member=member, scenario=scenario)
+
+
+def _price_column(spec: PathSpec, *, n: int, seed: bytes, key: str, member: str, scenario: str) -> report.ColumnStats:
     """One column of n paths: _run_paths(spec, n=CHUNK, chunk=c, seed=seed) for c in range(n // CHUNK), merged.
     ValueError unless n is a positive multiple of CHUNK (simulate() refuses PARTIAL_CHUNK first)."""
     if n <= 0 or n % CHUNK:
@@ -412,8 +427,8 @@ def simulate(plan_obj, ctx, inputs: plan.Inputs, *, n_paths: int | None = None) 
                                detail=str(exc))
         return _refused_report(plan_obj, ctx, refusal)
     refusal = plan.check_history(plan_obj, inputs, market)
-    if refusal is None and replay:                         # Task 17 replaces this branch with models.verify_replay
-        refusal = plan.Refusal(code="CARD_NOT_REPRODUCED", detail="replay not built yet")
+    if refusal is None and replay:                         # Q24 step 10: the replay must reproduce its card
+        refusal = _replay_refusal(inputs)
     if refusal is None and leg.model == "garch_t" and market == "KR":
         refusal = plan.Refusal(code="MODEL_NOT_FOR_LIMITED_VENUE", detail="GARCH-t has no KRX daily band")
     if refusal is not None:
@@ -422,7 +437,8 @@ def simulate(plan_obj, ctx, inputs: plan.Inputs, *, n_paths: int | None = None) 
     why = costs.cost_refusal(plan_obj, terms, p0, first_day)
     if why is not None:
         return _refused_report(plan_obj, ctx, plan.Refusal(code="COST_DOMINATED", detail=why))
-    first = costs.first_stake(plan_obj, terms, ctx, p0, first_day)
+    fstar = _replay_fstar(plan_obj, inputs) if replay else None      # Kelly's f* on the verified replay (Q9)
+    first = costs.first_stake(plan_obj, terms, ctx, p0, first_day, fstar=fstar)
     if first <= 0.0:                                       # never screen a zero stake (O11)
         refusal = plan.Refusal(code="STUCK_AT_START", detail=f"first stake {first!r} at {p0!r}")
         return _refused_report(plan_obj, ctx, refusal)
@@ -430,6 +446,9 @@ def simulate(plan_obj, ctx, inputs: plan.Inputs, *, n_paths: int | None = None) 
     if not screening.allowed:
         return _refused_report(plan_obj, ctx, _screen_refusal(screening, ctx))
     n = DEFAULT_PATHS[plan_obj.track] if n_paths is None else n_paths     # Q24 step 14 runs in _accepted_report
+    if replay:                                             # the replay card: its own three columns (Q38)
+        return _replay_report(plan_obj, ctx, inputs, inst=inst, terms=terms, market=market, sessions=sessions,
+                              screening=screening, n=n, fstar=fstar)
     return _accepted_report(plan_obj, ctx, inputs, inst=inst, terms=terms, market=market, sessions=sessions,
                             screening=screening, n=n)
 
@@ -767,3 +786,225 @@ def _accepted_report(plan_obj, ctx, inputs, *, inst, terms, market: str, session
         assumed=assumed, replay=None, comparison=(inputs.comparison_plans, inputs.comparison_typed, inputs.plan_runs),
         provenance=_report_provenance(plan_obj, ctx, inputs, screening=screening, seed=seed, n=n,
                                       members=tuple(specs)))
+
+
+# --------------------------------------------------------------------------- #
+# Part 5a (Task 17): the D13 replay engine (Q38)
+# --------------------------------------------------------------------------- #
+def _check_replay_spec(spec: PathSpec) -> None:
+    """ValueError for a replay spec this engine cannot price faithfully (Q38: the replay's own daily moves, close
+    checks only, and no band, bracket, delisting column or OKX cap on an Upbit replay leg)."""
+    if spec.replay_move is None:
+        raise ValueError("the replay engine needs the replay's daily moves")
+    if not len(spec.checks.close) or not spec.checks.close.all():
+        raise ValueError("the replay checks each day's close only")
+    if (np.isfinite(np.asarray(spec.limits, dtype=float)).any() or spec.bracket is not None
+            or spec.delist_h is not None or spec.cap_krw is not None):
+        raise ValueError("a replay leg has no band, bracket, delisting column or OKX cap")
+
+
+def _run_replay(spec: PathSpec, *, n: int, chunk: int, seed: bytes) -> dict[str, np.ndarray]:
+    """The replay engine (CONTRACT 8.3, 8.4; Q38) over n >= 1 paths of chunk `chunk`.
+
+    A sleeve of KRW stands in for units x price: the rule stake of `costs.rule_units` under the zero-charge replay
+    terms and spec.mult (0.0), so it never exceeds cash - L, rounded down to whole lots at p0, the leg's last close.
+    At each close check the row index advances one step of the stationary bootstrap (stream "replay", mean block
+    spec.block). A no-edge column (spec.replay_cost set) moves a held sleeve to sleeve x (1 + eps a - c), eps a fair
+    sign from stream "replay_sign", and books c x the sleeve before the move as cost, so cash + sleeve + costs is a
+    martingale; the tested column moves it to sleeve x (1 + R1). Exits, in priority: target (moonshot), daily loss,
+    rule date; no kappa and no phi. A flat path re-enters at a later check by the same rule (Q38), never at the last
+    check and never on or after spec.stop_entries_from. Returns the per-path arrays `_replay_column` merges, plus
+    "stops" (daily-loss exits), "held" (checks that moved a held sleeve) and "slack" (the least cash - L right after
+    an entry; inf for a path that never entered)."""
+    _check_replay_spec(spec)
+    if n < 1:
+        raise ValueError(f"n = {n} paths: need at least one")
+    move = np.asarray(spec.replay_move, dtype=float)
+    cost = None if spec.replay_cost is None else np.asarray(spec.replay_cost, dtype=float)
+    rows = models.indices(models.stream(seed, chunk, "replay"), move.size, n, spec.block)
+    signs = None if cost is None else models.stream(seed, chunk, "replay_sign")
+    seoul, on = spec.checks.seoul, spec.checks.on
+    last, moonshot = len(seoul) - 1, spec.track == "moonshot"
+    never = np.zeros(n, dtype=bool)
+    price = np.full(n, spec.p0)
+    cash = np.full(n, spec.w0)
+    sleeve = np.zeros(n)
+    booked = np.zeros(n)
+    held = np.zeros(n, dtype=bool)
+    done = np.zeros(n, dtype=bool)
+    outcome = np.zeros(n, dtype=np.int8)                  # 0 running, 1 reached, 2 at_floor
+    fp = np.zeros(n, dtype=bool)
+    x = np.zeros(n)
+    x_set = np.zeros(n, dtype=bool)
+    entered = np.zeros(n, dtype=bool)
+    day_stop = np.zeros(n, dtype=bool)
+    day_ref = np.full(n, spec.w0)
+    v_prev = np.full(n, spec.w0)
+    stops = np.zeros(n, dtype=np.int64)
+    held_checks = np.zeros(n, dtype=np.int64)
+    slack = np.full(n, np.inf)
+    for j, day in enumerate(seoul):
+        idx = next(rows)
+        held_checks += held
+        if cost is None:
+            sleeve = np.where(held, sleeve * (1.0 + move[idx]), 0.0)
+        else:
+            eps = np.where(signs.random(n) < 0.5, 1.0, -1.0)
+            booked = booked + np.where(held, cost[idx] * sleeve, 0.0)
+            sleeve = np.where(held, sleeve * (1.0 + eps * move[idx] - cost[idx]), 0.0)
+        if j == 0 or day != seoul[j - 1]:
+            day_ref, day_stop = v_prev, np.zeros(n, dtype=bool)
+        v = cash + sleeve
+        new = ~done & ~fp & (v >= spec.target)
+        fp |= new
+        x = np.where(new & ~x_set, cash + sleeve + booked - spec.w0, x)
+        x_set |= new
+        live = ~done & held
+        hit_target = live & (v >= spec.target) if moonshot else never
+        hit_loss = live & ~hit_target & (day_ref - v >= spec.daily_loss)
+        hit_rule = live & (spec.force_exit_from is not None and day >= spec.force_exit_from)
+        filled = hit_target | hit_loss | hit_rule
+        stops += hit_loss
+        day_stop |= hit_loss
+        cash = np.where(filled, cash + sleeve, cash)
+        sleeve = np.where(filled, 0.0, sleeve)
+        held &= ~filled
+        reached = filled & (cash >= spec.target) if moonshot else never
+        floored = filled & ~reached & (cash <= spec.floor)
+        outcome[reached] = 1
+        outcome[floored] = 2
+        done |= reached | floored
+        x = np.where((reached | floored) & ~x_set, cash + sleeve + booked - spec.w0, x)
+        x_set |= reached | floored
+        can = ~done & ~held & ~filled & ~day_stop
+        if j == last or (spec.stop_entries_from is not None and day >= spec.stop_entries_from):
+            can = never
+        if can.any():
+            units, at_floor = costs.rule_units(
+                spec.fraction, cash, price, terms=spec.terms, on=on[j], mult=spec.mult, target=spec.target,
+                w0=spec.w0, take_profit=None, stop=None, sizing=spec.sizing, floor=spec.floor, fstar=spec.fstar,
+                cap_krw=spec.cap_krw)
+            stuck = can & at_floor
+            outcome[stuck] = 2
+            done |= stuck
+            x = np.where(stuck & ~x_set, cash + sleeve + booked - spec.w0, x)
+            x_set |= stuck
+            buy = can & ~at_floor & (units > 0.0)
+            stake = units * price
+            cash = np.where(buy, cash - stake, cash)
+            sleeve = np.where(buy, stake, sleeve)
+            held |= buy
+            entered |= buy
+            slack = np.where(buy, np.minimum(slack, cash - spec.floor), slack)
+        v_prev = cash + sleeve
+    x = np.where(x_set, x, cash + sleeve + booked - spec.w0)
+    return {"v": cash + sleeve, "cost": booked, "x": x, "outcome": outcome, "fp": fp, "entered": entered,
+            "stops": stops, "held": held_checks, "slack": slack}
+
+
+def _replay_column(spec: PathSpec, *, n: int, seed: bytes, key: str, member: str, scenario: str
+                   ) -> report.ColumnStats:
+    """run_column for engine "replay": _run_paths(spec, n=CHUNK, chunk=c, seed=seed) for c in range(n // CHUNK),
+    merged. A replay column has no lock, band, bracket or delisting. The caller sets its HIDDEN_EDGE range
+    from the replay inputs alone (O3-18); this low-level column returns nan for that metadata."""
+    if n <= 0 or n % CHUNK:
+        raise ValueError(f"n = {n} paths is not a positive multiple of CHUNK = {CHUNK}")
+    parts = [_run_paths(spec, n=CHUNK, chunk=c, seed=seed) for c in range(n // CHUNK)]
+    v, cost, x, outcome, fp, entered = (np.concatenate([part[name] for part in parts])
+                                        for name in ("v", "cost", "x", "outcome", "fp", "entered"))
+    kept = v[outcome == 2]
+    return report.ColumnStats(
+        key=key, member=member, scenario=scenario, n=n, reached=int(fp.sum()),
+        reached_outcome=int((outcome == 1).sum()), ended_at_or_above=int((v >= spec.target).sum()),
+        at_floor=int((outcome == 2).sum()), running=int((outcome == 0).sum()), locked_at_horizon=0,
+        rungs=tuple(int((v >= rung * spec.w0).sum()) for rung in report.LADDER) + (int((v >= spec.target).sum()),),
+        median=float(np.median(v)), p5=float(np.quantile(v, 0.05)), mean=float(v.mean()),
+        mean_se=float(v.std(ddof=1)) / math.sqrt(n), mean_cost=float(cost.mean()),
+        g_se=float((v + cost).std(ddof=1)) / math.sqrt(n),
+        kept_lo=float(kept.min()) if kept.size else None, kept_hi=float(kept.max()) if kept.size else None,
+        x_mean=float(x.mean()), x_var=float(x.var(ddof=1)), x_range=math.nan, wins=0, losses=0, unresolved=0,
+        band_edge_share=0.0, band_edge_sessions=0, worst_gap=0.0, trades=int(entered.sum()))
+
+
+# --------------------------------------------------------------------------- #
+# Part 5b (Task 17): the replay card in simulate() (Q9, Q38)
+# --------------------------------------------------------------------------- #
+_REPLAY_KEYS = ("replay_no_edge/base", "replay_no_edge/stress2x", "tested_replay/base")
+
+
+def _replay_refusal(inputs: plan.Inputs) -> plan.Refusal | None:
+    """Q24 step 10: CARD_NOT_REPRODUCED unless the passed replay reproduces every pin (models.verify_replay); the
+    detail names the first item that does not ("replay: missing" without a replay)."""
+    if inputs.replay is None:
+        return plan.Refusal(code="CARD_NOT_REPRODUCED", detail="replay: missing")
+    bad = models.verify_replay(inputs.replay)
+    return None if bad is None else plan.Refusal(code="CARD_NOT_REPRODUCED", detail=f"replay: {bad}")
+
+
+def _replay_fstar(plan_obj, inputs: plan.Inputs) -> float | None:
+    """Kelly's f* on the verified replay (Q9): mu_lb from stream "kelly", chunk 0, of the market seed, which the
+    first stake needs before step 7 builds the same seed from the same inputs; None for a fixed stake."""
+    if plan_obj.fraction.kind != "kelly":
+        return None
+    seed = models.market_seed(models.data_hashes(inputs.series, inputs.replay), inputs.calendar_sha256,
+                              inputs.comparison_id, inputs.run_counter)
+    r = np.asarray(inputs.replay.oos_pnl, dtype=float)
+    return models.kelly_fstar(r, models.mu_lb(r, models.stream(seed, 0, "kelly")))
+
+
+def _replay_report(plan_obj, ctx, inputs, *, inst, terms, market: str, sessions: tuple[date, ...], screening,
+                   n: int, fstar: float | None) -> report.OddsReport:
+    """Step 7 for a replay leg (Q38): the market seed (Q34); the headline spec's stake, owner limits, p0 and rule
+    dates with the replay engine, close checks, the card's block and mult 0.0; the three replay columns on one seed
+    (common random numbers); HIDDEN_EDGE on the base cell and CEILING_BREACH over the two no-edge cells (m = 2); no
+    spread, structural cap, delisting or assumed column; the figures of the replay lines; report.build with every
+    provenance key (model "replay", no spread member)."""
+    leg, rep, series = plan_obj.leg, inputs.replay, inputs.series
+    seed = models.market_seed(models.data_hashes(series, rep), inputs.calendar_sha256, inputs.comparison_id,
+                              inputs.run_counter)
+    a, c, r1 = models.replay_returns(rep)
+    block = float(models.REPLAY_PINS["protocol"]["block"])
+    spec = dataclasses.replace(
+        _headline_spec(plan_obj, ctx, inputs, terms=terms, market=market, sessions=sessions, screening=screening),
+        engine="replay", m_o=None, m_i=None, block=block, checks=checks(market, sessions, True), mult=0.0,
+        fstar=fstar)
+
+    def column(key: str, move: np.ndarray, cost: np.ndarray | None) -> report.ColumnStats:
+        col = run_column(dataclasses.replace(spec, replay_move=move, replay_cost=cost), n=n, seed=seed, key=key,
+                         member="replay", scenario=key.rsplit("/", 1)[1])
+        if cost is not None:                 # O3-18/P5: range from inputs alone, outside run_column
+            col = dataclasses.replace(col, x_range=report.replay_range(
+                target=spec.target, a_max=float(np.max(move)), c_max=float(np.max(cost)),
+                n_checks=len(spec.checks.seoul)))
+        return col
+
+    base = column(_REPLAY_KEYS[0], a, c)
+    stress = column(_REPLAY_KEYS[1], a, costs.COST_STRESS * c)
+    tested = column(_REPLAY_KEYS[2], r1, None)
+    stake, target = float(plan_obj.stake_krw), float(plan_obj.target_krw)
+    l_min = spec.floor if leg.sizing == "floor_safe" else 0.0
+    ceiling = bold.ceiling(stake, l_min, target)
+    hidden = report.hidden_edge(base, w0=stake, target=target, l_min=l_min)
+    flags = report.flags_for(headline=base, no_edge=(base, stress), engine="replay", hidden=hidden, ceiling=ceiling,
+                             structural=None, target=target, stake=stake, reference=None,
+                             rule_flags=screening.flags, grey=_grey_slots(plan_obj, ctx), series=series, okx=False)
+    moves, st = len(spec.checks.seoul) - 1, rep.stats    # an entry follows its check's move (8.4 step 5)
+    figures = {"y0": float(rep.oos_dates[0][:4]), "y1": float(rep.oos_dates[-1][:4]),
+               "cut": 1.0 - models.LIVE_SHARPE_MULTIPLIER, "bench_sr": float(st["bench_sr"]),
+               "haircut_sr": float(st["haircut_sr"]), "diff": float(st["bench_diff"]),
+               "ci_lo": float(st["bench_ci"][0]), "ci_hi": float(st["bench_ci"][1]),
+               "fstar": math.nan if fstar is None else float(fstar), "h": float(moves),
+               "growth": models.block_growth(r1, block, moves) - 1.0,
+               "growth_iid": (1.0 + float(r1.mean())) ** moves - 1.0}
+    provenance = _report_provenance(plan_obj, ctx, inputs, screening=screening, seed=seed, n=n, members=())
+    return report.build(
+        plan_hash=plan.plan_hash(plan_obj), plan_index=1, plan_count=1, refused=None, track=plan_obj.track,
+        stake=stake, target=target, floor=spec.floor, l_min=l_min, horizon_days=plan_obj.horizon_days, n=n,
+        sizing=leg.sizing, model_key="model.replay",
+        model_slots={"first": rep.oos_dates[0], "last": rep.oos_dates[-1], "rows": f"{len(rep.oos_dates):,}",
+                     "block": f"{block:g}"},
+        columns=(base, stress, tested), headline=base.key, spread=None, spread_kind="none", notes=(), ceiling=ceiling,
+        structural_cap=None, structural_sessions=None, tax_basis=inst.tax_basis, cost_words_key="cost.fees",
+        hidden=hidden, flags=flags, assumed=None, replay=figures,
+        comparison=(inputs.comparison_plans, inputs.comparison_typed, inputs.plan_runs),
+        provenance={**provenance, "model": "replay"})

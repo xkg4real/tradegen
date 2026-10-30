@@ -516,3 +516,152 @@ def pilot_checks(fit: GarchParams, horizon: int, seed: bytes) -> tuple[bool, str
     if not _statistical_z(ret) <= PILOT_SE:
         return False, "statistical"
     return True, ""
+
+
+# --------------------------------------------------------------------------- #
+# Part 3 (Task 17): the D13 pins and their check, Kelly, the replay's moves and their block growth (Q9, Q38)
+# --------------------------------------------------------------------------- #
+CARD_ID = "S_C3_crypto_trend_krwbtc"
+REPLAY_PINS = {
+    "input_symbol": "KRW-BTC", "input_source": "UPBIT", "n_input": 3288,
+    "input_first": "2017-09-25", "input_last": "2026-09-25",
+    "input_md5": "18ec83bdfe158efe4d648caf45ff849f",     # md5 of canonical_json({"symbol", "source", "dates", "close"})
+    "lookbacks": (7, 14, 21, 28), "mas": (10, 20, 50, 100, 200), "grid": (0.0, 0.222, 0.444, 0.667, 0.889),
+    "cost_bps_per_side": 10.0, "embargo": 1, "n_trials": 11, "seed": 11, "domain": (0.0, 0.889),
+    "protocol": {"w_is": 756, "w_oos": 126, "min_is": 504, "ci_level": 0.9, "bootstrap_B": 2000, "block": 10},
+    "n_oos": 2530, "oos_first": "2019-10-23", "oos_last": "2026-09-25",
+    "pnl_md5": "bbdcf17ca9462567fe351c54644bef0c",       # md5 of np.ascontiguousarray(oos_pnl, dtype="<f8").tobytes()
+    "turnover_md5": "2d4edeb2f042c87fd1750d9c68e275f7",  # the same bytes md5 of oos_turnover (values 0 or 1)
+    "results_md5": "ca757e25f508b588cb2f361719ec83cd", "card_md5": "40b1e7bfadf6d16246e0012495064704",
+    "sr_oos": 1.216, "sr_tol": 0.02, "decision": "PASS", "chosen_last": 0.667,
+    "bench_sr": 0.788830441182887, "bench_diff": 0.4271945783845257,
+    "bench_ci": (0.03344352887529298, 0.8346050647267628), "haircut_sr": 0.7296150117404476,
+    "n_trades": 138, "n_sessions": 2530}                  # the card's own stats (cards/S_C3_crypto_trend_krwbtc.json)
+KELLY_B = 2_000
+KELLY_BLOCK = 10.0
+KELLY_Q = 0.05
+
+
+def _bench_sr(rep: plan.ReplayInput) -> float:
+    """The core's own buy-and-hold Sharpe: simple close-to-close returns over consecutive input dates, taken on the
+    out-of-sample dates (the card's bench_sr, recomputed from the passed closes)."""
+    close = np.asarray(rep.input_close, dtype=float)
+    simple = dict(zip(rep.input_dates[1:], close[1:] / close[:-1] - 1.0))
+    return sharpe(np.array([simple[d] for d in rep.oos_dates]))
+
+
+def verify_replay(rep: plan.ReplayInput) -> str | None:
+    """None when the passed replay reproduces the validated card; else the name of the first item that does not, in
+    the order: card id, inputs and protocol, digests, shape, statistics, the core's own bench_sr. Never raises: the
+    replay comes from unsigned code, so any other object fails its first item. The results and card md5s are of
+    file bytes unsigned code read: they are compared with the pins, never recomputed here."""
+    pins, st = REPLAY_PINS, getattr(rep, "stats", None)
+    checks = (
+        ("card_id", lambda: rep.card_id == CARD_ID),
+        ("input_symbol", lambda: rep.input_symbol == pins["input_symbol"]),
+        ("input_source", lambda: rep.input_source == pins["input_source"]),
+        ("n_input", lambda: len(rep.input_dates) == len(rep.input_close) == pins["n_input"]),
+        ("input_first", lambda: rep.input_dates[0] == pins["input_first"]),
+        ("input_last", lambda: rep.input_dates[-1] == pins["input_last"]),
+        ("lookbacks", lambda: tuple(rep.lookbacks) == pins["lookbacks"]),
+        ("mas", lambda: tuple(rep.mas) == pins["mas"]),
+        ("grid", lambda: tuple(rep.grid) == pins["grid"]),
+        ("cost_bps_per_side", lambda: rep.cost_bps_per_side == pins["cost_bps_per_side"]),
+        ("embargo", lambda: rep.embargo == pins["embargo"]),
+        ("n_trials", lambda: rep.n_trials == pins["n_trials"]),
+        ("seed", lambda: rep.seed == pins["seed"]),
+        ("domain", lambda: tuple(rep.domain) == pins["domain"]),
+        ("protocol", lambda: dict(rep.protocol) == pins["protocol"]),
+        ("gate_protocol", lambda: dict(rep.gate_protocol) == pins["protocol"]),
+        ("input_md5", lambda: _input_md5(rep) == pins["input_md5"]),
+        ("pnl_md5", lambda: _array_md5(rep.oos_pnl) == pins["pnl_md5"]),
+        ("turnover_md5", lambda: _array_md5(rep.oos_turnover) == pins["turnover_md5"]),
+        ("results_md5", lambda: rep.results_md5 == pins["results_md5"]),
+        ("card_md5", lambda: rep.card_md5 == pins["card_md5"]),
+        ("n_oos", lambda: len(rep.oos_dates) == len(rep.oos_pnl) == pins["n_oos"]),
+        ("oos_first", lambda: rep.oos_dates[0] == pins["oos_first"]),
+        ("oos_last", lambda: rep.oos_dates[-1] == pins["oos_last"]),
+        ("oos_turnover", lambda: len(rep.oos_turnover) == len(rep.oos_pnl)),   # 7.5; turnover_md5 fires first
+        ("sr_oos", lambda: sharpe(rep.oos_pnl) == st["sr_oos"]
+         and abs(st["sr_oos"] - pins["sr_oos"]) <= pins["sr_tol"]),
+        ("decision", lambda: st["decision"] == pins["decision"]),
+        ("chosen_last", lambda: st["chosen_last"] == pins["chosen_last"]),
+        ("haircut_rule", lambda: abs(st["haircut_sr"] - LIVE_SHARPE_MULTIPLIER * st["sr_oos"]) <= 1e-12),
+        ("haircut_sr", lambda: st["haircut_sr"] == pins["haircut_sr"]),
+        ("bench_sr", lambda: st["bench_sr"] == pins["bench_sr"]),
+        ("bench_diff", lambda: st["bench_diff"] == pins["bench_diff"]),
+        ("bench_ci", lambda: tuple(st["bench_ci"]) == pins["bench_ci"]),
+        ("n_trades", lambda: st["n_trades"] == pins["n_trades"]),
+        ("n_sessions", lambda: st["n_sessions"] == pins["n_sessions"]),
+        ("bench_recompute", lambda: _bench_sr(rep) == pins["bench_sr"]),
+    )
+    for name, ok in checks:
+        try:
+            if not ok():
+                return name
+        except (AttributeError, KeyError, IndexError, TypeError, ValueError, OverflowError):
+            return name
+    return None
+
+
+def mu_lb(r: np.ndarray, rng: np.random.Generator) -> float:
+    """Kelly's mu_lb: the KELLY_Q quantile of KELLY_B stationary-bootstrap means of r (mean block KELLY_BLOCK)."""
+    r = np.asarray(r, dtype=float)
+    gen = indices(rng, r.size, KELLY_B, KELLY_BLOCK)
+    total = np.zeros(KELLY_B)
+    for _ in range(r.size):
+        total += r[next(gen)]
+    return float(np.quantile(total / r.size, KELLY_Q))
+
+
+def kelly_fstar(r: np.ndarray, lb: float) -> float:
+    """argmax over [0, 1] of mean ln(1 + f rc), rc = r - mean(r) + LIVE_SHARPE_MULTIPLIER lb (spec 7.1); 0.0 when
+    lb <= 0. The log is concave, so the upper end is decided by the sign of the derivative there and an interior
+    maximum by 60 bisection steps; the upper end is 0.999 / max(-rc) when some rc is at or below -1."""
+    if not lb > 0.0:
+        return 0.0
+    r = np.asarray(r, dtype=float)
+    rc = r - r.mean() + LIVE_SHARPE_MULTIPLIER * lb
+
+    def slope(f: float) -> float:
+        return float(np.mean(rc / (1.0 + f * rc)))
+
+    f_hi = 1.0 if float(rc.min()) > -1.0 else 0.999 / float(np.max(-rc))
+    if slope(f_hi) >= 0.0:
+        return f_hi
+    lo, hi = 0.0, f_hi
+    for _ in range(60):
+        mid = 0.5 * (lo + hi)
+        if slope(mid) >= 0.0:
+            lo = mid
+        else:
+            hi = mid
+    return lo
+
+
+def replay_returns(rep: plan.ReplayInput) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """(a, c, R1) of Q38: the no-edge magnitudes |G - mean G| with G = pnl + c (signed later by the replay_sign
+    stream), the card's own cost c on each out-of-sample day, and the tested returns with their mean scaled by
+    LIVE_SHARPE_MULTIPLIER. ValueError unless max a + 2 max c < 1 and min R1 > -1, so no sleeve goes below 0."""
+    pnl = np.asarray(rep.oos_pnl, dtype=float)
+    c = rep.cost_bps_per_side * 1e-4 * np.asarray(rep.oos_turnover, dtype=float)
+    gross = pnl + c
+    a = np.abs(gross - gross.mean())
+    r1 = pnl - pnl.mean() + LIVE_SHARPE_MULTIPLIER * pnl.mean()
+    if not (float(a.max()) + 2.0 * float(c.max()) < 1.0 and float(r1.min()) > -1.0):
+        raise ValueError(f"replay: a daily move could empty the sleeve (max a {a.max():.4f}, max c {c.max():.4f}, "
+                         f"min R1 {r1.min():.4f})")
+    return a, c, r1
+
+
+def block_growth(r: np.ndarray, block: float, h: int) -> float:
+    """Exact E[prod over h steps of (1 + r[I_t])] under the stationary bootstrap of `indices` (I_0 uniform; each
+    later step moves to (I + 1) mod n with probability 1 - 1/block, else restarts uniformly), in O(h n); 1.0 for
+    h = 0 (a sleeve that never moves)."""
+    if h == 0:
+        return 1.0
+    r = np.asarray(r, dtype=float)
+    v = 1.0 + r
+    for _ in range(h - 1):
+        v = (1.0 + r) * ((1.0 - 1.0 / block) * np.roll(v, -1) + (1.0 / block) * v.mean())
+    return float(v.mean())

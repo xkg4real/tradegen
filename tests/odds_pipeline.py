@@ -172,18 +172,18 @@ def test_one_krx_plan_breaking_three_data_rules_reports_o10_order():
     assert codes == ["SYNTHETIC_REFUSED", "NOT_TRADABLE", "SPECIAL_REGIME"], codes
 
 
-def test_replay_legs_are_refused_until_the_replay_is_built():
-    """Q24 step 10 placeholder (Task 17 replaces this test with the real replay): a replay leg is CARD_NOT_REPRODUCED
-    with detail "replay not built yet". R2-5: its terms need the Upbit lot and minimum but no fee_extras, so on venues
-    without fee_extras it still reaches that step, while a buy-and-hold leg there, and a replay leg on venues without
-    the Upbit lot, are NOT_TRADABLE."""
+def test_replay_legs_are_checked_against_their_card_at_step_10():
+    """Q24 step 10 (Task 17 replaced Task 13's placeholder): a replay leg whose inputs carry no replay is
+    CARD_NOT_REPRODUCED with detail "replay: missing". R2-5: its terms need the Upbit lot and minimum but no
+    fee_extras, so on venues without fee_extras it still reaches that step, while a buy-and-hold leg there, and a
+    replay leg on venues without the Upbit lot, are NOT_TRADABLE. The real replay's card is tests/odds_replay.py's."""
     no_extras = OF.odds_ctx(active=F.approved(venues=OF.venues_with(upbit={"fee_extras": None})))
     no_lot = OF.odds_ctx(active=F.approved(venues=OF.venues_with(upbit={"lot": None})))
     with OF.chunk():
         reps = [OF.pipeline(OF.plan(leg=REPLAY)), OF.pipeline(OF.plan(leg=REPLAY), no_extras),
                 OF.pipeline(OF.plan(), no_extras), OF.pipeline(OF.plan(leg=REPLAY), no_lot)]
-    placeholder = ("CARD_NOT_REPRODUCED", "replay not built yet")
-    assert [(r.refused.code, r.refused.detail) for r in reps[:2]] == [placeholder, placeholder]
+    missing = ("CARD_NOT_REPRODUCED", "replay: missing")
+    assert [(r.refused.code, r.refused.detail) for r in reps[:2]] == [missing, missing]
     assert [r.refused.code for r in reps[2:]] == ["NOT_TRADABLE", "NOT_TRADABLE"]
     assert all(_no_probability(report.render(r)) for r in reps)
 

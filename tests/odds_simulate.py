@@ -500,7 +500,8 @@ def test_rules_this_engine_does_not_simulate_fail_closed() -> None:
     days = _days()
     # Task 10 builds the band, the locks, the daily loss, the rule dates and the delisting columns (tests/odds_locks.py
     # tests each, and its refusals of a limit where none belongs); a crypto leg with a price limit is still refused
-    cases = ((_spec(limits=np.full(30, 0.30)), "any other leg nan"), (_spec(engine="replay"), "engine 'replay'"),
+    cases = ((_spec(limits=np.full(30, 0.30)), "any other leg nan"),
+             (_spec(engine="replay"), "the replay's daily moves"),
              (_spec(checks=simulate.checks("CRYPTO", days, True)), "open, then its close"),
              (_garch(checks=simulate.checks("CRYPTO", days, False)), "close only"),
              (_spec(checks=simulate.checks("CRYPTO", (), False), limits=np.zeros(0)), "at least one check"))
