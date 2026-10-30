@@ -155,3 +155,52 @@ def odds_ctx(**overrides):
     fields = {"active": F.approved(venues=ODDS_VENUES), "equity_krw": 42_000.0}
     fields.update(overrides)
     return F.ctx(**fields)
+
+
+# --------------------------------------------------------------------------- #
+# Task 9: engine inputs (contract 3.2). Each function below imports its dependencies locally.
+# --------------------------------------------------------------------------- #
+def inputs(plan, series, **changes):
+    """plan.Inputs for `plan` on `series`: now 2026-10-23 09:00 KST, the crypto sessions of the horizon (every date
+    of [plan.start, plan.start + plan.horizon_days)), no calendar, comparison "c000001" with run counter 1, K 1,
+    J 0, R 1, and the provenance ("git:" + "0" * 40, "f" * 64, "49.0.0"). Any field can be changed by keyword."""
+    import datetime
+
+    from core.compliance import model
+    from core.odds import plan as P
+    fields = dict(now=datetime.datetime(2026, 10, 23, 9, 0, tzinfo=model.KST), series=series,
+                  sessions=tuple((plan.start + datetime.timedelta(days=i)).isoformat()
+                                 for i in range(plan.horizon_days)),
+                  price_limits=(), calendar_sha256="", calendar_version="", calendar_md5s=(), calendar_error="",
+                  replay=None, comparison_id="c000001", run_counter=1, comparison_plans=1, comparison_typed=0,
+                  plan_runs=1, provenance=P.Provenance(repo_anchor="git:" + "0" * 40, tree_hash="f" * 64,
+                                                      cryptography="49.0.0"))
+    fields.update(changes)
+    return P.Inputs(**fields)
+
+
+def even_rows(m: float, n: int = 400):
+    """n daily KRW-BTC bars ending 2026-10-22 that alternate between two prices: each open is the previous close
+    and each close is the other price, so every overnight move m_o is 0 and every intraday move m_i is m, or a few
+    ulps above it. The upper price is nudged up until exp(m_i) >= exp(m) and exp(-m_i) <= exp(-m) on every row, so
+    a bracket with take_profit e^m - 1 and stop 1 - e^-m fills at every close: an even-money bet."""
+    import datetime
+    import math
+
+    import numpy as np
+
+    from core.odds import plan as P
+    lo = 50_000_000.0
+    hi = lo * math.exp(m)
+    while True:
+        o = np.array([lo if i % 2 == 0 else hi for i in range(n)])
+        c = np.array([hi if i % 2 == 0 else lo for i in range(n)])
+        m_i = np.abs(np.log(c[1:] / o[1:]))
+        if (np.exp(m_i) >= math.exp(m)).all() and (np.exp(-m_i) <= math.exp(-m)).all():
+            break
+        hi = math.nextafter(hi, math.inf)
+    first = datetime.date(2026, 10, 22) - datetime.timedelta(days=n - 1)
+    dates = tuple((first + datetime.timedelta(days=i)).isoformat() for i in range(n))
+    opens, closes = tuple(float(x) for x in o), tuple(float(x) for x in c)
+    return P.Series(symbol="KRW-BTC", source="UPBIT", dates=dates, open=opens, close=closes, adjustment="",
+                    status="final", md5=P.series_md5("KRW-BTC", "UPBIT", dates, opens, closes, "", "final"))
