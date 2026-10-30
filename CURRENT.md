@@ -6,11 +6,11 @@ task: odds-engine
 cycle: 2026-10-27
 done_ids: cloud-compat-1, cloud-compat-2, cloud-compat-3, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18
 next_ids: odds-19, odds-final, odds-pr
-updated_at: 2026-10-30T16:11:56+09:00
+updated_at: 2026-10-30T16:19:11+09:00
 stale_after_hours: 3
 waiting_on: none
 work_branch: gpt/odds-engine
-work_commit: 13b73729218e040c9cafe1e2a35d9056ad989dc5
+work_commit: c9018e213ea037019501d1e3a7daafa8633e8ad0
 uncommitted_changes: yes
 pr: none
 usage_weekly_pct: unknown
@@ -25,7 +25,7 @@ session: cloud Codex (TRADEGEN)
 
 ## 0. 한 줄 요약
 
-cloud-compat-1~3 및 odds-1~18 완료. Task 19 Step 1~7: 전체 1355/1477 통과, 실패 0, 122 NOT_RUN과 CLI 거부 smoke 통과. README/QA 기록 `13b73729218e040c9cafe1e2a35d9056ad989dc5` push 완료. 다음은 odds-final 수정·재검증 후 Task 19 장부 커밋입니다. 사용량은 unknown/unavailable이며 작업별 체크포인트를 올립니다.
+cloud-compat-1~3 및 odds-1~18 완료. Task 19 초기 전체 검증 1355/1477 통과, 실패 0, 122 NOT_RUN. odds-final 추가 수정 7커밋 `c9018e213ea037019501d1e3a7daafa8633e8ad0` push 및 공통 검증 14묶음 통과. 최종 전체 재실행·smoke·장부 완료 뒤 Claude에게 반환합니다. 사용량은 unknown/unavailable입니다.
 
 ## 1. 목표와 완료 조건
 
@@ -77,18 +77,15 @@ cloud-compat-1~3 및 odds-1~18 완료. Task 19 Step 1~7: 전체 1355/1477 통과
 
 ## 5. 현재 지점
 
-- 코드 `13b73729218e040c9cafe1e2a35d9056ad989dc5`. 미추적 실행 장부만 남았으며 context 사본과 바이트가 같습니다.
-- 전체 검증 1355 PASS, 0 FAIL, 122 NOT_RUN; 377.913 s, odds 287개 39.9 s, 모든 모듈 시간 목표 이내. 실제 홈 metadata 불변.
-- Cloud smoke: exit 2 STATE_UNUSABLE, 데이터 seam 호출 0, provenance 포함, 상태 생성 0. 사용자 PC의 smoke를 수행한 것은 아닙니다.
-- 기준 환경 Python 3.13.16, numpy 2.3.5, scipy 1.18.0; KEYLESS, 임시 홈, loopback 허용. 원본 검증 기록은 코드 브랜치 qa 파일 및 context JSON에 있습니다.
+- 코드 `c9018e213ea037019501d1e3a7daafa8633e8ad0`; 실행 장부만 미추적 상태이며 context 사본과 일치합니다.
+- odds-final 6개 RED 실패 재현 후 수정, 14개 검증 묶음 모두 실패 0. `context/odds-engine/odds-final-validation.json`에 각 커밋과 결과를 기록했습니다.
+- 이제 Task 19 최종 전체 검증, QA 기록, 격리 Cloud smoke 및 실행 장부 커밋을 진행합니다.
 
 ## 6. 다음 할 일 (순서대로)
 
-1. odds-19부터 계획 원문과 round-3 판정 및 progress/preflight에 따라 구현합니다. 각 Task RED/GREEN, 필수 회귀 검증, 자체 검토 후 push합니다.
-2. Task 19 Step 1~7 Cloud 격리 홈에서 전체 실행·README·QA 기록·CLI smoke. GetConsoleMode 1개 NOT_RUN을 정확한 ID로 설명. 그 뒤 odds-final 검토 및 수정, 재검증. odds-pr은 Claude 담당.
-3. 추가 수정은 별도 ID 및 근거를 남기고 완료 ID는 중복 수행하지 않습니다.
-4. Task 19 Step 1~7 뒤 odds-final; execution-ledger의 보류 항목도 함께 검토합니다. odds-pr은 Claude가 담당합니다.
-5. odds PR 병합 전 E1을 시작하지 않습니다. 병합은 소유자 승인 사항입니다.
+1. 수정된 최종 코드에서 Task 19 Step 1~7을 다시 실행합니다. KEYLESS·격리 홈·loopback 허용, GetConsoleMode 1개 NOT_RUN만 플랫폼 차이로 명시합니다.
+2. 결과와 README/QA를 검증하고 커밋한 뒤, smoke 및 Step 9 실행 장부를 커밋합니다.
+3. odds-19/odds-final을 완료로 기록하고 returned로 반환합니다. odds-pr은 Claude 담당, E1은 odds PR 병합 뒤에만 진행합니다.
 
 ## 7. 주의사항 / 하지 말 것
 
@@ -112,8 +109,8 @@ cloud-compat-1~3 및 odds-1~18 완료. Task 19 Step 1~7: 전체 1355/1477 통과
 
 현재 GPT가 taken 상태로 개발 중입니다. returned 또는 정해진 takeover 조건 전에는 중복 작업하지 않습니다.
 
-1. CURRENT.md, AGENTS.md, LEDGER.md와 context/odds-engine 기록을 읽습니다. cloud-compat-1/2 및 odds-1~18는 완료됐습니다.
-2. 코드 `cd265bf4fd90f564997f0ef52e2fd42b3cce5785` 및 최신 원격을 대조하고 next_ids 첫 항목부터 진행합니다.
+1. CURRENT.md, AGENTS.md, LEDGER.md와 context/odds-engine 기록을 읽습니다. cloud-compat-1~3 및 odds-1~18는 완료됐습니다.
+2. 코드 `c9018e213ea037019501d1e3a7daafa8633e8ad0` 및 최신 원격을 대조하고 next_ids 첫 항목부터 진행합니다.
 3. 필요한 추가 수정 및 미완료 단계도 진행하며, 작업별 commit/push와 장부를 갱신합니다.
 4. GPT 주간 사용량 95% 접근 시 관측 수치와 시각을 기록하고 Claude에게 반환합니다. 조회 불가 시 unknown을 유지합니다.
 5. 주문·무장·실제 키·실제 홈·병합 금지 및 core/odds 순수성을 지킵니다.

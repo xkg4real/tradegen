@@ -531,3 +531,32 @@ rulings, deferred minors and runs here. It stays untracked until Task 19 commits
   - Cloud platform ruling: GetConsoleMode requires Windows; one NOT_RUN retained, not PASS
 - Task 19 README drift: baseline compliance 327 PASS and total 1055/1176 (121 NOT_RUN), not draft 325/327 or 1053/1176. This run determines every cell; odds row inserted verbatim from the plan, Cloud environment label used truthfully; all original CRLF endings retained.
 - Task 19: isolated Cloud smoke (Q45; KEYLESS, hermetic, seams stubbed), initial record 13b7372: exit 2 STATE_UNUSABLE; provenance present, no seam called, zero state entries before/after. This is a Cloud fixture result, not a smoke on the owner PC.
+
+## Cloud odds-final review wave — 2026-10-30T16:19:11+09:00 (Codex)
+
+- Final review reproduced six failures before fixes: guards 15/18 (constructor aliases, nested match, shadowed writers), product precheck 0/1, vector tick lookup 0/1, malformed replay stats 0/1. The same existing test functions now pass; no test-count, seed, threshold or pin change.
+- 99f81034e3948724e3552cdb5428cf50d34baacc: Final review: three existing guard tests reproduce the missing alias/match cases; all 18 pass with raw names and every import target retained. No exemption added.
+- 5c1a1ade5ca78747f6cc7077567677f9566af3e6: Final review: Upbit USDC previously passed the product precheck. Preserve the existing refusal priorities and reject any otherwise accepted market absent from the approved venue before costs or data requests.
+- 02e3c37853fa3f23e963ea4933a7b6fbf35df12b: Final review: a hand-built ladder no longer wraps a negative search index to its highest tick. Match the scalar oracle refusal; parsed valid ladders retain their exact values.
+- fbb0a7888e6924aa5469d6800f7a7443b64e7dab: Final review: malformed stats mappings and unreadable stats attributes are refused by item name, as the unsigned replay boundary promises. All existing numeric pins and thresholds remain unchanged.
+- 36f64916bdbb56282f3214b1247a7a318d48f62b: Final review: cover missing odds keys, malformed tick rows/book keys and a partial source map; read cited research lines by byte line boundaries to match repository #L numbering.
+- 3f10ffbb070c3ea1c26acecd678081e7e5274c3d: Final review: drive an internal calendar-store TypeError through rules.main --check and require exit 4, covering the existing Task 4 fix end to end.
+- c9018e213ea037019501d1e3a7daafa8633e8ad0: Final review P84: artificial flags cover every date ordering; remove the inaccurate claim that shipped rows have no effective_until.
+- odds-final odds-guards: 18/18 passed, 0 failed, 0 not run; exit 0; wall 3.875 s.
+- odds-final odds-plan: 25/25 passed, 0 failed, 0 not run; exit 0; wall 3.577 s.
+- odds-final odds-costs: 23/23 passed, 0 failed, 0 not run; exit 0; wall 3.324 s.
+- odds-final odds-replay: 24/24 passed, 0 failed, 0 not run; exit 0; wall 17.467 s.
+- odds-final compliance-tables: 70/70 passed, 0 failed, 0 not run; exit 0; wall 7.338 s.
+- odds-final compliance-cli: 36/36 passed, 0 failed, 0 not run; exit 0; wall 21.38 s.
+- odds-final compliance-guards: 16/16 passed, 0 failed, 0 not run; exit 0; wall 6.433 s.
+- odds-final compliance-store: 36/36 passed, 0 failed, 0 not run; exit 0; wall 25.843 s.
+- odds-final macro-m0-harness: 11/11 passed, 0 failed, 0 not run; exit 0; wall 6.482 s.
+- odds-final macro-tf-gov: 20/22 passed, 0 failed, 2 not run; exit 0; wall 28.906 s.
+- odds-final macro-m7-ledger: 14/18 passed, 0 failed, 4 not run; exit 0; wall 8.144 s.
+- odds-final macro-m8-forward: 17/23 passed, 0 failed, 6 not run; exit 0; wall 10.597 s.
+- odds-final macro-m6-context: 14/16 passed, 0 failed, 2 not run; exit 0; wall 4.128 s.
+- odds-final cockpit: 47/47 passed, 0 failed, 0 not run; /workspace/tradegen-session/odds-final-cockpit.json; exit 0; wall 5.983 s.
+- Additional review resolutions: Task 1 three named limitations and Task 2 shape coverage are closed; static guards remain a supplement to source review, not proof for arbitrary Python/archive/database APIs. Task 3 source line reading now uses byte line boundaries. Task 4 calendar CLI exit 4 is exercised end to end. Task 5 market precheck rejects Upbit USDC before costs/data while preserving earlier refusal priorities. Task 6 malformed hand-built tick ladders match the scalar refusal. Replay arbitrary malformed object/stat exceptions return the named failed item.
+- P80 CRLF 892-line README retained. P81 signer help says editor terminals can be refused; no real signer/owner action run. P82 state-root failure is a smoke failure requiring metadata-only diagnosis. P83 Task 8 kw_only ruling already recorded. P84 inaccurate shipped-row comment corrected.
+- Accepted boundaries retained: loader canonicalizes plan hash inputs; injected/frozen data is not redesigned for deep immutability. Task 3 source citation/value lines and KIS minimum-order inference remain owner act 3 with venue SHA unchanged. Scalar/vector cost oracle and the accepted O3-22 floor tolerance remain. Task 9 cash/cap paths are covered by Task 10 hand-ledger cases. Optional P37/P42/P45/P51/P57/P65/P76 refactors remain deferred. No exhaustive mutation-coverage claim.
+- This is an intermediate checkpoint: Task 19 final full run, record, smoke and Step 9 ledger commit remain. odds-final is not marked complete until they pass.
