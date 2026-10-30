@@ -245,3 +245,30 @@ rulings, deferred minors and runs here. It stays untracked until Task 19 commits
 - Completion cockpit: 47/47 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-7-cockpit.json; exit 0; 5.831 s.
 - Completion odds: 85/85 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-7-odds.json; exit 0; 5.279 s.
 - QA record unchanged; all tests KEYLESS and serial with isolated state. GPT weekly quota unavailable, threshold 95%; checkpoint each task.
+
+## Cloud Task 8 completion — 2026-10-30T15:12:04+09:00 (Codex)
+
+- Code: 3e33aa94081bd98722d8d3b21eb63eae26a1d96d.
+- Review: Task 8 두 원문 교체와 새 테스트에 바이트 단위로 일치. 복사 함수·상수·seed·경계·NaN 거부·호출 시 상수 조회를 자체 대조. 필수 raw scans와 LF 검증 통과.
+- RED: odds_garch import fails because c_quad does not yet exist (0/1); GREEN: 17/17, wall 8.375 s including runner imports.
+- Drift rulings: CONTRACT 7.4 checks deterministic first; the scaled-pilot test restores the real table before deterministic evaluation to isolate statistical failure.
+- P83 / CONTRACT 7.3 erratum: GarchParams uses frozen=True, kw_only=True as Task 8 requires; all callers use keywords. _half_life is omitted because no field reads it.
+- P36: the design-note claim that nu46 never crosses 22 applies only to the equality test stream, not the pilot stream. No misleading comment is present in the implemented test.
+- P37: optional quad-panel deduplication deferred; it adds no stricter check, so the approved copy is retained.
+- R2-9 margins on the real pilot stream, OFFSET 2e-6, RATIO_FACTOR 3.0, LOG_DRIFT 0.0:
+    nu56 h30 nu 5.618: clean 2.2e-12 / 2.5e-11 z 1.64; offset 2.0e-06 / 6.0e-05; ratio x3 z 8.22; log drift 0 z 2.48
+    nu56 h90 nu 5.618: clean 7.6e-11 / 3.9e-10 z 2.14; offset 2.0e-06 / 1.8e-04; ratio x3 z 12.34; log drift 0 z 7.51
+    nu46 h30 nu 4.604: clean 7.3e-11 / 1.9e-09 z 1.21; offset 2.0e-06 / 6.0e-05; ratio x3 z 35.67; log drift 0 z 15.42
+    nu46 h90 nu 4.604: clean 2.9e-10 / 1.8e-08 z 1.25; offset 2.0e-06 / 1.8e-04; ratio x3 z 68.26; log drift 0 z 23.24
+- Deferred minor: nu46 pilot numbers differ slightly from drafting values on this CPU/library build, but all clean/corrupted checks have the required margins; no tolerance, seed or assertion changed.
+
+- Task 8 odds-guards: 18/18 passed, 0 failed, 0 not run; exit 0; wall 3.827 s.
+- Task 8 compliance-guards: 16/16 passed, 0 failed, 0 not run; exit 0; wall 5.931 s.
+- Task 8 compliance-store: 36/36 passed, 0 failed, 0 not run; exit 0; wall 21.635 s.
+- Task 8 macro-m0-harness: 11/11 passed, 0 failed, 0 not run; exit 0; wall 6.834 s.
+- Task 8 macro-tf-gov: 20/22 passed, 0 failed, 2 not run; exit 0; wall 29.198 s.
+- Task 8 macro-m7-ledger: 14/18 passed, 0 failed, 4 not run; exit 0; wall 7.385 s.
+- Task 8 macro-m8-forward: 17/23 passed, 0 failed, 6 not run; exit 0; wall 10.145 s.
+- Task 8 macro-m6-context: 14/16 passed, 0 failed, 2 not run; exit 0; wall 4.276 s.
+- Task 8 cockpit: 47/47 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-8-cockpit.json; exit 0; wall 6.135 s.
+- Task 8 odds: 102/102 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-8-odds.json; exit 0; wall 10.447 s.
