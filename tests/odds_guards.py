@@ -124,53 +124,57 @@ def _core_allowed(target: str, root: Path) -> bool:
             and not CG._dynamic_module(target))
 
 
-def _aliases(tree: ast.AST) -> dict[str, str]:
-    """Name -> what it stands for, from every import of a file: `import os as o` o -> os, `import os.path` os -> os,
-    `from os import replace as r` r -> os.replace."""
+def _aliases(tree: ast.AST) -> dict[str, set[str]]:
+    """Keep every import target for each name; a nested import must not hide an earlier write alias."""
     out = {}
     for n in ast.walk(tree):
         if isinstance(n, ast.Import):
-            out.update({a.asname or a.name.split(".")[0]: a.name if a.asname else a.name.split(".")[0]
-                        for a in n.names})
+            for a in n.names:
+                name = a.asname or a.name.split(".")[0]
+                out.setdefault(name, set()).add(a.name if a.asname else a.name.split(".")[0])
         elif isinstance(n, ast.ImportFrom) and n.module:
-            out.update({a.asname or a.name: f"{n.module}.{a.name}" for a in n.names})
+            for a in n.names:
+                out.setdefault(a.asname or a.name, set()).add(f"{n.module}.{a.name}")
     return out
 
 
-def _write_kind(node: ast.AST, alias: dict[str, str]) -> str:
-    """What file write a call makes ("" for none), names resolved through `alias` (_aliases): `open` (or `.open`)
-    with a mode holding w, a, x or +, or a mode that is not a string constant; a _WRITE_ATTRS method; a
-    _MODULE_WRITES function of os, shutil or numpy; `.replace(t)` or `.rename(t)` with one positional argument and no
-    keyword on anything but an imported name (Path.replace). zipfile, tarfile, tempfile, sqlite3 and dbm writers are
-    left to review."""
+def _write_kind(node: ast.AST, alias: dict[str, set[str]]) -> str:
+    """Recognise writes through the raw call name and every import alias, including shadowed aliases.
+
+    File modes, writing methods, module writers and Path renames retain their existing checks. This is a static
+    guard, not a general evaluator of arbitrary Python expressions or archive/database APIs.
+    """
     if not isinstance(node, ast.Call):
         return ""
     f = node.func
     if isinstance(f, ast.Name):
-        dotted = alias.get(f.id, f.id)
+        targets = (f.id, *sorted(alias.get(f.id, ())))
     elif isinstance(f, ast.Attribute):
-        dotted = f"{alias.get(f.value.id, f.value.id) if isinstance(f.value, ast.Name) else '?'}.{f.attr}"
+        bases = (f.value.id, *sorted(alias.get(f.value.id, ()))) if isinstance(f.value, ast.Name) else ("?",)
+        targets = tuple(f"{base}.{f.attr}" for base in bases)
     else:
         return ""
-    module, _, name = dotted.rpartition(".")
     if isinstance(f, ast.Attribute) and f.attr in _WRITE_ATTRS:
         return f".{f.attr}()"
-    if name in _MODULE_WRITES.get(module, ()):
-        return f"{dotted}()"
     if (isinstance(f, ast.Attribute) and f.attr in ("replace", "rename") and len(node.args) == 1 and not node.keywords
             and not (isinstance(f.value, ast.Name) and f.value.id in alias)):
         return f".{f.attr}(target)"
-    if name != "open":
-        return ""
-    # open(file, mode) and io.open / os.open / gzip.open (file, mode); path.open(mode)
-    at = 1 if module in ("", "io", "os", "builtins", "codecs", "gzip", "bz2", "lzma") else 0
-    mode = next((k.value for k in node.keywords if k.arg in ("mode", "flags")),
-                node.args[at] if len(node.args) > at else None)
-    if mode is None:
-        return ""                                       # the default mode "r" reads
-    if isinstance(mode, ast.Constant) and isinstance(mode.value, str) and not set(mode.value) & set("wax+"):
-        return ""
-    return "open() for writing"
+    for dotted in targets:
+        module, _, name = dotted.rpartition(".")
+        if name in _MODULE_WRITES.get(module, ()):
+            return f"{dotted}()"
+        if name != "open":
+            continue
+        # open(file, mode) and io.open / os.open / gzip.open (file, mode); path.open(mode)
+        at = 1 if module in ("", "io", "os", "builtins", "codecs", "gzip", "bz2", "lzma") else 0
+        mode = next((k.value for k in node.keywords if k.arg in ("mode", "flags")),
+                    node.args[at] if len(node.args) > at else None)
+        if mode is None:                                      # the default mode "r" reads
+            continue
+        if isinstance(mode, ast.Constant) and isinstance(mode.value, str) and not set(mode.value) & set("wax+"):
+            continue
+        return "open() for writing"
+    return ""
 
 
 def _own_nodes(fn: ast.AST):
@@ -252,8 +256,9 @@ def _clock_hits_in(rel: str, src: str, allowed: tuple[str, ...] = ()) -> list[st
         elif isinstance(node, ast.ImportFrom) and (node.module == "time" or any(
                 a.name in clocks.get((node.module or "").rpartition(".")[2], ()) for a in node.names)):
             hits.append(f"{rel}:{node.lineno}: from {node.module} import ...")
-        elif (isinstance(node, ast.Call) and getattr(node.func, "attr", getattr(node.func, "id", None))
-              in ("datetime64", "Timestamp") and node.args and isinstance(node.args[0], ast.Constant)
+        elif (isinstance(node, ast.Call) and ({getattr(node.func, "attr", getattr(node.func, "id", None))}
+              | alias.get(getattr(node.func, "id", None), set())) & {"datetime64", "Timestamp"}
+              and node.args and isinstance(node.args[0], ast.Constant)
               and node.args[0].value in ("now", "today")):
             hits.append(f"{rel}:{node.lineno}: {ast.unparse(node)}")
     return hits
@@ -261,7 +266,7 @@ def _clock_hits_in(rel: str, src: str, allowed: tuple[str, ...] = ()) -> list[st
 
 def _main_hits(rel: str, src: str, allowed: tuple[str, ...] = ()) -> list[str]:
     """Every comparison with `__name__` (a `__main__` test in either operand order, `!=` included) and every `match
-    __name__:` (T1-R1-3), except, in an allowed file, one top-level block that is exactly `if __name__ == "__main__":`
+    expression containing __name__` (T1-R1-3 and final review), except, in an allowed file, one top-level block that is exactly `if __name__ == "__main__":`
     / `raise SystemExit(main())`."""
     tree = ast.parse(src)
     exact = {id(n.test) for n in tree.body if rel in allowed and isinstance(n, ast.If) and not n.orelse
@@ -271,8 +276,9 @@ def _main_hits(rel: str, src: str, allowed: tuple[str, ...] = ()) -> list[str]:
             "`raise SystemExit(main())`"
             for n in ast.walk(tree) if id(n) not in exact and any(
                 isinstance(s, ast.Name) and s.id == "__name__"
-                for s in ((n.left, *n.comparators) if isinstance(n, ast.Compare)
-                          else (n.subject,) if isinstance(n, ast.Match) else ()))]
+                for operand in ((n.left, *n.comparators) if isinstance(n, ast.Compare)
+                                else (n.subject,) if isinstance(n, ast.Match) else ())
+                for s in ast.walk(operand))]
 
 
 def _reexport_hits(rel: str, src: str, root: Path = ROOT) -> list[str]:
@@ -408,6 +414,9 @@ def test_core_odds_reads_no_clock():
                 "import time as t\ndef _u():\n    import email.utils as t\nx = t.time()\n",
                 "import email.utils as eu\ndef _u():\n    from datetime import date as eu\nx = eu.localtime()\n"):
         assert _clock_hits_in(X, src), src
+    for src in ("from pandas import Timestamp as T\nx = T('now')\n",
+                "from numpy import datetime64 as d\nx = d('today')\n"):
+        assert _clock_hits_in(X, src), src
     main = "def main():\n    return datetime.now(timezone.utc)\n"
     assert _clock_hits_in(XD, main, allowed=(RUN,)) and not _clock_hits_in(RUN, main, allowed=(RUN,))
     assert _clock_hits_in(RUN, "def main(today=date.today()):\n    pass\n", allowed=(RUN,))   # a default runs at import
@@ -426,6 +435,7 @@ def test_core_odds_has_no_main_block():
                 'def f():\n    if __name__ == "__main__":\n        pass\n', 'x = __name__ == "__main__"\n',
                 "match __name__:\n    case '__main__':\n        main()\n"):
         assert _main_hits(X, src), src
+    assert _main_hits(X, "match (__name__,):\n    case ('__main__',):\n        main()\n")
     assert not _main_hits(RUN, exact, allowed=(RUN,))
     assert not _main_hits(X, "name = __name__\nmain = '__main__'\nmatch name:\n    case '__main__':\n        pass\n")
     hits = [h for rel, src in _files(ODDS).items() for h in _main_hits(rel, src)]
@@ -610,6 +620,10 @@ def test_oddsdata_writes_only_checked_targets():
                 "import dataclasses\nfrom dataclasses import replace\nimport numpy as np\n"
                 "c2, c3 = dataclasses.replace(c), replace(c)\nx = np.load(p)\nq = os.path.join(a, b)\n"):
         assert not _unchecked_write_hits(XD, src), src
+    for src in ("import shutil as sh\ndef hidden():\n    import json as sh\nsh.rmtree(d)\n",
+                "from shutil import move as m\ndef hidden():\n    from json import loads as m\nm(a, b)\n",
+                "from io import open as o\ndef hidden():\n    import json as o\no(p, 'w')\n"):
+        assert _unchecked_write_hits(XD, src), src
     hits = [h for rel, src in _files(ODDSDATA).items() for h in _unchecked_write_hits(rel, src)]
     assert not hits, hits
 
