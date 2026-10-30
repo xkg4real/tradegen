@@ -82,13 +82,12 @@ def test_a_write_that_dies_leaves_no_partial_file():
 
 
 def test_store_writes_refuse_a_junction():
-    """A0: a store folder that is a junction is refused before anything is written through it."""
-    import _winapi
+    """A0: a store directory alias (Windows junction/POSIX symlink) refuses writes."""
     with F.temp_home() as home:
         elsewhere = home / "elsewhere"                   # outside compliance/: only the refusal stops the write
         elsewhere.mkdir()
         owner.store_dir().mkdir(parents=True)
-        _winapi.CreateJunction(str(elsewhere), str(owner.store_dir() / "rules"))
+        F.directory_link(owner.store_dir() / "rules", elsewhere)
         _raises(lambda: F.store_blob(home, "rules", F.shipped_bytes("rules"), (1, "a" * 64)), RuntimeError)
         assert list(elsewhere.iterdir()) == [], "a file landed through the junction"
 
@@ -114,7 +113,6 @@ def test_calendar_store_matches_calendar_sha256():
 def test_a_stored_calendar_set_with_a_link_is_not_stored():
     """One framing (rules.calendar_stream): a junction inside a stored calendar folder is refused, where reading the
     folder as plain files would skip it and still match the hash."""
-    import _winapi
     data_dir = ROOT / "core" / "calendars" / "data"
     with F.temp_home() as home:
         sha = F.store_blob(home, "calendar", rules.calendar_stream(data_dir), (2, "c" * 64))
@@ -122,7 +120,7 @@ def test_a_stored_calendar_set_with_a_link_is_not_stored():
         assert owner.store_get("calendar", sha) == rules.calendar_stream(data_dir)
         elsewhere = home / "elsewhere"
         elsewhere.mkdir()
-        _winapi.CreateJunction(str(elsewhere), str(stored / "linked"))
+        F.directory_link(stored / "linked", elsewhere)
         assert owner.store_get("calendar", sha) is None, "a stored calendar set holding a link was served"
         assert "is a link" in str(_raises(lambda: rules.calendar_stream(stored), rules.Invalid))
         assert rules.calendar_sha256(data_dir) == sha, "the real set still hashes to its stream"
@@ -452,7 +450,6 @@ def test_altered_store_bytes_block_at_load():
 def test_unreadable_key_log_or_link_is_broken():
     """A pem that is no key, an unreadable alerts.jsonl and a link in the state root each give a BROKEN owner state
     that says why (A0 names the linked entry), never "internal error"; new exposure is BLOCK each time."""
-    import _winapi
     with F.temp_home() as home, _pubkey_at(home / "owner_pubkey.pem") as pem:
         _full_home(home)
         good = pem.read_bytes()
@@ -463,7 +460,7 @@ def test_unreadable_key_log_or_link_is_broken():
         contexts.append(owner.load_context(NOW, HELD))
         owner.alerts_path().unlink()
         (home / "elsewhere").mkdir()
-        _winapi.CreateJunction(str(home / "elsewhere"), str(owner.home() / "linked"))
+        F.directory_link(owner.home() / "linked", home / "elsewhere")
         core.isolation._LINK_SCAN.clear()                 # this root's earlier clean scan was memoised (P7)
         contexts.append(owner.load_context(NOW, HELD))
         reasons = [ctx.owner.reason for ctx in contexts]

@@ -31,6 +31,22 @@ def temp_home() -> Iterator[Path]:
         shutil.rmtree(home, ignore_errors=True)
 
 
+def directory_link(link: Path, target: Path) -> None:
+    """Create a real directory alias: a Windows junction or a POSIX symlink.
+
+    Both exercise the A0 directory-link refusal without replacing a platform API.
+    Failure to create the link fails the test; no assertion is skipped.
+    """
+    if os.name == "nt":
+        import _winapi
+        _winapi.CreateJunction(str(target), str(link))
+        assert link.is_junction(), "the fixture did not create a junction"
+    else:
+        link.symlink_to(target, target_is_directory=True)
+        assert link.is_symlink(), "the fixture did not create a symlink"
+    assert link.resolve(strict=True) == target.resolve(strict=True)
+
+
 # --------------------------------------------------------------------------- #
 # Task 6: the shipped drafts, approved states, sealed contexts and intents (contract 5.4)
 # --------------------------------------------------------------------------- #
