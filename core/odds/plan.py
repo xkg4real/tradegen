@@ -306,7 +306,7 @@ def _product(plan, ctx) -> tuple[str, str] | None:
     if leg.venue == "okx" and leg.symbol != "BTC":
         return "feed", f"okx {leg.symbol!r} has no price feed"
     if _usable(getattr(ctx, "active", None)):
-        inst = instrument(plan, ctx)[1]
+        venue, inst = instrument(plan, ctx)
         if inst is None:
             return "symbol", f"{leg.venue} {leg.symbol!r} is not in the approved instrument map"
         if (leg.venue, inst.section) not in FEEDS:         # a signed venue file may list a section with no feed
@@ -317,6 +317,8 @@ def _product(plan, ctx) -> tuple[str, str] | None:
             return "multiple", f"multiple {inst.multiple}"
         if inst.tax_basis not in TAX_BASES_OK:
             return "tax", f"tax basis {inst.tax_basis}"
+        if not venue.is_market(inst, venue.quote_for(inst)):
+            return "symbol", f"{leg.venue} does not list {leg.symbol!r} with its approved quote"
     return None
 
 

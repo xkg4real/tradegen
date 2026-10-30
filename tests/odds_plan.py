@@ -261,7 +261,7 @@ def test_whitelist_refuses_everything_else_with_its_sub():
              ("okx", "USDT"): "feed", ("okx", "USDC"): "feed", ("kis", "TQQQ"): "class", ("kis", "252670"): "class",
              ("kis", "114800"): "class", ("kis", "SH"): "class", ("kis", "IBIT"): "class", ("kis", "BITO"): "class",
              ("kis", _T5_OPTION): "class", ("upbit", "DOGE"): "symbol", ("upbit", "005930"): "symbol",
-             ("kis", "BTC"): "symbol"}
+             ("kis", "BTC"): "symbol", ("upbit", "USDC"): "symbol"}
     for (venue, symbol), sub in cases.items():
         got = P.check_plan(OF.plan(venue=venue, symbol=symbol), ctx)
         assert _t5_code(got) == ("UNSUPPORTED_PRODUCT", sub), (venue, symbol, got)
