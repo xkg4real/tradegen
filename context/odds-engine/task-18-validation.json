@@ -1,0 +1,80 @@
+{
+  "code_commit": "cd265bf4fd90f564997f0ef52e2fd42b3cce5785",
+  "completed_at": "2026-10-30T15:51:54+09:00",
+  "checks": [
+    {
+      "check": "odds-guards",
+      "exit_code": 0,
+      "seconds": 3.974,
+      "summary": "18/18 passed, 0 failed, 0 not run",
+      "failures": []
+    },
+    {
+      "check": "odds-full",
+      "exit_code": 0,
+      "seconds": 43.09,
+      "summary": "287/287 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-18-odds-full.json",
+      "failures": []
+    },
+    {
+      "check": "compliance-full",
+      "exit_code": 0,
+      "seconds": 60.096,
+      "summary": "340/341 passed, 0 failed, 1 not run; /workspace/tradegen-session/task-18-compliance-full.json",
+      "failures": []
+    },
+    {
+      "check": "macro-m0-harness",
+      "exit_code": 0,
+      "seconds": 6.534,
+      "summary": "11/11 passed, 0 failed, 0 not run",
+      "failures": []
+    },
+    {
+      "check": "macro-tf-gov",
+      "exit_code": 0,
+      "seconds": 28.145,
+      "summary": "20/22 passed, 0 failed, 2 not run",
+      "failures": []
+    },
+    {
+      "check": "macro-m7-ledger",
+      "exit_code": 0,
+      "seconds": 7.585,
+      "summary": "14/18 passed, 0 failed, 4 not run",
+      "failures": []
+    },
+    {
+      "check": "macro-m8-forward",
+      "exit_code": 0,
+      "seconds": 10.146,
+      "summary": "17/23 passed, 0 failed, 6 not run",
+      "failures": []
+    },
+    {
+      "check": "macro-m6-context",
+      "exit_code": 0,
+      "seconds": 4.227,
+      "summary": "14/16 passed, 0 failed, 2 not run",
+      "failures": []
+    },
+    {
+      "check": "cockpit",
+      "exit_code": 0,
+      "seconds": 5.731,
+      "summary": "47/47 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-18-cockpit.json",
+      "failures": []
+    }
+  ],
+  "metadata": {
+    "summary": "Task 18 계획 파일 CLI와 종단 간 실행",
+    "files": "core/oddsdata/run.py, tests/odds_cli.py",
+    "validation": "odds_cli 12/12 (wall 9.718 s), odds 287/287, compliance 340/341 (Windows 전용 1 NOT_RUN), 공통 검증 실패 0",
+    "review": "계획과 두 신규 파일 전체 대조. P78 설명을 odds state로 한정하고 P79 반환 타입만 구체화. 실제 20 refit은 Task 14 검증 유지. CLI 데이터 요청 이전 거부와 출처 기록, 비교 상태와 오류 exit를 확인.",
+    "next_notes": "Task 19 Step 1~7 Cloud 격리 홈에서 전체 실행·README·QA 기록·CLI smoke. GetConsoleMode 1개 NOT_RUN을 정확한 ID로 설명. 그 뒤 odds-final 검토 및 수정, 재검증. odds-pr은 Claude 담당.",
+    "ledger": "- RED: missing run import, 0/1 exactly as planned. GREEN CLI 12/12 wall 9.718 s; full odds 287/287 wall 43.090 s; compliance 340/341 wall 60.096 s, zero failures.\n- P74: seven precheck/error tests need no OF.chunk because they simulate no paths; no reduction of any statistical check. P75: textual invalid start/float horizon survive JSON loading for the start/horizon refusals, while wrong JSON types are file refusals. Huge integer conversion and malformed JSON/nesting are file refusals.\n- P76: no optional helper refactor; keeping accepted fixtures avoids unnecessary drift. P77: comparison rerun equality tested on unchanged repository bytes within one invocation. P78: comments/docstrings now say no odds state written; owner.load_context may snapshot an approved context, which is distinct from odds state. The no-key test still asserts both compliance and odds folders absent. P79: precise list[plan.Plan | plan.Refusal] annotation.\n- Accepted Task 18 readings: one context per distinct stake, one frozen replay per invocation; CLI integration swaps REFIT_B to 2 while Task 14 retains all 20 real refits. Exit 0/report, 2/refusal, 4/crash; crash/guard failures print no card. No owner log changes.\n- Cloud compliance difference: exact id compliance/compliance_signer/test_stdin_terminal_check_follows_getconsolemode is NOT_RUN, reason REFDATA: GetConsoleMode needs Windows. Linux has no Windows console API; retained the test and its honest NOT_RUN. The two symlink cases that were NOT_RUN in Windows baseline now pass; seven formerly skipped directory-link tests execute using actual POSIX symlinks. Task 19 run-check will name only this platform exception, never allow unrelated new skips.\n"
+  },
+  "keyless": true,
+  "isolated_home": true,
+  "usage_weekly_pct": "unknown"
+}

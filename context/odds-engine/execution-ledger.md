@@ -492,3 +492,23 @@ rulings, deferred minors and runs here. It stays untracked until Task 19 commits
 - Task 17 macro-m8-forward: 17/23 passed, 0 failed, 6 not run; exit 0; wall 10.296 s.
 - Task 17 macro-m6-context: 14/16 passed, 0 failed, 2 not run; exit 0; wall 4.125 s.
 - Task 17 cockpit: 47/47 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-17-cockpit.json; exit 0; wall 5.931 s.
+
+## Cloud Task 18 completion — 2026-10-30T15:51:54+09:00 (Codex)
+
+- Code: cd265bf4fd90f564997f0ef52e2fd42b3cce5785.
+- Review: 계획과 두 신규 파일 전체 대조. P78 설명을 odds state로 한정하고 P79 반환 타입만 구체화. 실제 20 refit은 Task 14 검증 유지. CLI 데이터 요청 이전 거부와 출처 기록, 비교 상태와 오류 exit를 확인.
+- RED: missing run import, 0/1 exactly as planned. GREEN CLI 12/12 wall 9.718 s; full odds 287/287 wall 43.090 s; compliance 340/341 wall 60.096 s, zero failures.
+- P74: seven precheck/error tests need no OF.chunk because they simulate no paths; no reduction of any statistical check. P75: textual invalid start/float horizon survive JSON loading for the start/horizon refusals, while wrong JSON types are file refusals. Huge integer conversion and malformed JSON/nesting are file refusals.
+- P76: no optional helper refactor; keeping accepted fixtures avoids unnecessary drift. P77: comparison rerun equality tested on unchanged repository bytes within one invocation. P78: comments/docstrings now say no odds state written; owner.load_context may snapshot an approved context, which is distinct from odds state. The no-key test still asserts both compliance and odds folders absent. P79: precise list[plan.Plan | plan.Refusal] annotation.
+- Accepted Task 18 readings: one context per distinct stake, one frozen replay per invocation; CLI integration swaps REFIT_B to 2 while Task 14 retains all 20 real refits. Exit 0/report, 2/refusal, 4/crash; crash/guard failures print no card. No owner log changes.
+- Cloud compliance difference: exact id compliance/compliance_signer/test_stdin_terminal_check_follows_getconsolemode is NOT_RUN, reason REFDATA: GetConsoleMode needs Windows. Linux has no Windows console API; retained the test and its honest NOT_RUN. The two symlink cases that were NOT_RUN in Windows baseline now pass; seven formerly skipped directory-link tests execute using actual POSIX symlinks. Task 19 run-check will name only this platform exception, never allow unrelated new skips.
+
+- Task 18 odds-guards: 18/18 passed, 0 failed, 0 not run; exit 0; wall 3.974 s.
+- Task 18 odds-full: 287/287 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-18-odds-full.json; exit 0; wall 43.09 s.
+- Task 18 compliance-full: 340/341 passed, 0 failed, 1 not run; /workspace/tradegen-session/task-18-compliance-full.json; exit 0; wall 60.096 s.
+- Task 18 macro-m0-harness: 11/11 passed, 0 failed, 0 not run; exit 0; wall 6.534 s.
+- Task 18 macro-tf-gov: 20/22 passed, 0 failed, 2 not run; exit 0; wall 28.145 s.
+- Task 18 macro-m7-ledger: 14/18 passed, 0 failed, 4 not run; exit 0; wall 7.585 s.
+- Task 18 macro-m8-forward: 17/23 passed, 0 failed, 6 not run; exit 0; wall 10.146 s.
+- Task 18 macro-m6-context: 14/16 passed, 0 failed, 2 not run; exit 0; wall 4.227 s.
+- Task 18 cockpit: 47/47 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-18-cockpit.json; exit 0; wall 5.731 s.
