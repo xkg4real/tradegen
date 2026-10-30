@@ -92,11 +92,11 @@ def test_partial_chunk_is_refused_at_the_real_chunk():
 
 
 def test_every_refusal_in_q24_order():
-    """Q24, O10: one fixture per refusal, in the reporting order (CARD_NOT_REPRODUCED and MODEL_CHECK_FAILED have
-    their own tests below), plus two that break two steps at once and report the earlier: stale data under an unsigned
-    calendar (step 6 before 7) and a KRX GARCH-t leg on a KRW 1 share (11 before 12). Each is a refused report with
-    no column, no flag and no probability, rendering its sentence. screen() is reached only by the SCREEN_BLOCKED
-    case, with a positive float stake (O11)."""
+    """Q24, O10: one fixture per refusal, in the reporting order (CARD_NOT_REPRODUCED has its own test below,
+    MODEL_CHECK_FAILED its own in tests/odds_columns.py since Task 14), plus two that break two steps at once and
+    report the earlier: stale data under an unsigned calendar (step 6 before 7) and a KRX GARCH-t leg on a KRW 1 share
+    (11 before 12). Each is a refused report with no column, no flag and no probability, rendering its sentence.
+    screen() is reached only by the SCREEN_BLOCKED case, with a positive float stake (O11)."""
     later = dt.date(2026, 11, 23)
     saturday = dt.date(2026, 10, 24)
     bold_leg = dataclasses.replace(UPBIT, bracket=P.Bracket(take_profit=0.001, stop=0.05))
@@ -188,15 +188,29 @@ def test_replay_legs_are_refused_until_the_replay_is_built():
     assert all(_no_probability(report.render(r)) for r in reps)
 
 
-def test_garch_headlines_are_refused_until_their_pilot_is_built():
-    """Q24 step 14 placeholder (Task 14 replaces this test with the GARCH-t headline and its pilot checks): a garch_t
-    leg on a crypto venue passes every earlier step, the gate included, and is MODEL_CHECK_FAILED (sub "fit", detail
-    "garch not built yet"), so no number comes from an unchecked model."""
-    with OF.chunk(), OF.spy(gate, "screen") as screens:
-        rep = OF.pipeline(OF.plan(leg=dataclasses.replace(UPBIT, model="garch_t")))
-    assert (rep.refused.code, rep.refused.sub, rep.refused.detail) == ("MODEL_CHECK_FAILED", "fit",
-                                                                       "garch not built yet")
-    assert len(screens) == 1 and rep.columns == () and _no_probability(report.render(rep))
+def test_a_garch_headline_runs_its_checked_model():
+    """Q24 step 14, Q31 (Task 14 replaced Task 13's placeholder): a garch_t leg on a crypto venue passes every earlier
+    step, the gate included (screen sees one float stake); its fit of the history converges and passes both pilot
+    checks, so it is simulated: headline no_edge/garch_t/base with that one fit and a close check per session only,
+    HIDDEN_EDGE unavailable (no finite range: a bounded shock does not bound the volatility), and the card names
+    GARCH-t and its close-only checks."""
+    leg = dataclasses.replace(UPBIT, model="garch_t")
+    series_obj = OF.garch_series()
+    with OF.chunk(), OF.pilots(), OF.members("garch_t"), OF.spy(gate, "screen") as screens, \
+            OF.spy(simulate, "run_column") as runs:
+        rep = OF.pipeline(OF.plan(leg=leg), series_obj=series_obj)
+    assert rep.refused is None, rep.refused
+    assert len(screens) == 1 and type(screens[0][0][2]) is float
+    assert (rep.headline, rep.model_key, rep.spread, rep.notes) == ("no_edge/garch_t/base", "model.garch", None, ())
+    spec = runs[0][0][0]
+    assert spec.engine == "garch" and spec.fits == (models.fit_garch_t(models.rows(series_obj)[2]),)
+    assert bool(spec.checks.close.all()) and len(spec.checks.on) == 10
+    assert math.isnan(rep.columns[0].x_range) and rep.hidden.status == "unavailable"
+    assert [f.key for f in rep.flags if f.code in ("HIDDEN_EDGE", "CLOSE_ONLY_CHECKS")] == [
+        "hidden.unavailable", "flag.closeonly"]
+    text = report.render(rep)
+    assert report.say("hidden.unavailable") in text and report.say("flag.closeonly") in text
+    assert text.count("Model: GARCH-t fitted to the daily won returns of BTC") == 1
 
 
 def test_a_crypto_plan_gets_its_headline_column_at_base_and_2x_costs():
@@ -205,17 +219,18 @@ def test_a_crypto_plan_gets_its_headline_column_at_base_and_2x_costs():
     sizing and 0 under stop-based sizing (Q32), and every provenance key; the card renders."""
     series_obj = OF.fresh_series()
     stop_leg = dataclasses.replace(UPBIT, bracket=P.Bracket(take_profit=0.5, stop=0.2), sizing="stop_based")
-    with OF.chunk(), OF.spy(simulate, "run_column") as runs:
+    with OF.chunk(), OF.members("bootstrap"), OF.spy(simulate, "run_column") as runs:
         rep = OF.pipeline(series_obj=series_obj)
         stop = OF.pipeline(OF.plan(leg=stop_leg), series_obj=series_obj)
     assert rep.refused is None and stop.refused is None, (rep.refused, stop.refused)
-    base, stress = rep.columns
+    base, stress, *delisted = rep.columns                  # Task 14: a coin leg adds its delisting pair
+    assert [c.key for c in delisted] == ["delist_30", "delist_100"]
     assert (base.key, stress.key, rep.headline) == ("no_edge/bootstrap/base", "no_edge/bootstrap/stress2x",
                                                      "no_edge/bootstrap/base")
     assert (base.member, base.scenario, stress.scenario, base.n, stress.n, rep.n) == (
         "bootstrap", "base", "stress2x", 2_000, 2_000, 2_000)
     assert stress.mean_cost > base.mean_cost > 0.0
-    assert (rep.spread, rep.spread_kind, rep.notes, rep.hidden) == (None, "none", (), None)
+    assert (rep.spread, rep.spread_kind, rep.notes, rep.hidden.status) == (None, "none", (), "pass")   # Task 14
     assert (rep.model_key, dict(rep.model_slots)) == ("model.bootstrap", {
         "symbol": "BTC", "first": series_obj.dates[0], "last": "2026-10-22", "rows": "600"})
     assert (rep.floor, rep.l_min, rep.sizing, rep.ceiling) == (21_000.0, 21_000.0, "floor_safe",
@@ -245,14 +260,14 @@ def test_a_crypto_plan_gets_its_headline_column_at_base_and_2x_costs():
 def test_a_plan_with_no_path_count_runs_the_default():
     """Contract 8.5: n = n_paths, or DEFAULT_PATHS[track] when it is None (2,000 under chunk(); set per track here,
     and chunk() restores it); a multiple of CHUNK runs as that many chunks."""
-    with OF.chunk():
+    with OF.chunk(), OF.members("bootstrap"):
         default = OF.pipeline()
         twice = OF.pipeline(n_paths=4_000)
         simulate.DEFAULT_PATHS = {"moonshot": 4_000, "compounding": 2_000}
         moonshot = OF.pipeline(OF.plan(track="moonshot"))
         compounding = OF.pipeline()
-    assert [c.n for c in default.columns] == [2_000, 2_000] and default.n == 2_000
-    assert [c.n for c in twice.columns] == [4_000, 4_000] and twice.n == 4_000
+    assert [c.n for c in default.columns] == [2_000] * 4 and default.n == 2_000    # Task 14: + the delisting pair
+    assert [c.n for c in twice.columns] == [4_000] * 4 and twice.n == 4_000
     assert (moonshot.n, compounding.n) == (4_000, 2_000)
     assert simulate.DEFAULT_PATHS == {"moonshot": 1_000_000, "compounding": 200_000}
 
@@ -272,7 +287,9 @@ def test_a_krx_leg_runs_only_under_the_signed_calendar():
         with OF.calendar_signed("cd" * 32):
             other = OF.pipeline(plan_obj, series_obj=series_obj)
     assert rep.refused is None, rep.refused
-    assert len(days) == 6 and len(runs) == 2
+    assert len(days) == 6 and [run[1]["key"] for run in runs] == [     # Task 14: three members, delisting pair
+        f"no_edge/{m}/{s}" for m in ("bootstrap", "bootstrap_half", "bootstrap_double") for s in ("base", "stress2x")
+    ] + ["delist_30", "delist_100"]
     spec = runs[0][0][0]
     assert spec.limits.tolist() == [0.30] * 6 and len(spec.checks.on) == 12
     assert spec.checks.on[::2] == tuple(dt.date.fromisoformat(d) for d in days)
@@ -285,13 +302,14 @@ def test_the_okx_leg_is_ack_required_simulated_and_flagged():
     """O11, Q20: an OKX BTC leg is ACK_REQUIRED at the gate and still simulated; every simulated entry is capped at
     cap x stake = KRW 4,200 and the card says so; it is flagged GREY_LEG (KR-OKX-SPOT, 10%, off 2026-12-03) and
     PROXY_DATA (the composite feed and its KRW=X dates)."""
-    with OF.chunk(), OF.spy(gate, "screen") as screens, OF.spy(simulate, "run_column") as runs:
+    with OF.chunk(), OF.members("bootstrap"), OF.spy(gate, "screen") as screens, \
+            OF.spy(simulate, "run_column") as runs:
         rep = OF.pipeline(OF.plan(leg=OKX), series_obj=_okx_series())
     (args, _, screening), = screens
     assert screening.decision.verdict == model.ACK_REQUIRED and screening.allowed
     assert type(args[2]) is float and 0.0 < args[2] <= 4_200.0, args[2]
     assert rep.refused is None, rep.refused
-    assert [run[0][0].cap_krw for run in runs] == [4_200.0, 4_200.0]
+    assert [run[0][0].cap_krw for run in runs] == [4_200.0] * 4         # Task 14: + the delisting pair
     grey = [(f.level, f.key, dict(f.slots)) for f in rep.flags if f.code == "GREY_LEG"]
     assert grey == [("amber", "flag.grey", {"row": "KR-OKX-SPOT", "cap": "10%", "off": "2026-12-03"})], grey
     assert [f.key for f in rep.flags if f.code == "PROXY_DATA"] == ["flag.proxy", "flag.proxyfx"]
@@ -308,11 +326,11 @@ def test_rule_dates_come_from_the_screening_flags():
     on made-up flags (the shipped rows have no effective_until, and their review_by comes before auto_off): entries
     stop from the earliest flag of any field, and the forced exit comes from the earliest auto_off or
     effective_until, so a bracket leg never re-enters after it."""
-    with OF.chunk(), OF.spy(simulate, "run_column") as runs:
+    with OF.chunk(), OF.members("bootstrap"), OF.spy(simulate, "run_column") as runs:
         long_ = OF.pipeline(OF.plan(horizon_days=60))
         short = OF.pipeline(OF.plan())
     dates = [(run[0][0].stop_entries_from, run[0][0].force_exit_from) for run in runs]
-    assert dates == [(dt.date(2026, 11, 22), None)] * 2 + [(None, None)] * 2, dates
+    assert dates == [(dt.date(2026, 11, 22), None)] * 4 + [(None, None)] * 4, dates     # 4 columns a plan
     rule = [(f.level, f.key, dict(f.slots)) for f in long_.flags if f.code == "RULE_CHANGE_IN_HORIZON"]
     assert rule == [("amber", "rule.review", {"date": "2026-11-22", "row": "KR-DOMESTIC-SPOT"})], rule
     assert not any(f.code == "RULE_CHANGE_IN_HORIZON" for f in short.flags)
@@ -338,15 +356,15 @@ def test_an_okx_horizon_across_auto_off_is_forced_out():
     streams, whose last check is that close and whose horizon holds no auto_off; the card prints rule.end with
     rule.auto."""
     series_obj = _okx_series()
-    with OF.chunk(), OF.spy(simulate, "run_column") as runs:
+    with OF.chunk(), OF.members("bootstrap"), OF.spy(simulate, "run_column") as runs:
         long_ = OF.pipeline(OF.plan(leg=OKX, horizon_days=60), series_obj=series_obj)
         short = OF.pipeline(OF.plan(leg=OKX, horizon_days=41), series_obj=series_obj)
-    long_spec, short_spec = runs[0][0][0], runs[2][0][0]
+    long_spec, short_spec = runs[0][0][0], runs[4][0][0]        # Task 14: 4 columns a plan
     assert (long_spec.stop_entries_from, long_spec.force_exit_from) == (dt.date(2026, 11, 22), dt.date(2026, 12, 3))
     assert (short_spec.stop_entries_from, short_spec.force_exit_from) == (dt.date(2026, 11, 22), None)
     last = len(short_spec.checks.seoul) - 1
     assert short_spec.checks.seoul[last] == long_spec.checks.seoul[last] == dt.date(2026, 12, 3)
-    assert runs[0][1]["seed"] == runs[2][1]["seed"]
+    assert runs[0][1]["seed"] == runs[4][1]["seed"]
     for a, b in zip(long_.columns, short.columns):
         assert a.trades == b.trades > 0 and (a.at_floor, a.reached) == (b.at_floor, b.reached), a.key
         for name in ("median", "p5", "mean", "mean_cost"):
@@ -365,14 +383,15 @@ def test_one_comparison_shares_its_streams():
     floor and no daily loss its terminal values double to within a lot); another comparison id gives another seed."""
     ctx = OF.odds_ctx(owner=OF.owner_with(limits={"total_loss_floor_krw": 0.0, "daily_loss_krw": 1e9}))
     series_obj = OF.fresh_series()
-    with OF.chunk(), OF.spy(simulate, "run_column") as runs:
+    with OF.chunk(), OF.members("bootstrap"), OF.spy(simulate, "run_column") as runs:
         a = OF.pipeline(OF.plan(name="first"), ctx, series_obj)
         b = OF.pipeline(OF.plan(name="second"), ctx, series_obj)
         c = OF.pipeline(OF.plan(stake_krw=84_000.0), ctx, series_obj)
         d = OF.pipeline(OF.plan(), ctx, series_obj, comparison_id="c000002")
         one = OF.pipeline(OF.plan(leg=(UPBIT,)), ctx, series_obj)
     seeds = [run[1]["seed"] for run in runs]
-    assert len(set(seeds[:6])) == 1 and seeds[6] == seeds[7] != seeds[0] and seeds[8] == seeds[0]
+    assert len(seeds) == 20 and len(set(seeds[:12])) == 1 and len(set(seeds[12:16])) == 1   # 4 columns a plan
+    assert seeds[12] != seeds[0] and set(seeds[16:]) == {seeds[0]}
     assert a.plan_hash == b.plan_hash == one.plan_hash and _strip(a) == _strip(b) == _strip(one)
     for col_a, col_c in zip(a.columns, c.columns):
         for name in ("median", "p5"):
@@ -383,12 +402,13 @@ def test_one_comparison_shares_its_streams():
 
 def test_simulate_is_pure_after_a_warm_up():
     """Q42: after one warm-up run (every lazy import loaded), a crypto run with open, io.open, os.open, socket
-    connect and time.time patched to raise gives the same report."""
+    connect and time.time patched to raise gives the same report; the GARCH-t member's fit, its pilot checks
+    (scipy's quad) and its draws run inside the traps too (Task 14)."""
     def trap(*args, **kwargs):
         raise AssertionError("simulate reached a file, a socket or the clock")
-    plan_obj, series_obj, ctx = OF.plan(), OF.fresh_series(), OF.odds_ctx()
+    plan_obj, series_obj, ctx = OF.plan(), OF.garch_series(), OF.odds_ctx()
     inputs = OF.pipeline_inputs(plan_obj, series_obj)
-    with OF.chunk():
+    with OF.chunk(), OF.pilots(), OF.members("bootstrap", "garch_t"):
         first = simulate.simulate(plan_obj, ctx, inputs)
         saved = [(builtins, "open", builtins.open), (io, "open", io.open), (os, "open", os.open),
                  (socket.socket, "connect", socket.socket.connect), (time, "time", time.time)]
@@ -399,5 +419,6 @@ def test_simulate_is_pure_after_a_warm_up():
         finally:
             for target, name, real in reversed(saved):
                 setattr(target, name, real)
-    assert first.refused is None and _strip(again) == _strip(first)
+    assert first.refused is None and dict(first.provenance)["members"] == ("bootstrap", "garch_t")
+    assert _strip(again) == _strip(first)
     assert report.render(again) == report.render(first)

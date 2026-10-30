@@ -429,10 +429,7 @@ def simulate(plan_obj, ctx, inputs: plan.Inputs, *, n_paths: int | None = None) 
     screening = gate.screen(plan_obj, ctx, float(first))
     if not screening.allowed:
         return _refused_report(plan_obj, ctx, _screen_refusal(screening, ctx))
-    if leg.model == "garch_t":                             # Task 14 replaces this branch with the GARCH-t headline
-        refusal = plan.Refusal(code="MODEL_CHECK_FAILED", sub="fit", detail="garch not built yet")
-        return _refused_report(plan_obj, ctx, refusal)
-    n = DEFAULT_PATHS[plan_obj.track] if n_paths is None else n_paths
+    n = DEFAULT_PATHS[plan_obj.track] if n_paths is None else n_paths     # Q24 step 14 runs in _accepted_report
     return _accepted_report(plan_obj, ctx, inputs, inst=inst, terms=terms, market=market, sessions=sessions,
                             screening=screening, n=n)
 
@@ -505,9 +502,10 @@ def _headline_spec(plan_obj, ctx, inputs, *, terms, market: str, sessions: tuple
 
 
 def _no_edge_pair(spec: PathSpec, member: str, *, n: int, seed: bytes) -> tuple[report.ColumnStats, report.ColumnStats]:
-    """One member's no-edge column at base and at 2x costs, on the same streams (common random numbers, Q31)."""
-    return tuple(run_column(dataclasses.replace(spec, mult=mult), n=n, seed=seed, key=f"no_edge/{member}/{name}",
-                            member=member, scenario=name) for name, mult in costs.SCENARIOS.items())
+    """One member's no-edge column at base and at 2x costs, on the same streams (common random numbers, Q31), each
+    with its HIDDEN_EDGE range fixed from the spec (_column, Task 14)."""
+    return tuple(_column(dataclasses.replace(spec, mult=mult), n=n, seed=seed, key=f"no_edge/{member}/{name}",
+                         member=member, scenario=name) for name, mult in costs.SCENARIOS.items())
 
 
 def context_provenance(ctx) -> dict:
@@ -541,34 +539,231 @@ def _refused_report(plan_obj, ctx, refusal: plan.Refusal) -> report.OddsReport:
     return report.refusal_report(plan_obj, refusal, provenance=context_provenance(ctx))
 
 
+# --------------------------------------------------------------------------- #
+# Part 4 (Task 14): every other column of contract 8.5. The block-length members, the GARCH-t fit and the refit
+# member with every pilot check (Q31, R2-8), the delisting pair (Q29), the assumed column and its tilt pilot (Q30),
+# the spread (Q31), the structural cap (Q44), HIDDEN_EDGE's range fixed before the run (contract 10.3), the bracket
+# reference (Q33) and every flag. Task 17 adds the replay card.
+# --------------------------------------------------------------------------- #
+_BLOCK_MULT = {"bootstrap": None, "bootstrap_half": 0.5, "bootstrap_double": 2.0}   # None: the block b itself
+
+
+def _members(headline: str, market: str) -> tuple[str, ...]:
+    """The members to run, the headline first (Q31): every MEMBERS entry, read at call time so a test can narrow
+    the spread with OF.members(); KRX legs run the block-length members only (no GARCH-t: it has no daily band)."""
+    others = tuple(m for m in MEMBERS if m != headline and (market != "KR" or m in _BLOCK_MULT))
+    return (headline,) + others
+
+
+def _garch_member(member: str, fit, horizon: int, seed: bytes) -> tuple[tuple, str]:
+    """(fits, "") for a GARCH member that passed every check, else ((), the failed check). garch_t: the fit of the
+    history ("fit" when it did not converge; at_bound alone is kept in the fit, not a failure) and both pilot checks on it
+    ("deterministic" or "statistical"). garch_refit: REFIT_B synthetic series drawn from that fit (stream
+    "refit_series" b), each refitted, and every refit must converge and pass both pilot checks (R2-8); the first
+    that does not drops the whole member with check "refit"."""
+    if not fit.converged:
+        return (), "fit"
+    if member == "garch_t":
+        ok, check = models.pilot_checks(fit, horizon, seed)
+        return ((fit,), "") if ok else ((), check)
+    refits = []
+    for b in range(REFIT_B):
+        synthetic = models.simulate_garch_series(fit.omega, fit.alpha, fit.beta, fit.nu, n=fit.n_obs,
+                                                 seed=models.seed_sequence(seed, 0, "refit_series", b))
+        refit = models.fit_garch_t(synthetic)
+        if not (refit.converged and models.pilot_checks(refit, horizon, seed)[0]):
+            return (), "refit"
+        refits.append(refit)
+    return tuple(refits), ""
+
+
+def _hidden_range(spec: PathSpec) -> float:
+    """HIDDEN_EDGE's range R of a bootstrap no-edge column (contract 10.3), fixed before the run from the plan and
+    the history only: m_max the largest open or close move of the history; the lowest price the model can reach,
+    p0 x prod(1 - limit) over the horizon's sessions on a KRX leg (every check of a session stays at or above its D)
+    and p0 x e^(-n_checks x m_max) otherwise; the cost bound costs.kappa_bound there on both sides; and the
+    scenario's charges (mult). report.hidden_range returns inf when the bound makes k_x >= 1 (R2-7)."""
+    m_max = float(max(np.max(spec.m_o), np.max(spec.m_i)))
+    n_checks = len(spec.checks.on)
+    bands = spec.limits[np.isfinite(spec.limits)]
+    p_min = (spec.p0 * float(np.prod(1.0 - bands)) if bands.size
+             else spec.p0 * math.exp(-n_checks * m_max))
+    kappa_bound = costs.kappa_bound(spec.terms, p_min, tuple(sorted(set(spec.checks.on))), spec.mult)
+    return report.hidden_range(target=spec.target, phi_buy=spec.mult * spec.terms.phi_buy,
+                               phi_sell=spec.mult * spec.terms.phi_sell, kappa_bound=kappa_bound, m_max=m_max,
+                               n_checks=n_checks)
+
+
+def _column(spec: PathSpec, *, n: int, seed: bytes, key: str, member: str, scenario: str) -> report.ColumnStats:
+    """run_column with HIDDEN_EDGE's range set: _hidden_range for a bootstrap column, nan for GARCH-t (no finite
+    range exists: a bounded shock does not bound the volatility, spec 7.5). Both come from the spec alone, never
+    from the paths."""
+    x_range = _hidden_range(spec) if spec.engine == "bootstrap" else math.nan
+    col = run_column(spec, n=n, seed=seed, key=key, member=member, scenario=scenario)
+    return dataclasses.replace(col, x_range=x_range)
+
+
+def _tilt_theta(spec: PathSpec, p: float, seed: bytes) -> float | None:
+    """Q30: theta of the assumed column, by bisection over [-TILT_BOUND, TILT_BOUND] on a TILT_PILOT-path pilot
+    through _run_paths (TILT_PILOT need not be a multiple of CHUNK), every theta on the same paths (the pilot's
+    seed is drawn from stream "tilt"); at most TILT_ITER steps, stopping when the pilot's win rate is within
+    TILT_TOL of p. None (ASSUMED_EDGE_UNREACHABLE) when p lies outside [win(-8), win(8)] or the last win rate
+    misses p by more than TILT_FAIL. A win is a take-profit fill among the brackets resolved by take-profit or
+    stop (a locked exit is unresolved)."""
+    pilot = models.stream(seed, 0, "tilt").bytes(32)
+
+    def win(theta: float) -> float:
+        out = _run_paths(dataclasses.replace(spec, theta=theta, record_brackets=False), n=TILT_PILOT, chunk=0,
+                         seed=pilot)
+        wins, losses = int(np.sum(out["wins"])), int(np.sum(out["losses"]))
+        return wins / (wins + losses) if wins + losses else math.nan
+
+    lo, hi = -TILT_BOUND, TILT_BOUND
+    if not win(lo) <= p <= win(hi):                        # nan (no resolved bracket) fails too
+        return None
+    theta, w = 0.0, math.nan
+    for _ in range(TILT_ITER):
+        theta = 0.5 * (lo + hi)
+        w = win(theta)
+        if abs(w - p) <= TILT_TOL:
+            break
+        if w < p:
+            lo = theta
+        else:
+            hi = theta
+    return theta if abs(w - p) <= TILT_FAIL else None
+
+
+def _assumed(col: report.ColumnStats, p: float, theta: float) -> dict | None:
+    """The assumed card's figures (Q30): the typed rate w; p0 and the unresolved share u of the headline's full
+    no-edge base column; its resolved brackets; the brackets needed to tell w from p0 (bold.brackets_needed, inf
+    when equal); theta. None when no bracket resolved or no win was observed (P4: no zero baseline probability)."""
+    resolved = col.wins + col.losses
+    if resolved == 0 or col.wins == 0:
+        return None
+    p0 = col.wins / resolved
+    return {"w": p, "p0": p0, "u": col.unresolved / (resolved + col.unresolved),
+            "nb": bold.brackets_needed(p, p0), "resolved": float(resolved), "theta": theta}
+
+
+def _spread(columns, headline: report.ColumnStats, track: str, market: str):
+    """Q31, Q32: (spread, kind). The spread runs from the lowest two-sided lower bound to the highest upper bound
+    of the base no-edge cells of every member but the headline (REACHED outcomes on moonshot cards, first passages
+    on compounding cards); kind "none" when no other member ran, "krx" on KRX legs, "other" when another model
+    family ran, else "blocks" (the block-length members only)."""
+    cells = [c for c in columns if c.key.startswith("no_edge/") and c.scenario == "base" and c.key != headline.key]
+    if not cells:
+        return None, "none"
+    bounds = [report.cp_two_sided(c.reached_outcome if track == "moonshot" else c.reached, c.n) for c in cells]
+    spread = (min(lo for lo, _ in bounds), max(hi for _, hi in bounds))
+    family = headline.member.split("_")[0]                 # "bootstrap" | "garch"
+    if market == "KR":
+        return spread, "krx"
+    if any(c.member.split("_")[0] != family for c in cells):
+        return spread, "other"
+    return spread, "blocks"
+
+
+def _reference(col: report.ColumnStats, spec: PathSpec, *, l_min: float, on: date) -> float | None:
+    """Q33: bold.bracket_reference on the bracket sample of the headline no-edge base column, at the buy side's base
+    rate at p0; None for a buy-and-hold leg or when no bracket was recorded. An estimate: it only ever raises the
+    amber ABOVE_ESTIMATED_REFERENCE."""
+    if col.brackets is None or len(col.brackets[0]) == 0:
+        return None
+    r, d = col.brackets
+    terms = spec.terms
+    kappa = float(costs.kappa(terms, np.array([spec.p0]), on, 1.0, side="buy")[0])
+    return bold.bracket_reference(r, d, w0=spec.w0, l_min=l_min, target=spec.target, n_checks=len(spec.checks.on),
+                                  kappa=kappa, phi_buy=terms.phi_buy, phi_sell=terms.phi_sell,
+                                  r_exit=costs.r_exit(terms))
+
+
 def _accepted_report(plan_obj, ctx, inputs, *, inst, terms, market: str, sessions: tuple[date, ...], screening,
                      n: int) -> report.OddsReport:
-    """Step 7 for the headline member: the market seed (Q34), l_min per sizing (Q32), the headline no-edge column at
-    base and 2x costs, the flags (rule dates, grey rows, proxy data) and report.build with the provenance keys.
-    plan_index and plan_count are 1 here; the CLI numbers the plans of its file."""
+    """Step 7 (contract 8.5): the market seed (Q34) and l_min per sizing (Q32); the GARCH fits and their pilot
+    checks, the headline first (a failed headline is MODEL_CHECK_FAILED, a failed spread member is left out with
+    its note); the tilt pilot of an assumed leg (ASSUMED_EDGE_UNREACHABLE); then the columns: each member's no-edge
+    pair on one seed, the delisting pair of a share or coin leg and the assumed column, all on the headline member;
+    then the spread, the structural cap of a buy-and-hold KRX leg, HIDDEN_EDGE on the headline, the bracket
+    reference, the flags and report.build. plan_index and plan_count are 1 here; the CLI numbers the plans."""
     leg, series = plan_obj.leg, inputs.series
     seed = models.market_seed(models.data_hashes(series, inputs.replay), inputs.calendar_sha256,
                               inputs.comparison_id, inputs.run_counter)
-    spec = _headline_spec(plan_obj, ctx, inputs, terms=terms, market=market, sessions=sessions, screening=screening)
-    member = leg.model
-    columns = _no_edge_pair(spec, member, n=n, seed=seed)
+    base = _headline_spec(plan_obj, ctx, inputs, terms=terms, market=market, sessions=sessions, screening=screening)
     stake, target = float(plan_obj.stake_krw), float(plan_obj.target_krw)
-    l_min = spec.floor if leg.sizing == "floor_safe" else 0.0
+    l_min = base.floor if leg.sizing == "floor_safe" else 0.0
     ceiling = bold.ceiling(stake, l_min, target)
+    headline = leg.model
+    specs: dict[str, PathSpec] = {}
+    notes: list[tuple[str, str]] = []
+    fit = None
+    for member in _members(headline, market):
+        if member in _BLOCK_MULT:
+            mult = _BLOCK_MULT[member]
+            block = base.block if mult is None else models.variant_block(base.block, mult, len(base.m_o))
+            specs[member] = dataclasses.replace(base, block=block)
+            continue
+        if fit is None:
+            fit = models.fit_garch_t(models.rows(series)[2])
+        fits, check = _garch_member(member, fit, len(sessions), seed)
+        if check and member == headline:
+            refusal = plan.Refusal(code="MODEL_CHECK_FAILED", sub=check, detail=f"{member}: {check} check failed")
+            return _refused_report(plan_obj, ctx, refusal)
+        if check:
+            notes.append((member, check))
+            continue
+        specs[member] = dataclasses.replace(base, engine="garch", fits=fits, checks=checks(market, sessions, True))
+    # only the headline keeps a bracket sample (Q33 reads its base column's); no other member pays for one
+    head = specs[headline] = dataclasses.replace(specs[headline], record_brackets=leg.bracket is not None)
+    theta = None
+    if leg.edge_source == "assumed":
+        theta = _tilt_theta(head, leg.assumed_p, seed)
+        if theta is None:
+            refusal = plan.Refusal(code="ASSUMED_EDGE_UNREACHABLE", slots={"w": _cap_text(leg.assumed_p)},
+                                   detail=f"tilt pilot cannot reach {leg.assumed_p!r}")
+            return _refused_report(plan_obj, ctx, refusal)
+    columns: list[report.ColumnStats] = []
+    for member, spec in specs.items():
+        columns += _no_edge_pair(spec, member, n=n, seed=seed)
+    head_col = columns[0]
+    once = dataclasses.replace(head, record_brackets=False)
+    if inst.cls in ("share", "coin"):
+        for h in costs.DELIST_STRESS:
+            columns.append(run_column(dataclasses.replace(once, delist_h=h), n=n, seed=seed,
+                                      key=f"delist_{round(100 * h)}", member=headline, scenario="base"))
+    assumed = None
+    if theta is not None:
+        assumed = _assumed(head_col, leg.assumed_p, theta)
+        if assumed is None:
+            refusal = plan.Refusal(code="ASSUMED_EDGE_UNREACHABLE", slots={"w": _cap_text(leg.assumed_p)},
+                                   detail="the no-edge column resolved no bracket or observed no win")
+            return _refused_report(plan_obj, ctx, refusal)
+        columns.append(run_column(dataclasses.replace(once, theta=theta), n=n, seed=seed, key="assumed",
+                                  member=headline, scenario="base"))
+    spread, spread_kind = _spread(columns, head_col, plan_obj.track, market)
+    structural = None
+    if market == "KR" and leg.bracket is None:
+        structural = (bold.structural_max(tuple(inputs.price_limits)), len(sessions))
+    hidden = report.hidden_edge(head_col, w0=stake, target=target, l_min=l_min)
+    reference = _reference(head_col, head, l_min=l_min, on=sessions[0])
     model_slots = {"symbol": leg.symbol, "first": series.dates[0], "last": series.dates[-1],
                    "rows": f"{len(series.dates):,}"}
-    if spec.cap_krw is not None:
-        model_slots.update(cap=_cap_text(ctx.owner.caps[plan.OKX_CAP_KEY]), capkrw=report.fmt_krw(spec.cap_krw))
-    flags = report.flags_for(headline=columns[0], no_edge=columns, engine=spec.engine, hidden=None, ceiling=ceiling,
-                             structural=None, target=target, stake=stake, reference=None,
+    if head.cap_krw is not None:
+        model_slots.update(cap=_cap_text(ctx.owner.caps[plan.OKX_CAP_KEY]), capkrw=report.fmt_krw(head.cap_krw))
+    no_edge = tuple(c for c in columns if c.key.startswith("no_edge/"))
+    flags = report.flags_for(headline=head_col, no_edge=no_edge, engine=head.engine, hidden=hidden, ceiling=ceiling,
+                             structural=structural, target=target, stake=stake, reference=reference,
                              rule_flags=screening.flags, grey=_grey_slots(plan_obj, ctx), series=series,
                              okx=leg.venue == "okx")
     return report.build(
         plan_hash=plan.plan_hash(plan_obj), plan_index=1, plan_count=1, refused=None, track=plan_obj.track,
-        stake=stake, target=target, floor=spec.floor, l_min=l_min, horizon_days=plan_obj.horizon_days, n=n,
-        sizing=leg.sizing, model_key="model.bootstrap", model_slots=model_slots, columns=columns,
-        headline=columns[0].key, spread=None, spread_kind="none", notes=(), ceiling=ceiling, structural_cap=None,
-        structural_sessions=None, tax_basis=inst.tax_basis,
-        cost_words_key="cost.tax" if terms.book == "KRX_stock_book" else "cost.fees", hidden=None, flags=flags,
-        assumed=None, replay=None, comparison=(inputs.comparison_plans, inputs.comparison_typed, inputs.plan_runs),
-        provenance=_report_provenance(plan_obj, ctx, inputs, screening=screening, seed=seed, n=n, members=(member,)))
+        stake=stake, target=target, floor=base.floor, l_min=l_min, horizon_days=plan_obj.horizon_days, n=n,
+        sizing=leg.sizing, model_key="model.garch" if head.engine == "garch" else "model.bootstrap",
+        model_slots=model_slots, columns=tuple(columns), headline=head_col.key, spread=spread,
+        spread_kind=spread_kind, notes=tuple(notes), ceiling=ceiling,
+        structural_cap=None if structural is None else structural[0],
+        structural_sessions=None if structural is None else structural[1], tax_basis=inst.tax_basis,
+        cost_words_key="cost.tax" if terms.book == "KRX_stock_book" else "cost.fees", hidden=hidden, flags=flags,
+        assumed=assumed, replay=None, comparison=(inputs.comparison_plans, inputs.comparison_typed, inputs.plan_runs),
+        provenance=_report_provenance(plan_obj, ctx, inputs, screening=screening, seed=seed, n=n,
+                                      members=tuple(specs)))

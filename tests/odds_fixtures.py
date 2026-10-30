@@ -296,3 +296,42 @@ def pipeline(plan_obj=None, ctx=None, series_obj=None, *, n_paths=None, **change
     ctx = odds_ctx() if ctx is None else ctx
     series_obj = fresh_series() if series_obj is None else series_obj
     return simulate.simulate(plan_obj, ctx, pipeline_inputs(plan_obj, series_obj, **changes), n_paths=n_paths)
+
+
+# --------------------------------------------------------------------------- #
+# Task 14: the spread members a test runs, and a heavy-tailed history for the GARCH-t members
+# --------------------------------------------------------------------------- #
+@_contextmanager
+def members(*names: str) -> Iterator[None]:
+    """core.odds.simulate.MEMBERS swapped for `names` (save/restore): the spread members a run adds to its
+    headline, which always runs. A pipeline test that is not about the spread runs members("bootstrap"), so it
+    skips the GARCH-t fits and their 21 pilot checks (contract 3.4 budgets)."""
+    from core.odds import simulate
+    saved = simulate.MEMBERS
+    simulate.MEMBERS = tuple(names)
+    try:
+        yield
+    finally:
+        simulate.MEMBERS = saved
+
+
+def garch_series(n: int = 600, *, seed: int = 7, end: str = "2026-10-22", symbol: str = "KRW-BTC",
+                 source: str = "UPBIT"):
+    """A daily history whose log closes follow a GARCH(1,1)-t path, core.quant.garch.simulate_garch_series(1.8e-5,
+    0.08, 0.90, 5.0) (daily volatility about 3%, nu 5), each open equal to the previous close, the first close
+    KRW 50,000,000 and the last bar dated `end`. Its heavy tails exercise the correction table on the history fit; individual
+    refits can still have nu above models.NU_NORMAL and use the normal correction."""
+    import datetime as dt
+
+    import numpy as np
+
+    from core.odds import plan as P
+    from core.quant import garch
+    moves = garch.simulate_garch_series(1.8e-5, 0.08, 0.90, 5.0, n=n - 1, seed=seed)
+    close = 50_000_000.0 * np.exp(np.concatenate(([0.0], np.cumsum(moves))))
+    open_ = np.concatenate(([close[0]], close[:-1]))
+    last = dt.date.fromisoformat(end)
+    dates = tuple((last - dt.timedelta(days=n - 1 - i)).isoformat() for i in range(n))
+    o, c = tuple(float(x) for x in open_), tuple(float(x) for x in close)
+    return P.Series(symbol=symbol, source=source, dates=dates, open=o, close=c, adjustment="", status="final",
+                    md5=P.series_md5(symbol, source, dates, o, c, "", "final"))
