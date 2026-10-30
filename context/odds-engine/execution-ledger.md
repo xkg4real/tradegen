@@ -272,3 +272,26 @@ rulings, deferred minors and runs here. It stays untracked until Task 19 commits
 - Task 8 macro-m6-context: 14/16 passed, 0 failed, 2 not run; exit 0; wall 4.276 s.
 - Task 8 cockpit: 47/47 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-8-cockpit.json; exit 0; wall 6.135 s.
 - Task 8 odds: 102/102 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-8-odds.json; exit 0; wall 10.447 s.
+
+## Cloud Task 9 completion — 2026-10-30T15:14:31+09:00 (Codex)
+
+- Code: 84f67ad467254990a1729ea2d5b5c5a54ce4e84f.
+- Review: 두 core 파일은 Task 9 원문과 바이트 일치. 진입·청산 우선순위, 비용별 gross-value 보존, seed stream 및 nan 비교를 대조. P38 exact-target 사례를 기존 테스트에 추가; P43 fixture 주석 교정. 후속 anchor와 고정값은 유지.
+- RED: missing report ImportError, 0/1, exit 1. GREEN: odds_simulate 18/18, wall 4.085 s with suite imports; no tolerance changed.
+- P38: added an exact target case to test_reached_counts_the_liquidation_value_after_exit_costs: 21 units at 1,000, cash 21,000, close 2,000 gives exactly 63,000. Pins first passage, REACHED, terminal >= and target rung. Remaining non-target cash_min/cap mutation gaps are left for final review / Task 10 cap coverage; no claim that every branch has discriminating tests.
+- P39 / O3-18: run_column keeps x_range=nan; Task 14 _column computes bootstrap hidden_range. This is the existing ruling, not newly invented drift.
+- CONTRACT 10.1 amendment: compare ColumnStats with brackets=None and x_range=0.0 only when nan; finite ranges are retained. Task 13 _strip must use this idiom.
+- Task 9 cannot yet exercise buy-and-hold re-entry after daily loss or KRX stock sell tax; P1/P2 hand these to Task 10. Cost dates have no observable difference in these part-1 fixtures. P3 strengthens the remaining clip coverage in Task 10.
+- P40: exact exp(log(2)) depends on the CPU numpy kernel; passes here. P41: measured times retained, no test weakened to meet a budget. P42: no refactor of _paths or run_column. P43: fixture header now describes only the functions below it, whose imports are local.
+
+- Task 9 odds-plan: 25/25 passed, 0 failed, 0 not run; exit 0; wall 3.98 s.
+- Task 9 odds-guards: 18/18 passed, 0 failed, 0 not run; exit 0; wall 3.524 s.
+- Task 9 compliance-guards: 16/16 passed, 0 failed, 0 not run; exit 0; wall 6.18 s.
+- Task 9 compliance-store: 36/36 passed, 0 failed, 0 not run; exit 0; wall 21.121 s.
+- Task 9 macro-m0-harness: 11/11 passed, 0 failed, 0 not run; exit 0; wall 6.534 s.
+- Task 9 macro-tf-gov: 20/22 passed, 0 failed, 2 not run; exit 0; wall 29.504 s.
+- Task 9 macro-m7-ledger: 14/18 passed, 0 failed, 4 not run; exit 0; wall 7.237 s.
+- Task 9 macro-m8-forward: 17/23 passed, 0 failed, 6 not run; exit 0; wall 9.794 s.
+- Task 9 macro-m6-context: 14/16 passed, 0 failed, 2 not run; exit 0; wall 4.129 s.
+- Task 9 cockpit: 47/47 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-9-cockpit.json; exit 0; wall 5.93 s.
+- Task 9 odds: 120/120 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-9-odds.json; exit 0; wall 11.501 s.
