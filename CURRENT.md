@@ -4,14 +4,14 @@ reason: owner_authorized_continuation
 from: gpt
 task: odds-engine
 cycle: 2026-10-27
-done_ids: cloud-compat-1, cloud-compat-2, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18
+done_ids: cloud-compat-1, cloud-compat-2, cloud-compat-3, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18
 next_ids: odds-19, odds-final, odds-pr
-updated_at: 2026-10-30T15:51:54+09:00
+updated_at: 2026-10-30T16:04:18+09:00
 stale_after_hours: 3
 waiting_on: none
 work_branch: gpt/odds-engine
-work_commit: cd265bf4fd90f564997f0ef52e2fd42b3cce5785
-uncommitted_changes: no
+work_commit: 2b9f493be9a1d7feb6cb7584c646fd9924412c8d
+uncommitted_changes: yes
 pr: none
 usage_weekly_pct: unknown
 usage_source: unavailable
@@ -25,9 +25,7 @@ session: cloud Codex (TRADEGEN)
 
 ## 0. 한 줄 요약
 
-cloud-compat-1/2 및 odds-1~18 완료. 최신 개발: Task 18 계획 파일 CLI와 종단 간 실행. 코드 gpt/odds-engine `cd265bf4fd90f564997f0ef52e2fd42b3cce5785`. 다음 단계는 odds-19입니다.
-
-2026-10-30 소유자 정정에 따라 필요한 추가 수정과 미완료 후속 단계도 개발합니다. GPT 주간 사용량 95%에 접근하면 Claude용 로그를 올립니다. 현재 조회 수단은 없어 unknown이며, 작업 단위별 체크포인트를 저장합니다.
+cloud-compat-1~3 및 odds-1~18 완료. Task 19 첫 전체 실행에서 발견한 Cloud 관련 4건을 수정·재검증했습니다. 코드 `2b9f493be9a1d7feb6cb7584c646fd9924412c8d`. 다음은 전체 재실행, README/QA와 smoke, odds-final 검토입니다. 사용량 조회는 unavailable/unknown이므로 작업 단위별 체크포인트를 저장합니다.
 
 ## 1. 목표와 완료 조건
 
@@ -71,20 +69,19 @@ cloud-compat-1/2 및 odds-1~18 완료. 최신 개발: Task 18 계획 파일 CLI�
 
 ## 4. 진행 상황
 
-- [x] fu — main f3bedd3
-- [x] cloud-compat-1 — 기존 클라우드 오류 5건 수정
-- [x] cloud-compat-2 — 추가 링크 검사 7개 실행 및 signer 경로 검사 Cloud 지원
-- [x] odds-1 ~ odds-18 — 상세 ID와 검증은 LEDGER
-- [ ] odds-19 ~ odds-19, odds-final, odds-pr
+- [x] cloud-compat-1~3, odds-1~18
+- [ ] odds-19 — 첫 전체 실행 4 FAIL 해결, 공식 기록을 쓰기 전 재실행 필요
+- [ ] odds-final
+- [ ] odds-pr — Claude 담당
 
-최근 검증: odds_cli 12/12 (wall 9.718 s), odds 287/287, compliance 340/341 (Windows 전용 1 NOT_RUN), 공통 검증 실패 0. 모든 필수 공통 검증 실패 0. core-wide 참조자료 관련 NOT_RUN 14개는 기존 상태입니다. 상세는 context/odds-engine/task-18-validation.json과 execution-ledger.md.
+확률 엔진 287/287, compliance 340/341(Windows 콘솔 1 NOT_RUN). 추가 Cloud 수정 4/4 PASS, M0 10/11와 M8 pipeline 20/21에서 FAIL 0. 전체 성공을 아직 주장하지 않습니다.
 
 ## 5. 현재 지점
 
-- 코드 `cd265bf4fd90f564997f0ef52e2fd42b3cce5785`, 작업 트리 깨끗함. Task 18 완료 및 자체 검토 후 체크포인트.
-- 계획과 두 신규 파일 전체 대조. P78 설명을 odds state로 한정하고 P79 반환 타입만 구체화. 실제 20 refit은 Task 14 검증 유지. CLI 데이터 요청 이전 거부와 출처 기록, 비교 상태와 오류 exit를 확인.
-- 실행 장부는 context/odds-engine/execution-ledger.md에 저장하며 Task 19 이전에는 코드 브랜치에 넣지 않습니다. qa/acceptance_results.json은 변경하지 않았습니다.
-- Python 3.13.16, numpy 2.3.5, scipy 1.18.0; KEYLESS, 순차 실행, 격리된 테스트 홈. 원시 로그 /workspace/tradegen-session. Git 전송으로 원격에 바이트 그대로 저장합니다.
+- 코드 `2b9f493be9a1d7feb6cb7584c646fd9924412c8d` push 완료. 미추적 실행 장부 1개만 있으며 이 브랜치의 context 사본에 동일 바이트로 백업했습니다. Task 19 Step 9에서 코드 브랜치에 커밋합니다.
+- 첫 전체 실행: 1351 PASS, 4 FAIL, 122 NOT_RUN, 374.023 s. 실패한 qa 기록은 원복했으며 위 4건은 재현 후 해결했습니다.
+- 전체 실행 시 loopback 소켓 사용을 허용하는 Cloud tool network permission이 필요합니다. 테스트의 외부 시세/데이터 API 금지는 유지합니다. KEYLESS, 격리 홈, 실제 홈 metadata watch.
+- context/odds-engine/cloud-compat-3-validation.json에 증거를 저장했습니다.
 
 ## 6. 다음 할 일 (순서대로)
 

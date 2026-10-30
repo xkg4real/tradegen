@@ -1,0 +1,77 @@
+{
+  "code_commit": "2b9f493be9a1d7feb6cb7584c646fd9924412c8d",
+  "completed_at": "2026-10-30T16:04:18+09:00",
+  "first_full_run": {
+    "label": "initial",
+    "code_commit": "cd265bf4fd90f564997f0ef52e2fd42b3cce5785",
+    "exit_code": 1,
+    "seconds": 374.023,
+    "total": 1477,
+    "counts": {
+      "PASS": 1351,
+      "FAIL": 4,
+      "NOT_RUN": 122
+    },
+    "real_homes_unchanged": true,
+    "keyless": true,
+    "isolated_home": true,
+    "failures": [
+      {
+        "test": "engine/test_82_a_get_survives_two_bad_gateways_but_a_429_a_500_and_a_post_are_sent_once",
+        "status": "FAIL",
+        "seconds": 0.0033,
+        "detail": "PermissionError: [Errno 1] Operation not permitted"
+      },
+      {
+        "test": "macro/test_t_herm_01_every_touchpoint_raises",
+        "status": "FAIL",
+        "seconds": 0.0075,
+        "detail": "PermissionError: [Errno 1] Operation not permitted"
+      },
+      {
+        "test": "macro/macro_m0_rules/test_every_state_path_stays_out_of_quantgen",
+        "status": "FAIL",
+        "seconds": 0.0017,
+        "detail": "AssertionError: ('kis_token', PosixPath('/workspace/tradegen-session/test-state/kis_token.json'))"
+      },
+      {
+        "test": "macro/macro_m8_pipeline/test_dry_run_end_to_end_on_the_local_cache",
+        "status": "FAIL",
+        "seconds": 0.4903,
+        "detail": "AssertionError: "
+      }
+    ]
+  },
+  "focused": [
+    {
+      "test": "engine/test_82_a_get_survives_two_bad_gateways_but_a_429_a_500_and_a_post_are_sent_once",
+      "status": "PASS",
+      "seconds": 2.514,
+      "detail": ""
+    },
+    {
+      "test": "macro/test_t_herm_01_every_touchpoint_raises",
+      "status": "PASS",
+      "seconds": 0.014,
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m0_rules/test_every_state_path_stays_out_of_quantgen",
+      "status": "PASS",
+      "seconds": 0.002,
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m8_pipeline/test_dry_run_end_to_end_on_the_local_cache",
+      "status": "PASS",
+      "seconds": 0.982,
+      "detail": ""
+    }
+  ],
+  "modules": {
+    "macro_m0_rules": "10/11, 0 FAIL, 1 existing NOT_RUN",
+    "macro_m8_pipeline": "20/21, 0 FAIL, 1 existing NOT_RUN"
+  },
+  "keyless": true,
+  "isolated_home": true
+}
