@@ -1,15 +1,22 @@
-"""The no-edge models of the odds core, part 1 (spec 7.2, 7.3; odds plan Q10, Q12, Q34): the copied constants, block
-length and Sharpe (O1: each pinned against its original by tests/odds_models.py), the two-point bootstrap's row
-magnitudes, block lengths, index generator, kernel and tilt, and the market seed with its streams. Pure: no clock,
-no file, no network."""
+"""The no-edge models of the odds core (spec 7.2, 7.3; odds plan Q10, Q12, Q34): the copied constants, block length
+and Sharpe (O1: each pinned against its original by tests/odds_models.py), the two-point bootstrap's row magnitudes,
+block lengths, index generator, kernel and tilt, the market seed with its streams, and the GARCH-t copy with its
+pilot checks (O1: pinned against core/quant/garch.py by tests/odds_garch.py). Pure: no clock, no file, no network."""
 from __future__ import annotations
 
 import hashlib
 import math
 from collections.abc import Iterator
+from dataclasses import dataclass
+from functools import lru_cache
 from typing import TYPE_CHECKING
 
 import numpy as np
+from scipy import stats
+from scipy.integrate import quad
+from scipy.optimize import minimize
+from scipy.signal import lfilter
+from scipy.special import gammaln
 
 from core.compliance import model
 
@@ -207,3 +214,305 @@ def stream(seed: bytes, chunk: int, name: str, *extra: int) -> np.random.Generat
     """The Generator of stream `name`: np.random.default_rng(seed_sequence(seed, chunk, name, *extra)), a PCG64
     (default_rng passes a SeedSequence through)."""
     return np.random.default_rng(seed_sequence(seed, chunk, name, *extra))
+
+
+# --------------------------------------------------------------------------- #
+# GARCH-t copy (contract 7.3; O1: copied from core/quant/garch.py and pinned against it by tests/odds_garch.py)
+# --------------------------------------------------------------------------- #
+_SIG_LO, _SIG_HI = 1e-6, 0.25          # == garch._SIG_LO, garch._SIG_HI: the correction table's daily-sigma grid
+_BOUNDS: dict[str, tuple[float, float]] = {   # == garch.BOUNDS on the four fitted coordinates
+    "omega": (1e-12, math.inf),        # daily variance units
+    "alpha": (0.0, 0.5),
+    "beta": (0.0, 0.999),
+    "eta": (0.0, 0.4),                 # the tail is fitted as eta = 1/nu; eta = 0 IS the normal
+}
+_STATIONARITY_MAX = 0.9995             # == garch.STATIONARITY_MAX
+_ETA_EPS = 1e-10                       # == garch._ETA_EPS: below this eta the density IS the normal
+_PENALTY = 1e10                        # == garch._PENALTY
+_MIN_OBS = 100                         # == garch._MIN_OBS
+_OMEGA_SCALE = 1e6                     # == garch._OMEGA_SCALE
+
+
+@dataclass(frozen=True, kw_only=True)
+class GarchParams:
+    """The fields of garch.GarchFit that the odds engine runs on: GARCH(1,1) with Student-t innovations, mu fixed at
+    the sample mean of the daily log returns. nu is inf when the fitted eta is 0 (the t is the normal);
+    cond_vol_last is the annualised (TRADING_DAYS) next-session forecast sqrt(sigma^2_{T+1} * 252)."""
+    dist: str
+    omega: float
+    alpha: float
+    beta: float
+    nu: float
+    mean_daily: float
+    n_obs: int
+    cond_vol_last: float
+    converged: bool
+    at_bound: tuple[str, ...]
+
+
+def _variance_path(eps2: np.ndarray, omega: float, alpha: float, beta: float, s2_init: float) -> np.ndarray:
+    """Copy of garch._variance_path: sigma^2_1..sigma^2_{T+1} (length T+1), the IIR filter y_t = x_t + beta y_{t-1}
+    with x_1 = s2_init and x_t = omega + alpha eps^2_{t-1}."""
+    x = np.empty(eps2.size + 1)
+    x[0] = s2_init
+    x[1:] = omega + alpha * eps2
+    return lfilter([1.0], [1.0, -beta], x)
+
+
+def _t_const(nu: float) -> float:
+    """Copy of garch._t_const: ln of the unit-variance t density's normalising constant (the Stirling expansion
+    beyond nu = 1e4, where the two gammaln terms cancel catastrophically)."""
+    if nu > 1e4:
+        return 0.5 * math.log(nu / (2.0 * math.pi * (nu - 2.0))) - 1.0 / (4.0 * nu)
+    return gammaln((nu + 1) / 2) - gammaln(nu / 2) - 0.5 * math.log(math.pi * (nu - 2))
+
+
+def _loglik(params: np.ndarray, eps: np.ndarray, eps2: np.ndarray, s2_init: float, dist: str) -> float:
+    """Copy of garch._loglik: the GARCH(1,1) log-likelihood, -_PENALTY past the stationarity cap or for a
+    non-positive variance path."""
+    omega, alpha, beta = params[:3]
+    if alpha + beta > _STATIONARITY_MAX:
+        return -_PENALTY
+    s2 = _variance_path(eps2, omega, alpha, beta, s2_init)[:-1]
+    if not np.all(np.isfinite(s2)) or np.any(s2 <= 0):
+        return -_PENALTY
+    if dist == "t" and params[3] >= _ETA_EPS:
+        nu = 1.0 / params[3]
+        ll = _t_const(nu) - 0.5 * np.log(s2) - ((nu + 1) / 2) * np.log1p(eps2 / ((nu - 2) * s2))
+    else:                                                # normal, or a t with eta = 0
+        ll = -0.5 * math.log(2 * math.pi) - 0.5 * np.log(s2) - eps2 / (2 * s2)
+    return float(np.sum(ll))
+
+
+def _fit(eps: np.ndarray, dist: str, extra_starts=(), default_starts: bool = True):
+    """Copy of garch._fit: L-BFGS-B over (omega, alpha, beta[, eta]) from the three deterministic starts (unless
+    `default_starts` is False) plus `extra_starts`, omega optimised in units of 1e-6. Returns (p, loglik,
+    converged, at_bound, s2_path)."""
+    eps2 = eps ** 2
+    var = float(np.var(eps))
+    names = ("omega", "alpha", "beta") + (("eta",) if dist == "t" else ())
+    scale = np.ones(len(names))
+    scale[0] = _OMEGA_SCALE
+    bounds = [(_BOUNDS["omega"][0] * _OMEGA_SCALE, None)] + [_BOUNDS[n] for n in names[1:]]
+    starts = ([[var * (1 - 0.05 - beta0), 0.05, beta0] + ([1.0 / 8.0] if dist == "t" else [])
+               for beta0 in (0.80, 0.90, 0.94)] if default_starts else []) + [list(s) for s in extra_starts]
+    best = None
+    for x0 in starts:
+        res = minimize(lambda p: -_loglik(p / scale, eps, eps2, var, dist), np.array(x0) * scale,
+                       method="L-BFGS-B", bounds=bounds)
+        if best is None or res.fun < best.fun:
+            best = res
+    p = best.x / scale
+    at = []
+    for name, val in zip(names, p):
+        lo, hi = _BOUNDS[name]
+        tol = 1e-4
+        if name == "eta":                                # eta = 0 is the normal, not a failure
+            if abs(val - hi) <= tol * abs(hi):
+                at.append("nu")                          # nu at its lower bound 2.5
+            continue
+        if abs(val - lo) <= (tol if lo == 0 else tol * abs(lo)):
+            at.append(name)
+        elif math.isfinite(hi) and abs(val - hi) <= tol * abs(hi):
+            at.append(name)
+    if p[1] + p[2] > 0.995:
+        at.append("stationarity")
+    s2_path = _variance_path(eps2, p[0], p[1], p[2], var)
+    return p, float(-best.fun), bool(best.success), tuple(at), s2_path
+
+
+def _fit_t(eps: np.ndarray):
+    """Copy of garch._fit_t with no extra starts: the normal first, the t from the normal's optimum (eta = 0), the
+    normal re-fitted from the t's (omega, alpha, beta), and one more t pass if that normal climbs past the t.
+    Returns (p, loglik, converged, at_bound, s2_path)."""
+    p_n, _, _, _, _ = _fit(eps, "normal")
+    p, ll, converged, at_bound, s2_path = _fit(eps, "t", extra_starts=[[*p_n[:3], 0.0]])
+    p_n2, ll_n2, _, _, _ = _fit(eps, "normal", extra_starts=[list(p[:3])], default_starts=False)
+    if ll_n2 > ll:
+        t2 = _fit(eps, "t", extra_starts=[[*p_n2[:3], 0.0]], default_starts=False)
+        if t2[1] >= ll:
+            p, ll, converged, at_bound, s2_path = t2
+    return p, ll, converged, at_bound, s2_path
+
+
+def fit_garch_t(returns: np.ndarray) -> GarchParams:
+    """GARCH(1,1)-t on daily log returns: the path of garch.fit_garch(returns, dist="t", profile=False) without the
+    standard errors, the likelihood ratios and the note. ValueError under 100 observations."""
+    r = np.asarray(returns, dtype=float)
+    if r.size < _MIN_OBS:
+        raise ValueError(f"Need at least {_MIN_OBS} observations to fit GARCH; got {r.size}.")
+    mu = float(np.mean(r))
+    p, _, converged, at_bound, s2_path = _fit_t(r - mu)
+    eta = float(p[3])
+    return GarchParams(dist="t", omega=float(p[0]), alpha=float(p[1]), beta=float(p[2]),
+                       nu=math.inf if eta < _ETA_EPS else 1.0 / eta, mean_daily=mu, n_obs=r.size,
+                       cond_vol_last=math.sqrt(s2_path[-1] * TRADING_DAYS), converged=converged, at_bound=at_bound)
+
+
+def _t_scale(nu: float) -> float:
+    """Copy of garch._t_scale: the unit-variance scaling of a standard t draw."""
+    return math.sqrt((nu - 2.0) / nu)
+
+
+def t_density(z, nu: float) -> np.ndarray:
+    """Copy of garch.t_density: the density of the unit-variance Student-t (the normal density above NU_NORMAL)."""
+    z = np.asarray(z, dtype=float)
+    if nu > NU_NORMAL:
+        return np.exp(-0.5 * z ** 2) / math.sqrt(2 * math.pi)
+    return math.exp(_t_const(nu)) * (1.0 + z ** 2 / (nu - 2.0)) ** (-(nu + 1) / 2)
+
+
+def _draw_z(rng, nu: float, dist: str, size, bound: float | None = Z_BOUND) -> np.ndarray:
+    """Copy of garch._draw_z: unit-variance innovations; with a `bound` (t only) every draw beyond it is replaced by
+    one from the t restricted to [-bound, bound] via the inverse CDF. A t with nu above NU_NORMAL is drawn as a
+    normal."""
+    if dist != "t" or nu > NU_NORMAL:
+        return rng.standard_normal(size=size)
+    s = _t_scale(nu)
+    z = rng.standard_t(nu, size=size) * s
+    if bound is None:
+        return z
+    out = np.abs(z) > bound
+    n_out = int(np.count_nonzero(out))
+    if n_out:
+        d = stats.t(nu)
+        lo, hi = d.cdf(-bound / s), d.cdf(bound / s)
+        z[out] = s * d.ppf(lo + rng.random(n_out) * (hi - lo))
+    return z
+
+
+def _log_mgf(sig: np.ndarray, z: np.ndarray, wt: np.ndarray) -> np.ndarray:
+    """Copy of garch._log_mgf: ln sum_i wt_i exp(sig z_i) for each sig, computed stably."""
+    e = np.outer(sig, z)
+    m = e.max(axis=1, keepdims=True)
+    return m[:, 0] + np.log((wt[None, :] * np.exp(e - m)).sum(axis=1))
+
+
+@lru_cache(maxsize=32)
+def _correction_table(nu: float, bound: float):
+    """Copy of garch._correction_table: Gauss-Legendre nodes and normalised weights of the t restricted to
+    [-bound, bound] (three panels), and c(sigma)/sigma^2 on a 4,000-point geometric daily-sigma grid up to _SIG_HI.
+    martingale_correction looks this name up at call time, so the corruption test of tests/odds_garch.py reaches
+    every caller."""
+    x, w = np.polynomial.legendre.leggauss(600)
+    edges = (-bound, -1.0, 1.0, bound) if bound > 1.0 else (-bound, bound)
+    z = np.concatenate([0.5 * (b - a) * x + 0.5 * (b + a) for a, b in zip(edges[:-1], edges[1:])])
+    wt = np.concatenate([0.5 * (b - a) * w for a, b in zip(edges[:-1], edges[1:])]) * t_density(z, nu)
+    wt = wt / wt.sum()
+    sig = np.geomspace(_SIG_LO, _SIG_HI, 4000)
+    c = np.concatenate([_log_mgf(s, z, wt) for s in np.array_split(sig, 16)])
+    return z, wt, sig, c / sig ** 2
+
+
+def martingale_correction(sigma_daily, nu: float, dist: str, bound: float | None = Z_BOUND) -> np.ndarray:
+    """Copy of garch.martingale_correction: c(sigma) = ln E[exp(sigma z)] per step for the innovation law that is
+    simulated (sigma^2/2 for a normal z; the interpolated table of the bounded t, direct sums above the grid). An
+    unbounded t has no such correction and raises."""
+    sig = np.atleast_1d(np.asarray(sigma_daily, dtype=float))
+    if dist != "t" or nu > NU_NORMAL:                    # normal, or a t drawn as one
+        return 0.5 * sig ** 2
+    if bound is None:
+        raise ValueError("exp(sigma z) has no finite expectation under an unbounded t; no correction exists")
+    z, wt, grid, ratio = _correction_table(float(nu), float(bound))
+    out = np.interp(sig, grid, ratio) * sig ** 2
+    big = sig > grid[-1]
+    if np.any(big):
+        out[big] = _log_mgf(sig[big], z, wt)
+    return out
+
+
+def simulate_garch(fit: GarchParams, *, n_paths: int, horizon: int, seed) -> tuple[np.ndarray, np.ndarray]:
+    """(ret, sigma), each (n_paths, horizon): the body of garch.simulate_returns(fit, rate_daily=0.0, bound=Z_BOUND)
+    with the conditional daily sigma of every step kept. Each step's log return is -c(sigma_t) + sigma_t z_t, so
+    exp(cumulative return) has mean 1 at every step: the no-edge law. `seed` goes to np.random.default_rng (a
+    SeedSequence from seed_sequence, or a Generator)."""
+    rng = np.random.default_rng(seed)
+    z = _draw_z(rng, fit.nu, fit.dist, (n_paths, horizon), Z_BOUND)
+    ret = np.empty((n_paths, horizon))
+    sigma = np.empty((n_paths, horizon))
+    s2 = np.full(n_paths, fit.cond_vol_last ** 2 / TRADING_DAYS)
+    for h in range(horizon):
+        sig = np.sqrt(s2)
+        eps = sig * z[:, h]
+        c = martingale_correction(sig, fit.nu, fit.dist, Z_BOUND)
+        ret[:, h] = 0.0 - c + eps
+        sigma[:, h] = sig
+        s2 = fit.omega + fit.alpha * eps ** 2 + fit.beta * s2
+    return ret, sigma
+
+
+def simulate_garch_series(omega: float, alpha: float, beta: float, nu: float, *, n: int, seed,
+                          dist: str = "t") -> np.ndarray:
+    """Copy of garch.simulate_garch_series: zero-mean synthetic GARCH(1,1) returns with the full (unbounded) tail and
+    a 500-session burn-in (the refit member's synthetic series)."""
+    rng = np.random.default_rng(seed)
+    burn = 500
+    z = _draw_z(rng, nu, dist, n + burn, bound=None)
+    eps = np.empty(n + burn)
+    s2 = omega / (1 - alpha - beta) if alpha + beta < 1 else omega * 100
+    for t in range(n + burn):
+        eps[t] = math.sqrt(s2) * z[t]
+        s2 = omega + alpha * eps[t] ** 2 + beta * s2
+    return eps[burn:]
+
+
+# --------------------------------------------------------------------------- #
+# GARCH pilot checks (contract 7.4; Q10)
+# --------------------------------------------------------------------------- #
+PILOT_PATHS = 20_000
+PILOT_NODES = 512
+PILOT_STEP_TOL = 1e-7
+PILOT_SUM_TOL = 1e-6
+PILOT_SE = 4.0
+
+
+@lru_cache(maxsize=32)
+def _t_mass(nu: float, bound: float) -> float:
+    """The quad mass of the unit-variance t density on [-bound, bound] over c_quad's three panels."""
+    return sum(quad(lambda x: t_density(x, nu), a, b, limit=400)[0] for a, b in ((-bound, -1.0), (-1.0, 1.0),
+                                                                                (1.0, bound)))
+
+
+def c_quad(sigma: float, nu: float, bound: float = Z_BOUND) -> float:
+    """The exact per-step correction ln E[exp(sigma z)] of the t restricted to [-bound, bound], by scipy quad over
+    the panels (-bound, -1), (-1, 1), (1, bound) as garch's own self-check does, so it shares no node with the
+    table; sigma^2/2 for a t drawn as a normal (nu > NU_NORMAL)."""
+    if nu > NU_NORMAL:
+        return 0.5 * sigma ** 2
+    num = sum(quad(lambda x: math.exp(sigma * x) * t_density(x, nu), a, b, limit=400)[0]
+              for a, b in ((-bound, -1.0), (-1.0, 1.0), (1.0, bound)))
+    return math.log(num / _t_mass(float(nu), float(bound)))
+
+
+def _deterministic_gap(fit: GarchParams, sigma: np.ndarray) -> tuple[float, float]:
+    """Check 1's two statistics on the pilot's sigma: (max over the nodes of |expm1(c_quad - c_table)|, max over
+    paths of the summed |c_quad - c_table| over the horizon). The nodes are the distinct quantiles of every pilot
+    sigma at PILOT_NODES levels; each sigma takes its nearest node's error."""
+    nodes = np.unique(np.quantile(sigma.ravel(), np.linspace(0.0, 1.0, PILOT_NODES)))
+    nu = fit.nu if fit.dist == "t" else math.inf         # a normal fit: c = sigma^2/2 exactly
+    gap = np.array([c_quad(float(s), nu) for s in nodes]) - martingale_correction(nodes, fit.nu, fit.dist)
+    hi = np.clip(np.searchsorted(nodes, sigma), 0, nodes.size - 1)
+    lo = np.maximum(hi - 1, 0)
+    near = np.where(np.abs(nodes[lo] - sigma) <= np.abs(nodes[hi] - sigma), lo, hi)
+    return float(np.max(np.abs(np.expm1(gap)))), float(np.max(np.abs(gap)[near].sum(axis=1)))
+
+
+def _statistical_z(ret: np.ndarray) -> float:
+    """Check 2's statistic: max over steps h of |mean(e_h) - 1| / (std(e_h, ddof=1) / sqrt(rows)), e = exp of the
+    cumulative log return. NaN when a return is not finite, which fails the check."""
+    e = np.exp(np.cumsum(ret, axis=1))
+    return float(np.max(np.abs(e.mean(axis=0) - 1.0) / (e.std(axis=0, ddof=1) / math.sqrt(e.shape[0]))))
+
+
+def pilot_checks(fit: GarchParams, horizon: int, seed: bytes) -> tuple[bool, str]:
+    """The two GARCH pilot checks (spec 7.2 "GarchT"; Q10) on PILOT_PATHS paths of the "pilot" stream:
+    1 (deterministic) the table's correction against quad, PILOT_STEP_TOL per step and PILOT_SUM_TOL summed over
+    the horizon on every path; 2 (statistical) exp(cumulative return) within PILOT_SE standard errors of 1 at every
+    step. (True, "") or (False, the first failing check). Each test fails closed on NaN."""
+    ret, sigma = simulate_garch(fit, n_paths=PILOT_PATHS, horizon=horizon, seed=seed_sequence(seed, 0, "pilot"))
+    step, summed = _deterministic_gap(fit, sigma)
+    if not (step <= PILOT_STEP_TOL and summed <= PILOT_SUM_TOL):
+        return False, "deterministic"
+    if not _statistical_z(ret) <= PILOT_SE:
+        return False, "statistical"
+    return True, ""
