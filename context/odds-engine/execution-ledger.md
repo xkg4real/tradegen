@@ -205,3 +205,25 @@ rulings, deferred minors and runs here. It stays untracked until Task 19 commits
 - Task 6: both Step 4 raw-text greps printed nothing (exit 1); the line-ending check printed `LF ok`; `git status --short` listed exactly the two new files and the ledger. `owner.code_files` now lists 13 entries (Task 5's 12 plus `core/odds/costs.py`).
 - Task 6 time (A.3.4 target 2 s, G3-2): odds_costs 0.84 s of test calls inside `--suite odds` (odds_plan has already parsed the fixture venue file); run alone, 2.02 s and then 1.83 s (scratch timing through the suite's own `_wrap` and `run_all.run`); in the first of those, 0.78 s went to the first test, which parses the fixture venue file first. The first alone-run is 0.02 s over the target; nothing was changed for it. In the same suite runs odds_plan took 2.60 s (Task 5's module, target 2 s; Task 5 measured 1.87 s alone): it pays the fixture parse there, recorded only.
 - Task 6 count note (G3-1): none; every count equals the brief's and the controller's pre-statement (23/23; odds suite 18 + 25 + 23 = 66). Developer Mode touches none of these runs.
+
+## Cloud Task 7 attempt — 2026-10-30 (Codex)
+
+- Source handoff ad9e5ac, code base 1a7eaba, WIP code commit 01f17a59a282adb667ce8fa849680a344226d019; branch gpt/odds-engine. **Task 7 is NOT complete; no new LEDGER ID.**
+- Drift: none. Added models.py (209 lines) and odds_models.py (410 lines), byte-identical to Task 7 Steps 1/3. LF; staged stats with and without --ignore-cr-at-eol match; both required raw-text scans pass. Reviewed Q1/Q10/Q12/Q30/Q34/Q42, A.7.1/A.7.2 and the copied originals; no source deviation found.
+- P34: complete run tails below. P35: all commands inherited KEYLESS values; imports can reach config/load_dotenv, but no real data API was used. Isolated state and fixture homes only.
+- Cloud adaptation: Python 3.13.16, numpy 2.3.5, pandas 2.3.3, scipy 1.18.0; serial runs. The existing cloud runner redirects only OUT outside the tracked QA record, which remains byte-identical to baseline. No thresholds, seeds, assertions or skip markers changed.
+- RED: odds_models 0/1, 1 failed, expected missing-model ImportError, exit 1. GREEN: odds_models 19/19, 0 failed, 0 not run, exit 0; test-call time in odds suite 0.7514 s (6 s budget).
+- Task 7 odds-guards: 18/18 passed, 0 failed, 0 not run; exit 0; process wall time 3.38 s.
+- Task 7 compliance-guards: 16/16 passed, 0 failed, 0 not run; exit 0; process wall time 5.781 s.
+- Task 7 compliance-store: 33/36 passed, 3 failed, 0 not run; exit 1; process wall time 18.116 s.
+- Task 7 macro-m0-harness: 11/11 passed, 0 failed, 0 not run; exit 0; process wall time 6.434 s.
+- Task 7 macro-tf-gov: 20/22 passed, 0 failed, 2 not run; exit 0; process wall time 29.401 s.
+- Task 7 macro-m7-ledger: 14/18 passed, 0 failed, 4 not run; exit 0; process wall time 7.889 s.
+- Task 7 macro-m8-forward: 17/23 passed, 0 failed, 6 not run; exit 0; process wall time 10.451 s.
+- Task 7 macro-m6-context: 14/16 passed, 0 failed, 2 not run; exit 0; process wall time 4.128 s.
+- Task 7 cockpit: 45/47 passed, 2 failed, 0 not run; exit 1; process wall time 5.783 s.
+- Task 7 odds: 85/85 passed, 0 failed, 0 not run; exit 0; process wall time 4.98 s.
+- Baseline comparison: with both new Task 7 files absent, compliance_store again gives 33/36, 3 failed. All three directly import Windows-only _winapi at tests/compliance_store.py lines 86, 117 and 455. Before Task 7 edits, cockpit was 45/47 with the same two failures and odds was 66/66.
+- Catalog failures: test_03 has no primary for us-undervalued-growth-screener (9 CLI scripts); test_35 misreads ACTIVE / PARTIALLY_CLOSED and JSON in core-portfolio-weekly step 2 as answer options. Cloud catalog cb0f3aadffed6d1089db4b224162c964368baa46 is a documented compatibility pin, not the owner's exact catalog.
+- G3-1 and CURRENT section 6: FAIL never counts as passed; environment differences are reported, not repaired in this task. Task 8 did not start. Preserve the implementation as WIP under AGENTS section 4 (stopping/returning); request an owner ruling on a separate Linux-test/catalog-compatibility task. Do not mark odds-7 complete until the required checks pass.
+- Machine-readable evidence: context/odds-engine/cloud-validation-2026-10-30.json. Raw logs: /workspace/tradegen-session in this cloud instance.

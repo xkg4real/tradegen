@@ -1,0 +1,128 @@
+{
+  "as_of_kst": "2026-10-30T14:17:39+09:00",
+  "status": "BLOCKED_NOT_COMPLETE",
+  "task": "odds-7",
+  "source_handoff": "ad9e5ac73db7879b66d3222a18d39fab1fde9d9e",
+  "baseline_commit": "1a7eaba72dde43a06307d8c30ffe1ddd8e08363b",
+  "work_branch": "gpt/odds-engine",
+  "work_commit": "01f17a59a282adb667ce8fa849680a344226d019",
+  "environment": {
+    "os": "Linux",
+    "python": "3.13.16",
+    "numpy": "2.3.5",
+    "pandas": "2.3.3",
+    "scipy": "1.18.0",
+    "credentials": "KEYLESS",
+    "state": "temporary/isolated"
+  },
+  "red": {
+    "passed": 0,
+    "total": 1,
+    "failed": 1,
+    "expected_error": "ImportError: cannot import name 'models' from 'core.odds'"
+  },
+  "green": {
+    "passed": 19,
+    "total": 19,
+    "failed": 0,
+    "not_run": 0,
+    "module_seconds_in_odds_suite": 0.7514
+  },
+  "baseline": {
+    "odds": "66/66, 0 failed",
+    "compliance_store": "33/36, same 3 _winapi failures",
+    "cockpit": "45/47, same 2 catalog failures"
+  },
+  "checks": [
+    {
+      "check": "odds-guards",
+      "exit_code": 0,
+      "seconds": 3.38,
+      "summary": "18/18 passed, 0 failed, 0 not run",
+      "failures": []
+    },
+    {
+      "check": "compliance-guards",
+      "exit_code": 0,
+      "seconds": 5.781,
+      "summary": "16/16 passed, 0 failed, 0 not run",
+      "failures": []
+    },
+    {
+      "check": "compliance-store",
+      "exit_code": 1,
+      "seconds": 18.116,
+      "summary": "33/36 passed, 3 failed, 0 not run",
+      "failures": [
+        "FAIL compliance_store/test_a_stored_calendar_set_with_a_link_is_not_stored ModuleNotFoundError: No module named '_winapi'",
+        "FAIL compliance_store/test_store_writes_refuse_a_junction ModuleNotFoundError: No module named '_winapi'",
+        "FAIL compliance_store/test_unreadable_key_log_or_link_is_broken ModuleNotFoundError: No module named '_winapi'"
+      ]
+    },
+    {
+      "check": "macro-m0-harness",
+      "exit_code": 0,
+      "seconds": 6.434,
+      "summary": "11/11 passed, 0 failed, 0 not run",
+      "failures": []
+    },
+    {
+      "check": "macro-tf-gov",
+      "exit_code": 0,
+      "seconds": 29.401,
+      "summary": "20/22 passed, 0 failed, 2 not run",
+      "failures": []
+    },
+    {
+      "check": "macro-m7-ledger",
+      "exit_code": 0,
+      "seconds": 7.889,
+      "summary": "14/18 passed, 0 failed, 4 not run",
+      "failures": []
+    },
+    {
+      "check": "macro-m8-forward",
+      "exit_code": 0,
+      "seconds": 10.451,
+      "summary": "17/23 passed, 0 failed, 6 not run",
+      "failures": []
+    },
+    {
+      "check": "macro-m6-context",
+      "exit_code": 0,
+      "seconds": 4.128,
+      "summary": "14/16 passed, 0 failed, 2 not run",
+      "failures": []
+    },
+    {
+      "check": "cockpit",
+      "exit_code": 1,
+      "seconds": 5.783,
+      "summary": "45/47 passed, 2 failed, 0 not run; /workspace/tradegen-session/task-7-cockpit.json",
+      "failures": [
+        "FAIL cockpit/test_03_every_runnable_skill_resolves_one_primary AssertionError: us-undervalued-growth-screener has 9 scripts and no primary",
+        "FAIL cockpit/test_35_an_open_question_is_not_given_invented_answers AssertionError: core-portfolio-weekly step 2 was given options it did not name: ACTIVE, PARTIALLY_CLOSED, JSON"
+      ]
+    },
+    {
+      "check": "odds",
+      "exit_code": 0,
+      "seconds": 4.98,
+      "summary": "85/85 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-7-odds.json",
+      "failures": []
+    }
+  ],
+  "review": {
+    "source_matches_plan_bytes": true,
+    "lines": {
+      "models": 209,
+      "tests": 410
+    },
+    "line_endings": "LF",
+    "raw_text_scans": "PASS",
+    "existing_files_unchanged": true,
+    "completion_blocked_by": "5 pre-existing failures; no new completed task ID",
+    "next_task_started": false
+  },
+  "validation_method": "Sequential original module runners; suite OUT redirected outside tracked QA record with existing cloud helper. No assertions changed."
+}
