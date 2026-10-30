@@ -760,6 +760,14 @@ def test_venue_shape_rules():
             f"{at}: source: expected a non-empty string")
         bad(lambda d, k=key, x=value, w=vid: d[v][w].update({k: {**x, "step": 1}}), f"{at}: unknown key(s) ['step']")
     up, tl = "venues: upbit", "venues: kis: tick_ladder"
+    bad(lambda d: d[v]["upbit"].update(fee_extras={"source": "s", "phi_sell": 0}),
+        f"{up}: fee_extras: missing key(s) ['phi_buy']")
+    bad(lambda d: d[v]["kis"].update(tick_ladder={k: x for k, x in ticks.items() if k != "books"}),
+        f"{tl}: missing key(s) ['books']")
+    bad(lambda d: d[v]["kis"].update(tick_ladder={**ticks, "books": {1: [[0, 1]]}}),
+        f"{tl}: books: 1 is not one of")
+    bad(lambda d: d[v]["kis"].update(tick_ladder={**ticks, "books": {"KRX_stock_book": [{"a": 0, "b": 1}]}}),
+        "is not a [price_from, tick] row")
     bad(lambda d: d[v]["upbit"].update(lot={"source": "s"}), f"{up}: lot: missing key(s) ['units']")
     bad(lambda d: d[v]["upbit"].update(lot={**lot, "units": {}}),
         f"{up}: lot: units: expected a non-empty mapping of symbol (or default) to a step")
@@ -905,6 +913,9 @@ def test_venue_odds_keys_parse_to_exact_tuples():
     assert kis.markets == frozenset() and kis.quote_by_currency and kis.settlement == {"KRW", "USD"}
     assert upbit.markets == {("BTC", "KRW"), ("USDT", "KRW")} and upbit.default_quote == "KRW"
     assert len({kis, upbit, okx}) == 3                       # every field stays hashable
+    partial = _venues_doc()
+    partial["venues"]["upbit"]["lot"] = {"source": "only lot", "units": {"default": 1e-8}}
+    assert _facts(partial).venues["upbit"].odds_sources == (("lot", "only lot"),)
     _need_model()
     from core.compliance import model
     state = rules.approved_state(_table(_row()), _dump(_map_doc()), _dump(_odds_venues_doc()), seq=1)
@@ -1578,8 +1589,9 @@ def test_shipped_venue_odds_values_are_the_sourced_ones():
     assert anchor == "L161" and stocks.startswith("| KOSPI/KOSDAQ cash stocks"), stocks
     assert f"| {kis.lot_for('005930'):g} share |" in stocks, stocks     # the parsed lot is the one the research gives
     assert etfs.startswith("| Plain 1x ETF/ETN") and f"| {kis.lot_for('069500'):g} unit |" in etfs, etfs
-    e2 = (_T5_REPO / "QUANTGEN_techfund_research_bundle" / "QUANTGEN_techfund_research" / "research_notes"
-          / "E2_nyse_microstructure_execution.md").read_bytes().decode("utf-8").splitlines()
+    e2 = [line.decode("utf-8") for line in (_T5_REPO / "QUANTGEN_techfund_research_bundle"
+          / "QUANTGEN_techfund_research" / "research_notes" / "E2_nyse_microstructure_execution.md")
+          .read_bytes().splitlines()]
     bands = e2[307:314]                              # lines 308-314: the seven KRX price bands and their ticks
     nums = [[float(n.replace(",", "")) for n in _t5_re.findall(r"\d[\d,]*", band)] for band in bands]
     research = tuple((0.0 if "| below " in band else n[0], n[-1]) for band, n in zip(bands, nums))
@@ -1587,7 +1599,7 @@ def test_shipped_venue_odds_values_are_the_sourced_ones():
     day = _t5_date.fromisoformat(kis.tick_ladder[0][1])        # the parsed effective_from is the research's date
     assert e2[2].startswith(f"As of {day.day} {day:%B %Y}."), e2[2]
     up = (_T5_REPO / "research_notes" / "Korean resident trading venue legality"
-          / "crypto_domestic_and_overseas_verification.md").read_bytes().decode("utf-8").splitlines()[20]
+          / "crypto_domestic_and_overseas_verification.md").read_bytes().splitlines()[20].decode("utf-8")
     assert f"Upbit {upbit.min_order_for('KRW'):,.0f} KRW minimum is confirmed" in up and _T5_UPBIT_MIN in up, up
     # the header clause of CONTRACT 4.2, word for word, in place of the old "ticks later" clause; line 4 unchanged
     head = _t5_raw("venues").split(b"\nschema:", 1)[0].decode("utf-8")
