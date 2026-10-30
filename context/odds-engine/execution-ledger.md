@@ -295,3 +295,26 @@ rulings, deferred minors and runs here. It stays untracked until Task 19 commits
 - Task 9 macro-m6-context: 14/16 passed, 0 failed, 2 not run; exit 0; wall 4.129 s.
 - Task 9 cockpit: 47/47 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-9-cockpit.json; exit 0; wall 5.93 s.
 - Task 9 odds: 120/120 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-9-odds.json; exit 0; wall 11.501 s.
+
+## Cloud Task 10 completion — 2026-10-30T15:17:58+09:00 (Codex)
+
+- Code: dc060ea417716def737a430aa667c4c4078bcf28.
+- Review: core는 계획의 8개 교체와 정확히 일치. P1~P3를 기존 테스트 안에서 강화하고 메모리 내 오류 7종이 실제로 실패하는지 확인. 원본 함수 복구 및 파일 무변경 확인. 후속 anchor와 고정값 유지.
+- RED: odds_locks 0/14, odds_simulate 16/18 exactly as planned. GREEN locks 14/14 wall 3.386 s including runner imports.
+- P1: buy-and-hold daily-loss exit has entries=1, value=101,000, no unresolved bracket. Re-entry mutant caught.
+- P2: exact KRX stock round trip on a 1,000-tick ladder pins buy charge, sell charge, 20 bp tax difference, minimum cash, total cost and terminal value. Buy-as-sell and sell-as-buy mutants caught.
+- P3: hand-made component prices within dated bands exercise proportional rates >1 under stress/carry; exact clipped fill, locked-horizon value/cost and 30% delisting fee, retaining nonnegative assertions. The synthetic queued-release path isolates the state machine; stochastic absorbing-band law remains separately tested unchanged. Fill clip, horizon cost clip, liquidation clip and delisting clip mutants caught. Seven intended mutations caught, original _paths restored in finally; no code file mutated.
+- P44 / O3-17 / contract 8.4 readings, all six: (1) every daily-loss breach stops further trading that date regardless of exit trigger; (2) worst_gap includes queued stop fills; (3) force_exit_from independently blocks entries; (4) delisting sale pays the normal fee at discounted sale price, no fee for total writeoff; (5) band edges count all path-sessions, including done paths, share divides by n*sessions; (6) KRX recognition uses costs.band finite upper bound instead of a duplicated book list.
+- P45: duplicate horizon chi calculation retained, no unrelated refactor. Deferred minor: engine permits an entry at upper band U, while live order layer limit_up_locked refuses it; approved model distinction, not changed.
+
+- Task 10 odds-simulate: 18/18 passed, 0 failed, 0 not run; exit 0; wall 3.775 s.
+- Task 10 odds-guards: 18/18 passed, 0 failed, 0 not run; exit 0; wall 3.474 s.
+- Task 10 compliance-guards: 16/16 passed, 0 failed, 0 not run; exit 0; wall 6.435 s.
+- Task 10 compliance-store: 36/36 passed, 0 failed, 0 not run; exit 0; wall 22.184 s.
+- Task 10 macro-m0-harness: 11/11 passed, 0 failed, 0 not run; exit 0; wall 6.081 s.
+- Task 10 macro-tf-gov: 20/22 passed, 0 failed, 2 not run; exit 0; wall 28.904 s.
+- Task 10 macro-m7-ledger: 14/18 passed, 0 failed, 4 not run; exit 0; wall 8.49 s.
+- Task 10 macro-m8-forward: 17/23 passed, 0 failed, 6 not run; exit 0; wall 11.804 s.
+- Task 10 macro-m6-context: 14/16 passed, 0 failed, 2 not run; exit 0; wall 4.628 s.
+- Task 10 cockpit: 47/47 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-10-cockpit.json; exit 0; wall 6.032 s.
+- Task 10 odds: 134/134 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-10-odds.json; exit 0; wall 12.048 s.

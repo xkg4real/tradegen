@@ -1,0 +1,94 @@
+{
+  "code_commit": "dc060ea417716def737a430aa667c4c4078bcf28",
+  "completed_at": "2026-10-30T15:17:58+09:00",
+  "checks": [
+    {
+      "check": "odds-simulate",
+      "exit_code": 0,
+      "seconds": 3.775,
+      "summary": "18/18 passed, 0 failed, 0 not run",
+      "failures": []
+    },
+    {
+      "check": "odds-guards",
+      "exit_code": 0,
+      "seconds": 3.474,
+      "summary": "18/18 passed, 0 failed, 0 not run",
+      "failures": []
+    },
+    {
+      "check": "compliance-guards",
+      "exit_code": 0,
+      "seconds": 6.435,
+      "summary": "16/16 passed, 0 failed, 0 not run",
+      "failures": []
+    },
+    {
+      "check": "compliance-store",
+      "exit_code": 0,
+      "seconds": 22.184,
+      "summary": "36/36 passed, 0 failed, 0 not run",
+      "failures": []
+    },
+    {
+      "check": "macro-m0-harness",
+      "exit_code": 0,
+      "seconds": 6.081,
+      "summary": "11/11 passed, 0 failed, 0 not run",
+      "failures": []
+    },
+    {
+      "check": "macro-tf-gov",
+      "exit_code": 0,
+      "seconds": 28.904,
+      "summary": "20/22 passed, 0 failed, 2 not run",
+      "failures": []
+    },
+    {
+      "check": "macro-m7-ledger",
+      "exit_code": 0,
+      "seconds": 8.49,
+      "summary": "14/18 passed, 0 failed, 4 not run",
+      "failures": []
+    },
+    {
+      "check": "macro-m8-forward",
+      "exit_code": 0,
+      "seconds": 11.804,
+      "summary": "17/23 passed, 0 failed, 6 not run",
+      "failures": []
+    },
+    {
+      "check": "macro-m6-context",
+      "exit_code": 0,
+      "seconds": 4.628,
+      "summary": "14/16 passed, 0 failed, 2 not run",
+      "failures": []
+    },
+    {
+      "check": "cockpit",
+      "exit_code": 0,
+      "seconds": 6.032,
+      "summary": "47/47 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-10-cockpit.json",
+      "failures": []
+    },
+    {
+      "check": "odds",
+      "exit_code": 0,
+      "seconds": 12.048,
+      "summary": "134/134 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-10-odds.json",
+      "failures": []
+    }
+  ],
+  "metadata": {
+    "summary": "Task 10 하한가 잠금, 일일 손실 제한, 규칙 날짜, 상장폐지·비용 스트레스",
+    "files": "core/odds/simulate.py, tests/odds_simulate.py, tests/odds_locks.py",
+    "validation": "odds_locks 14/14 (wall 3.386 s), odds_simulate 18/18, odds 134/134, 보강 검사 오류 7종 검출, 공통 검증 실패 0",
+    "review": "core는 계획의 8개 교체와 정확히 일치. P1~P3를 기존 테스트 안에서 강화하고 메모리 내 오류 7종이 실제로 실패하는지 확인. 원본 함수 복구 및 파일 무변경 확인. 후속 anchor와 고정값 유지.",
+    "next_notes": "Task 11 O3-9 최종 판정 원문 확인 완료: 단일 20,000경로, rungs 동등·mean-excess, CP 0.999 유지. P46 집계 불변식 주석, P47 도달 가능한 양성 대조, P48 fair 표현 교정.",
+    "ledger": "- RED: odds_locks 0/14, odds_simulate 16/18 exactly as planned. GREEN locks 14/14 wall 3.386 s including runner imports.\n- P1: buy-and-hold daily-loss exit has entries=1, value=101,000, no unresolved bracket. Re-entry mutant caught.\n- P2: exact KRX stock round trip on a 1,000-tick ladder pins buy charge, sell charge, 20 bp tax difference, minimum cash, total cost and terminal value. Buy-as-sell and sell-as-buy mutants caught.\n- P3: hand-made component prices within dated bands exercise proportional rates >1 under stress/carry; exact clipped fill, locked-horizon value/cost and 30% delisting fee, retaining nonnegative assertions. The synthetic queued-release path isolates the state machine; stochastic absorbing-band law remains separately tested unchanged. Fill clip, horizon cost clip, liquidation clip and delisting clip mutants caught. Seven intended mutations caught, original _paths restored in finally; no code file mutated.\n- P44 / O3-17 / contract 8.4 readings, all six: (1) every daily-loss breach stops further trading that date regardless of exit trigger; (2) worst_gap includes queued stop fills; (3) force_exit_from independently blocks entries; (4) delisting sale pays the normal fee at discounted sale price, no fee for total writeoff; (5) band edges count all path-sessions, including done paths, share divides by n*sessions; (6) KRX recognition uses costs.band finite upper bound instead of a duplicated book list.\n- P45: duplicate horizon chi calculation retained, no unrelated refactor. Deferred minor: engine permits an entry at upper band U, while live order layer limit_up_locked refuses it; approved model distinction, not changed.\n"
+  },
+  "keyless": true,
+  "isolated_home": true,
+  "usage_weekly_pct": "unknown"
+}
