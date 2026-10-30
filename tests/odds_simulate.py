@@ -116,7 +116,7 @@ def test_moves_follow_the_rows_and_the_streams() -> None:
     with OF.chunk():
         for theta in (0.0, 0.7):                            # theta: the assumed-edge tilt of the kernel (Q30)
             spec = _spec(m_o=m_o, m_i=2.0 * m_o + 0.001, block=3.0, days=_days(10), theta=theta)
-            got = list(simulate._bootstrap_prices(spec, 500, 0, _SEED))
+            got = [p for p, _, _ in simulate._bootstrap_prices(spec, 500, 0, _SEED)]   # (p, D, U) since Task 10
             rows = models.indices(models.stream(_SEED, 0, "index"), 40, 500, 3.0)
             sign = models.stream(_SEED, 0, "sign")
             p = np.full(500, spec.p0)
@@ -495,12 +495,12 @@ def test_refit_groups_draw_their_own_fit_and_stream() -> None:
 
 
 def test_rules_this_engine_does_not_simulate_fail_closed() -> None:
-    """A spec that needs a rule not simulated here is refused, never priced without it."""
+    """A spec this engine cannot price faithfully (a band where none belongs, the replay engine, wrong check shapes)
+    is refused, never priced without the rule it needs."""
     days = _days()
-    cases = ((_spec(limits=np.full(30, 0.30)), "price bands and limit-down locks"),
-             (_spec(daily_loss=5_000.0), "daily loss stop"),
-             (_spec(stop_entries_from=days[5]), "rule dates"), (_spec(force_exit_from=days[5]), "rule dates"),
-             (_spec(delist_h=0.30), "delisting columns"), (_spec(engine="replay"), "engine 'replay'"),
+    # Task 10 builds the band, the locks, the daily loss, the rule dates and the delisting columns (tests/odds_locks.py
+    # tests each, and its refusals of a limit where none belongs); a crypto leg with a price limit is still refused
+    cases = ((_spec(limits=np.full(30, 0.30)), "any other leg nan"), (_spec(engine="replay"), "engine 'replay'"),
              (_spec(checks=simulate.checks("CRYPTO", days, True)), "open, then its close"),
              (_garch(checks=simulate.checks("CRYPTO", days, False)), "close only"),
              (_spec(checks=simulate.checks("CRYPTO", (), False), limits=np.zeros(0)), "at least one check"))

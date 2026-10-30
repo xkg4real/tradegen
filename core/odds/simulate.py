@@ -1,15 +1,21 @@
-"""The odds path engine (spec 7.1 "Rounding and re-entry", 7.2 "Brackets", 7.3; odds plan Q22, Q26, Q27, Q28;
-contract section 8).
+"""The odds path engine (spec 7.1 "Rounding and re-entry", 7.2 "Brackets", "Bands", "Band edges", "Limit-down locks",
+"Delisting stress", 7.3; odds plan Q5, Q22, Q26, Q27, Q28, Q29; contract section 8).
 
 `run_column` simulates one column (a member's model under one cost scenario) in chunks of CHUNK paths and folds the
 per-path results into a `report.ColumnStats`. `_run_paths` runs the state machine of contract 8.4 over any number of
-paths: at each check it moves the price, values every path at its liquidation value, records first passage, fills
-at most one exit (target, take-profit, stop, in that order) and, from the next check on and never at the last one,
-one entry sized by `costs.rule_units`. Every fill books its charges, so the gross value cash + units x price + costs
-moves only with the price: with no edge it is a martingale, and X = G_tau - W0 is the HIDDEN_EDGE sample.
+paths: at each check it moves the price inside the session's band, values every path at its liquidation value,
+records first passage, fills at most one exit (a queued locked exit, a delisting sale, then target, take-profit,
+stop, daily loss and rule date, in that order) and, from the next check on and never at the last one, one entry
+sized by `costs.rule_units`. Every fill and every delisting sale books its charges and losses, so the gross value
+cash + units x price + costs moves only with the price: with no edge it is a martingale, and X = G_tau - W0 is the
+HIDDEN_EDGE sample.
 
-Not simulated yet, and refused with ValueError by `_check_spec` rather than priced without the rule: KRX price
-bands and limit-down locks, the daily loss stop, rule dates, the delisting columns and the replay engine.
+KRX legs move inside each session's daily band [D, U] (costs.band around the previous close). An exit that triggers
+at the session's D cannot fill: it is locked and queued until the first check strictly above that D, and then fills
+at a flat 2x exit charge (LIMIT_DOWN_CARRY_COST_MULTIPLIER); a position still locked at the horizon is valued the
+same way. The daily loss stop works on Asia/Seoul dates, the rule dates of the screening stop entries (Q5) and force
+an exit, and a delisting column sells at p (1 - h) at the first check after the first entry (Q29). Not simulated
+yet, and refused with ValueError by `_check_spec` rather than priced without it: the replay engine.
 Pure: no clock, no file, no network.
 """
 from __future__ import annotations
@@ -102,51 +108,70 @@ def _check_spec(spec: PathSpec) -> None:
         raise ValueError("the bootstrap checks each session's open, then its close")
     if spec.engine == "garch" and not close.all():
         raise ValueError("GARCH-t checks each session's close only")
-    if np.isfinite(np.asarray(spec.limits, dtype=float)).any():
-        raise ValueError("KRX price bands and limit-down locks are not simulated yet")
-    if not math.isinf(spec.daily_loss):
-        raise ValueError("the daily loss stop is not simulated yet")
-    if spec.stop_entries_from is not None or spec.force_exit_from is not None:
-        raise ValueError("rule dates are not simulated yet")
-    if spec.delist_h is not None:
-        raise ValueError("delisting columns are not simulated yet")
+    limits = np.asarray(spec.limits, dtype=float)
+    if limits.shape != (int(spec.checks.session[-1]) + 1,):
+        raise ValueError(f"limits must hold one price limit per session (nan for no band), got shape {limits.shape}")
+    # costs.band gives a finite upper edge only on a KRX book: such a leg needs its dated limit for every session,
+    # and any other leg none, so no session is ever simulated without the band it has (or with one it lacks)
+    krx = bool(np.isfinite(costs.band(np.ones(1), 0.5, spec.terms, spec.checks.on[0])[1]).all())
+    if spec.engine == "garch" and krx:
+        raise ValueError("GARCH-t simulates no daily band: a KRX leg runs on the bootstrap")
+    if not (np.isfinite(limits) == krx).all():
+        raise ValueError("a KRX leg needs a finite price limit for every session, and any other leg nan")
+    if spec.delist_h is not None and not 0.0 < spec.delist_h <= 1.0:
+        raise ValueError(f"delist_h must be in (0, 1], got {spec.delist_h}")
+    if not spec.daily_loss > 0.0:                         # a nan would switch the stop off: no loss is >= nan
+        raise ValueError(f"daily_loss must be > 0 (inf for none), got {spec.daily_loss}")
 
 
-def _bootstrap_prices(spec: PathSpec, n: int, chunk: int, seed: bytes) -> Iterator[np.ndarray]:
+def _bootstrap_prices(spec: PathSpec, n: int, chunk: int, seed: bytes) -> Iterator[tuple]:
     """Contract 8.3: the row index takes one step of models.indices at each session's open (step 0 at the first);
     the open moves by m_o, the close by m_i of that row, through the fair two-point kernel with one uniform of the
-    "sign" stream per check. No band (D = 0, U = inf)."""
+    "sign" stream per check. At each open the session's band [D, U] is costs.band around the previous close (p0 for
+    the first session) at that session's limit, and it holds until the close (a nan limit: D = 0, U = inf); a
+    session that opens at an edge stays there, because the kernel's chance of leaving it is 0. Yields (p, D, U) for
+    each check; the band draws nothing, so the streams are the same with and without it."""
     rows = models.indices(models.stream(seed, chunk, "index"), len(spec.m_o), n, spec.block)
     sign = models.stream(seed, chunk, "sign")
-    p = np.full(n, float(spec.p0))
-    for close in spec.checks.close:
+    p, d, u = np.full(n, float(spec.p0)), 0.0, math.inf
+    for j, close in enumerate(spec.checks.close):
         if not close:
             idx = next(rows)
-        p = models.kernel(p, (spec.m_i if close else spec.m_o)[idx], 0.0, math.inf, sign.random(n), spec.theta)
-        yield p
+            limit = float(spec.limits[spec.checks.session[j]])
+            d, u = (0.0, math.inf) if math.isnan(limit) else costs.band(p, limit, spec.terms, spec.checks.on[j])
+        p = models.kernel(p, (spec.m_i if close else spec.m_o)[idx], d, u, sign.random(n), spec.theta)
+        yield p, d, u
 
 
-def _garch_prices(p0: float, ret: np.ndarray) -> Iterator[np.ndarray]:
-    """GARCH-t: one close check per session, p = p x exp(ret[:, s]) (contract 8.3)."""
+def _garch_prices(p0: float, ret: np.ndarray) -> Iterator[tuple]:
+    """GARCH-t: one close check per session, p = p x exp(ret[:, s]), no band (contract 8.3). Yields (p, 0, inf)."""
     p = np.full(ret.shape[0], float(p0))
     for s in range(ret.shape[1]):
         p = p * np.exp(ret[:, s])
-        yield p
+        yield p, 0.0, math.inf
 
 
-def _paths(spec: PathSpec, prices: Iterator[np.ndarray], n: int, record: bool) -> dict[str, np.ndarray]:
-    """The state machine of contract 8.4 over n paths, one check per price array of `prices` (Q26, Q27)."""
+def _paths(spec: PathSpec, prices: Iterator[tuple], n: int, record: bool) -> dict[str, np.ndarray]:
+    """The state machine of contract 8.4 over n paths, one check per (p, D, U) of `prices` (Q5, Q26, Q27, Q29)."""
     terms, mult, w0, target, floor = spec.terms, spec.mult, float(spec.w0), float(spec.target), float(spec.floor)
     bracket, moonshot, last = spec.bracket, spec.track == "moonshot", len(spec.checks.on) - 1
     take_profit, stop = (None, None) if bracket is None else (bracket.take_profit, bracket.stop)
     phib, phis = mult * terms.phi_buy, mult * terms.phi_sell
+    carry, daily, h = costs.LIMIT_DOWN_CARRY_COST_MULTIPLIER, float(spec.daily_loss), spec.delist_h
+    exit_from = spec.force_exit_from
+    entries_until = min((day for day in (spec.stop_entries_from, exit_from) if day is not None), default=None)
     cash, units, booked, x = np.full(n, w0), np.zeros(n), np.zeros(n), np.zeros(n)
-    entry, kb_e, gap = np.zeros(n), np.zeros(n), np.zeros(n)
+    entry, kb_e, gap, stake = np.zeros(n), np.zeros(n), np.zeros(n), np.zeros(n)
     tp, sl = np.full(n, math.inf), np.zeros(n)             # no exit price until a bracket entry sets them
-    j_e, entries, wins, losses = (np.zeros(n, dtype=np.int64) for _ in range(4))
+    d_lock = np.zeros(n)                                  # the D of the session where the lock started
+    j_e, entries, wins, losses, carried, edge = (np.zeros(n, dtype=np.int64) for _ in range(6))
+    first = np.full(n, -2, dtype=np.int64)               # the check of the first entry fill (after_entry)
     done, entered, fp, x_set = (np.zeros(n, dtype=bool) for _ in range(4))
+    locked, lock_stop, day_stop, delisted = (np.zeros(n, dtype=bool) for _ in range(4))
     outcome = np.zeros(n, dtype=np.int8)                  # 0 running, 1 reached, 2 at_floor
     cash_min = cash.copy()
+    day_ref = cash.copy()                                 # the value carried into the Asia/Seoul date (W0 at start)
+    none = np.zeros(n, dtype=bool)
     br_r: list[np.ndarray] = []
     br_d: list[np.ndarray] = []
 
@@ -156,40 +181,81 @@ def _paths(spec: PathSpec, prices: Iterator[np.ndarray], n: int, record: bool) -
         x[rows] = cash[rows] + units[rows] * p[rows] + booked[rows] - w0
         x_set[rows] = True
 
-    for j, p in enumerate(prices):
-        on = spec.checks.on[j]
+    def value(p: np.ndarray, ks: np.ndarray) -> np.ndarray:
+        """The liquidation value V of every path at price p (Q27): a locked position pays the carried 2x charge."""
+        chi = np.where(locked, carry, 1.0) if locked.any() else 1.0
+        return cash + units * p * np.maximum(0.0, 1.0 - ks * chi) - phis * chi * (units > 0)
+
+    for j, (p, d_edge, u_edge) in enumerate(prices):
+        on, today = spec.checks.on[j], spec.checks.seoul[j]
+        if j and today != spec.checks.seoul[j - 1]:       # a new Asia/Seoul date: V at the end of the last check
+            day_ref, day_stop = value(p_end, ks_end), np.zeros(n, dtype=bool)
+        banded = isinstance(d_edge, np.ndarray)           # a KRX session; elsewhere D = 0 and U = inf
+        if banded and not spec.checks.close[j]:
+            edge += (p == d_edge) | (p == u_edge)         # the session opened at its band edge (and stays there)
         ks = costs.kappa(terms, p, on, mult, side="sell")
-        v = cash + units * p * np.maximum(0.0, 1.0 - ks) - phis * (units > 0)
+        v = value(p, ks)
         new = ~done & ~fp & (v >= target)                 # first passage, on the liquidation value
         fp |= new
         settle(np.flatnonzero(new), p)
+        breach = ~done & (day_ref - v >= daily)           # a breach stops trading for the rest of the date
+        day_stop |= breach
         live = ~done & (units > 0)
-        reach = live & (v >= target) if moonshot else np.zeros(n, dtype=bool)
-        win = live & ~reach & (p >= tp)
-        loss = live & ~reach & ~win & (p <= sl)
-        filled = reach | win | loss
+        queued = live & locked & (p > d_lock) if locked.any() else none     # strictly above the D where it locked
+        free = live & ~locked
+        gone = free & (j == first + 1) if h is not None else none
+        free &= ~gone
+        reach = free & (v >= target) if moonshot else none
+        win = free & ~reach & (p >= tp)
+        loss = free & ~reach & ~win & (p <= sl)
+        rest = free & ~reach & ~win & ~loss
+        cut = rest & breach
+        rule = rest & ~cut if exit_from is not None and today >= exit_from else none
+        trigger = reach | win | loss | cut | rule
+        stuck = trigger & ~(p > d_edge) if banded else none     # at the session's D: locked and queued, no fill
+        if stuck.any():
+            locked = locked | stuck
+            d_lock = np.where(stuck, d_edge, d_lock)
+            lock_stop = np.where(stuck, loss, lock_stop)
+            win, loss = win & ~stuck, loss & ~stuck
+        out = (trigger & ~stuck) | queued
+        filled = out | gone
         if filled.any():
             k = np.flatnonzero(win | loss)
             if record and k.size:
                 br_r.append(p[k] / entry[k] * (1.0 - np.minimum(1.0, ks[k])) - (1.0 + kb_e[k]))
                 br_d.append(j - j_e[k])
-            k = np.flatnonzero(loss & (p < sl))
+            k = np.flatnonzero((loss | (queued & lock_stop)) & (p < sl))    # stop fills below the stop
             gap[k] = np.maximum(gap[k], (sl[k] - p[k]) / entry[k])
-            charge = np.where(filled, units * p * np.minimum(1.0, ks) + phis, 0.0)
+            chi = np.where(queued, carry, 1.0)            # a queued exit pays the flat 2x exit charge
+            charge = np.where(out, units * p * np.minimum(1.0, ks * chi) + phis * chi, 0.0)
+            if gone.any():                                # the delisting sale at p (1 - h); h x the value is a loss
+                g = np.flatnonzero(gone)
+                fee = 0.0                                 # h = 1: written off, no sale and no exit charge
+                if h < 1.0:
+                    q = p[g] * (1.0 - h)
+                    fee = units[g] * q * np.minimum(1.0, costs.kappa(terms, q, on, mult, side="sell")) + phis
+                charge[g] = units[g] * p[g] * h + fee
             cash = np.where(filled, cash + units * p - charge, cash)
             booked += charge
             units = np.where(filled, 0.0, units)
+            locked, lock_stop = locked & ~queued, lock_stop & ~queued
+            d_lock = np.where(queued, 0.0, d_lock)
             wins += win
             losses += loss
-            reached = filled & (cash >= target) if moonshot else np.zeros(n, dtype=bool)
+            carried += queued
+            delisted |= gone
+            reached = filled & (cash >= target) if moonshot else none
             floored = filled & ~reached & (cash <= floor)
             outcome[reached], outcome[floored] = 1, 2
             done |= reached | floored
             settle(np.flatnonzero(reached | floored), p)
             cash_min = np.minimum(cash_min, cash)
-        can = ~done & (units == 0) & ~filled
+        can = ~done & (units == 0) & ~filled & ~day_stop & ~delisted
         if bracket is None:
             can &= ~entered                                # buy-and-hold enters once
+        if entries_until is not None and today >= entries_until:
+            can = none                                     # Q5: no entry from a rule date on
         if j < last and can.any():
             k = np.flatnonzero(can)
             buy, at_floor = costs.rule_units(spec.fraction, cash[k], p[k], terms=terms, on=on, mult=mult,
@@ -206,27 +272,34 @@ def _paths(spec: PathSpec, prices: Iterator[np.ndarray], n: int, record: bool) -
                 cash[b] -= u * pb + charge
                 booked[b] += charge
                 units[b], entry[b], kb_e[b], j_e[b] = u, pb, kb, j
+                first[b] = np.where(entered[b], first[b], j)
+                stake[b] = np.maximum(stake[b], u * pb)
                 entered[b] = True
                 entries[b] += 1
                 if bracket is not None:
                     tp[b], sl[b] = pb * (1.0 + take_profit), pb * (1.0 - stop)
                 cash_min[b] = np.minimum(cash_min[b], cash[b])
-    # the horizon: p and ks are the last check's; a live path is RUNNING at its liquidation value
+        p_end, ks_end = p, ks
+    # the horizon: p and ks are the last check's; a live path is RUNNING at its liquidation value, a locked one at
+    # the locked price less the carried 2x exit charge (LOCKED_AT_HORIZON)
     held = units > 0
-    v = cash + units * p * np.maximum(0.0, 1.0 - ks) - phis * held
+    chi = np.where(locked, carry, 1.0)
+    v = value(p, ks)
     settle(np.flatnonzero(~x_set), p)
     unresolved = entries - wins - losses if bracket is not None else np.zeros(n, dtype=np.int64)
-    return {"p": p, "v": v, "cost": booked + units * p * np.minimum(1.0, ks) + phis * held, "x": x,
+    return {"p": p, "v": v, "cost": booked + units * p * np.minimum(1.0, ks * chi) + phis * chi * held, "x": x,
             "outcome": outcome, "fp": fp, "entered": entered, "entries": entries, "wins": wins, "losses": losses,
-            "unresolved": unresolved, "gap": gap, "cash_min": cash_min,
+            "unresolved": unresolved, "gap": gap, "cash_min": cash_min, "locked": locked, "edge": edge,
+            "carried": carried, "stake": stake,
             "br_r": np.concatenate(br_r) if br_r else np.zeros(0),
             "br_d": np.concatenate(br_d) if br_d else np.zeros(0, dtype=np.int64)}
 
 
 def _run_paths(spec: PathSpec, *, n: int, chunk: int, seed: bytes) -> dict[str, np.ndarray]:
     """The state machine of contract 8.4 over n >= 1 paths of chunk `chunk`: the per-path arrays run_column merges,
-    plus "p" (terminal price), "entries" and "cash_min", and the bracket sample "br_r", "br_d" (chunk 0, when
-    record_brackets). Draws (contract 8.2): the bootstrap's "index" and "sign" streams; GARCH-t's "garch" stream for
+    plus "p" (terminal price), "entries", "cash_min", "carried" (queued locked exits filled) and "stake" (the
+    largest entry notional, KRW), and the bracket sample "br_r", "br_d" (chunk 0, when record_brackets). Draws
+    (contract 8.2): the bootstrap's "index" and "sign" streams (the band draws nothing); GARCH-t's "garch" stream for
     each slice of GARCH_SUB paths (one fit; the last slice holds the rest), or the "refit" stream g for group g of
     n // REFIT_B paths (REFIT_B refits)."""
     _check_spec(spec)
@@ -250,7 +323,7 @@ def _run_paths(spec: PathSpec, *, n: int, chunk: int, seed: bytes) -> dict[str, 
     return {key: np.concatenate([part[key] for part in parts]) for key in parts[0]}
 
 
-_MERGED = ("v", "cost", "x", "outcome", "fp", "entered", "wins", "losses", "unresolved", "gap")
+_MERGED = ("v", "cost", "x", "outcome", "fp", "entered", "wins", "losses", "unresolved", "gap", "locked", "edge")
 
 
 def run_column(spec: PathSpec, *, n: int, seed: bytes, key: str, member: str, scenario: str) -> report.ColumnStats:
@@ -272,7 +345,7 @@ def run_column(spec: PathSpec, *, n: int, seed: bytes, key: str, member: str, sc
         reached=int(a["fp"].sum()), reached_outcome=int((outcome == 1).sum()),
         ended_at_or_above=int((v >= spec.target).sum()), at_floor=int((outcome == 2).sum()),
         running=int((outcome == 0).sum()),
-        locked_at_horizon=0,                                  # no lock without a band (_check_spec)
+        locked_at_horizon=int(a["locked"].sum()),
         rungs=tuple(int((v >= rung * spec.w0).sum()) for rung in report.LADDER) + (int((v >= spec.target).sum()),),
         median=float(np.median(v)), p5=float(np.quantile(v, 0.05)), mean=float(v.mean()),
         mean_se=float(v.std(ddof=1)) / math.sqrt(n), mean_cost=float(cost.mean()),
@@ -282,5 +355,6 @@ def run_column(spec: PathSpec, *, n: int, seed: bytes, key: str, member: str, sc
         x_range=math.nan,                                     # no range computed here: HIDDEN_EDGE unavailable
         wins=int(a["wins"].sum()), losses=int(a["losses"].sum()), unresolved=int(a["unresolved"].sum()),
         brackets=brackets,
-        band_edge_share=0.0, band_edge_sessions=0,            # no band (_check_spec)
+        band_edge_share=float(a["edge"].sum()) / (n * (int(spec.checks.session[-1]) + 1)),
+        band_edge_sessions=int(a["edge"].sum()),                # path-sessions that opened at a band edge
         worst_gap=float(a["gap"].max()), trades=int(a["entered"].sum()))
