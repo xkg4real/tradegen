@@ -1,0 +1,14 @@
+Plan 1 of 1 (d19bb288082ef94a)
+Refused: the signed owner state is not usable (no owner key yet, a broken owner log, unapproved tables, or code changed since you signed it), so nothing new is allowed.
+No numbers are shown for a refused plan.
+These numbers describe rules you wrote, run in a model. They are not advice, and TRADEGEN does not recommend any plan. A higher chance of reaching the target does not make a plan better.
+Recorded with this report:
+code hash: 1a328a4696cd2501
+code signed: no
+owner log entry: 0
+exit 2
+seams called: []
+warnings recorded: 0
+the isolated TRADEGEN_HOME unchanged: 0 entries
+APPEND: printf '%s\n' "- Task 19: isolated Cloud smoke (Q45; KEYLESS, hermetic, seams stubbed) on 2026-10-30: exit 2 STATE_UNUSABLE, no seam called, the isolated TRADEGEN_HOME unchanged (0 entries)" >> docs/superpowers/plans/2026-10-24-odds-engine-execution-ledger.md
+OK

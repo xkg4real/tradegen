@@ -6,11 +6,11 @@ task: odds-engine
 cycle: 2026-10-27
 done_ids: cloud-compat-1, cloud-compat-2, cloud-compat-3, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18
 next_ids: odds-19, odds-final, odds-pr
-updated_at: 2026-10-30T16:04:18+09:00
+updated_at: 2026-10-30T16:11:56+09:00
 stale_after_hours: 3
 waiting_on: none
 work_branch: gpt/odds-engine
-work_commit: 2b9f493be9a1d7feb6cb7584c646fd9924412c8d
+work_commit: 13b73729218e040c9cafe1e2a35d9056ad989dc5
 uncommitted_changes: yes
 pr: none
 usage_weekly_pct: unknown
@@ -25,7 +25,7 @@ session: cloud Codex (TRADEGEN)
 
 ## 0. 한 줄 요약
 
-cloud-compat-1~3 및 odds-1~18 완료. Task 19 첫 전체 실행에서 발견한 Cloud 관련 4건을 수정·재검증했습니다. 코드 `2b9f493be9a1d7feb6cb7584c646fd9924412c8d`. 다음은 전체 재실행, README/QA와 smoke, odds-final 검토입니다. 사용량 조회는 unavailable/unknown이므로 작업 단위별 체크포인트를 저장합니다.
+cloud-compat-1~3 및 odds-1~18 완료. Task 19 Step 1~7: 전체 1355/1477 통과, 실패 0, 122 NOT_RUN과 CLI 거부 smoke 통과. README/QA 기록 `13b73729218e040c9cafe1e2a35d9056ad989dc5` push 완료. 다음은 odds-final 수정·재검증 후 Task 19 장부 커밋입니다. 사용량은 unknown/unavailable이며 작업별 체크포인트를 올립니다.
 
 ## 1. 목표와 완료 조건
 
@@ -70,18 +70,17 @@ cloud-compat-1~3 및 odds-1~18 완료. Task 19 첫 전체 실행에서 발견한
 ## 4. 진행 상황
 
 - [x] cloud-compat-1~3, odds-1~18
-- [ ] odds-19 — 첫 전체 실행 4 FAIL 해결, 공식 기록을 쓰기 전 재실행 필요
-- [ ] odds-final
+- [x] odds-19 Step 1~7 — 전체 검증, README/QA, 격리 Cloud smoke
+- [ ] odds-final — 검토 수정 및 전체 재실행
+- [ ] odds-19 Step 9 — 최종 실행 장부
 - [ ] odds-pr — Claude 담당
-
-확률 엔진 287/287, compliance 340/341(Windows 콘솔 1 NOT_RUN). 추가 Cloud 수정 4/4 PASS, M0 10/11와 M8 pipeline 20/21에서 FAIL 0. 전체 성공을 아직 주장하지 않습니다.
 
 ## 5. 현재 지점
 
-- 코드 `2b9f493be9a1d7feb6cb7584c646fd9924412c8d` push 완료. 미추적 실행 장부 1개만 있으며 이 브랜치의 context 사본에 동일 바이트로 백업했습니다. Task 19 Step 9에서 코드 브랜치에 커밋합니다.
-- 첫 전체 실행: 1351 PASS, 4 FAIL, 122 NOT_RUN, 374.023 s. 실패한 qa 기록은 원복했으며 위 4건은 재현 후 해결했습니다.
-- 전체 실행 시 loopback 소켓 사용을 허용하는 Cloud tool network permission이 필요합니다. 테스트의 외부 시세/데이터 API 금지는 유지합니다. KEYLESS, 격리 홈, 실제 홈 metadata watch.
-- context/odds-engine/cloud-compat-3-validation.json에 증거를 저장했습니다.
+- 코드 `13b73729218e040c9cafe1e2a35d9056ad989dc5`. 미추적 실행 장부만 남았으며 context 사본과 바이트가 같습니다.
+- 전체 검증 1355 PASS, 0 FAIL, 122 NOT_RUN; 377.913 s, odds 287개 39.9 s, 모든 모듈 시간 목표 이내. 실제 홈 metadata 불변.
+- Cloud smoke: exit 2 STATE_UNUSABLE, 데이터 seam 호출 0, provenance 포함, 상태 생성 0. 사용자 PC의 smoke를 수행한 것은 아닙니다.
+- 기준 환경 Python 3.13.16, numpy 2.3.5, scipy 1.18.0; KEYLESS, 임시 홈, loopback 허용. 원본 검증 기록은 코드 브랜치 qa 파일 및 context JSON에 있습니다.
 
 ## 6. 다음 할 일 (순서대로)
 

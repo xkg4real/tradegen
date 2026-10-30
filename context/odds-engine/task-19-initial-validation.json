@@ -1,0 +1,16 @@
+{
+  "label": "initial",
+  "code_commit": "2b9f493be9a1d7feb6cb7584c646fd9924412c8d",
+  "exit_code": 0,
+  "seconds": 377.913,
+  "total": 1477,
+  "counts": {
+    "PASS": 1355,
+    "FAIL": 0,
+    "NOT_RUN": 122
+  },
+  "real_homes_unchanged": true,
+  "keyless": true,
+  "isolated_home": true,
+  "failures": []
+}
