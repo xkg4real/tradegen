@@ -555,7 +555,10 @@ def verify_replay(rep: plan.ReplayInput) -> str | None:
     the order: card id, inputs and protocol, digests, shape, statistics, the core's own bench_sr. Never raises: the
     replay comes from unsigned code, so any other object fails its first item. The results and card md5s are of
     file bytes unsigned code read: they are compared with the pins, never recomputed here."""
-    pins, st = REPLAY_PINS, getattr(rep, "stats", None)
+    try:
+        pins, st = REPLAY_PINS, getattr(rep, "stats", None)
+    except Exception:
+        return "card_id"
     checks = (
         ("card_id", lambda: rep.card_id == CARD_ID),
         ("input_symbol", lambda: rep.input_symbol == pins["input_symbol"]),
@@ -599,7 +602,7 @@ def verify_replay(rep: plan.ReplayInput) -> str | None:
         try:
             if not ok():
                 return name
-        except (AttributeError, KeyError, IndexError, TypeError, ValueError, OverflowError):
+        except Exception:                  # unsigned replay data: return the failing pin, never a crash
             return name
     return None
 

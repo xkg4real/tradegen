@@ -194,6 +194,19 @@ def test_each_edited_item_is_refused_by_name():
     assert models.verify_replay(dataclasses.replace(rep, stats=missing)) == "bench_ci"      # never a KeyError
     assert models.verify_replay(dataclasses.replace(rep, input_dates=(), input_close=())) == "n_input"
     assert models.verify_replay(object()) == "card_id"                  # nor an AttributeError
+
+    class BadStats(dict):
+        def __getitem__(self, key):
+            raise RuntimeError("malformed replay stats")
+
+    assert models.verify_replay(dataclasses.replace(rep, stats=BadStats(st))) == "sr_oos"
+
+    class BrokenObject:
+        @property
+        def stats(self):
+            raise RuntimeError("unreadable replay object")
+
+    assert models.verify_replay(BrokenObject()) == "card_id"
     for field, reason in (("oos_pnl", "pnl_md5"), ("oos_turnover", "turnover_md5")):
         values = (10**400,) + getattr(rep, field)[1:]
         assert models.verify_replay(dataclasses.replace(rep, **{field: values})) == reason
