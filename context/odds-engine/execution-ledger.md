@@ -318,3 +318,23 @@ rulings, deferred minors and runs here. It stays untracked until Task 19 commits
 - Task 10 macro-m6-context: 14/16 passed, 0 failed, 2 not run; exit 0; wall 4.628 s.
 - Task 10 cockpit: 47/47 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-10-cockpit.json; exit 0; wall 6.032 s.
 - Task 10 odds: 134/134 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-10-odds.json; exit 0; wall 12.048 s.
+
+## Cloud Task 11 completion — 2026-10-30T15:20:25+09:00 (Codex)
+
+- Code: d7db1d2dcd25f1782c6c44be032d86916e503893.
+- Review: core는 Task 11 원문과 바이트 일치. O3-9 최종 판정과 exact Fraction 계산, 99.9% CP 비교, 비용별 동적계획 검사를 대조. P46 회계 불변식 주석, P47 도달 가능한 양성 대조, P48 fair 표현 반영.
+- RED: missing bold ImportError, 0/1, exit 1. GREEN: odds_bold 12/12, wall 4.881 s including suite imports.
+- RULINGS_ROUND3 O3-9 directly verified: rungs=(k,k,k,0,k), mean-excess bound, one 20,000-path chunk, no second run, CP level 0.999. No reseed or changed probability threshold. Calendar interfaces fixture_set/sessions_between/regime_tags match the consumed contract.
+- P46: retained count-sum assertion with an accounting-invariant comment; it does not prove a particular outcome split. P47: strengthened existing input test positive control with reachable target 63,000 and strict value>0; no count change, anchor or pin touched. P48: engine bracket description says fair bet; the separate exact even-money game terminology remains correct.
+- Core import list is exactly future/fractions/math/numbers/numpy; both banned-text scans empty. LF preserved.
+
+- Task 11 odds-guards: 18/18 passed, 0 failed, 0 not run; exit 0; wall 3.524 s.
+- Task 11 compliance-guards: 16/16 passed, 0 failed, 0 not run; exit 0; wall 6.184 s.
+- Task 11 compliance-store: 36/36 passed, 0 failed, 0 not run; exit 0; wall 21.676 s.
+- Task 11 macro-m0-harness: 11/11 passed, 0 failed, 0 not run; exit 0; wall 6.333 s.
+- Task 11 macro-tf-gov: 20/22 passed, 0 failed, 2 not run; exit 0; wall 28.145 s.
+- Task 11 macro-m7-ledger: 14/18 passed, 0 failed, 4 not run; exit 0; wall 7.689 s.
+- Task 11 macro-m8-forward: 17/23 passed, 0 failed, 6 not run; exit 0; wall 10.347 s.
+- Task 11 macro-m6-context: 14/16 passed, 0 failed, 2 not run; exit 0; wall 5.385 s.
+- Task 11 cockpit: 47/47 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-11-cockpit.json; exit 0; wall 6.333 s.
+- Task 11 odds: 146/146 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-11-odds.json; exit 0; wall 14.559 s.

@@ -4,13 +4,13 @@ reason: owner_authorized_continuation
 from: gpt
 task: odds-engine
 cycle: 2026-10-27
-done_ids: cloud-compat-1, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10
-next_ids: odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr
-updated_at: 2026-10-30T15:17:58+09:00
+done_ids: cloud-compat-1, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11
+next_ids: odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr
+updated_at: 2026-10-30T15:20:25+09:00
 stale_after_hours: 3
 waiting_on: none
 work_branch: gpt/odds-engine
-work_commit: dc060ea417716def737a430aa667c4c4078bcf28
+work_commit: d7db1d2dcd25f1782c6c44be032d86916e503893
 uncommitted_changes: no
 pr: none
 usage_weekly_pct: unknown
@@ -25,7 +25,7 @@ session: cloud Codex (TRADEGEN)
 
 ## 0. 한 줄 요약
 
-cloud-compat-1 및 odds-1~10 완료. 최신 개발: Task 10 하한가 잠금, 일일 손실 제한, 규칙 날짜, 상장폐지·비용 스트레스. 코드 gpt/odds-engine `dc060ea417716def737a430aa667c4c4078bcf28`. 다음 단계는 odds-11입니다.
+cloud-compat-1 및 odds-1~11 완료. 최신 개발: Task 11 이론적 확률 상한, KRX 구조적 최대값, bracket 비교 기준. 코드 gpt/odds-engine `d7db1d2dcd25f1782c6c44be032d86916e503893`. 다음 단계는 odds-12입니다.
 
 2026-10-30 소유자 정정에 따라 필요한 추가 수정과 미완료 후속 단계도 개발합니다. GPT 주간 사용량 95%에 접근하면 Claude용 로그를 올립니다. 현재 조회 수단은 없어 unknown이며, 작업 단위별 체크포인트를 저장합니다.
 
@@ -73,22 +73,22 @@ cloud-compat-1 및 odds-1~10 완료. 최신 개발: Task 10 하한가 잠금, �
 
 - [x] fu — main f3bedd3
 - [x] cloud-compat-1 — 기존 클라우드 오류 5건 수정
-- [x] odds-1 ~ odds-10 — 상세 ID와 검증은 LEDGER
-- [ ] odds-11 ~ odds-19, odds-final, odds-pr
+- [x] odds-1 ~ odds-11 — 상세 ID와 검증은 LEDGER
+- [ ] odds-12 ~ odds-19, odds-final, odds-pr
 
-최근 검증: odds_locks 14/14 (wall 3.386 s), odds_simulate 18/18, odds 134/134, 보강 검사 오류 7종 검출, 공통 검증 실패 0. 모든 필수 공통 검증 실패 0. core-wide 참조자료 관련 NOT_RUN 14개는 기존 상태입니다. 상세는 context/odds-engine/task-10-validation.json과 execution-ledger.md.
+최근 검증: odds_bold 12/12 (wall 4.881 s), odds 146/146, 공통 검증 실패 0. 모든 필수 공통 검증 실패 0. core-wide 참조자료 관련 NOT_RUN 14개는 기존 상태입니다. 상세는 context/odds-engine/task-11-validation.json과 execution-ledger.md.
 
 ## 5. 현재 지점
 
-- 코드 `dc060ea417716def737a430aa667c4c4078bcf28`, 작업 트리 깨끗함. Task 10 완료 및 자체 검토 후 체크포인트.
-- core는 계획의 8개 교체와 정확히 일치. P1~P3를 기존 테스트 안에서 강화하고 메모리 내 오류 7종이 실제로 실패하는지 확인. 원본 함수 복구 및 파일 무변경 확인. 후속 anchor와 고정값 유지.
+- 코드 `d7db1d2dcd25f1782c6c44be032d86916e503893`, 작업 트리 깨끗함. Task 11 완료 및 자체 검토 후 체크포인트.
+- core는 Task 11 원문과 바이트 일치. O3-9 최종 판정과 exact Fraction 계산, 99.9% CP 비교, 비용별 동적계획 검사를 대조. P46 회계 불변식 주석, P47 도달 가능한 양성 대조, P48 fair 표현 반영.
 - 실행 장부는 context/odds-engine/execution-ledger.md에 저장하며 Task 19 이전에는 코드 브랜치에 넣지 않습니다. qa/acceptance_results.json은 변경하지 않았습니다.
 - Python 3.13.16, numpy 2.3.5, scipy 1.18.0; KEYLESS, 순차 실행, 격리된 테스트 홈. 원시 로그 /workspace/tradegen-session. Git 전송으로 원격에 바이트 그대로 저장합니다.
 
 ## 6. 다음 할 일 (순서대로)
 
-1. odds-11부터 계획 원문과 round-3 판정 및 progress/preflight에 따라 구현합니다. 각 Task RED/GREEN, 필수 회귀 검증, 자체 검토 후 push합니다.
-2. Task 11 O3-9 최종 판정 원문 확인 완료: 단일 20,000경로, rungs 동등·mean-excess, CP 0.999 유지. P46 집계 불변식 주석, P47 도달 가능한 양성 대조, P48 fair 표현 교정.
+1. odds-12부터 계획 원문과 round-3 판정 및 progress/preflight에 따라 구현합니다. 각 Task RED/GREEN, 필수 회귀 검증, 자체 검토 후 push합니다.
+2. Task 12 P4 p0/u 0을 관측 개수 기반 상한 표현으로 표시, P49 누락된 필드 TypeError 유지, P50 두 유효숫자 자리올림, P51 불필요한 중복 정리 보류. Task 14는 no-edge wins==0도 ASSUMED_EDGE_UNREACHABLE 거부.
 3. 추가 수정은 별도 ID 및 근거를 남기고 완료 ID는 중복 수행하지 않습니다.
 4. Task 19 Step 1~7 뒤 odds-final; execution-ledger의 보류 항목도 함께 검토합니다. odds-pr은 Claude가 담당합니다.
 5. odds PR 병합 전 E1을 시작하지 않습니다. 병합은 소유자 승인 사항입니다.
@@ -115,8 +115,8 @@ cloud-compat-1 및 odds-1~10 완료. 최신 개발: Task 10 하한가 잠금, �
 
 현재 GPT가 taken 상태로 개발 중입니다. returned 또는 정해진 takeover 조건 전에는 중복 작업하지 않습니다.
 
-1. CURRENT.md, AGENTS.md, LEDGER.md와 context/odds-engine 기록을 읽습니다. cloud-compat-1 및 odds-1~10는 완료됐습니다.
-2. 코드 `dc060ea417716def737a430aa667c4c4078bcf28` 및 최신 원격을 대조하고 next_ids 첫 항목부터 진행합니다.
+1. CURRENT.md, AGENTS.md, LEDGER.md와 context/odds-engine 기록을 읽습니다. cloud-compat-1 및 odds-1~11는 완료됐습니다.
+2. 코드 `d7db1d2dcd25f1782c6c44be032d86916e503893` 및 최신 원격을 대조하고 next_ids 첫 항목부터 진행합니다.
 3. 필요한 추가 수정 및 미완료 단계도 진행하며, 작업별 commit/push와 장부를 갱신합니다.
 4. GPT 주간 사용량 95% 접근 시 관측 수치와 시각을 기록하고 Claude에게 반환합니다. 조회 불가 시 unknown을 유지합니다.
 5. 주문·무장·실제 키·실제 홈·병합 금지 및 core/odds 순수성을 지킵니다.

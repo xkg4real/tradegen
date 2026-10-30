@@ -1,0 +1,87 @@
+{
+  "code_commit": "d7db1d2dcd25f1782c6c44be032d86916e503893",
+  "completed_at": "2026-10-30T15:20:25+09:00",
+  "checks": [
+    {
+      "check": "odds-guards",
+      "exit_code": 0,
+      "seconds": 3.524,
+      "summary": "18/18 passed, 0 failed, 0 not run",
+      "failures": []
+    },
+    {
+      "check": "compliance-guards",
+      "exit_code": 0,
+      "seconds": 6.184,
+      "summary": "16/16 passed, 0 failed, 0 not run",
+      "failures": []
+    },
+    {
+      "check": "compliance-store",
+      "exit_code": 0,
+      "seconds": 21.676,
+      "summary": "36/36 passed, 0 failed, 0 not run",
+      "failures": []
+    },
+    {
+      "check": "macro-m0-harness",
+      "exit_code": 0,
+      "seconds": 6.333,
+      "summary": "11/11 passed, 0 failed, 0 not run",
+      "failures": []
+    },
+    {
+      "check": "macro-tf-gov",
+      "exit_code": 0,
+      "seconds": 28.145,
+      "summary": "20/22 passed, 0 failed, 2 not run",
+      "failures": []
+    },
+    {
+      "check": "macro-m7-ledger",
+      "exit_code": 0,
+      "seconds": 7.689,
+      "summary": "14/18 passed, 0 failed, 4 not run",
+      "failures": []
+    },
+    {
+      "check": "macro-m8-forward",
+      "exit_code": 0,
+      "seconds": 10.347,
+      "summary": "17/23 passed, 0 failed, 6 not run",
+      "failures": []
+    },
+    {
+      "check": "macro-m6-context",
+      "exit_code": 0,
+      "seconds": 5.385,
+      "summary": "14/16 passed, 0 failed, 2 not run",
+      "failures": []
+    },
+    {
+      "check": "cockpit",
+      "exit_code": 0,
+      "seconds": 6.333,
+      "summary": "47/47 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-11-cockpit.json",
+      "failures": []
+    },
+    {
+      "check": "odds",
+      "exit_code": 0,
+      "seconds": 14.559,
+      "summary": "146/146 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-11-odds.json",
+      "failures": []
+    }
+  ],
+  "metadata": {
+    "summary": "Task 11 이론적 확률 상한, KRX 구조적 최대값, bracket 비교 기준",
+    "files": "core/odds/bold.py, tests/odds_bold.py",
+    "validation": "odds_bold 12/12 (wall 4.881 s), odds 146/146, 공통 검증 실패 0",
+    "review": "core는 Task 11 원문과 바이트 일치. O3-9 최종 판정과 exact Fraction 계산, 99.9% CP 비교, 비용별 동적계획 검사를 대조. P46 회계 불변식 주석, P47 도달 가능한 양성 대조, P48 fair 표현 반영.",
+    "next_notes": "Task 12 P4 p0/u 0을 관측 개수 기반 상한 표현으로 표시, P49 누락된 필드 TypeError 유지, P50 두 유효숫자 자리올림, P51 불필요한 중복 정리 보류. Task 14는 no-edge wins==0도 ASSUMED_EDGE_UNREACHABLE 거부.",
+    "ledger": "- RED: missing bold ImportError, 0/1, exit 1. GREEN: odds_bold 12/12, wall 4.881 s including suite imports.\n- RULINGS_ROUND3 O3-9 directly verified: rungs=(k,k,k,0,k), mean-excess bound, one 20,000-path chunk, no second run, CP level 0.999. No reseed or changed probability threshold. Calendar interfaces fixture_set/sessions_between/regime_tags match the consumed contract.\n- P46: retained count-sum assertion with an accounting-invariant comment; it does not prove a particular outcome split. P47: strengthened existing input test positive control with reachable target 63,000 and strict value>0; no count change, anchor or pin touched. P48: engine bracket description says fair bet; the separate exact even-money game terminology remains correct.\n- Core import list is exactly future/fractions/math/numbers/numpy; both banned-text scans empty. LF preserved.\n"
+  },
+  "keyless": true,
+  "isolated_home": true,
+  "usage_weekly_pct": "unknown"
+}
