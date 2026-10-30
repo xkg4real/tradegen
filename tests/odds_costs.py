@@ -301,6 +301,12 @@ def test_kappa_equals_side_bp_element_by_element():
     _raises(lambda: costs.kappa(_t("stock"), np.array([70000.0]), _D27, 1.0, side="sell"), costs.NotTradable,
             "stock sell tax for 2027")
 
+    # A hand-built ladder must fail like the scalar oracle below its first row.
+    malformed = dataclasses.replace(_t("stock"), ladder=((100.0, 1.0), (2000.0, 5.0)))
+    _raises(lambda: costs.ladder_tick(malformed.ladder, 50.0), costs.NotTradable, "")
+    _raises(lambda: costs.kappa(malformed, np.array([50.0, 2000.0]), _D, 1.0, side="buy"),
+            costs.NotTradable, "")
+
 
 def test_check_validity_copies_the_original_dates():
     horizon = tuple(date(2026, 10, 26) + timedelta(days=k) for k in range(66))      # 2026-10-26 .. 2026-12-30

@@ -178,7 +178,10 @@ def _ticks(terms: Terms, q: np.ndarray, on: date) -> np.ndarray:
     rows = _rows(terms, on)
     starts = np.array([r[0] for r in rows])
     steps = np.array([r[1] for r in rows])
-    return steps[np.searchsorted(starts, q, side="right") - 1]
+    idx = np.searchsorted(starts, q, side="right") - 1
+    if np.any(idx < 0):
+        raise NotTradable("price is below the first tick-ladder row")
+    return steps[idx]
 
 
 def _bp(terms: Terms, q: np.ndarray, on: date, side: str) -> np.ndarray:
