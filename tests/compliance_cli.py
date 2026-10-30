@@ -392,6 +392,20 @@ def test_check_main_exit_4_on_injected_exception():
     assert last == {"code": 4, "due": [], "overdue": [], "head_seq": 0, "head_sha256": "", "fingerprint": ""}, last
     assert any("RuntimeError: injected" in line for line in lines), lines
 
+    # Task 4 follow-through: internal calendar errors must propagate to the CLI's exit 4.
+    calendar = rules.calendar_stream(ROOT / "core" / "calendars" / "data")
+    real_get = owner.store_get
+
+    def calendar_bug(kind, *args, **kwargs):
+        if kind == "calendar":
+            raise TypeError("calendar bug")
+        return real_get(kind, *args, **kwargs)
+
+    with _signed_home(calendar_raw=calendar), _patched(owner, "store_get", calendar_bug):
+        code, lines, last = _check_main(["--check", "--today", "2026-10-23"])
+    assert code == last["code"] == 4, (code, lines)
+    assert any("TypeError: calendar bug" in line for line in lines), lines
+
 
 def test_check_main_exit_4_on_bad_today_unknown_flag_or_no_check():
     for argv in (["--check", "--today", "2026-13-01"], ["--check", "--today", "20261023"],
