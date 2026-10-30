@@ -16,7 +16,8 @@ at a flat 2x exit charge (LIMIT_DOWN_CARRY_COST_MULTIPLIER); a position still lo
 same way. The daily loss stop works on Asia/Seoul dates, the rule dates of the screening stop entries (Q5) and force
 an exit, and a delisting column sells at p (1 - h) at the first check after the first entry (Q29). Not simulated
 yet, and refused with ValueError by `_check_spec` rather than priced without it: the replay engine.
-Pure: no clock, no file, no network.
+Pure except `simulate`'s calendar step, which reads the signed calendar through owner.calendar_in_force for KRX and
+US legs (Q42); no clock, no network.
 """
 from __future__ import annotations
 
@@ -358,3 +359,216 @@ def run_column(spec: PathSpec, *, n: int, seed: bytes, key: str, member: str, sc
         band_edge_share=float(a["edge"].sum()) / (n * (int(spec.checks.session[-1]) + 1)),
         band_edge_sessions=int(a["edge"].sum()),                # path-sessions that opened at a band edge
         worst_gap=float(a["gap"].max()), trades=int(a["entered"].sum()))
+
+
+# --------------------------------------------------------------------------- #
+# Part 3 (Task 13): the pipeline of contract 8.5. precheck, every refusal of Q24 in its order, the headline no-edge
+# column at base and 2x costs, the rule dates and the OKX cap from the gate, and the report. Task 14 adds the other
+# columns and the GARCH-t headline, Task 17 the replay.
+# --------------------------------------------------------------------------- #
+import dataclasses  # noqa: E402
+
+import numpy as np  # noqa: E402
+import scipy  # noqa: E402
+
+from core.compliance import gate, model, owner  # noqa: E402
+from core.odds import bold, costs, models, plan, report  # noqa: E402
+
+_VENUE_NAMES = {"kis": "KIS", "upbit": "Upbit", "okx": "OKX"}      # the {venue} slot of why.NOT_TRADABLE
+
+
+def precheck(plan_obj, ctx, n_paths: int | None = None) -> plan.Refusal | None:
+    """Q24 steps 1-4, before any data is loaded (Q45): PARTIAL_CHUNK when n_paths is given and is not a positive
+    multiple of CHUNK; then plan.check_plan (the start date included) and plan.check_state (unsigned code, both limits
+    and the OKX cap included). Never raises on a malformed plan."""
+    if n_paths is not None and (type(n_paths) is not int or n_paths <= 0 or n_paths % CHUNK):
+        return plan.Refusal(code="PARTIAL_CHUNK", slots={"chunk": f"{CHUNK:,}"}, detail=f"n_paths {n_paths!r}")
+    return plan.check_plan(plan_obj, ctx) or plan.check_state(plan_obj, ctx)
+
+
+def simulate(plan_obj, ctx, inputs: plan.Inputs, *, n_paths: int | None = None) -> report.OddsReport:
+    """The odds of one plan (contract 8.5): the refusals of Q24 in their order, each a refused report with no
+    probability, then the columns and the report; n = n_paths, or DEFAULT_PATHS[track] when it is None. The only
+    I/O is owner.calendar_in_force for KRX and US legs (Q42). Raises only on a bug."""
+    refusal = precheck(plan_obj, ctx, n_paths)
+    if refusal is not None:
+        return _refused_report(plan_obj, ctx, refusal)
+    if isinstance(plan_obj.leg, (list, tuple)):            # check_plan let exactly one Leg through; screen needs it
+        plan_obj = dataclasses.replace(plan_obj, leg=plan_obj.leg[0])
+    leg = plan_obj.leg
+    venue, inst = plan.instrument(plan_obj, ctx)
+    market = plan.MARKET[(leg.venue, inst.section)]
+    refusal = (plan.check_now(ctx, inputs.now) or _calendar_refusal(market, inputs)
+               or plan.check_data(plan_obj, ctx, inputs, market))
+    if refusal is not None:
+        return _refused_report(plan_obj, ctx, refusal)
+    replay = leg.edge_source == plan.REPLAY_SOURCE
+    sessions = tuple(date.fromisoformat(d) for d in inputs.sessions)
+    try:
+        terms = costs.terms(venue, inst, plan_obj.fx_krw_per_usd, replay=replay)
+        costs.check_validity(terms, sessions)
+    except costs.NotTradable as exc:
+        refusal = plan.Refusal(code="NOT_TRADABLE", slots={"venue": _VENUE_NAMES[leg.venue], "symbol": leg.symbol},
+                               detail=str(exc))
+        return _refused_report(plan_obj, ctx, refusal)
+    refusal = plan.check_history(plan_obj, inputs, market)
+    if refusal is None and replay:                         # Task 17 replaces this branch with models.verify_replay
+        refusal = plan.Refusal(code="CARD_NOT_REPRODUCED", detail="replay not built yet")
+    if refusal is None and leg.model == "garch_t" and market == "KR":
+        refusal = plan.Refusal(code="MODEL_NOT_FOR_LIMITED_VENUE", detail="GARCH-t has no KRX daily band")
+    if refusal is not None:
+        return _refused_report(plan_obj, ctx, refusal)
+    p0, first_day = float(inputs.series.close[-1]), sessions[0]
+    why = costs.cost_refusal(plan_obj, terms, p0, first_day)
+    if why is not None:
+        return _refused_report(plan_obj, ctx, plan.Refusal(code="COST_DOMINATED", detail=why))
+    first = costs.first_stake(plan_obj, terms, ctx, p0, first_day)
+    if first <= 0.0:                                       # never screen a zero stake (O11)
+        refusal = plan.Refusal(code="STUCK_AT_START", detail=f"first stake {first!r} at {p0!r}")
+        return _refused_report(plan_obj, ctx, refusal)
+    screening = gate.screen(plan_obj, ctx, float(first))
+    if not screening.allowed:
+        return _refused_report(plan_obj, ctx, _screen_refusal(screening, ctx))
+    if leg.model == "garch_t":                             # Task 14 replaces this branch with the GARCH-t headline
+        refusal = plan.Refusal(code="MODEL_CHECK_FAILED", sub="fit", detail="garch not built yet")
+        return _refused_report(plan_obj, ctx, refusal)
+    n = DEFAULT_PATHS[plan_obj.track] if n_paths is None else n_paths
+    return _accepted_report(plan_obj, ctx, inputs, inst=inst, terms=terms, market=market, sessions=sessions,
+                            screening=screening, n=n)
+
+
+def _calendar_refusal(market: str, inputs) -> plan.Refusal | None:
+    """Q24 step 6 (Q6), KRX and US legs only: CALENDAR_COVERAGE on a "coverage: ..." error of the unsigned side;
+    else CALENDAR_UNSIGNED unless it reported no error and the calendar signed at inputs.now is exactly the set the
+    sessions came from. owner.calendar_in_force is the core's only I/O (Q42)."""
+    if market not in ("KR", "US"):
+        return None
+    error = inputs.calendar_error
+    if type(error) is str and error.startswith("coverage:"):
+        return plan.Refusal(code="CALENDAR_COVERAGE", detail=error)
+    if error != "":
+        return plan.Refusal(code="CALENDAR_UNSIGNED", detail=str(error))
+    sha = owner.calendar_in_force(inputs.now)
+    if type(sha) is not str or sha != inputs.calendar_sha256:
+        return plan.Refusal(code="CALENDAR_UNSIGNED",
+                            detail=f"signed {sha!r}, sessions from {inputs.calendar_sha256!r}")
+    return None
+
+
+def _screen_refusal(screening, ctx) -> plan.Refusal:
+    """SCREEN_BLOCKED with the sub of the gate's first reason: "unsigned" for unsigned code; "row" with the row id
+    when the reason names a row of the table ("stale: review by <date> passed (<id>)", "<what>: <id>"); else
+    "other"."""
+    reasons = screening.decision.reasons
+    first, detail = (reasons[0] if reasons else ""), "; ".join(reasons)
+    if first == "unsigned code":
+        return plan.Refusal(code="SCREEN_BLOCKED", sub="unsigned", detail=detail)
+    row = first[first.rfind("(") + 1:-1] if first.endswith(")") else first.rpartition(": ")[2]
+    if row in {r.id for r in ctx.active.rules.rows}:
+        return plan.Refusal(code="SCREEN_BLOCKED", sub="row", slots={"row": row}, detail=detail)
+    return plan.Refusal(code="SCREEN_BLOCKED", sub="other", detail=detail)
+
+
+def _cap_text(x: float) -> str:
+    """A cap as the card prints it: 0.1 -> "10%"."""
+    return f"{100.0 * x:g}%"
+
+
+def _grey_slots(plan_obj, ctx) -> tuple[tuple[str, str, str], ...]:
+    """(row id, cap, auto-off date) of each in-force grey row of the leg (gate.grey_rows), for GREY_LEG. The gate
+    has already refused a grey row whose cap is unset ("cap unset"), so every cap here is set."""
+    rows = {row.id: row for row in ctx.active.rules.rows}
+    return tuple((rid, _cap_text(ctx.owner.caps[rows[rid].cap_key]), rows[rid].auto_off.isoformat())
+                 for rid in gate.grey_rows(plan_obj, ctx))
+
+
+def _headline_spec(plan_obj, ctx, inputs, *, terms, market: str, sessions: tuple[date, ...], screening) -> PathSpec:
+    """The headline member's PathSpec at base costs: the bootstrap rows and block of the history, open and close
+    checks (Q22), the KRX limits per session, W0 = the stake (O11), the OKX per-entry cap, and the rule dates of
+    Screening.flags (Q5): entries stop from the earliest flag date, and a forced exit comes at the first check on or
+    after the earliest auto_off or effective_until. Every other column is dataclasses.replace of it."""
+    leg, limits, flags = plan_obj.leg, ctx.owner.limits, screening.flags
+    m_o, m_i, r = models.rows(inputs.series)
+    return PathSpec(
+        track=plan_obj.track, w0=float(plan_obj.stake_krw), target=float(plan_obj.target_krw),
+        floor=float(limits["total_loss_floor_krw"]), daily_loss=float(limits["daily_loss_krw"]),
+        p0=float(inputs.series.close[-1]), engine="bootstrap", m_o=m_o, m_i=m_i, block=models.block_length(r),
+        checks=checks(market, sessions, False),
+        limits=(np.asarray(inputs.price_limits, dtype=float) if market == "KR"
+                else np.full(len(sessions), np.nan)),
+        terms=terms, mult=costs.SCENARIOS["base"], bracket=leg.bracket, sizing=leg.sizing,
+        fraction=plan_obj.fraction, fstar=None,
+        cap_krw=(ctx.owner.caps[plan.OKX_CAP_KEY] * float(plan_obj.stake_krw) if leg.venue == "okx" else None),
+        stop_entries_from=min((d for d, _, _ in flags), default=None),
+        force_exit_from=min((d for d, what, _ in flags if what in ("auto_off", "effective_until")), default=None),
+        delist_h=None)
+
+
+def _no_edge_pair(spec: PathSpec, member: str, *, n: int, seed: bytes) -> tuple[report.ColumnStats, report.ColumnStats]:
+    """One member's no-edge column at base and at 2x costs, on the same streams (common random numbers, Q31)."""
+    return tuple(run_column(dataclasses.replace(spec, mult=mult), n=n, seed=seed, key=f"no_edge/{member}/{name}",
+                            member=member, scenario=name) for name, mult in costs.SCENARIOS.items())
+
+
+def context_provenance(ctx) -> dict:
+    """The provenance keys a sealed context gives (its tables, owner head, key fingerprint and code hash), else {}.
+    Every report of this module carries them, and so do the cards the CLI refuses itself (Task 18)."""
+    if not model.is_sealed(ctx):
+        return {}
+    active, head = ctx.active, ctx.owner.head
+    hashes = dict(getattr(active, "hashes", {}) or {})
+    return {"rules_sha": hashes.get("rules", ""), "instruments_sha": hashes.get("instruments", ""),
+            "venues_sha": hashes.get("venues", ""), "state_hash": active.state_hash, "owner_seq": head[0],
+            "owner_row": head[1], "code_hash": ctx.code_hash, "code_signed": ctx.code_signed,
+            "fingerprint": ctx.owner.fingerprint}
+
+
+def _report_provenance(plan_obj, ctx, inputs, *, screening, seed: bytes, n: int, members: tuple[str, ...]) -> dict:
+    """Every provenance key of contract 10.1, stored as data (render prints hashes as 16-hex prefixes)."""
+    series, leg, prov = inputs.series, plan_obj.leg, inputs.provenance
+    return {**context_provenance(ctx), "decision_id": screening.decision.decision_id,
+            "screening_hash": screening.screening_hash, "series_md5": series.md5, "components": series.components,
+            "proxy_dates": series.proxy_dates, "calendar_sha": inputs.calendar_sha256,
+            "calendar_version": inputs.calendar_version, "calendar_md5s": inputs.calendar_md5s, "model": leg.model,
+            "members": members, "seed_hex": seed.hex(), "n": n, "chunk": CHUNK, "numpy": np.__version__,
+            "scipy": scipy.__version__, "cryptography": prov.cryptography, "edge_source": leg.edge_source,
+            "repo_anchor": prov.repo_anchor, "tree_hash": prov.tree_hash, "comparison_id": inputs.comparison_id,
+            "run_counter": inputs.run_counter, "plan_hash": plan.plan_hash(plan_obj)}
+
+
+def _refused_report(plan_obj, ctx, refusal: plan.Refusal) -> report.OddsReport:
+    """A refused report: the refusal and the context's provenance; no column, no flag, no probability."""
+    return report.refusal_report(plan_obj, refusal, provenance=context_provenance(ctx))
+
+
+def _accepted_report(plan_obj, ctx, inputs, *, inst, terms, market: str, sessions: tuple[date, ...], screening,
+                     n: int) -> report.OddsReport:
+    """Step 7 for the headline member: the market seed (Q34), l_min per sizing (Q32), the headline no-edge column at
+    base and 2x costs, the flags (rule dates, grey rows, proxy data) and report.build with the provenance keys.
+    plan_index and plan_count are 1 here; the CLI numbers the plans of its file."""
+    leg, series = plan_obj.leg, inputs.series
+    seed = models.market_seed(models.data_hashes(series, inputs.replay), inputs.calendar_sha256,
+                              inputs.comparison_id, inputs.run_counter)
+    spec = _headline_spec(plan_obj, ctx, inputs, terms=terms, market=market, sessions=sessions, screening=screening)
+    member = leg.model
+    columns = _no_edge_pair(spec, member, n=n, seed=seed)
+    stake, target = float(plan_obj.stake_krw), float(plan_obj.target_krw)
+    l_min = spec.floor if leg.sizing == "floor_safe" else 0.0
+    ceiling = bold.ceiling(stake, l_min, target)
+    model_slots = {"symbol": leg.symbol, "first": series.dates[0], "last": series.dates[-1],
+                   "rows": f"{len(series.dates):,}"}
+    if spec.cap_krw is not None:
+        model_slots.update(cap=_cap_text(ctx.owner.caps[plan.OKX_CAP_KEY]), capkrw=report.fmt_krw(spec.cap_krw))
+    flags = report.flags_for(headline=columns[0], no_edge=columns, engine=spec.engine, hidden=None, ceiling=ceiling,
+                             structural=None, target=target, stake=stake, reference=None,
+                             rule_flags=screening.flags, grey=_grey_slots(plan_obj, ctx), series=series,
+                             okx=leg.venue == "okx")
+    return report.build(
+        plan_hash=plan.plan_hash(plan_obj), plan_index=1, plan_count=1, refused=None, track=plan_obj.track,
+        stake=stake, target=target, floor=spec.floor, l_min=l_min, horizon_days=plan_obj.horizon_days, n=n,
+        sizing=leg.sizing, model_key="model.bootstrap", model_slots=model_slots, columns=columns,
+        headline=columns[0].key, spread=None, spread_kind="none", notes=(), ceiling=ceiling, structural_cap=None,
+        structural_sessions=None, tax_basis=inst.tax_basis,
+        cost_words_key="cost.tax" if terms.book == "KRX_stock_book" else "cost.fees", hidden=None, flags=flags,
+        assumed=None, replay=None, comparison=(inputs.comparison_plans, inputs.comparison_typed, inputs.plan_runs),
+        provenance=_report_provenance(plan_obj, ctx, inputs, screening=screening, seed=seed, n=n, members=(member,)))

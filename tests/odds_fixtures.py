@@ -204,3 +204,95 @@ def even_rows(m: float, n: int = 400):
     opens, closes = tuple(float(x) for x in o), tuple(float(x) for x in c)
     return P.Series(symbol="KRW-BTC", source="UPBIT", dates=dates, open=opens, close=closes, adjustment="",
                     status="final", md5=P.series_md5("KRW-BTC", "UPBIT", dates, opens, closes, "", "final"))
+
+
+# --------------------------------------------------------------------------- #
+# Task 13: pipeline runs on fixture contexts and inputs, the signed-calendar swap and call spies (contract 3.2)
+# --------------------------------------------------------------------------- #
+from contextlib import contextmanager as _contextmanager  # noqa: E402
+
+CAL_SHA = "ab" * 32           # the calendar sha of every KRX fixture input; calendar_signed(CAL_SHA) signs it
+
+
+@_contextmanager
+def calendar_signed(sha: str) -> Iterator[None]:
+    """core.compliance.owner.calendar_in_force swapped for `lambda now: sha` (save/restore), so a KRX or US leg whose
+    inputs carry `sha` passes the calendar step. For the KRX steps after that step only: the CALENDAR_UNSIGNED and
+    CALENDAR_COVERAGE tests use the real function (no key in the temp home); Task 18 signs a calendar end to end."""
+    from core.compliance import owner
+    saved = owner.calendar_in_force
+    owner.calendar_in_force = lambda now: sha
+    try:
+        yield
+    finally:
+        owner.calendar_in_force = saved
+
+
+@_contextmanager
+def spy(target, name: str) -> Iterator[list]:
+    """target.<name> wrapped so that every call is recorded as (args, kwargs, result) in the yielded list; the real
+    attribute comes back afterwards."""
+    real = getattr(target, name)
+    calls: list = []
+
+    def recorded(*args, **kwargs):
+        result = real(*args, **kwargs)
+        calls.append((args, kwargs, result))
+        return result
+
+    setattr(target, name, recorded)
+    try:
+        yield calls
+    finally:
+        setattr(target, name, real)
+
+
+def owner_with(**changes):
+    """F.ctx's owner state (floor KRW 21,000, daily loss KRW 5,000, OKX cap 0.10, OK) with fields replaced."""
+    import dataclasses
+    from tests import compliance_fixtures as F
+    return dataclasses.replace(F.ctx().owner, **changes)
+
+
+def fresh_series(n: int = 600, *, end: str = "2026-10-22", **changes):
+    """series() of n daily bars whose last bar is `end` (by default the day before the fixture start, so the stale
+    check passes); `changes` go to series(), never `start` or `step_days`."""
+    import datetime as dt
+    first = dt.date.fromisoformat(end) - dt.timedelta(days=n - 1)
+    return series(n=n, start=first.isoformat(), **changes)
+
+
+def weekdays(start, horizon_days: int) -> tuple[str, ...]:
+    """Fixture KRX sessions: the weekdays of [start, start + horizon_days). Holidays are ignored: the core checks the
+    session list's shape and the calendar sha, never the dates against a calendar."""
+    import datetime as dt
+    days = (start + dt.timedelta(days=i) for i in range(horizon_days))
+    return tuple(d.isoformat() for d in days if d.weekday() < 5)
+
+
+def pipeline_inputs(plan_obj, series_obj, **changes):
+    """inputs() for a fixture leg, its clock reading at 09:00 KST on the plan's start: a crypto leg gets every date of
+    the horizon, a KRX leg (kis and a six-digit code) the weekdays with one 0.30 limit each and CAL_SHA. `changes`
+    override any Inputs field (a US leg passes its sessions and sha here)."""
+    import datetime as dt
+    from core.compliance import model
+    start, horizon = plan_obj.start, plan_obj.horizon_days
+    leg = plan_obj.leg[0] if isinstance(plan_obj.leg, (list, tuple)) else plan_obj.leg
+    fields = {"now": dt.datetime(start.year, start.month, start.day, 9, 0, tzinfo=model.KST)}
+    if leg.venue == "kis" and leg.symbol.isdigit():
+        days = weekdays(start, horizon)
+        fields.update(sessions=days, price_limits=(0.30,) * len(days), calendar_sha256=CAL_SHA)
+    else:
+        fields["sessions"] = tuple((start + dt.timedelta(days=i)).isoformat() for i in range(horizon))
+    fields.update(changes)
+    return inputs(plan_obj, series_obj, **fields)
+
+
+def pipeline(plan_obj=None, ctx=None, series_obj=None, *, n_paths=None, **changes):
+    """simulate.simulate on a fixture plan (default plan()), context (odds_ctx()) and series (fresh_series()), with
+    pipeline_inputs(plan, series, **changes)."""
+    from core.odds import simulate
+    plan_obj = plan() if plan_obj is None else plan_obj
+    ctx = odds_ctx() if ctx is None else ctx
+    series_obj = fresh_series() if series_obj is None else series_obj
+    return simulate.simulate(plan_obj, ctx, pipeline_inputs(plan_obj, series_obj, **changes), n_paths=n_paths)
