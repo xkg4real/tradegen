@@ -1,0 +1,25 @@
+{
+  "label": "final",
+  "code_commit": "c9018e213ea037019501d1e3a7daafa8633e8ad0",
+  "exit_code": 0,
+  "seconds": 380.641,
+  "total": 1477,
+  "counts": {
+    "PASS": 1355,
+    "FAIL": 0,
+    "NOT_RUN": 122
+  },
+  "real_homes_unchanged": true,
+  "keyless": true,
+  "isolated_home": true,
+  "failures": [],
+  "record_commit": "e5c4a3d6c4921f2253fd3f7ea8b48ddf03cca686",
+  "ledger_commit": "d773b6c44c73b82492d7d9ce89d4d76c8ea62110",
+  "post_record_checks": {
+    "odds_guards": "18/18 PASS",
+    "compliance_guards": "16/16 PASS",
+    "macro_readme": "1/1 PASS"
+  },
+  "audit": "record OK; README matches; all odds module timings under target",
+  "smoke": "exit 2 STATE_UNUSABLE; provenance present; zero data-seam calls; zero state entries before/after; isolated Cloud only"
+}

@@ -1,5 +1,5 @@
 {
-  "phase": "review fixes validated; full rerun pending",
+  "phase": "complete; final full run and Cloud smoke passed",
   "commits": [
     {
       "commit": "99f81034e3948724e3552cdb5428cf50d34baacc",
@@ -160,5 +160,22 @@
       "summary": "47/47 passed, 0 failed, 0 not run; /workspace/tradegen-session/odds-final-cockpit.json",
       "failures": []
     }
-  ]
+  ],
+  "full_run": {
+    "label": "final",
+    "code_commit": "c9018e213ea037019501d1e3a7daafa8633e8ad0",
+    "exit_code": 0,
+    "seconds": 380.641,
+    "total": 1477,
+    "counts": {
+      "PASS": 1355,
+      "FAIL": 0,
+      "NOT_RUN": 122
+    },
+    "real_homes_unchanged": true,
+    "keyless": true,
+    "isolated_home": true,
+    "failures": []
+  },
+  "final_ledger_commit": "d773b6c44c73b82492d7d9ce89d4d76c8ea62110"
 }

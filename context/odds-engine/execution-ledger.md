@@ -117,6 +117,78 @@ rulings, deferred minors and runs here. It stays untracked until Task 19 commits
   beyond `test_first_stake`'s caps; `floor_units`' +1e-9 lot tolerance can overshoot `afford`'s stake by at most
   1e-9 of a lot (sub-won), the same class as O3-22's OKX cap overshoot.
 
+- Task 1: final review 99f8103 closes the three recorded guard limitations: aliased clock constructors, nested match subjects and shadowed writer imports. Six source snippets inside existing tests retain every import target; 18/18 guards pass. General arbitrary Python behavior still needs source review.
+- Task 2: final review 36f6491 closes T2-R1-1/T2-R1-2 with the four venue-shape failures and lot-only odds_sources in existing tests; tables 70/70.
+- Task 3: final review 36f6491 closes T3-R1-3 with byte-line source reads. T3-R1-1/T3-R1-2 remain explicit owner-act-3 checks, keeping the venue SHA; P15 locale behavior stays as accepted.
+- Task 4: final review 3f10ffb closes the calendar CLI coverage minor; the existing injected-exception test now requires a calendar TypeError to print its detail and exit 4. CLI 36/36.
+- Task 5: final review 5c1a1ad refuses unlisted venue/quote pairs before costs/data, including Upbit USDC, after the existing product rules to preserve priorities; plan 25/25. Direct-call canonicalization and shallow frozen mappings remain the accepted loader/data boundary.
+- Task 6: final review 02e3c37 refuses a vector price below the first tick row instead of using index -1; the same existing test requires scalar and vector refusals. Costs 23/23; accepted scalar/vector oracles and O3-22 rounding tolerance retained.
+- Task 13: final review c9018e2 resolves P84's inaccurate shipped-row comment; artificial rule flags exercise all date orders and no assertion changes.
+- Task 17: final review fbb0a78 makes malformed replay stats mappings and unreadable stats attributes return the failed item name, as the unsigned-input boundary promises; replay 24/24, all pins unchanged.
+- Task 19: these resolution lines supersede the historical pending-review notes above; historical findings are retained for audit. Optional refactors and owner confirmations are explicit accepted follow-ups, not unruled implementation failures.
+
+## Rulings as applied
+
+- Order of the plans (Tasks 1 and 19; DQ26, R2-11): the follow-up merged first and this branch was cut from the
+  merged main (see Base); E1 starts after this plan merges.
+- O1 (Tasks 1, 5, 6, 7, 8, 15, 16, 17): everything injected; the signed core `core/odds` holds no clock, no file
+  I/O and no data layer, and the unsigned `core/oddsdata` loads, caches and runs.
+- O2 (Task 1): the odds-own guards, each with a positive control.
+- O3 (Tasks 2, 3, 4): the compliance-side prerequisites: the venue odds keys, the sourced lots and minimums,
+  `owner.calendar_in_force` and `gate.grey_rows`.
+- O4 (Task 5): the plan types.
+- O5 (Tasks 10, 13): review_by and rule dates.
+- O6 (Tasks 4, 13, 15, 16): the calendar from the owner's signed store.
+- O7 (Tasks 5, 15): venues and feeds.
+- O8 (Tasks 5, 13): SPECIAL_REGIME.
+- O9 (Task 17): the D13 replay against its pinned card.
+- O10 (Tasks 6, 7, 8, 9, 13, 14): models, statistics and the simulator.
+- O11 (Tasks 2, 3, 6, 10, 13): stakes, equity and costs.
+- O12 (Tasks 7, 16, 18): seeds and the persisted odds state.
+- O13 (Tasks 1, 5, 15, 18, 19): the cache, the seams, the harness and the budgets (times under Runs).
+- O14 (Tasks 12, 17): the report.
+- O15 (Tasks 18, 19): the CLI, and its isolated Cloud smoke under Runs (actual owner PC smoke remains an owner action).
+- R2-1 (Tasks 6, 13): the KRX stock sell tax sits inside the floor, equal to `instruments.cost_per_side`; a sell
+  year missing from SELL_TAX_BP is NOT_TRADABLE.
+- R2-2 (Tasks 6, 19): the band lower edge is 1,404 at ETF reference 2,005; `orders.limit_prices` is unchanged; E3
+  takes the venue's quoted edges (hand-off below).
+- R2-3 (plan header, Task 19): the spec departures are listed under "For spec rev 3.3"; the accepted departures are recorded here and in the plan header. The separate spec rev 3.3 docs update remains for Claude outside this implementation branch (CONTRACT 2); no completed spec update is claimed.
+- R2-4 (Tasks 12, 19): the fresh-seed rerun is not built and `compare.fresh` says so; handed to E2 (below).
+- R2-5 (Tasks 3, 6, 13, 17): a replay leg needs only `lot` and `min_order`; every other leg also needs `fee_extras`.
+- R2-6 (Tasks 1, 16, 18): `repo_anchor` and `tree_hash` are copied into `core/oddsdata/inputs.py` with equality
+  tests; no run-time `sys.modules` check.
+- R2-7 (Task 12): HIDDEN_EDGE with no finite range prints "unavailable for this plan (no finite range)".
+- R2-8 (Tasks 5, 14): STALE_DAYS 3 and 14, and the per-refit pilot checks.
+- R2-9 (Task 8): the GARCH corruption margins on the real pilot stream (Task 8's R2-9 margins line under Runs).
+- R2-10 (Task 1): `pstats` and `tracemalloc` bind `core/odds` through the merged lists.
+- R2-11 (Task 1): the follow-up branched from main's HEAD, and this plan after the follow-up merged.
+- R2-13 (Tasks 1, 2, 3, 4, 19): the DRIFT RULE; every drift ruling is a `- Task <n>` line under Drift rulings.
+- Round 3 (G3-1 to G3-5, O3-1 to O3-22; every task): counts from the drafts, with each difference under Runs
+  (G3-1); times over target under Runs (G3-2); the controller's pushes, with the single odds PR assigned to Claude and not yet opened (G3-3); the 09:00 KST
+  window (G3-4); no sandbox leftovers copied (G3-5).
+
+## Hand-off to execution (E1, E2, E3)
+
+- E1 (read-only account inquiry, next): it inherits `owner.load_context`, `gate.screen`, `gate.grey_rows`,
+  `owner.calendar_in_force`, `report.OddsReport` with `report.render`, and the refusal codes of `core/odds/plan.py`.
+  Live balances replace `Positions(equity_krw=stake)`; E1 itself passes no live positions to `load_context` (E24,
+  E3-5), so that replacement is E2's.
+- E2 (execution core, which arms): never pass a zero stake to `screen` (the odds engine refuses STUCK_AT_START
+  first). Apply the OKX cap per entry, and size the first entry so the gate's cap check passes: `first_stake =
+  floor_units(cap x W0) x p0` can exceed cap x equity by one ulp, which the gate blocks as "cap exceeded" (O3-22);
+  never loosen the gate. Halt for the rest of the Asia/Seoul date on a daily-loss breach, whatever names the exit,
+  and at the floor (O3-17). Rerun the plan on a fresh market seed before arming, which `compare.fresh` says this plan
+  does not build (R2-4). Entries at the limit-up price fill in the odds engine, while
+  `core/engine/orders.simulate_fill` refuses them (O3-17, O3-22).
+- E3 (live order adapters): take band edges from the venue's own quoted limit prices, never computed. The odds band
+  (per-edge rule, 1,404 at ETF reference 2,005) and `orders.limit_prices` (one tick for both edges, 1,405) differ by
+  one tick there, and this plan changes neither (Q41, R2-2). For limit-up fills, use the venue's answer (O3-17).
+- No open issue of this plan's own is left: R2-1 settled the KRX stock tax inside the floor, and R2-2 the band edge.
+- The owner acts (spec 11; neither Claude nor Codex performs these): 1 the signer; 2 the code hash; 3 the rules table, the instrument
+  map and the venues file, once it carries `fee_extras` (0 allowed) and the missing lots and minimums; 4 the calendar
+  set (KRX and US plans only); 5 `total_loss_floor_krw`, `daily_loss_krw` and `okx_equity_share`; 6
+  `age_of_majority` (KR-OKX-SPOT requires it, so OKX plans need it) and the withdrawal entries.
+
 ## Runs
 - Task 1: -m tests.odds_acceptance odds_guards/: 18/18 passed, 0 failed, 0 not run
 - Task 1: -m tests.odds_acceptance: 18/18 passed, 0 failed, 0 not run
@@ -560,3 +632,12 @@ rulings, deferred minors and runs here. It stays untracked until Task 19 commits
 - P80 CRLF 892-line README retained. P81 signer help says editor terminals can be refused; no real signer/owner action run. P82 state-root failure is a smoke failure requiring metadata-only diagnosis. P83 Task 8 kw_only ruling already recorded. P84 inaccurate shipped-row comment corrected.
 - Accepted boundaries retained: loader canonicalizes plan hash inputs; injected/frozen data is not redesigned for deep immutability. Task 3 source citation/value lines and KIS minimum-order inference remain owner act 3 with venue SHA unchanged. Scalar/vector cost oracle and the accepted O3-22 floor tolerance remain. Task 9 cash/cap paths are covered by Task 10 hand-ledger cases. Optional P37/P42/P45/P51/P57/P65/P76 refactors remain deferred. No exhaustive mutation-coverage claim.
 - This is an intermediate checkpoint: Task 19 final full run, record, smoke and Step 9 ledger commit remain. odds-final is not marked complete until they pass.
+
+- Task 19: full run (KEYLESS) 1355/1477 passed, 0 failed, 122 not run on 2026-10-30; previous full run 1055/1176 passed, 0 failed, 121 not run; odds 287 PASS in 39.2 s; compliance 340 PASS / 1 NOT_RUN (+14 rows); status changes 1 [run final; code c9018e2]
+  - compliance/compliance_signer/test_stdin_terminal_check_follows_getconsolemode: PASS -> NOT_RUN, REFDATA: GetConsoleMode needs Windows
+  - Cloud platform ruling: GetConsoleMode requires Windows; one NOT_RUN retained, not PASS
+
+- Task 8 R2-9 margins: the measured four-cell table is recorded in Cloud Task 8 above (OFFSET 2e-6, RATIO_FACTOR 3.0, LOG_DRIFT 0.0). Clean z 1.64/2.14/1.21/1.25; ratio-corruption z 8.22/12.34/35.67/68.26; log-drift-corruption z 2.48/7.51/15.42/23.24. The first log-drift cell alone is below 4, so this does not claim rejection in every cell; required tests use the specified streams and all pass unchanged.
+- Task 19: isolated Cloud smoke (Q45; KEYLESS, hermetic, seams stubbed), final record e5c4a3d: exit 2 STATE_UNUSABLE; provenance present, no seam called, zero state entries before/after. This is not an owner-PC smoke.
+- Task 19: final run source c9018e213ea037019501d1e3a7daafa8633e8ad0; full wall 380.641 s, actual default homes unchanged, all 19 KEYLESS names checked. README/QA checked against the branch-point record; 892 CRLF README lines and CRLF QA preserved. Final record commit e5c4a3d6c4921f2253fd3f7ea8b48ddf03cca686. Odds guards 18/18, compliance guards 16/16 and macro README check 1/1 passed after updating the record.
+- Task 19: final re-review of the seven fix commits and the unchanged surrounding contracts found no further accepted fix. No new test functions, weakened checks, changed seeds or new pins in the final wave. Required original per-task review, RED/GREEN and common checks are recorded above. Task 19 Steps 1–9 and odds-final are complete; Step 10 odds-pr is handed back to Claude. No PR or merge was performed. E1 remains gated on the odds PR merge.

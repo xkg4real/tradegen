@@ -1,0 +1,12 @@
+previous full run (main at f3bedd3): 1055/1176 passed, 0 failed, 121 not run
+this run: 1355/1477 passed, 0 failed, 122 not run on 2026-10-30
+rows added outside odds: 14 as the drafts expect
+status changes: 1
+  - compliance/compliance_signer/test_stdin_terminal_check_follows_getconsolemode: PASS -> NOT_RUN, REFDATA: GetConsoleMode needs Windows
+odds: 287 rows in 39.2 s; modules over their CONTRACT 3.4 target: none
+README cells: cockpit=47 PASS; engine=92 PASS; ui=4 PASS; quant=53 PASS; ficc=56 PASS; expansion=19 PASS; macro=419 PASS / 121 NOT_RUN; paper=21 PASS; grokteam=17 PASS; compliance=340 PASS / 1 NOT_RUN; odds=287 PASS
+README Total: 1355/1477 passed, 0 failed, 122 not run (2026-10-30, Cloud Python 3.13 venv)
+- Cloud platform ruling: GetConsoleMode requires Windows; one NOT_RUN retained, not PASS
+APPEND: printf '%s\n' "- Task 19: full run (KEYLESS) 1355/1477 passed, 0 failed, 122 not run on 2026-10-30; previous full run 1055/1176 passed, 0 failed, 121 not run; odds 287 PASS in 39.2 s; compliance 340 PASS / 1 NOT_RUN (+14 rows); status changes 1" "  - compliance/compliance_signer/test_stdin_terminal_check_follows_getconsolemode: PASS -> NOT_RUN, REFDATA: GetConsoleMode needs Windows" "  - Cloud platform ruling: GetConsoleMode requires Windows; one NOT_RUN retained, not PASS" >> docs/superpowers/plans/2026-10-24-odds-engine-execution-ledger.md
+record: OK
+README: matches the record
