@@ -338,3 +338,28 @@ rulings, deferred minors and runs here. It stays untracked until Task 19 commits
 - Task 11 macro-m6-context: 14/16 passed, 0 failed, 2 not run; exit 0; wall 5.385 s.
 - Task 11 cockpit: 47/47 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-11-cockpit.json; exit 0; wall 6.333 s.
 - Task 11 odds: 146/146 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-11-odds.json; exit 0; wall 14.559 s.
+
+## Cloud Task 12 completion — 2026-10-30T15:24:10+09:00 (Codex)
+
+- Code: 349d69ec7c27e5dc2a3952c9bc70e4a5a0eeabe8.
+- Review: 193개 catalogue 키 및 SHA 핀 유지. 계획 전체와 diff 대조, P4/P49/P50 회귀 재현 후 수정. 기존 테스트 함수 안에서만 검증 강화하여 41개 유지.
+- RED: base tests 1/41, 40 missing attributes; strengthened tests then 38/41 with three expected failures. GREEN: 41/41, wall 3.562 s.
+- P4: assumed p0/u observed zeros render a count-based bound using resolved bracket count; u=0 means every bracket resolved, so the denominator is also the full bracket count. Zero/nonpositive resolved is rejected at rendering. Added p0=0/u=0/both-zero checks inside existing tests. Task 14 must refuse no-edge wins==0 as ASSUMED_EDGE_UNREACHABLE.
+- P49: build converts columns/flags/notes only when supplied; omitted required fields retain TypeError. Existing test checks all three.
+- P50: determine decimal places after rounding to two significant digits, fixing rollover boundaries. Added 0.00009999 -> 0.010%, 0.0009999 -> 0.10%, 0.009999 -> 1.0% cases without changing fmt_prob rules.
+- P51: optional helper deduplication deferred to preserve later anchors; no thresholds, seeds, catalogue keys, or pins changed.
+- Exact plan report SHA before rulings: 4bb51b738c9e434523cba74528b1abc8801adef35ff29809fdf53b41dd482006. Final report SHA after three explicit preflight fixes: 860fe600b30df402beb1f4518da68c71eee8cbc9ba2c00684f6b1fd4fb8a6bf6. 70 top-level names, LF preserved, both banned-text scans empty.
+
+- Task 12 odds-simulate: 18/18 passed, 0 failed, 0 not run; exit 0; wall 4.026 s.
+- Task 12 odds-locks: 14/14 passed, 0 failed, 0 not run; exit 0; wall 3.474 s.
+- Task 12 odds-bold: 12/12 passed, 0 failed, 0 not run; exit 0; wall 4.93 s.
+- Task 12 odds-guards: 18/18 passed, 0 failed, 0 not run; exit 0; wall 4.032 s.
+- Task 12 compliance-guards: 16/16 passed, 0 failed, 0 not run; exit 0; wall 6.182 s.
+- Task 12 compliance-store: 36/36 passed, 0 failed, 0 not run; exit 0; wall 23.082 s.
+- Task 12 macro-m0-harness: 11/11 passed, 0 failed, 0 not run; exit 0; wall 6.532 s.
+- Task 12 macro-tf-gov: 20/22 passed, 0 failed, 2 not run; exit 0; wall 28.85 s.
+- Task 12 macro-m7-ledger: 14/18 passed, 0 failed, 4 not run; exit 0; wall 8.038 s.
+- Task 12 macro-m8-forward: 17/23 passed, 0 failed, 6 not run; exit 0; wall 10.245 s.
+- Task 12 macro-m6-context: 14/16 passed, 0 failed, 2 not run; exit 0; wall 4.075 s.
+- Task 12 cockpit: 47/47 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-12-cockpit.json; exit 0; wall 5.83 s.
+- Task 12 odds: 187/187 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-12-odds.json; exit 0; wall 14.507 s.
