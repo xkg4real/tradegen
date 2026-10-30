@@ -1,0 +1,87 @@
+{
+  "code_commit": "86443e8edcd7ab333dd5f84076035ac191e85ba4",
+  "completed_at": "2026-10-30T15:27:14+09:00",
+  "checks": [
+    {
+      "check": "odds-guards",
+      "exit_code": 0,
+      "seconds": 3.927,
+      "summary": "18/18 passed, 0 failed, 0 not run",
+      "failures": []
+    },
+    {
+      "check": "compliance-guards",
+      "exit_code": 0,
+      "seconds": 5.983,
+      "summary": "16/16 passed, 0 failed, 0 not run",
+      "failures": []
+    },
+    {
+      "check": "compliance-store",
+      "exit_code": 0,
+      "seconds": 23.836,
+      "summary": "36/36 passed, 0 failed, 0 not run",
+      "failures": []
+    },
+    {
+      "check": "macro-m0-harness",
+      "exit_code": 0,
+      "seconds": 6.532,
+      "summary": "11/11 passed, 0 failed, 0 not run",
+      "failures": []
+    },
+    {
+      "check": "macro-tf-gov",
+      "exit_code": 0,
+      "seconds": 28.852,
+      "summary": "20/22 passed, 0 failed, 2 not run",
+      "failures": []
+    },
+    {
+      "check": "macro-m7-ledger",
+      "exit_code": 0,
+      "seconds": 8.242,
+      "summary": "14/18 passed, 0 failed, 4 not run",
+      "failures": []
+    },
+    {
+      "check": "macro-m8-forward",
+      "exit_code": 0,
+      "seconds": 10.345,
+      "summary": "17/23 passed, 0 failed, 6 not run",
+      "failures": []
+    },
+    {
+      "check": "macro-m6-context",
+      "exit_code": 0,
+      "seconds": 4.379,
+      "summary": "14/16 passed, 0 failed, 2 not run",
+      "failures": []
+    },
+    {
+      "check": "cockpit",
+      "exit_code": 0,
+      "seconds": 5.885,
+      "summary": "47/47 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-13-cockpit.json",
+      "failures": []
+    },
+    {
+      "check": "odds",
+      "exit_code": 0,
+      "seconds": 15.615,
+      "summary": "200/200 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-13-odds.json",
+      "failures": []
+    }
+  ],
+  "metadata": {
+    "summary": "Task 13 입력·규칙 검증과 기본 시뮬레이션 보고서 연결",
+    "files": "core/odds/simulate.py, tests/odds_fixtures.py, tests/odds_pipeline.py",
+    "validation": "odds_pipeline 13/13 (wall 3.781 s), odds 200/200, 공통 검증 실패 0",
+    "review": "세 파일을 계획 원문과 바이트 대조(P52/P55 주석·import 교정 제외). 거부 순서, 비용 적용일, OKX cap 및 규칙 날짜, 비교 seed, 순수성 검사를 통과.",
+    "next_notes": "Task 14 P4 no-edge wins==0 거부와 테스트를 추가. P56/P58 문구 수정, P59 annotation 정리, P60 실제 통계 여유 기록. O3-18 range 배치는 판정 승인 사항.",
+    "ledger": "- RED: 0/13, missing precheck/simulate as expected. A scratch precondition initially named a nonexistent _bootstrap_groups function; it asserted before any mutation. Corrected it to the plan's six declaration-pattern check; production/tests unchanged by that attempt. GREEN 13/13 wall 3.781 s.\n- P52: _no_edge_pair return type names exactly two ColumnStats objects. P55: reused the existing date import, omitting its redundant part-3 import. P53: purity test passed unchanged after its prescribed warmup; no flake or workaround. P54: CALENDAR_UNSIGNED test uses the runner's isolated temp_home, whose owner has no key; no real home/key read.\n- Contract 3.2: Task 13 adds CAL_SHA, calendar_signed(sha), spy(target, name), owner_with(**changes), fresh_series(...), weekdays(start, horizon_days), pipeline_inputs(plan_obj, series_obj, **changes), pipeline(...) to tests/odds_fixtures.py. Tasks 14 and 17 consume these names.\n- All three files match exact plan contents plus P52/P55 cosmetic corrections. No anchor, pin, seed, threshold or test count changed.\n"
+  },
+  "keyless": true,
+  "isolated_home": true,
+  "usage_weekly_pct": "unknown"
+}

@@ -4,13 +4,13 @@ reason: owner_authorized_continuation
 from: gpt
 task: odds-engine
 cycle: 2026-10-27
-done_ids: cloud-compat-1, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12
-next_ids: odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr
-updated_at: 2026-10-30T15:24:10+09:00
+done_ids: cloud-compat-1, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13
+next_ids: odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr
+updated_at: 2026-10-30T15:27:14+09:00
 stale_after_hours: 3
 waiting_on: none
 work_branch: gpt/odds-engine
-work_commit: 349d69ec7c27e5dc2a3952c9bc70e4a5a0eeabe8
+work_commit: 86443e8edcd7ab333dd5f84076035ac191e85ba4
 uncommitted_changes: no
 pr: none
 usage_weekly_pct: unknown
@@ -25,7 +25,7 @@ session: cloud Codex (TRADEGEN)
 
 ## 0. 한 줄 요약
 
-cloud-compat-1 및 odds-1~12 완료. 최신 개발: Task 12 보고서, 확률 표기, 불확실성·이상 징후 표시 및 문장 검증. 코드 gpt/odds-engine `349d69ec7c27e5dc2a3952c9bc70e4a5a0eeabe8`. 다음 단계는 odds-13입니다.
+cloud-compat-1 및 odds-1~13 완료. 최신 개발: Task 13 입력·규칙 검증과 기본 시뮬레이션 보고서 연결. 코드 gpt/odds-engine `86443e8edcd7ab333dd5f84076035ac191e85ba4`. 다음 단계는 odds-14입니다.
 
 2026-10-30 소유자 정정에 따라 필요한 추가 수정과 미완료 후속 단계도 개발합니다. GPT 주간 사용량 95%에 접근하면 Claude용 로그를 올립니다. 현재 조회 수단은 없어 unknown이며, 작업 단위별 체크포인트를 저장합니다.
 
@@ -73,22 +73,22 @@ cloud-compat-1 및 odds-1~12 완료. 최신 개발: Task 12 보고서, 확률 �
 
 - [x] fu — main f3bedd3
 - [x] cloud-compat-1 — 기존 클라우드 오류 5건 수정
-- [x] odds-1 ~ odds-12 — 상세 ID와 검증은 LEDGER
-- [ ] odds-13 ~ odds-19, odds-final, odds-pr
+- [x] odds-1 ~ odds-13 — 상세 ID와 검증은 LEDGER
+- [ ] odds-14 ~ odds-19, odds-final, odds-pr
 
-최근 검증: odds_report 41/41 (wall 3.562 s), odds 187/187, 공통 검증 실패 0. 모든 필수 공통 검증 실패 0. core-wide 참조자료 관련 NOT_RUN 14개는 기존 상태입니다. 상세는 context/odds-engine/task-12-validation.json과 execution-ledger.md.
+최근 검증: odds_pipeline 13/13 (wall 3.781 s), odds 200/200, 공통 검증 실패 0. 모든 필수 공통 검증 실패 0. core-wide 참조자료 관련 NOT_RUN 14개는 기존 상태입니다. 상세는 context/odds-engine/task-13-validation.json과 execution-ledger.md.
 
 ## 5. 현재 지점
 
-- 코드 `349d69ec7c27e5dc2a3952c9bc70e4a5a0eeabe8`, 작업 트리 깨끗함. Task 12 완료 및 자체 검토 후 체크포인트.
-- 193개 catalogue 키 및 SHA 핀 유지. 계획 전체와 diff 대조, P4/P49/P50 회귀 재현 후 수정. 기존 테스트 함수 안에서만 검증 강화하여 41개 유지.
+- 코드 `86443e8edcd7ab333dd5f84076035ac191e85ba4`, 작업 트리 깨끗함. Task 13 완료 및 자체 검토 후 체크포인트.
+- 세 파일을 계획 원문과 바이트 대조(P52/P55 주석·import 교정 제외). 거부 순서, 비용 적용일, OKX cap 및 규칙 날짜, 비교 seed, 순수성 검사를 통과.
 - 실행 장부는 context/odds-engine/execution-ledger.md에 저장하며 Task 19 이전에는 코드 브랜치에 넣지 않습니다. qa/acceptance_results.json은 변경하지 않았습니다.
 - Python 3.13.16, numpy 2.3.5, scipy 1.18.0; KEYLESS, 순차 실행, 격리된 테스트 홈. 원시 로그 /workspace/tradegen-session. Git 전송으로 원격에 바이트 그대로 저장합니다.
 
 ## 6. 다음 할 일 (순서대로)
 
-1. odds-13부터 계획 원문과 round-3 판정 및 progress/preflight에 따라 구현합니다. 각 Task RED/GREEN, 필수 회귀 검증, 자체 검토 후 push합니다.
-2. Task 13 P52 정확한 tuple 주석, P53 순수성 테스트 유지, P54 임시 홈의 서명 부재 전제 기록, P55 중복 date import 정리. Task 14는 P4 no-edge wins==0 거부도 반영.
+1. odds-14부터 계획 원문과 round-3 판정 및 progress/preflight에 따라 구현합니다. 각 Task RED/GREEN, 필수 회귀 검증, 자체 검토 후 push합니다.
+2. Task 14 P4 no-edge wins==0 거부와 테스트를 추가. P56/P58 문구 수정, P59 annotation 정리, P60 실제 통계 여유 기록. O3-18 range 배치는 판정 승인 사항.
 3. 추가 수정은 별도 ID 및 근거를 남기고 완료 ID는 중복 수행하지 않습니다.
 4. Task 19 Step 1~7 뒤 odds-final; execution-ledger의 보류 항목도 함께 검토합니다. odds-pr은 Claude가 담당합니다.
 5. odds PR 병합 전 E1을 시작하지 않습니다. 병합은 소유자 승인 사항입니다.
@@ -115,8 +115,8 @@ cloud-compat-1 및 odds-1~12 완료. 최신 개발: Task 12 보고서, 확률 �
 
 현재 GPT가 taken 상태로 개발 중입니다. returned 또는 정해진 takeover 조건 전에는 중복 작업하지 않습니다.
 
-1. CURRENT.md, AGENTS.md, LEDGER.md와 context/odds-engine 기록을 읽습니다. cloud-compat-1 및 odds-1~12는 완료됐습니다.
-2. 코드 `349d69ec7c27e5dc2a3952c9bc70e4a5a0eeabe8` 및 최신 원격을 대조하고 next_ids 첫 항목부터 진행합니다.
+1. CURRENT.md, AGENTS.md, LEDGER.md와 context/odds-engine 기록을 읽습니다. cloud-compat-1 및 odds-1~13는 완료됐습니다.
+2. 코드 `86443e8edcd7ab333dd5f84076035ac191e85ba4` 및 최신 원격을 대조하고 next_ids 첫 항목부터 진행합니다.
 3. 필요한 추가 수정 및 미완료 단계도 진행하며, 작업별 commit/push와 장부를 갱신합니다.
 4. GPT 주간 사용량 95% 접근 시 관측 수치와 시각을 기록하고 Claude에게 반환합니다. 조회 불가 시 unknown을 유지합니다.
 5. 주문·무장·실제 키·실제 홈·병합 금지 및 core/odds 순수성을 지킵니다.

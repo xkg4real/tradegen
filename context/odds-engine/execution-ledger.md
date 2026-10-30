@@ -363,3 +363,23 @@ rulings, deferred minors and runs here. It stays untracked until Task 19 commits
 - Task 12 macro-m6-context: 14/16 passed, 0 failed, 2 not run; exit 0; wall 4.075 s.
 - Task 12 cockpit: 47/47 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-12-cockpit.json; exit 0; wall 5.83 s.
 - Task 12 odds: 187/187 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-12-odds.json; exit 0; wall 14.507 s.
+
+## Cloud Task 13 completion — 2026-10-30T15:27:14+09:00 (Codex)
+
+- Code: 86443e8edcd7ab333dd5f84076035ac191e85ba4.
+- Review: 세 파일을 계획 원문과 바이트 대조(P52/P55 주석·import 교정 제외). 거부 순서, 비용 적용일, OKX cap 및 규칙 날짜, 비교 seed, 순수성 검사를 통과.
+- RED: 0/13, missing precheck/simulate as expected. A scratch precondition initially named a nonexistent _bootstrap_groups function; it asserted before any mutation. Corrected it to the plan's six declaration-pattern check; production/tests unchanged by that attempt. GREEN 13/13 wall 3.781 s.
+- P52: _no_edge_pair return type names exactly two ColumnStats objects. P55: reused the existing date import, omitting its redundant part-3 import. P53: purity test passed unchanged after its prescribed warmup; no flake or workaround. P54: CALENDAR_UNSIGNED test uses the runner's isolated temp_home, whose owner has no key; no real home/key read.
+- Contract 3.2: Task 13 adds CAL_SHA, calendar_signed(sha), spy(target, name), owner_with(**changes), fresh_series(...), weekdays(start, horizon_days), pipeline_inputs(plan_obj, series_obj, **changes), pipeline(...) to tests/odds_fixtures.py. Tasks 14 and 17 consume these names.
+- All three files match exact plan contents plus P52/P55 cosmetic corrections. No anchor, pin, seed, threshold or test count changed.
+
+- Task 13 odds-guards: 18/18 passed, 0 failed, 0 not run; exit 0; wall 3.927 s.
+- Task 13 compliance-guards: 16/16 passed, 0 failed, 0 not run; exit 0; wall 5.983 s.
+- Task 13 compliance-store: 36/36 passed, 0 failed, 0 not run; exit 0; wall 23.836 s.
+- Task 13 macro-m0-harness: 11/11 passed, 0 failed, 0 not run; exit 0; wall 6.532 s.
+- Task 13 macro-tf-gov: 20/22 passed, 0 failed, 2 not run; exit 0; wall 28.852 s.
+- Task 13 macro-m7-ledger: 14/18 passed, 0 failed, 4 not run; exit 0; wall 8.242 s.
+- Task 13 macro-m8-forward: 17/23 passed, 0 failed, 6 not run; exit 0; wall 10.345 s.
+- Task 13 macro-m6-context: 14/16 passed, 0 failed, 2 not run; exit 0; wall 4.379 s.
+- Task 13 cockpit: 47/47 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-13-cockpit.json; exit 0; wall 5.885 s.
+- Task 13 odds: 200/200 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-13-odds.json; exit 0; wall 15.615 s.
