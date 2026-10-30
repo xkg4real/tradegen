@@ -429,6 +429,13 @@ def test_every_state_path_stays_out_of_quantgen():
     from data.krx import kis_client, opendart_client
     from grokteam import book
     q = config.QUANTGEN_STATE
+    # These constants were resolved at import time, before this test clears the environment.
+    startup_root = config.state_root().resolve()
+    startup_paths = {"kis_token": kis_client._TOKEN_PATH, "dart_cache": opendart_client._CACHE_PATH,
+                     "grokteam": book.DATA}
+    for name, path in startup_paths.items():
+        assert path.resolve().is_relative_to(startup_root), (name, path, startup_root)
+        assert config.refuse_quantgen(path).resolve() == path.resolve(), (name, path)
     ours = ("TRADEGEN_HOME", "TRADEGEN_MACRO_DIR", "TRADEGEN_TRADING_DIR", "TRADEGEN_RUNS_DIR", "TRADEGEN_FICC_CACHE")
     theirs = {"QUANTGEN_MACRO_DIR": "macro", "NEXTGEN_TRADING_DIR": "trading", "NEXTGEN_RUNS_DIR": "runs",
               "NEXTGEN_FICC_CACHE": "ficc_cache", "GROKTEAM_LEDGER_DIR": "macro/ledgers"}
@@ -440,12 +447,18 @@ def test_every_state_path_stays_out_of_quantgen():
             os.environ[n] = str(q / sub)                    # set to QUANTGEN's own dirs: must change nothing
         home = (Path.home() / ".tradegen").resolve()
         paths = {"state_root": config.state_root(), "macro": config.macro_dir(), "trading": config.trading_dir(),
-                 "runs": config.runs_dir(), "ficc_cache": config.ficc_cache_dir(), "kis_token": kis_client._TOKEN_PATH,
-                 "dart_cache": opendart_client._CACHE_PATH, "grokteam": book.DATA}
+                 "runs": config.runs_dir(), "ficc_cache": config.ficc_cache_dir()}
         for name, p in paths.items():
             assert p.resolve().is_relative_to(home), (name, p)
-        aliases = [q / "macro" / "ledgers", Path("\\\\?\\" + str(q.resolve()) + "\\macro"),
-                   Path(str(q).upper()) / "trading", config.QUANTGEN_REPO / "grokteam" / "out"]
+        aliases = [q / "macro" / "ledgers", config.QUANTGEN_REPO / "grokteam" / "out"]
+        if os.name == "nt":
+            aliases += [Path("\\\\?\\" + str(q.resolve()) + "\\macro"), Path(str(q).upper()) / "trading"]
+        else:
+            # POSIX paths are case-sensitive; exercise real relative and symlink aliases instead.
+            link = Path(tempfile.mkdtemp(prefix="macro-quantgen-alias-")) / "alias"
+            link.symlink_to(q, target_is_directory=True)
+            assert link.is_symlink() and link.resolve() == q.resolve()
+            aliases += [q / "macro" / ".." / "trading", link / "macro"]
         for p in aliases:
             for what, call in (("resolver", lambda p=p: config.refuse_quantgen(p)),
                                ("ledger", lambda p=p: GL.family_ledger("X", p)),
