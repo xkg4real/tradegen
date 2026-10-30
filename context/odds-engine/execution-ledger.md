@@ -463,3 +463,32 @@ rulings, deferred minors and runs here. It stays untracked until Task 19 commits
 - Standalone tools/signer/sign.py intentionally pins the owner's Windows deployment root, while core/isolation.py derives QUANTGEN's sibling from the checkout. The old absolute equality assumed the checkout lived on that desktop. Pin both exact intended roots independently, and retain equality when that documented deployment layout applies. Existing synthetic-root refusal/parity tests remain intact. Production signer/isolation code and actual keys/homes are untouched.
 - GREEN: tables 70/70; isolation 17/17; signer 37/38, zero failures. Only compliance_signer/test_stdin_terminal_check_follows_getconsolemode remains NOT_RUN: REFDATA: GetConsoleMode needs Windows. It requires a real Windows console and cannot be represented as verified on Linux. Task 18/19 must report this explicit platform difference; do not invent PASS.
 - Counts, LF endings and diff reviewed. Tests only; no extra broad macro rerun needed. Full compliance suite remains required at Task 18.
+
+## Cloud Task 17 completion — 2026-10-30T15:47:48+09:00 (Codex)
+
+- Code: 03f865cec1022d550fe22458b631a5f36036d942.
+- Review: 세 RED/GREEN cycle 완료. 고정된 3,288개 입력과 2,530개 OOS 행, 모든 digest/stat 핀 유지. P5는 progress/preflight 원문대로 호출자에서 range를 설정. 거대 정수도 예외 대신 명명된 거부.
+- RED/GREEN A: missing import 0/1; base plus overflow regression 13/14; fixed 14/14 wall 16.604 s; odds_models 19/19. B: 14/19 with five missing-engine refusals; P5 direct-column range regression failed before correction; GREEN 19/19 wall 17.155 s; simulate 18/18, locks 14/14. C: 19/24 with exactly five missing card/helper failures; GREEN 24/24 wall 17.362 s.
+- P5/O3-18: _replay_column returns nan range; _replay_report.column sets the range with dataclasses.replace immediately after run_column using only target, replay moves/costs and check count. Existing report range assertions unchanged; extra direct-column and spy assertions pin this separation. This corrects Task 16 next_notes/CURRENT's inaccurate 'before paths' summary. A preliminary scratch test for that mistaken interpretation was replaced after re-reading the authoritative progress.md and preflight.md; no such interpretation was committed.
+- Added OverflowError to verify_replay's named rejection catch; existing edited-item test rejects 10**400 in pnl and turnover with pnl_md5/turnover_md5. Pins, seeds, thresholds, test count unchanged.
+- P60 loss-stop share 0.09260217075362792 (required 0.07..0.13), X mean -9.671865866776878, SE 13.641702486369466 (abs mean < 4 SE), on the original daily-loss stream and 20,000 paths. Kelly measurements appended below.
+- P72: kept the redundant turnover-length check because CONTRACT 7.5 names it. P73: 118-character annotation within 119-column style; rsplit uses only the three fixed _REPLAY_KEYS, no unnecessary cosmetic rewrite.
+- O3-15: report growth uses 29 moves at a 30-day horizon, 2.9% blocks versus 2.6% IID; separate 30-move block_growth pin unchanged. report.py unchanged and all rendering anchors verified. Replays only read committed cache; no study runner/API/write.
+- P60 Kelly on the pinned real replay: mu_lb 0.0007503162074761997, fstar 1.0, gprime(1) 7.961013572001992e-05 > 0, minimum centered return -0.1217990099920319 > -1. Focused original test 1/1 wall 7.285 s; no reseed.
+
+- Task 17 odds-garch: 17/17 passed, 0 failed, 0 not run; exit 0; wall 8.341 s.
+- Task 17 odds-bold: 12/12 passed, 0 failed, 0 not run; exit 0; wall 5.33 s.
+- Task 17 odds-pipeline: 13/13 passed, 0 failed, 0 not run; exit 0; wall 4.427 s.
+- Task 17 odds-simulate: 18/18 passed, 0 failed, 0 not run; exit 0; wall 3.728 s.
+- Task 17 odds-locks: 14/14 passed, 0 failed, 0 not run; exit 0; wall 3.324 s.
+- Task 17 odds-columns: 14/14 passed, 0 failed, 0 not run; exit 0; wall 8.391 s.
+- Task 17 odds-report: 41/41 passed, 0 failed, 0 not run; exit 0; wall 3.426 s.
+- Task 17 odds-guards: 18/18 passed, 0 failed, 0 not run; exit 0; wall 4.028 s.
+- Task 17 compliance-guards: 16/16 passed, 0 failed, 0 not run; exit 0; wall 6.183 s.
+- Task 17 compliance-store: 36/36 passed, 0 failed, 0 not run; exit 0; wall 24.79 s.
+- Task 17 macro-m0-harness: 11/11 passed, 0 failed, 0 not run; exit 0; wall 6.581 s.
+- Task 17 macro-tf-gov: 20/22 passed, 0 failed, 2 not run; exit 0; wall 28.151 s.
+- Task 17 macro-m7-ledger: 14/18 passed, 0 failed, 4 not run; exit 0; wall 7.938 s.
+- Task 17 macro-m8-forward: 17/23 passed, 0 failed, 6 not run; exit 0; wall 10.296 s.
+- Task 17 macro-m6-context: 14/16 passed, 0 failed, 2 not run; exit 0; wall 4.125 s.
+- Task 17 cockpit: 47/47 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-17-cockpit.json; exit 0; wall 5.931 s.
