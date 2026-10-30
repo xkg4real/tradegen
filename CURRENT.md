@@ -4,13 +4,13 @@ reason: owner_authorized_continuation
 from: gpt
 task: odds-engine
 cycle: 2026-10-27
-done_ids: odds-1, odds-2, odds-3, odds-4, odds-5, odds-6
-next_ids: odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr
-updated_at: 2026-10-30T15:04:14+09:00
+done_ids: cloud-compat-1, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7
+next_ids: odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr
+updated_at: 2026-10-30T15:08:54+09:00
 stale_after_hours: 3
 waiting_on: none
 work_branch: gpt/odds-engine
-work_commit: 01f17a59a282adb667ce8fa849680a344226d019
+work_commit: 6d27d16aefcc7bb74d74a558a00b216c13488445
 uncommitted_changes: no
 pr: none
 usage_weekly_pct: unknown
@@ -25,11 +25,9 @@ session: cloud Codex (TRADEGEN)
 
 ## 0. 한 줄 요약
 
-**소유자 정정 승인 (2026-10-30):** 기존 오류 5건 수정과 인수인계 범위를 넘는 필요한 후속 개발이 승인됐습니다. 범위 확대 확인을 다시 묻지 않고 cloud-compat-1 → odds-7 완료 검증 → odds-8 이후 순서로 진행합니다. GPT 주간 사용량 95%에 다다르면 Claude용 로그를 GitHub에 올립니다. 현 세션에는 사용량 조회 수단이 없어 unknown으로 기록하고 작업 단위마다 저장합니다. 아래 기존 차단 보고와 승인을 묻는 문장은 과거 경위이며 더 이상 진행 제한이 아닙니다.
+소유자가 승인한 기존 오류 5건을 cloud-compat-1로 수정했고, 필수 검증 실패 0으로 odds-7을 완료했습니다. 코드 기준은 gpt/odds-engine `6d27d16aefcc7bb74d74a558a00b216c13488445`입니다. 다음은 odds-8 GARCH-t와 pilot 검사입니다.
 
-GPT가 클라우드에서 Task 7의 두 파일을 계획 원문 그대로 구현했습니다. 새 테스트 19/19와 odds 전체 85/85가 통과했습니다. 구현은 `gpt/odds-engine`의 `01f17a5`에 **WIP**로 저장했습니다.
-
-**odds-7은 완료되지 않았습니다.** 필수 공통 검증에서 Windows 전용 `_winapi` import 3건과 외부 스킬 카탈로그 호환성 2건이 실패했습니다. 모두 변경 전 `1a7eaba`에서도 재현했습니다. 기존 6절의 “환경 때문에 생긴 차이는 보고만 하고 고치지 않습니다”에 따라 수정 범위를 임의로 넓히거나 실패를 통과로 처리하지 않았습니다. Task 8은 시작하지 않았습니다. Linux 지원 및 스킬 호환성 보완을 별도 작업으로 허용할지 소유자 판정이 필요합니다.
+2026-10-30 소유자 정정에 따라 필요한 추가 수정과 미완료 후속 단계도 개발합니다. GPT 주간 사용량 95%에 다다르면 Claude용 로그를 올립니다. 현재는 사용량 조회 수단이 없어 unknown으로 기록하며 작업 단위마다 저장합니다. 이전 Claude 97%를 GPT 사용량으로 사용하지 않습니다.
 
 ## 1. 목표와 완료 조건
 
@@ -68,69 +66,33 @@ GPT가 클라우드에서 Task 7의 두 파일을 계획 원문 그대로 구현
 | P7~P84(사소한 것): preflight.md의 제안대로, 단 새 테스트 함수를 만들지 않고 기존 함수 안에 넣음 | 계획의 테스트 수와 고정값을 지키기 위해 | 새 테스트 함수: 모든 수치가 바뀜 |
 | Task 1 검토 수정 3회 뒤 남은 한계 3건(별칭 생성자 호출, `__name__`이 아닌 match, 쓰기 가드의 별칭 덮어쓰기)은 검토에 맡김 | 계획 코드가 쓰지 않는 고의적 난독화이고, core/odds와 core/oddsdata의 모든 diff를 사람이 검토함 | 4번째 수정: 효과보다 비용이 큼 |
 | 수치가 계획과 다르면 실패가 0일 때만 통과로 보고 이유를 적음 | round-3 ruling G3-1. 이 PC는 Windows 개발자 모드라 심볼릭 링크 테스트 2개가 실행됨 | 수치를 맞추려 테스트를 고침: G3-2 위반 |
-| Task 시작 전마다 사용량을 확인하고 97% 이상이면 Task 경계에서 인수인계 | Task 2 검토(하위 에이전트 약 37만 토큰) 뒤에도 주간 사용량이 95% 그대로라 Task 하나가 1%보다 적게 씀. 소유자 규칙은 98% | 95%에서 바로 인수인계: GPT 확인 설정 전이라 아무도 일하지 않는 시간이 생김 |
+| GPT 주간 사용량 95%에 접근하면 인수인계. 조회 불가 시 unknown과 출처 unavailable 기록, 작업 단위별 저장 | 2026-10-30 소유자 정정 | 이전 Claude 사용량이나 기준을 GPT에 적용하지 않음 |
 | Task 2 검토의 사소한 지적 T2-R1-1, T2-R1-2(테스트 4줄)는 최종 검토의 수정 한 번에 묶음 | 코드는 지금 맞고, 각 수정은 기존 테스트 안의 더 엄격한 한 줄 | 지금 수정 라운드: 같은 결과에 라운드 하나가 더 듦 |
 
 ## 4. 진행 상황
 
-- [x] fu 컴플라이언스 후속 계획 전체 — `main` `f3bedd3`, LEDGER 기록함
-- [x] odds-1 브랜치, 패키지, odds 스위트와 가드 — 커밋 `68082a5`..`418d9bb`, LEDGER 기록함
-- [x] odds-2 venues 파서의 odds 키(`core/compliance/rules.py`, `tests/compliance_tables.py`) — 커밋 `bd6a51e`, LEDGER 기록함
-- [x] odds-3 출처가 붙은 odds 값을 venues.yaml에(`core/odds/venues.yaml`, `tests/compliance_tables.py`) — 커밋 `f37661c`, LEDGER 기록함
-- [x] odds-4 컴플라이언스 도우미 calendar_in_force, grey_rows, 서명된 홈 픽스처(`core/compliance/`, `tests/compliance_*`) — 커밋 `07bb309`, LEDGER 기록함
-- [x] odds-5 계획 타입, 주입 입력, 상품·상태·데이터 점검(`core/odds/plan.py`, `tests/odds_plan.py`) — 커밋 `66acd15`, LEDGER 기록함
-- [x] odds-6 비용, 거래소 조건, 밴드, 감당 가능성, 투입액(`core/odds/costs.py`, `tests/odds_costs.py`) — 커밋 `1a7eaba`, LEDGER 기록함
-- [ ] odds-7 구현과 전용 검증은 통과, 필수 공통 검증 실패 5건으로 **완료 보류** (`01f17a5`, WIP)
+- [x] fu — main f3bedd3, LEDGER 기록
+- [x] odds-1 ~ odds-6 — Claude 구현, LEDGER 기록
+- [x] cloud-compat-1 — POSIX 링크 검사 3건, 스크리너 실행 파일 1건, 열린 질문 선택지 추출 1건 수정
+- [x] odds-7 — 샘플링·정규모델·seed 스트림, 원문과 동일한 구현(01f17a5)과 필수 검증 완료
 - [ ] odds-8 ~ odds-19, odds-final, odds-pr
 
-**이전 완료 지점 검증 (odds-6, `1a7eaba`, 키 미설정):**
+검증: odds 85/85, odds_models 19/19, odds_guards 18/18, compliance_guards 16/16, compliance_store 36/36, cockpit 47/47. core-wide 5개 모듈 모두 실패 0, 기존 참조자료 관련 NOT_RUN 14개 유지. 상세는 context/odds-engine/cloud-compat-validation-2026-10-30.json과 execution-ledger.md.
 
-```
-.venv/Scripts/python.exe tests/run_all.py --suite odds    # KEYLESS 접두어, 1a7eaba
-66/66 passed, 0 failed, 0 not run   # odds_guards 18 + odds_plan 25 + odds_costs 23, 계획과 같음
-odds_costs/ 23/23, compliance_guards 16/16, compliance_store 36/36, cockpit 47/47
-```
+## 5. 현재 지점
 
-**현재 클라우드 검증:** odds_models 19/19, odds 85/85, odds_guards 18/18, compliance_guards 16/16 통과. compliance_store 33/36(3 FAIL), cockpit 45/47(2 FAIL). core-wide 5개 모듈은 실패 0(참조자료 관련 NOT_RUN 14개). 상세: `context/odds-engine/cloud-validation-2026-10-30.json`.
-
-## 5. 중단 지점
-
-- 원격 코드: `gpt/odds-engine` `01f17a59a282adb667ce8fa849680a344226d019`; 원래 `odds-engine`은 `1a7eaba` 그대로입니다.
-- Task 7 Step 1~3 및 Step 4 검증 실행까지 했습니다. Step 4 실패 때문에 완료 커밋 대신 AGENTS.md 4절의 중단 시 보존 절차에 따라 WIP 커밋만 저장했습니다.
-- 추가 파일: `core/odds/models.py` 209행, `tests/odds_models.py` 410행. 두 파일은 계획 코드 블록과 바이트 단위로 같습니다(LF). 기존 코드·테스트·고정값은 수정하지 않았습니다.
-- 클라우드 체크아웃: `/workspace/tradegen`, 작업 트리 깨끗함. 원시 로그: `/workspace/tradegen-session`.
-- 실행 장부는 handoff의 `context/odds-engine/execution-ledger.md`에 보관합니다. Task 19 이전에는 코드 브랜치에 커밋하지 않습니다.
-- 새 완료 ID가 없으므로 LEDGER.md와 done_ids는 그대로입니다.
+- 코드 6d27d16aefcc7bb74d74a558a00b216c13488445; 작업 트리 깨끗함. Task 8 시작 전 체크포인트.
+- cloud-compat-1은 이미 완료된 Task 4의 테스트 파일을 다시 수정했습니다. Linux _winapi 실패를 실제 POSIX 링크 검사로 보완하기 위해 필요하며, Windows junction 및 모든 안전성 단언을 유지합니다. 스킬 카탈로그는 cb0f3aadffed6d1089db4b224162c964368baa46입니다.
+- GitHub 커넥터의 큰 payload 잘림으로 중간 커밋 d107bf3이 불완전했습니다. 6d27d16에서 검증한 Git index 전체를 그대로 복구했고 원격 tree와 일치합니다. 이후 큰 코드 변경은 Git 전송으로 정확히 저장합니다.
+- 실행 장부는 context/odds-engine/execution-ledger.md에만 저장, Task 19 이전에는 코드 브랜치에 넣지 않습니다. qa/acceptance_results.json은 변경하지 않았습니다.
 
 ## 6. 다음 할 일 (순서대로)
 
-소유자가 클라우드 호환성 보완을 승인했습니다. cloud-compat-1로 수정하고 같은 필수 검증을 재실행합니다. 실패 0을 확인한 뒤 odds-7 완료를 기록하고 Task 8로 넘어갑니다. 이미 구현된 두 파일을 다시 만들지 않습니다.
-
-그 다음은 `next_ids`의 첫 항목부터 진행합니다. 각 Task의 방법은 같습니다.
-
-1. **Task N 읽기.** 계획의 `### Task N:` 절 전체, Global Constraints(123~272행), 그 Task가 쓰는 Appendix A 부분, 그리고
-   `context/odds-engine/progress.md`와 `preflight.md`에서 Task N을 부르는 판정(예: Task 10은 P1~P3, Task 12와 14는 P4,
-   Task 17은 P5, Task 19는 P6)을 읽습니다. 판정이 계획 원문을 이깁니다.
-2. **계획의 Step을 순서대로.** 계획은 실패하는 테스트를 먼저 쓰고(RED, 계획이 적은 실패 메시지와 수를 확인) 코드를 넣어
-   통과시키는(GREEN) 순서입니다. 정확한 값(숫자, 문자열, 해시 고정값, 테스트 이름)은 계획 원문 그대로 씁니다.
-3. **실행 명령.** 리눅스에서는 계획의 `.venv/Scripts/python.exe`를 `.venv/bin/python`으로 바꿉니다. 겹침 확인(Windows
-   `Get-CimInstance` 접두어)은 사용자 PC에서만 씁니다. `tests/run_all.py`는 항상 KEYLESS 접두어를 붙이고, 각 `--suite` 실행
-   뒤에 `git checkout -- qa/acceptance_results.json`으로 되돌립니다.
-   ```
-   KIS_APP_KEY='<unset>' KIS_APP_SECRET='<unset>' KIS_ACCOUNT_8='<unset>' KIS_ACCOUNT_PD='<unset>' UPBIT_ACCESS_KEY='<unset>' UPBIT_SECRET_KEY='<unset>' OKX_API_KEY='<unset>' OKX_API_SECRET='<unset>' OKX_API_PASSPHRASE='<unset>' OPENDART_API_KEY='<unset>' KRX_API_KEY='<unset>' FMP_API_KEY='<unset>' ANTHROPIC_API_KEY='<unset>' GS_CLIENT_ID='<unset>' GS_CLIENT_SECRET='<unset>' FINVIZ_API_KEY='<unset>' ALPACA_API_KEY='<unset>' ALPACA_SECRET_KEY='<unset>' FXMACRODATA_API_KEY='<unset>' .venv/bin/python tests/run_all.py --suite odds; echo "exit $?"; git checkout -- qa/acceptance_results.json
-   ```
-4. **기록.** 계획이 실행 장부에 적으라는 것(병합 줄 번호, 드리프트 판정, 여유값, 실행 결과, 수치 메모)은
-   `context/odds-engine/execution-ledger.md`(이 브랜치)에 덧붙여 `CURRENT.md`와 함께 push합니다. Task 19에서 그 내용을
-   레포의 실행 장부 파일로 커밋합니다.
-5. **스스로 검토 후 커밋과 push.** Task 하나에 커밋 하나(계획이 수정 커밋을 허용하면 더). `gpt/odds-engine`에 push하고 LEDGER에
-   한 줄을 덧붙입니다. 완료 기준: 그 Task 절의 마지막 Step이 적은 테스트 수와 결과(실패 0)와 커밋.
-6. **odds-19.** 계획 Task 19의 Step 1~7까지 합니다(P6). Step 8(최종 검토와 그 수정)은 odds-final입니다. odds-final의 수정에는
-   `context/odds-engine/execution-ledger.md`의 "left to the final review's fix wave"와 "for the final review" 항목들(Task 2~6)을 함께 넣습니다.
-   **odds-pr(PR 열기)은 Claude가 합니다.** 이어받는 쪽은 PR을 열지 않고, `returned`로 돌려줄 때 준비 상태를 적습니다.
-
-수치가 계획과 다를 때: 리눅스 클라우드에서는 Windows 전용 테스트가 미실행이 되거나 심볼릭 링크 테스트가 실행되어 수치가 달라질 수
-있습니다. 실패가 0이면 수치와 이유를 기록하고 넘어가며(G3-1), 실패(FAIL)는 절대 통과로 보지 않습니다. 환경 때문에 생긴 차이는 보고만
-하고 고치지 않습니다.
+1. odds-8부터 계획 Task를 순서대로 구현합니다. 각 Task의 원문, round-3 판정, progress/preflight를 대조하고 RED/GREEN, 필수 회귀 검증 및 자체 검토를 수행합니다.
+2. P36: Task 8 bound 설명은 해당 equality test stream으로 한정. P37 helper 정리는 선택 사항. P83: GarchParams kw_only=True는 Task 본문이 우선. R2-9 실제 pilot 수치 기록.
+3. 후속 P1~P6와 P7~P84는 progress.md의 제한을 적용합니다. 추가 수정은 별도 ID와 근거를 남기고 테스트를 약화하지 않습니다.
+4. Task 19 Step 1~7 뒤 odds-final. 최종 수정에 execution-ledger의 보류 항목들을 검토합니다. odds-pr은 Claude가 담당하는 기존 역할 배분을 유지합니다.
+5. odds PR 병합 전 E1을 시작하지 않습니다. 병합은 소유자 승인 사항입니다.
 
 ## 7. 주의사항 / 하지 말 것
 
@@ -148,29 +110,18 @@ odds_costs/ 23/23, compliance_guards 16/16, compliance_store 36/36, cockpit 47/4
 
 ## 8. 사용자에게 물어야 할 것
 
-- **공통 테스트의 Linux 지원과 외부 스킬 카탈로그 호환성 보완**을 별도 작업으로 허용할지 판정이 필요합니다. 기존 6절은 환경 차이를 보고만 하고 고치지 않도록 지정합니다.
-- `tests/compliance_store.py`의 세 테스트: Linux에서 `_winapi` import 실패. 안전성 단언을 유지하는 플랫폼별 링크 생성 방식 분리가 필요합니다. 테스트 삭제·무조건 건너뛰기·가짜 Windows 모듈은 제안하지 않습니다.
-- `core/skills/entrypoints.py`: us-undervalued-growth-screener의 주 실행 파일 미지정. `core/skills/decisions.py`: 열린 질문의 설명에 있는 ACTIVE / PARTIALLY_CLOSED와 JSON을 선택지로 오인합니다.
-- 향후 odds PR 병합과 소유자 서명은 소유자의 몫입니다. 이번 세션은 자동감시 일정을 변경하지 않았습니다.
+현재 개발을 막는 질문은 없습니다. 기존 5건 수정 및 후속 개발 범위는 2026-10-30에 승인됐습니다. 앞으로 odds PR 병합과 소유자 서명은 소유자의 몫입니다. GPT 사용량 조회 기능 및 자동감시 일정은 이 세션에서 설정할 수 없으므로 설정됐다고 주장하지 않습니다.
 
 ## 9. 이어받는 에이전트에게 주는 지시문
 
-현재 `returned`로 소유자 판정을 기다립니다.
+현재 GPT가 taken 상태로 계속 개발 중입니다. returned 또는 정해진 takeover 조건 전에는 중복 작업하지 않습니다.
 
-1. CURRENT.md, AGENTS.md, LEDGER.md와 context/odds-engine/ 기록을 읽습니다. odds-7은 아직 완료 ID가 아닙니다.
-2. 소유자의 클라우드 호환성 수정 판정을 확인하고 taken으로 잠급니다. 코드 기준은 `gpt/odds-engine` `01f17a59a282adb667ce8fa849680a344226d019`입니다. 원격이 더 진행됐으면 먼저 최신 기록을 확인합니다.
-3. 허용된 범위에서 공통 검증 실패 5건을 해결하고 Task 7 Step 4를 재검증합니다. 두 새 파일은 이미 계획 원문대로 구현돼 있습니다.
-4. 필수 검증 실패 0일 때 odds-7을 LEDGER에 기록하고 다음 ID를 진행합니다. 실패를 PASS로 간주하거나 테스트를 약화하지 않습니다.
-5. 주문, 무장, 실제 키와 홈, 병합, PR 열기는 수행하지 않습니다. 작업 단위마다 기록하고 끝나면 returned로 돌려줍니다.
+1. CURRENT.md, AGENTS.md, LEDGER.md, context/odds-engine 기록을 읽습니다. cloud-compat-1과 odds-1~7은 완료됐습니다.
+2. 코드 기준 6d27d16aefcc7bb74d74a558a00b216c13488445에서 최신 원격과 기록을 대조한 뒤 next_ids 첫 항목부터 진행합니다.
+3. 필요한 추가 수정과 미완료 단계도 진행하고, 단위별 commit/push 및 append-only 장부를 갱신합니다.
+4. GPT 사용량 95% 접근 시 신뢰할 수 있는 수치와 관측 시각을 기록하고 Claude에게 반환합니다. 수치를 알 수 없으면 unknown을 유지합니다.
+5. 주문·무장·실제 키·실제 홈·병합 금지 및 core/odds 순수성 규칙을 지킵니다.
 
 ## 10. 결과 확인 방법
 
-```
-git fetch origin odds-engine
-git log --oneline -6 origin/odds-engine
-#   기대: 418d9bb(Task 1 끝) 위에 Task 2부터의 커밋
-KEYLESS 접두어 .venv/bin/python tests/run_all.py --suite odds; echo "exit $?"; git checkout -- qa/acceptance_results.json
-#   기대: 실패 0. Task 1 뒤 18/18, Task 14 뒤 214, Task 17 뒤 238, 끝에 287
-KEYLESS 접두어 .venv/bin/python tests/run_all.py --suite compliance; echo "exit $?"; git checkout -- qa/acceptance_results.json
-#   기대: 실패 0. Task 2 뒤 331(개발자 모드 기준), Task 3 뒤 332, Task 4 뒤 341
-```
+`git fetch origin gpt/odds-engine handoff` 후 각 브랜치의 최신 커밋과 장부를 확인합니다. KEYLESS 및 임시 TRADEGEN_HOME에서 odds/compliance/cockpit suite를 실행합니다. 클라우드 테스트 래퍼는 결과 파일만 저장소 밖으로 돌려 qa 기록을 보존합니다. 실패는 0이어야 하며 NOT_RUN은 사유와 수치를 기록합니다.

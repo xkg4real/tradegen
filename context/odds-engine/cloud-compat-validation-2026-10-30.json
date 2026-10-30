@@ -1,0 +1,78 @@
+{
+  "code_commit": "6d27d16aefcc7bb74d74a558a00b216c13488445",
+  "checks": [
+    {
+      "check": "odds-guards",
+      "exit_code": 0,
+      "seconds": 3.723,
+      "summary": "18/18 passed, 0 failed, 0 not run",
+      "failures": []
+    },
+    {
+      "check": "compliance-guards",
+      "exit_code": 0,
+      "seconds": 5.981,
+      "summary": "16/16 passed, 0 failed, 0 not run",
+      "failures": []
+    },
+    {
+      "check": "compliance-store",
+      "exit_code": 0,
+      "seconds": 20.12,
+      "summary": "36/36 passed, 0 failed, 0 not run",
+      "failures": []
+    },
+    {
+      "check": "macro-m0-harness",
+      "exit_code": 0,
+      "seconds": 6.131,
+      "summary": "11/11 passed, 0 failed, 0 not run",
+      "failures": []
+    },
+    {
+      "check": "macro-tf-gov",
+      "exit_code": 0,
+      "seconds": 27.841,
+      "summary": "20/22 passed, 0 failed, 2 not run",
+      "failures": []
+    },
+    {
+      "check": "macro-m7-ledger",
+      "exit_code": 0,
+      "seconds": 7.335,
+      "summary": "14/18 passed, 0 failed, 4 not run",
+      "failures": []
+    },
+    {
+      "check": "macro-m8-forward",
+      "exit_code": 0,
+      "seconds": 9.994,
+      "summary": "17/23 passed, 0 failed, 6 not run",
+      "failures": []
+    },
+    {
+      "check": "macro-m6-context",
+      "exit_code": 0,
+      "seconds": 4.178,
+      "summary": "14/16 passed, 0 failed, 2 not run",
+      "failures": []
+    },
+    {
+      "check": "cockpit",
+      "exit_code": 0,
+      "seconds": 5.831,
+      "summary": "47/47 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-7-cockpit.json",
+      "failures": []
+    },
+    {
+      "check": "odds",
+      "exit_code": 0,
+      "seconds": 5.279,
+      "summary": "85/85 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-7-odds.json",
+      "failures": []
+    }
+  ],
+  "keyless": true,
+  "isolated_home": true,
+  "usage_weekly_pct": "unknown"
+}

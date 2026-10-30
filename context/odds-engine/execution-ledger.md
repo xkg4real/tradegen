@@ -227,3 +227,21 @@ rulings, deferred minors and runs here. It stays untracked until Task 19 commits
 - Catalog failures: test_03 has no primary for us-undervalued-growth-screener (9 CLI scripts); test_35 misreads ACTIVE / PARTIALLY_CLOSED and JSON in core-portfolio-weekly step 2 as answer options. Cloud catalog cb0f3aadffed6d1089db4b224162c964368baa46 is a documented compatibility pin, not the owner's exact catalog.
 - G3-1 and CURRENT section 6: FAIL never counts as passed; environment differences are reported, not repaired in this task. Task 8 did not start. Preserve the implementation as WIP under AGENTS section 4 (stopping/returning); request an owner ruling on a separate Linux-test/catalog-compatibility task. Do not mark odds-7 complete until the required checks pass.
 - Machine-readable evidence: context/odds-engine/cloud-validation-2026-10-30.json. Raw logs: /workspace/tradegen-session in this cloud instance.
+
+## Cloud compatibility and Task 7 completion — 2026-10-30 (Codex)
+
+- Owner explicitly authorized the five existing fixes and necessary follow-on work. This supersedes the prior scope blocker, not the safety constraints.
+- cloud-compat-1: preserve Windows junction coverage and assert real POSIX symlinks; select documented run_pipeline.py; exclude declarative preambles from answer choices, with regressions in existing test_36. No assertions, fixed constants or skip policies weakened.
+- Final code 6d27d16: the verified index is restored after connector payload truncation in intermediate d107bf3. Git tree 33433a2f1e2faccefe42f7376b6dd81e70d42b5e, CRLF preserved.
+- odds-7 is now COMPLETE, with the unchanged byte-identical Task 7 implementation at 01f17a5. Plan/self-review completed.
+- Completion odds-guards: 18/18 passed, 0 failed, 0 not run; exit 0; 3.723 s.
+- Completion compliance-guards: 16/16 passed, 0 failed, 0 not run; exit 0; 5.981 s.
+- Completion compliance-store: 36/36 passed, 0 failed, 0 not run; exit 0; 20.12 s.
+- Completion macro-m0-harness: 11/11 passed, 0 failed, 0 not run; exit 0; 6.131 s.
+- Completion macro-tf-gov: 20/22 passed, 0 failed, 2 not run; exit 0; 27.841 s.
+- Completion macro-m7-ledger: 14/18 passed, 0 failed, 4 not run; exit 0; 7.335 s.
+- Completion macro-m8-forward: 17/23 passed, 0 failed, 6 not run; exit 0; 9.994 s.
+- Completion macro-m6-context: 14/16 passed, 0 failed, 2 not run; exit 0; 4.178 s.
+- Completion cockpit: 47/47 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-7-cockpit.json; exit 0; 5.831 s.
+- Completion odds: 85/85 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-7-odds.json; exit 0; 5.279 s.
+- QA record unchanged; all tests KEYLESS and serial with isolated state. GPT weekly quota unavailable, threshold 95%; checkpoint each task.
