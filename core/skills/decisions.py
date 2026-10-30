@@ -207,10 +207,15 @@ def options_for(question: str) -> Choice:
     # options, only an outcome to write down.
     if "?" not in text:
         return Choice(question=text)
-    vocabulary = _vocabulary(text)
+    # Leading instructions can mention record states or file formats without
+    # offering them as answers. Start at the sentence that asks the first
+    # question, retaining the following sentences for negative verdicts.
+    head, _, tail = text.partition("?")
+    question = re.split(r"(?<=[.!])\s+", head)[-1] + "?" + tail
+    vocabulary = _vocabulary(question)
     if len(vocabulary) >= 2:
         return Choice(question=text, options=vocabulary, source="vocabulary")
-    enumeration = _enumeration(text)
+    enumeration = _enumeration(question)
     if len(enumeration) >= 2:
         return Choice(question=text, options=enumeration, source="enumeration")
     return Choice(question=text)

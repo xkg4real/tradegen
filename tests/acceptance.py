@@ -643,6 +643,15 @@ def test_36_a_checklist_is_not_mistaken_for_an_answer_set():
     assert [o.label for o in options_for(enumeration).options] == \
         ["Accept", "Modify", "Defer", "Journal only"]
 
+    # Preparatory states and output formats are not choices for a later question.
+    preamble = "Reconcile ACTIVE / PARTIALLY_CLOSED snapshots. Save the JSON report. "
+    assert not options_for(preamble + "What reallocation does the trader propose?").closed
+    assert options_for(preamble + enumeration).values == options_for(enumeration).values
+    verdict = ("Does the verdict reach CLEAN-PASS / PASS-CAUTION / CONDITIONAL-PASS? "
+               "HOLD-REVIEW, STEP1-RECHECK, or FAIL stops here.")
+    assert options_for(preamble + verdict).values == (
+        "CLEAN-PASS", "PASS-CAUTION", "CONDITIONAL-PASS", "HOLD-REVIEW", "STEP1-RECHECK", "FAIL")
+
 
 def test_37_a_gate_can_always_name_the_steps_it_depends_on():
     """The gate summary is built by resolving each `consumes` id back to the
@@ -656,303 +665,692 @@ def test_37_a_gate_can_always_name_the_steps_it_depends_on():
                      if a.produced_by_step}
         for step in wf.steps:
             for artifact_id in step.consumes:
-                if artifact_id in producers:
-                    continue
-                if any(artifact_id in other.produces for other in wf.steps):
-                    continue
-                orphans.append(f"{wf.id} step {step.step} consumes {artifact_id}")
-    assert not orphans, "consumed artifact with no producer: " + "; ".join(orphans)
+                if …8181 tokens truncated… "a torn file under the final name"
+        assert list(owner.home().glob(".*.tmp")) == [] and owner.read_anchors() == []
+        assert F.store_blob(home, "venues", raw, (4, "a" * 64)) == sha and owner.store_get("venues", sha) == raw
 
 
-def test_38_a_report_is_read_into_components_that_can_be_drawn():
-    """`core.skills.insights` against a real report shape.
+def test_store_writes_refuse_a_junction():
+    """A0: a store directory alias (Windows junction/POSIX symlink) refuses writes."""
+    with F.temp_home() as home:
+        elsewhere = home / "elsewhere"                   # outside compliance/: only the refusal stops the write
+        elsewhere.mkdir()
+        owner.store_dir().mkdir(parents=True)
+        F.directory_link(owner.store_dir() / "rules", elsewhere)
+        _raises(lambda: F.store_blob(home, "rules", F.shipped_bytes("rules"), (1, "a" * 64)), RuntimeError)
+        assert list(elsewhere.iterdir()) == [], "a file landed through the junction"
 
-    The scoring skills share a convention — a composite plus weighted
-    components, each with a score and a one-line signal — and the chart and the
-    gate summary both depend on it being read faithfully.
-    """
-    import json
-    import tempfile
-    from pathlib import Path as _Path
-    from core.skills.insights import read
 
-    report = {
-        "composite": {
-            "composite_score": 79.2,
-            "zone": "Healthy",
-            "exposure_guidance": "75-90%",
-            "data_quality": {"label": "Complete (6/6 components)"},
-            "active_warnings": [{"flag": "late_cycle", "label": "LATE CYCLE WARNING"}],
-            "component_scores": {
-                "breadth_level_trend": {"score": 90, "weight": 0.25,
-                                        "label": "Current Breadth Level & Trend"},
-                "historical_percentile": {"score": 60, "weight": 0.10,
-                                          "label": "Historical Percentile"},
-            },
-        },
-        "components": {
-            "breadth_level_trend": {"signal": "STRONG: broad participation"},
-        },
-        "metadata": {"detail_url": "https://example.invalid/x.csv"},
+def test_calendar_store_matches_calendar_sha256():
+    """P21: the calendar set is stored as a folder of its 17 files, named by rules.calendar_sha256."""
+    data_dir = ROOT / "core" / "calendars" / "data"
+    files = sorted(p.name for p in data_dir.iterdir() if p.is_file())
+    stream = rules.calendar_stream(data_dir)
+    with F.temp_home() as home:
+        sha = F.store_blob(home, "calendar", stream, (2, "c" * 64))
+        assert sha == rules.calendar_sha256(data_dir), "the stream is not what calendar_sha256 hashes"
+        stored = owner.store_dir() / "calendar" / sha
+        assert len(files) == 17 and sorted(p.name for p in stored.iterdir()) == files
+        assert all((stored / name).read_bytes() == (data_dir / name).read_bytes() for name in files)
+        assert owner.store_get("calendar", sha) == stream
+        (stored / "extra.yaml").write_bytes(b"x: 1\n")
+        assert owner.store_get("calendar", sha) is None, "a file added to a stored set went unnoticed"
+        for junk in (b"", b"x", b"a\0b", b"b\0x\0a\0y\0", b"../up\0x\0"):
+            _raises(lambda: owner.store_put("calendar", junk, (2, "c" * 64)), ValueError)
+
+
+def test_a_stored_calendar_set_with_a_link_is_not_stored():
+    """One framing (rules.calendar_stream): a junction inside a stored calendar folder is refused, where reading the
+    folder as plain files would skip it and still match the hash."""
+    data_dir = ROOT / "core" / "calendars" / "data"
+    with F.temp_home() as home:
+        sha = F.store_blob(home, "calendar", rules.calendar_stream(data_dir), (2, "c" * 64))
+        stored = owner.store_dir() / "calendar" / sha
+        assert owner.store_get("calendar", sha) == rules.calendar_stream(data_dir)
+        elsewhere = home / "elsewhere"
+        elsewhere.mkdir()
+        F.directory_link(stored / "linked", elsewhere)
+        assert owner.store_get("calendar", sha) is None, "a stored calendar set holding a link was served"
+        assert "is a link" in str(_raises(lambda: rules.calendar_stream(stored), rules.Invalid))
+        assert rules.calendar_sha256(data_dir) == sha, "the real set still hashes to its stream"
+
+
+def test_code_files_is_the_import_closure():
+    """P6 on the real tree: core/__init__.py, core/isolation.py, core/compliance/*.py, core/odds/*.py and the RECORD
+    files of PyYAML and cryptography; never config.py or data/ (the import allowlist keeps the closure small)."""
+    files = owner.code_files(ROOT)
+    names = [name for name, _ in files]
+    assert names == sorted(set(names)), "not sorted, or a repeat"
+    repo = {name for name in names if not name.startswith("venv:")}
+    expected = {"core/__init__.py", "core/isolation.py"} | {
+        f"core/{sub}/{p.name}" for sub in ("compliance", "odds") for p in (ROOT / "core" / sub).glob("*.py")}
+    assert repo == expected, sorted(repo ^ expected)
+    assert "config.py" not in repo and not any(name.startswith("data/") for name in repo)
+    assert dict(files)["core/isolation.py"] == model.sha256_hex((ROOT / "core" / "isolation.py").read_bytes())
+    assert owner.code_hash(ROOT) == model.sha256_hex(model.canonical_json(files)) == owner.code_hash(ROOT)
+    venv = set(names) - repo
+    yaml_record = f"venv:PyYAML-{importlib.metadata.version('PyYAML')}.dist-info/RECORD"
+    assert yaml_record in venv, venv
+    try:
+        crypto_record = f"venv:cryptography-{importlib.metadata.version('cryptography')}.dist-info/RECORD"
+    except importlib.metadata.PackageNotFoundError:
+        raise NotRun("PENDING: cryptography not installed (Task 10)") from None
+    assert venv == {yaml_record, crypto_record}, venv
+
+
+def test_code_files_counts_lazy_imports_and_skips_main_and_type_checking():
+    """P6 on a synthetic tree: a function-level import, relative imports (`.` and `..`) and an in-repo module outside
+    core/ count, every ancestor __init__.py joins, and the TYPE_CHECKING (bare from typing, or `typing.`) and
+    `__name__ == "__main__"` bodies do not (their else branch does). Anything else is scanned, because its body can run
+    at import: an `!=` test, a bare TYPE_CHECKING that is a local (or rebound) name, and `not TYPE_CHECKING`; and a
+    guard whose name the module rebinds or never imports plainly at its top level (typing rebound, `import os as
+    typing`, no `import typing`, one inside a function only, `__name__` assigned or a parameter), or that the module
+    can change without a binding (an attribute store, `__class__` included, setattr, globals(), sys.modules, a
+    function's __globals__, a frame's f_globals, f_locals or f_builtins, gc.get_referents, gc.get_referrers or
+    gc.get_objects), is scanned too (R4)."""
+    sources = {
+        "config.py": "",
+        "core/__init__.py": "",
+        "core/compliance/__init__.py": "",
+        "core/compliance/a.py": ("import typing\n"
+                                 "from typing import TYPE_CHECKING\n"
+                                 "if TYPE_CHECKING:\n    import core.typed\n"
+                                 "if typing.TYPE_CHECKING:\n    import core.typed2\n"
+                                 "def f():\n    import config\n    from core.pkg import lazy\n    return config, lazy\n"
+                                 "if __name__ == \"__main__\":\n    import core.cli\n"
+                                 "else:\n    import core.kept\n"),
+        "core/compliance/b.py": "if __name__ != \"__main__\":\n    import core.neq\n",
+        "core/compliance/c.py": "TYPE_CHECKING = True\nif TYPE_CHECKING:\n    import core.local_tc\n",
+        "core/compliance/d.py": ("from typing import TYPE_CHECKING\nTYPE_CHECKING = True\n"
+                                 "if TYPE_CHECKING:\n    import core.rebound\n"),
+        "core/compliance/e.py": "from typing import TYPE_CHECKING\nif not TYPE_CHECKING:\n    import core.negated\n",
+        "core/compliance/f.py": "if \"__main__\" == __name__:\n    import core.rev_cli\n",
+        "core/compliance/h.py": ("import types\nimport typing\ntyping = types.SimpleNamespace(TYPE_CHECKING=True)\n"
+                                 "if typing.TYPE_CHECKING:\n    import core.rebound_typing\n"),
+        "core/compliance/i.py": "__name__ = \"__main__\"\nif __name__ == \"__main__\":\n    import core.rebound_main\n",
+        "core/compliance/j.py": "import os as typing\nif typing.TYPE_CHECKING:\n    import core.alias_typing\n",
+        "core/compliance/k.py": "if typing.TYPE_CHECKING:\n    import core.unbound_typing\n",
+        "core/compliance/l.py": ("def main(__name__=None):\n    return __name__\n"
+                                 "if __name__ == \"__main__\":\n    import core.param_main\n"),
+        "core/compliance/m.py": ("import typing\ntyping.TYPE_CHECKING = True\n"
+                                 "if typing.TYPE_CHECKING:\n    import core.stored_typing\n"),
+        "core/compliance/n.py": ("import typing\nsetattr(typing, \"TYPE_CHECKING\", True)\n"
+                                 "if typing.TYPE_CHECKING:\n    import core.setattr_typing\n"),
+        "core/compliance/o.py": ("globals()[\"__name__\"] = \"__main__\"\n"
+                                 "if __name__ == \"__main__\":\n    import core.globals_main\n"),
+        "core/compliance/p.py": ("import sys\nimport types\n"
+                                 "sys.modules[\"typing\"] = types.SimpleNamespace(TYPE_CHECKING=True)\n"
+                                 "import typing\nif typing.TYPE_CHECKING:\n    import core.modules_typing\n"),
+        "core/compliance/q.py": ("import typing\ntyping.TYPE_CHECKING = True\nfrom typing import TYPE_CHECKING\n"
+                                 "if TYPE_CHECKING:\n    import core.stored_bare\n"),
+        "core/compliance/r.py": ("import sys\nsys._getframe().f_globals[\"__name__\"] = \"__main__\"\n"
+                                 "if __name__ == \"__main__\":\n    import core.frame_main\n"),
+        "core/compliance/s.py": ("import sys\nfrom typing import TYPE_CHECKING\n"
+                                 "sys._getframe().f_locals[\"TYPE_CHECKING\"] = True\n"
+                                 "if TYPE_CHECKING:\n    import core.frame_bare\n"),
+        "core/compliance/t.py": ("import types\nimport typing\nclass M(types.ModuleType):\n"
+                                 "    TYPE_CHECKING = property(lambda self: True)\ntyping.__class__ = M\n"
+                                 "if typing.TYPE_CHECKING:\n    import core.class_typing\n"),
+        "core/compliance/u.py": ("def _f():\n    pass\n_f.__globals__[\"__name__\"] = \"__main__\"\n"
+                                 "if __name__ == \"__main__\":\n    import core.fn_globals_main\n"),
+        "core/compliance/v.py": ("import typing\ntyping.cast.__globals__[\"TYPE_CHECKING\"] = True\n"
+                                 "if typing.TYPE_CHECKING:\n    import core.fn_globals_typing\n"),
+        "core/compliance/w.py": ("import typing\ntyping.cast.__globals__[\"TYPE_CHECKING\"] = True\n"
+                                 "from typing import TYPE_CHECKING\n"
+                                 "if TYPE_CHECKING:\n    import core.fn_globals_bare\n"),
+        "core/compliance/x.py": ("import gc, typing\ngc.get_referents(typing)[0][\"TYPE_CHECKING\"] = True\n"
+                                 "if typing.TYPE_CHECKING:\n    import core.gc_typing\n"),
+        "core/compliance/y.py": ("import sys, types\ndef _never():\n    import typing\n"
+                                 "sys._getframe().f_builtins[\"typing\"] = types.SimpleNamespace(TYPE_CHECKING=True)\n"
+                                 "if typing.TYPE_CHECKING:\n    import core.builtins_typing\n"),
+        "core/compliance/z.py": ("import gc, typing\nfor o in gc.get_objects():\n"
+                                 "    if isinstance(o, dict) and o.get(\"__name__\") == \"typing\":\n"
+                                 "        o[\"TYPE_CHECKING\"] = True\n"
+                                 "if typing.TYPE_CHECKING:\n    import core.gc_objects_typing\n"),
+        "core/neq.py": "", "core/local_tc.py": "", "core/rebound.py": "", "core/negated.py": "",
+        "core/rev_cli.py": "",
+        "core/rebound_typing.py": "", "core/rebound_main.py": "", "core/alias_typing.py": "",
+        "core/unbound_typing.py": "", "core/param_main.py": "", "core/stored_typing.py": "",
+        "core/setattr_typing.py": "", "core/globals_main.py": "", "core/modules_typing.py": "",
+        "core/stored_bare.py": "", "core/frame_main.py": "", "core/frame_bare.py": "",
+        "core/class_typing.py": "",
+        "core/fn_globals_main.py": "", "core/fn_globals_typing.py": "", "core/fn_globals_bare.py": "",
+        "core/gc_typing.py": "", "core/builtins_typing.py": "", "core/gc_objects_typing.py": "",
+        "core/pkg/__init__.py": "",
+        "core/pkg/lazy.py": "from . import sibling\nfrom .. import upper\n",
+        "core/pkg/sibling.py": "import json\n",
+        "core/typed.py": "", "core/typed2.py": "", "core/cli.py": "", "core/kept.py": "", "core/upper.py": "",
+        "core/unused.py": "",
     }
-    with tempfile.TemporaryDirectory() as tmp:
-        path = _Path(tmp) / "market_breadth_2026-08-21.json"
-        path.write_text(json.dumps(report), encoding="utf-8")
-        found = read(path, skill_id="market-breadth-analyzer")
+    with F.temp_home() as home:
+        root = home / "code_tree"
+        for rel, text in sources.items():
+            (root / rel).parent.mkdir(parents=True, exist_ok=True)
+            (root / rel).write_text(text, encoding="utf-8")
+        repo = {name for name, _ in owner.code_files(root) if not name.startswith("venv:")}
+    assert repo == {"config.py", "core/__init__.py", "core/compliance/__init__.py", "core/compliance/a.py",
+                    "core/kept.py", "core/pkg/__init__.py", "core/pkg/lazy.py", "core/pkg/sibling.py",
+                    "core/upper.py",
+                    "core/compliance/b.py", "core/compliance/c.py", "core/compliance/d.py", "core/compliance/e.py",
+                    "core/compliance/f.py",
+                    "core/compliance/h.py", "core/compliance/i.py", "core/compliance/j.py", "core/compliance/k.py",
+                    "core/compliance/l.py", "core/compliance/m.py", "core/compliance/n.py", "core/compliance/o.py",
+                    "core/compliance/p.py", "core/compliance/q.py", "core/compliance/r.py", "core/compliance/s.py",
+                    "core/compliance/t.py", "core/compliance/u.py", "core/compliance/v.py", "core/compliance/w.py",
+                    "core/compliance/x.py", "core/compliance/y.py", "core/compliance/z.py",
+                    "core/rebound_typing.py", "core/rebound_main.py", "core/alias_typing.py",
+                    "core/unbound_typing.py", "core/param_main.py", "core/stored_typing.py",
+                    "core/setattr_typing.py", "core/globals_main.py", "core/modules_typing.py",
+                    "core/stored_bare.py", "core/frame_main.py", "core/frame_bare.py", "core/class_typing.py",
+                    "core/fn_globals_main.py", "core/fn_globals_typing.py", "core/fn_globals_bare.py",
+                    "core/gc_typing.py", "core/builtins_typing.py", "core/gc_objects_typing.py",
+                    "core/neq.py", "core/local_tc.py", "core/rebound.py", "core/negated.py"}, sorted(repo)
+    trusted = "import typing\nfrom typing import TYPE_CHECKING\n"
+    assert owner._guards(ast.parse(trusted)) == (True, True, True)
+    nested = "def f():\n    import typing\n    from typing import TYPE_CHECKING\n"      # top level only
+    assert owner._guards(ast.parse(nested)) == (False, False, True)
+    for route in ("delattr(typing, 'x')", "vars(typing)", "locals()", "typing.__dict__", "import builtins\nbuiltins",
+                  "__builtins__", "typing.__name__ = 'x'", "del typing.TYPE_CHECKING",
+                  "import sys\nsys._getframe().f_builtins", "import gc\ngc.get_referrers(typing)",
+                  "import gc\ngc.get_objects()"):
+        assert owner._guards(ast.parse(trusted + route + "\n")) == (False, False, False), route
 
-    assert found is not None and not found.empty
-    assert found.score == 79.2 and found.zone == "Healthy"
-    assert found.guidance == "75-90%"
-    assert [c.score for c in found.components] == [90.0, 60.0]
-    assert found.components[0].label == "Current Breadth Level & Trend"
-    assert found.components[0].weight == 0.25
-    assert found.components[0].signal == "STRONG: broad participation"
-    assert found.components[0].band == "success"
-    assert found.components[1].band == "accent"
-    assert found.warnings == ("LATE CYCLE WARNING",)
-    # Plumbing is not a finding.
-    assert not any("url" in k.lower() for k, _ in found.facts)
+
+def test_snapshot_is_write_once_and_rebuilt_from_the_store():
+    state = F.approved()
+    older = F.shipped_bytes("instruments") + b"\n# an earlier approved map\n"
+    with F.temp_home() as home:
+        for kind in TABLES:
+            F.store_blob(home, kind, F.shipped_bytes(kind), (2, "a" * 64))
+        F.store_blob(home, "instruments", older, (1, "b" * 64))
+        assert owner.latest_snapshot() is None
+        path = owner.write_snapshot(state, (7, "c" * 64))
+        assert path.parent == owner.snapshots_dir() and path.name == f"{state.seq:08d}-{state.state_hash[:16]}.json"
+        assert owner.write_snapshot(state, (9, "d" * 64)) == path
+        kept = json.loads(path.read_bytes())
+        assert kept["head"] == [7, "c" * 64], "the first head is kept as the anchor (P34)"
+        snap = owner.latest_snapshot()
+        assert snap is not None and snap.valid and (snap.state_hash, snap.seq) == (state.state_hash, state.seq)
+        assert len(snap.history_maps) == 1, "the earlier stored map is the exit fallback"
+        kept["hashes"]["rules"] = "0" * 64
+        path.write_bytes(model.canonical_json(kept).encode("utf-8"))
+        _raises(lambda: owner.write_snapshot(state, (9, "d" * 64)), RuntimeError)
+        assert owner.latest_snapshot() is None, "a snapshot naming missing bytes was used"
+        _raises(lambda: owner.write_snapshot(model.ApprovedState.invalid("x"), (9, "d" * 64)), ValueError)
 
 
-def test_39_a_missing_score_is_never_drawn_as_zero():
-    """A report with no composite must render as "no score", not as a full-width
-    red bar at zero. Absent and bad are different facts about a market."""
-    import json
+def test_latest_snapshot_skips_malformed_files():
+    """A newer snapshot file that is malformed is skipped, never raised: the newest intact one is still the D11
+    fallback."""
+    state = F.approved()
+    good = {"state_seq": state.seq, "hashes": dict(state.hashes), "head": [7, "c" * 64]}
+    bad = {"1": json.dumps(good).encode("utf-8"),                                   # no state_hash
+           "2": json.dumps([7, "c" * 64]).encode("utf-8"),                         # not an object
+           "3": json.dumps({**good, "state_hash": state.state_hash, "hashes": ["x"]}).encode("utf-8"),
+           "4": b"[" * 100_000 + b"]" * 100_000}                                    # nested past the recursion limit
+    with F.temp_home() as home:
+        for kind in TABLES:
+            F.store_blob(home, kind, F.shipped_bytes(kind), (2, "a" * 64))
+        owner.write_snapshot(state, (7, "c" * 64))
+        for n, raw in bad.items():
+            (owner.snapshots_dir() / f"99999999-{n:0>16}.json").write_bytes(raw)
+            snap = owner.latest_snapshot()
+            assert snap is not None and snap.state_hash == state.state_hash, n
+
+
+# --------------------------------------------------------------------------- #
+# load_context (spec 6.4, 8.2; P19, P24): temp homes signed with the fixed test key
+# --------------------------------------------------------------------------- #
+# NOW, HELD, TABLES and the signed-home helpers live in tests/compliance_fixtures.py (odds plan Task 4, Q21), so the
+# odds suite builds the same homes; the old private names stay bound to them, so no test below changes.
+_pubkey_at = F.pubkey_at
+_owner_key = F.owner_key
+_sign = F.sign
+_approve = F.approve
+_other_code = F.other_code
+_full_home = F.full_home
+
+
+def test_no_owner_key_blocks_every_new_exposure():
+    """P24: before owner act 1 there is no owner_pubkey.pem, so owner state is BROKEN and nothing new passes."""
+    F.test_key()                                    # NotRun PENDING without cryptography, which is reported first
+    with F.temp_home() as home, _pubkey_at(home / "absent.pem"):
+        ctx = owner.load_context(NOW, HELD)
+        assert not ctx.owner.ok and ctx.owner.reason == "no owner key yet: owner act 1", ctx.owner.reason
+        assert not ctx.active.valid and not ctx.code_signed and ctx.snapshot is None and model.is_sealed(ctx)
+        assert ctx.owner.head == (0, "") and ctx.owner.fingerprint == ""
+        for intent in (F.intent(), F.intent(venue="okx", counter_symbol="USDT"),
+                       F.intent(venue="kis", symbol="005930", counter_symbol="KRW", asset="krx_share", quantity=1.0,
+                                notional_krw=60_000.0)):
+            assert gate.decide(intent, ctx).verdict == model.BLOCK, intent
+        assert not (home / "compliance").exists(), "a load without a key wrote something"
+
+
+def test_missing_cryptography_is_broken_before_the_key_check():
+    """Spec 6.4: an ImportError means BROKEN with a reason naming the package, with or without a pem."""
+    names = [k for k in sys.modules if k == "cryptography" or k.startswith("cryptography.")]
+    saved = {k: sys.modules[k] for k in names}
+    with F.temp_home() as home, _pubkey_at(home / "owner_pubkey.pem") as pem:
+        try:
+            for k in names:
+                sys.modules[k] = None
+            sys.modules["cryptography"] = None
+            for with_pem in (False, True):
+                if with_pem:
+                    pem.write_bytes(b"-----BEGIN PUBLIC KEY-----\nAAAA\n-----END PUBLIC KEY-----\n")
+                ctx = owner.load_context(NOW, HELD)
+                assert ctx.owner.reason == "cryptography missing: install it (Task 10)", (with_pem, ctx.owner.reason)
+                assert not ctx.active.valid and gate.decide(F.intent(), ctx).verdict == model.BLOCK
+        finally:
+            for k in [k for k in sys.modules if k == "cryptography" or k.startswith("cryptography.")]:
+                del sys.modules[k]
+            sys.modules.update(saved)
+
+
+def test_full_home_allows_an_upbit_buy():
+    with F.temp_home() as home, _pubkey_at(home / "owner_pubkey.pem"):
+        _full_home(home)
+        ctx = owner.load_context(NOW, HELD)
+        assert ctx.owner.ok and ctx.active.valid and ctx.code_signed, (ctx.owner.reason, ctx.active.reason)
+        assert ctx.date == _dt.date(2026, 10, 24) and model.is_sealed(ctx) and "age_of_majority" in ctx.owner.flags
+        assert dict(ctx.active.hashes) == {kind: model.sha256_hex(F.shipped_bytes(kind)) for kind in TABLES}
+        assert ctx.owner.fingerprint == owner.fingerprint(owner.read_pubkey(owner.PUBKEY_PATH))
+        decision = gate.decide(F.intent(), ctx)
+        assert decision.verdict == model.ALLOW, decision.reasons
+
+
+def test_draft_change_blocks_nothing_until_signed():
+    """The in-force bytes come from the store: a repo draft that differs from them changes nothing (spec 8.2)."""
+    signed = F.shipped_bytes("rules") + b"\n# the signed version differs from the repo draft\n"
+    with F.temp_home() as home, _pubkey_at(home / "owner_pubkey.pem"):
+        _full_home(home, rules_raw=signed)
+        ctx = owner.load_context(NOW, HELD)
+        draft = (ROOT / "core" / "compliance" / "kr_rules.yaml").read_bytes()
+        assert ctx.active.hashes["rules"] == model.sha256_hex(signed) != model.sha256_hex(draft)
+        assert gate.decide(F.intent(), ctx).verdict == model.ALLOW
+
+
+def test_only_the_latest_approval_counts():
+    """A superseded file stays in the store but never counts again unless a new entry signs it (spec 5.2)."""
+    old = F.shipped_bytes("rules") + b"\n# an earlier approved version\n"
+    with F.temp_home() as home, _pubkey_at(home / "owner_pubkey.pem"):
+        key = _full_home(home, rules_raw=old)
+        new = _approve(home, key, "rules", F.shipped_bytes("rules"))
+        assert owner.store_get("rules", model.sha256_hex(old)) == old, "the old bytes are still on disk"
+        assert owner.load_context(NOW, HELD).active.hashes["rules"] == new
+        again = _approve(home, key, "rules", old)
+        assert owner.load_context(NOW, HELD).active.hashes["rules"] == again == model.sha256_hex(old)
+
+
+def test_entries_stamped_after_now_do_not_count():
+    """An approval or a code approval stamped after `now` counts only from its stamp on (spec 6.4; _up_to)."""
+    later = F.shipped_bytes("rules") + b"\n# signed with a stamp after now\n"
+    stamp = "2026-10-25T00:00:00Z"
+    with F.temp_home() as home, _pubkey_at(home / "owner_pubkey.pem"):
+        key = _full_home(home)
+        F.store_blob(home, "rules", later,
+                     _sign(key, "approved", {"kind": "rules", "sha256": model.sha256_hex(later)}, stamp))
+        _other_code(key, stamp)
+        before = owner.load_context(NOW, HELD)
+        assert before.active.hashes["rules"] == model.sha256_hex(F.shipped_bytes("rules")) and before.code_signed
+        after = owner.load_context(_dt.datetime(2026, 10, 25, 9, 0, tzinfo=model.KST), HELD)
+        assert after.active.hashes["rules"] == model.sha256_hex(later) and not after.code_signed
+
+
+def test_a_kind_without_a_signed_approval_is_unapproved():
+    with F.temp_home() as home, _pubkey_at(home / "owner_pubkey.pem"):
+        _approve(home, _owner_key(home), "rules", F.shipped_bytes("rules"))
+        ctx = owner.load_context(NOW, HELD)
+        assert ctx.owner.ok and ctx.active.reason == "unapproved: no signed approval for instruments", ctx.active
+        assert ctx.snapshot is None and gate.decide(F.intent(), ctx).verdict == model.BLOCK
+
+
+def test_earlier_instrument_maps_are_the_exit_fallback():
+    """The log's earlier instrument approvals, read back from the store, become history_maps (spec 6.2 step 0)."""
+    newer = F.shipped_bytes("instruments") + b"\n# a later approved map\n"
+    with F.temp_home() as home, _pubkey_at(home / "owner_pubkey.pem"):
+        current = _approve(home, _full_home(home), "instruments", newer)
+        ctx = owner.load_context(NOW, HELD)
+        assert ctx.active.valid and ctx.active.hashes["instruments"] == current, ctx.active.reason
+        assert len(ctx.active.history_maps) == 1, "the shipped map approved first is the fallback"
+
+
+def test_unsigned_code_blocks_new_exposure_not_exits():
+    """The latest code_approved names another hash: a buy is BLOCK "unsigned code", a close still passes."""
+    with F.temp_home() as home, _pubkey_at(home / "owner_pubkey.pem"):
+        _other_code(_full_home(home))
+        ctx = owner.load_context(NOW, HELD)
+        assert ctx.owner.ok and ctx.active.valid and not ctx.code_signed
+        buy = gate.decide(F.intent(), ctx)
+        assert buy.verdict == model.BLOCK and "unsigned code" in buy.reasons, buy.reasons
+        assert gate.decide(F.intent(action="sell"), ctx).verdict == model.ALLOW_EXIT
+
+
+def test_altered_store_bytes_block_at_load():
+    with F.temp_home() as home, _pubkey_at(home / "owner_pubkey.pem"):
+        _full_home(home)
+        sha = model.sha256_hex(F.shipped_bytes("rules"))
+        (owner.store_dir() / "rules" / f"{sha}.yaml").write_bytes(F.shipped_bytes("rules") + b"# edited\n")
+        ctx = owner.load_context(NOW, HELD)
+        assert not ctx.active.valid and ctx.active.reason.startswith("store: rules"), ctx.active.reason
+        assert gate.decide(F.intent(), ctx).verdict == model.BLOCK
+
+
+def test_unreadable_key_log_or_link_is_broken():
+    """A pem that is no key, an unreadable alerts.jsonl and a link in the state root each give a BROKEN owner state
+    that says why (A0 names the linked entry), never "internal error"; new exposure is BLOCK each time."""
+    with F.temp_home() as home, _pubkey_at(home / "owner_pubkey.pem") as pem:
+        _full_home(home)
+        good = pem.read_bytes()
+        pem.write_bytes(b"not a key\n")
+        contexts = [owner.load_context(NOW, HELD)]
+        pem.write_bytes(good)
+        owner.alerts_path().write_bytes(b"{not json\n")
+        contexts.append(owner.load_context(NOW, HELD))
+        owner.alerts_path().unlink()
+        (home / "elsewhere").mkdir()
+        F.directory_link(owner.home() / "linked", home / "elsewhere")
+        core.isolation._LINK_SCAN.clear()                 # this root's earlier clean scan was memoised (P7)
+        contexts.append(owner.load_context(NOW, HELD))
+        reasons = [ctx.owner.reason for ctx in contexts]
+        assert reasons[0].startswith("owner key unreadable ("), reasons
+        assert reasons[1].startswith("owner log unreadable: alerts.jsonl line 1"), reasons
+        assert reasons[2].startswith("owner log unreadable: ") and "linked" in reasons[2], reasons
+        assert contexts[2].snapshot is None
+        assert all(gate.decide(F.intent(), ctx).verdict == model.BLOCK for ctx in contexts)
+
+
+def test_positions_are_validated():
+    """P19: the caller's positions must be finite and >= 0 with equity > 0, or nothing is in force at all."""
+    bad = (model.Positions(equity_krw=float("nan")), model.Positions(equity_krw=0.0),
+           model.Positions(equity_krw=1e6, holdings={("upbit", "BTC"): -1.0}),
+           model.Positions(equity_krw=1e6, exposure={"okx": model.Exposure(held_krw=float("inf"))}),
+           {"equity_krw": 1e6})
+    with F.temp_home() as home, _pubkey_at(home / "owner_pubkey.pem"):
+        _full_home(home)
+        for positions in bad:
+            ctx = owner.load_context(NOW, positions)
+            assert not ctx.active.valid and ctx.active.reason.startswith("positions: "), (positions, ctx.active)
+            assert ctx.snapshot is None and ctx.equity_krw == 0.0 and model.is_sealed(ctx)
+            for intent in (F.intent(), F.intent(action="sell")):
+                assert gate.decide(intent, ctx).verdict == model.BLOCK, (positions, intent)
+
+
+def test_context_keeps_its_own_copy_of_the_positions():
+    """The sealed context holds read-only copies: changing the caller's dicts afterwards changes nothing it holds."""
+    holdings, reservations = {("upbit", "BTC"): 0.01}, {"r1": 10.0}
+    positions = model.Positions(equity_krw=1e6, holdings=holdings,
+                                exposure={"okx": model.Exposure(held_krw=0.0, reservations=reservations)})
+    with F.temp_home() as home, _pubkey_at(home / "absent.pem"):
+        ctx = owner.load_context(NOW, positions)
+        holdings[("upbit", "BTC")], reservations["r1"] = 5.0, 1e9
+        assert ctx.holdings[("upbit", "BTC")] == 0.01 and ctx.exposure["okx"].reservations["r1"] == 10.0
+        _raises(lambda: operator.setitem(ctx.holdings, ("upbit", "ETH"), 1.0), TypeError)
+        _raises(lambda: operator.setitem(ctx.exposure["okx"].reservations, "r2", 1.0), TypeError)
+
+
+def test_snapshot_written_then_used_when_the_log_breaks():
+    with F.temp_home() as home, _pubkey_at(home / "owner_pubkey.pem"):
+        _full_home(home)
+        first = owner.load_context(NOW, HELD)
+        name = f"{first.active.seq:08d}-{first.active.state_hash[:16]}.json"
+        assert [p.name for p in owner.snapshots_dir().iterdir()] == [name]
+        assert first.snapshot is not None and first.snapshot.state_hash == first.active.state_hash
+        again = owner.load_context(NOW, HELD)
+        assert again.owner.ok and again.active.state_hash == first.active.state_hash, "its own snapshot broke it"
+        newer = json.loads((owner.snapshots_dir() / name).read_bytes())
+        del newer["state_hash"]                          # a newer malformed snapshot is skipped, never raised
+        (owner.snapshots_dir() / "99999999-0000000000000000.json").write_bytes(json.dumps(newer).encode("utf-8"))
+        skipped = owner.load_context(NOW, HELD)
+        assert skipped.owner.ok and skipped.active.valid, (skipped.owner.reason, skipped.active.reason)
+        assert skipped.snapshot is not None and skipped.snapshot.state_hash == first.active.state_hash
+        with open(owner.log_path(), "ab") as fh:
+            fh.write(b'{"seq": 99}\n')
+        broken = owner.load_context(NOW, HELD)
+        assert not broken.owner.ok and not broken.active.valid
+        assert broken.snapshot is not None and broken.snapshot.state_hash == first.active.state_hash
+        assert gate.decide(F.intent(action="sell"), broken).verdict == model.ALLOW_EXIT
+        assert gate.decide(F.intent(), broken).verdict == model.BLOCK
+
+
+def test_a_failed_snapshot_write_invalidates_the_state():
+    with F.temp_home() as home, _pubkey_at(home / "owner_pubkey.pem"):
+        _full_home(home)
+        owner.snapshots_dir().write_bytes(b"")          # a file where the snapshot folder belongs
+        ctx = owner.load_context(NOW, HELD)
+        assert ctx.owner.ok and not ctx.active.valid and ctx.active.reason.startswith("snapshot: "), ctx.active
+        assert ctx.snapshot is None and gate.decide(F.intent(), ctx).verdict == model.BLOCK
+
+
+def test_session_state_comes_from_the_log():
+    with F.temp_home() as home, _pubkey_at(home / "owner_pubkey.pem"):
+        key = _full_home(home)
+        _sign(key, "session_armed", {"session_id": "S1"})
+        assert owner.load_context(NOW, HELD, session_id="S1").session == model.SessionState(session_id="S1", armed=True)
+        assert owner.load_context(NOW, HELD, session_id="S2").session == model.SessionState(session_id="S2")
+        odd = owner.load_context(NOW, HELD, session_id=5)
+        assert odd.owner.reason == "load_context: internal error TypeError" and model.is_sealed(odd), odd.owner
+        assert not odd.active.valid and not odd.code_signed and gate.decide(F.intent(), odd).verdict == model.BLOCK
+
+
+def test_key_changed_since_the_first_alert_row():
+    """P20: the first fingerprint recorded in alerts.jsonl must be the log's first key, else KEY CHANGED."""
+    with F.temp_home() as home, _pubkey_at(home / "owner_pubkey.pem"):
+        _full_home(home)
+        row = {"utc": "2026-10-20T00:00:00Z", "channel": "toast", "result": "ok", "code": 3, "due": [],
+               "overdue": [], "head_seq": 0, "head_sha256": "", "fingerprint": "SHA256:" + "e" * 64}
+        owner.alerts_path().write_bytes(model.canonical_json(row).encode("utf-8") + b"\n")
+        ctx = owner.load_context(NOW, HELD)
+        assert not ctx.owner.ok and ctx.owner.reason == "KEY CHANGED since 2026-10-20", ctx.owner.reason
+        assert gate.decide(F.intent(), ctx).verdict == model.BLOCK
+
+
+def test_naive_or_out_of_range_now_raises():
+    """A naive `now`, a non-datetime, or one that cannot be converted to UTC or Asia/Seoul is ValueError."""
+    with F.temp_home() as home, _pubkey_at(home / "absent.pem"):
+        for now in (_dt.datetime(2026, 10, 24, 9, 0), "2026-10-24", _dt.datetime(1, 1, 1, tzinfo=model.KST),
+                    _dt.datetime(9999, 12, 31, 23, 59, tzinfo=_dt.timezone.utc)):
+            _raises(lambda: owner.load_context(now, HELD), ValueError)
+
+
+def test_decision_date_is_the_asia_seoul_date_of_now():
+    """Spec 8 item 7, the moment-to-date side (Task 8 tests the gate on the dates): ctx.date is the Asia/Seoul date
+    of `now` in whatever zone `now` is given, so 15:00 UTC on 12-02 is already 2026-12-03, the OKX auto_off day."""
+    utc = _dt.timezone.utc
+    pairs = ((_dt.datetime(2026, 12, 2, 14, 59, 59, tzinfo=utc), _dt.datetime(2026, 12, 2, 15, 0, 0, tzinfo=utc)),
+             (_dt.datetime(2026, 12, 2, 23, 59, 59, tzinfo=model.KST),
+              _dt.datetime(2026, 12, 3, 0, 0, 0, tzinfo=model.KST)))
+    with F.temp_home() as home, _pubkey_at(home / "absent.pem"):
+        for before, after in pairs:
+            assert owner.load_context(before, HELD).date == _dt.date(2026, 12, 2), before
+            assert owner.load_context(after, HELD).date == _dt.date(2026, 12, 3), after
+
+
+# --------------------------------------------------------------------------- #
+# Odds plan Task 4 (Q19, Q21): calendar_in_force and the _calendar_approval it shares with the --check line, and the
+# signed-home helpers as public fixtures. Every calendar case also checks that calendar_in_force(now) is the sha
+# exactly when _calendar_approval(now) is ("ok", sha) (Q19).
+# --------------------------------------------------------------------------- #
+def _calendar_now(now: _dt.datetime) -> tuple[str, str]:
+    """owner._calendar_approval(now), once calendar_in_force(now) is checked to agree with it (Q19)."""
+    found = owner._calendar_approval(now)
+    assert owner.calendar_in_force(now) == (found[1] if found[0] == "ok" else None), found
+    return found
+
+
+def _fixture_calendar() -> bytes:
+    """The calendar stream of the signed temp-dir fixture set; imported here, as tests/compliance_tables.py does, so
+    a broken macro module fails only the tests that need it."""
+    from tests.macro_m1_calendars import fixture_set
+    return rules.calendar_stream(fixture_set().data_dir)
+
+
+def test_signed_home_helpers_are_the_public_fixtures():
+    """Q21: the signed-home helpers live in tests/compliance_fixtures.py and this module's old names are bound to
+    them, so these tests run the code the odds suite runs. They write only inside the temp home: approve refuses a
+    state root other than its `home`, owner_key a pem and sign an owner log outside the temp dir (so never the
+    repo's trust anchor or the real ~/.tradegen), each before writing. Every case stays inside temp homes even if a
+    guard were missing."""
     import tempfile
-    from pathlib import Path as _Path
-    from core.skills.insights import Insight, read
-
-    blank = Insight()
-    assert blank.score is None and blank.band == "muted" and blank.empty
-    assert "0" not in blank.headline
-
-    with tempfile.TemporaryDirectory() as tmp:
-        path = _Path(tmp) / "verdict.json"
-        path.write_text(json.dumps({"recommendation": "REDUCE_ONLY",
-                                    "exposure_ceiling_pct": 28}), encoding="utf-8")
-        found = read(path)
-    assert found is not None and found.score is None
-    assert found.band == "muted"
-    assert ("Recommendation", "REDUCE_ONLY") in found.facts
-    assert ("Exposure ceiling pct", "28%") in found.facts
-
-
-def test_40_a_step_is_handed_the_reports_the_earlier_steps_wrote():
-    """`market-regime-daily` step 4 takes `--breadth` and `--uptrend`, and steps
-    1 and 2 write exactly those reports. Making the operator paste the paths by
-    hand is why step 4 used to report missing inputs on a run where nothing was
-    missing. Parameters with nothing to match must be left alone."""
-    from pathlib import Path as _Path
-    from core.skills import wiring
-    from core.skills.entrypoints import primary
-    from core.skills.index import by_id as skill_by_id
-    from core.skills.params import spec_for
-    from core.skills.workflows import by_id
-
-    wf = by_id("market-regime-daily")
-    step = next(s for s in wf.steps if s.step == 4)
-    meta = skill_by_id(step.skill)
-    if meta is None:
-        return
-    entry = primary(meta.id, meta.directory)
-    if entry is None:
-        return
-    spec = spec_for(entry.path)
-    if not spec.parsed:
-        return
-
-    produced = {
-        "market_breadth_report": _Path("/runs/a/market_breadth_2026-08-21.json"),
-        "uptrend_report": _Path("/runs/b/uptrend_analysis_2026-08-21.json"),
-    }
-    filled = wiring.match(spec, produced, consumes=step.consumes)
-    assert "breadth" in filled and "market_breadth" in filled["breadth"]
-    assert "uptrend" in filled and "uptrend_analysis" in filled["uptrend"]
-    # Nothing produced these, so nothing may be invented for them.
-    for untouched in ("regime", "ftd", "theme", "sector", "institutional",
-                      "output_dir"):
-        assert untouched not in filled, f"{untouched} was filled from nowhere"
+    pairs = ((_pubkey_at, F.pubkey_at), (_owner_key, F.owner_key), (_sign, F.sign), (_approve, F.approve),
+             (_other_code, F.other_code), (_full_home, F.full_home), (NOW, F.NOW), (HELD, F.HELD),
+             (TABLES, F.TABLES))
+    assert all(mine is theirs for mine, theirs in pairs), [mine for mine, theirs in pairs if mine is not theirs]
+    assert TABLES == ("rules", "instruments", "venues") and NOW == _dt.datetime(2026, 10, 24, 9, 0, tzinfo=model.KST)
+    assert HELD == model.Positions(equity_krw=1_000_000.0, holdings={("upbit", "BTC"): 0.01})
+    with F.temp_home() as home, F.temp_home():                          # the state root is another temp home
+        _raises(lambda: _approve(home, None, "rules", b"x"), AssertionError)
+        assert not owner.home().exists() and not (home / "compliance").exists()
+    with F.temp_home() as home, _pubkey_at(home / "k.pem"):
+        saved, tempfile.tempdir = tempfile.tempdir, str(home / "elsewhere")  # the pem and the log are outside it
+        try:
+            _raises(lambda: _owner_key(home), AssertionError)
+            _raises(lambda: _sign(None, "approved", {}), AssertionError)
+        finally:
+            tempfile.tempdir = saved
+        assert not (home / "k.pem").exists() and not owner.log_path().exists()
+    with F.temp_home() as home, F.temp_home() as other, _pubkey_at(other / "k.pem"):   # in the temp dir, not in home
+        _raises(lambda: _owner_key(home), AssertionError)
+        assert not (other / "k.pem").exists()
 
 
-def test_41_an_ambiguous_artifact_is_left_for_the_operator():
-    """Two artifacts fitting one parameter equally well is a question, not a
-    match. Picking one would put a file the operator never chose on the command
-    line of a script that reports on the market."""
-    from pathlib import Path as _Path
-    from core.skills.params import Kind, Param, Spec
-    from core.skills import wiring
-
-    spec = Spec(script="x.py", parsed=True, params=(
-        Param(dest="report", flags=("--report",), kind=Kind.FILE),
-    ))
-    tie = {"daily_report": _Path("/a/daily.json"),
-           "weekly_report": _Path("/b/weekly.json")}
-    assert wiring.match(spec, tie) == {}
-
-    spec2 = Spec(script="x.py", parsed=True, params=(
-        Param(dest="daily", flags=("--daily",), kind=Kind.FILE),
-    ))
-    clear = {"daily_report": _Path("/a/daily.json")}
-    assert wiring.match(spec2, clear) == {"daily": str(_Path("/a/daily.json"))}
-
-
-def test_42_the_gate_reads_its_answers_rather_than_hard_coding_them():
-    """The defect was a literal pair of buttons in the source. This asserts the
-    gate is built from the question, not from a list in the UI file."""
-    import ast
-    tree = ast.parse(_read(ROOT / "ui" / "workflows_page.py"))
-    calls = [n for n in ast.walk(tree)
-             if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)
-             and n.func.id == "options_for"]
-    assert calls, "workflows_page never asks what the question's answers are"
-
-    gate = next((n for n in ast.walk(tree)
-                 if isinstance(n, ast.FunctionDef) and n.name == "show_gate"), None)
-    assert gate is not None, "show_gate is gone"
-    inside = {n.func.id for n in ast.walk(gate)
-              if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)}
-    assert "options_for" in inside, "the gate does not read the question's answers"
-    assert "_digest" in inside, "the gate does not summarise the steps before it"
+def test_full_home_signs_the_odds_keywords():
+    """Q21: full_home approves `venues_raw` instead of the shipped venues and `calendar_raw` as kind calendar, and
+    signs `limits` as limit_set and `cap` as cap_set, after the entries it always signed. All are stamped
+    2026-10-23T00:00:00Z, so the limits and the cap count from NOW's date on (D12). Without them the log is the
+    same as before."""
+    venues = F.shipped_bytes("venues") + b"\n# a signed venues version for the odds suite\n"
+    stream = _fixture_calendar()
+    limits = {"total_loss_floor_krw": 21_000.0, "daily_loss_krw": 5_000.0}
+    with F.temp_home() as home, _pubkey_at(home / "owner_pubkey.pem"):
+        _full_home(home, venues_raw=venues, calendar_raw=stream, limits=limits, cap=0.10)
+        ctx = owner.load_context(NOW, HELD)
+        assert ctx.owner.ok and ctx.active.valid and ctx.code_signed, (ctx.owner.reason, ctx.active.reason)
+        assert ctx.active.hashes["venues"] == model.sha256_hex(venues) != model.sha256_hex(F.shipped_bytes("venues"))
+        assert dict(ctx.owner.limits) == limits and dict(ctx.owner.caps) == {"okx_equity_share": 0.10}, ctx.owner
+        assert _calendar_now(NOW) == ("ok", model.sha256_hex(stream))
+        kinds = [json.loads(line)["kind"] for line in owner.log_path().read_bytes().splitlines()]
+        assert kinds == ["approved"] * 3 + ["code_approved", "age_of_majority", "approved", "limit_set", "cap_set"]
+        assert {json.loads(line)["utc"] for line in owner.log_path().read_bytes().splitlines()} == \
+            {"2026-10-23T00:00:00Z"}
+    with F.temp_home() as home, _pubkey_at(home / "owner_pubkey.pem"):
+        _full_home(home)
+        ctx = owner.load_context(NOW, HELD)
+        kinds = [json.loads(line)["kind"] for line in owner.log_path().read_bytes().splitlines()]
+        assert kinds == ["approved"] * 3 + ["code_approved", "age_of_majority"], kinds
+        assert dict(ctx.owner.limits) == {} and dict(ctx.owner.caps) == {}, ctx.owner
+        assert ctx.active.hashes["venues"] == model.sha256_hex(F.shipped_bytes("venues"))
+        assert _calendar_now(NOW) == ("none", "")
 
 
-def test_43_a_run_that_exited_cleanly_is_not_reported_as_a_failure():
-    """Found by driving `market-regime-daily` end to end.
-
-    `market-breadth-analyzer` prints "6-Component Health Scoring (No API Key
-    Required)" as its banner, scores every component, writes both reports and
-    exits 0. Because the classifiers scanned the whole transcript, the phrase in
-    the banner was read as the verdict and a successful step was labelled "A
-    credential is missing". A run's narration is not its outcome.
-    """
-    from core.skills.diagnose import Cause, diagnose
-
-    banner = (
-        "======================================================\n"
-        "Market Breadth Analyzer\n"
-        "6-Component Health Scoring (No API Key Required)\n"
-        "======================================================\n"
-        "  Composite Score: 79.2/100\n"
-        "  Health Zone: Healthy\n"
-    )
-    verdict = diagnose(status="ok", exit_code=0, stdout=banner)
-    assert verdict.cause is Cause.OK, verdict.headline
-    assert verdict.benign
-
-    # The same transcript with a non-zero exit is a genuine credential failure.
-    failed = diagnose(status="failed", exit_code=1,
-                      stdout="ERROR: FMP API key required. Set FMP_API_KEY.")
-    assert failed.cause is Cause.MISSING_KEY, failed.headline
-
-    # A clean exit that matched nothing stays benign, and keeps saying so.
-    empty = diagnose(status="ok", exit_code=0,
-                     stdout="Scanning...\nFound 0 qualified stocks")
-    assert empty.cause is Cause.NO_RESULTS and empty.benign
+def test_calendar_in_force_is_the_sha_of_the_intact_signed_copy():
+    """Q19, O6: under an OK owner state the latest calendar approval stamped by `now` is in force while its stored
+    copy is intact. The stored folder is the set itself; one changed or missing file there makes it
+    ("store", sha), so None."""
+    stream = _fixture_calendar()
+    sha = model.sha256_hex(stream)
+    with F.temp_home() as home, _pubkey_at(home / "owner_pubkey.pem"):
+        _full_home(home, calendar_raw=stream)
+        assert _calendar_now(NOW) == ("ok", sha) and owner.calendar_in_force(NOW) == sha
+        assert _calendar_now(_dt.datetime(2026, 10, 24, 0, 0, tzinfo=_dt.timezone.utc)) == ("ok", sha)   # NOW in UTC
+        stored = owner.store_dir() / "calendar" / sha
+        assert rules.calendar_sha256(stored) == sha and rules.calendar_stream(stored) == stream
+        first = sorted(stored.iterdir())[0]
+        first.write_bytes(first.read_bytes() + b"# altered\n")
+        assert _calendar_now(NOW) == ("store", sha) and owner.calendar_in_force(NOW) is None
+        first.unlink()
+        assert _calendar_now(NOW) == ("store", sha)
 
 
-def test_44_the_traceback_outranks_a_provider_error_the_run_survived():
-    """Also found by driving the workflow.
+def test_calendar_in_force_is_none_without_an_ok_owner_log():
+    """Q19: no owner key, a read error (OSError, ValueError or RuntimeError), a changed key or a broken log give
+    ("log", ""), so None, even with a calendar approval in the log. Any other internal error propagates out of
+    _calendar_approval, so --check exits 4 (spec 5.4, T4-R1-1), while calendar_in_force fails closed to None."""
+    stream = _fixture_calendar()
+    with F.temp_home() as home, _pubkey_at(home / "absent.pem"):
+        assert _calendar_now(NOW) == ("log", "")                     # before owner act 1 there is no key at all
+    with F.temp_home() as home, _pubkey_at(home / "owner_pubkey.pem"):
+        _full_home(home, calendar_raw=stream)
+        assert _calendar_now(NOW) == ("ok", model.sha256_hex(stream))
 
-    `market-top-detector` logs four HTTP 403 "Legacy Endpoint" complaints,
-    recovers from every one, completes all six components — and then dies
-    writing its report into a directory that does not exist. Naming the 403 as
-    the cause points the operator at something the run got past.
-    """
-    from core.skills.diagnose import Cause, diagnose
+        def boom(*args):
+            raise RuntimeError("a refused link")
 
-    transcript = (
-        "Fetching NASDAQ (QQQ) data... ERROR: API request failed: 403 - "
-        '{"Error Message": "Legacy Endpoint : no longer supported"}\n'
-        "  OK ($710.93, 260 days)\n"
-        "  [6/6] Sentiment & Speculation... Score: 25 (MIXED)\n"
-        "  Composite Score: 41.9/100\n"
-        "Traceback (most recent call last):\n"
-        '  File "market_top_detector.py", line 812, in main\n'
-        "FileNotFoundError: [Errno 2] No such file or directory: "
-        "'reports/market_top_2026-08-21.json'\n"
-    )
-    verdict = diagnose(status="failed", exit_code=1, stdout=transcript)
-    assert verdict.cause is Cause.MISSING_INPUT, verdict.headline
-    assert "legacy" not in verdict.headline.lower()
-    assert "reports" in verdict.headline
+        def bug(*args):
+            raise TypeError("a bug")
 
-    # The same crash with the write visible in the frame is the skill failing to
-    # create its own output directory, and must not tell the operator to fix a
-    # path field they were never given.
-    writing = transcript.replace(
-        '  File "market_top_detector.py", line 812, in main\n',
-        '  File "market_top_detector.py", line 812, in main\n'
-        '    with open(output_file, "w", encoding="utf-8") as f:\n')
-    wrote = diagnose(status="failed", exit_code=1, stdout=writing)
-    assert wrote.cause is Cause.CRASH, wrote.headline
-    assert "could not write" in wrote.headline
-    assert "defect in the skill" in wrote.detail
-
-    # A run killed *by* the provider still reads as a provider problem.
-    provider = diagnose(
-        status="failed", exit_code=1,
-        stdout='requests.HTTPError: 402 - {"Error Message": "payment required"}')
-    assert provider.cause is Cause.PLAN_LIMIT, provider.headline
+        saved, owner._owner_now = owner._owner_now, boom
+        try:
+            assert _calendar_now(NOW) == ("log", "")                 # _calendar_approval: a read error is "log"
+        finally:
+            owner._owner_now = saved
+        saved, owner.store_get = owner.store_get, bug
+        try:
+            _raises(lambda: owner._calendar_approval(NOW), TypeError)   # _calendar_approval: any other error raises
+            assert owner.calendar_in_force(NOW) is None                 # calendar_in_force: it fails closed
+        finally:
+            owner.store_get = saved
+        assert _calendar_now(NOW)[0] == "ok"
+        row = {"utc": "2026-10-20T00:00:00Z", "channel": "toast", "result": "ok", "code": 3, "due": [],
+               "overdue": [], "head_seq": 0, "head_sha256": "", "fingerprint": "SHA256:" + "e" * 64}
+        owner.alerts_path().write_bytes(model.canonical_json(row).encode("utf-8") + b"\n")
+        assert owner.load_context(NOW, HELD).owner.reason == "KEY CHANGED since 2026-10-20"
+        assert _calendar_now(NOW) == ("log", "")
+        owner.alerts_path().unlink()
+        assert _calendar_now(NOW)[0] == "ok"
+        with open(owner.log_path(), "ab") as fh:
+            fh.write(b'{"seq": 99}\n')
+        assert not owner.load_context(NOW, HELD).owner.ok and _calendar_now(NOW) == ("log", "")
 
 
-def test_45_only_a_file_parameter_is_handed_a_file():
-    """Also found by driving the workflow.
-
-    `market-top-detector` takes `--breadth-200dma-date`, which shares the word
-    "breadth" with `market_breadth_report` and wants `YYYY-MM-DD`. On a real run
-    the wiring put a JSON path into it, and into its sibling. Free text is where
-    a script asks for anything at all, so it is where a guess is least safe.
-    """
-    from pathlib import Path as _Path
-    from core.skills import wiring
-    from core.skills.params import Kind, Param, Spec
-
-    spec = Spec(script="market_top_detector.py", parsed=True, params=(
-        Param(dest="breadth_200dma_date", flags=("--breadth-200dma-date",),
-              kind=Kind.TEXT, help="Date of breadth 200DMA data (YYYY-MM-DD)"),
-        Param(dest="breadth_50dma", flags=("--breadth-50dma",),
-              kind=Kind.NUMBER, help="Percent of S&P 500 stocks above 50DMA"),
-        Param(dest="output_dir", flags=("--output-dir",), kind=Kind.DIR),
-    ))
-    produced = {"market_breadth_report": _Path("/runs/a/market_breadth.json")}
-    assert wiring.match(spec, produced) == {}, (
-        "a date, a number or an output directory must never be handed a report")
+def test_calendar_in_force_counts_only_approvals_stamped_by_now():
+    """Q19: with no calendar approval it is ("none", ""); one stamped after `now` counts only from its stamp on
+    (load_context's cut-off, _up_to); the latest approval in log order among those stamped by `now` wins."""
+    stream = _fixture_calendar()
+    sha = model.sha256_hex(stream)
+    other = b"holidays_KRX.yaml\0x: 1\n\0"                              # a one-file calendar set
+    after = _dt.datetime(2026, 10, 25, 9, 0, tzinfo=model.KST)          # 2026-10-25T00:00:00Z
+    with F.temp_home() as home, _pubkey_at(home / "owner_pubkey.pem"):
+        key = _full_home(home)
+        assert _calendar_now(NOW) == ("none", "") and _calendar_now(after) == ("none", "")
+        F.store_blob(home, "calendar", stream,
+                     _sign(key, "approved", {"kind": "calendar", "sha256": sha}, "2026-10-25T00:00:00Z"))
+        assert _calendar_now(NOW) == ("none", "") and _calendar_now(after) == ("ok", sha)
+        newer = _approve(home, key, "calendar", other)                  # later in the log, stamped 2026-10-23
+        assert _calendar_now(NOW) == ("ok", newer) and _calendar_now(after) == ("ok", newer)
+        assert newer == model.sha256_hex(other) != sha
 
 
-def test_46_a_failed_step_is_summarised_by_its_diagnosis_not_its_traceback():
-    """The gate summary shows every step it depends on, including the ones that
-    failed. Six lines of caret rows from the middle of a traceback tell the
-    operator nothing; the sentence `diagnose` already produced tells them what
-    happened."""
-    from core.skills.diagnose import diagnose
-    from core.skills.insights import digest, from_transcript
-
-    transcript = (
-        "  Composite Score: 41.9/100\n"
-        "Traceback (most recent call last):\n"
-        '  File "market_top_detector.py", line 812, in main\n'
-        "    generate_json_report(analysis, json_file)\n"
-        "    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^\n"
-        "FileNotFoundError: [Errno 2] No such file or directory: 'reports/x.json'\n"
-    )
-
-    class _Result:
-        skill_id = "market-top-detector"
-        artifacts = ()
-        stdout = transcript
-        diagnosis = diagnose(status="failed", exit_code=1, stdout=transcript)
-
-    found = digest(_Result())
-    assert found.lines, "a failed step summarised as nothing"
-    joined = " ".join(found.lines)
-    assert "^^^" not in joined and "~~~" not in joined
-    assert 'File "' not in joined
-    assert "does not exist" in joined
-
-    # The plain transcript fallback drops the scaffolding too.
-    plain = from_transcript(transcript)
-    assert not any("^^^" in line or line.startswith('File "') for line in plain.lines)
+def test_calendar_in_force_refuses_a_naive_or_out_of_range_now():
+    """Q19: a naive `now`, a non-datetime, or one that cannot be converted to UTC or Asia/Seoul is ValueError from
+    calendar_in_force and _calendar_approval alike (load_context's checks); nothing else raises."""
+    with F.temp_home() as home, _pubkey_at(home / "absent.pem"):
+        for now in (_dt.datetime(2026, 10, 24, 9, 0), "2026-10-24", _dt.date(2026, 10, 24), None,
+                    _dt.datetime(1, 1, 1, tzinfo=model.KST),
+                    _dt.datetime(9999, 12, 31, 23, 59, tzinfo=_dt.timezone.utc)):
+            _raises(lambda: owner.calendar_in_force(now), ValueError)
+            _raises(lambda: owner._calendar_approval(now), ValueError)
+        assert owner.calendar_in_force(NOW) is None
 
 
-def tests():
-    return sorted((n, v) for n, v in globals().items()
-                  if n.startswith("test_") and callable(v))
+def test_calendar_line_maps_the_shared_calendar_approval():
+    """Q19: rules._calendar_line (the --check line) reads owner._calendar_approval at the check's moment and maps its
+    four outcomes onto its four lines; under an owner state that is not OK it reads nothing."""
+    draft = rules.calendar_sha256(ROOT / "core" / "calendars" / "data")
+    other, seen = "a" * 64, []
+    cases = ((("log", ""), "calendar: not checked (owner log not usable)"),
+             (("none", ""), "calendar: no signed approval, so KRX and US plans are refused (crypto plans only)"),
+             (("store", other), f"calendar: the signed version {other[:16]} is missing or altered in the store"),
+             (("ok", draft), f"calendar: the draft is the version in force ({draft[:16]})"),
+             (("ok", other), f"calendar: the draft {draft[:16]} is not the version in force ({other[:16]}); it counts "
+                             "only once signed"))
+    saved = owner._calendar_approval
+    try:
+        for result, line in cases:
+            owner._calendar_approval = lambda now, result=result: seen.append(now) or result
+            assert rules._calendar_line(F.ctx(), ROOT, NOW) == line, result
+        broken = F.ctx(owner=model.OwnerState.broken("bad signature on entry 4"))
+        assert rules._calendar_line(broken, ROOT, NOW) == "calendar: not checked (owner log not usable)"
+    finally:
+        owner._calendar_approval = saved
+    assert seen == [NOW] * len(cases), seen
