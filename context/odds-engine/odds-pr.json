@@ -1,0 +1,17 @@
+{
+  "url": "https://github.com/xkg4real/tradegen/pull/4",
+  "number": 4,
+  "state": "open",
+  "merged": false,
+  "mergeable": true,
+  "draft": false,
+  "base": "main",
+  "base_sha": "f3bedd3d24c3faa3b2881e8e515613e5b13a9c59",
+  "head": "gpt/odds-engine",
+  "head_sha": "d773b6c44c73b82492d7d9ce89d4d76c8ea62110",
+  "checked_at": "2026-10-30T21:10:43+09:00",
+  "validation_record_commit": "e5c4a3d6c4921f2253fd3f7ea8b48ddf03cca686",
+  "tests_rerun": false,
+  "reason": "Source, actual main branch point, full-run record and final ledger unchanged; PR metadata only.",
+  "next_gate": "Explicit owner approval for PR #4 and confirmed merge before E1 Task 1"
+}

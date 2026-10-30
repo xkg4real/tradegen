@@ -1,18 +1,18 @@
 ---
-status: taken
-reason: owner_authorized_followup
+status: returned
+reason: awaiting_owner_merge
 from: gpt
 task: odds-engine
 cycle: 2026-10-27
-done_ids: cloud-compat-1, cloud-compat-2, cloud-compat-3, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final
-next_ids: odds-pr
-updated_at: 2026-10-30T21:09:16+09:00
+done_ids: cloud-compat-1, cloud-compat-2, cloud-compat-3, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr
+next_ids: e1-1
+updated_at: 2026-10-30T21:10:43+09:00
 stale_after_hours: 3
-waiting_on: none
+waiting_on: owner_merge_pr_4
 work_branch: gpt/odds-engine
 work_commit: d773b6c44c73b82492d7d9ce89d4d76c8ea62110
 uncommitted_changes: no
-pr: none
+pr: https://github.com/xkg4real/tradegen/pull/4
 usage_weekly_pct: unknown
 usage_source: unavailable
 handoff_threshold_pct: 95
@@ -25,7 +25,7 @@ session: cloud Codex (TRADEGEN)
 
 ## 0. 한 줄 요약
 
-소유자가 승인한 미완료 후속 단계 진행 원칙에 따라 GPT가 odds-pr를 이어서 완료합니다. 원격 코드와 검증 기록은 d773b6c로 일치하고, 두 odds 브랜치에 기존 PR이 없는 것을 확인했습니다. E1은 odds PR의 소유자 승인 및 병합 뒤에만 시작합니다.
+odds Task 1~19, 최종 검토 및 PR 생성까지 완료했습니다. PR #4 https://github.com/xkg4real/tradegen/pull/4 는 main 대상이며 head d773b6c, 충돌 없음, 미병합 상태입니다. 소유자의 PR별 병합 승인을 기다립니다. E1은 병합 확인 뒤 시작합니다. 개인 자금 목표는 공개 저장소에 기록하지 않았습니다.
 
 ## 1. 목표와 완료 조건
 
@@ -75,7 +75,7 @@ session: cloud Codex (TRADEGEN)
 - [x] cloud-compat-1~3 — 원래 5건 및 추가 플랫폼 오류 수정
 - [x] odds-1~19 — 구현, 검증, 실행 장부
 - [x] odds-final — 추가 수정 7커밋, 공통 회귀, 전체 재실행, 재검토
-- [ ] odds-pr — GPT가 PR 생성 진행 중
+- [x] odds-pr — GPT가 PR #4 생성: https://github.com/xkg4real/tradegen/pull/4
 - [ ] E1 — odds PR 병합 뒤에만 시작
 
 ## 5. 현재 지점
@@ -89,11 +89,11 @@ session: cloud Codex (TRADEGEN)
 
 ## 6. 다음 할 일 (순서대로)
 
-1. Claude는 CURRENT.md, LEDGER.md, execution-ledger.md 및 최종 validation JSON을 읽고 원격 코드 SHA를 확인합니다. 완료 ID는 반복 구현하지 않습니다.
-2. odds-pr: 최종 코드와 Cloud 검증 차이를 검토해 main 대상 PR을 만듭니다. 병합은 소유자가 PR별로 승인합니다.
-3. 별도 문서 작업으로 plan의 “For spec rev 3.3”와 실행 장부에 기록된 승인된 변경점을 스펙에 반영합니다. 이 브랜치가 spec rev 3.3을 이미 완료했다고 간주하지 않습니다.
-4. odds PR 병합 후 E1을 시작합니다. E2/E3의 비용·캡·손실·fresh-seed·호가 경계 조건은 실행 장부의 Hand-off 절에 있습니다.
-5. 소유자 PC smoke, 실제 서명·승인·키 확인은 소유자 작업입니다. 사용량 리셋 후 이 인수인계부터 읽고 개발을 이어갑니다.
+1. 소유자가 PR #4 (https://github.com/xkg4real/tradegen/pull/4)의 병합을 승인합니다. 승인 전 병합하지 않습니다.
+2. 실제 병합을 확인하고 최신 main에서 E1 계획을 시작합니다. next_ids e1-1은 이 선행 조건을 충족한 뒤에만 착수합니다.
+3. E1은 조회 전용입니다. 자동주문에는 E2 실행 제어 및 E3 거래소별 실제 주문 연결이 추가로 필요합니다. 소유자 키·서명·계좌의 준비 완료는 아직 확인되지 않았습니다.
+4. 별도 문서 변경으로 승인된 spec rev 3.3 변경점을 반영합니다. odds PR에는 실행 장부 외의 문서 변경을 추가하지 않습니다.
+5. 원금, 하루/전체 손실 한도는 소유자 답변과 실제 서명으로 확정합니다. 순이익 목표나 일정만으로 승인·손실 제한·검증을 생략하지 않습니다.
 
 ## 7. 주의사항 / 하지 말 것
 
@@ -111,11 +111,16 @@ session: cloud Codex (TRADEGEN)
 
 ## 8. 사용자에게 물어야 할 것
 
-현재 개발을 막는 질문은 없습니다. 기존 5건 수정 및 후속 개발 범위는 2026-10-30에 승인됐습니다. 앞으로 odds PR 병합과 소유자 서명은 소유자의 몫입니다. GPT 사용량 조회 기능 및 자동감시 일정은 이 세션에서 설정할 수 없으므로 설정됐다고 주장하지 않습니다.
+PR #4 병합 승인이 필요합니다. AGENTS.md 5절은 “병합은 사용자가 PR마다 직접 승인합니다”라고 정합니다. 시작 자금과 허용 손실 금액도 아직 미확정이며 실제 키·서명·무장은 별도 소유자 행위입니다. 자동주문 기한 및 미래 수익 달성을 검증한 상태가 아닙니다.
 
 ## 9. 이어받는 에이전트에게 주는 지시문
 
-GPT가 소유자 후속 지시에 따라 odds-pr를 진행 중입니다. returned 전에는 중복 작업하지 않습니다. PR 생성 완료 후 URL과 최신 다음 단계를 기록합니다. 병합과 E1 선행 조건은 그대로 유지합니다.
+소유자 후속 개발 지시에 따라 GPT가 odds-pr까지 완료해 반환했습니다.
+
+1. CURRENT.md, AGENTS.md, LEDGER.md와 context의 PR 기록을 읽습니다. PR #4 (https://github.com/xkg4real/tradegen/pull/4)가 이미 있으므로 중복 생성하지 않습니다.
+2. 코드 head d773b6c44c73b82492d7d9ce89d4d76c8ea62110, base f3bedd3d24c3faa3b2881e8e515613e5b13a9c59. GitHub에서 open / merged=false / mergeable=true를 확인했습니다. merge_commit_sha는 GitHub의 시험 병합 SHA이며 실제 병합 증거가 아닙니다.
+3. 소유자 승인 및 실제 병합 전에는 E1 구현을 시작하지 않습니다. 승인 후 최신 main에 odds 코드가 들어왔는지 확인하고 E1 Task 1부터 진행합니다.
+4. 사용량은 unknown/unavailable이며 95% 도달을 관측한 것이 아닙니다. 주문·무장·실제 키·실제 홈·QUANTGEN 수정·승인 없는 병합 금지는 유지합니다.
 
 ## 10. 결과 확인 방법
 
