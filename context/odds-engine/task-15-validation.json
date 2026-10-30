@@ -1,0 +1,87 @@
+{
+  "code_commit": "b67cd4f1c656d08c4c4d9d7a74c1183aba0f5562",
+  "completed_at": "2026-10-30T15:33:56+09:00",
+  "checks": [
+    {
+      "check": "odds-guards",
+      "exit_code": 0,
+      "seconds": 3.829,
+      "summary": "18/18 passed, 0 failed, 0 not run",
+      "failures": []
+    },
+    {
+      "check": "compliance-guards",
+      "exit_code": 0,
+      "seconds": 7.338,
+      "summary": "16/16 passed, 0 failed, 0 not run",
+      "failures": []
+    },
+    {
+      "check": "compliance-store",
+      "exit_code": 0,
+      "seconds": 25.797,
+      "summary": "36/36 passed, 0 failed, 0 not run",
+      "failures": []
+    },
+    {
+      "check": "macro-m0-harness",
+      "exit_code": 0,
+      "seconds": 6.834,
+      "summary": "11/11 passed, 0 failed, 0 not run",
+      "failures": []
+    },
+    {
+      "check": "macro-tf-gov",
+      "exit_code": 0,
+      "seconds": 31.166,
+      "summary": "20/22 passed, 0 failed, 2 not run",
+      "failures": []
+    },
+    {
+      "check": "macro-m7-ledger",
+      "exit_code": 0,
+      "seconds": 8.139,
+      "summary": "14/18 passed, 0 failed, 4 not run",
+      "failures": []
+    },
+    {
+      "check": "macro-m8-forward",
+      "exit_code": 0,
+      "seconds": 10.548,
+      "summary": "17/23 passed, 0 failed, 6 not run",
+      "failures": []
+    },
+    {
+      "check": "macro-m6-context",
+      "exit_code": 0,
+      "seconds": 4.376,
+      "summary": "14/16 passed, 0 failed, 2 not run",
+      "failures": []
+    },
+    {
+      "check": "cockpit",
+      "exit_code": 0,
+      "seconds": 6.382,
+      "summary": "47/47 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-15-cockpit.json",
+      "failures": []
+    },
+    {
+      "check": "odds",
+      "exit_code": 0,
+      "seconds": 20.878,
+      "summary": "239/239 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-15-odds.json",
+      "failures": []
+    }
+  ],
+  "metadata": {
+    "summary": "Task 15 가격 데이터 확정 시각, 원화 환산과 검증 가능한 캐시",
+    "files": "core/oddsdata/bars.py, tests/odds_bars.py",
+    "validation": "odds_bars 25/25 (wall 2.867 s), odds 239/239, 공통 검증 실패 0",
+    "review": "로더 전체와 25개 테스트를 계획에 대조. P61/P62 검증 강화, P63 빈 필수 FX 거부, 추가 큰 정수 검증 오류 수정. 데이터 client는 hermetic seam으로 대체.",
+    "next_notes": "Task 16 calendar_for 파싱 오류 거부, 큰 정수 입력 방어, directory_link로 Linux/Windows 링크 거부 동일 검증. O3-13 md5 정렬 판정을 적용.",
+    "ledger": "- RED: missing bars ImportError 0/1. Base implementation with stronger cases: 23/25; expected failures were an overflowing integer in the pinned cache and missing required historical FX silently shortening the OKX composite. GREEN 25/25 wall 2.867 s.\n- P61: exact tuple (HISTORY_DAYS=3650, CACHE_ENV=TRADEGEN_ODDS_BARS_CACHE, KIS_MAX_PAGES=60) pinned in existing paging test. P62: added required/extra cache keys, mismatched source, null dates, unequal lengths, duplicate dates, boolean price, and malformed manifest shape/key/value cases inside existing tests. Matching sha does not bypass part validation.\n- P63 stricter option applied: when historical OKX composition needs an FX proxy and its final part is empty, raise RuntimeError; no date loss disguised as a valid shorter series. Complete KRW-USDT history still does not request FX. Existing US-empty-series behavior retained.\n- Additional numeric fix: _price catches OverflowError and returns False for an integer such as 10**400; _part_from then reports the intended bad-cache RuntimeError. Both direct validation and fail-closed behavior are stricter; no accepted malformed price.\n- P64: default-path test performs only read-only path resolution and existence checks on ~/.tradegen, no wrapper watch fired. P65 loader dedup deferred; P66 harmless assertion loop retained. P67 seam-body tests replace client classes on imported modules, rather than fake modules; real constructors and APIs never run.\n- Only core changes beyond exact plan are the two reproduced fixes; no pins, seeds, expected test counts or existing refusal checks weakened. LF retained.\n"
+  },
+  "keyless": true,
+  "isolated_home": true,
+  "usage_weekly_pct": "unknown"
+}

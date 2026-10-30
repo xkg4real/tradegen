@@ -409,3 +409,25 @@ rulings, deferred minors and runs here. It stays untracked until Task 19 commits
 - Task 14 macro-m6-context: 14/16 passed, 0 failed, 2 not run; exit 0; wall 4.077 s.
 - Task 14 cockpit: 47/47 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-14-cockpit.json; exit 0; wall 5.786 s.
 - Task 14 odds: 214/214 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-14-odds.json; exit 0; wall 20.124 s.
+
+## Cloud Task 15 completion — 2026-10-30T15:33:56+09:00 (Codex)
+
+- Code: b67cd4f1c656d08c4c4d9d7a74c1183aba0f5562.
+- Review: 로더 전체와 25개 테스트를 계획에 대조. P61/P62 검증 강화, P63 빈 필수 FX 거부, 추가 큰 정수 검증 오류 수정. 데이터 client는 hermetic seam으로 대체.
+- RED: missing bars ImportError 0/1. Base implementation with stronger cases: 23/25; expected failures were an overflowing integer in the pinned cache and missing required historical FX silently shortening the OKX composite. GREEN 25/25 wall 2.867 s.
+- P61: exact tuple (HISTORY_DAYS=3650, CACHE_ENV=TRADEGEN_ODDS_BARS_CACHE, KIS_MAX_PAGES=60) pinned in existing paging test. P62: added required/extra cache keys, mismatched source, null dates, unequal lengths, duplicate dates, boolean price, and malformed manifest shape/key/value cases inside existing tests. Matching sha does not bypass part validation.
+- P63 stricter option applied: when historical OKX composition needs an FX proxy and its final part is empty, raise RuntimeError; no date loss disguised as a valid shorter series. Complete KRW-USDT history still does not request FX. Existing US-empty-series behavior retained.
+- Additional numeric fix: _price catches OverflowError and returns False for an integer such as 10**400; _part_from then reports the intended bad-cache RuntimeError. Both direct validation and fail-closed behavior are stricter; no accepted malformed price.
+- P64: default-path test performs only read-only path resolution and existence checks on ~/.tradegen, no wrapper watch fired. P65 loader dedup deferred; P66 harmless assertion loop retained. P67 seam-body tests replace client classes on imported modules, rather than fake modules; real constructors and APIs never run.
+- Only core changes beyond exact plan are the two reproduced fixes; no pins, seeds, expected test counts or existing refusal checks weakened. LF retained.
+
+- Task 15 odds-guards: 18/18 passed, 0 failed, 0 not run; exit 0; wall 3.829 s.
+- Task 15 compliance-guards: 16/16 passed, 0 failed, 0 not run; exit 0; wall 7.338 s.
+- Task 15 compliance-store: 36/36 passed, 0 failed, 0 not run; exit 0; wall 25.797 s.
+- Task 15 macro-m0-harness: 11/11 passed, 0 failed, 0 not run; exit 0; wall 6.834 s.
+- Task 15 macro-tf-gov: 20/22 passed, 0 failed, 2 not run; exit 0; wall 31.166 s.
+- Task 15 macro-m7-ledger: 14/18 passed, 0 failed, 4 not run; exit 0; wall 8.139 s.
+- Task 15 macro-m8-forward: 17/23 passed, 0 failed, 6 not run; exit 0; wall 10.548 s.
+- Task 15 macro-m6-context: 14/16 passed, 0 failed, 2 not run; exit 0; wall 4.376 s.
+- Task 15 cockpit: 47/47 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-15-cockpit.json; exit 0; wall 6.382 s.
+- Task 15 odds: 239/239 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-15-odds.json; exit 0; wall 20.878 s.
