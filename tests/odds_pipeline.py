@@ -323,7 +323,7 @@ def test_the_okx_leg_is_ack_required_simulated_and_flagged():
 def test_rule_dates_come_from_the_screening_flags():
     """Q5 (O5): a 60-day Upbit plan holds KR-DOMESTIC-SPOT's review_by 2026-11-22: entries stop from that date, with
     no forced exit, and the card prints RULE_CHANGE_IN_HORIZON; a 10-day plan has no rule date. Contract 8.5 step 7
-    on made-up flags (the shipped rows have no effective_until, and their review_by comes before auto_off): entries
+    on made-up flags to exercise every ordering of review_by, auto_off and effective_until: entries
     stop from the earliest flag of any field, and the forced exit comes from the earliest auto_off or
     effective_until, so a bracket leg never re-enters after it."""
     with OF.chunk(), OF.members("bootstrap"), OF.spy(simulate, "run_column") as runs:
