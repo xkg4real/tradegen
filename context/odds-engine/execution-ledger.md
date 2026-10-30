@@ -431,3 +431,26 @@ rulings, deferred minors and runs here. It stays untracked until Task 19 commits
 - Task 15 macro-m6-context: 14/16 passed, 0 failed, 2 not run; exit 0; wall 4.376 s.
 - Task 15 cockpit: 47/47 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-15-cockpit.json; exit 0; wall 6.382 s.
 - Task 15 odds: 239/239 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-15-odds.json; exit 0; wall 20.878 s.
+
+## Cloud Task 16 completion — 2026-10-30T15:37:14+09:00 (Codex)
+
+- Code: 844c82d1afc453b274df6e9461812f101cefcfbb.
+- Review: 출처 함수 복사와 원본 일치, 저장 전 경로 검증, 달력 사전 적재/재해시를 대조. P68/P69 실패 3건 재현 후 수정. Linux 링크 테스트는 실제 symlink로 기존 거부 검증 유지.
+- RED: missing inputs ImportError 0/1; base code plus preflight checks 9/12, three expected failures (bad-state/input huge integer OverflowError and malformed calendar UnicodeDecodeError). GREEN 12/12 wall 5.171 s.
+- P68: calendar_for catches UnicodeDecodeError and yaml.YAMLError in addition to existing failures, returning the ALTERED refusal. Existing approved-fixture test corrupts the file after the owner check with invalid UTF-8 and invalid YAML; both refused, no session computation from altered bytes.
+- P69: _number returns False for overflowing integer conversion. Existing tests verify 10**400 is refused in the incoming typed rates and stored comparison state, with state bytes unchanged.
+- Linux adaptation: Task 16's new junction test calls the already reviewed compliance_fixtures.directory_link; no _winapi import on Linux, no skipped check, and both hard-link and directory-link refusal assertions unchanged.
+- P70: calendar md5 file-id ordering cites accepted O3-13, not a fresh drift. P71: the NO_APPROVAL wording also covers owner verification refusing altered storage, while a race after that verification is ALTERED; no semantics changed. P64: real default path test only resolves/checks metadata, no write and no watch fired.
+- repo_anchor/tree_hash copies and their constants untouched and equal originals on repository and synthetic roots. No extra test function, pin, threshold or seed changes. LF retained.
+
+- Task 16 odds-bars: 25/25 passed, 0 failed, 0 not run; exit 0; wall 2.978 s.
+- Task 16 odds-guards: 18/18 passed, 0 failed, 0 not run; exit 0; wall 3.674 s.
+- Task 16 compliance-guards: 16/16 passed, 0 failed, 0 not run; exit 0; wall 6.332 s.
+- Task 16 compliance-store: 36/36 passed, 0 failed, 0 not run; exit 0; wall 24.481 s.
+- Task 16 macro-m0-harness: 11/11 passed, 0 failed, 0 not run; exit 0; wall 6.534 s.
+- Task 16 macro-tf-gov: 20/22 passed, 0 failed, 2 not run; exit 0; wall 29.15 s.
+- Task 16 macro-m7-ledger: 14/18 passed, 0 failed, 4 not run; exit 0; wall 8.141 s.
+- Task 16 macro-m8-forward: 17/23 passed, 0 failed, 6 not run; exit 0; wall 10.897 s.
+- Task 16 macro-m6-context: 14/16 passed, 0 failed, 2 not run; exit 0; wall 4.679 s.
+- Task 16 cockpit: 47/47 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-16-cockpit.json; exit 0; wall 6.484 s.
+- Task 16 odds: 251/251 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-16-odds.json; exit 0; wall 22.479 s.
