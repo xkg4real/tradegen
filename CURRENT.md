@@ -1,14 +1,14 @@
 ---
-status: returned
-reason: completed
+status: taken
+reason: owner_authorized_followup
 from: gpt
 task: odds-engine
 cycle: 2026-10-27
 done_ids: cloud-compat-1, cloud-compat-2, cloud-compat-3, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final
 next_ids: odds-pr
-updated_at: 2026-10-30T16:26:58+09:00
+updated_at: 2026-10-30T21:09:16+09:00
 stale_after_hours: 3
-waiting_on: claude_odds_pr
+waiting_on: none
 work_branch: gpt/odds-engine
 work_commit: d773b6c44c73b82492d7d9ce89d4d76c8ea62110
 uncommitted_changes: no
@@ -25,7 +25,7 @@ session: cloud Codex (TRADEGEN)
 
 ## 0. 한 줄 요약
 
-기존 5건 수정, 추가 Cloud 호환 수정, odds Task 7~19 및 최종 검토까지 완료했습니다. 최종 전체 검증은 1355/1477 PASS, 실패 0, 122 NOT_RUN이며 코드 `d773b6c44c73b82492d7d9ce89d4d76c8ea62110`를 push했습니다. 다음은 Claude의 odds PR 생성입니다. E1은 해당 PR 병합 후 진행합니다. GPT 사용량은 조회 불가(unknown/unavailable)이므로 95% 도달이 아닌 작업 완료 사유로 반환합니다.
+소유자가 승인한 미완료 후속 단계 진행 원칙에 따라 GPT가 odds-pr를 이어서 완료합니다. 원격 코드와 검증 기록은 d773b6c로 일치하고, 두 odds 브랜치에 기존 PR이 없는 것을 확인했습니다. E1은 odds PR의 소유자 승인 및 병합 뒤에만 시작합니다.
 
 ## 1. 목표와 완료 조건
 
@@ -68,12 +68,14 @@ session: cloud Codex (TRADEGEN)
 | GPT 주간 사용량 95%에 접근하면 인수인계. 조회 불가 시 unknown과 출처 unavailable 기록, 작업 단위별 저장 | 2026-10-30 소유자 정정 | 이전 Claude 사용량이나 기준을 GPT에 적용하지 않음 |
 | Task 2·3 표 검증 보강은 36f6491, Task 4 calendar CLI 검증은 3f10ffb로 완료 | 기존 테스트 함수 안에 누락 경계 사례를 추가하고 표 70/70, CLI 36/36 확인 | 함수 수와 핀을 바꾸지 않음 |
 
+| odds-pr 역할 배정을 GPT 컨트롤러로 갱신 | 소유자의 미완료 후속 단계 진행 지시가 우선하고 Task 19 Step 10은 컨트롤러가 PR을 열도록 정함. 다른 에이전트의 taken 상태나 기존 PR 없음 | Claude 재개까지 PR 생성 자체를 보류하는 것은 필요하지 않음 |
+
 ## 4. 진행 상황
 
 - [x] cloud-compat-1~3 — 원래 5건 및 추가 플랫폼 오류 수정
 - [x] odds-1~19 — 구현, 검증, 실행 장부
 - [x] odds-final — 추가 수정 7커밋, 공통 회귀, 전체 재실행, 재검토
-- [ ] odds-pr — Claude 담당; 아직 PR 없음
+- [ ] odds-pr — GPT가 PR 생성 진행 중
 - [ ] E1 — odds PR 병합 뒤에만 시작
 
 ## 5. 현재 지점
@@ -113,14 +115,7 @@ session: cloud Codex (TRADEGEN)
 
 ## 9. 이어받는 에이전트에게 주는 지시문
 
-GPT가 작업을 완료해 반환했습니다. 먼저 이 문서와 AGENTS.md, LEDGER.md, context/odds-engine/execution-ledger.md를 읽으세요.
-
-1. `gpt/odds-engine` 최종 `d773b6c44c73b82492d7d9ce89d4d76c8ea62110`와 원격을 대조하세요. cloud-compat-1~3, odds-1~19, odds-final은 완료됐습니다.
-2. next_ids는 odds-pr 하나입니다. PR은 아직 없고, Claude가 작성합니다. 본문에 실제 Cloud 수치와 Windows 전용 1 NOT_RUN 및 실제 홈 smoke 미실행을 명시하세요.
-3. 필요하면 context/odds-engine/cloud-verification의 검증 스크립트를 참고하세요. 이미 통과한 검증의 무조건 반복은 필요하지 않습니다.
-4. 미완료 후속 개발 및 필요한 수정도 승인된 범위대로 진행하되, E1의 odds PR 병합 선행 조건을 지키세요.
-5. GPT 주간 95% 인수인계 규칙은 유지합니다. 이 세션에서는 조회 수단이 없어 unknown/unavailable로 기록했고, 작업 단위별 저장 후 completed로 반환했습니다.
-6. 실제 주문·무장·키·홈 쓰기·QUANTGEN 수정·직접 main push 및 병합 금지를 지키세요.
+GPT가 소유자 후속 지시에 따라 odds-pr를 진행 중입니다. returned 전에는 중복 작업하지 않습니다. PR 생성 완료 후 URL과 최신 다음 단계를 기록합니다. 병합과 E1 선행 조건은 그대로 유지합니다.
 
 ## 10. 결과 확인 방법
 
