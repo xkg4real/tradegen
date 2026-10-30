@@ -1,0 +1,101 @@
+{
+  "code_commit": "5f311f485b21fd940a6db8c1adabf03fb5016b66",
+  "completed_at": "2026-10-30T15:30:46+09:00",
+  "checks": [
+    {
+      "check": "odds-simulate",
+      "exit_code": 0,
+      "seconds": 3.774,
+      "summary": "18/18 passed, 0 failed, 0 not run",
+      "failures": []
+    },
+    {
+      "check": "odds-locks",
+      "exit_code": 0,
+      "seconds": 3.324,
+      "summary": "14/14 passed, 0 failed, 0 not run",
+      "failures": []
+    },
+    {
+      "check": "odds-guards",
+      "exit_code": 0,
+      "seconds": 3.825,
+      "summary": "18/18 passed, 0 failed, 0 not run",
+      "failures": []
+    },
+    {
+      "check": "compliance-guards",
+      "exit_code": 0,
+      "seconds": 6.138,
+      "summary": "16/16 passed, 0 failed, 0 not run",
+      "failures": []
+    },
+    {
+      "check": "compliance-store",
+      "exit_code": 0,
+      "seconds": 24.894,
+      "summary": "36/36 passed, 0 failed, 0 not run",
+      "failures": []
+    },
+    {
+      "check": "macro-m0-harness",
+      "exit_code": 0,
+      "seconds": 6.682,
+      "summary": "11/11 passed, 0 failed, 0 not run",
+      "failures": []
+    },
+    {
+      "check": "macro-tf-gov",
+      "exit_code": 0,
+      "seconds": 28.854,
+      "summary": "20/22 passed, 0 failed, 2 not run",
+      "failures": []
+    },
+    {
+      "check": "macro-m7-ledger",
+      "exit_code": 0,
+      "seconds": 7.539,
+      "summary": "14/18 passed, 0 failed, 4 not run",
+      "failures": []
+    },
+    {
+      "check": "macro-m8-forward",
+      "exit_code": 0,
+      "seconds": 10.144,
+      "summary": "17/23 passed, 0 failed, 6 not run",
+      "failures": []
+    },
+    {
+      "check": "macro-m6-context",
+      "exit_code": 0,
+      "seconds": 4.077,
+      "summary": "14/16 passed, 0 failed, 2 not run",
+      "failures": []
+    },
+    {
+      "check": "cockpit",
+      "exit_code": 0,
+      "seconds": 5.786,
+      "summary": "47/47 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-14-cockpit.json",
+      "failures": []
+    },
+    {
+      "check": "odds",
+      "exit_code": 0,
+      "seconds": 20.124,
+      "summary": "214/214 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-14-odds.json",
+      "failures": []
+    }
+  ],
+  "metadata": {
+    "summary": "Task 14 모형별 비교 범위, GARCH 검증, 가정 승률·상장폐지 스트레스 연결",
+    "files": "core/odds/simulate.py, tests/odds_fixtures.py, tests/odds_pipeline.py, tests/odds_columns.py",
+    "validation": "odds_columns 14/14 (wall 8.380 s), odds_pipeline 13/13 (wall 4.422 s), odds 214/214, 공통 검증 실패 0",
+    "review": "모든 계획 교체 구간 대조. 20개 refit과 21개 pilot을 유지. P4 추가 테스트는 수정 전 실패·수정 후 통과; 기준 확률 0건이면 거부. P56/P58 설명과 P59 annotation만 정리.",
+    "next_notes": "Task 15 P61 상수 pin, P62 cache 거부 분기 검증, P63 필요한 FX가 비면 거부. Task 16 P68 달력 파싱 실패 거부, P69 큰 정수 입력 방어, Linux directory_link 재사용.",
+    "ledger": "- RED: odds_columns 0/14, odds_pipeline 4/13, exactly the planned missing-feature failures. P4 focused RED after base implementation: 0/1, reachable pilot plus zero observed baseline wins wrongly accepted. GREEN: odds_columns 14/14 wall 8.380 s; odds_pipeline 13/13 wall 4.422 s.\n- P4: _assumed refuses both no resolved brackets and wins==0; its refusal detail names both. Added a reachable-pilot/zero-baseline end-to-end check inside the existing unreachable-rate test. Refused report has no columns/assumed probability. No catalogue changes.\n- P56: garch_series docstring no longer claims every refit stays below NU_NORMAL; P58 at_bound is kept in the fit, not promised as separately reported; P59 removed redundant annotation quotes. P57 optional refusal deduplication deferred, preserving Task 17 anchors.\n- P60 measurements, using in-memory wrappers around real unchanged calls during the official acceptance entry point: all-member test 21 pilots, max deterministic step 8.962372944478084e-13 (limit 1e-7), summed 5.180709160279573e-12 (limit 1e-6), max statistical z 2.753403813867666 (limit 4). Refit nu range 12.589725419554885..inf.\n- Assumed 0.70: full-column win 0.6963087248322147 (absolute miss 0.0036912751677853 < 0.01), theta 0.84375, baseline p0 0.4827197595792637, unresolved share 0.023039595481792602, resolved 47,916, nb 31. Real-pilot 0.60 case: theta 0.4296875, full win 0.6009005065349259, baseline p0 0.48452962545408995. No reseeding or looser bounds.\n- Per-test timing: all-member 2.0502 s; no test exceeded 15 s. Raw margins/timings retained outside repository. Full 20 refits and real 20,000-path tilt/200,000-path chunk tests ran.\n- O3-18 resolves the Task 9 minor: bootstrap range is set by simulate._column from spec/history alone, not run_column; direct run_column callers (delisting, assumed, replay) keep their own range value. This is the accepted contract 10.1/10.3 erratum, not a new departure.\n- Contract 3.2: Task 14 adds members(*names) and garch_series(...) to tests/odds_fixtures.py. P52 exact two-element return annotation retained. Core matches plan plus P4/P58 fixes, raw scans empty, LF retained.\n"
+  },
+  "keyless": true,
+  "isolated_home": true,
+  "usage_weekly_pct": "unknown"
+}

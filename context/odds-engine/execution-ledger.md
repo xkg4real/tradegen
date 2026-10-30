@@ -383,3 +383,29 @@ rulings, deferred minors and runs here. It stays untracked until Task 19 commits
 - Task 13 macro-m6-context: 14/16 passed, 0 failed, 2 not run; exit 0; wall 4.379 s.
 - Task 13 cockpit: 47/47 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-13-cockpit.json; exit 0; wall 5.885 s.
 - Task 13 odds: 200/200 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-13-odds.json; exit 0; wall 15.615 s.
+
+## Cloud Task 14 completion — 2026-10-30T15:30:46+09:00 (Codex)
+
+- Code: 5f311f485b21fd940a6db8c1adabf03fb5016b66.
+- Review: 모든 계획 교체 구간 대조. 20개 refit과 21개 pilot을 유지. P4 추가 테스트는 수정 전 실패·수정 후 통과; 기준 확률 0건이면 거부. P56/P58 설명과 P59 annotation만 정리.
+- RED: odds_columns 0/14, odds_pipeline 4/13, exactly the planned missing-feature failures. P4 focused RED after base implementation: 0/1, reachable pilot plus zero observed baseline wins wrongly accepted. GREEN: odds_columns 14/14 wall 8.380 s; odds_pipeline 13/13 wall 4.422 s.
+- P4: _assumed refuses both no resolved brackets and wins==0; its refusal detail names both. Added a reachable-pilot/zero-baseline end-to-end check inside the existing unreachable-rate test. Refused report has no columns/assumed probability. No catalogue changes.
+- P56: garch_series docstring no longer claims every refit stays below NU_NORMAL; P58 at_bound is kept in the fit, not promised as separately reported; P59 removed redundant annotation quotes. P57 optional refusal deduplication deferred, preserving Task 17 anchors.
+- P60 measurements, using in-memory wrappers around real unchanged calls during the official acceptance entry point: all-member test 21 pilots, max deterministic step 8.962372944478084e-13 (limit 1e-7), summed 5.180709160279573e-12 (limit 1e-6), max statistical z 2.753403813867666 (limit 4). Refit nu range 12.589725419554885..inf.
+- Assumed 0.70: full-column win 0.6963087248322147 (absolute miss 0.0036912751677853 < 0.01), theta 0.84375, baseline p0 0.4827197595792637, unresolved share 0.023039595481792602, resolved 47,916, nb 31. Real-pilot 0.60 case: theta 0.4296875, full win 0.6009005065349259, baseline p0 0.48452962545408995. No reseeding or looser bounds.
+- Per-test timing: all-member 2.0502 s; no test exceeded 15 s. Raw margins/timings retained outside repository. Full 20 refits and real 20,000-path tilt/200,000-path chunk tests ran.
+- O3-18 resolves the Task 9 minor: bootstrap range is set by simulate._column from spec/history alone, not run_column; direct run_column callers (delisting, assumed, replay) keep their own range value. This is the accepted contract 10.1/10.3 erratum, not a new departure.
+- Contract 3.2: Task 14 adds members(*names) and garch_series(...) to tests/odds_fixtures.py. P52 exact two-element return annotation retained. Core matches plan plus P4/P58 fixes, raw scans empty, LF retained.
+
+- Task 14 odds-simulate: 18/18 passed, 0 failed, 0 not run; exit 0; wall 3.774 s.
+- Task 14 odds-locks: 14/14 passed, 0 failed, 0 not run; exit 0; wall 3.324 s.
+- Task 14 odds-guards: 18/18 passed, 0 failed, 0 not run; exit 0; wall 3.825 s.
+- Task 14 compliance-guards: 16/16 passed, 0 failed, 0 not run; exit 0; wall 6.138 s.
+- Task 14 compliance-store: 36/36 passed, 0 failed, 0 not run; exit 0; wall 24.894 s.
+- Task 14 macro-m0-harness: 11/11 passed, 0 failed, 0 not run; exit 0; wall 6.682 s.
+- Task 14 macro-tf-gov: 20/22 passed, 0 failed, 2 not run; exit 0; wall 28.854 s.
+- Task 14 macro-m7-ledger: 14/18 passed, 0 failed, 4 not run; exit 0; wall 7.539 s.
+- Task 14 macro-m8-forward: 17/23 passed, 0 failed, 6 not run; exit 0; wall 10.144 s.
+- Task 14 macro-m6-context: 14/16 passed, 0 failed, 2 not run; exit 0; wall 4.077 s.
+- Task 14 cockpit: 47/47 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-14-cockpit.json; exit 0; wall 5.786 s.
+- Task 14 odds: 214/214 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-14-odds.json; exit 0; wall 20.124 s.
