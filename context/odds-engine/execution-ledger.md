@@ -454,3 +454,12 @@ rulings, deferred minors and runs here. It stays untracked until Task 19 commits
 - Task 16 macro-m6-context: 14/16 passed, 0 failed, 2 not run; exit 0; wall 4.679 s.
 - Task 16 cockpit: 47/47 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-16-cockpit.json; exit 0; wall 6.484 s.
 - Task 16 odds: 251/251 passed, 0 failed, 0 not run; /workspace/tradegen-session/task-16-odds.json; exit 0; wall 22.479 s.
+
+## Cloud compatibility 2 — 2026-10-30T15:39:29+09:00 (Codex)
+
+- Code: db31b443fd9e9f07da503dd55c9eb6b27d326566.
+- RED: tables 69/70 (unconditional _winapi import); isolation 12/17 (five Windows-junction skips); signer 34/38 (deployment-path equality failure, two junction skips, one real GetConsoleMode skip).
+- Reused compliance_fixtures.directory_link: actual junctions on Windows, actual symlinks on POSIX; unchanged checks still reject linked roots, linked entries, path escapes and writes. Seven formerly skipped link tests now execute; a file-symlink test already ran on Linux. No new test function or weakening of refusal assertions.
+- Standalone tools/signer/sign.py intentionally pins the owner's Windows deployment root, while core/isolation.py derives QUANTGEN's sibling from the checkout. The old absolute equality assumed the checkout lived on that desktop. Pin both exact intended roots independently, and retain equality when that documented deployment layout applies. Existing synthetic-root refusal/parity tests remain intact. Production signer/isolation code and actual keys/homes are untouched.
+- GREEN: tables 70/70; isolation 17/17; signer 37/38, zero failures. Only compliance_signer/test_stdin_terminal_check_follows_getconsolemode remains NOT_RUN: REFDATA: GetConsoleMode needs Windows. It requires a real Windows console and cannot be represented as verified on Linux. Task 18/19 must report this explicit platform difference; do not invent PASS.
+- Counts, LF endings and diff reviewed. Tests only; no extra broad macro rerun needed. Full compliance suite remains required at Task 18.

@@ -4,13 +4,13 @@ reason: owner_authorized_continuation
 from: gpt
 task: odds-engine
 cycle: 2026-10-27
-done_ids: cloud-compat-1, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16
+done_ids: cloud-compat-1, cloud-compat-2, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16
 next_ids: odds-17, odds-18, odds-19, odds-final, odds-pr
-updated_at: 2026-10-30T15:37:14+09:00
+updated_at: 2026-10-30T15:39:29+09:00
 stale_after_hours: 3
 waiting_on: none
 work_branch: gpt/odds-engine
-work_commit: 844c82d1afc453b274df6e9461812f101cefcfbb
+work_commit: db31b443fd9e9f07da503dd55c9eb6b27d326566
 uncommitted_changes: no
 pr: none
 usage_weekly_pct: unknown
@@ -25,7 +25,7 @@ session: cloud Codex (TRADEGEN)
 
 ## 0. 한 줄 요약
 
-cloud-compat-1 및 odds-1~16 완료. 최신 개발: Task 16 승인 달력, 출처 기록과 비교 실행 상태 저장. 코드 gpt/odds-engine `844c82d1afc453b274df6e9461812f101cefcfbb`. 다음 단계는 odds-17입니다.
+cloud-compat-1, cloud-compat-2 및 odds-1~16 완료. 최신 개발: Task 16 승인 달력, 출처 기록과 비교 실행 상태 저장. 코드 gpt/odds-engine `db31b443fd9e9f07da503dd55c9eb6b27d326566`. 다음 단계는 odds-17입니다.
 
 2026-10-30 소유자 정정에 따라 필요한 추가 수정과 미완료 후속 단계도 개발합니다. GPT 주간 사용량 95%에 접근하면 Claude용 로그를 올립니다. 현재 조회 수단은 없어 unknown이며, 작업 단위별 체크포인트를 저장합니다.
 
@@ -73,6 +73,7 @@ cloud-compat-1 및 odds-1~16 완료. 최신 개발: Task 16 승인 달력, 출�
 
 - [x] fu — main f3bedd3
 - [x] cloud-compat-1 — 기존 클라우드 오류 5건 수정
+- [x] cloud-compat-2 — 추가 플랫폼 테스트 실패 2건 수정, 링크 테스트 7건 실제 실행
 - [x] odds-1 ~ odds-16 — 상세 ID와 검증은 LEDGER
 - [ ] odds-17 ~ odds-19, odds-final, odds-pr
 
@@ -80,15 +81,16 @@ cloud-compat-1 및 odds-1~16 완료. 최신 개발: Task 16 승인 달력, 출�
 
 ## 5. 현재 지점
 
-- 코드 `844c82d1afc453b274df6e9461812f101cefcfbb`, 작업 트리 깨끗함. Task 16 완료 및 자체 검토 후 체크포인트.
+- 코드 `db31b443fd9e9f07da503dd55c9eb6b27d326566`, 작업 트리 깨끗함. Task 16 및 cloud-compat-2 완료 및 자체 검토 후 체크포인트.
+- 추가 검증: tables 70/70, isolation 17/17, signer 37/38 (Windows GetConsoleMode 1건은 Linux 실행 불가). 자세한 RED/GREEN과 경로 판정은 cloud-compat-2-validation.json.
 - 출처 함수 복사와 원본 일치, 저장 전 경로 검증, 달력 사전 적재/재해시를 대조. P68/P69 실패 3건 재현 후 수정. Linux 링크 테스트는 실제 symlink로 기존 거부 검증 유지.
 - 실행 장부는 context/odds-engine/execution-ledger.md에 저장하며 Task 19 이전에는 코드 브랜치에 넣지 않습니다. qa/acceptance_results.json은 변경하지 않았습니다.
 - Python 3.13.16, numpy 2.3.5, scipy 1.18.0; KEYLESS, 순차 실행, 격리된 테스트 홈. 원시 로그 /workspace/tradegen-session. Git 전송으로 원격에 바이트 그대로 저장합니다.
 
 ## 6. 다음 할 일 (순서대로)
 
-1. odds-17부터 계획 원문과 round-3 판정 및 progress/preflight에 따라 구현합니다. 각 Task RED/GREEN, 필수 회귀 검증, 자체 검토 후 push합니다.
-2. 추가 cloud-compat-2: 기존 compliance tables/isolation/signer의 Windows 전용 링크 테스트를 같은 directory_link로 실행 가능하게 한 뒤 Task 17 세 RED/GREEN cycle을 수행. P5 replay range는 경로 생성 전에 계산.
+1. cloud-compat-2 완료 후 odds-17부터 계획 원문과 round-3 판정 및 progress/preflight에 따라 구현합니다. 각 Task RED/GREEN, 필수 회귀 검증, 자체 검토 후 push합니다.
+2. cloud-compat-2는 완료됐습니다. Task 17 세 RED/GREEN cycle을 수행. P5 replay range는 경로 생성 전에 계산.
 3. 추가 수정은 별도 ID 및 근거를 남기고 완료 ID는 중복 수행하지 않습니다.
 4. Task 19 Step 1~7 뒤 odds-final; execution-ledger의 보류 항목도 함께 검토합니다. odds-pr은 Claude가 담당합니다.
 5. odds PR 병합 전 E1을 시작하지 않습니다. 병합은 소유자 승인 사항입니다.
@@ -116,7 +118,7 @@ cloud-compat-1 및 odds-1~16 완료. 최신 개발: Task 16 승인 달력, 출�
 현재 GPT가 taken 상태로 개발 중입니다. returned 또는 정해진 takeover 조건 전에는 중복 작업하지 않습니다.
 
 1. CURRENT.md, AGENTS.md, LEDGER.md와 context/odds-engine 기록을 읽습니다. cloud-compat-1 및 odds-1~16는 완료됐습니다.
-2. 코드 `844c82d1afc453b274df6e9461812f101cefcfbb` 및 최신 원격을 대조하고 next_ids 첫 항목부터 진행합니다.
+2. 코드 `db31b443fd9e9f07da503dd55c9eb6b27d326566` 및 최신 원격을 대조하고 next_ids 첫 항목부터 진행합니다.
 3. 필요한 추가 수정 및 미완료 단계도 진행하며, 작업별 commit/push와 장부를 갱신합니다.
 4. GPT 주간 사용량 95% 접근 시 관측 수치와 시각을 기록하고 Claude에게 반환합니다. 조회 불가 시 unknown을 유지합니다.
 5. 주문·무장·실제 키·실제 홈·병합 금지 및 core/odds 순수성을 지킵니다.
