@@ -40,12 +40,8 @@ def _fake_quantgen():
 
 
 def _junction(link: Path, target: Path) -> None:
-    try:
-        import _winapi
-    except ImportError:
-        raise NotRun("REFDATA: directory junctions need Windows") from None
     target.mkdir(parents=True, exist_ok=True)
-    _winapi.CreateJunction(str(target), str(link))
+    compliance_fixtures.directory_link(link, target)
 
 
 def _symlink(link: Path, target: Path) -> None:

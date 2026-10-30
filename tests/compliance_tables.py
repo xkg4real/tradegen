@@ -1079,21 +1079,23 @@ def test_calendar_sha256_refuses_a_file_symlink():
 
 
 def test_calendar_sha256_refuses_a_junction():
-    import _winapi
+    from tests.compliance_fixtures import directory_link
     from tests.macro_m1_calendars import fixture_set
     root = Path(tempfile.mkdtemp(prefix="tradegen_cal_")) / "set"   # finally removes root.parent
     try:
         shutil.copytree(fixture_set().data_dir, root)
         other = root.parent / "elsewhere"
         other.mkdir()
-        _winapi.CreateJunction(str(other), str(root / "linked"))
+        directory_link(root / "linked", other)
         _refused(lambda: rules.calendar_sha256(root), "calendar: linked is a link")
-        _winapi.CreateJunction(str(root), str(root.parent / "alias"))
+        directory_link(root.parent / "alias", root)
         _refused(lambda: rules.calendar_sha256(root.parent / "alias"), "is not a plain directory")
     finally:
         for link in (root / "linked", root.parent / "alias"):
             if link.is_junction():
                 link.rmdir()                                            # removes the junction, not its target
+            elif link.is_symlink():
+                link.unlink()
         shutil.rmtree(root.parent, ignore_errors=True)
 
 
