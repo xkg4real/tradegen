@@ -39,6 +39,10 @@ FORBIDDEN_PATH_RE = re.compile(r"/uapi/[^\s'\"]*/trading/")           # every KI
 TEXT_EXCEPTIONS = {
     "execution/kis_inquiry.py": frozenset({"KIS_ACCOUNT", "CANO", "ACNT_PRDT_CD", FORBIDDEN_PATH_RE.pattern}),
     "execution/upbit_inquiry.py": frozenset({"/v1/orders", "/v1/withdraws"}),
+    # E3 exact codec/transport files; control_guards pins every allowed literal and send path.
+    "execution_orders/kis.py": frozenset({"order-cash", FORBIDDEN_PATH_RE.pattern}),
+    "execution_orders/upbit.py": frozenset({"/v1/orders"}),
+    "execution_orders/transport.py": frozenset({"CANO", "ACNT_PRDT_CD"}),
 }
 # Top-level modules of order-submission clients; an import anywhere fails.
 FORBIDDEN_IMPORTS = frozenset({

@@ -5,12 +5,16 @@ of all 959 files. QUANTGEN stays pure quant research that goes no further than
 paper trading. TRADEGEN is where trading for the owner's own account is designed,
 inside Korean law.
 
-- **Status (2026-10-23): no order path exists.** Everything after the line below
-  is inherited QUANTGEN text and still describes this copy: read-only data
-  clients, the simulated engine and the P0 read-only guards. Those guards are
-  retired only through TRADEGEN's own safety design: a Korean compliance gate,
-  execution the owner arms per session, hard loss limits, a kill switch and an
-  order audit log.
+- **Status (2026-10-31): E1–E3 library implementation.** Read-only inquiry,
+  durable execution control, realized-profit accounting and cash limit-order
+  adapters for KIS, Upbit and OKX are implemented. Orders require a fresh bound
+  odds preparation, owner-signed session, compliance checks and explicit account
+  and credential providers. There is no autonomous strategy scheduler or default
+  live configuration. The [execution runbook](docs/execution-runbook.md) records
+  supported paths, offline checks and remaining owner setup. No live order was
+  placed during development; the new policy strategy remains UNVALIDATED.
+  Everything below the separator is inherited QUANTGEN documentation; its
+  read-only statements describe those research packages.
 - **Read-only account inquiry (E1).** `python -m execution.poll` reads balances,
   open orders, fills, deposits and withdrawals on KIS, Upbit and OKX through one
   GET-only transport with frozen allowlists, and only alerts. It places no
@@ -822,7 +826,7 @@ Optional: `TRADEGEN_MACRO_DIR` moves the macro state out of `~/.tradegen/macro`.
 
 ```bash
 .venv/Scripts/python tests/run_all.py                  # every suite; writes qa/acceptance_results.json
-.venv/Scripts/python tests/run_all.py --suite macro    # one suite: cockpit, engine, ui, quant, ficc, expansion, macro, paper, grokteam, compliance, odds or execution
+.venv/Scripts/python tests/run_all.py --suite macro    # one suite: cockpit, engine, ui, quant, ficc, expansion, macro, paper, grokteam, compliance, odds, execution or execution_control
 .venv/Scripts/python tests/run_all.py --milestone M8   # the exit set of a milestone (tests/macro_registry.csv)
 .venv/Scripts/python -m tests.macro_acceptance         # resync the registry's implemented_in column
 ```

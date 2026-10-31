@@ -128,7 +128,7 @@ def test_a_stored_calendar_set_with_a_link_is_not_stored():
 
 def test_code_files_is_the_import_closure():
     """P6 on the real tree: core/__init__.py, core/isolation.py, core/compliance/*.py, core/odds/*.py, execution/*.py
-    (E1 spec 8) and the RECORD files of PyYAML and cryptography; never config.py, data/, core/quant/, core/calendars/
+    (E1 spec 8), recursive E2/E3 packages and the RECORD files of PyYAML and cryptography; never config.py, data/, core/quant/, core/calendars/
     or core/engine/ (the import allowlists keep the closure small)."""
     files = owner.code_files(ROOT)
     names = [name for name, _ in files]
@@ -136,7 +136,9 @@ def test_code_files_is_the_import_closure():
     repo = {name for name in names if not name.startswith("venv:")}
     expected = {"core/__init__.py", "core/isolation.py"} | {
         f"core/{sub}/{p.name}" for sub in ("compliance", "odds") for p in (ROOT / "core" / sub).glob("*.py")} | {
-        f"execution/{p.name}" for p in (ROOT / "execution").glob("*.py")}
+        f"execution/{p.name}" for p in (ROOT / "execution").glob("*.py")} | {
+        p.relative_to(ROOT).as_posix() for package in ("execution_control", "execution_orders")
+        for p in (ROOT / package).rglob("*.py")}
     assert repo == expected, sorted(repo ^ expected)
     assert "config.py" not in repo and not any(name.startswith("data/") for name in repo)
     assert not any(name.startswith(("core/quant/", "core/calendars/", "core/engine/")) for name in repo), repo
