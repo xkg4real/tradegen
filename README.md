@@ -5,12 +5,16 @@ of all 959 files. QUANTGEN stays pure quant research that goes no further than
 paper trading. TRADEGEN is where trading for the owner's own account is designed,
 inside Korean law.
 
-- **Status (2026-10-23): no order path exists.** Everything after the line below
-  is inherited QUANTGEN text and still describes this copy: read-only data
-  clients, the simulated engine and the P0 read-only guards. Those guards are
-  retired only through TRADEGEN's own safety design: a Korean compliance gate,
-  execution the owner arms per session, hard loss limits, a kill switch and an
-  order audit log.
+- **Status (2026-10-31): E1–E3 library implementation.** Read-only inquiry,
+  durable execution control, realized-profit accounting and cash limit-order
+  adapters for KIS, Upbit and OKX are implemented. Orders require a fresh bound
+  odds preparation, owner-signed session, compliance checks and explicit account
+  and credential providers. There is no autonomous strategy scheduler or default
+  live configuration. The [execution runbook](docs/execution-runbook.md) records
+  supported paths, offline checks and remaining owner setup. No live order was
+  placed during development; the new policy strategy remains UNVALIDATED.
+  Everything below the separator is inherited QUANTGEN documentation; its
+  read-only statements describe those research packages.
 - **Read-only account inquiry (E1).** `python -m execution.poll` reads balances,
   open orders, fills, deposits and withdrawals on KIS, Upbit and OKX through one
   GET-only transport with frozen allowlists, and only alerts. It places no
@@ -822,7 +826,7 @@ Optional: `TRADEGEN_MACRO_DIR` moves the macro state out of `~/.tradegen/macro`.
 
 ```bash
 .venv/Scripts/python tests/run_all.py                  # every suite; writes qa/acceptance_results.json
-.venv/Scripts/python tests/run_all.py --suite macro    # one suite: cockpit, engine, ui, quant, ficc, expansion, macro, paper, grokteam, compliance, odds or execution
+.venv/Scripts/python tests/run_all.py --suite macro    # one suite: cockpit, engine, ui, quant, ficc, expansion, macro, paper, grokteam, compliance, odds, execution or execution_control
 .venv/Scripts/python tests/run_all.py --milestone M8   # the exit set of a milestone (tests/macro_registry.csv)
 .venv/Scripts/python -m tests.macro_acceptance         # resync the registry's implemented_in column
 ```
@@ -848,7 +852,8 @@ exit code; the exit code is 0 only when nothing failed. The summary line reads
 | compliance | `tests/compliance_acceptance.py` over `tests/compliance_*.py` | The compliance gate, offline: the strict YAML loader (duplicate keys, anchors, native dates, 256 KB cap), the rules table, instrument map and venue file with the 38-row coverage and the monthly review cadence, the derived classes, the `decide()` kernel (conduct and hard-coded floor, fail-closed inputs, exits that stay open under D11, the OKX grey row with its cap, acknowledgement and 2026-12-03 auto-off at the Asia/Seoul boundary, D15 refusals and D16 refusals that only live deposit evidence lifts), permits and plan screening, purity, the Ed25519 owner log (chain, anchors, key rotation, system halts), D12 tighten-now/loosen-tomorrow, the approved-version store and signed code hash, `load_context`, the `--check` exit codes 0-4 and the alert template, the owner-kept signer's refusals and key file, and the isolation residual (links, junctions, hard links, final-target checks) | 341 PASS / 1 NOT_RUN |
 | odds | `tests/odds_acceptance.py` over `tests/odds_*.py` | The odds engine, offline with every price feed faked: the single-leg plan whitelist and the named refusals in their fixed order, the cost ledger with the per-fill tick floor (the KRX stock sell tax inside it), floor-protected and stop-based stakes with lot rounding, the no-edge two-point bootstrap and GARCH-t with their pilot checks and corruption tests, the path engine (open and close checks, limit-down locks, the daily loss, rule dates, delisting stress, the OKX cap per entry), the ceiling, the KRX structural maximum and exact bold play, the HIDDEN_EDGE and CEILING_BREACH bug checks, the S_C3 replay against its pinned card with lower-bound Kelly, the report's sentence catalogue, outward number formats and language guard, the unsigned bar loader and its checked cache, the signed calendar, one seed per comparison, the CLI, and the odds guards (the import allowlist, no clock and no file I/O in the signed core) | 287 PASS |
 | execution | `tests/execution_acceptance.py` over `tests/execution_*.py` | E1 read-only account inquiry, offline: the frozen allowlists and refusals before any key is read, Upbit JWT and OKX signing, the shared KIS token cache, KIS read only under signed code, the OKX read-only self-check, snapshots and fail-closed positions, D16 deposit evidence (written on change and daily) with next-Seoul-day lifting and 7-day expiry, every poll check, alert text without balances or addresses, the poller CLI, and the guards (file-exact KIS and Upbit exceptions) | 228 PASS |
-| **Total** | `tests/run_all.py` | | 1584/1706 passed, 0 failed, 122 not run (2026-10-31, TRADEGEN `.venv`) |
+| execution_control | `tests/control_acceptance.py` over `tests/control_*.py` and `tests/orders_*.py` | E2/E3 offline: exact durable reservations, FIFO realized accounting, equity policy, fresh bound odds and owner sessions, one-use capabilities, unknown-outcome retention, authenticated cash limit-order codecs and four mocked venue lifecycles | 131 PASS |
+| **Total** | `tests/run_all.py` | | 1715/1837 passed, 0 failed, 122 not run (2026-10-31, TRADEGEN `.venv`) |
 
 The macro group (new in v2) discovers every `tests/macro_*.py` module,
 wraps each test in a hermetic guard, and brackets the run with T-HERM-01 (every

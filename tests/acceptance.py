@@ -47,7 +47,8 @@ def _code_only(path: Path) -> str:
 
 def runtime_py() -> list[Path]:
     files: list[Path] = []
-    for base in (ROOT / "core", ROOT / "data", ROOT / "ui", ROOT / "execution"):
+    for base in (ROOT / "core", ROOT / "data", ROOT / "ui", ROOT / "execution",
+                 ROOT / "execution_control", ROOT / "execution_orders"):
         if base.is_dir():
             files.extend(p for p in base.rglob("*.py") if "__pycache__" not in p.parts)
     files.extend([ROOT / "main.py", ROOT / "config.py"])
@@ -167,20 +168,28 @@ def test_07b_undeclared_credentials_are_detected_from_code():
 # Safety
 # --------------------------------------------------------------------------- #
 def test_08_no_broker_order_path():
-    """KIS is a brokerage API; this build implements quotations only."""
+    """Order endpoint text is confined to the exact reviewed E3 codec; all other tokens remain forbidden."""
     needles = ["order_cash", "order-cash", "place_order", "submit_order",
                "TTTC0802U", "TTTC0801U", "VTTC0802U"]
-    blob = "\n".join(_read(p) for p in runtime_py()).lower()
-    hits = [n for n in needles if n.lower() in blob]
+    exceptions = {"execution_orders/kis.py": frozenset({"order-cash"})}
+    hits = []
+    for path in runtime_py():
+        rel = path.relative_to(ROOT).as_posix()
+        low = _read(path).lower()
+        hits.extend(f"{rel}: {n}" for n in needles if n.lower() in low
+                    and n.lower() not in exceptions.get(rel, ()))
     assert not hits, f"broker order surface present: {hits}"
 
 
 def test_09_no_account_credentials_requested():
-    """Order submission needs an account number. Never ask for one. E1's balance inquiry,
-    execution/kis_inquiry.py, is the one file that names one; tests/execution_guards.py pins its paths and TR ids."""
-    blob = "\n".join(_read(p) for p in runtime_py() if p.relative_to(ROOT).as_posix() != "execution/kis_inquiry.py")
-    for name in ("KIS_ACCOUNT", "CANO", "ACNT_PRDT_CD"):
-        assert name not in blob, f"{name} implies an order path"
+    """Account fields stay in E1 inquiry and E3's credential boundary, each with exact guard coverage."""
+    exceptions = {"execution/kis_inquiry.py": frozenset({"KIS_ACCOUNT", "CANO", "ACNT_PRDT_CD"}),
+                  "execution_orders/transport.py": frozenset({"CANO", "ACNT_PRDT_CD"})}
+    for path in runtime_py():
+        rel = path.relative_to(ROOT).as_posix()
+        text = _read(path)
+        for name in ("KIS_ACCOUNT", "CANO", "ACNT_PRDT_CD"):
+            assert name not in text or name in exceptions.get(rel, ()), f"{rel}: {name} outside credential boundary"
 
 
 def test_10_redaction_masks_configured_secret():

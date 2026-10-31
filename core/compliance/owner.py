@@ -788,12 +788,15 @@ def _repo_imports(root: Path, path: Path) -> set[Path]:
 
 def code_files(repo_root: Path) -> list[tuple[str, str]]:
     """Sorted (relative POSIX path, sha256) of the D14 code closure (P6): core/compliance/*.py, core/odds/*.py and
-    execution/*.py, every in-repo file they import at any depth, every ancestor package __init__.py, and the RECORD
+    execution/*.py, recursive execution_control/ and execution_orders/ files, every in-repo file they import at any
+    depth, every ancestor package __init__.py, and the RECORD
     files of the cryptography and PyYAML installs of the running interpreter as venv:<dist>-<version>.dist-info/RECORD
     (absent when not installed)."""
     root = Path(repo_root)
     todo = [p for base in (root / "core" / "compliance", root / "core" / "odds", root / "execution")
             for p in sorted(base.glob("*.py"))]
+    todo.extend(p for base in (root / "execution_control", root / "execution_orders")
+                for p in sorted(base.rglob("*.py")))
     seen: set[Path] = set()
     while todo:
         path = todo.pop()
