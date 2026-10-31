@@ -4,14 +4,14 @@ reason: owner_approved_pr4_pr5_and_e1_through_e3
 from: gpt
 task: execution-e1-e3
 cycle: 2026-10-27
-done_ids: cloud-compat-1, cloud-compat-2, cloud-compat-3, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr, spec-rev-3-3, policy-plan-1, policy-preview-1, policy-pr, e1-1, e1-2, e1-3, e1-4, e1-5, e1-6, e1-7, e1-8, e1-9, e1-10, e1-11, e1-12
-next_ids: e1-13, e1-14-owner-setup, e2-1, e2-2, e2-3, e3-1, e3-2, e3-3, e3-4
-updated_at: 2026-10-31T15:02:25+09:00
+done_ids: cloud-compat-1, cloud-compat-2, cloud-compat-3, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr, spec-rev-3-3, policy-plan-1, policy-preview-1, policy-pr, e1-1, e1-2, e1-3, e1-4, e1-5, e1-6, e1-7, e1-8, e1-9, e1-10, e1-11, e1-12, e2-1
+next_ids: e1-13, e1-14-owner-setup, e2-2, e2-3, e3-1, e3-2, e3-3, e3-4
+updated_at: 2026-10-31T15:12:47+09:00
 stale_after_hours: 3
 waiting_on: none_for_development
-work_branch: gpt/execution-e1-e3
-work_commit: 94fb3cb0b3e82c3177b51eb57bbea199c80854be
-uncommitted_changes: no
+work_branch: gpt/execution-control-adapters
+work_commit: d3cd9eb1f165c47bdee61fbe2bbd85e06a6d1147
+uncommitted_changes: yes (E2/E3 integration in progress, separate Cloud tree)
 pr: none (PR4 and PR5 merged with explicit owner approval)
 usage_weekly_pct: unknown
 usage_source: unavailable
@@ -24,6 +24,8 @@ session: cloud Codex (TRADEGEN)
 # 인수인계: odds 엔진 계획 실행 (docs/superpowers/plans/2026-10-24-odds-engine.md)
 
 ## 0. 한 줄 요약
+
+E2-1 값 모델·내구성 저널 19개 검사를 통과해 d3cd9eb로 저장했습니다. E1 전체 첫 실행은 새 작업 트리의 .venv 연결 누락으로 2건 실패했고 연결 복구 후 두 검사 재통과, 전체 재실행 중입니다. E2/E3 첫 부분 실행은 86/89 PASS이며 가드/모의 전송 연결 실패 3건을 수정 중입니다. 이 부분 실행을 전체 완료로 간주하지 않습니다.
 
 최신 개발 체크포인트: E1 Tasks 1–12 구현 및 228/228 검사 통과, source `94fb3cb0b3e82c3177b51eb57bbea199c80854be` push 완료. E1 전체 회귀 실행 중이며 E2/E3는 별도 작업 트리에서 개발합니다. 소유자 실계좌 설정 단계는 수행하지 않습니다.
 

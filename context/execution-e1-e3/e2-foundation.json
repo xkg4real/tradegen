@@ -1,0 +1,22 @@
+{
+  "updated_at": "2026-10-31T15:12:47+09:00",
+  "source_commit": "d3cd9eb1f165c47bdee61fbe2bbd85e06a6d1147",
+  "module_counts": {
+    "control_model": 7,
+    "control_store": 12
+  },
+  "partial_suite_counts": {
+    "PASS": 86,
+    "FAIL": 3,
+    "NOT_RUN": 0
+  },
+  "remaining_failures": "integration guards and patched raw HTTP test fixture; fixes pending serial rerun",
+  "e1_initial_full": {
+    "PASS": 1582,
+    "FAIL": 2,
+    "NOT_RUN": 122,
+    "reason": "new worktree lacked existing virtualenv symlink",
+    "correction": "local symlink restored; both targeted assertions passed; full rerun active"
+  },
+  "full_e2_e3_validation": "not yet complete"
+}
