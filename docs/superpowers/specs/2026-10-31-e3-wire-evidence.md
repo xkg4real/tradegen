@@ -2,6 +2,16 @@
 
 Scope: official documentation/source reads only. No market/account API, credentials, orders, or tests used. This is a software interface review, not live certification. Values below are protocol constants, not owner settings.
 
+Official KIS Git blob identities resolved through GitHub on 2026-10-31 (file-content SHAs, not commit SHAs):
+
+| Source | Git blob SHA |
+| --- | --- |
+| [examples_llm/domestic_stock/order_cash/order_cash.py](https://github.com/koreainvestment/open-trading-api/blob/main/examples_llm/domestic_stock/order_cash/order_cash.py) | `f422cf4ebb3029f580eb10294883a82fded610f6` |
+| [examples_llm/domestic_stock/inquire_daily_ccld/chk_inquire_daily_ccld.py](https://github.com/koreainvestment/open-trading-api/blob/main/examples_llm/domestic_stock/inquire_daily_ccld/chk_inquire_daily_ccld.py) | `b3c4fbd257e643c86da1ab5df2dbaa17ff9c0ed5` |
+| [examples_user/overseas_stock/overseas_stock_functions.py](https://github.com/koreainvestment/open-trading-api/blob/main/examples_user/overseas_stock/overseas_stock_functions.py) | `736124faa7840b26189e27ceb394bc10db8db217` |
+| [examples_llm/overseas_stock/inquire_ccnl/chk_inquire_ccnl.py](https://github.com/koreainvestment/open-trading-api/blob/main/examples_llm/overseas_stock/inquire_ccnl/chk_inquire_ccnl.py) | `844a8b979c6c10bfce21cdca8419286410ca5dde` |
+| [examples_llm/kis_auth.py](https://github.com/koreainvestment/open-trading-api/blob/main/examples_llm/kis_auth.py) | `0e722d6f3253033efe3cf2b99845397b2b329655` |
+
 ## Upbit
 
 - Create: `POST https://api.upbit.com/v1/orders`, JSON body `market`, `side=bid|ask`, `ord_type=limit`, `volume` and `price` decimal strings. Include a persisted local `identifier` (maximum 64 characters): account-wide uniqueness applies permanently, including unsuccessful creation; it is not a retriable-create guarantee. Order permission required. Limit fills are not guaranteed. [Official create specification](https://docs.upbit.com/kr/reference/new-order)

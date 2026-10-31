@@ -29,8 +29,11 @@ Development authorized by the owner on 2026-10-31 after explicit approval to mer
 - The final registered E2/E3 set contains 131 unique tests across nine modules. Every test has passed in the serial focused runs (model7, store12, risk23, session6, controller25, codecs29, transport15, lifecycle4, guards10). This is coverage across runs; the final full-suite record will execute the complete registered set together.
 - Parallel source ownership and serial testing retained the approved rapid-development workflow. E2/E3 implementation is saved as an integrated source checkpoint after its disjoint module reviews and focused verification. No intermediate dependency-incomplete result is represented as a complete suite.
 
-## Pending final verification and owner work
+## Final full verification and remaining owner work
 
-- One final inherited/full acceptance run on the frozen integrated source, then measured README/QA/ledger update, PR and handoff.
+- Final full run at source `a203e052642d460ce964dc0a6fc6f1825ab96a13`: **1715/1837 passed, 0 failed, 122 not run**, 555.173 seconds. All 131 E2/E3 tests passed together in 143.567 test-seconds. No inherited status changed, no test disappeared, and no new NOT_RUN appeared. The 122 inherited NOT_RUN entries remain 121 unavailable macro inputs and one Windows-only GetConsoleMode case.
+- Command: `python tests/run_all.py`, Cloud Python 3.13.16 with all 19 KEYLESS variables asserted and isolated TRADEGEN_HOME. Actual default-home metadata stayed unchanged. Two inherited localhost tests require loopback permission; no real venue/account/data API was called.
+- README suite cells and committed QA agree; existing CRLF files and new LF files retain their line endings. Independent source/protocol/control reviews and guarded test-registration checks completed. PR #7 is stacked on E1 PR #6; both require their own merge approval.
+- No further runtime changes followed the measured source; final reporting and official KIS source blob identities are documentation-only additions.
 - Owner configured authoritative account provider, rules/credentials, code signature, arming and actual venue validation remain outside these offline results. E1 Task14 setup remains unperformed.
 - New policy strategy remains UNVALIDATED; missing policy inputs, live provider integration and unsupported status shapes are not inferred from passing mocks.
