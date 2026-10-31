@@ -1,0 +1,25 @@
+{
+  "source_commit": "a203e052642d460ce964dc0a6fc6f1825ab96a13",
+  "updated_at": "2026-10-31T15:21:48+09:00",
+  "first_complete_eight_modules": {
+    "PASS": 126,
+    "FAIL": 1,
+    "NOT_RUN": 0
+  },
+  "failure": "OKX fixture client ID inherited hyphens; corrected to valid alphanumeric without weakening capacity assertions",
+  "targeted_final": {
+    "PASS": 11,
+    "FAIL": 0,
+    "NOT_RUN": 0
+  },
+  "four_authenticated_lifecycles": {
+    "PASS": 4,
+    "FAIL": 0,
+    "NOT_RUN": 0
+  },
+  "unique_registered_cases_passing_across_focused_runs": 131,
+  "full_run": "in progress",
+  "keyless": true,
+  "isolated_state": true,
+  "live_account_order_key_actions": false
+}
