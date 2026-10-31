@@ -4,11 +4,11 @@ reason: software_and_research_complete_live_setup_pending
 from: gpt
 task: account-research
 cycle: 2026-10-27
-done_ids: cloud-compat-1, cloud-compat-2, cloud-compat-3, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr, spec-rev-3-3, policy-plan-1, policy-preview-1, policy-pr, e1-1, e1-2, e1-3, e1-4, e1-5, e1-6, e1-7, e1-8, e1-9, e1-10, e1-11, e1-12, e1-13, e1-pr, e2-1, e2-2, e3-1, e3-2, e3-3, e2-3, e3-4, e2-e3-pr, pr6-pr7-merge, research-preregister-1, research-evaluate-1, account-readiness-1, research-paper-1, account-provider-1, account-regression-1, account-research-pr
+done_ids: cloud-compat-1, cloud-compat-2, cloud-compat-3, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr, spec-rev-3-3, policy-plan-1, policy-preview-1, policy-pr, e1-1, e1-2, e1-3, e1-4, e1-5, e1-6, e1-7, e1-8, e1-9, e1-10, e1-11, e1-12, e1-13, e1-pr, e2-1, e2-2, e3-1, e3-2, e3-3, e2-3, e3-4, e2-e3-pr, pr6-pr7-merge, research-preregister-1, research-evaluate-1, account-readiness-1, research-paper-1, account-provider-1, account-regression-1, account-research-pr, pr8-human-code-review-approval
 next_ids: cloud-proxy-design, authenticated-history-collector, policy-input-finalization, independent-strategy-validation, strategy-runner-integration, e1-14-owner-setup
-updated_at: 2026-10-31T16:11:43+09:00
+updated_at: 2026-10-31T16:40:49+09:00
 stale_after_hours: 3
-waiting_on: PR8-specific owner approval; secure account configuration and live prerequisites
+waiting_on: explicit PR8 merge approval; owner cryptographic signature and live prerequisites
 work_branch: gpt/account-research
 work_commit: dec1f942c596f8eb0650f40d996325289113afdc
 uncommitted_changes: no
@@ -72,7 +72,7 @@ session: cloud Codex (TRADEGEN)
 
 ## 6. 다음 작업
 
-1. PR #8 소유자별 병합 승인이 오면 최신 head와 검증 결과를 대조해 처리합니다. PR #6/#7 승인을 재사용하지 않습니다.
+1. PR #8 코드 검토 승인은 수신했지만 병합은 자동 승인 검토에서 차단됐습니다. main 병합에 대한 명시적 승인을 받으면 최신 head와 검증 결과를 대조해 처리합니다. 우회하거나 코드 검토 양식의 승인 범위를 확대하지 않습니다.
 2. Cloud secure 설정 기능/소유자 환경에서 credential과네트워크를 구성해야 합니다. 채팅으로 키를 요청하거나 `.env`값을 읽지 않습니다. 현재 도구에는 설정쓰기 workflow가 없었습니다.
 3. E1의 고정 direct-only 전송과 Cloud proxy 요구를 함께 충족하는 별도 검토 설계가 필요합니다. trust_env를 켜거나 TLS/route가드를 낮춰 우회하지 않습니다.
 4. 실제 거래소/증권사 complete paginated history·수수료·정산현금·보유량·FX·flows·현지거래일·취소증거를 인증된 collector로 연결해야 합니다. 수학적으로 일관된 가짜자료도 provider hash만으로 인증되지 않습니다.
@@ -84,6 +84,8 @@ session: cloud Codex (TRADEGEN)
 AGENTS.md5절의 실제 키·서명·무장·주문·홈 쓰기·거래소/데이터API·QUANTGEN 변경 금지. 테스트19KEYLESS/임시홈; 네트워크권한은 기존 localhost검사만. 기존 CRLF 유지, 새 파일LF, 파일명별stage, 기존 LEDGER행 불변. frozen studies미변경. 계좌 증거 준비·소유자 승인·전략 유효성은 별개입니다.
 
 ## 8. 승인과 소유자 실행
+
+추가 승인 기록: 소유자가 PR #8의 `dec1f942c596f8eb0650f40d996325289113afdc`에 대한 코드 검토·코드 승인을 제출했습니다. 공개 기록에는 성명과 서명 원문을 넣지 않습니다. 실제 전자서명 검증/세션 활성화 증거는 없습니다. 병합 시도는 자동 승인 검토에서 차단됐습니다. 코드 검토 승인 범위가 main 병합을 명확히 포함하지 않는다는 이유이며, 명시적인 PR #8 병합 승인을 받기 전 재시도하지 않습니다.
 
 새 PR #8만 병합 승인 대상입니다. AGENTS.md5절: “병합은 사용자가 PR마다 직접 승인합니다”, “서명은 사용자만 합니다.” 이전 #6/#7승인은 처리했습니다. 구현/검증/PDF/인수인계를 먼저 완료했습니다. 실제 서명·거래 활성화 및 누락된 secure환경설정은 이 개발 세션이 완료했다고 주장할 수 없습니다.
 

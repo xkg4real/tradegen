@@ -1,0 +1,16 @@
+{
+  "record_type": "human_code_review_approval",
+  "repository": "xkg4real/tradegen",
+  "pull_request": 8,
+  "approved_commit": "dec1f942c596f8eb0650f40d996325289113afdc",
+  "scope": "해당 버전의 코드 검토 및 코드 승인",
+  "review_completed": true,
+  "code_review_approved": true,
+  "user_stated_date": "2026-10-31",
+  "recorded_at": "2026-10-31T16:40:49+09:00",
+  "cryptographic_signature_verified": false,
+  "session_activation_verified": false,
+  "merge_authorized": false,
+  "merge_state": "not_merged_auto_review_rejected_ambiguous_scope",
+  "merge_block_reason": "Automatic approval review: approval covers the code version but does not clearly authorize merging PR8 into main."
+}
