@@ -643,6 +643,15 @@ def test_36_a_checklist_is_not_mistaken_for_an_answer_set():
     assert [o.label for o in options_for(enumeration).options] == \
         ["Accept", "Modify", "Defer", "Journal only"]
 
+    # Preparatory states and output formats are not choices for a later question.
+    preamble = "Reconcile ACTIVE / PARTIALLY_CLOSED snapshots. Save the JSON report. "
+    assert not options_for(preamble + "What reallocation does the trader propose?").closed
+    assert options_for(preamble + enumeration).values == options_for(enumeration).values
+    verdict = ("Does the verdict reach CLEAN-PASS / PASS-CAUTION / CONDITIONAL-PASS? "
+               "HOLD-REVIEW, STEP1-RECHECK, or FAIL stops here.")
+    assert options_for(preamble + verdict).values == (
+        "CLEAN-PASS", "PASS-CAUTION", "CONDITIONAL-PASS", "HOLD-REVIEW", "STEP1-RECHECK", "FAIL")
+
 
 def test_37_a_gate_can_always_name_the_steps_it_depends_on():
     """The gate summary is built by resolving each `consumes` id back to the

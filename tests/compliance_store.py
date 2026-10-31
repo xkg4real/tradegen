@@ -16,10 +16,10 @@ from pathlib import Path
 import core.isolation
 from core.compliance import gate, model, owner, rules
 from tests import compliance_fixtures as F
+from tests.compliance_fixtures import HELD, NOW, TABLES
 from tests.notrun import NotRun
 
 ROOT = Path(__file__).resolve().parents[1]
-TABLES = ("rules", "instruments", "venues")
 
 
 def _raises(fn, exc: type[BaseException]) -> BaseException:
@@ -82,13 +82,12 @@ def test_a_write_that_dies_leaves_no_partial_file():
 
 
 def test_store_writes_refuse_a_junction():
-    """A0: a store folder that is a junction is refused before anything is written through it."""
-    import _winapi
+    """A0: a store directory alias (Windows junction/POSIX symlink) refuses writes."""
     with F.temp_home() as home:
         elsewhere = home / "elsewhere"                   # outside compliance/: only the refusal stops the write
         elsewhere.mkdir()
         owner.store_dir().mkdir(parents=True)
-        _winapi.CreateJunction(str(elsewhere), str(owner.store_dir() / "rules"))
+        F.directory_link(owner.store_dir() / "rules", elsewhere)
         _raises(lambda: F.store_blob(home, "rules", F.shipped_bytes("rules"), (1, "a" * 64)), RuntimeError)
         assert list(elsewhere.iterdir()) == [], "a file landed through the junction"
 
@@ -114,7 +113,6 @@ def test_calendar_store_matches_calendar_sha256():
 def test_a_stored_calendar_set_with_a_link_is_not_stored():
     """One framing (rules.calendar_stream): a junction inside a stored calendar folder is refused, where reading the
     folder as plain files would skip it and still match the hash."""
-    import _winapi
     data_dir = ROOT / "core" / "calendars" / "data"
     with F.temp_home() as home:
         sha = F.store_blob(home, "calendar", rules.calendar_stream(data_dir), (2, "c" * 64))
@@ -122,7 +120,7 @@ def test_a_stored_calendar_set_with_a_link_is_not_stored():
         assert owner.store_get("calendar", sha) == rules.calendar_stream(data_dir)
         elsewhere = home / "elsewhere"
         elsewhere.mkdir()
-        _winapi.CreateJunction(str(elsewhere), str(stored / "linked"))
+        F.directory_link(stored / "linked", elsewhere)
         assert owner.store_get("calendar", sha) is None, "a stored calendar set holding a link was served"
         assert "is a link" in str(_raises(lambda: rules.calendar_stream(stored), rules.Invalid))
         assert rules.calendar_sha256(data_dir) == sha, "the real set still hashes to its stream"
@@ -314,64 +312,14 @@ def test_latest_snapshot_skips_malformed_files():
 # --------------------------------------------------------------------------- #
 # load_context (spec 6.4, 8.2; P19, P24): temp homes signed with the fixed test key
 # --------------------------------------------------------------------------- #
-NOW = _dt.datetime(2026, 10, 24, 9, 0, tzinfo=model.KST)
-HELD = model.Positions(equity_krw=1_000_000.0, holdings={("upbit", "BTC"): 0.01})
-
-
-@contextlib.contextmanager
-def _pubkey_at(path: Path):
-    """owner.PUBKEY_PATH pointed at `path` for the block, restored afterwards."""
-    saved = owner.PUBKEY_PATH
-    owner.PUBKEY_PATH = path
-    try:
-        yield path
-    finally:
-        owner.PUBKEY_PATH = saved
-
-
-def _owner_key(home: Path):
-    """The test key, its pem written to owner.PUBKEY_PATH, which must lie inside the temp home `home`: the repo's
-    trust anchor is never written. NotRun PENDING without cryptography."""
-    if not owner.PUBKEY_PATH.is_relative_to(home):
-        raise AssertionError(f"{owner.PUBKEY_PATH} is outside the temp home {home}")
-    key = F.test_key()
-    F.write_pubkey(owner.PUBKEY_PATH, key)
-    return key
-
-
-def _sign(key, kind: str, data: dict, utc: str = "2026-10-23T00:00:00Z") -> tuple[int, str]:
-    """Appends one signed owner entry to the temp home's log; returns its anchor (seq, row_sha256)."""
-    path = owner.log_path()
-    lines = path.read_bytes().splitlines() if path.is_file() else []
-    prev = json.loads(lines[-1])["row_sha256"] if lines else owner.GENESIS_PREV
-    line = F.signed_entry(key, len(lines) + 1, prev, kind, data, utc)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "ab") as fh:
-        fh.write(line)
-    return len(lines) + 1, json.loads(line)["row_sha256"]
-
-
-def _approve(home: Path, key, kind: str, raw: bytes) -> str:
-    """Signs `approved {kind, sha256}` for `raw` and stores the bytes with that entry as their anchor."""
-    return F.store_blob(home, kind, raw, _sign(key, "approved", {"kind": kind, "sha256": model.sha256_hex(raw)}))
-
-
-def _other_code(key, utc: str = "2026-10-23T00:00:00Z") -> None:
-    """Signs a code_approved that names a hash other than the code on disk."""
-    files = sorted([list(f) for f in owner.code_files(owner.REPO_ROOT)] + [["core/compliance/zz.py", "0" * 64]])
-    _sign(key, "code_approved", {"sha256": model.sha256_hex(model.canonical_json(files)), "files": files}, utc)
-
-
-def _full_home(home: Path, *, rules_raw: bytes | None = None):
-    """The test key at owner.PUBKEY_PATH, the three shipped drafts (or `rules_raw`) approved and stored, the current
-    code hash signed and the owner's age recorded. Returns the key. NotRun PENDING without cryptography."""
-    key = _owner_key(home)
-    for kind in TABLES:
-        _approve(home, key, kind, rules_raw if kind == "rules" and rules_raw is not None else F.shipped_bytes(kind))
-    files = [list(f) for f in owner.code_files(owner.REPO_ROOT)]
-    _sign(key, "code_approved", {"sha256": owner.code_hash(owner.REPO_ROOT), "files": files})
-    _sign(key, "age_of_majority", {"birth_date": "2000-01-01", "evidence": "test fixture"})
-    return key
+# NOW, HELD, TABLES and the signed-home helpers live in tests/compliance_fixtures.py (odds plan Task 4, Q21), so the
+# odds suite builds the same homes; the old private names stay bound to them, so no test below changes.
+_pubkey_at = F.pubkey_at
+_owner_key = F.owner_key
+_sign = F.sign
+_approve = F.approve
+_other_code = F.other_code
+_full_home = F.full_home
 
 
 def test_no_owner_key_blocks_every_new_exposure():
@@ -502,7 +450,6 @@ def test_altered_store_bytes_block_at_load():
 def test_unreadable_key_log_or_link_is_broken():
     """A pem that is no key, an unreadable alerts.jsonl and a link in the state root each give a BROKEN owner state
     that says why (A0 names the linked entry), never "internal error"; new exposure is BLOCK each time."""
-    import _winapi
     with F.temp_home() as home, _pubkey_at(home / "owner_pubkey.pem") as pem:
         _full_home(home)
         good = pem.read_bytes()
@@ -513,7 +460,7 @@ def test_unreadable_key_log_or_link_is_broken():
         contexts.append(owner.load_context(NOW, HELD))
         owner.alerts_path().unlink()
         (home / "elsewhere").mkdir()
-        _winapi.CreateJunction(str(home / "elsewhere"), str(owner.home() / "linked"))
+        F.directory_link(owner.home() / "linked", home / "elsewhere")
         core.isolation._LINK_SCAN.clear()                 # this root's earlier clean scan was memoised (P7)
         contexts.append(owner.load_context(NOW, HELD))
         reasons = [ctx.owner.reason for ctx in contexts]
@@ -628,3 +575,193 @@ def test_decision_date_is_the_asia_seoul_date_of_now():
         for before, after in pairs:
             assert owner.load_context(before, HELD).date == _dt.date(2026, 12, 2), before
             assert owner.load_context(after, HELD).date == _dt.date(2026, 12, 3), after
+
+
+# --------------------------------------------------------------------------- #
+# Odds plan Task 4 (Q19, Q21): calendar_in_force and the _calendar_approval it shares with the --check line, and the
+# signed-home helpers as public fixtures. Every calendar case also checks that calendar_in_force(now) is the sha
+# exactly when _calendar_approval(now) is ("ok", sha) (Q19).
+# --------------------------------------------------------------------------- #
+def _calendar_now(now: _dt.datetime) -> tuple[str, str]:
+    """owner._calendar_approval(now), once calendar_in_force(now) is checked to agree with it (Q19)."""
+    found = owner._calendar_approval(now)
+    assert owner.calendar_in_force(now) == (found[1] if found[0] == "ok" else None), found
+    return found
+
+
+def _fixture_calendar() -> bytes:
+    """The calendar stream of the signed temp-dir fixture set; imported here, as tests/compliance_tables.py does, so
+    a broken macro module fails only the tests that need it."""
+    from tests.macro_m1_calendars import fixture_set
+    return rules.calendar_stream(fixture_set().data_dir)
+
+
+def test_signed_home_helpers_are_the_public_fixtures():
+    """Q21: the signed-home helpers live in tests/compliance_fixtures.py and this module's old names are bound to
+    them, so these tests run the code the odds suite runs. They write only inside the temp home: approve refuses a
+    state root other than its `home`, owner_key a pem and sign an owner log outside the temp dir (so never the
+    repo's trust anchor or the real ~/.tradegen), each before writing. Every case stays inside temp homes even if a
+    guard were missing."""
+    import tempfile
+    pairs = ((_pubkey_at, F.pubkey_at), (_owner_key, F.owner_key), (_sign, F.sign), (_approve, F.approve),
+             (_other_code, F.other_code), (_full_home, F.full_home), (NOW, F.NOW), (HELD, F.HELD),
+             (TABLES, F.TABLES))
+    assert all(mine is theirs for mine, theirs in pairs), [mine for mine, theirs in pairs if mine is not theirs]
+    assert TABLES == ("rules", "instruments", "venues") and NOW == _dt.datetime(2026, 10, 24, 9, 0, tzinfo=model.KST)
+    assert HELD == model.Positions(equity_krw=1_000_000.0, holdings={("upbit", "BTC"): 0.01})
+    with F.temp_home() as home, F.temp_home():                          # the state root is another temp home
+        _raises(lambda: _approve(home, None, "rules", b"x"), AssertionError)
+        assert not owner.home().exists() and not (home / "compliance").exists()
+    with F.temp_home() as home, _pubkey_at(home / "k.pem"):
+        saved, tempfile.tempdir = tempfile.tempdir, str(home / "elsewhere")  # the pem and the log are outside it
+        try:
+            _raises(lambda: _owner_key(home), AssertionError)
+            _raises(lambda: _sign(None, "approved", {}), AssertionError)
+        finally:
+            tempfile.tempdir = saved
+        assert not (home / "k.pem").exists() and not owner.log_path().exists()
+    with F.temp_home() as home, F.temp_home() as other, _pubkey_at(other / "k.pem"):   # in the temp dir, not in home
+        _raises(lambda: _owner_key(home), AssertionError)
+        assert not (other / "k.pem").exists()
+
+
+def test_full_home_signs_the_odds_keywords():
+    """Q21: full_home approves `venues_raw` instead of the shipped venues and `calendar_raw` as kind calendar, and
+    signs `limits` as limit_set and `cap` as cap_set, after the entries it always signed. All are stamped
+    2026-10-23T00:00:00Z, so the limits and the cap count from NOW's date on (D12). Without them the log is the
+    same as before."""
+    venues = F.shipped_bytes("venues") + b"\n# a signed venues version for the odds suite\n"
+    stream = _fixture_calendar()
+    limits = {"total_loss_floor_krw": 21_000.0, "daily_loss_krw": 5_000.0}
+    with F.temp_home() as home, _pubkey_at(home / "owner_pubkey.pem"):
+        _full_home(home, venues_raw=venues, calendar_raw=stream, limits=limits, cap=0.10)
+        ctx = owner.load_context(NOW, HELD)
+        assert ctx.owner.ok and ctx.active.valid and ctx.code_signed, (ctx.owner.reason, ctx.active.reason)
+        assert ctx.active.hashes["venues"] == model.sha256_hex(venues) != model.sha256_hex(F.shipped_bytes("venues"))
+        assert dict(ctx.owner.limits) == limits and dict(ctx.owner.caps) == {"okx_equity_share": 0.10}, ctx.owner
+        assert _calendar_now(NOW) == ("ok", model.sha256_hex(stream))
+        kinds = [json.loads(line)["kind"] for line in owner.log_path().read_bytes().splitlines()]
+        assert kinds == ["approved"] * 3 + ["code_approved", "age_of_majority", "approved", "limit_set", "cap_set"]
+        assert {json.loads(line)["utc"] for line in owner.log_path().read_bytes().splitlines()} == \
+            {"2026-10-23T00:00:00Z"}
+    with F.temp_home() as home, _pubkey_at(home / "owner_pubkey.pem"):
+        _full_home(home)
+        ctx = owner.load_context(NOW, HELD)
+        kinds = [json.loads(line)["kind"] for line in owner.log_path().read_bytes().splitlines()]
+        assert kinds == ["approved"] * 3 + ["code_approved", "age_of_majority"], kinds
+        assert dict(ctx.owner.limits) == {} and dict(ctx.owner.caps) == {}, ctx.owner
+        assert ctx.active.hashes["venues"] == model.sha256_hex(F.shipped_bytes("venues"))
+        assert _calendar_now(NOW) == ("none", "")
+
+
+def test_calendar_in_force_is_the_sha_of_the_intact_signed_copy():
+    """Q19, O6: under an OK owner state the latest calendar approval stamped by `now` is in force while its stored
+    copy is intact. The stored folder is the set itself; one changed or missing file there makes it
+    ("store", sha), so None."""
+    stream = _fixture_calendar()
+    sha = model.sha256_hex(stream)
+    with F.temp_home() as home, _pubkey_at(home / "owner_pubkey.pem"):
+        _full_home(home, calendar_raw=stream)
+        assert _calendar_now(NOW) == ("ok", sha) and owner.calendar_in_force(NOW) == sha
+        assert _calendar_now(_dt.datetime(2026, 10, 24, 0, 0, tzinfo=_dt.timezone.utc)) == ("ok", sha)   # NOW in UTC
+        stored = owner.store_dir() / "calendar" / sha
+        assert rules.calendar_sha256(stored) == sha and rules.calendar_stream(stored) == stream
+        first = sorted(stored.iterdir())[0]
+        first.write_bytes(first.read_bytes() + b"# altered\n")
+        assert _calendar_now(NOW) == ("store", sha) and owner.calendar_in_force(NOW) is None
+        first.unlink()
+        assert _calendar_now(NOW) == ("store", sha)
+
+
+def test_calendar_in_force_is_none_without_an_ok_owner_log():
+    """Q19: no owner key, a read error (OSError, ValueError or RuntimeError), a changed key or a broken log give
+    ("log", ""), so None, even with a calendar approval in the log. Any other internal error propagates out of
+    _calendar_approval, so --check exits 4 (spec 5.4, T4-R1-1), while calendar_in_force fails closed to None."""
+    stream = _fixture_calendar()
+    with F.temp_home() as home, _pubkey_at(home / "absent.pem"):
+        assert _calendar_now(NOW) == ("log", "")                     # before owner act 1 there is no key at all
+    with F.temp_home() as home, _pubkey_at(home / "owner_pubkey.pem"):
+        _full_home(home, calendar_raw=stream)
+        assert _calendar_now(NOW) == ("ok", model.sha256_hex(stream))
+
+        def boom(*args):
+            raise RuntimeError("a refused link")
+
+        def bug(*args):
+            raise TypeError("a bug")
+
+        saved, owner._owner_now = owner._owner_now, boom
+        try:
+            assert _calendar_now(NOW) == ("log", "")                 # _calendar_approval: a read error is "log"
+        finally:
+            owner._owner_now = saved
+        saved, owner.store_get = owner.store_get, bug
+        try:
+            _raises(lambda: owner._calendar_approval(NOW), TypeError)   # _calendar_approval: any other error raises
+            assert owner.calendar_in_force(NOW) is None                 # calendar_in_force: it fails closed
+        finally:
+            owner.store_get = saved
+        assert _calendar_now(NOW)[0] == "ok"
+        row = {"utc": "2026-10-20T00:00:00Z", "channel": "toast", "result": "ok", "code": 3, "due": [],
+               "overdue": [], "head_seq": 0, "head_sha256": "", "fingerprint": "SHA256:" + "e" * 64}
+        owner.alerts_path().write_bytes(model.canonical_json(row).encode("utf-8") + b"\n")
+        assert owner.load_context(NOW, HELD).owner.reason == "KEY CHANGED since 2026-10-20"
+        assert _calendar_now(NOW) == ("log", "")
+        owner.alerts_path().unlink()
+        assert _calendar_now(NOW)[0] == "ok"
+        with open(owner.log_path(), "ab") as fh:
+            fh.write(b'{"seq": 99}\n')
+        assert not owner.load_context(NOW, HELD).owner.ok and _calendar_now(NOW) == ("log", "")
+
+
+def test_calendar_in_force_counts_only_approvals_stamped_by_now():
+    """Q19: with no calendar approval it is ("none", ""); one stamped after `now` counts only from its stamp on
+    (load_context's cut-off, _up_to); the latest approval in log order among those stamped by `now` wins."""
+    stream = _fixture_calendar()
+    sha = model.sha256_hex(stream)
+    other = b"holidays_KRX.yaml\0x: 1\n\0"                              # a one-file calendar set
+    after = _dt.datetime(2026, 10, 25, 9, 0, tzinfo=model.KST)          # 2026-10-25T00:00:00Z
+    with F.temp_home() as home, _pubkey_at(home / "owner_pubkey.pem"):
+        key = _full_home(home)
+        assert _calendar_now(NOW) == ("none", "") and _calendar_now(after) == ("none", "")
+        F.store_blob(home, "calendar", stream,
+                     _sign(key, "approved", {"kind": "calendar", "sha256": sha}, "2026-10-25T00:00:00Z"))
+        assert _calendar_now(NOW) == ("none", "") and _calendar_now(after) == ("ok", sha)
+        newer = _approve(home, key, "calendar", other)                  # later in the log, stamped 2026-10-23
+        assert _calendar_now(NOW) == ("ok", newer) and _calendar_now(after) == ("ok", newer)
+        assert newer == model.sha256_hex(other) != sha
+
+
+def test_calendar_in_force_refuses_a_naive_or_out_of_range_now():
+    """Q19: a naive `now`, a non-datetime, or one that cannot be converted to UTC or Asia/Seoul is ValueError from
+    calendar_in_force and _calendar_approval alike (load_context's checks); nothing else raises."""
+    with F.temp_home() as home, _pubkey_at(home / "absent.pem"):
+        for now in (_dt.datetime(2026, 10, 24, 9, 0), "2026-10-24", _dt.date(2026, 10, 24), None,
+                    _dt.datetime(1, 1, 1, tzinfo=model.KST),
+                    _dt.datetime(9999, 12, 31, 23, 59, tzinfo=_dt.timezone.utc)):
+            _raises(lambda: owner.calendar_in_force(now), ValueError)
+            _raises(lambda: owner._calendar_approval(now), ValueError)
+        assert owner.calendar_in_force(NOW) is None
+
+
+def test_calendar_line_maps_the_shared_calendar_approval():
+    """Q19: rules._calendar_line (the --check line) reads owner._calendar_approval at the check's moment and maps its
+    four outcomes onto its four lines; under an owner state that is not OK it reads nothing."""
+    draft = rules.calendar_sha256(ROOT / "core" / "calendars" / "data")
+    other, seen = "a" * 64, []
+    cases = ((("log", ""), "calendar: not checked (owner log not usable)"),
+             (("none", ""), "calendar: no signed approval, so KRX and US plans are refused (crypto plans only)"),
+             (("store", other), f"calendar: the signed version {other[:16]} is missing or altered in the store"),
+             (("ok", draft), f"calendar: the draft is the version in force ({draft[:16]})"),
+             (("ok", other), f"calendar: the draft {draft[:16]} is not the version in force ({other[:16]}); it counts "
+                             "only once signed"))
+    saved = owner._calendar_approval
+    try:
+        for result, line in cases:
+            owner._calendar_approval = lambda now, result=result: seen.append(now) or result
+            assert rules._calendar_line(F.ctx(), ROOT, NOW) == line, result
+        broken = F.ctx(owner=model.OwnerState.broken("bad signature on entry 4"))
+        assert rules._calendar_line(broken, ROOT, NOW) == "calendar: not checked (owner log not usable)"
+    finally:
+        owner._calendar_approval = saved
+    assert seen == [NOW] * len(cases), seen

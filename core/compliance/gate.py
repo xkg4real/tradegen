@@ -658,3 +658,27 @@ def _screening(d, flags, window) -> model.Screening:
     body = {"decision": d, "allowed": allowed, "flags": flags, "exit_date": exit_date, "window": window}
     return model.Screening(decision=d, allowed=allowed, flags=flags, exit_date=exit_date,
                            screening_hash=model.sha256_hex(model.canonical_json(body)))
+
+
+def grey_rows(plan, ctx) -> tuple[str, ...]:
+    """The ids, sorted, of the venue rows in force on ctx.date with treatment grey that match the plan's single leg
+    as the cash buy screen() builds (P3: reads plan.leg.venue and plan.leg.symbol only), so the odds engine names a
+    plan's grey rows without the gate's private helpers (odds plan Q20). () for a context not from load_context, an
+    owner log that is not OK, an unusable state, a venue or symbol the state does not list, or any error. Pure;
+    never raises."""
+    try:
+        leg = getattr(plan, "leg", None)
+        venue_id, symbol = getattr(leg, "venue", None), getattr(leg, "symbol", None)
+        if not (model.is_sealed(ctx) and ctx.owner.ok and _usable(ctx.active) and _is(venue_id, rules.VENUES)):
+            return ()
+        state = ctx.active
+        venue = state.venues.venues.get(venue_id)
+        inst = _lookup(state, venue, symbol, False) if venue is not None else None
+        if inst is None:
+            return ()
+        intent = Intent(venue=venue_id, symbol=symbol, counter_symbol=venue.quote_for(inst), asset=inst.asset,
+                        multiple=inst.multiple, action="buy", quantity=1.0, notional_krw=1.0)
+        return tuple(sorted(row.id for row in _in_force(state, intent, inst.cls, ctx.date)
+                            if row.treatment == "grey"))
+    except Exception:
+        return ()

@@ -1384,3 +1384,83 @@ def test_gate_call_graph_has_no_clock_zone_file_or_socket():
         assert len(scan) >= 3, (module, scan)
         for name, hits in scan.items():
             assert hits == set(), (module, name, hits)
+
+
+# --------------------------------------------------------------------------- #
+# Odds plan Task 4 (Q20): grey_rows, the in-force grey rows of a plan's leg as the cash buy screen() decides. Helpers
+# are prefixed `_t10_`; the `_t8_` and `_t9_` helpers above are reused, never redefined.
+# --------------------------------------------------------------------------- #
+class _T10Unreadable:
+    """A plan leg whose venue cannot be read: grey_rows answers () instead of raising."""
+
+    @property
+    def venue(self):
+        raise RuntimeError("an unreadable leg")
+
+
+def test_grey_rows_names_the_in_force_grey_rows_of_the_leg():
+    """Q20: the sorted ids of the venue rows in force on ctx.date (effective_from <= date < effective_until) with
+    treatment grey that match the leg as a cash buy. It reads the rows of the state in force, so a row signed grey is
+    named too; plan.start, horizon_days and the signed code play no part (screen checks those)."""
+    day, c = _T8_DAY, F.ctx()
+    okx = _t9_plan("okx", "BTC", c.date, 5)
+    assert gate.grey_rows(okx, c) == ("KR-OKX-SPOT",)
+    assert gate.grey_rows(_t9_plan("okx", "USDT", c.date, 5), c) == ("KR-OKX-SPOT",)
+    for venue, symbol in (("upbit", "BTC"), ("kis", "005930"), ("kis", "069500"), ("kis", "SPY")):
+        assert gate.grey_rows(_t9_plan(venue, symbol, c.date, 5), c) == (), (venue, symbol)
+    for on, ids in ((day(2026, 1, 14), ()), (day(2026, 1, 15), ("KR-OKX-SPOT",)),
+                    (day(2026, 12, 3), ("KR-OKX-SPOT",)),          # auto_off blocks new exposure; still in force
+                    (day(2027, 2, 17), ("KR-OKX-SPOT",)), (day(2027, 2, 18), ())):
+        assert gate.grey_rows(okx, F.ctx(date=on)) == ids, on
+    for odd in (_t9_plan("okx", "BTC", "2026-10-23", 0), _t9_types.SimpleNamespace(leg=okx.leg)):
+        assert gate.grey_rows(odd, c) == ("KR-OKX-SPOT",), odd
+    assert gate.grey_rows(okx, F.ctx(code_signed=False)) == ("KR-OKX-SPOT",)
+    both = _t8_with_rows(F.approved(), {"KR-DOMESTIC-SPOT": {"treatment": "grey",
+                                                             "match": _t8_row("KR-OKX-SPOT").match}})
+    assert gate.grey_rows(okx, F.ctx(active=both)) == ("KR-DOMESTIC-SPOT", "KR-OKX-SPOT")
+    # sorted, not in table order: in kr_rules.yaml KR-OKX-SPOT comes before KR-OKX-P2P
+    p2p = _t8_with_rows(F.approved(), {"KR-OKX-P2P": {"treatment": "grey", "match": _t8_row("KR-OKX-SPOT").match}})
+    assert gate.grey_rows(okx, F.ctx(active=p2p)) == ("KR-OKX-P2P", "KR-OKX-SPOT")
+    kis = _t8_with_rows(F.approved(), {"KR-KIS-KRX-SHARE": {"treatment": "grey"}})
+    assert gate.grey_rows(_t9_plan("kis", "005930", c.date, 5), F.ctx(active=kis)) == ("KR-KIS-KRX-SHARE",)
+    # positive control for the () legs above (pre-flight P21): with every venue row grey each leg names its own row
+    every = _t8_with_rows(F.approved(), {r.id: {"treatment": "grey"} for r in F.approved().rules.rows
+                                         if r.kind == "venue"})
+    for venue, symbol, ids in (("upbit", "BTC", ("KR-DOMESTIC-SPOT",)), ("kis", "005930", ("KR-KIS-KRX-SHARE",)),
+                               ("kis", "069500", ("KR-KIS-ETP-1X",)), ("kis", "SPY", ("KR-KIS-ETP-1X",))):
+        assert gate.grey_rows(_t9_plan(venue, symbol, c.date, 5), F.ctx(active=every)) == ids, (venue, symbol)
+    # parity with screen() (pre-flight P18): the intent grey_rows matches rows against is screen()'s cash buy
+    pairs = (("okx", "BTC"), ("okx", "USDT"), ("upbit", "BTC"), ("kis", "005930"), ("kis", "069500"), ("kis", "SPY"))
+    legs = [_t9_plan(venue, symbol, c.date, 5) for venue, symbol in pairs]
+    saved, seen = gate._in_force, []
+    gate._in_force = lambda state, intent, cls, on: seen.append(intent) or saved(state, intent, cls, on)
+    try:
+        for leg in legs:
+            gate.grey_rows(leg, c)
+    finally:
+        gate._in_force = saved
+    assert [model.intent_hash(i) for i in seen] == [gate.screen(leg, c, 1.0).decision.intent_hash for leg in legs]
+
+
+def test_grey_rows_is_empty_when_nothing_can_be_looked_up():
+    """Q20: () for a context not from load_context, a broken owner log, an invalid state (a snapshot is for exits
+    only), a malformed plan, a venue or symbol the state does not list, and any error reading the plan; it never
+    raises. The symbol is looked up as screen() looks up a buy, in the map in force only: one that only an earlier
+    approved map knows gives ()."""
+    c = F.ctx()
+    okx = _t9_plan("okx", "BTC", c.date, 5)
+    hand = model.Context(**{f.name: getattr(c, f.name) for f in dataclasses.fields(model.Context)})
+    dead = model.ApprovedState.invalid("rules: unapproved")
+    for context in (None, "ctx", hand, F.ctx(owner=model.OwnerState.broken("bad signature on entry 4")),
+                    F.ctx(active=dead), F.ctx(active=dead, snapshot=F.approved())):
+        assert gate.grey_rows(okx, context) == (), context
+    for plan in (None, "plan", _t9_types.SimpleNamespace(), _t9_types.SimpleNamespace(leg=None),
+                 _t9_types.SimpleNamespace(leg=_T10Unreadable()),
+                 _t9_plan("binance", "BTC", c.date, 5), _t9_plan("nowhere", "BTC", c.date, 5),
+                 _t9_plan(5, "BTC", c.date, 5), _t9_plan("okx", "NOPE", c.date, 5), _t9_plan("okx", None, c.date, 5),
+                 _t9_plan("okx", ["BTC"], c.date, 5), _t9_plan("kis", "BTC", c.date, 5)):
+        assert gate.grey_rows(plan, c) == (), plan
+    cur = F.approved()
+    gone = dataclasses.replace(cur, instruments=dataclasses.replace(cur.instruments, entries={
+        k: v for k, v in cur.instruments.entries.items() if k != ("crypto", "BTC")}), history_maps=(cur.instruments,))
+    assert gate.grey_rows(okx, F.ctx(active=gone)) == ()               # BTC is in the earlier map only

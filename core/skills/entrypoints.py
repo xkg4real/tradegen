@@ -3,7 +3,7 @@
 The trading-skills repository has no declared entrypoint field, so this module
 derives one. Three tiers, most specific first:
 
-  1. `_PRIMARY` — a curated choice for the 15 skills that ship several CLIs and
+  1. `_PRIMARY` — a curated choice for skills that ship several CLIs and
      where picking alphabetically would run the wrong thing (e.g. running
      `finviz_stock_client.py` instead of `screen_canslim.py`).
   2. `scripts/<skill_id with dashes as underscores>.py` — the convention the
@@ -42,6 +42,7 @@ _PRIMARY: dict[str, str] = {
     "strategy-pivot-designer": "detect_stagnation.py",
     "trader-memory-core": "trader_memory_cli.py",
     "trading-skills-navigator": "recommend.py",
+    "us-undervalued-growth-screener": "run_pipeline.py",
 }
 
 _MAIN_GUARD = re.compile(r"""__name__\s*==\s*['"]__main__['"]""")

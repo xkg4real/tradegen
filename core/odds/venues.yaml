@@ -1,6 +1,7 @@
 # TRADEGEN venue facts (spec 5.1 "Venue facts"; plan decisions P1, P9, P22). DRAFT: only the bytes the owner signs
 # as `approved {kind: venues}` are in force. The compliance plan writes markets, settlement and deposits only; the
-# odds plan adds lots, minimums and ticks later, which changes this file's sha256 and needs a new approval.
+# odds plan added the sourced lots, minimums and the KRX stock tick ladder; every other odds value is absent until
+# the owner adds it, so those legs are not tradable, and this file's sha256 changed, so it needs a new approval.
 # A venue with no deposit entry for a coin credits none, so a withdrawal there fails closed.
 schema: tradegen.venues/1
 venues:
@@ -9,6 +10,12 @@ venues:
     settlement: [KRW, USD]
     quote_by_currency: true        # a KRX code trades for KRW, a US ticker for USD
     deposits: []
+    lot: {source: "research_notes/Korean resident trading venue legality/domestic_securities_derivatives.md#L161", units: {"005930": 1, "069500": 1}}
+    min_order: {source: "research_notes/Korean resident trading venue legality/domestic_securities_derivatives.md#L161", quote: {KRW: 0}}
+    tick_ladder:
+      source: "https://global.krx.co.kr/contents/GLB/06/0602/0602010201/GLB0602010201T3.jsp"
+      effective_from: "2026-10-02"
+      books: {KRX_stock_book: [[0, 1], [2000, 5], [5000, 10], [20000, 50], [50000, 100], [200000, 500], [500000, 1000]]}
     source: "docs/superpowers/specs/2026-10-23-compliance-gate-and-odds-engine-design.md#5.1 venue facts"
   upbit:
     sections: [crypto]
@@ -17,6 +24,7 @@ venues:
     default_quote: KRW
     deposits:                       # UNVERIFIED: no repo source names the network; owner to confirm before approval
       - {symbol: BTC, network: bitcoin, tag_required: false}
+    min_order: {source: "https://docs.upbit.com/kr/docs/krw-market-info", quote: {KRW: 5000}}
     source: "https://api.upbit.com/v1/market/all?is_details=false"
   bithumb:
     sections: [crypto]

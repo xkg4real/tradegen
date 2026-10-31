@@ -48,6 +48,7 @@ from tests.macro_acceptance import tests as macro_tests     # noqa: E402
 from tests.paper_live_acceptance import tests as paper_tests     # noqa: E402
 from grokteam.selfcheck import tests as grokteam_tests             # noqa: E402
 from tests.compliance_acceptance import tests as compliance_tests  # noqa: E402
+from tests.odds_acceptance import tests as odds_tests              # noqa: E402
 from tests.notrun import NotRun                             # noqa: E402
 
 REGISTRY = ROOT / "tests" / "macro_registry.csv"
@@ -64,7 +65,8 @@ def tests():
             [(f"macro/{n}", f) for n, f in macro_tests()] +
             [(f"paper/{n}", f) for n, f in paper_tests()] +
             [(f"grokteam/{n}", f) for n, f in grokteam_tests()] +
-            [(f"compliance/{n}", f) for n, f in compliance_tests()])
+            [(f"compliance/{n}", f) for n, f in compliance_tests()] +
+            [(f"odds/{n}", f) for n, f in odds_tests()])
 
 
 def runs_from() -> dict[str, int]:
@@ -110,7 +112,7 @@ def run(entries) -> list[dict]:
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--milestone", help="run the exit set of M<k> via tests/macro_registry.csv")
-    parser.add_argument("--suite", help="run one suite: cockpit, engine, ui, quant, ficc, expansion, macro, paper, grokteam or compliance")
+    parser.add_argument("--suite", help="run one suite: cockpit, engine, ui, quant, ficc, expansion, macro, paper, grokteam, compliance or odds")
     args = parser.parse_args(argv)
     if args.milestone and not re.fullmatch(r"M(10|[0-9])", args.milestone):
         parser.error("--milestone takes M0..M10")

@@ -312,6 +312,14 @@ class Venue:
     quote_by_currency: bool = False                      # kis: the counter must equal the instrument's currency
     default_quote: str | None = None                     # used by screen(); None when quote_by_currency
     deposits: frozenset = frozenset()                    # {(symbol, network, tag_required: bool)}
+    # The odds keys (odds plan Q17), sorted and hashable; () or None where venues.yaml leaves a key out, which makes
+    # that leg not tradable (O11). Every number is a float.
+    lot: tuple[tuple[str, float], ...] = ()              # (symbol or "default", units step > 0)
+    min_order: tuple[tuple[str, float], ...] = ()        # (settlement asset, minimum >= 0 in quote units)
+    fee_extras: tuple[float, float] | None = None        # (phi_buy, phi_sell): fixed KRW charges per fill, each >= 0
+    tick_ladder: tuple[tuple[str, str, tuple[tuple[float, float], ...]], ...] = ()
+    #               (cost book, effective_from "YYYY-MM-DD", ((price_from, tick), ...)) in the book's quote currency
+    odds_sources: tuple[tuple[str, str], ...] = ()       # (odds key, its source) for each odds key present
 
     def is_market(self, inst: Instrument, counter: str) -> bool:
         """(inst, counter) is a listed market of this venue."""
@@ -324,6 +332,28 @@ class Venue:
     def quote_for(self, inst: Instrument) -> str:
         """What a buy of `inst` pays with here: its currency, or the venue's default quote."""
         return inst.currency if self.quote_by_currency else self.default_quote
+
+    # The odds lookups are plain tuple reads: the gate's purity tests scan every Venue method (no date, file or clock
+    # name here, and no local name that is a module-level def of this file).
+    def lot_for(self, symbol: str) -> float | None:
+        """The lot step of `symbol` here: its own entry, else the venue's "default", else None (not tradable)."""
+        if not isinstance(symbol, str):
+            return None
+        steps = dict(self.lot)
+        return steps.get(symbol, steps.get("default"))
+
+    def min_order_for(self, quote: str) -> float | None:
+        """The smallest order paid in `quote` (a settlement asset), in `quote` units, or None (not tradable)."""
+        if not isinstance(quote, str):
+            return None
+        return dict(self.min_order).get(quote)
+
+    def ladder_for(self, book: str) -> tuple[str, tuple[tuple[float, float], ...]] | None:
+        """(effective_from "YYYY-MM-DD", ((price_from, tick), ...)) of the signed ladder of cost `book`, or None."""
+        for name, start, rows in self.tick_ladder:
+            if name == book:
+                return start, rows
+        return None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -665,7 +695,97 @@ def parse_instruments(raw: bytes) -> InstrumentMap:
 # --------------------------------------------------------------------------- #
 _VENUES_SCHEMA = "tradegen.venues/1"
 _VENUE_REQUIRED = frozenset({"sections", "settlement", "source"})
-_VENUE_OPTIONAL = frozenset({"markets", "quote_by_currency", "default_quote", "deposits"})
+_VENUE_OPTIONAL = frozenset({"markets", "quote_by_currency", "default_quote", "deposits",
+                             "lot", "min_order", "fee_extras", "tick_ladder"})      # the odds keys (odds plan Q17)
+# The cost books a signed tick ladder may cover. KRX_ETF_line is not one: its ladder is core/quant/instruments.py's.
+_LADDER_BOOKS = frozenset({"KRX_stock_book", "US_shares_KIS", "crypto_venue"})
+
+
+def _odds_number(value, where: str, *, positive: bool) -> float:
+    """A finite int or float, never a bool: > 0 when `positive` (as _positive), else >= 0, so that an explicit 0 is
+    a signed value. A -0.0 is stored as 0.0 (`+ 0.0`), so a stored value never prints or serialises as -0.0."""
+    if positive:
+        return _positive(value, where)
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value < 0:
+        raise Invalid(f"{where}: expected a finite number >= 0, got {value!r}")
+    return float(value) + 0.0
+
+
+def _odds_lot(value, where: str, listed: dict, sections: tuple[str, ...]) -> tuple[tuple[str, float], ...]:
+    """`lot: {source, units: {<symbol> | default: step}}` -> sorted (symbol or "default", step > 0); a symbol is one
+    the venue's sections list."""
+    _keys(value, where, frozenset({"source", "units"}))
+    _text(value["source"], f"{where}: source")
+    units = value["units"]
+    if not isinstance(units, dict) or not units:
+        raise Invalid(f"{where}: units: expected a non-empty mapping of symbol (or default) to a step")
+    out = []
+    for symbol, step in units.items():
+        if symbol != "default" and (not isinstance(symbol, str) or symbol not in listed):
+            raise Invalid(f"{where}: units: {symbol!r} is not a symbol of sections {list(sections)}")
+        out.append((symbol, _odds_number(step, f"{where}: units: {symbol}", positive=True)))
+    return tuple(sorted(out))
+
+
+def _odds_min_order(value, where: str, settlement: frozenset) -> tuple[tuple[str, float], ...]:
+    """`min_order: {source, quote: {<settlement asset>: amount}}` -> sorted (asset, minimum >= 0 in quote units)."""
+    _keys(value, where, frozenset({"source", "quote"}))
+    _text(value["source"], f"{where}: source")
+    quote = value["quote"]
+    if not isinstance(quote, dict) or not quote:
+        raise Invalid(f"{where}: quote: expected a non-empty mapping of settlement asset to a minimum")
+    out = []
+    for asset, amount in quote.items():
+        if not isinstance(asset, str) or asset not in settlement:
+            raise Invalid(f"{where}: quote: {asset!r} is not one of the settlement assets {sorted(settlement)}")
+        out.append((asset, _odds_number(amount, f"{where}: quote: {asset}", positive=False)))
+    return tuple(sorted(out))
+
+
+def _check_extras(value, where: str) -> tuple[float, float]:
+    """Spec 4 "Costs" check_extras, here in the parser: `fee_extras: {source, phi_buy, phi_sell}` -> (phi_buy,
+    phi_sell), the fixed KRW charges per buy and per sell. Each is finite and >= 0, so an extra can only raise a
+    cost, and a negative one makes the venue file Invalid."""
+    _keys(value, where, frozenset({"source", "phi_buy", "phi_sell"}))
+    _text(value["source"], f"{where}: source")
+    return (_odds_number(value["phi_buy"], f"{where}: phi_buy", positive=False),
+            _odds_number(value["phi_sell"], f"{where}: phi_sell", positive=False))
+
+
+def _odds_ladder(value, where: str, sections: tuple[str, ...], instruments: InstrumentMap) -> tuple:
+    """`tick_ladder: {source, effective_from, books: {<cost book>: [[price_from, tick], ...]}}` -> sorted (book,
+    effective_from "YYYY-MM-DD", ((price_from, tick), ...)). The first price_from is exactly 0 and they strictly
+    increase; every tick is > 0; a book is in _LADDER_BOOKS and is the cost book of a symbol in the venue's
+    sections. The date is kept as its checked text, so Venue.ladder_for never parses one."""
+    _keys(value, where, frozenset({"source", "effective_from", "books"}))
+    _text(value["source"], f"{where}: source")
+    start = parse_date(value["effective_from"], f"{where}: effective_from").isoformat()
+    books = value["books"]
+    if not isinstance(books, dict) or not books:
+        raise Invalid(f"{where}: books: expected a non-empty mapping of cost book to [[price_from, tick], ...]")
+    used = {inst.cost_book for (section, _), inst in instruments.entries.items() if section in sections}
+    out = []
+    for book, rows in books.items():
+        if book == "KRX_ETF_line":
+            raise Invalid(f"{where}: books: KRX_ETF_line: its ladder is core/quant/instruments.py's")
+        _member(book, f"{where}: books", _LADDER_BOOKS)
+        if book not in used:
+            raise Invalid(f"{where}: books: {book} is the cost book of no symbol in sections {list(sections)}")
+        if not isinstance(rows, list) or not rows:
+            raise Invalid(f"{where}: books: {book}: expected a non-empty list of [price_from, tick] rows")
+        ladder: list[tuple[float, float]] = []
+        for row in rows:
+            if not isinstance(row, list) or len(row) != 2:
+                raise Invalid(f"{where}: books: {book}: {row!r} is not a [price_from, tick] row")
+            price = _odds_number(row[0], f"{where}: books: {book}: price_from", positive=False)
+            tick = _odds_number(row[1], f"{where}: books: {book}: tick", positive=True)
+            if not ladder and price != 0:
+                raise Invalid(f"{where}: books: {book}: the first price_from must be 0, got {row[0]!r}")
+            if ladder and price <= ladder[-1][0]:
+                raise Invalid(f"{where}: books: {book}: price_from {row[0]!r} is not above the row before")
+            ladder.append((price, tick))
+        out.append((book, start, tuple(ladder)))
+    return tuple(sorted(out))
 
 
 def _venue(vid: str, entry, instruments: InstrumentMap) -> Venue:
@@ -722,8 +842,18 @@ def _venue(vid: str, entry, instruments: InstrumentMap) -> Venue:
         if any(d[:2] == (symbol, network) for d in deposits):
             raise Invalid(f"{where}: deposits: {symbol} on {network} is listed twice")
         deposits.add((symbol, network, dep["tag_required"]))
+    odds: dict = {}                         # the odds keys (Q17); an absent one stays () or None: not tradable (O11)
+    if "lot" in entry:
+        odds["lot"] = _odds_lot(entry["lot"], f"{where}: lot", listed, sections)
+    if "min_order" in entry:
+        odds["min_order"] = _odds_min_order(entry["min_order"], f"{where}: min_order", settlement)
+    if "fee_extras" in entry:
+        odds["fee_extras"] = _check_extras(entry["fee_extras"], f"{where}: fee_extras")
+    if "tick_ladder" in entry:
+        odds["tick_ladder"] = _odds_ladder(entry["tick_ladder"], f"{where}: tick_ladder", sections, instruments)
     return Venue(id=vid, sections=sections, settlement=settlement, markets=frozenset(markets),
-                 quote_by_currency=bool(by_currency), default_quote=default, deposits=frozenset(deposits))
+                 quote_by_currency=bool(by_currency), default_quote=default, deposits=frozenset(deposits),
+                 odds_sources=tuple(sorted((key, entry[key]["source"]) for key in odds)), **odds)
 
 
 def parse_venues(raw: bytes, instruments: InstrumentMap) -> VenueFacts:
@@ -933,21 +1063,17 @@ def _changed(old: dict, new: dict) -> list[str]:
 
 def _calendar_line(ctx, root: Path, moment) -> str:
     """The calendar draft (P21) against the latest calendar approval signed by `moment` (load_context's cut-off),
-    whose stored copy must be intact. The Context does not carry it, so the log is read and verified once more."""
+    whose stored copy must be intact. The Context does not carry it, so owner._calendar_approval, which
+    owner.calendar_in_force shares (odds plan Q19), reads and verifies the log once more."""
     from core.compliance import model, owner
     if not ctx.owner.ok:
         return "calendar: not checked (owner log not usable)"
-    try:
-        log = owner.verify_log(owner._log_lines(owner.log_path()), owner.read_pubkey(owner.PUBKEY_PATH),
-                               owner.read_anchors())
-    except (OSError, ValueError, RuntimeError):         # an unreadable key, anchor or log file means BROKEN (Task 11)
+    outcome, signed = owner._calendar_approval(moment)
+    if outcome == "log":                                # an unreadable key, anchor or log file means BROKEN (Task 11)
         return "calendar: not checked (owner log not usable)"
-    if not log.ok:
-        return "calendar: not checked (owner log not usable)"
-    signed = owner.in_force(owner._up_to(log, model.iso_utc(moment))).get("calendar", ("", 0))[0]
-    if not signed:
+    if outcome == "none":
         return "calendar: no signed approval, so KRX and US plans are refused (crypto plans only)"
-    if owner.store_get("calendar", signed) is None:
+    if outcome == "store":
         return f"calendar: the signed version {signed[:16]} is missing or altered in the store"
     try:                                                # the one framing (Task 13), read once and hashed here
         draft = model.sha256_hex(calendar_stream(root / "core" / "calendars" / "data"))

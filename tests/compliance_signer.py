@@ -191,7 +191,12 @@ def test_signer_copies_match_the_repo():
     assert set(signer.SYSTEM_SCHEMAS) == set(owner.SYSTEM_KINDS) and set(signer._DATA) == set(owner._DATA)
     assert signer.VENUES == rules.VENUES and signer.OWNER_REQUIREMENTS == rules.OWNER_REQUIREMENTS
     assert signer.QUANTGEN_STATE == isolation.QUANTGEN_STATE
-    assert signer.QUANTGEN_REPO.resolve() == isolation.QUANTGEN_REPO.resolve()
+    # The standalone signer pins the owner's Windows deployment; isolation follows the checkout.
+    deployed = Path.home() / "OneDrive" / "Desktop" / "QUANTGEN"
+    assert signer.QUANTGEN_REPO.resolve() == deployed.resolve()
+    assert isolation.QUANTGEN_REPO.resolve() == ROOT.with_name("QUANTGEN").resolve()
+    if ROOT.resolve() == deployed.with_name("TRADEGEN").resolve():
+        assert signer.QUANTGEN_REPO.resolve() == isolation.QUANTGEN_REPO.resolve()
     sample = {"b": [1, 2.5, None, True], "a": {"z": "한국", "y": ""}}
     assert signer.canonical_json(sample) == model.canonical_json(sample)
     assert signer.sha256_hex("x") == model.sha256_hex("x")
@@ -856,23 +861,19 @@ def test_calendar_store_and_hash_match_rules():
 
 def test_calendar_refuses_links_like_rules():
     """rules.calendar_stream's one framing: a link as the folder or as an entry refuses the whole set (it is
-    Invalid there, ValueError here), so the approval and the store hash the same bytes. Junctions stand in for
-    symlinks, which need Developer Mode."""
-    try:
-        import _winapi
-    except ImportError:
-        raise NotRun("REFDATA: directory junctions need Windows") from None
+    Invalid there, ValueError here), so the approval and the store hash the same bytes. Windows uses
+    directory junctions; POSIX uses real directory symlinks."""
     plain, elsewhere, linked_dir = _home() / "plain", _home() / "elsewhere", _home() / "linked_dir"
     plain.mkdir()
     elsewhere.mkdir()
     (plain / "MANIFEST.yaml").write_bytes(b"version: 1\n")
     (elsewhere / "MANIFEST.yaml").write_bytes(b"version: 1\n")
-    _winapi.CreateJunction(str(elsewhere), str(linked_dir))                      # the folder itself is a link
+    fx.directory_link(linked_dir, elsewhere)                      # the folder itself is a link
     assert signer.calendar_sha256(plain) == rules.calendar_sha256(plain)
     for folder in (linked_dir, _home() / "absent"):
         assert "not a plain directory" in str(_raises(lambda: rules.calendar_sha256(folder), rules.Invalid))
         assert "not a plain directory" in str(_raises(lambda: signer.calendar_sha256(folder), ValueError))
-    _winapi.CreateJunction(str(elsewhere), str(plain / "linked"))                # an entry is a link
+    fx.directory_link(plain / "linked", elsewhere)                # an entry is a link
     assert "is a link" in str(_raises(lambda: rules.calendar_sha256(plain), rules.Invalid))
     assert "is a link" in str(_raises(lambda: signer.calendar_sha256(plain), ValueError))
     _raises(lambda: signer.store_calendar(plain, (5, "e" * 64)), ValueError)
@@ -883,14 +884,10 @@ def test_calendar_refuses_links_like_rules():
 def test_writes_refuse_a_junctioned_folder():
     """owner._write_new's `within` rule: every folder and file the signer writes must resolve inside the state root,
     so a junctioned compliance folder refuses the store write and the log append before any folder is made."""
-    try:
-        import _winapi
-    except ImportError:
-        raise NotRun("REFDATA: directory junctions need Windows") from None
     root, outside = _home() / "root", _home() / "outside"
     root.mkdir()
     outside.mkdir()
-    _winapi.CreateJunction(str(outside), str(root / "compliance"))
+    fx.directory_link(root / "compliance", outside)
     saved = os.environ["TRADEGEN_HOME"]
     os.environ["TRADEGEN_HOME"] = str(root)
     try:

@@ -11,6 +11,8 @@ from __future__ import annotations
 
 import ast
 import json
+import os
+import shutil
 import tempfile
 import time
 from dataclasses import replace
@@ -845,8 +847,19 @@ test_default_services_reads_the_effective_store_with_owner_rulings.test_ids = ["
 # --------------------------------------------------------------------------- #
 def test_dry_run_end_to_end_on_the_local_cache():
     tmp = _tmp()
+    # Git checkout time is not the retrieval time of this historical test fixture.
+    # Copy the unchanged vendor bytes into a temp cache and pin its retrieval before the test's clock.
+    cache = tmp / "cache"
+    cache.mkdir()
+    fetched = U(2026, 10, 6, 22)
+    for name in {name for name, _source in MD.DRY_RUN_CACHE.values()}:
+        source = MD.CACHE_DIR / name
+        if source.is_file():
+            target = cache / name
+            shutil.copyfile(source, target)
+            os.utime(target, (fetched.timestamp(), fetched.timestamp()))
     t0 = time.perf_counter()
-    out = MD.dry_run(tmp, clock=lambda: U(2026, 10, 7, 9, 0))
+    out = MD.dry_run(tmp, clock=lambda: U(2026, 10, 7, 9, 0), cache_dir=cache)
     assert time.perf_counter() - t0 < 120.0
     root = tmp / "dry_run"
     assert out["root"] == str(root) and all(v.get("appended", 0) > 0 for v in out["ingested"].values())
@@ -866,6 +879,7 @@ def test_dry_run_end_to_end_on_the_local_cache():
         assert all(e["engine_state"] == "DISARMED" for e in state["runtime"]) and state["vol"]["vt_weight_recommended_book"] == 1.0
         assert all(i["value_status"] in ("vendor_close", "first_release") for i in state["inputs"])
         assert all(i["retrieved_at_utc"] != "2026-10-07T09:00:00Z" for i in state["inputs"])     # the file's mtime (L1283), never the clock
+        assert all(i["retrieved_at_utc"] == "2026-10-06T22:00:00Z" for i in state["inputs"])
     assert all(m == "DISARMED" for m in out["books"].values()) and not (root / "engine_feed").exists()
     us = next(v for k, v in {rel: json.loads((root / rel).read_text(encoding="utf-8")) for rel in out["runs"]["US"]["artifacts"]}.items() if k.startswith("macro_state/"))
     assert us["vol"]["vt_status"] == "ok" and 0.0 < us["vol"]["vt_weight_next"] <= 1.0           # SPY vendor rows size the US vt (labelled)
@@ -873,6 +887,10 @@ def test_dry_run_end_to_end_on_the_local_cache():
     kr = next(v for k, v in {rel: json.loads((root / rel).read_text(encoding="utf-8")) for rel in out["runs"]["KR"]["artifacts"]}.items() if k.startswith("macro_state/"))
     assert kr["vol"]["vt_status"] == "fail_closed" and kr["fail_closed"] is True                 # no KOSPI series in the cache: honest
     assert not any(p.name.startswith("yf_") for p in (root / "pit").iterdir()) and (ROOT / "docs/asset_expansion/cache/yf_SPY.csv").is_file()
+    # The same rows must remain invisible when the knowledge time precedes retrieval.
+    early = MD.dry_run(tmp / "early", clock=lambda: fetched - timedelta(hours=1), cache_dir=cache)
+    early_state = state_of(Path(early["root"]), early["runs"]["US"])
+    assert early_state["vol"]["vt_status"] == "fail_closed" and early_state["fail_closed"]
 
 
 test_dry_run_end_to_end_on_the_local_cache.test_ids = ["I-01"]
