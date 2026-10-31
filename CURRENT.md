@@ -1,18 +1,18 @@
 ---
-status: returned
-reason: pr8_merged_first_trade_prerequisites_pending
+status: taken
+reason: owner_requested_notion_summary_and_top_five_first_trade_tasks
 from: gpt
-task: account-research
+task: first-trade-foundation
 cycle: 2026-10-27
 done_ids: cloud-compat-1, cloud-compat-2, cloud-compat-3, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr, spec-rev-3-3, policy-plan-1, policy-preview-1, policy-pr, e1-1, e1-2, e1-3, e1-4, e1-5, e1-6, e1-7, e1-8, e1-9, e1-10, e1-11, e1-12, e1-13, e1-pr, e2-1, e2-2, e3-1, e3-2, e3-3, e2-3, e3-4, e2-e3-pr, pr6-pr7-merge, research-preregister-1, research-evaluate-1, account-readiness-1, research-paper-1, account-provider-1, account-regression-1, account-research-pr, pr8-human-code-review-approval, pr8-merge
 next_ids: cloud-proxy-design, authenticated-history-collector, policy-input-finalization, independent-strategy-validation, strategy-runner-integration, e1-14-owner-setup
-updated_at: 2026-10-31T16:48:42+09:00
+updated_at: 2026-10-31T17:06:37+09:00
 stale_after_hours: 3
-waiting_on: secure account configuration, live data integration, strategy validation and owner cryptographic signing
-work_branch: gpt/account-research
-work_commit: dec1f942c596f8eb0650f40d996325289113afdc
+waiting_on: software work underway; market and unresolved policy inputs may require owner choice
+work_branch: gpt/first-trade-foundation
+work_commit: 8cd4e833eef44ff32cd2464c3a16d689f5dc4e78
 uncommitted_changes: no
-pr: https://github.com/xkg4real/tradegen/pull/8 (merged into main; 8cd4e833eef44ff32cd2464c3a16d689f5dc4e78)
+pr: pending for new first-trade foundation; PR8 merged
 usage_weekly_pct: unknown
 usage_source: unavailable
 handoff_threshold_pct: 95
@@ -24,6 +24,8 @@ session: cloud Codex (TRADEGEN)
 # 인수인계: 계좌 증거 연결과 전략 연구
 
 ## 0. 한 줄 요약
+
+새 지시: 지정된 Notion 계정에 요약 페이지를 생성하고 첫 거래 전 핵심5개 작업을 먼저 개발합니다. 이전 완료 기록은 보존하며 새 작업 결과는 별도 ID로 기록합니다. 실제 키·서명·활성화·거래는 수행하지 않습니다.
 
 승인된 PR #6/#7 병합 완료. 계좌 provider·연결 준비 진단·FX/통화/자정/자본 검사를 구현했고 PR #8을 사용자 명시적 병합 승인 후 main에 병합했습니다(`8cd4e83`). 전체 **1801/1923 PASS,0 FAIL,122 기존 NOT_RUN**. 8계열의21,408설정을 고정 평가해6개를 선택했으나 사전 탐색기준 통과는0개였습니다. PDF17쪽/4그림/11학술문헌과 모든 후보 결과를 공개했습니다. 실계좌 접속·실제 서명·활성화·주문은 미완료입니다.
 
