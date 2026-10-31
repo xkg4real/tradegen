@@ -12,7 +12,11 @@ FORBIDDEN_CALLS = {"eval", "exec", "__import__", "compile", "request", "urlopen"
                    "system", "popen", "startfile", "transfer", "withdraw"}
 
 
-def problems(source):
+COLLECTOR_ROUTES = frozenset({"/v1/accounts", "/v1/orders/open", "/v1/orders/closed",
+                              "/v1/order", "/v1/deposits", "/v1/withdraws", "/v1/ticker"})
+
+
+def problems(source, relative_path=""):
     tree = ast.parse(source)
     failures = []
     for node in ast.walk(tree):
@@ -25,7 +29,13 @@ def problems(source):
         if isinstance(node, ast.Call):
             call = node.func.id if isinstance(node.func, ast.Name) else node.func.attr if isinstance(node.func, ast.Attribute) else ""
             regex_compile = isinstance(node.func, ast.Attribute) and ast.unparse(node.func) == "re.compile"
-            if call in FORBIDDEN_CALLS and not (call == "compile" and regex_compile):
+            collector_read = (relative_path == "upbit_collector.py" and isinstance(node.func, ast.Name)
+                and node.func.id == "request" and len(node.args) == 4 and not node.keywords
+                and all(isinstance(arg, ast.Constant) for arg in node.args[:3])
+                and node.args[0].value == "upbit" and node.args[1].value == "GET"
+                and node.args[2].value in COLLECTOR_ROUTES
+                and isinstance(node.args[3], ast.Name) and node.args[3].id == "params")
+            if call in FORBIDDEN_CALLS and not (call == "compile" and regex_compile) and not collector_read:
                 failures.append("effectful call")
             if isinstance(node.func, ast.Attribute) and ast.unparse(node.func.value) == "os.environ":
                 if not (call == "get" and len(node.args) == 1 and isinstance(node.args[0], ast.Constant)
@@ -42,7 +52,24 @@ def problems(source):
 
 def test_account_sources_have_no_signing_orders_network_or_writes():
     for path in (ROOT / "execution_accounts").rglob("*.py"):
-        assert not problems(path.read_text()), (path.name, problems(path.read_text()))
+        relative = path.relative_to(ROOT / "execution_accounts").as_posix()
+        assert not problems(path.read_text(), relative), (relative, problems(path.read_text(), relative))
+
+
+def test_only_reviewed_collector_literals_can_use_e1_authenticated_get():
+    for route in COLLECTOR_ROUTES:
+        source = f'request("upbit", "GET", {route!r}, params)'
+        assert not problems(source, "upbit_collector.py")
+        assert problems(source, "provider.py")
+        assert problems(source, "nested/upbit_collector.py")
+        assert problems(source.replace('"GET"', '"POST"'), "upbit_collector.py")
+        assert problems(source.replace('"GET"', '"DELETE"'), "upbit_collector.py")
+    for source in ('request("upbit", "GET", path, params)',
+                   'request("upbit", "GET", "/v1/orders", params)',
+                   'transport.request("upbit", "GET", "/v1/accounts", params)',
+                   'request("okx", "GET", "/v1/accounts", params)',
+                   'request("upbit", "GET", "/v1/accounts", params, data=body)'):
+        assert problems(source, "upbit_collector.py"), source
 
 
 def test_account_guard_negative_controls_cover_privileged_neighbors():

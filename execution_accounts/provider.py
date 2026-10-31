@@ -386,6 +386,8 @@ def _build(bundle, now):
         trade_dates.update(result['trade_dates'])
     _require(equity > 0, "NONPOSITIVE_EQUITY")
     _require(max(server_stamps)-min(server_stamps) <= timedelta(seconds=60), "VENUE_CLOCK_DISAGREEMENT")
+    _require(all(fill.executed_at.astimezone(compliance.KST).date() >= baseline.first_trading_day
+                 for fill in fills), "FIRST_TRADING_DAY_CONTRADICTS_HISTORY")
     asof = min(stamps)
     current = sum((amount for _, _, day, amount in days if day == today), _ZERO)
     previous = sum((amount for _, _, day, amount in days if day == today-timedelta(days=1)), _ZERO)

@@ -9,8 +9,9 @@ inside Korean law.
   durable execution control, realized-profit accounting and cash limit-order
   adapters for KIS, Upbit and OKX are implemented. Orders require a fresh bound
   odds preparation, owner-signed session, compliance checks and explicit account
-  and credential providers. There is no autonomous strategy scheduler or default
-  live configuration. The [execution runbook](docs/execution-runbook.md) records
+  and credential providers. An explicit synchronous launch runner now supports
+  observation, isolated rehearsal and separately gated controlled integration;
+  it has no default live configuration. The [execution runbook](docs/execution-runbook.md) records
   supported paths, offline checks and remaining owner setup. No live order was
   placed during development; the new policy strategy remains UNVALIDATED.
   Everything below the separator is inherited QUANTGEN documentation; its
@@ -30,9 +31,15 @@ inside Korean law.
   current account FX; pending capital is revalued without treating cash as an
   existing investment. The [connection runbook](docs/account-connection-runbook.md)
   distinguishes configuration, complete authenticated evidence, owner signing
-  and execution. Current Cloud credentials/venue access, proxy integration and
-  a complete venue-history collector are still unavailable. No live connection,
-  owner signature or activation is claimed.
+  and execution. Explicit Cloud proxy routing and a conservative Upbit KRW
+  collector are implemented; credentials, venue access and authentic full-history
+  review remain external prerequisites. No live connection, owner signature or
+  activation is claimed.
+- **First-trade foundations.** A strict private profile/preflight, future-only
+  cost/lot/delay evaluator and default-observe runner complement the route and
+  collector. The new evaluator supports Upbit KRW spot only. It has not qualified
+  any real strategy. See the [ordered owner checklist](docs/first-trade-owner-checklist.md)
+  for unresolved inputs, trusted signer setup, effective limits and session approval.
 - **Strategy research (2026-10-31).** A frozen exploratory study evaluated
   **21,408 configurations** from eight economic families across eight assets.
   Six were selected on validation data; **zero passed** the specified joint
@@ -842,7 +849,7 @@ Optional: `TRADEGEN_MACRO_DIR` moves the macro state out of `~/.tradegen/macro`.
 
 ```bash
 .venv/Scripts/python tests/run_all.py                  # every suite; writes qa/acceptance_results.json
-.venv/Scripts/python tests/run_all.py --suite macro    # one suite: cockpit, engine, ui, quant, ficc, expansion, macro, paper, grokteam, compliance, odds, execution, execution_control, execution_accounts or strategy_research
+.venv/Scripts/python tests/run_all.py --suite macro    # one suite: cockpit, engine, ui, quant, ficc, expansion, macro, paper, grokteam, compliance, odds, execution, execution_control, execution_accounts, strategy_research or execution_launch
 .venv/Scripts/python tests/run_all.py --milestone M8   # the exit set of a milestone (tests/macro_registry.csv)
 .venv/Scripts/python -m tests.macro_acceptance         # resync the registry's implemented_in column
 ```

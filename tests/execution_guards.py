@@ -119,15 +119,23 @@ def _allowed(rel: str, name: str) -> bool:
     execution.*, and requests and urllib.parse in transport.py only."""
     if name in STDLIB or name == "core.isolation":
         return True
-    if name in ("requests", "urllib.parse"):
+    if name in ("requests", "urllib.parse", "contextvars", "execution_network.route"):
         return rel == TRANSPORT
     return any(name == p or name.startswith(p + ".") for p in ("core.compliance", "execution"))
 
 
 def _allowlist_hits(rel: str, src: str) -> list[str]:
-    return [f"{rel}:{node.lineno}: imports {module}: not on the E1 allowlist (contract 0.5)"
-            for node, module, names, _f in CG._imports(rel, ast.parse(src))
-            if not (_allowed(rel, module) or (names and all(_allowed(rel, f"{module}.{n}") for n in names)))]
+    hits = []
+    for node, module, names, _f in CG._imports(rel, ast.parse(src)):
+        approved = _allowed(rel, module) or (names and all(_allowed(rel, f"{module}.{n}") for n in names))
+        if module == "execution_network" or module.startswith("execution_network."):
+            approved = (rel == TRANSPORT and isinstance(node, ast.ImportFrom)
+                        and module == "execution_network.route" and not node.level
+                        and len(node.names) == 1 and node.names[0].name == "route_options"
+                        and node.names[0].asname is None)
+        if not approved:
+            hits.append(f"{rel}:{node.lineno}: imports {module}: not on the E1 allowlist (contract 0.5)")
+    return hits
 
 
 def _verb_hits(rel: str, src: str) -> list[str]:
@@ -353,9 +361,14 @@ def test_imports_stay_on_the_allowlist():
                 "from core.calendars import store\n", "import core.ficc.context_log\n",
                 "def f():\n    import core.rules.governance\n", "import collections\n", "import os.path\n"):
         assert _allowlist_hits(X, src), src
-    for src in ("import requests\n", "from urllib.parse import quote\n", "from urllib import parse\n"):
+    for src in ("import requests\n", "from urllib.parse import quote\n", "from urllib import parse\n",
+                "from contextvars import ContextVar\n", "from execution_network.route import route_options\n"):
         assert not _allowlist_hits(TRANSPORT, src), src
         assert _allowlist_hits(X, src), src
+    for src in ("from execution_network.unreviewed import route_options\n",
+                "from execution_network.route import managed_route\n", "import execution_network.route\n",
+                "from execution_network import route\n", "from execution_network.route import route_options as other\n"):
+        assert _allowlist_hits(TRANSPORT, src), src
     for module in sorted(STDLIB):
         assert not _allowlist_hits(X, f"import {module}\n"), module
     ok = ("from __future__ import annotations\nfrom collections.abc import Iterator\nfrom datetime import datetime\n"
@@ -744,7 +757,7 @@ UPBIT_FILE = "execution/upbit_inquiry.py"  # the one file that may name the Upbi
 POLL = "execution/poll.py"                 # the one importer of the transport module (for transport._clock)
 KIS_ORDER_WORDS = ("order-cash", "order-credit", "order-rvsecncl", "order-resv", "daytime-order", "/trading/order",
                    "/trading/daytime")                       # raw, lower-cased, in kis_inquiry.py
-UPBIT_EXACT = frozenset({"/v1/orders/open", "/v1/orders/closed", "/v1/withdraws", "/v1/withdraws/coin_addresses"})
+UPBIT_EXACT = frozenset({"/v1/order", "/v1/orders/open", "/v1/orders/closed", "/v1/withdraws", "/v1/withdraws/coin_addresses"})
 UPBIT_TOKEN = re.compile(r"(?i)/v1/(?:order|withdraw)[A-Za-z0-9_/\-]*")
 KIS_TOKEN = re.compile(r"/uapi/[^\s'\"]*")
 KIS_GET_PATHS = frozenset({                # the nine GET paths of contract section 7, written out here (never read
@@ -764,20 +777,21 @@ TR_SHAPE = re.compile(r"(?i)(?<![A-Za-z0-9])[A-Z]{4}[0-9]{4}[A-Z](?![A-Za-z0-9])
 ORDER_TR = re.compile(r"(?i)[A-Z]{4}[0-9]{4}U")
 OKX_ORDER_PATH = "/api/v5/trade/order"     # the GET also serves the order POST: never a string constant (spec 5)
 TRANSPORT_NAMES = frozenset({"request", "require_keys", "Answer", "InquiryRefused", "InquiryError", "AuthError",
-                             "KeyMissing"})  # what other modules may import from execution.transport
+                             "KeyMissing", "inquiry_clock"})  # public standalone inquiry clock, no implicit time
 CREDENTIAL_NAMES = ("KIS_APP_KEY", "KIS_APP_SECRET", "UPBIT_ACCESS_KEY", "UPBIT_SECRET_KEY", "OKX_API_KEY",
                     "OKX_API_SECRET", "OKX_API_PASSPHRASE")
 SEND_SOURCE = ("def _send(method, url, *, headers, params, json_body, timeout):\n"     # ast.unparse of the whole
+               "    options = route_options(url)\n"
                "    with requests.Session() as session:\n"                               # _send of section 6
                "        session.trust_env = False\n"                                     # (E1R2-11; checked with
                "        resp = session.request(method, url, headers=headers, params=params, json=json_body, "
-               "timeout=timeout, allow_redirects=False)\n"                               # the venv's ast.unparse)
+               "timeout=timeout, allow_redirects=False, proxies=options.proxies, verify=options.verify)\n"
                "        return (resp.status_code, resp.headers, resp.content)")
 # transport.py's own names: outside it, none of them is a name, an attribute, an imported name or a getattr string
 TRANSPORT_ONLY = frozenset({"requests", "HOSTS", "CREDENTIALS", "_send", "_rules", "_query", "_upbit_jwt",
                             "_okx_timestamp", "_okx_sign", "_kis_token", "_read_token", "_write_token",
                             "_check_answer", "_next_issue_at", "_okx_offset_s", "_bad_tokens", "_headers",
-                            "_TokenRejected"})
+                            "_TokenRejected", "_now", "_context_clock", "_INQUIRY_CLOCK"})
 # attributes no module but transport.py reads or writes (poll.py's one `transport._clock = ...` aside): the two
 # send-time seams, the modules a getattr chain would reach, and request (so it is always called by its own name)
 SEAM_ATTRS = frozenset({"_clock", "_sleep", "transport", "keys", "request"})
@@ -791,16 +805,17 @@ BINDERS = (ast.Assign, ast.AugAssign, ast.AnnAssign, ast.Delete, ast.For, ast.As
            ast.comprehension)
 SEND_TEMPLATE = ("import requests\n\n"                # contract section 6's _send, wrapped and commented as written
                  "def _send(method, url, *, headers, params, json_body, timeout):\n"
+                 "    options = route_options(url)\n"
                  "    with requests.Session() as session:\n"
                  "        session.trust_env = False                  # no proxy, CA bundle or .netrc\n"
                  "        resp = session.request(method, url, headers=headers, params=params, json=json_body,\n"
-                 "                               timeout=timeout, allow_redirects=False)\n"
+                 "                               timeout=timeout, allow_redirects=False, proxies=options.proxies, verify=options.verify)\n"
                  "        return resp.status_code, resp.headers, resp.content\n")
 
 
 def _upbit_token_hits(rel: str, src: str) -> list[str]:
-    """Raw text: every Upbit order or withdrawal path token is one of the four exact paths, in upbit_inquiry.py."""
-    return [f"{rel}: {m.group(0)!r}: only the four exact Upbit inquiry paths, only in {UPBIT_FILE}"
+    """Raw text: every Upbit order or withdrawal path token is one of five exact inquiry paths, in upbit_inquiry.py."""
+    return [f"{rel}: {m.group(0)!r}: only the five exact Upbit inquiry paths, only in {UPBIT_FILE}"
             for m in UPBIT_TOKEN.finditer(src) if rel != UPBIT_FILE or m.group(0) not in UPBIT_EXACT]
 
 
@@ -998,7 +1013,7 @@ def test_allowlists_are_pinned():
         ("/uapi/overseas-stock/v1/trading/inquire-ccnl", "TTTS3035R"),
         ("/uapi/overseas-stock/v1/trading/inquire-present-balance", "CTRP6504R"),
     })
-    upbit = frozenset({("GET", "/v1/accounts"), ("GET", "/v1/orders/open"), ("GET", "/v1/orders/closed"),
+    upbit = frozenset({("GET", "/v1/accounts"), ("GET", "/v1/order"), ("GET", "/v1/orders/open"), ("GET", "/v1/orders/closed"),
                        ("GET", "/v1/withdraws"), ("GET", "/v1/withdraws/coin_addresses"), ("GET", "/v1/deposits"),
                        ("GET", "/v1/api_keys"), ("GET", "/v1/status/wallet"), ("GET", "/v1/ticker")})
     okx = frozenset({("GET", "/api/v5/account/config"), ("GET", "/api/v5/account/balance"),
@@ -1074,10 +1089,11 @@ def test_kis_strings_are_exact():
 
 def test_upbit_strings_are_exact():
     """Contract 0.5 and spec 8 "Upbit exception": every Upbit order or withdrawal path token in execution/ is one of
-    /v1/orders/open, /v1/orders/closed, /v1/withdraws and /v1/withdraws/coin_addresses, in upbit_inquiry.py only."""
+    /v1/order, /v1/orders/open, /v1/orders/closed, /v1/withdraws and /v1/withdraws/coin_addresses,
+    in upbit_inquiry.py only; the separate endpoint pin permits only GET for these paths."""
     for path in sorted(UPBIT_EXACT):
         assert not _upbit_token_hits(UPBIT_FILE, f'P = "{path}"\n'), path
-    for path in ("/v1/withdraws/coin", "/v1/withdraws/krw", "/v1/withdraws/chance", "/v1/orders", "/v1/order",
+    for path in ("/v1/withdraws/coin", "/v1/withdraws/krw", "/v1/withdraws/chance", "/v1/orders", "/v1/order/new",
                  "/v1/orders/uuids", "/v1/orders/chance", "/v1/orders/cancel_and_new", "/V1/ORDERS/OPEN",
                  "/v1/orders/open/x"):
         assert _upbit_token_hits(UPBIT_FILE, f'P = "{path}"\n'), path
@@ -1185,12 +1201,13 @@ def test_send_is_pinned():
                               ""),
         "trust_env True": ("trust_env = False", "trust_env = True"),
         "redirects on": ("allow_redirects=False", "allow_redirects=True"),
-        "verify off": ("allow_redirects=False)", "allow_redirects=False, verify=False)"),
-        "proxies": ("allow_redirects=False)", "allow_redirects=False, proxies=p)"),
-        "auth": ("allow_redirects=False)", "allow_redirects=False, auth=a)"),
-        "hooks": ("allow_redirects=False)", "allow_redirects=False, hooks=h)"),
-        "stream": ("allow_redirects=False)", "allow_redirects=False, stream=True)"),
-        "cert": ("allow_redirects=False)", "allow_redirects=False, cert=c)"),
+        "verify off": ("verify=options.verify", "verify=False"),
+        "proxies": ("proxies=options.proxies", "proxies=p"),
+        "unreviewed routing": ("options = route_options(url)", "options = other_options(url)"),
+        "auth": ("verify=options.verify)", "verify=options.verify, auth=a)"),
+        "hooks": ("verify=options.verify)", "verify=options.verify, hooks=h)"),
+        "stream": ("verify=options.verify)", "verify=options.verify, stream=True)"),
+        "cert": ("verify=options.verify)", "verify=options.verify, cert=c)"),
         "requests.request": ("session.request(", "requests.request("),
         "a docstring": ("    with requests", '    """Send."""\n    with requests'),
         "a second send": ("resp.content\n", "resp.content\n\n_send = print\n"),

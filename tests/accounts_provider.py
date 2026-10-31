@@ -330,3 +330,15 @@ def test_reconciled_provider_works_with_real_signed_controller_and_dry_run():
         assert env.controller.reserve(env.order,env.rules,session_id=env.session_id,now=env.now).status=='RESERVED'
         assert env.controller.dispatch(env.order.client_id,now=env.now).status=='ACKNOWLEDGED'
         assert len(env.adapter.requests)==1
+
+
+def test_prior_realized_loss_cannot_be_hidden_by_a_new_first_trading_day():
+    buy = fill(quantity=D('1'), fee=D('1'), at=NOW-timedelta(days=2))
+    sell = fill(side='sell', quantity=D('1'), price=D('90'), fee=D('1'), order='sell1', fid='sell-fill',
+                at=NOW-timedelta(days=1))
+    value = bundle(fills=(buy,sell), opening=D('1000'), cash=D('988'),
+        orders=(order(quantity=D('1'),filled=D('1')),
+                order(side='sell',quantity=D('1'),filled=D('1'),price=D('90'),oid='sell1',client='client2')))
+    assert build_observation(value,now=NOW).risk.prior_day_realized_net_profit == D('-12')
+    forged = replace(value,risk_baseline=replace(value.risk_baseline,first_trading_day=NOW.date()))
+    refused(forged,'FIRST_TRADING_DAY_CONTRADICTS_HISTORY')

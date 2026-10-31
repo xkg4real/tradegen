@@ -4,8 +4,8 @@
 time from the venue module (E10): an unknown venue, a (method, path) pair not listed, any method but GET except the
 one KIS token POST, a KIS inquiry without its pinned TR id ending in R, a TR id anywhere else, a parameter that is
 not plain, and a signed OKX request without a known clock offset within 25 s. Only then are credentials read and one
-request sent through the seam `_send`, which ignores the environment's proxy, CA-bundle and .netrc settings and
-never follows a redirect (E1R2-11). The hosts are the real ones; no mock host is listed. Nothing here logs, prints or
+request sent through the seam `_send`, which ignores ambient proxy, CA and .netrc settings and never follows
+a redirect (E1R2-11). Explicit managed routing uses the reviewed sidecar and CA selectors. The hosts are the real ones; no mock host is listed. Nothing here logs, prints or
 returns a key, and every error text holds names, paths, TR ids and venue codes only (E37).
 
 Each attempt builds its headers afresh (the KIS bearer token, an Upbit HS512 JWT with a new nonce, an OKX
@@ -26,7 +26,9 @@ import os
 import re
 import time
 import uuid
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
+from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
@@ -39,6 +41,7 @@ import requests
 from core import isolation
 from core.isolation import checked_target
 from execution import keys
+from execution_network.route import route_options
 from execution.keys import KeyMissing  # noqa: F401  (re-exported: the venue modules import it from here, E36)
 
 HOSTS = MappingProxyType({"kis": "https://openapi.koreainvestment.com:9443",
@@ -87,8 +90,9 @@ class Answer:
     """One checked answer (E3, E39)."""
     body: object = field(repr=False)  # the parsed JSON (a token, balances or addresses: never in a repr)
     server_utc: datetime | None       # from the Date header, aware UTC; None when absent or unreadable
-    received_utc: datetime            # _clock() right after _send returned (E39)
+    received_utc: datetime            # _now() right after _send returned (E39)
     sha256: str                       # hex over the raw body bytes
+    raw_body: bytes = field(default=b"", repr=False)  # lossless JSON tokens for exact accounting codecs
 
 
 def request(venue: str, method: str, path: str, params: Sequence[tuple[str, str]] | None = None, *,
@@ -134,7 +138,7 @@ def request(venue: str, method: str, path: str, params: Sequence[tuple[str, str]
                 _sleep(RETRY_AFTER_S)
                 continue
             raise InquiryError(f"{venue} {path}: {type(exc).__name__}") from None
-        received_utc = _clock()
+        received_utc = _now()
         _sleep(PACE_S)
         if attempt == 1 and method == "GET" and (status == 429 or status >= 500):
             _sleep(RETRY_AFTER_S)
@@ -149,7 +153,7 @@ def request(venue: str, method: str, path: str, params: Sequence[tuple[str, str]
         _okx_offset_s = None                          # a malformed answer leaves no stale offset behind
         _okx_offset_s = int(body["data"][0]["ts"]) / 1000 - received_utc.timestamp()
     return Answer(body=body, server_utc=_date(answer_headers), received_utc=received_utc,
-                  sha256=hashlib.sha256(content).hexdigest())
+                  sha256=hashlib.sha256(content).hexdigest(), raw_body=content)
 
 
 def require_keys(venue: str) -> None:
@@ -159,19 +163,56 @@ def require_keys(venue: str) -> None:
 
 
 def _send(method, url, *, headers, params, json_body, timeout):
+    options = route_options(url)
     with requests.Session() as session:
-        session.trust_env = False                  # no proxy, CA bundle or .netrc from the environment
+        session.trust_env = False                  # no ambient proxy, CA bundle or .netrc
         resp = session.request(method, url, headers=headers, params=params, json=json_body, timeout=timeout,
-                               allow_redirects=False)
+                               allow_redirects=False, proxies=options.proxies, verify=options.verify)
         return resp.status_code, resp.headers, resp.content
 
 
 _sleep = time.sleep                   # seam: pacing and retry wait through it; it reads no clock
 
 
+_INQUIRY_CLOCK: ContextVar[Callable[[], datetime] | None] = ContextVar("tradegen_inquiry_clock", default=None)
+
+
+def _context_clock() -> datetime:
+    clock = _INQUIRY_CLOCK.get()
+    if clock is None:
+        raise RuntimeError("transport: no clock; poll.main or inquiry_clock must set one")
+    now = clock()
+    if type(now) is not datetime or now.tzinfo is None or now.utcoffset() is None:
+        raise ValueError("INQUIRY_CLOCK_MUST_BE_AWARE")
+    return now.astimezone(timezone.utc)
+
+
+@contextmanager
+def inquiry_clock(clock: Callable[[], datetime]):
+    """Bind an explicit caller clock locally; yield its validated reader, restore on exit.
+
+    The collector supplies its own clock. This function never reads the wall clock
+    or changes poll.main's existing seam; each actual read must return aware time.
+    """
+    if not callable(clock):
+        raise ValueError("INQUIRY_CLOCK_REQUIRED")
+    token = _INQUIRY_CLOCK.set(clock)
+    try:
+        yield _context_clock
+    finally:
+        _INQUIRY_CLOCK.reset(token)
+
+
 def _clock() -> datetime:
-    """The send-time clock (E11): poll.main binds one; until then nothing in E1 reads the time."""
-    raise RuntimeError("transport: no clock; poll.main sets one")
+    """Legacy poll/test clock seam; the default refuses an absent explicit clock."""
+    return _context_clock()
+
+
+def _now() -> datetime:
+    """An explicit inquiry context takes precedence over any legacy poll binding."""
+    if _INQUIRY_CLOCK.get() is not None:
+        return _context_clock()
+    return _clock()
 
 
 _next_issue_at: float | None = None   # epoch seconds before which this process issues no KIS token
@@ -228,7 +269,7 @@ def _headers(venue: str, method: str, path: str, query: str, tr_id: str | None,
         return ({"Authorization": f"Bearer {_upbit_jwt(access_key, secret_key, query)}",
                  "Accept": "application/json"}, None, None)
     api_key, secret, passphrase = keys.read(CREDENTIALS["okx"])
-    timestamp = _okx_timestamp(_clock())
+    timestamp = _okx_timestamp(_now())
     return ({"OK-ACCESS-KEY": api_key,
              "OK-ACCESS-SIGN": _okx_sign(secret, timestamp, path + ("?" + query if query else "")),
              "OK-ACCESS-TIMESTAMP": timestamp, "OK-ACCESS-PASSPHRASE": passphrase,
@@ -340,7 +381,7 @@ def _kis_token() -> str:
     hours, so a token it had called bad that the POST hands back is AuthError and blocks issuing for 6 hours."""
     global _next_issue_at
     path = isolation.state_root() / "kis_token.json"
-    now = _clock().timestamp()
+    now = _now().timestamp()
     cached = _read_token(path, now)
     if cached is not None and cached not in _bad_tokens:
         return cached
