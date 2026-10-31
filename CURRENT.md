@@ -4,14 +4,14 @@ reason: owner_authorized_policy_and_strategy_followup
 from: gpt
 task: odds-engine
 cycle: 2026-10-27
-done_ids: cloud-compat-1, cloud-compat-2, cloud-compat-3, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr
-next_ids: spec-rev-3-3, policy-plan-1, e1-1
-updated_at: 2026-10-30T21:37:12+09:00
+done_ids: cloud-compat-1, cloud-compat-2, cloud-compat-3, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr, spec-rev-3-3
+next_ids: policy-plan-1, policy-preview-1, policy-pr, e1-1
+updated_at: 2026-10-31T14:25:46+09:00
 stale_after_hours: 3
 waiting_on: owner_merge_pr_4
-work_branch: gpt/odds-engine
-work_commit: d773b6c44c73b82492d7d9ce89d4d76c8ea62110
-uncommitted_changes: no
+work_branch: gpt/odds-spec-3-3
+work_commit: 3f97c6a44db0ed040397df7ac8e35af67adda5a3
+uncommitted_changes: yes (policy draft and standalone preview, Cloud only)
 pr: https://github.com/xkg4real/tradegen/pull/4
 usage_weekly_pct: unknown
 usage_source: unavailable
@@ -24,6 +24,8 @@ session: cloud Codex (TRADEGEN)
 # 인수인계: odds 엔진 계획 실행 (docs/superpowers/plans/2026-10-24-odds-engine.md)
 
 ## 0. 한 줄 요약
+
+Spec rev 3.3의 20개 승인 변경점과 추가 정합성 수정을 독립 검토 후 3f97c6a로 push했습니다. 정책 문서와 오프라인 진단기는 검토·저장 중이며 E1은 시작하지 않았습니다.
 
 소유자 후속 요청에 따라 미반영 spec rev 3.3, 평가액 보호 정책 명세와 전략 재검증 계획을 정리합니다. 개인 자금 프로필은 Cloud 비공개 산출물로 보관하고 공개 저장소에는 매개변수화한 설계만 올립니다. odds PR #4는 여전히 미병합이며, E1 착수 조건과 소유자 승인 규칙은 유지합니다.
 
@@ -76,6 +78,8 @@ session: cloud Codex (TRADEGEN)
 - [x] odds-1~19 — 구현, 검증, 실행 장부
 - [x] odds-final — 추가 수정 7커밋, 공통 회귀, 전체 재실행, 재검토
 - [x] odds-pr — GPT가 PR #4 생성: https://github.com/xkg4real/tradegen/pull/4
+- [x] spec-rev-3-3 — 별도 브랜치에 승인 변경점과 문서 정합성 반영
+- [ ] policy-plan-1 / policy-preview-1 — 검토 및 체크포인트 중
 - [ ] E1 — odds PR 병합 뒤에만 시작
 
 ## 5. 현재 지점
@@ -111,7 +115,7 @@ session: cloud Codex (TRADEGEN)
 
 ## 8. 사용자에게 물어야 할 것
 
-PR #4 병합 승인이 필요합니다. AGENTS.md 5절은 “병합은 사용자가 PR마다 직접 승인합니다”라고 정합니다. 시작 자금과 허용 손실 금액도 아직 미확정이며 실제 키·서명·무장은 별도 소유자 행위입니다. 자동주문 기한 및 미래 수익 달성을 검증한 상태가 아닙니다.
+PR #4 병합 승인이 필요합니다. AGENTS.md 5절은 “병합은 사용자가 PR마다 직접 승인합니다”라고 정합니다. 자금과 주요 손실 공식은 소유자가 확정했고 비공개 프로필에 기록했습니다. 첫날 예외의 범위와 별도 일일 손실 예산 등 일부 실행 입력은 아직 미지정이며 실제 키·서명·무장은 별도 소유자 행위입니다. 자동주문 기한 및 미래 수익 달성을 검증한 상태가 아닙니다.
 
 ## 9. 이어받는 에이전트에게 주는 지시문
 

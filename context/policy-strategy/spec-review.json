@@ -1,0 +1,22 @@
+{
+  "checked_at": "2026-10-31T14:25:46+09:00",
+  "status": "spec_reconciliation_complete",
+  "branch": "gpt/odds-spec-3-3",
+  "commit": "3f97c6a44db0ed040397df7ac8e35af67adda5a3",
+  "implementation_reference": "d773b6c44c73b82492d7d9ce89d4d76c8ea62110",
+  "accepted_header_departures": 20,
+  "independent_reviewer": "finish_spec_review",
+  "closed_findings": [
+    "fresh-seed rerun before arming",
+    "exact 1 in 1999 ceiling",
+    "typical outcome ordering only on evaluated cards"
+  ],
+  "code_changes": false,
+  "checks": [
+    "accepted departures and normative claims compared with plan/rulings/implementation",
+    "git diff whitespace check",
+    "staged stats equal ignoring CRLF"
+  ],
+  "implementation_regression_rerun": false,
+  "reason": "documentation-only reconciliation; existing odds verification remains in odds-final records"
+}
