@@ -69,3 +69,5 @@ Claude와 GPT가 끝낸 작업을 한 줄씩 쌓는 기록입니다. 같은 작�
 | pr6-pr7-merge | 2026-10-31T15:52:54+09:00 | 2026-10-27 | gpt | 승인된 PR6/7 병합 및 PR7 main 재타겟 | GitHub PR6/7 | 7676b80; c5459a2 | head5087f99/f6ebb8a 고정 후 순차 병합 완료 |
 | research-preregister-1 | 2026-10-31T15:52:54+09:00 | 2026-10-27 | gpt | 8계열/223규칙/21,408설정·자료·통계절차 사전 고정 | research_lab 및 연구 protocol/data/test 문서 | 240c5a1; 8e7c6c8 | 평가 전35/35 synthetic PASS; 성과 보기 전 push |
 | research-evaluate-1 | 2026-10-31T15:52:54+09:00 | 2026-10-27 | gpt | 첫 고정 역사자료 평가와 모든 결과 보존 | docs/research/2026-10-31-strategy-lab/results/ | af4d240 | 21,408평가/6선택/0통과;15.493초;후향적 내부 검증, 실전 PASS 아님 |
+| account-readiness-1 | 2026-10-31T15:57:10+09:00 | 2026-10-27 | gpt | 조회 준비 진단·명시적 E1 연결·소유자 실행 안내 | execution_accounts/readiness.py, cli.py, tests/accounts_readiness.py, account runbook | a1c0102 | 수정 후14/14 PASS;전체account42/42;실제CLI3거래소blocked·키이름missing·프록시미지원, 실제접속/서명/활성화 없음 |
+| research-paper-1 | 2026-10-31T15:57:10+09:00 | 2026-10-27 | gpt | 17쪽 학술형PDF·4그림·11문헌·전체 후보자료 제공 | tools/build_strategy_paper.py, docs/research/2026-10-31-strategy-lab/paper/ | f74a40a | 전체페이지 시각검수·경고0·입출력해시일치;21,408설정/6선택/0통과;성과재계산없음 |
