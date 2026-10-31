@@ -1,19 +1,23 @@
 # TRADEGEN compliance gate and odds engine
 
-Date: 2026-10-23.
+Date: 2026-10-23. Revision 3.3 reconciliation: 2026-10-31 (Asia/Seoul).
 
 Status:
-- **Revision 3.2.** Review history (every finding is ruled in Appendices B to E):
+- **Revision 3.3.** Reconciled with the accepted odds-plan rulings and the implementation at
+  `d773b6c` in [PR #4](https://github.com/xkg4real/tradegen/pull/4), which is pending merge at this revision.
+  This is a documentation update, not a statement that live trading or the owner acts are complete.
+- Historical review record (every original finding is ruled in Appendices B to E):
   - **Round 1, on rev 1:** Gemini said REJECT; the Claude 5×2 workflow confirmed most of its points.
   - **Round 2, on rev 2.1:** GPT said REJECT, with 16 major findings.
   - **Round 3, on rev 3:** GPT stopped at its usage limit. Gemini's run was invalid.
   - **Round 3b, on rev 3.1:** a Claude 5×2 workflow and a grounded Gemini run.
   - All reviews are in `docs/superpowers/specs/2026-10-23-review-gate-odds/`.
 - The owner decided D11 to D16 on 2026-10-23.
-- Next:
-  1. The owner's review.
-  2. GPT's final check after its quota resets (2026-10-30 14:40).
-  3. Two implementation plans. The compliance plan comes first, because the odds engine depends on `screen()`.
+- The compliance follow-up is merged. Odds Tasks 1–19 and their final review are recorded in the execution
+  ledger on PR #4; the owner decides whether to merge it. E1 starts only after that merge.
+- This revision folds the odds plan's “For spec rev 3.3” list, round-3 rulings and accepted preflight errata into the
+  normative sections below. Later execution-policy proposals are separate specifications and do not change the
+  existing `floor_safe` guarantee or make the historical S_C3 replay a newly validated strategy.
 
 Inputs:
 - `reports/Korean resident trading venue legality.md`, with its notes in `research_notes/Korean resident trading venue legality/`;
@@ -30,7 +34,8 @@ Inputs:
 ## 1. Purpose and scope
 
 TRADEGEN is a personal trading program for one Korean-resident individual, trading their own money from about
-KRW 42,000 (USD 30). It runs two tracks: a **moonshot** track aimed at USD 30,000, about 1,000 times the stake, and a
+KRW 42,000 (USD 30) in the original 2026-10-23 design example. These example amounts are not live account settings.
+It runs two tracks: a **moonshot** track aimed at USD 30,000, about 1,000 times the stake, and a
 realistic **compounding** track.
 
 This spec covers two building blocks:
@@ -79,7 +84,7 @@ base rates, labelled as such.
   ≤ W₀/T for every strategy, by Ville's inequality. For KRW 42,000 → KRW 42,000,000 that is **0.1% (1 in 1,000)**.
 - **With a floor that truly holds.** If no outcome can take equity below L_min, the bound is (W₀ − L_min)/(T − L_min).
   - TRADEGEN claims L_min = L only under **floor-safe sizing** (7.1). With L at half the stake that is **0.050%
-    (1 in 2,000)**.
+    (exactly 1 in 1,999)**.
   - Under stop-based sizing the honest bound is W₀/T.
 - **Bold play (Dubins–Savage), the even-money benchmark.**
   - Exact P(1,000×): **0.1000%** at p = 0.50, **0.0816%** at 0.49, **0.0346%** at 0.45 and **0.0106%** at 0.40.
@@ -99,7 +104,7 @@ base rates, labelled as such.
 - **Typical versus average.**
   - With no edge, the average ending equity is the stake minus costs, because rare jackpots offset the many losses.
   - The typical (median) moonshot month ends at the floor.
-  - Every card shows the typical result first.
+  - Every evaluated card shows the typical result first among outcome numbers; red flags precede the numbers.
 - **Research estimates, not measurements.** The research found no measured probability for this account reaching
   1,000× in a month. Its reasoned estimates (feasibility notes):
   - **0.01% or less** in general;
@@ -133,20 +138,35 @@ signer/  (owner-kept, outside the repo; see 6.4)
 
 core/odds/
   plan.py              Plan, Leg, Fraction (kw_only dataclasses; whitelist validation)
-  bars.py              daily open/close loader on the data clients; own sha-manifest cache; network via seams
+  costs.py             copied cost table and tick rules; venue terms, affordability and stakes
   venues.yaml          lots, minimums, fee extras, KRX stock tick ladder, markets and settlement assets, deposit networks
-  models.py            TwoPointBootstrap, GarchT; no-edge law; edge sources; the S_C3 replay (D13)
+  models.py            bootstrap and GARCH-t functions, no-edge checks, pinned S_C3 input verification (D13)
   simulate.py          vectorised, chunked simulator
   bold.py              ceiling, structural maximum, estimated bracket reference, exact even-money recursion
   report.py            OddsReport rendered from the sentence catalogue; flags; language guard
+
+core/oddsdata/          unsigned adapters; not part of the signed odds core
+  bars.py              daily open/close loaders, checked cache and network seams
+  inputs.py            signed-calendar loading, provenance and persisted comparison state
+  replay.py            S_C3 reconstruction from committed study cache, card and results; no live pull
+  run.py               JSON plan loader and CLI
 ```
+
+The signed odds core reads no clock and performs no direct file I/O. It imports only the standard library, numpy,
+scipy, `core.isolation`, the permitted compliance modules and itself. Repository computations it needs are copied
+with equality tests; the unsigned layer passes the remaining data and provenance as plain inputs, whose digests
+the core recomputes where possible. The narrowly permitted `owner.calendar_in_force(inputs.now)` check verifies
+the approved calendar in force; it does not turn the core into a price-data loader. `repo_anchor` and `tree_hash`
+are copies in `core/oddsdata/inputs.py`, with equality tests against their repository originals (O1, R2-6).
 
 **How data flows**
 1. `owner.load_context(now)` hashes the code on disk, verifies the owner log, and loads the latest approved tables and
    the snapshot, building a `Context`.
 2. A `Plan` and the first stake computed by the odds engine go to `gate.screen(plan, ctx, first_stake_krw)`. A blocked
    leg means the plan is refused.
-3. `odds.simulate(plan, screening, cal, limits, …)` refuses an unscreened plan and produces an `OddsReport`.
+3. `core.odds.simulate.simulate(plan, ctx, inputs, *, n_paths=None)` runs the ordered prechecks, calendar and data
+   checks, computes the first stake and obtains its own `Screening` before producing an `OddsReport`. Its injected
+   `Inputs` carries sessions, price limits, calendar digests, `now`, comparison state and any replay data.
 4. Execution, in its own spec, calls `permit(intent, ctx)` and, at send time, `verify_permit(permit, intent,
    ctx_now)`, using contexts built only by `load_context`.
 
@@ -158,27 +178,32 @@ folder)
     markets.
   - The KRX stock tick ladder lives in `venues.yaml`, because `KRX_stock_book.tick_table` is `OWNER_INPUT`.
   - `LIMIT_DOWN_CARRY_COST_MULTIPLIER = 2.0` is declared locally, and a test asserts it equals the orders constant.
-- **Bars.** `History` holds closes only, so `core/odds/bars.py` loads daily (open, close) bars:
+- **Bars.** `History` holds closes only, so unsigned `core/oddsdata/bars.py` loads daily (open, close) bars:
   - KRX from KIS daily rows;
   - Upbit KRW-* and Binance *USDT from `data.crypto` Candles;
   - US from yfinance.
 
-  US and FX bars are mapped to the Asia/Seoul date of their close. Every network call goes through a module-level seam
-  (for example `bars._yf_download`), which the test suites patch, because yfinance uses curl_cffi and bypasses a socket
-  patch.
-- **Calendars.** The shipped files are unsigned drafts. `simulate()` takes `cal: CalendarSet`, and refuses KRX and US
-  legs with `CALENDAR_UNSIGNED` unless the store loads them **and** the owner log holds a signed
-  `approved {kind: calendar, sha256}` for that calendar set (section 11). `sessions_between` includes both endpoints;
-  horizons are half-open `[start, start + horizon_days)`. Tests use the fixture set in `tests/macro_m1_calendars.py`.
+  Each series retains its own market date: KRX for KIS, New York for US bars, Yahoo's own date for KRW=X, and UTC
+  for crypto. The simulator maps US and crypto close checks to the following Asia/Seoul date where appropriate.
+  Every network call goes through a module-level seam (for example `bars._yf_download`), which the test suites patch,
+  because yfinance uses curl_cffi and bypasses a socket patch. Cache ranges end at the first non-final date; malformed
+  manifests fail closed instead of silently reusing partial history (Q6, Q22, O3-12).
+- **Calendars.** The shipped files are unsigned drafts. The unsigned input layer loads the approved `CalendarSet`
+  and supplies its sessions, coverage, file digests and SHA. The core checks the in-force SHA through
+  `owner.calendar_in_force(inputs.now)` and refuses KRX and US legs with `CALENDAR_UNSIGNED` when it is absent or
+  different. A horizon beyond the signed set's coverage is `CALENDAR_COVERAGE`. `sessions_between` includes both
+  endpoints; plan horizons remain half-open `[start, start + horizon_days)`. Tests use the fixture set in
+  `tests/macro_m1_calendars.py`. Before calendar approval, the CLI may make read-only price calls and then refuse
+  `CALENDAR_UNSIGNED`; these are quote reads, not account or order calls (Q6, O3-14).
 - **Costs.**
   - The instrument map names each symbol's cost book: `KRX_stock_book`, `KRX_ETF_line`, `US_shares_KIS` or
     `crypto_venue`. KONEX is gate-only, so it needs no odds cost book.
   - The per-side rate at each fill is `instruments.cost_per_side(book, price=fill_price, on=fill_date, side=side).bp`.
     That is the repo's R-26 rule, max(table rate, tick floor), which can only raise a cost. For `KRX_stock_book`, whose
     tick table is `OWNER_INPUT`, the same floor formula uses the `venues.yaml` stock ladder.
-  - **The repo's per-side table rates already include the sell tax**: KRX stock is 35 bp "incl. tax"
-    (`docs/asset_expansion_study.py:19`). So TRADEGEN charges that rate on **both** sides, which is conservative, and
-    adds no separate tax.
+  - **The KRX stock sell tax remains inside `cost_per_side`'s price-aware floor.** The copied table
+    `SELL_TAX_BP` and side/date logic must equal the repository original: do not apply a sell quote to a buy, and
+    do not add a second tax outside the floor. An unlisted KRX-stock sell year is `NOT_TRADABLE` (R2-1).
   - Symbol-shape inference (`validate.cost_class`) is not used.
   - Extras in `venues.yaml` may only raise costs (`check_extras`). Fixed charges φ_b and φ_s are taken from there.
 - **Provenance.** Every report records:
@@ -259,6 +284,10 @@ An ETP that fits none of these makes the map INVALID.
 - **Markets:** for each venue, its markets (base, quote) and settlement assets. Upbit settles in KRW (BTC markets
   included); OKX in USDT and USDC; KIS in KRW and USD.
 - **Deposits:** the deposit networks and memo or tag rules of each destination venue.
+- **Odds terms:** optional `lot`, `min_order`, `fee_extras` and `tick_ladder` mappings have strict value/shape checks
+  and carry source text. Each source must be non-empty text; the parser does not establish source quality. The
+  shipped draft's sources are checked against the research corpus, and owner approval remains necessary. Missing
+  odds terms can leave a valid venue unusable for an odds plan (Task 2 accepted source-schema limitation).
 
 ### 5.2 Row schema and table rules
 
@@ -534,10 +563,17 @@ class Context:                       # built ONLY by owner.load_context(now); ev
   Atomic reservation, single use and the audit log belong to the execution spec.
 - **`screen(plan, ctx, first_stake_krw)`** decides the plan's single leg as a `buy` at the first stake, which the odds
   engine computes (7.1).
-  - It scans `[start, start + horizon)` for any `review_by`, `auto_off` or `effective_until`. Each one found is flagged
-    `RULE_CHANGE_IN_HORIZON`, and the simulation exits on that date, or at the next check point when the date falls on
-    a non-session day.
-  - It returns a hashed `Screening`.
+  - It scans `[start, start + horizon)` for `review_by`, `auto_off` and `effective_until`, returning
+    `RULE_CHANGE_IN_HORIZON` flags. The earliest of the three stops new entries. Only `auto_off` or
+    `effective_until` forces an exit, at the next check point when needed; review alone does not force an exit.
+  - It returns a hashed `Screening`. KRX/US simulation additionally needs an in-force signed calendar and a horizon
+    within its coverage (`CALENDAR_UNSIGNED` / `CALENDAR_COVERAGE`).
+- **`grey_rows(plan, ctx)`** uses the same cash-buy intent as screening to return the applicable in-force grey rows.
+- **`calendar_in_force(now)`** and the CLI's `_calendar_line` share `_calendar_approval`. The helper checks the
+  whole owner state and the intact approved calendar store. A malformed or naive `now` raises ValueError; other
+  failures make `calendar_in_force` return None. `_calendar_approval` itself catches only OSError, ValueError and
+  RuntimeError from log/store reading, so an unexpected internal error reaches `--check` as exit 4, rather than
+  being disguised as an ordinary missing approval (O3-5, Task 4 review erratum).
 
 ### 6.4 The owner log, signing and snapshots
 
@@ -583,8 +619,9 @@ The execution spec must route every caller through it. No caller may build a `Co
 
 **The code hash.** It is computed over sorted (relative path, sha256) pairs of:
 - the `.py` files of `core/compliance` and `core/odds`;
-- their in-repo `.py` import closure, found by an AST import scan (for example `config.py`, `core/isolation.py`,
-  `core/calendars/**`, the `core/quant` and `data/` modules they reach).
+- their in-repo `.py` import closure, found by an AST import scan (for example `config.py` and `core/isolation.py`
+  when reached). The unsigned `core/oddsdata` loaders are not imported by the signed core; copied/equality-tested
+  calculations keep the original `core/quant` and data loaders outside that odds import path (O1).
 
 Data files are covered by their own approvals, and the public key by the fingerprint rule below. The signing prompt
 lists every file. Each Decision records the code hash.
@@ -694,13 +731,12 @@ class Plan:
 - A stake below the venue minimum means no bet; it is never rounded up.
 - After an exit fills, the next entry happens at the **next** check point.
 
-**Refused with named reasons:**
-- `UNSUPPORTED_PRODUCT`: outside the whitelist, a multiple ≠ +1, or a short, credit or option leg;
-- `MULTI_LEG_UNSUPPORTED`;
-- `LIMITS_UNSET`;
-- `CALENDAR_UNSIGNED`;
-- `MODEL_NOT_FOR_LIMITED_VENUE`: GARCH-t on a KRX leg;
-- `STUCK_AT_START`: no affordable first stake.
+**Refused with named reasons:** the complete ordered checks are in section 9. In particular,
+`MULTI_LEG_UNSUPPORTED` means two or more legs; an empty list or a non-`Leg` item is
+`UNSUPPORTED_PRODUCT` sub `file`. The CLI canonicalizes a one-item leg list to a `Leg` and numeric stake, target
+and FX inputs to floats before hashing. The product rules also reject a venue/quote pair absent from the approved
+market map before terms or data are used. `STUCK_AT_START` means no affordable first stake under the chosen sizing
+rule; it is not a universal statement that every interpretation of a mark-to-market floor forbids entry.
 
 ### 7.2 The no-edge law, models and edge sources
 
@@ -730,13 +766,15 @@ negative. Two traps were ruled out in review:
   are flagged `BAND_EDGE_SESSIONS`.
 - **Limit-down locks.** A check at D that would exit is a lock. The exit stays queued across checks and sessions until
   the first check strictly above that session's D, at a flat 2× exit charge. A position still locked at the horizon is
-  valued at the locked price less the carried exit charge (`LOCKED_AT_HORIZON`).
+  valued at the locked price less the carried exit charge (`LOCKED_AT_HORIZON`). The queued fill is released only
+  above the D recorded when that position locked; a later session does not silently reset that trigger.
 - **Special regimes.** Symbols in a special KRX reference regime (IPO days, resets) are refused (`SPECIAL_REGIME`).
 - **The card** says "price checks at the open and the close only" (`CHECKS_AT_OPEN_CLOSE`).
 
 **`GarchT`** (US and crypto legs only):
-- It fits with `garch.fit_garch` and simulates with `simulate_returns(fit, rate_daily=0.0, bound=Z_BOUND)`. Checks
-  happen at the close only (`CLOSE_ONLY_CHECKS`).
+- The signed core uses equality-tested copies of `garch.fit_garch`, the correction table and
+  `simulate_returns(fit, rate_daily=0.0, bound=Z_BOUND)`. `GarchParams` is frozen and keyword-only, as are its
+  callers (Task 8 erratum). Checks happen at the close only (`CLOSE_ONLY_CHECKS`).
 - **Two named checks on a pilot run; the model is dropped, with a note naming the failed check, if either fails:**
   1. **Deterministic:** for every σ_t on the pilot paths, |exp(c_quad(σ) − c_table(σ)) − 1| ≤ 1e-7 per step and ≤ 1e-6
      compounded over the horizon, where c_quad is an independent quadrature.
@@ -754,34 +792,50 @@ Under the martingale, a bracket's mean payoff before costs is 0.
     The card prints the unresolved share beside it: horizon, daily-loss, rule-date and locked exits.
   - **The tilt.** The kernel is tilted, q′ = q·e^{θ}/(q·e^{θ} + 1 − q), with θ found by bisection on a pilot run so
     that this win ratio equals p. A p the tilt cannot reach is refused.
-  - **p₀** is computed the same way under no edge. The bracket count needed to tell p from p₀ is n =
+  - **p₀** is computed the same way under no edge. No resolved baseline brackets, or zero observed baseline wins,
+    is `ASSUMED_EDGE_UNREACHABLE`; no zero-probability claim is manufactured from it (preflight P4).
+    The bracket count needed to tell p from p₀ is n =
     ((1.645·√(p₀(1 − p₀)) + 0.842·√(p(1 − p))) / (p − p₀))², assuming independent resolved brackets. For example, 617
     for 55% versus 50%, and 153 for 60%.
 - **`replay:S_C3_crypto_trend_krwbtc`** (D13). This is a separate plan type: a pure replay of the validated strategy.
-  - **Input:** the KRW-BTC daily closes from the study's own source, `UpbitPublic().daily("KRW-BTC", days=4000)`. They
-    are truncated to [card.data.start, card.data.end] (3,288 sessions) and hashed, and the digest is compared with the
-    cached study file.
+  - **Input:** the committed study cache `docs/asset_expansion/cache/upbit_KRW-BTC.csv`, the exact S_C3 card and
+    aggregate `results.csv`. Its source was Upbit KRW-BTC; the replay does not make a live pull. The cache has
+    3,288 input rows, including the original running final row, preserved byte-for-byte for reproduction. The
+    unsigned `core/oddsdata/replay.py` returns plain reconstructed inputs; `core/odds/models.verify_replay` verifies
+    every pinned input, protocol, digest, shape and statistic, returning a named failure for malformed inputs.
   - **Steps:**
     1. `strategies.pnl_matrix(closes, strategies.crypto_trend, card.rules.grid, cost_bps=card.rules.cost_bps_per_side)`,
-       with `lookbacks = (7, 14, 21, 28)` and `mas = (10, 20, 50, 100, 200)` pinned as constants in `models.py`;
+       with `lookbacks = (7, 14, 21, 28)` and `mas = (10, 20, 50, 100, 200)` fixed in the unsigned replay and
+       independently checked against the signed core's pins;
     2. `validate.walk_forward(…, embargo=card.rules.embargo)`;
     3. `validate.score_strategy(…, n_trials=card.trials.N_total, seed=card.seed, domain={"hysteresis": (0.0, 0.889)},
        benchmark = buy-and-hold)`.
-  - **Must reproduce the card:** out-of-sample Sharpe 1.216 ± 0.02, verdict PASS, chosen hysteresis 0.667. Otherwise the
-    plan is refused with `CARD_NOT_REPRODUCED`.
+  - **Must reproduce the card:** all signed `REPLAY_PINS`, including 2,530 OOS rows, the input/output digests,
+    out-of-sample Sharpe 1.216 ± 0.02, verdict PASS and last chosen hysteresis 0.667. Otherwise the plan is refused
+    with `CARD_NOT_REPRODUCED`. “Last chosen” is a result of the original walk-forward protocol, not permission to
+    replace that protocol with one fixed parameter.
   - **It never imports `docs/asset_expansion_study.py`.**
   - **Digests:** the input closes, the replay output, and the aggregate `results.csv` (`results_md5`).
   - **The card's column** resamples the replayed out-of-sample net daily returns (close-to-close; the card is close-only)
     in stationary blocks, with the mean multiplied by `LIVE_SHARPE_MULTIPLIER`. The card's 10 bp is already inside;
-    only whole-unit rounding and the KRW 5,000 Upbit minimum are added.
+    only lot rounding and the approved Upbit minimum are added. This replay needs signed `lot` and `min_order`,
+    but no `fee_extras`; non-replay legs need all applicable cost terms. Its separate no-edge headline uses the
+    replay's block-resampled daily moves with fair-sign directions and retained costs, with a second 2×-cost
+    column. Both run CEILING_BREACH; the base no-edge column also runs HIDDEN_EDGE (Q38, R2-5).
 
 **Data rules**
-- `SYNTHETIC_REFUSED`; a provisional last bar is dropped.
+- `SYNTHETIC_REFUSED`; ordinary price loaders exclude provisional bars. The frozen D13 replay is the explicit
+  historical-cache exception above.
 - Series hashes are md5 of canonical JSON {symbol, source, dates, open, close, adjustment, status}.
+- The last ordinary bar must precede the plan start, and be no more than 3 calendar days old for crypto or 14 for
+  KRX/US (`DATA_INVALID`, sub `stale`). At least 250 pre-start bars are needed (`SHORT_HISTORY`); fewer than 60
+  KRX bars first yields `SPECIAL_REGIME`. Data-invalid subchecks run series, stale, sessions, empty, then the
+  synthetic refusal. An injected `now` must be aware and match the context's Asia/Seoul date (sub `now`).
 
 **Delisting stress** (single-name and single-coin legs):
 - It adds two columns, h ∈ {0.30, 1.00} (`tf_books.DELIST_STRESS`), each with one delisting event at the first check
-  after entry, as a worst case. Its losses are booked in the cost ledger.
+  after entry, as a worst case. The sale is priced at p(1 − h) and pays the normal exit charge at that discounted
+  price; a total write-off has no sale fee. Its losses are booked in the cost ledger (O3-17).
 - Coins use the same pair, because no crypto-specific figure was researched.
 
 **Costs, minimums and calendar.**
@@ -802,7 +856,12 @@ Under the martingale, a bracket's mean payoff before costs is 0.
   - **RUNNING:** still trading at the horizon, at liquidation value, flagged `LOCKED_AT_HORIZON` where relevant.
 - **First passage.** `reached_by_deadline` is true when the liquidation value was ≥ T at some check point. On compounding
   cards it can differ from the terminal outcome.
-- **The daily loss limit** is checked at the check points. A breach exits and stops trading for the rest of that day.
+- **The daily loss limit** is checked at the check points. A breach stops trading for the rest of that
+  Asia/Seoul date regardless of which trigger names the exit. A queued locked stop's eventual fill is included in
+  `worst_gap`. A rule's `force_exit_from` also blocks fresh entries (O3-17).
+- **Model/execution distinction:** the odds simulator allows an entry at the upper band U; its lower-band lock
+  rule governs exits. The inherited simulated order engine rejects limit-up entries. E3 must use the venue's actual
+  fill and quoted band information, not treat either model convention as a live fill guarantee.
 - **Seeds and streams.**
   - The market seed is sha256(data hashes ‖ calendar digest ‖ comparison id ‖ run counter), shared by every plan in one
     comparison.
@@ -816,10 +875,12 @@ Under the martingale, a bracket's mean payoff before costs is 0.
 
 - **`ceiling(W0, L_min, T)`** = (W₀ − L_min)/(T − L_min).
   - L_min = L under floor-safe sizing; otherwise 0, which gives W₀/T.
-  - The no-edge column always shows it, worded **"No plan without a real edge that keeps this floor can beat 1 in N"**,
-    and always runs the breach check.
-  - Edge columns print "Without the edge assumed here, no plan that keeps this floor can beat 1 in N".
-- **`structural_max(plan, cal)`** applies only to buy-and-hold KRX or KONEX legs: (1 + limit)/(1 − limit) ×
+  - The no-edge column shows **“No plan without a real edge that keeps this floor can beat C.”** and runs the
+    breach check. Under stop-based sizing it omits “that keeps this floor”; edge wording follows the same rule.
+  - C is a percentage at ceilings of 1% or more, otherwise the exact “1 in N” from `bold.ceiling_one_in`, not a
+    reciprocal computed by flooring a rounded float. `fmt_order` chooses its format from the ceiling c, not the
+    observed lower bound, so a breach card cannot print its ceiling as “0.00%” (Q46, Task 12 D1–D2).
+- **`structural_max(plan, cal)`** applies only to eligible buy-and-hold KRX legs (KONEX remains gate-only): (1 + limit)/(1 − limit) ×
   (1 + limit)^{n−1} over the leg's n sessions, counted from the calendar.
   - When the target exceeds it, the card prints **"IMPOSSIBLE for this buy-and-hold plan: KRX's daily band allows at
     most N× in these S sessions"** and no probability.
@@ -830,7 +891,10 @@ Under the martingale, a bracket's mean payoff before costs is 0.
 
 ### 7.5 The report
 
-All owner-facing text comes from one reviewed **sentence catalogue** with numeric slots. Each plan card shows:
+All owner-facing text comes from one reviewed **sentence catalogue** with numeric slots (193 keys, including
+`label.yes` and `label.no`, per Task 12's accepted catalogue erratum). Red flags appear immediately after the plan
+head and before any number; a refused card contains no probability. Among the outcome numbers, the typical result
+comes first. Each evaluated plan card shows:
 
 1. **The model and its check points.**
 2. **The typical result first.**
@@ -855,7 +919,8 @@ All owner-facing text comes from one reviewed **sentence catalogue** with numeri
 4. **The plain sentence.** "In 1,000,000 made-up months (from a model in which nobody has an edge, not real history),
    this plan reached KRW 42,000,000 before income tax in 63, about 1 in 16,000 (counting noise alone: between 1 in
    12,000 and 1 in 21,000; other models give 1 in A to 1 in B; the bug checks are coarser than these ranges, and
-   nothing here covers the model being wrong)…"
+   nothing here covers the model being wrong)…" The clause “the bug checks are coarser than these ranges” appears
+   only when the measured bug-check resolution is actually coarser than both ranges (Q46 item 2).
 5. **Tax.** From each leg's `tax_basis`: `krx_small_holder_exempt`, `overseas_22pct_over_2.5m`, or
    `crypto_22pct_from_2027` (unless postponed again). Unsupported combinations are refused.
 6. **The ceiling** (worded as in 7.4) and the base rates of section 3, with their populations and dates.
@@ -863,9 +928,12 @@ All owner-facing text comes from one reviewed **sentence catalogue** with numeri
    - Clopper–Pearson: two-sided 95% for k > 0, and a one-sided 95% upper bound for k = 0 ("below resolution: under
      about 3 in n").
    - Structural zeros (IMPOSSIBLE, no trades) are worded as such.
-   - No probability slot ever renders as zero.
+   - No probability slot ever renders as zero. Observed zero rates, including an assumed column's unresolved share,
+     use count-based bounds with the appropriate positive denominator. Percentage rounding chooses decimal places
+     after two-significant-digit rounding, including decade rollover (preflight P4/P50).
 8. **Model spread.** The primary model is the two-point bootstrap. Also shown: GARCH-t where eligible, a parametric
-   GARCH-t refit (B = 20), and the bootstrap at 0.5× and 2× block length.
+   GARCH-t refit (B = 20), and the bootstrap at 0.5× and 2× block length. Every one of the 20 refits runs both
+   pilot checks; if any fails, that entire refit member is omitted with the failed check named (R2-8).
    - It appears as a range with the lowest lower and highest upper bound.
    - A member with k = 0 shows its low end as "below about 3 in n".
    - KRX cards say: "the same model with other block lengths gives …; no second model family is available for KRX".
@@ -873,28 +941,45 @@ All owner-facing text comes from one reviewed **sentence catalogue** with numeri
    - **No edge**, always the headline.
    - **`ASSUMED_EDGE`:** "These numbers are only as true as the win rate you typed (W%). This bracket's no-edge win rate
      is P0% (U% of brackets end unresolved). Telling them apart would take about N recorded brackets. Without the edge
-     you typed, no plan that keeps this floor can beat 1 in M." It also shows the typical result and P(at your floor).
+     you typed, no plan that keeps this floor can beat 1 in M." Ceiling formatting and the floor qualifier follow
+     7.4; observed zero p₀ or unresolved shares use count bounds rather than “0%”. It also shows the typical result
+     and P(at your floor). The simulator refuses a zero-win baseline as described in 7.2.
    - **`TESTED_REPLAY`** (D13), on its own card: "This replays a tested bitcoin trend strategy (S_C3) on its own
      2019–2026 out-of-sample results, with 40% of its average return removed. Most of that return came from bitcoin
      rising in those years, which the no-edge column leaves out: just holding bitcoin then had a Sharpe ratio of 0.79,
      against 0.73 for this replay after the cut. Its tested advantage over holding bitcoin was +0.43 Sharpe (90% range
      +0.03 to +0.83). Backtest edges often shrink or vanish in live trading; read this as the hopeful case."
+     The growth line uses the column's actual moves, `h = checks − 1`: a 30-day horizon has 29 daily moves and
+     prints 2.9% block growth against 2.6% IID on the pinned replay. The separate 30-move test pin
+     `block_growth(R1, 10, 30) = 1.029918` remains separate (O3-15). Its no-edge columns and their retained costs
+     are disclosed before these hopeful replay figures.
 10. **Flags:**
-    - **`HIDDEN_EDGE`** runs **only in the no-edge column**, and only on two-point bootstrap legs. It is unavailable for
-      GARCH-t and the stress columns, and not applicable to edge columns.
+    - **`HIDDEN_EDGE`** runs **only on the base no-edge column** of ordinary two-point bootstrap and the D13
+      fair-sign replay. It is unavailable for GARCH-t, not run on stress columns, and not applicable to edge columns.
       - X = W_τ + C_τ − W₀, with τ = the first of REACHED, AT_FLOOR or the horizon; for this test both tracks stop at T.
-      - Its range is R = ((T + φ_s)/(1 − κ))·e^{m_max} + N_checks·C_max, where m_max is the largest historical magnitude.
-        W_τ ≥ 0 holds by the always rule.
+      - For ordinary bootstrap, set κ_x = carry × κ_bound, with fixed charges already scaled for the cost
+        scenario. If κ_x ≥ 1, the range is infinite. Otherwise V_max = ((T + carry·φ_s)/(1 − κ_x))·e^{m_max},
+        C_max = κ_x·V_max + carry·max(φ_b, φ_s), and R = V_max + N_checks·C_max; m_max is the largest historical
+        magnitude. The replay uses V_max = T(1 + a_max) and R = V_max + N_checks·c_max·V_max from its own maximum
+        move/cost inputs. W_τ ≥ 0 holds by the always rule. Range inputs are fixed independently of sampled paths. The wrapper
+        `simulate._column` assigns that range immediately after `run_column`, rather than computing it inside the
+        path engine. The D13 wrapper similarly assigns its input-only replay range after the call. Comparisons of
+        `ColumnStats` normalize nan `x_range` to 0.0 and remove bracket arrays, retaining finite ranges (O3-18/P5).
       - It is red when |mean X| exceeds the empirical-Bernstein bound b_δ = √(2V·ln(4/δ)/n) + 7R·ln(4/δ)/(3(n − 1)),
         with δ = 1e-4.
-      - **Resolution** is printed in KRW, as a percentage of the stake, and as "this check would miss a model error
-        that moved the chance of the target by up to about 1 in ⌈(T − L_min)/b_δ⌉".
+      - **Resolution** is printed in KRW, as a percentage of the stake, and, when finer than the target span, as
+        “1 in floor((T − L_min)/b_δ)”. This describes simulator drift the check could miss; it does **not** test
+        whether the model itself is right. A bound as large as the span is reported as too coarse to say anything
+        about target probability. A bootstrap plan with no finite input-based range prints
+        “unavailable for this plan (no finite range)” instead of a GARCH-specific explanation (Q46, R2-7).
       - Its two wordings: "makes money without any edge" and "loses more than its costs explain".
     - **`CEILING_BREACH`** (no-edge column only, against the analytic ceiling):
       - amber "preliminary evidence, about 5% false-alarm rate per check: rerun with more paths" when the one-sided 95%
         Clopper–Pearson lower bound exceeds it;
       - red when the one-sided (1 − 0.001/m) bound does, where m is the number of no-edge (model × cost-scenario) cells
         on the card, the stress columns excluded.
+    - `ABOVE_ESTIMATED_REFERENCE` and `BELOW_RESOLUTION` read `headline.reached`, the plain first-passage count,
+      on both tracks; they do not substitute a terminal count or importance-sampling estimate (Task 12 D3).
     - `ABOVE_ESTIMATED_REFERENCE` (amber), `IMPOSSIBLE`, `BELOW_RESOLUTION`, `GREY_LEG`, `PROXY_DATA`,
       `CHECKS_AT_OPEN_CLOSE`, `CLOSE_ONLY_CHECKS`, `BAND_EDGE_SESSIONS`, `LIMIT_GAP`, `LOCKED_AT_HORIZON`,
       `COST_DOMINATED`, `NOT_TRADABLE`, `STUCK_AT_START`, `RULE_CHANGE_IN_HORIZON`, `SPECIAL_REGIME`.
@@ -921,10 +1006,14 @@ All owner-facing text comes from one reviewed **sentence catalogue** with numeri
   your stake at risk, sooner. Check P(at your floor) beside it. Higher here means riskier, not better."
 - The comparison prints: "You compared K plans (and tried J typed win rates) in this session. The highest-looking
   figure is the luckiest of K."
-- Before arming, the plan is re-run on a fresh market seed.
+- The CLI loads one `owner.load_context` per distinct stake in an invocation, not one per plan; same-stake
+  contexts within that invocation are equal. One frozen replay reconstruction is shared by all replay plans in it.
+- The odds CLI does **not** build the fresh-market-seed rerun before arming. `compare.fresh` explicitly says it
+  is not built; E2 owns that required pre-arming step (R2-4, O3-14).
 
 **Language guard**
-- All text comes from the catalogue.
+- All rendered sentences come from the catalogue. Probability or rate fields must not manufacture a zero
+  probability from zero observations; count-based bounds and named refusals carry that uncertainty.
 - Whole words banned: best, optimal, recommended, safe, guaranteed, sure, ideal, risk-free, low-risk, proven, "should",
   "worth trying", "good chance", "likely to reach". Korean entries are added once a Korean UI exists.
 - Internal names never appear in rendered text.
@@ -932,9 +1021,13 @@ All owner-facing text comes from one reviewed **sentence catalogue** with numeri
 **Provenance** recorded with every report:
 - the in-force hashes, the owner-log head (seq), the code hash and the key fingerprint;
 - the data hashes and the calendar version and md5s;
-- the model, seed, n, CHUNK, NumPy and `cryptography` versions;
+- the model, seed, n, CHUNK, NumPy, SciPy and `cryptography` versions;
 - the edge source;
 - `repo_anchor()` and `tree_hash()`.
+
+The CLI adds public `simulate.context_provenance(ctx)` even to its refused cards; a loader-error card has no
+context and is the stated exception. Calendar md5s use file-id order (KRX: holidays_KRX, kr_regime_tags,
+kr_sessions), rather than whichever order a filesystem lists (O3-13/O3-16).
 
 ---
 
@@ -945,6 +1038,9 @@ All owner-facing text comes from one reviewed **sentence catalogue** with numeri
   `compliance` (`tests/compliance_acceptance.py`) and `odds` (`tests/odds_acceptance.py`).
 - `TRADEGEN_HOME` points to a temp dir. A test key pair is used, and the real key is never touched.
 - Everything is built test-first.
+- The shared signed-home fixtures are not a byte-for-byte move: they additionally refuse a test public-key target
+  outside the supplied temporary home or temp directory, signing outside temporary storage, and approval outside
+  that home. Their odds keywords and guards are part of the accepted Task 4 fixture erratum (P22).
 
 **compliance**
 1. **Loaders:**
@@ -1042,9 +1138,9 @@ All owner-facing text comes from one reviewed **sentence catalogue** with numeri
    - bold is refused where the net coefficient is ≤ 0 under any scenario;
    - the per-fill tick floor raises cost: a 2,005-KRW ETF fill costs at least 13.8 bp per side;
    - no separate sell tax is added.
-6. **Refusals:** `UNSUPPORTED_PRODUCT`, `MULTI_LEG_UNSUPPORTED`, `LIMITS_UNSET`, `CALENDAR_UNSIGNED` (unsigned files,
-   or files lacking a signed owner approval), `MODEL_NOT_FOR_LIMITED_VENUE`, `SYNTHETIC_REFUSED`, `NOT_TRADABLE`,
-   `STUCK_AT_START` and `CARD_NOT_REPRODUCED`.
+6. **Refusals:** every named code and ordered subcheck in section 9, including unsigned/mismatched calendars,
+   out-of-coverage horizons, invalid/stale data, unavailable markets, partial chunks and malformed replay inputs.
+   A refused report has no probability; adding a refusal must not hide an unrelated earlier one.
 7. **The D13 replay:**
    - it is deterministic on the fixture closes;
    - with the pinned constants it reproduces the card's statistics, and a changed constant is refused;
@@ -1052,7 +1148,7 @@ All owner-facing text comes from one reviewed **sentence catalogue** with numeri
    - Kelly is 0 when μ_lb ≤ 0, and f* stays within [0, 1].
 8. **Seeds:** plans in one comparison share streams; renaming changes nothing; a partial chunk is refused.
 9. **Report:**
-   - the typical result comes first;
+   - red flags precede every number, and the typical result comes first among outcome numbers;
    - the average line follows its agreement rule;
    - the compounding wording;
    - the tax, base rates (with dates), footer and "not in these numbers" box are present;
@@ -1072,8 +1168,25 @@ T-CTX-01 with the extended prefixes. T-RO-02 is unaffected.
     D11;
   - a broken owner log means withdrawals are manual and closing uses the snapshot;
   - `verify_permit` refuses any mismatch.
-- **Odds** refuses with named reasons (section 7) and never prints a probability from a refused run. A model that fails
-  a pilot check is left out of the spread, with the check named.
+- **Odds** refuses with named reasons and never prints a probability from a refused run. Its fixed validation
+  order is: partial chunk; plan/product; sealed approved state and limits; injected `now`; signed calendar and
+  coverage; series/staleness/sessions/empty/synthetic data; venue costs and dates; history; replay pins; model
+  eligibility; cost dominance; affordable first stake; gate screening. Product checks validate the start date,
+  types, whitelist and market; the OKX cap must be finite and in (0, 1]. A model that fails a pilot check is omitted
+  from spread with its failed check named; a failed primary model is refused. The implemented codes are:
+  - `PARTIAL_CHUNK`; `UNSUPPORTED_PRODUCT` (including sub `file`); `MULTI_LEG_UNSUPPORTED`;
+  - `STATE_UNUSABLE` (sub `code` for unsigned code); `LIMITS_UNSET` (sub `cap` for missing/invalid OKX cap);
+  - `CALENDAR_UNSIGNED`; `CALENDAR_COVERAGE`;
+  - `DATA_INVALID` (subs `now`, `series`, `stale`, `sessions`, `empty`); `SYNTHETIC_REFUSED`;
+  - `NOT_TRADABLE`; `SHORT_HISTORY`; `SPECIAL_REGIME`; `CARD_NOT_REPRODUCED`;
+  - `MODEL_NOT_FOR_LIMITED_VENUE`; `COST_DOMINATED`; `STUCK_AT_START`; `SCREEN_BLOCKED`;
+  - `ASSUMED_EDGE_UNREACHABLE`; `MODEL_CHECK_FAILED`.
+  A subcode with no dedicated catalogue text uses the code's existing explanation (for example `code` and `cap`).
+  `NOT_TRADABLE` does not imply that owner approvals were completed: the owner must supply the missing lot, minimum
+  and explicit fixed-charge values (0 is allowed), validate their sources, and approve the venue file.
+- **Odds CLI:** success/report exits 0, a named refusal exits 2, and an internal failure exits 4 without a result
+  card. `--help` exits 0. The CLI JSON loader preserves validation errors as refusals instead of silently inventing
+  valid dates, horizons or types.
 - **Alerts:** a failed check is exit 4, and it is alerted daily.
 - **Paths:** everything is written under `~/.tradegen`, with final-target checks (A0).
 
@@ -1083,7 +1196,7 @@ T-CTX-01 with the extended prefixes. T-RO-02 is unaffected.
 |---|---|---|---|
 | No-edge martingale | A model that quietly "makes money" with no edge, or timing rules exploiting old patterns | Nothing; it is the default | No one; edges get their own columns |
 | HIDDEN_EDGE | **Large** bugs that hand a plan free money, or lose more than costs | Red with one of two wordings; the card prints how large an error it could miss; "unavailable" for GARCH-t | No one |
-| Ceiling | Believing a no-edge plan that keeps your floor can beat 1 in N (1,000; 2,000 with a floor at half the stake) | "No plan without a real edge that keeps this floor can beat 1 in N." | It is maths |
+| Ceiling | Believing a no-edge plan can beat its mathematical bound (1,000; 1,999 with a protected floor at half the original example stake) | The percentage or exact “1 in N”, with the floor qualifier only when that floor is protected (7.4) | It is maths |
 | CEILING_BREACH | Impossible numbers | Amber "preliminary evidence…", or red "do not use these numbers" | No one |
 | IMPOSSIBLE | A buy-and-hold KRX target beyond the daily band | "KRX's daily band allows at most N× in these S sessions" (about 95× to 459× in 30 days) | It is a market rule for buy-and-hold only |
 | Typical result first | Mistaking the jackpot-inflated average for the usual month | "The middle month ends with KRW M…" | No one |
@@ -1113,6 +1226,11 @@ T-CTX-01 with the extended prefixes. T-RO-02 is unaffected.
 2. **Sign the code hash** after reviewing each diff of the hashed files. Check the signer's hash before every passphrase
    entry.
 3. **Approve** the rules table, the instrument map and the venue table, monthly.
+   - The venue file must first carry sourced lots, minimum orders and explicit `fee_extras` (0 is allowed) for
+     non-replay plans; a parser-valid draft with missing trading terms is still `NOT_TRADABLE`.
+   - Confirm the draft's source limitations before signing: the KRX ETF lot value is sourced from the plain 1×
+     ETF/ETN research row although its shared key cites the stock-row anchor, and the KIS zero money minimum is
+     inferred from the one-share minimum. The source checks do not turn those inferences into broker confirmation.
 4. **Sign the calendars** (KRX and US plans only):
    - **Files:** `holidays_KRX.yaml`, `kr_sessions.yaml`, `kr_regime_tags.yaml` (fill its `value: null` rows) and
      `holidays_NYSE.yaml`. There is no `us_sessions.yaml`.
@@ -1143,7 +1261,7 @@ T-CTX-01 with the extended prefixes. T-RO-02 is unaffected.
   alerts.
 - **Monthly approvals become rubber-stamped.** Mitigation: `--check` lists exactly which rows and sources changed.
 - **Simulated odds are read as forecasts.** Mitigations: model-not-history wording, the typical result first, spread,
-  base rates, the language guard, and "the bug checks are coarser than these ranges".
+  base rates, the language guard, and the measured bug-check resolution (the “coarser” clause is conditional).
 - **A typed win rate tempts the owner.** Mitigations: its own column, p₀ and the unresolved share, bets needed, the
   floor-qualified ceiling.
 - **A backtest edge is over-trusted.** Mitigations: exact replay only, the drift explanation, the live multiplier,
@@ -1161,6 +1279,11 @@ T-CTX-01 with the extended prefixes. T-RO-02 is unaffected.
   `system_halt` and `system_disarm`, reading live balances and broker answers (which lifts D16 row by row), and retiring
   the read-only guards narrowly. The owner asked on 2026-10-23 about doing this early, for account inquiry only. That
   is its own small reviewed design.
+- **Execution handoff:** E2 must rerun the selected plan on a fresh market seed before arming, preserve the daily-loss and floor
+  stops, and size every OKX entry so the gate's cap passes. Lot rounding can place `first_stake` one ulp above
+  `cap × equity`; that remains a refusal, never a reason to relax the gate (O3-22). E3 uses venue-quoted band edges:
+  the odds per-edge rule gives 1,404 at ETF reference 2,005 while inherited `orders.limit_prices` gives 1,405.
+  These model conventions and limit-up fills do not substitute for actual venue answers (R2-2, O3-17).
 - **Strategies:** multi-leg, leveraged and short plans; credit and lending stay out (D15).
 - **UI:** with design-system and design-critique.
 - **Compliance check:** `legal:compliance-check` per venue before real money.
