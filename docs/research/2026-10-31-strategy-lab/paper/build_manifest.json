@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "study_id": "TRADEGEN_RETROSPECTIVE_STRATEGY_LAB_2026_10_31",
+  "freeze_commit": "8e7c6c85c5ed3799a7cb6d4ac350ebdf57af1175",
+  "report_status": "retrospective_exploratory_not_peer_reviewed_not_production_validation",
+  "build_command": "python tools/build_strategy_paper.py",
+  "rendering": "XeLaTeX; shell escape disabled; Noto Serif/Sans CJK KR; matplotlib",
+  "inputs_sha256": {
+    "docs/research/2026-10-31-strategy-lab/results/summary.json": "979ab10812d2e53dabec02ee114411cd496303a2b6efd0d1b0af4bab618a7e7f",
+    "docs/research/2026-10-31-strategy-lab/results/candidates_all.csv": "67a527676d67b44dcf1033c390d4862fc8b66c1827920e76be24c1937e3c2766",
+    "docs/research/2026-10-31-strategy-lab/results/selected_daily.csv": "0f7453d7d2630ac2a3bae7cca5a60c37ec1497f3803d596ba335b12f2e25b290",
+    "docs/research/2026-10-31-strategy-lab/results/run_manifest.json": "e125ecd415f7ceba5eaef70cdf9d0ff30fac9077b5b8d5c8c59bbe8cfa1291a9",
+    "docs/research/2026-10-31-strategy-lab/results/selection_registry.json": "1fdb53bb4400270e72e3bc84346f0f16dbd5f907f483faa7ce7d0442c2316c3b",
+    "research_lab/protocol.json": "5b32f60cec5e893af9dd2ef685c369240ded00c846ca521990d0a7b3e9b38aff",
+    "research_lab/data_manifest.json": "3a8646f403bd1d0417fe6b6aaeb3f98e3789d77d37d4886f59a7f4928b750697",
+    "docs/research/2026-10-31-strategy-lab/paper/bibliography.json": "a50c70adb361fdf03a0140653259c2fe73d845523302f246c6ba8f76c4ac718f",
+    "docs/research/2026-10-31-strategy-lab/paper/manuscript.tex.in": "b2f17c1f22a7cc5b6f591ad4df5b559a3621317a2a33fbd2cd53fa753720ea54",
+    "tools/build_strategy_paper.py": "531ff8740cd999fe896911e4b519197aae4b11cacbeedf6fcf4c945c7b0110b7",
+    "docs/research/2026-10-31-strategy-lab/results/usd_basket_daily.csv": "3e894d49d718e92e63749749cb27a692c82ca4f716abac617bc3e3e41ecdcfc8",
+    "research_lab/catalogue.json": "2f3fd10bd0b4da2e778e133af5284f1133e36e05fa62e639234fca630d48c7cc"
+  },
+  "outputs_sha256": {
+    "TRADEGEN_Strategy_Research.tex": "51112a5853e384df4f70e0580d9576894b9fba6b45c23fea739281baa58c1c5d",
+    "TRADEGEN_Strategy_Research.pdf": "9807d05e008c58d58502b76cac1578c28caae99716c96a3d28b566f6f2c411e9",
+    "figures/cost_stress.pdf": "b46d34a1aa6b40923401663731e689430ab1d935abd72f3fc4e508bc05eed989",
+    "figures/selected_drawdowns.pdf": "7598bbd8f8c80163297ab2b09eec477a17b464191236d9ebb5a828af45be78e8",
+    "figures/selected_wealth.pdf": "590c9b85940257daf0210c06b647c088fc6e8574f93f09819a5f3944c225959d",
+    "figures/selection_transfer.pdf": "c6fb0982fad3e89e38cb3df6566816e0691b1b86dc8340444fc7e104232a479c"
+  },
+  "recomputes_strategy_or_inference": false
+}
