@@ -662,6 +662,8 @@ def test_code_files_match_owner():
     paths = {p for p, _ in mine}
     assert {"core/__init__.py", "core/isolation.py", "core/compliance/__init__.py"} <= paths, paths
     assert {f"core/compliance/{p.name}" for p in (ROOT / "core" / "compliance").glob("*.py")} <= paths, paths
+    assert {f"execution/{p.name}" for p in (ROOT / "execution").glob("*.py")} <= paths, paths      # E1 spec 8
+    assert not any(p.startswith(("core/quant/", "core/calendars/", "core/engine/")) for p in paths), paths
     assert "config.py" not in paths and not any(p.startswith("data/") for p in paths), paths
     assert any(p.startswith("venv:PyYAML-") and p.endswith(".dist-info/RECORD") for p in paths), paths
     sources = {                                       # Task 13's synthetic tree (P6 edge cases)

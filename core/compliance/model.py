@@ -175,6 +175,7 @@ class Context:
     holdings: Mapping[tuple[str, str], float]
     shorts: Mapping[tuple[str, str], float]
     exposure: Mapping[str, Exposure]
+    live_evidence: frozenset = frozenset()            # E1: live D16 requirements in force (owner.evidence_in_force)
     ctx_hash: str = ""                                # set by seal_context
 
 
@@ -230,7 +231,9 @@ def seal_context(**fields) -> Context:
     """Build a Context, hash every field into ctx_hash and register the instance (P5). Discipline, not
     security: owner.load_context and the test fixtures are its only callers."""
     fields.pop("ctx_hash", None)
-    ctx = Context(**fields, ctx_hash=sha256_hex(canonical_json(fields)))
+    draft = Context(**fields)                         # defaults filled in; an unknown field is still a TypeError
+    body = {f.name: getattr(draft, f.name) for f in dataclasses.fields(Context) if f.name != "ctx_hash"}
+    ctx = Context(**body, ctx_hash=sha256_hex(canonical_json(body)))
     _SEALED[id(ctx)] = ctx
     return ctx
 

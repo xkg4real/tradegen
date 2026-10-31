@@ -92,7 +92,7 @@ def test_seal_context_registers_and_hand_built_is_refused():
                "snapshot": model.ApprovedState.invalid("s"), "owner": model.OwnerState.broken("x"),
                "code_hash": "d" * 64, "code_signed": False, "session": model.SessionState(), "equity_krw": 2.0,
                "holdings": {("upbit", "BTC"): 1.0}, "shorts": {("kis", "005930"): 1.0},
-               "exposure": {"upbit": model.Exposure(held_krw=1.0)}}
+               "exposure": {"upbit": model.Exposure(held_krw=1.0)}, "live_evidence": frozenset({"deposit_krw_10m"})}
     assert set(changes) | {"ctx_hash"} == {f.name for f in dataclasses.fields(model.Context)}, \
         "a new Context field needs a case"
     for name, value in changes.items():                                # ctx_hash covers every field

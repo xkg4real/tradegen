@@ -11,6 +11,15 @@ inside Korean law.
   retired only through TRADEGEN's own safety design: a Korean compliance gate,
   execution the owner arms per session, hard loss limits, a kill switch and an
   order audit log.
+- **Read-only account inquiry (E1).** `python -m execution.poll` reads balances,
+  open orders, fills, deposits and withdrawals on KIS, Upbit and OKX through one
+  GET-only transport with frozen allowlists, and only alerts. It places no
+  order. A KIS key can also trade: only E1's own code keeps it read-only, so E1
+  sends nothing to KIS until you have signed that code. E1 also reads the KIS
+  account (balances, orders, fills), so P0's "KIS is used for read-only
+  quotations only" describes the macro package; the P0 read-only guards are
+  narrowed, file by file, for `execution/kis_inquiry.py` and
+  `execution/upbit_inquiry.py`.
 - **Not legal, tax or investment advice.** The software and its author are not a
   licensed advisor.
 - **Honest odds.** Turning $30 into $30,000 in a month has at most about a 0.1%
@@ -813,7 +822,7 @@ Optional: `TRADEGEN_MACRO_DIR` moves the macro state out of `~/.tradegen/macro`.
 
 ```bash
 .venv/Scripts/python tests/run_all.py                  # every suite; writes qa/acceptance_results.json
-.venv/Scripts/python tests/run_all.py --suite macro    # one suite: cockpit, engine, ui, quant, ficc, expansion, macro, paper, grokteam, compliance or odds
+.venv/Scripts/python tests/run_all.py --suite macro    # one suite: cockpit, engine, ui, quant, ficc, expansion, macro, paper, grokteam, compliance, odds or execution
 .venv/Scripts/python tests/run_all.py --milestone M8   # the exit set of a milestone (tests/macro_registry.csv)
 .venv/Scripts/python -m tests.macro_acceptance         # resync the registry's implemented_in column
 ```
@@ -827,7 +836,7 @@ exit code; the exit code is 0 only when nothing failed. The summary line reads
 
 | Group | Suite | What it covers | Checks |
 |---|---|---|---|
-| cockpit | `tests/acceptance.py` | The inherited NEXTGEN cockpit, including the read-only scans (no order path, no account credentials requested, Settings shows presence not values) | 47 PASS |
+| cockpit | `tests/acceptance.py` | The inherited NEXTGEN cockpit, including the read-only scans (no order path, no account credentials requested outside `execution/kis_inquiry.py`, Settings shows presence not values) | 47 PASS |
 | engine | `tests/engine_acceptance.py` | The DISARMED→ARMED→HALTED engine, rules, the simulated order book, the quote path, one live order per rule, a cap-rejected trigger retrying once its cap clears | 92 PASS |
 | ui | `tests/flet_api_guard.py` | Every `page.<method>()`, every checked Flet control keyword and attribute, and every `pal.<token>` in `ui/*.py` exists in Flet 0.85.2 and the palette | 4 PASS |
 | quant | `tests/quant_acceptance.py` | Monte Carlo, optimizer, signal and backtest invariants; GARCH parameter recovery, unit-variance t shocks, guardrail flags, likelihood ordering against GBM and normal-GARCH, forecast convergence, the drift modes, the bounded-innovation and martingale checks, the LR null size, interval coverage, every chart renders | 53 PASS |
@@ -836,9 +845,10 @@ exit code; the exit code is 0 only when nothing failed. The summary line reads
 | macro | `tests/macro_acceptance.py` over `tests/macro_*.py` | The v2 build, below | 419 PASS / 121 NOT_RUN |
 | paper | `tests/paper_live_acceptance.py` | The paper_live harness after the 2026-10-18/19 fixes, offline: costs from QUANTGEN's table and KRX ETF tick floor, LSE refused rather than proxied, the per-account cost gate in `Engine._open`, the 5-minute C3 account retired, no resume from another config's state, frozen price snapshots (exact round trip, sha refusal), post-session prices by window dates, session hours from `core.markets` across clock changes and holidays, only complete pulls frozen, the same-day replay's archived code, the power line, one ledger trial per configuration, the pre-registered gate and fidelity tests, the Strategy Lab ledger, concurrent ledger appends, the refused late freeze and the report outcomes block | 21 PASS |
 | grokteam | `grokteam/selfcheck.py` | The GROKTEAM BOOK desk (Kalshi KXBTCD paper benchmark of the Grok trading-team guide), offline: the Kalshi fee and payoff with the fee inside the stake, SIZE (half Kelly, 6% cap, $50 floor), the GARCH-t digital, no look-ahead in hourly bars or quotes, the 30-minute quote lookback, the stationarity warning not skipping, each account's entry rule, the cluster t and the one-sided skill p, the verdict precedence, the TRADEGEN copy permanently blinded (no event decided after the freeze is listed, fetched or replayed at any date; no re-freeze), Python patch updates not voiding the freeze, the sha-checked cache and the new ledger family | 17 PASS |
-| compliance | `tests/compliance_acceptance.py` over `tests/compliance_*.py` | The compliance gate, offline: the strict YAML loader (duplicate keys, anchors, native dates, 256 KB cap), the rules table, instrument map and venue file with the 38-row coverage and the monthly review cadence, the derived classes, the `decide()` kernel (conduct and hard-coded floor, fail-closed inputs, exits that stay open under D11, the OKX grey row with its cap, acknowledgement and 2026-12-03 auto-off at the Asia/Seoul boundary, D15 and D16 refusals), permits and plan screening, purity, the Ed25519 owner log (chain, anchors, key rotation, system halts), D12 tighten-now/loosen-tomorrow, the approved-version store and signed code hash, `load_context`, the `--check` exit codes 0-4 and the alert template, the owner-kept signer's refusals and key file, and the isolation residual (links, junctions, hard links, final-target checks) | 340 PASS / 1 NOT_RUN |
+| compliance | `tests/compliance_acceptance.py` over `tests/compliance_*.py` | The compliance gate, offline: the strict YAML loader (duplicate keys, anchors, native dates, 256 KB cap), the rules table, instrument map and venue file with the 38-row coverage and the monthly review cadence, the derived classes, the `decide()` kernel (conduct and hard-coded floor, fail-closed inputs, exits that stay open under D11, the OKX grey row with its cap, acknowledgement and 2026-12-03 auto-off at the Asia/Seoul boundary, D15 refusals and D16 refusals that only live deposit evidence lifts), permits and plan screening, purity, the Ed25519 owner log (chain, anchors, key rotation, system halts), D12 tighten-now/loosen-tomorrow, the approved-version store and signed code hash, `load_context`, the `--check` exit codes 0-4 and the alert template, the owner-kept signer's refusals and key file, and the isolation residual (links, junctions, hard links, final-target checks) | 341 PASS / 1 NOT_RUN |
 | odds | `tests/odds_acceptance.py` over `tests/odds_*.py` | The odds engine, offline with every price feed faked: the single-leg plan whitelist and the named refusals in their fixed order, the cost ledger with the per-fill tick floor (the KRX stock sell tax inside it), floor-protected and stop-based stakes with lot rounding, the no-edge two-point bootstrap and GARCH-t with their pilot checks and corruption tests, the path engine (open and close checks, limit-down locks, the daily loss, rule dates, delisting stress, the OKX cap per entry), the ceiling, the KRX structural maximum and exact bold play, the HIDDEN_EDGE and CEILING_BREACH bug checks, the S_C3 replay against its pinned card with lower-bound Kelly, the report's sentence catalogue, outward number formats and language guard, the unsigned bar loader and its checked cache, the signed calendar, one seed per comparison, the CLI, and the odds guards (the import allowlist, no clock and no file I/O in the signed core) | 287 PASS |
-| **Total** | `tests/run_all.py` | | 1355/1477 passed, 0 failed, 122 not run (2026-10-30, Cloud Python 3.13 venv) |
+| execution | `tests/execution_acceptance.py` over `tests/execution_*.py` | E1 read-only account inquiry, offline: the frozen allowlists and refusals before any key is read, Upbit JWT and OKX signing, the shared KIS token cache, KIS read only under signed code, the OKX read-only self-check, snapshots and fail-closed positions, D16 deposit evidence (written on change and daily) with next-Seoul-day lifting and 7-day expiry, every poll check, alert text without balances or addresses, the poller CLI, and the guards (file-exact KIS and Upbit exceptions) | 228 PASS |
+| **Total** | `tests/run_all.py` | | 1584/1706 passed, 0 failed, 122 not run (2026-10-31, TRADEGEN `.venv`) |
 
 The macro group (new in v2) discovers every `tests/macro_*.py` module,
 wraps each test in a hermetic guard, and brackets the run with T-HERM-01 (every

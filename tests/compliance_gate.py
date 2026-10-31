@@ -579,7 +579,7 @@ def test_verdicts_follow_the_rows():
     for symbol in ("TQQQ", "252670"):
         d = gate.decide(_t7_kis(symbol), c)
         assert d.verdict == model.BLOCK and \
-            "needs live broker evidence (execution spec): KR-KIS-ETP-LEV" in d.reasons, (symbol, d.reasons)
+            "needs live broker evidence: KR-KIS-ETP-LEV: deposit_krw_10m" in d.reasons, (symbol, d.reasons)
     for i in (F.intent(), F.intent(symbol="USDT"), F.intent(venue="bithumb"), F.intent(venue="coinone"),
               F.intent(venue="korbit")):
         d = gate.decide(i, c)
@@ -915,12 +915,51 @@ def test_d16_rows_stay_blocked_with_every_owner_flag_signed():
         return F.intent(**{"venue": "kis", "symbol": symbol, "counter_symbol": "KRW", "asset": inst.asset,
                            "multiple": inst.multiple, "quantity": 1.0, "notional_krw": 30_000.0, **changes})
     every = F.ctx(active=state, owner=_t8_owner(flags=frozenset(rules.OWNER_REQUIREMENTS)))
+    missing = {"KR-KIS-SHORT": "broker_approval, collateral_105pct", "KR-KIS-ETP-LEV": "deposit_krw_10m",
+               "KR-KIS-SINGLE-ETP": "cash_krw_30m", "KR-KIS-ELW": "deposit_krw_15m",
+               "KR-KIS-KRX-DERIV": "broker_approval, deposit_krw_10m, deposit_krw_20m"}   # requires.live, sorted
     for row_id, i in (("KR-KIS-SHORT", kis("005930", action="sell_short")), ("KR-KIS-ETP-LEV", kis("252670")),
                       ("KR-KIS-SINGLE-ETP", kis("ZSINGLE")), ("KR-KIS-KRX-DERIV", kis("ZFUT")),
                       ("KR-KIS-ELW", kis("ZELW"))):
         d = gate.decide(i, every)
         assert d.verdict == model.BLOCK and d.kind == "new_exposure", (row_id, d.reasons)
-        assert d.reasons == (f"needs live broker evidence (execution spec): {row_id}",), (row_id, d.reasons)
+        assert d.reasons == (f"needs live broker evidence: {row_id}: {missing[row_id]}",), (row_id, d.reasons)
+
+
+def test_d16_rows_lift_only_on_live_deposit_evidence():
+    """E1 (spec 6 and 8): ctx.live_evidence, which load_context folds from execution/evidence.jsonl, lifts a D16 row
+    once it holds every requires.live item, and lifts nothing else. E1 never writes broker_approval or
+    collateral_105pct, so KRX-DERIV and SHORT stay blocked, naming what is missing."""
+    from core.compliance import owner
+    state = _t8_with_instruments(F.approved(), _t8_fixture("ZSINGLE", "krx_etp", -1.0, "single"),
+                                 _t8_fixture("ZFUT", "krx_derivative", 1.0, None),
+                                 _t8_fixture("ZELW", "elw", 1.0, None))
+
+    def kis(symbol: str, **changes) -> model.Intent:
+        inst = state.instruments.entries[("krx", symbol)]
+        return F.intent(**{"venue": "kis", "symbol": symbol, "counter_symbol": "KRW", "asset": inst.asset,
+                           "multiple": inst.multiple, "quantity": 1.0, "notional_krw": 30_000.0, **changes})
+    flags = _t8_owner(flags=frozenset(rules.OWNER_REQUIREMENTS))
+    full = frozenset(owner.EVIDENCE_THRESHOLDS_KRW)
+    every = F.ctx(active=state, owner=flags, live_evidence=full)
+    for row_id, i in (("KR-KIS-ETP-LEV", kis("252670")), ("KR-KIS-SINGLE-ETP", kis("ZSINGLE")),
+                      ("KR-KIS-ELW", kis("ZELW"))):
+        d = gate.decide(i, every)
+        assert d.verdict == model.ALLOW and d.kind == "new_exposure" and d.reasons == (), (row_id, d.reasons)
+    for row_id, i, missing in (("KR-KIS-KRX-DERIV", kis("ZFUT"), "broker_approval"),
+                               ("KR-KIS-SHORT", kis("005930", action="sell_short"),
+                                "broker_approval, collateral_105pct")):
+        d = gate.decide(i, every)
+        assert d.verdict == model.BLOCK and \
+            d.reasons == (f"needs live broker evidence: {row_id}: {missing}",), (row_id, d.reasons)
+    only_10m = F.ctx(active=state, owner=flags, live_evidence=frozenset({"deposit_krw_10m"}))
+    assert gate.decide(kis("252670"), only_10m).verdict == model.ALLOW
+    elw = gate.decide(kis("ZELW"), only_10m)
+    assert elw.verdict == model.BLOCK and \
+        elw.reasons == ("needs live broker evidence: KR-KIS-ELW: deposit_krw_15m",), elw.reasons
+    course = gate.decide(kis("252670"), F.ctx(active=state, live_evidence=full))     # the owner flags still count
+    assert course.verdict == model.BLOCK and \
+        course.reasons == ("requires kofia_leveraged_1h: KR-KIS-ETP-LEV",), course.reasons
 
 
 def test_leverage_above_max_leverage_blocks():

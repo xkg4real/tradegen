@@ -47,7 +47,7 @@ def _code_only(path: Path) -> str:
 
 def runtime_py() -> list[Path]:
     files: list[Path] = []
-    for base in (ROOT / "core", ROOT / "data", ROOT / "ui"):
+    for base in (ROOT / "core", ROOT / "data", ROOT / "ui", ROOT / "execution"):
         if base.is_dir():
             files.extend(p for p in base.rglob("*.py") if "__pycache__" not in p.parts)
     files.extend([ROOT / "main.py", ROOT / "config.py"])
@@ -176,8 +176,9 @@ def test_08_no_broker_order_path():
 
 
 def test_09_no_account_credentials_requested():
-    """Order submission needs an account number. Never ask for one."""
-    blob = "\n".join(_read(p) for p in runtime_py())
+    """Order submission needs an account number. Never ask for one. E1's balance inquiry,
+    execution/kis_inquiry.py, is the one file that names one; tests/execution_guards.py pins its paths and TR ids."""
+    blob = "\n".join(_read(p) for p in runtime_py() if p.relative_to(ROOT).as_posix() != "execution/kis_inquiry.py")
     for name in ("KIS_ACCOUNT", "CANO", "ACNT_PRDT_CD"):
         assert name not in blob, f"{name} implies an order path"
 
