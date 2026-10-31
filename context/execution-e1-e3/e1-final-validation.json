@@ -1,0 +1,16 @@
+{
+  "label": "e1",
+  "code_commit": "94fb3cb0b3e82c3177b51eb57bbea199c80854be",
+  "exit_code": 0,
+  "seconds": 402.01,
+  "total": 1706,
+  "counts": {
+    "PASS": 1584,
+    "FAIL": 0,
+    "NOT_RUN": 122
+  },
+  "real_homes_unchanged": true,
+  "keyless": true,
+  "isolated_home": true,
+  "failures": []
+}
