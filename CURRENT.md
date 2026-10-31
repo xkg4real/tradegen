@@ -1,14 +1,14 @@
 ---
-status: returned
-reason: e1_e2_e3_software_and_offline_acceptance_complete
+status: taken
+reason: owner_approved_pr6_pr7_account_connection_and_strategy_paper
 from: gpt
-task: execution-e1-e3
+task: account-research
 cycle: 2026-10-27
 done_ids: cloud-compat-1, cloud-compat-2, cloud-compat-3, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr, spec-rev-3-3, policy-plan-1, policy-preview-1, policy-pr, e1-1, e1-2, e1-3, e1-4, e1-5, e1-6, e1-7, e1-8, e1-9, e1-10, e1-11, e1-12, e1-13, e1-pr, e2-1, e2-2, e3-1, e3-2, e3-3, e2-3, e3-4, e2-e3-pr
 next_ids: pr6-pr7-merge, e1-14-owner-setup, execution-provider-integration, policy-input-finalization, strategy-validation
-updated_at: 2026-10-31T15:32:01+09:00
+updated_at: 2026-10-31T15:39:16+09:00
 stale_after_hours: 3
-waiting_on: owner_pr6_pr7_merge_and_live_setup
+waiting_on: none_for_software_research; live_credentials_and_network_not_configured
 work_branch: gpt/execution-control-adapters
 work_commit: f6ebb8a1dfef86db8694659de7e107a0693bc03f
 uncommitted_changes: no
@@ -24,6 +24,8 @@ session: cloud Codex (TRADEGEN)
 # 인수인계: E1 계좌 조회 → E2 실행 제어 → E3 거래소 어댑터
 
 ## 0. 한 줄 요약
+
+2026-10-31 새 지시: PR #6/#7 병합 승인, 실계좌 연결 개발·소유자 서명/활성화 준비, 다수 전략 생성·통계/경제학 검증과 PDF 논문 요청. GPT가 새 작업을 시작합니다. 실제 금융거래/활성화는 수행하지 않고 소유자 절차를 준비합니다. 현재 Cloud에는 API credentials/runtime bindings가 없고 거래소 도메인도 허용되지 않았습니다. 연구와 연결 코드는 먼저 완성합니다.
 
 소유자 승인으로 PR #4와 #5를 병합했습니다. E1 소프트웨어와 전체 회귀검사를 완료해 PR #6을 열었습니다(1584 PASS, 0 FAIL, 122 기존 NOT_RUN). E2/E3까지 소프트웨어 구현·전체 오프라인 검증을 완료했고 PR #7을 검토 가능 상태로 올렸습니다. 최종1715/1837 PASS,0 FAIL,122 기존 NOT_RUN; E2/E3 131/131 PASS입니다. 실계좌 설정·서명·무장·실주문은 수행하지 않았습니다.
 
@@ -87,6 +89,8 @@ AGENTS.md 5절 준수: 실제 키/서명/무장/주문/홈 쓰기/거래소·데
 실제 키·서명·무장은 소유자 행위입니다. 첫날 예외 등 미지정 실행 입력과 실계좌 provider 연결·새 전략 검증이 남아 있으므로 첫 실거래나 미래 순수익 목표 달성을 완료했다고 주장하지 않습니다.
 
 ## 9. 이어받는 에이전트에게 주는 지시문
+
+현재 GPT가 account-research 작업 중입니다. 아래 이전 완료 요약은 E1~E3 체크포인트이며 새 작업이 끝날 때 갱신합니다. 중복 작업하지 마세요.
 
 GPT의 승인된 E1~E3 소프트웨어 구현과 최종 오프라인 검증은 완료되어 returned로 돌려줬습니다. 먼저 이 문서·LEDGER·최종 validation JSON을 확인하고 완료 ID를 반복하지 마세요. source는 f6ebb8a에 push됐고 PR #6/#7은 검토 준비 완료, 미병합입니다. 새 사용자 지시/승인에 따라 위 후속 작업을 진행하세요. 인수인계 권한을 실제 거래·서명·키 접근으로 확대하지 마세요. 소유자 일정은 비공개 원문에서 복원하고 현재 미완료 연결/검증 상태를 숨기지 마세요.
 
