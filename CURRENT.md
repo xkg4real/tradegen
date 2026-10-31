@@ -1,18 +1,18 @@
 ---
-status: taken
-reason: owner_approved_pr4_pr5_and_e1_through_e3
+status: returned
+reason: e1_e2_e3_software_and_offline_acceptance_complete
 from: gpt
 task: execution-e1-e3
 cycle: 2026-10-27
-done_ids: cloud-compat-1, cloud-compat-2, cloud-compat-3, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr, spec-rev-3-3, policy-plan-1, policy-preview-1, policy-pr, e1-1, e1-2, e1-3, e1-4, e1-5, e1-6, e1-7, e1-8, e1-9, e1-10, e1-11, e1-12, e1-13, e1-pr, e2-1, e2-2, e3-1, e3-2, e3-3
-next_ids: e1-14-owner-setup, e2-3, e3-4, e2-e3-pr
-updated_at: 2026-10-31T15:21:48+09:00
+done_ids: cloud-compat-1, cloud-compat-2, cloud-compat-3, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr, spec-rev-3-3, policy-plan-1, policy-preview-1, policy-pr, e1-1, e1-2, e1-3, e1-4, e1-5, e1-6, e1-7, e1-8, e1-9, e1-10, e1-11, e1-12, e1-13, e1-pr, e2-1, e2-2, e3-1, e3-2, e3-3, e2-3, e3-4, e2-e3-pr
+next_ids: pr6-pr7-merge, e1-14-owner-setup, execution-provider-integration, policy-input-finalization, strategy-validation
+updated_at: 2026-10-31T15:32:01+09:00
 stale_after_hours: 3
-waiting_on: none_for_development
+waiting_on: owner_pr6_pr7_merge_and_live_setup
 work_branch: gpt/execution-control-adapters
-work_commit: a203e052642d460ce964dc0a6fc6f1825ab96a13
-uncommitted_changes: no (full QA run in progress)
-pr: https://github.com/xkg4real/tradegen/pull/6 (E1; open)
+work_commit: f6ebb8a1dfef86db8694659de7e107a0693bc03f
+uncommitted_changes: no
+pr: https://github.com/xkg4real/tradegen/pull/7 (E2/E3; open, ready; stacked on PR6)
 usage_weekly_pct: unknown
 usage_source: unavailable
 handoff_threshold_pct: 95
@@ -25,7 +25,7 @@ session: cloud Codex (TRADEGEN)
 
 ## 0. 한 줄 요약
 
-소유자 승인으로 PR #4와 #5를 병합했습니다. E1 소프트웨어와 전체 회귀검사를 완료해 PR #6을 열었습니다(1584 PASS, 0 FAIL, 122 기존 NOT_RUN). E2/E3 구현과 집중 검사 131개를 통과해 a203e05로 push했습니다. 최종 전체 회귀검사가 실행 중입니다. 실계좌 설정·서명·무장·실주문은 수행하지 않았습니다.
+소유자 승인으로 PR #4와 #5를 병합했습니다. E1 소프트웨어와 전체 회귀검사를 완료해 PR #6을 열었습니다(1584 PASS, 0 FAIL, 122 기존 NOT_RUN). E2/E3까지 소프트웨어 구현·전체 오프라인 검증을 완료했고 PR #7을 검토 가능 상태로 올렸습니다. 최종1715/1837 PASS,0 FAIL,122 기존 NOT_RUN; E2/E3 131/131 PASS입니다. 실계좌 설정·서명·무장·실주문은 수행하지 않았습니다.
 
 ## 1. 목표와 완료 조건
 
@@ -55,22 +55,26 @@ session: cloud Codex (TRADEGEN)
 - E1 Tasks1~13 완료: source `94fb3cb`, 검증 기록 `5087f99`, PR #6 OPEN.
 - E1 Task14는 준비 체크리스트만 작성; 실제 키·서명·스케줄러·라이브 조회는 미수행.
 - E2-1 model/store 19개 PASS, `d3cd9eb` push.
-- E2/E3 source `a203e05` push, 집중 검사 131개 모두 통과(직렬 실행 합집합). 네 거래 경로의 인증 모의 lifecycle4/4 통과. E2-3/E3-4 최종 전체 검증과 PR은 진행 중.
+- E2/E3 runtime source `a203e05`, 최종 문서·QA `f6ebb8a`, 전체 회귀 완료. 네 거래 경로의 인증 모의 lifecycle4/4 및 신규131/131 통과. PR #7 OPEN/ready, PR #6 위에 stacked.
 
 ## 5. 현재 지점
 
 - E1 `/workspace/tradegen-execution`, `gpt/execution-e1-e3`, `5087f99b44857e5861ab682b98061b4c673e73a7` push. PR https://github.com/xkg4real/tradegen/pull/6
-- E2/E3 `/workspace/tradegen-e2e3`, `gpt/execution-control-adapters`, HEAD `a203e052642d460ce964dc0a6fc6f1825ab96a13`, source clean/push 완료. E1 최종 검증 커밋도 merge됨.
+- E2/E3 `/workspace/tradegen-e2e3`, `gpt/execution-control-adapters`, HEAD `f6ebb8a1dfef86db8694659de7e107a0693bc03f`, clean/push 완료. E1 최종 검증 커밋도 merge됨.
 - E1 full:1584/1706 PASS,0 FAIL,122 NOT_RUN,402.010초. E1 228/228 PASS,14.4초. 실제 홈 metadata 불변. 처음2건 환경 오류는 작업 트리 .venv 연결 복구 뒤 재검증 완료.
-- E2/E3 첫 부분86/89 PASS는 가드/fixture3건 수정. 첫 완성8모듈126/127 PASS는 OKX fixtureID1건 수정; 해당사례+전체가드11/11 재통과. 거래소별lifecycle4/4 추가. 현재131개 등록 사례 모두 집중 검사 통과; 완성본 전체 회귀 중.
+- E2/E3 첫 부분86/89 PASS는 가드/fixture3건 수정. 첫 완성8모듈126/127 PASS는 OKX fixtureID1건 수정; 해당사례+전체가드11/11 재통과. 거래소별lifecycle4/4 추가. 최종 전체1715/1837 PASS,0 FAIL,122 NOT_RUN,555.173초. 신규131개는143.567 test-seconds에 전부 PASS; 기존 상태 변화·누락 검사·신규 미실행0. 실제 홈 metadata 불변,19 KEYLESS 확인.
 - 비공개 조건은 `/workspace/tradegen-session/owner-policy/`에만 보관합니다. 다른 환경에서 없으면 소유자의 대화/비공개 전달본으로 복원하며 개인 금액·기한을 공개 저장소에 넣지 않습니다.
-- PR 첨부 API는 host connection closed 오류. 실제 PR 생성/조회는 정상; 링크는 위에 기록됨.
+- E2/E3 PR https://github.com/xkg4real/tradegen/pull/7 : OPEN, draft=false, head f6ebb8a. E1 PR #6 먼저 병합 후 #7을 main 대상으로 변경해야 합니다. 두 PR 모두 별도 승인 전 미병합입니다.
+- PR 첨부 API는 #6/#7 모두 host connection closed 오류. 실제 PR 생성/조회/검토 준비는 정상; 직접 링크를 기록했습니다.
 
 ## 6. 다음 할 일 (순서대로)
 
-1. source a203e05의 최종 전체 회귀 완료 확인. 실패는 고치고 필요한 검증을 다시 실행; NOT_RUN은 기존122개와 대조. 실행 중 다른 테스트 금지.
-2. 측정 결과로 README·QA·실행 장부 갱신 후 push. E1 PR #6 위에 E2/E3 PR 작성·첨부. 새 PR은 승인 전 병합하지 않음.
-3. CURRENT를 returned로 전환하고 최종 완료 ID를 LEDGER에 추가. 실제 소유자 설정·provider 연결·새 전략 검증은 별도 남은 일로 표시.
+1. 소유자의 PR #6/#7 각각 병합 승인을 확인합니다. 승인 후 #6을 먼저 병합하고 #7을 main으로 재타겟해 최신 head/diff를 대조한 뒤 병합합니다. 이전 #4/#5 승인으로 새 PR을 병합하지 않습니다.
+2. E1 Task14의 실제 소유자 설정은 아직 수행하지 않았습니다. `docs/execution-runbook.md`와 E1 계획 Task14를 읽고 코드 재서명·조회 키·스케줄러 등 소유자 행위를 구분합니다. 기존 E1 조회 키 권한을 E3 거래 권한으로 넓히지 않습니다.
+3. E2/E3는 명시적 provider를 받는 라이브러리입니다. 실전용 완전한 잔고·정산 현금·보유량·체결/FIFO 이력·수수료·FX·현금흐름·시간·KIS 현지 거래일·취소 가능 수량 공급 연결과 전략 실행기를 후속 구현/검증해야 합니다. E1 첫 페이지 조회를 그 증거로 대체하지 않습니다.
+4. 소유자가 확정한 자금·주요 손실 공식·동률만으로 차단하지 않는 정정은 유지합니다. 첫날/전날 수익0인 날의 미지정 손실 예산과 평가·일일 손실 측정·외부 흐름 규칙은 임의로 채우지 않습니다. 목표 수익률을 위험 예산으로 해석하지 않습니다.
+5. 새 전략 후보를 별도 사전등록·비용/체결 모델·표본외 실현손익으로 검증합니다. 기존 S_C3 PASS, mock 성공, 완료된 프로그램을 수익 보장이나 실전 주문 준비 완료로 표현하지 않습니다.
+6. KIS 다중 페이지와 미국 최종 취소 상태, 브로커 평균가 반올림 차이는 현재 명시적 미지원/보수적 보류 경계입니다. 증거와 테스트 없이 UNKNOWN 예약을 풀지 않습니다.
 
 ## 7. 주의사항 / 하지 말 것
 
@@ -78,12 +82,17 @@ AGENTS.md 5절 준수: 실제 키/서명/무장/주문/홈 쓰기/거래소·데
 
 ## 8. 사용자에게 물어야 할 것
 
-진행 중 개발을 막는 추가 승인은 없습니다. 새 PR 병합은 검토 가능한 최종 결과가 준비된 뒤 AGENTS.md5절의 PR별 승인 규칙에 따라 요청합니다. 실계좌 설정·소유자 서명·무장은 미수행이며 첫날 예외/미지정 입력은 임의로 채우지 않습니다.
+검토 가능한 PR #6과 #7의 병합 승인만 새로 필요합니다. AGENTS.md5절은 “병합은 사용자가 PR마다 직접 승인합니다”라고 정합니다. 이전 승인은 #4/#5였고 이 둘은 이미 병합했습니다. 구현·모의 검증은 승인 대기로 미루지 않고 완료했습니다.
+
+실제 키·서명·무장은 소유자 행위입니다. 첫날 예외 등 미지정 실행 입력과 실계좌 provider 연결·새 전략 검증이 남아 있으므로 첫 실거래나 미래 순수익 목표 달성을 완료했다고 주장하지 않습니다.
 
 ## 9. 이어받는 에이전트에게 주는 지시문
 
-GPT가 E2/E3 개발·검증 중입니다. 중복 작업하지 마세요. 이전 PR #4/#5 승인 대기는 해소됐습니다. 최신 source와 테스트 결과를 먼저 읽고 완료 ID를 반복하지 마세요. 소프트웨어 검사 통과를 실전 전략 성과나 주문 가능 상태로 표현하지 마세요.
+GPT의 승인된 E1~E3 소프트웨어 구현과 최종 오프라인 검증은 완료되어 returned로 돌려줬습니다. 먼저 이 문서·LEDGER·최종 validation JSON을 확인하고 완료 ID를 반복하지 마세요. source는 f6ebb8a에 push됐고 PR #6/#7은 검토 준비 완료, 미병합입니다. 새 사용자 지시/승인에 따라 위 후속 작업을 진행하세요. 인수인계 권한을 실제 거래·서명·키 접근으로 확대하지 마세요. 소유자 일정은 비공개 원문에서 복원하고 현재 미완료 연결/검증 상태를 숨기지 마세요.
 
 ## 10. 결과 확인 방법
 
-E1 PR #6의 source/QA/실행 장부와 `context/execution-e1-e3/e1-final-validation.json` 확인. E2/E3 집중 검사 근거는 `context/execution-e1-e3/e2-e3-focused-validation.json`에 있으며 최종 전체 검증은 진행 중입니다. Cloud 실행법은 기존 `context/odds-engine/cloud-verification/README.md`와 각 실행 장부를 따르며 전체 검사는 직렬로 실행합니다.
+E1: PR #6, runtime94fb3cb, 최종 기록5087f99, `context/execution-e1-e3/e1-final-validation.json`.
+E2/E3: PR #7, runtimea203e05, 최종 기록f6ebb8a, `context/execution-e1-e3/e2-e3-final-validation.json`과 feature branch의 `qa/acceptance_results.json`, E2/E3 execution-ledger. QA의1837개 고유 행과 기존1706개 상태 보존, 신규131개 PASS를 대조했습니다. runtime 이후 바뀐 것은 README·QA·실행 장부·공식 문서 blob 기록뿐입니다.
+
+Focused 재현: runbook의19개 KEYLESS 환경에서 `python -m tests.execution_acceptance`, `python -m tests.control_acceptance`를 직렬 실행합니다. 전체 재현은 Cloud verification README의 격리 홈·venv·KEYLESS·실제 홈 불변 조건으로 `python tests/run_all.py`; 두 기존 localhost 검사만 loopback 허용이 필요합니다. 실제 API/키를 사용하지 않습니다. 이미 통과한 전체 검사는 변경·실패·구체적 우려가 없으면 반복하지 않습니다.

@@ -1,0 +1,37 @@
+{
+  "label": "e2e3",
+  "code_commit": "a203e052642d460ce964dc0a6fc6f1825ab96a13",
+  "exit_code": 0,
+  "seconds": 555.173,
+  "total": 1837,
+  "counts": {
+    "PASS": 1715,
+    "FAIL": 0,
+    "NOT_RUN": 122
+  },
+  "real_homes_unchanged": true,
+  "keyless": true,
+  "isolated_home": true,
+  "failures": [],
+  "inherited_status_changes": 0,
+  "removed_tests": 0,
+  "added_tests": 131,
+  "control_module_counts": {
+    "control_guards": 10,
+    "control_model": 7,
+    "control_store": 12,
+    "control_risk": 23,
+    "control_session": 6,
+    "control_controller": 25,
+    "orders_codecs": 29,
+    "orders_transport": 15,
+    "orders_lifecycle": 4
+  },
+  "control_seconds": 143.567,
+  "final_commit": "f6ebb8a1dfef86db8694659de7e107a0693bc03f",
+  "pr": "https://github.com/xkg4real/tradegen/pull/7",
+  "pr_draft": false,
+  "updated_at": "2026-10-31T15:32:01+09:00",
+  "usage_weekly_pct": "unknown",
+  "usage_source": "unavailable"
+}
