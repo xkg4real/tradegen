@@ -1,0 +1,26 @@
+{
+  "runtime_commit": "a1c0102",
+  "paper_commit": "f74a40a",
+  "accounts": {
+    "PASS": 42,
+    "FAIL": 0,
+    "NOT_RUN": 0
+  },
+  "control": {
+    "PASS": 140,
+    "FAIL": 0,
+    "NOT_RUN": 0
+  },
+  "research_before_evaluation": {
+    "PASS": 35,
+    "FAIL": 0,
+    "NOT_RUN": 0
+  },
+  "initial_readiness_failures": 2,
+  "corrected_readiness_pass": 14,
+  "full": "running",
+  "pr": "https://github.com/xkg4real/tradegen/pull/8",
+  "live_connection": false,
+  "owner_activation": false,
+  "orders": false
+}

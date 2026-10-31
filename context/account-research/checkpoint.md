@@ -4,15 +4,15 @@ reason: account_evidence_and_research_in_progress
 from: gpt
 task: account-research
 cycle: 2026-10-27
-done_ids: cloud-compat-1, cloud-compat-2, cloud-compat-3, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr, spec-rev-3-3, policy-plan-1, policy-preview-1, policy-pr, e1-1, e1-2, e1-3, e1-4, e1-5, e1-6, e1-7, e1-8, e1-9, e1-10, e1-11, e1-12, e1-13, e1-pr, e2-1, e2-2, e3-1, e3-2, e3-3, e2-3, e3-4, e2-e3-pr, pr6-pr7-merge, research-preregister-1, research-evaluate-1, account-readiness-1, research-paper-1
-next_ids: account-provider-1, account-regression-1, account-research-pr
-updated_at: 2026-10-31T15:57:10+09:00
+done_ids: cloud-compat-1, cloud-compat-2, cloud-compat-3, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr, spec-rev-3-3, policy-plan-1, policy-preview-1, policy-pr, e1-1, e1-2, e1-3, e1-4, e1-5, e1-6, e1-7, e1-8, e1-9, e1-10, e1-11, e1-12, e1-13, e1-pr, e2-1, e2-2, e3-1, e3-2, e3-3, e2-3, e3-4, e2-e3-pr, pr6-pr7-merge, research-preregister-1, research-evaluate-1, account-readiness-1, research-paper-1, account-provider-1
+next_ids: account-regression-1, account-research-pr
+updated_at: 2026-10-31T15:59:01+09:00
 stale_after_hours: 3
 waiting_on: no software approval; actual credentials/network/owner activation unavailable
 work_branch: gpt/account-research
 work_commit: f74a40adc35771162978dc8dcd35b0b98bb7a7e1
 uncommitted_changes: no
-pr: pending for new work; PR6 and PR7 merged
+pr: https://github.com/xkg4real/tradegen/pull/8 (draft; full regression running)
 usage_weekly_pct: unknown
 usage_source: unavailable
 handoff_threshold_pct: 95
@@ -53,7 +53,7 @@ session: cloud Codex (TRADEGEN)
 - PR #7 main 재타겟 후 merge: `c5459a29bf01730ad1a9b4a4588dd9b8592fe76f`.
 - 사전등록 `240c5a1`, 연구 소스 고정 `8e7c6c85c5ed3799a7cb6d4ac350ebdf57af1175`, 전체 결과 `af4d240` push 완료.
 - 성과 평가 전 연구 synthetic 검사35/35 PASS. 최초 평가 실행 정상 완료(15.493초), 후보21,408/선택6/통과0.
-- 계좌 provider·연결 readiness·서명범위/가드·통합 수정은 `a1c0102`에 고정했습니다. accounts42/42 PASS, control통합 검사 진행 중입니다. PDF17쪽/4그림/11참고문헌과 전체 페이지 검수 기록을 `f74a40a`에 push했습니다.
+- 계좌 provider·연결 readiness·서명범위/가드·통합 수정은 `a1c0102`에 고정했습니다. accounts42/42 PASS, control통합140/140 PASS,0FAIL,0NOT_RUN입니다. 최종 전체 회귀는 f74a40a에서 실행 중입니다. PDF17쪽/4그림/11참고문헌과 전체 페이지 검수 기록을 `f74a40a`에 push했습니다.
 
 ## 5. 현재 지점
 
@@ -66,8 +66,8 @@ session: cloud Codex (TRADEGEN)
 
 ## 6. 다음 할 일
 
-1. 계좌 FX/자정/정산통화 수정 완료 후 accounts·controller·lifecycle 집중 검사, 필요한 전체 회귀를 KEYLESS/임시 홈으로 실행합니다.
-2. 실제 결과에 기반한 한국어 논문/English abstract PDF와 그림·참고문헌을 생성하고 렌더링을 확인합니다.
+1. 계좌/통합 집중 검사42+140개 완료. 실행 중인 전체 회귀를 확인하고 실패가 있다면 원인을 수정한 뒤 필요한 검사를 진행합니다.
+2. PDF17쪽 생성/검수/push 완료. 원본 자료와 PDF 해시를 보존합니다.
 3. 실행 장부/QA/README를 실제 검사 결과로 갱신하고 새 PR을 생성합니다. main 직접 push나 새 PR 무승인 병합은 하지 않습니다.
 4. 완료 후 새 ID를 LEDGER에 추가하고 CURRENT를 returned로 돌립니다.
 5. 실제 계좌 실행 전: secure 환경 설정, 검토된 Cloud transport 경로, 완전한 계좌 collector, 소유자의 최종 서명/세션 활성화, 미지정 정책 입력, 실제 체결 가능한 전략의 새로운 검증이 남습니다. 현재 기본 CLI에서도 3거래소 모두 네트워크blocked·credentialnamesmissing·proxy미지원·execution_ready=false를 확인했습니다.
@@ -86,4 +86,4 @@ AGENTS.md5절: 실제 키/서명/무장/주문/홈 쓰기/거래소·데이터 A
 
 ## 10. 확인 방법
 
-연구 `results/summary.json`, `selection_registry.json`, 전체 `candidates_all.csv`, `run_manifest.json`에 고정 커밋/해시·전체 후보·선택·비용/지연 스트레스·다중검정 결과가 있습니다. 연구35개 검사는 평가 전 통과했습니다. accounts42개 PASS, control/full 검사는 아직 pending이며 이전 E2/E3 기준은1715/1837 PASS,0 FAIL,122 기존 NOT_RUN입니다.
+연구 `results/summary.json`, `selection_registry.json`, 전체 `candidates_all.csv`, `run_manifest.json`에 고정 커밋/해시·전체 후보·선택·비용/지연 스트레스·다중검정 결과가 있습니다. 연구35개 검사는 평가 전 통과했습니다. accounts42개·control140개 PASS, full 검사는 아직 pending이며 이전 E2/E3 기준은1715/1837 PASS,0 FAIL,122 기존 NOT_RUN입니다.
