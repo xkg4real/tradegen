@@ -1,18 +1,18 @@
 ---
-status: taken
-reason: owner_requested_notion_summary_and_top_five_first_trade_tasks
+status: returned
+reason: owner_requested_stop_and_main_session_handoff
 from: gpt
 task: first-trade-foundation
 cycle: 2026-10-27
 done_ids: cloud-compat-1, cloud-compat-2, cloud-compat-3, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr, spec-rev-3-3, policy-plan-1, policy-preview-1, policy-pr, e1-1, e1-2, e1-3, e1-4, e1-5, e1-6, e1-7, e1-8, e1-9, e1-10, e1-11, e1-12, e1-13, e1-pr, e2-1, e2-2, e3-1, e3-2, e3-3, e2-3, e3-4, e2-e3-pr, pr6-pr7-merge, research-preregister-1, research-evaluate-1, account-readiness-1, research-paper-1, account-provider-1, account-regression-1, account-research-pr, pr8-human-code-review-approval, pr8-merge, launch-network-1, launch-collector-1, launch-profile-1, launch-strategy-1, launch-runner-1
 next_ids: launch-regression-1, launch-delivery-1, launch-owner-inputs, launch-live-evidence, launch-prospective-study, e1-14-owner-setup
-updated_at: 2026-10-31T17:21:19+09:00
+updated_at: 2026-10-31T19:43:20+09:00
 stale_after_hours: 3
-waiting_on: full acceptance running; actual owner inputs/configuration and prospective evidence remain separate
+waiting_on: owner stopped this session; main session handoff only; full regression outcome unverified
 work_branch: gpt/first-trade-foundation
 work_commit: db7ddeca7de13745f33663cf5801b8d7709512af
-uncommitted_changes: no
-pr: pending for new first-trade foundation; PR8 merged
+uncommitted_changes: documentation patch existed in unavailable prior environment; preserved in stop note
+pr: https://github.com/xkg4real/tradegen/pull/9 (last verified draft and unmerged)
 usage_weekly_pct: unknown
 usage_source: unavailable
 handoff_threshold_pct: 95
@@ -22,6 +22,21 @@ session: cloud Codex (TRADEGEN)
 ---
 
 # 인수인계: 첫 자동거래 기반 5개
+
+## 사용자 중단 지시 — 메인 세션 우선 확인
+
+- 2026-10-31T19:43:20+09:00, 사용자가 이 세션의 작업을 중단하고 메인 세션에 인수인계만 하도록 지시했습니다. **이 세션에서는 개발·테스트·병합을 재개하지 않습니다.**
+- 원격에 보존된 소스: `gpt/first-trade-foundation`, `db7ddeca7de13745f33663cf5801b8d7709512af`. Cloud 경로, Upbit 계좌 수집기, 위험 프로필, 미래 전략 평가기, 자동 실행기 구현입니다.
+- [PR #9](https://github.com/xkg4real/tradegen/pull/9)는 생성 당시 **초안·미병합**입니다. PR #8은 이미 main에 병합됐습니다.
+- 확인된 마지막 수정 후 집중 검사: **139 PASS / 0 FAIL / 0 NOT_RUN**. 신규 launch suite는82개입니다. 최초80개 실행의2개 실패는 수정 후 재검사했고 추가2개도 통과했습니다. **이번 변경의 전체 회귀 완료 결과는 확인하지 못했습니다.**
+- 전체 검사는 이전 Cloud에서 시작했습니다. 마지막으로 읽은 로그는 macro M8 검사 구간이었습니다. 이후 환경이 교체되어 이전 작업 디렉터리와 실행 셀에 접근할 수 없습니다. 현재 환경에는 해당 검사 프로세스가 없습니다. 이전 프로세스의 종료 여부나 최종 QA 파일을 확인했다고 표현하지 마세요.
+- 이전 환경의 참고 위치: `/workspace/tradegen-launch`, `/workspace/tradegen-session/execution-full-first-trade-foundation-full.log`, `execution-full-first-trade-foundation-run.json`. 현재 환경에 이 경로들이 있다는 뜻은 아닙니다.
+- 원격 코드에는 신규 전체 검사 결과가 반영되지 않았습니다. README/QA의1801/1923·122 NOT_RUN은 **PR8 기준 이전 결과**입니다. 예상 신규 총수를 실제 결과로 쓰지 마세요.
+- 원격 checkpoint 이후 커밋하지 못한 변경은 `docs/first-trade-owner-checklist.md`의 안내 문단 하나입니다: 앱 서명 해시는 signer 인터프리터의 의존성 RECORD도 포함하므로 같은 Git 커밋이라도 Windows/Cloud 해시가 다를 수 있고, 공개키·owner log 복사만으로 다른 환경의 승인이 완료되지는 않는다는 내용입니다. 이 문단은 Notion에는 반영했습니다. 실행 코드의 미커밋 변경은 당시 없었습니다.
+- 지정된 Notion 계정에 새 페이지를 생성하고 목표·위험 조건·핵심5개·서명 순서·PR9·139개 검사 결과를 적었습니다. 마지막 상태 문구는 “전체 회귀 검사 중”이므로 **현재 중단 상태를 대신하지 않습니다**. 사용자 중단 후 Notion이나 작업 브랜치를 추가 수정하지 않았습니다.
+- 실제 계좌 연결·키 읽기·서명·활성화·주문은 수행하지 않았습니다. 기존 연구의 통과 전략0개를 유지합니다. 시장 선택과 미정 손실 예산도 임의로 확정하지 않았습니다.
+- 메인 세션은 먼저 이 기록과 기존 source 실행 장부를 읽고 현재 원격/이전 환경의 증거를 확인해야 합니다. **사용자의 중단 의사를 존중하고 별도 지시 없이 작업을 자동 재개하지 마세요.**
+
 
 ## 0. 한 줄 요약
 
@@ -69,7 +84,7 @@ session: cloud Codex (TRADEGEN)
 - 현재Cloud credential/runtime/outboundidentity없고venuehosts미허용. 실제조회없음. 수집기는limitorders/zero-feeKRWflows만지원하며대규모이력은별도reviewedarchive/deltaadapter가필요할수있음.
 - 실제privateownerprofile/키/서명원문/계좌숫자는공개commit하지않았습니다. 다른환경에서필요하면비공개사용자원문을사용합니다.
 
-## 6. 다음 작업
+## 6. 중단 전 계획 — 자동 재개하지 않음
 
 1. 진행중전체회귀완주후새/기존testidentity와122inheritedskip불변비교. 실패있으면원인수정후필요검사재실행.
 2. QA/README/finalvalidation/ledger를측정값으로갱신,push,newPR생성,Notion최종상태/링크반영,returned인수인계.
@@ -85,7 +100,7 @@ AGENTS5절키·서명·arm·주문·actualhome쓰기·venue/dataAPI·QUANTGEN변
 
 PR8병합은이미완료. 신규PR은별도검토후명시적병합승인이필요합니다. 실제signer는소유자가WindowsTerminal에서직접실행하고매회외부trustedcopyhash와venv.pth를확인합니다. 키최초생성은기존키없을때만,공개키만배치. 최초/완화한도는다음서울날짜부터의효력및session/halt제약을확인합니다. 최종prepared.session_id는실제반환값이며만료/프로세스변경시재준비합니다.
 
-## 9. 이어받는 에이전트에게
+## 9. 중단 전 안내 — 위 사용자 중단 지시가 우선
 
 CURRENT/LEDGER/context와source계획/실제코드를읽고완료ID를반복하지마세요. source5개는완성,지금은전체검증/전달단계입니다. 새study의실제결과나live접속을만들어내지마세요. 중단됐다면로그/실행세션/QA복원여부부터확인한뒤이어가세요. 사용자새답변은privateprofile로반영하고공개문서로유출하지마세요.
 
