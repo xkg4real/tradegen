@@ -1,0 +1,331 @@
+{
+  "schema_version": 1,
+  "study_id": "TRADEGEN_RETROSPECTIVE_STRATEGY_LAB_2026_10_31",
+  "status": "PREREGISTERED_COMPUTATION_ON_PREVIOUSLY_INSPECTED_HISTORY",
+  "interpretation": "Exploratory retrospective internal holdout, not untouched confirmation, live authorization, or investment advice.",
+  "data_manifest": "research_lab/data_manifest.json",
+  "data_manifest_sha256": "3a8646f403bd1d0417fe6b6aaeb3f98e3789d77d37d4886f59a7f4928b750697",
+  "seed": 20261031,
+  "assets": [
+    "SPY",
+    "QQQ",
+    "GLD",
+    "TLT",
+    "TIGER200",
+    "BTC_KRW",
+    "BTC_USDT",
+    "ETH_USDT"
+  ],
+  "annualization": {
+    "SPY": 252,
+    "QQQ": 252,
+    "GLD": 252,
+    "TLT": 252,
+    "TIGER200": 252,
+    "BTC_KRW": 365,
+    "BTC_USDT": 365,
+    "ETH_USDT": 365
+  },
+  "cost_bps_per_side": {
+    "SPY": 50.0,
+    "QQQ": 50.0,
+    "GLD": 50.0,
+    "TLT": 50.0,
+    "TIGER200": 3.0,
+    "BTC_KRW": 10.0,
+    "BTC_USDT": 10.0,
+    "ETH_USDT": 10.0
+  },
+  "cost_source": "core/quant/validate.py COST_BP_PER_SIDE; model floors, not current broker fee quotations",
+  "splits": {
+    "train": {
+      "start": null,
+      "end": "2020-12-31"
+    },
+    "validation": {
+      "start": "2021-01-01",
+      "end": "2022-12-31"
+    },
+    "holdout": {
+      "start": "2023-01-01",
+      "end": "2026-09-24"
+    }
+  },
+  "warmup_bars": 500,
+  "minimum_scored_rows": {
+    "train": 500,
+    "validation": 365,
+    "holdout": 365
+  },
+  "grid": {
+    "tsmom": {
+      "lookback": [
+        5,
+        10,
+        20,
+        40,
+        60,
+        90,
+        120,
+        180,
+        250
+      ],
+      "threshold": [
+        0.0,
+        0.01,
+        0.03
+      ]
+    },
+    "sma": {
+      "lookback": [
+        5,
+        10,
+        20,
+        40,
+        60,
+        90,
+        120,
+        180,
+        250
+      ],
+      "band": [
+        0.0,
+        0.005,
+        0.01
+      ]
+    },
+    "crossover": {
+      "fast": [
+        5,
+        10,
+        20,
+        40
+      ],
+      "slow": [
+        60,
+        90,
+        120,
+        180,
+        250
+      ],
+      "band": [
+        0.0,
+        0.005
+      ]
+    },
+    "donchian": {
+      "entry": [
+        10,
+        20,
+        40,
+        60,
+        90,
+        120
+      ],
+      "exit": [
+        5,
+        10,
+        20
+      ],
+      "constraint": "exit < entry"
+    },
+    "zscore": {
+      "lookback": [
+        10,
+        20,
+        40,
+        60,
+        90
+      ],
+      "entry": [
+        1.0,
+        1.5,
+        2.0
+      ],
+      "exit": [
+        0.0,
+        0.5
+      ]
+    },
+    "rsi": {
+      "lookback": [
+        5,
+        10,
+        14,
+        20,
+        30
+      ],
+      "lower": [
+        20,
+        30,
+        40
+      ],
+      "upper": [
+        50,
+        60
+      ]
+    },
+    "lowvol_trend": {
+      "vol_window": [
+        20,
+        60,
+        120
+      ],
+      "momentum_window": [
+        20,
+        60,
+        120
+      ],
+      "quantile": [
+        0.3,
+        0.5,
+        0.7
+      ],
+      "quantile_window": 252
+    },
+    "drawdown": {
+      "peak_window": [
+        60,
+        120,
+        250
+      ],
+      "depth": [
+        0.05,
+        0.1,
+        0.2
+      ],
+      "exit_fraction": [
+        0.25,
+        0.5,
+        0.75
+      ]
+    }
+  },
+  "raw_family_counts": {
+    "tsmom": 27,
+    "sma": 27,
+    "crossover": 40,
+    "donchian": 15,
+    "zscore": 30,
+    "rsi": 30,
+    "lowvol_trend": 27,
+    "drawdown": 27
+  },
+  "rebalance_bars": [
+    1,
+    5,
+    21
+  ],
+  "caps": [
+    0.5,
+    1.0
+  ],
+  "vol_targets": [
+    null,
+    0.15
+  ],
+  "sizing_vol_window": 20,
+  "raw_rules_per_asset": 223,
+  "configurations_per_asset": 2676,
+  "total_configurations": 21408,
+  "signal_semantics": {
+    "tsmom": "long when P[t]/P[t-L]-1 > threshold, otherwise cash",
+    "sma": "long when P[t]/mean(P[t-L+1:t+1])-1 > band, otherwise cash",
+    "crossover": "long when SMA_fast[t]/SMA_slow[t]-1 > band, otherwise cash",
+    "donchian": "enter above prior L closes max; exit below prior M closes min; current close excluded from thresholds; equality retains state",
+    "zscore": "rolling log-price mean and sample SD include current close; enter z < -entry; exit z > -exit; equality retains state",
+    "rsi": "simple rolling arithmetic mean of last L positive/negative price changes; enter RSI < lower, exit RSI > upper; equal retains; no losses gives100, both zero gives50",
+    "lowvol_trend": "annualized trailing log-return sample SD <= quantile of252 prior vol estimates excluding current, and L-period price change >0",
+    "drawdown": "DD=P[t]/rolling_max_including_current-1; enter DD < -depth; exit DD > -depth*exit_fraction; equality retains state"
+  },
+  "execution_model": {
+    "primary_lag_bars": 1,
+    "stress_lag_bars": 2,
+    "sizing": "min(cap,target_vol/trailing_annualized_vol) when target set; else cap; zero/invalid volatility gives cash",
+    "rebalance_anchor": "first row of each evaluation split, then every k bars; binary signals are computed on every close",
+    "fill_timing": "signal from close t executes close t+lag; marked return earned only after that fill",
+    "portfolio": "fractional shares plus nonnegative cash, no shorting or leverage; caps are target weights at rebalance and may drift between rebalances",
+    "fees": "solve target post-fee portfolio weight exactly; buy value delta/(1+c*w), sell value delta/(1-c*w)",
+    "boundaries": "each split starts in cash; initial fee charged; last row forces liquidation and does not initiate a new position",
+    "cash_return": 0.0,
+    "price_limitation": "adjusted/close-only proxies do not prove executable prices, partial fills, intraday stops, legal ownership, or affordable whole lots"
+  },
+  "benchmark": "same-window costed full buy-and-hold with initial and terminal costs",
+  "cost_stress_multipliers": [
+    2.0,
+    3.0
+  ],
+  "selection": {
+    "split": "validation",
+    "objective": "maximum net Sharpe",
+    "minimum_completed_roundtrips": 20,
+    "require_positive_net_mean": true,
+    "tie_tolerance": 1e-12,
+    "tie_breakers": [
+      "lower turnover",
+      "lexical candidate ID"
+    ],
+    "selected_per_asset": 1,
+    "fallback": "cash; no holdout-dependent replacement"
+  },
+  "inference": {
+    "primary": "centered circular moving-block maximum sqrt(T)*mean(strategy-minus-costed-benchmark), floored at0",
+    "primary_block_bars": 20,
+    "primary_replications": 1999,
+    "sensitivity_block_bars": [
+      5,
+      60
+    ],
+    "sensitivity_replications": 999,
+    "monte_carlo_p": "(1 + exceedance count)/(B+1); shared date draws across all candidates; no zero p values",
+    "validation_multiplicity": "Holm across all8 asset omnibus p values; unavailable assets assigned1",
+    "holdout_multiplicity": "Holm across all8 frozen selected-versus-benchmark mean p values; unavailable/unselected assets assigned1",
+    "holdout_intervals": "paired circular-block percentile95% mean, mean difference and Sharpe-difference intervals",
+    "hac": "OLS strategy return on intercept and costed same-asset benchmark return, Bartlett Newey-West lag20, n/(n-2) correction; normal one-sided alpha p diagnostic only",
+    "cash_comparison": "positive mean and zero-cash p are diagnostics; positive asset risk premium is not alpha",
+    "historical_contamination": "all source caches were in prior research; formal p values are exploratory diagnostics, not fresh confirmatory evidence"
+  },
+  "promising_exploratory_criteria": [
+    "validation omnibus Holm p <=0.05",
+    "holdout selected-versus-benchmark mean Holm p <=0.05",
+    "positive holdout net mean",
+    "positive holdout net mean at2x costs",
+    "at least30 holdout completed roundtrips"
+  ],
+  "production_status": "NOT_VALIDATED_FOR_PRODUCTION regardless of statistical label",
+  "basket": {
+    "assets": [
+      "SPY",
+      "QQQ",
+      "GLD",
+      "TLT"
+    ],
+    "currency": "USD",
+    "capital": "initial equal quarters in independent selected sleeves; cash for no selection",
+    "rebalancing": "no transfers or rebalancing between sleeves; equity=sum of sleeve equity/4",
+    "dates": "require identical holdout dates else unavailable",
+    "status": "secondary descriptive fractional-capital model; no extra hypothesis gate; never a KRW account or mixed-currency realized P&L"
+  },
+  "owner_policy": {
+    "status": "separate unresolved-input and feasibility assessment",
+    "unknowns": [
+      "first-session loss allowance/scope",
+      "zero-profit-prior-day loss budget",
+      "daily loss accumulator",
+      "valuation and external-flow convention"
+    ],
+    "prohibited_inferences": [
+      "marked returns equal realized daily profit",
+      "end-of-day observations establish intraday floor compliance",
+      "positive forecast guarantees target",
+      "missing inputs imply unlimited or zero allowance"
+    ]
+  },
+  "provenance_rules": [
+    "commit protocol, data manifest, candidate catalogue and source hashes before candidate P&L evaluation",
+    "publish all candidate outcomes and failed/insufficient cases",
+    "never retune after holdout or rerun search until a winner appears",
+    "retain previous frozen S_C3/GrokBot/H2 artifacts unchanged",
+    "any later change is a new study version with new trial accounting"
+  ]
+}

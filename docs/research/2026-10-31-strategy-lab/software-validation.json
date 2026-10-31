@@ -1,0 +1,104 @@
+{
+  "label": "account-research",
+  "code_commit": "fc6d26a014a61c94bf8aab4cddef5134dc4c03d9",
+  "exit_code": 0,
+  "seconds": 600.886,
+  "total": 1923,
+  "counts": {
+    "PASS": 1801,
+    "FAIL": 0,
+    "NOT_RUN": 122
+  },
+  "real_homes_unchanged": true,
+  "keyless": true,
+  "isolated_home": true,
+  "failures": [],
+  "unique_tests": 1923,
+  "inherited_total": 1837,
+  "inherited_status_changes": [],
+  "missing_inherited": [],
+  "new_tests": 86,
+  "new_not_run": 0,
+  "suites": {
+    "cockpit": {
+      "PASS": 47
+    },
+    "engine": {
+      "PASS": 92
+    },
+    "ui": {
+      "PASS": 4
+    },
+    "quant": {
+      "PASS": 53
+    },
+    "ficc": {
+      "PASS": 56
+    },
+    "expansion": {
+      "PASS": 19
+    },
+    "macro": {
+      "PASS": 419,
+      "NOT_RUN": 121
+    },
+    "paper": {
+      "PASS": 21
+    },
+    "grokteam": {
+      "PASS": 17
+    },
+    "compliance": {
+      "PASS": 341,
+      "NOT_RUN": 1
+    },
+    "odds": {
+      "PASS": 287
+    },
+    "execution": {
+      "PASS": 228
+    },
+    "execution_control": {
+      "PASS": 140
+    },
+    "execution_accounts": {
+      "PASS": 42
+    },
+    "strategy_research": {
+      "PASS": 35
+    }
+  },
+  "runtime_commit": "fc6d26a",
+  "research_freeze": "8e7c6c85c5ed3799a7cb6d4ac350ebdf57af1175",
+  "focused": {
+    "accounts": 42,
+    "control": 140,
+    "research": 35
+  },
+  "first_full_attempt": {
+    "interrupted": true,
+    "PASS": 411,
+    "FAIL": 2,
+    "NOT_RUN": 45,
+    "seconds": 119.423
+  },
+  "corrected_account_and_legacy_guards": {
+    "PASS": 44,
+    "FAIL": 0,
+    "NOT_RUN": 0
+  },
+  "initial_readiness": {
+    "PASS": 12,
+    "FAIL": 2,
+    "NOT_RUN": 0
+  },
+  "corrected_readiness": {
+    "PASS": 14,
+    "FAIL": 0,
+    "NOT_RUN": 0
+  },
+  "live_api_calls": false,
+  "owner_signed": false,
+  "owner_activated": false,
+  "real_orders": false
+}

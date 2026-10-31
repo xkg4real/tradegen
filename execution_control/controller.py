@@ -43,9 +43,12 @@ class AccountObservation:
     venue_trade_dates: Mapping[tuple[str, str, str], str] = field(default_factory=dict)
     cancellable_quantities: Mapping[str, Decimal] = field(default_factory=dict)
     held_exposure_krw: Mapping[tuple[str,str], Decimal] = field(default_factory=dict)
+    quote_currency_by_account: Mapping[tuple[str, str], str] = field(default_factory=dict)
+    inventory_exposure_krw: Mapping[tuple[str, str], Decimal] = field(default_factory=dict)
+    quote_rates_krw: Mapping[tuple[str, str, str], Decimal] = field(default_factory=dict)
 
     def __post_init__(self):
-        for name in ('account_scopes', 'settled_cash_krw', 'holdings', 'venue_trade_dates', 'cancellable_quantities', 'held_exposure_krw'):
+        for name in ('account_scopes', 'settled_cash_krw', 'holdings', 'venue_trade_dates', 'cancellable_quantities', 'held_exposure_krw', 'quote_currency_by_account', 'inventory_exposure_krw', 'quote_rates_krw'):
             object.__setattr__(self, name, MappingProxyType(dict(getattr(self, name))))
         object.__setattr__(self, 'fills', tuple(self.fills))
         object.__setattr__(self, 'reconciled_client_ids', frozenset(self.reconciled_client_ids))
@@ -341,6 +344,7 @@ class Controller:
         if (not timedelta(0) <= now - obs.asof <= timedelta(seconds=30)
                 or abs(now - obs.server_time) > timedelta(seconds=60)
                 or now.astimezone(compliance.KST).date()!=obs.server_time.astimezone(compliance.KST).date()
+                or now.astimezone(compliance.KST).date()!=obs.asof.astimezone(compliance.KST).date()
                 or obs.risk.asof != obs.asof):
             raise ValueError('account or server clock is stale')
         if events and now < datetime.fromisoformat(events[-1]['utc']):
@@ -349,8 +353,17 @@ class Controller:
             raise ValueError('account scope mismatch')
         if type(obs.no_credit) is not bool:
             raise ValueError('no-credit evidence required')
-        for value in tuple(obs.settled_cash_krw.values()) + tuple(obs.holdings.values()) + tuple(obs.held_exposure_krw.values()):
+        for value in (tuple(obs.settled_cash_krw.values()) + tuple(obs.holdings.values())
+                      + tuple(obs.held_exposure_krw.values()) + tuple(obs.inventory_exposure_krw.values())):
             _money(value)
+        for key, rate in obs.quote_rates_krw.items():
+            if (type(key) is not tuple or len(key) != 3 or any(type(v) is not str or not v for v in key)
+                    or _money(rate) <= 0 or (key[2] == 'KRW' and rate != 1)):
+                raise ValueError('invalid authoritative quote rate')
+        for account, inventory in obs.inventory_exposure_krw.items():
+            total = obs.held_exposure_krw.get(account)
+            if total is None or inventory > total:
+                raise ValueError('inventory exposure exceeds total venue exposure')
         if Decimal(str(obs.positions.equity_krw)) != obs.risk.equity:
             raise ValueError('account equity sources disagree')
         return obs
@@ -461,7 +474,12 @@ class Controller:
             held, cash, sells = exposures.setdefault(obj.venue, [0.0, {}, {}])
             amount = obj.quantity - rec['filled']
             if obj.side == 'buy':
-                cash[key] = _float(amount * obj.limit_price * obj.quote_krw * (1 + rules.fee_fraction))
+                if obs.account_scopes.get(obj.venue) != obj.account_scope:
+                    raise ValueError('pending buy account requires reconciliation')
+                rate=obs.quote_rates_krw.get((obj.venue,obj.account_scope,self._symbols(obj)[1]))
+                if rate is None or _money(rate)<=0:
+                    raise ValueError('current reservation FX evidence required')
+                cash[key] = _float(amount * obj.limit_price * rate * (1 + rules.fee_fraction))
             else:
                 symbol = self._symbols(obj)[0]
                 sells[symbol] = sells.get(symbol, 0.0) + _float(amount)
@@ -492,17 +510,40 @@ class Controller:
                                  notional_krw=_float(order.quantity * order.limit_price * order.quote_krw),
                                  reservation_id=order.client_id)
 
+    def _pending_buy_krw(self, obj, obs, orders, exclude=None):
+        total=Decimal(0)
+        quote=self._symbols(obj)[1]
+        rate=obs.quote_rates_krw.get((obj.venue,obj.account_scope,quote))
+        for key, rec in orders.items():
+            old=rec['order']
+            if key==exclude or rec['status'] not in _ACTIVE or old.venue!=obj.venue or old.side!='buy':
+                continue
+            if old.account_scope!=obj.account_scope or self._symbols(old)[1]!=quote:
+                raise ValueError('pending buy account or quote requires reconciliation')
+            if rate is None or _money(rate)<=0:
+                raise ValueError('current reservation FX evidence required')
+            total+=(old.quantity-rec['filled'])*old.limit_price*rate*(1+rec['rules'].fee_fraction)
+        return total
+
     def _capacity(self, obj, rules, obs, orders, exclude=None):
+        quote=self._symbols(obj)[1]
+        rate=obs.quote_rates_krw.get((obj.venue,obj.account_scope,quote))
+        if rate is None or _money(rate)<=0 or obj.quote_krw!=rate:
+            raise ValueError('order FX differs from authoritative quote rate')
         same = [r for k, r in orders.items() if k != exclude and r['status'] in _ACTIVE
                 and (r['order'].venue, r['order'].account_scope) == (obj.venue, obj.account_scope)]
         if obj.side == 'buy':
+            if obs.quote_currency_by_account.get((obj.venue, obj.account_scope)) != self._symbols(obj)[1]:
+                raise ValueError('settled cash currency is missing or mismatched')
+            legacy = obs.positions.exposure.get(obj.venue)
+            if legacy is not None and legacy.reservations:
+                raise ValueError('broker cash reservations require reconciliation before new entry')
             if not obs.no_credit:
                 raise ValueError('verified no-credit account required')
             available = obs.settled_cash_krw.get((obj.venue, obj.account_scope))
             if available is None:
                 raise ValueError('settled cash unavailable')
-            promised = sum(((r['order'].quantity-r['filled']) * r['order'].limit_price*r['order'].quote_krw
-                            * (1+r['rules'].fee_fraction) for r in same if r['order'].side == 'buy'), Decimal(0))
+            promised = self._pending_buy_krw(obj,obs,orders,exclude)
             needed = obj.quantity * obj.limit_price * obj.quote_krw * (1 + rules.fee_fraction)
             if needed > available - promised:
                 raise ValueError('insufficient unreserved settled cash')
@@ -538,10 +579,7 @@ class Controller:
             legacy=obs.positions.exposure.get(obj.venue)
             if legacy is None or Decimal(str(legacy.held_krw))!=held or legacy.reservations:
                 raise ValueError('venue exposure must be independently reconciled')
-            promised=sum(((rec['order'].quantity-rec['filled'])*rec['order'].limit_price
-                          *rec['order'].quote_krw*(1+rec['rules'].fee_fraction)
-                          for key,rec in orders.items() if key!=exclude and rec['status'] in _ACTIVE
-                          and rec['order'].venue==obj.venue and rec['order'].side=='buy'),Decimal(0))
+            promised=self._pending_buy_krw(obj,obs,orders,exclude)
             amount=obj.quantity*obj.limit_price*obj.quote_krw
             if held+promised+amount>Decimal(str(cap))*obs.risk.equity:
                 raise ValueError('exact venue cap exceeded')
@@ -575,16 +613,14 @@ class Controller:
             verify_session(prepared, session_id=session_id, policy=self.policy, instrument_rules=rules, ctx=ctx, now=now,
                            order=obj, events=tx.events)
             held=obs.held_exposure_krw.get((obj.venue,obj.account_scope))
-            if held is None:
-                raise ValueError('exact held exposure required for session capital')
+            inventory=obs.inventory_exposure_krw.get((obj.venue,obj.account_scope))
+            if held is None or inventory is None or not 0 <= inventory <= held:
+                raise ValueError('exact inventory and total venue exposure required for session capital')
             legacy=obs.positions.exposure.get(obj.venue)
             if (legacy is not None and (Decimal(str(legacy.held_krw))!=held or legacy.reservations)):
                 raise ValueError('session exposure sources disagree')
-            pending=sum(((rec['order'].quantity-rec['filled'])*rec['order'].limit_price
-                        *rec['order'].quote_krw*(1+rec['rules'].fee_fraction)
-                        for key,rec in orders.items() if key!=exclude and rec['status'] in _ACTIVE
-                        and rec['order'].venue==obj.venue and rec['order'].side=='buy'),Decimal(0))
-            if held+pending+obj.quantity*obj.limit_price*obj.quote_krw*(1+rules.fee_fraction)>Decimal(prepared.stake_krw):
+            pending=self._pending_buy_krw(obj,obs,orders,exclude)
+            if inventory+pending+obj.quantity*obj.limit_price*obj.quote_krw*(1+rules.fee_fraction)>Decimal(prepared.stake_krw):
                 raise ValueError('aggregate exposure exceeds prepared session capital')
         intent = self._intent(obj, ctx)
         self._exact_caps(obj,obs,orders,ctx,intent,exclude)

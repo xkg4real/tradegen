@@ -1,0 +1,15 @@
+{
+  "pages": 17,
+  "bytes": 693144,
+  "pdf_sha256": "9807d05e008c58d58502b76cac1578c28caae99716c96a3d28b566f6f2c411e9",
+  "boundary_errors": [],
+  "latex_warnings": [],
+  "input_hash_mismatches": [],
+  "artifact_matches_repo": true,
+  "report_language": "Korean with English abstract and figure labels",
+  "figures": 4,
+  "academic_references": 11,
+  "inspection": "Every page rendered and visually inspected; Korean glyphs, equations, tables, chart panels, bibliography, and page boundaries are legible. No placeholder, overflow, missing glyph, or LaTeX warning remains.",
+  "strategy_evaluation_rerun": false,
+  "engine_or_protocol_modified": false
+}

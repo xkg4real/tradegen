@@ -290,7 +290,9 @@ def test_exact_venue_cap_rejects_amount_that_float_conversion_rounds_down():
                       limit_price=D('10.00000000000000000000000000001'))
         positions=M.Positions(equity_krw=100.0,exposure={'okx':M.Exposure(held_krw=0.0)})
         observation=replace(env.observation,positions=positions,account_scopes={'okx':'fixture-account'},
-            held_exposure_krw={('okx','fixture-account'):D('0')},risk=replace(env.observation.risk,equity=D('100')))
+            held_exposure_krw={('okx','fixture-account'):D('0')},
+            inventory_exposure_krw={('okx','fixture-account'):D('0')},
+            risk=replace(env.observation.risk,equity=D('100')))
         ctx=F.ctx(equity_krw=100.0,exposure=positions.exposure)
         intent=env.controller._intent(order,ctx)
         assert intent.notional_krw==10.0
@@ -313,6 +315,11 @@ def test_h2_seoul_day_disagreement_keeps_local_latch_without_owner_write():
         with env.journal.transaction() as tx:
             _,killed,halted,_=_fold(tx.events)
             assert 'boundary-session' in killed and halted
+    with signed_control(prepare=False) as env:
+        boundary=env.now.replace(hour=0,minute=0,second=5)
+        previous=boundary-timedelta(seconds=10)
+        snapshot(env,asof=previous,server_time=boundary,risk=replace(env.observation.risk,asof=previous))
+        refused(lambda:env.controller._account(boundary,()))
 
 
 def test_contradictory_terminal_status_adds_no_fill_or_terminal_journal_rows():
@@ -351,6 +358,10 @@ def test_okx_sell_promises_share_base_inventory_across_quote_pairs_exactly():
         env.controller.adapters['okx']=DryRunAdapter(okx)
         snapshot(env,positions=M.Positions(equity_krw=1000000.0,holdings={('okx','BTC'):1.0},
                 exposure={'okx':M.Exposure(held_krw=1000.0)}),account_scopes={'okx':'fixture-account'},
+            held_exposure_krw={('okx','fixture-account'):D('1000')},
+            inventory_exposure_krw={('okx','fixture-account'):D('1000')},
+            quote_currency_by_account={('okx','fixture-account'):'USDT'},settled_cash_krw={},
+            quote_rates_krw={('okx','fixture-account','USDT'):D('1'),('okx','fixture-account','USDC'):D('1')},
             holdings={('okx','fixture-account','spot','BTC-USDT'):D('1'),
                       ('okx','fixture-account','spot','BTC-USDC'):D('1')})
         first=replace(env.order,client_id='okxfirst',venue='okx',symbol='BTC-USDT',side='sell',quantity=D('0.5'),limit_price=D('100'))
@@ -398,3 +409,125 @@ def test_conflicting_broker_average_preserves_reservation_without_journal_rows()
             assert tx.events==before
         env.adapter.results.append(replace(result(env,'filled',env.order.quantity),average_price=env.order.limit_price))
         assert env.controller.reconcile(env.order.client_id,now=env.now).status=='FILLED'
+
+
+def test_buy_requires_explicit_quote_cash_binding_before_reserve_and_dispatch():
+    with signed_control() as env:
+        original=env.observation
+        for mapping in ({}, {('upbit','fixture-account'):'USD'}, {('upbit','other-account'):'KRW'}):
+            snapshot(env,quote_currency_by_account=mapping)
+            refused(lambda:reserve(env))
+            assert not env.adapter.requests
+        env.observation=original
+        assert reserve(env).status=='RESERVED'
+        snapshot(env,quote_currency_by_account={('upbit','fixture-account'):'USD'})
+        refused(lambda:send(env))
+        assert not env.adapter.requests
+        env.observation=original
+        assert send(env).status=='ACKNOWLEDGED'
+
+
+def test_equal_krw_values_do_not_substitute_usdt_usdc_or_krw_usd_cash():
+    with signed_control(prepare=False) as env:
+        for venue,market,symbol,quote,wrong in (
+                ('okx','spot','BTC-USDC','USDC','USDT'),
+                ('kis','nasd','AAPL','USD','KRW'),
+                ('kis','krx','005930','KRW','USD')):
+            order=replace(env.order,venue=venue,market=market,symbol=symbol,quantity=D('1'),
+                          limit_price=D('10'),quote_krw=D('1') if quote=='KRW' else D('1400'),
+                          time_in_force='day' if venue=='kis' else 'gtc')
+            rules=replace(env.rules,venue=venue,market=market,symbol=symbol)
+            account=(venue,'fixture-account')
+            observation=replace(env.observation,settled_cash_krw={account:D('1000000')},
+                quote_currency_by_account={account:wrong},
+                quote_rates_krw={(*account,quote):order.quote_krw})
+            refused(lambda:env.controller._capacity(order,rules,observation,{}))
+            env.controller._capacity(order,rules,replace(observation,quote_currency_by_account={account:quote}),{})
+
+
+def test_verified_reducing_sell_does_not_require_spendable_quote_cash():
+    with signed_control(prepare=False) as env:
+        snapshot(env,positions=replace(env.observation.positions,holdings={('upbit','BTC'):0.001}),
+                 holdings={('upbit','fixture-account','spot','KRW-BTC'):D('0.001')},
+                 quote_currency_by_account={},settled_cash_krw={})
+        sell=replace(env.order,side='sell')
+        assert reserve(env,sell).status=='RESERVED'
+
+
+def test_session_inventory_is_required_bounded_and_distinct_from_total_cash_exposure():
+    with signed_control() as env:
+        original=env.observation
+        for inventory in ({}, {('upbit','fixture-account'):D('1')}):
+            snapshot(env,inventory_exposure_krw=inventory)
+            refused(lambda:reserve(env))
+        snapshot(env,inventory_exposure_krw={('upbit','fixture-account'):D('0')},
+                 held_exposure_krw={('upbit','fixture-account'):D('1000000')},
+                 positions=replace(original.positions,exposure={'upbit':M.Exposure(held_krw=1000000.0)}))
+        assert reserve(env).status=='RESERVED'
+        assert send(env).status=='ACKNOWLEDGED'
+
+
+def test_broker_cash_reservations_block_entries_before_any_dispatch():
+    with signed_control() as env:
+        snapshot(env,positions=replace(env.observation.positions,
+                 exposure={'upbit':M.Exposure(held_krw=0.0,reservations={'outside-order':1.0})}))
+        refused(lambda:reserve(env))
+        assert not env.adapter.requests
+
+
+def test_venue_cap_counts_settlement_assets_even_when_session_inventory_is_zero():
+    with signed_control(prepare=False) as env:
+        order=replace(env.order,venue='okx',symbol='BTC-USDT',quantity=D('1'),limit_price=D('1'))
+        positions=M.Positions(equity_krw=100.0,exposure={'okx':M.Exposure(held_krw=10.0)})
+        observation=replace(env.observation,positions=positions,account_scopes={'okx':'fixture-account'},
+            held_exposure_krw={('okx','fixture-account'):D('10')},
+            inventory_exposure_krw={('okx','fixture-account'):D('0')},
+            risk=replace(env.observation.risk,equity=D('100')))
+        ctx=F.ctx(equity_krw=100.0,exposure=positions.exposure)
+        refused(lambda:env.controller._exact_caps(order,observation,{},ctx,env.controller._intent(order,ctx)))
+
+
+def test_missing_authoritative_fx_blocks_reservation_and_dispatch_for_both_sides():
+    with signed_control() as env:
+        original=env.observation
+        snapshot(env,quote_rates_krw={})
+        refused(lambda:reserve(env))
+        env.observation=original
+        reserve(env)
+        snapshot(env,quote_rates_krw={})
+        refused(lambda:send(env))
+        assert not env.adapter.requests
+    with signed_control(prepare=False) as env:
+        snapshot(env,positions=replace(env.observation.positions,holdings={('upbit','BTC'):0.001}),
+                 holdings={('upbit','fixture-account','spot','KRW-BTC'):D('0.001')})
+        sell=replace(env.order,side='sell')
+        original=env.observation
+        snapshot(env,quote_rates_krw={})
+        refused(lambda:reserve(env,sell))
+        env.observation=original
+        reserve(env,sell)
+        snapshot(env,quote_rates_krw={})
+        refused(lambda:send(env))
+        assert not env.adapter.requests
+
+
+def test_pending_foreign_cash_is_revalued_and_unrelated_scopes_cannot_fund_entries():
+    with signed_control(prepare=False) as env:
+        order=replace(env.order,venue='okx',symbol='BTC-USDT',quantity=D('1'),
+                      limit_price=D('100'),quote_krw=D('1500'))
+        old=replace(order,client_id='old-quote',quote_krw=D('1000'))
+        rules=replace(env.rules,venue='okx',symbol=order.symbol)
+        account=('okx','fixture-account')
+        observation=replace(env.observation,account_scopes={'okx':'fixture-account'},
+            positions=M.Positions(equity_krw=1000000.0,exposure={'okx':M.Exposure(held_krw=0.0)}),
+            quote_currency_by_account={account:'USDT'},quote_rates_krw={(*account,'USDT'):D('1500')},
+            settled_cash_krw={account:D('250000')})
+        pending={old.client_id:{'order':old,'rules':rules,'status':'RESERVED','filled':D('0')}}
+        assert env.controller._pending_buy_krw(order,observation,pending)==D('150150')
+        assert env.controller._positions(observation,pending).exposure['okx'].reservations[old.client_id]==150150.0
+        refused(lambda:env.controller._capacity(order,rules,observation,pending))
+        observation=replace(observation,settled_cash_krw={account:D('300300')})
+        env.controller._capacity(order,rules,observation,pending)
+        for changed in (replace(old,account_scope='another-account'),replace(old,symbol='BTC-USDC')):
+            pending[old.client_id]['order']=changed
+            refused(lambda:env.controller._capacity(order,rules,observation,pending))

@@ -1,0 +1,467 @@
+{
+  "data": {
+    "BTC_KRW": {
+      "adjustment_status": "unadjusted_spot_close",
+      "annualization": 365,
+      "asset_id": "BTC_KRW",
+      "currency": "KRW",
+      "data_manifest_sha256": "3a8646f403bd1d0417fe6b6aaeb3f98e3789d77d37d4886f59a7f4928b750697",
+      "prior_use": "Previously inspected in QUANTGEN asset-expansion study; exploratory/internal pseudo-out-of-sample only.",
+      "provider": "Upbit public candles",
+      "selected_rows_sha256": "8b959dab02ba39d837f592e75ed6489557f61db8887143c941408cf32949d84a",
+      "source_path": "docs/asset_expansion/cache/upbit_KRW-BTC.csv",
+      "source_sha256": "a08e693dc090677985501719d289d55d074428fb930e66eec805da1794de0d6f",
+      "symbol": "KRW-BTC",
+      "time_basis": "UTC daily candle; 09:00 Asia/Seoul boundary"
+    },
+    "BTC_USDT": {
+      "adjustment_status": "unadjusted_spot_close",
+      "annualization": 365,
+      "asset_id": "BTC_USDT",
+      "currency": "USDT",
+      "data_manifest_sha256": "3a8646f403bd1d0417fe6b6aaeb3f98e3789d77d37d4886f59a7f4928b750697",
+      "prior_use": "Previously inspected in QUANTGEN asset-expansion study; exploratory/internal pseudo-out-of-sample only.",
+      "provider": "Binance public spot klines",
+      "selected_rows_sha256": "16dd48bfb564ebd98da311e20e2f2a1d963f875e87549ddecbb675fbd3ba8e0d",
+      "source_path": "docs/asset_expansion/cache/binance_BTCUSDT.csv",
+      "source_sha256": "efd78ccd87c29d8c1fbab385473987e314f748193b20a518c0f36895435358c7",
+      "symbol": "BTCUSDT",
+      "time_basis": "UTC daily candle"
+    },
+    "ETH_USDT": {
+      "adjustment_status": "unadjusted_spot_close",
+      "annualization": 365,
+      "asset_id": "ETH_USDT",
+      "currency": "USDT",
+      "data_manifest_sha256": "3a8646f403bd1d0417fe6b6aaeb3f98e3789d77d37d4886f59a7f4928b750697",
+      "prior_use": "Previously inspected in QUANTGEN asset-expansion study; exploratory/internal pseudo-out-of-sample only.",
+      "provider": "Binance public spot klines",
+      "selected_rows_sha256": "2bbcecbb07ce448b1c3f393942abba2fb78028f3f5deef22e041d56524408714",
+      "source_path": "docs/asset_expansion/cache/binance_ETHUSDT.csv",
+      "source_sha256": "b1f928cb63aae2913ad288d5a4d15c39e25e12c52c3c9e48815f347c8da9ab01",
+      "symbol": "ETHUSDT",
+      "time_basis": "UTC daily candle"
+    },
+    "GLD": {
+      "adjustment_status": "provider_adjusted_close",
+      "annualization": 252,
+      "asset_id": "GLD",
+      "currency": "USD",
+      "data_manifest_sha256": "3a8646f403bd1d0417fe6b6aaeb3f98e3789d77d37d4886f59a7f4928b750697",
+      "prior_use": "Previously inspected in QUANTGEN asset-expansion study; exploratory/internal pseudo-out-of-sample only.",
+      "provider": "Yahoo Finance",
+      "selected_rows_sha256": "715da5e7c4385fa4c6a9d062707219e1f391c682a9771551c006e954184508b4",
+      "source_path": "docs/asset_expansion/cache/yf_GLD.csv",
+      "source_sha256": "2f44fd3cc15e15e4a34fd4121e5843dc121b9bb7fb65b559cf9eef730b7e362c",
+      "symbol": "GLD",
+      "time_basis": "US_exchange_session_date"
+    },
+    "QQQ": {
+      "adjustment_status": "provider_adjusted_close",
+      "annualization": 252,
+      "asset_id": "QQQ",
+      "currency": "USD",
+      "data_manifest_sha256": "3a8646f403bd1d0417fe6b6aaeb3f98e3789d77d37d4886f59a7f4928b750697",
+      "prior_use": "Previously inspected in QUANTGEN asset-expansion study; exploratory/internal pseudo-out-of-sample only.",
+      "provider": "Yahoo Finance",
+      "selected_rows_sha256": "d78079d38bc457544ebcf3263c2385c467567a9b7b08e83a5b50c0cda1471e6e",
+      "source_path": "docs/asset_expansion/cache/yf_QQQ.csv",
+      "source_sha256": "57f9f8e0a03ad117cc6fd448391ddd2aa4b1b3147f89f9c541c3a6c67eabc452",
+      "symbol": "QQQ",
+      "time_basis": "US_exchange_session_date"
+    },
+    "SPY": {
+      "adjustment_status": "provider_adjusted_close",
+      "annualization": 252,
+      "asset_id": "SPY",
+      "currency": "USD",
+      "data_manifest_sha256": "3a8646f403bd1d0417fe6b6aaeb3f98e3789d77d37d4886f59a7f4928b750697",
+      "prior_use": "Previously inspected in QUANTGEN asset-expansion study; exploratory/internal pseudo-out-of-sample only.",
+      "provider": "Yahoo Finance",
+      "selected_rows_sha256": "77d4481f68ed16341cab47ae4bc2d32bb6ab25d0efa47738f89de992792311e3",
+      "source_path": "docs/asset_expansion/cache/yf_SPY.csv",
+      "source_sha256": "5b6754cb4514247970da589ce77bcc6df29f4a59871a5fab8f9efdd5646cee89",
+      "symbol": "SPY",
+      "time_basis": "US_exchange_session_date"
+    },
+    "TIGER200": {
+      "adjustment_status": "provider_adjusted_close",
+      "annualization": 252,
+      "asset_id": "TIGER200",
+      "currency": "KRW",
+      "data_manifest_sha256": "3a8646f403bd1d0417fe6b6aaeb3f98e3789d77d37d4886f59a7f4928b750697",
+      "prior_use": "Previously inspected in QUANTGEN asset-expansion study; exploratory/internal pseudo-out-of-sample only.",
+      "provider": "Yahoo Finance",
+      "selected_rows_sha256": "66b6b6a4353cd2b65ac0f2cd4f470c04f217004c3db7543ef82b40c296cdbdfd",
+      "source_path": "docs/asset_expansion/cache/yf_102110.KS.csv",
+      "source_sha256": "710228fde9e520ffbe1417293aebf804e82e26b1705791b434345c974cb00d68",
+      "symbol": "102110.KS",
+      "time_basis": "KRX_exchange_session_date"
+    },
+    "TLT": {
+      "adjustment_status": "provider_adjusted_close",
+      "annualization": 252,
+      "asset_id": "TLT",
+      "currency": "USD",
+      "data_manifest_sha256": "3a8646f403bd1d0417fe6b6aaeb3f98e3789d77d37d4886f59a7f4928b750697",
+      "prior_use": "Previously inspected in QUANTGEN asset-expansion study; exploratory/internal pseudo-out-of-sample only.",
+      "provider": "Yahoo Finance",
+      "selected_rows_sha256": "dd88c8978996f9325c3405b71f4ccdd147126753ad7ec56c0d1ccaba39aa20f0",
+      "source_path": "docs/asset_expansion/cache/yf_TLT.csv",
+      "source_sha256": "523bbd66d3e07f16c500a28d5a8739460e161e48fe6baeb4c1c4c080c519bc80",
+      "symbol": "TLT",
+      "time_basis": "US_exchange_session_date"
+    }
+  },
+  "environment": {
+    "numpy": "2.3.5",
+    "pandas": "2.3.3",
+    "python": "3.13.16",
+    "scipy": "1.18.0"
+  },
+  "freeze_commit": "8e7c6c85c5ed3799a7cb6d4ac350ebdf57af1175",
+  "frozen_file_sha256": {
+    "research_lab/__init__.py": "4d3765fece7c1153e13d34e31ffd37902eea15792138d88f911fba3b1971050f",
+    "research_lab/backtest.py": "a406053c69d4824d7970e221f831d33a4174e99de111dbdf78587a3809fb8d32",
+    "research_lab/candidates.py": "565eba5ad01008db81f473589f1767a95a6a2f764a8f7f72d074095e19697d58",
+    "research_lab/catalogue.json": "2f3fd10bd0b4da2e778e133af5284f1133e36e05fa62e639234fca630d48c7cc",
+    "research_lab/data.py": "ca90e614664db17118c6dea33797b744bc39f9e32f40ce177beb941cdde7639b",
+    "research_lab/data_manifest.json": "3a8646f403bd1d0417fe6b6aaeb3f98e3789d77d37d4886f59a7f4928b750697",
+    "research_lab/inference.py": "96d6e026f46282b6862bfb1a9dbc3de5914df8f86a17db42bbeb409686c82167",
+    "research_lab/protocol.json": "5b32f60cec5e893af9dd2ef685c369240ded00c846ca521990d0a7b3e9b38aff",
+    "research_lab/run.py": "dfa8a0f19ead3614110fcd2f1ffa966e0e33862848f0b4c459ff08147ca9455b"
+  },
+  "protocol": {
+    "annualization": {
+      "BTC_KRW": 365,
+      "BTC_USDT": 365,
+      "ETH_USDT": 365,
+      "GLD": 252,
+      "QQQ": 252,
+      "SPY": 252,
+      "TIGER200": 252,
+      "TLT": 252
+    },
+    "assets": [
+      "SPY",
+      "QQQ",
+      "GLD",
+      "TLT",
+      "TIGER200",
+      "BTC_KRW",
+      "BTC_USDT",
+      "ETH_USDT"
+    ],
+    "basket": {
+      "assets": [
+        "SPY",
+        "QQQ",
+        "GLD",
+        "TLT"
+      ],
+      "capital": "initial equal quarters in independent selected sleeves; cash for no selection",
+      "currency": "USD",
+      "dates": "require identical holdout dates else unavailable",
+      "rebalancing": "no transfers or rebalancing between sleeves; equity=sum of sleeve equity/4",
+      "status": "secondary descriptive fractional-capital model; no extra hypothesis gate; never a KRW account or mixed-currency realized P&L"
+    },
+    "benchmark": "same-window costed full buy-and-hold with initial and terminal costs",
+    "caps": [
+      0.5,
+      1.0
+    ],
+    "configurations_per_asset": 2676,
+    "cost_bps_per_side": {
+      "BTC_KRW": 10.0,
+      "BTC_USDT": 10.0,
+      "ETH_USDT": 10.0,
+      "GLD": 50.0,
+      "QQQ": 50.0,
+      "SPY": 50.0,
+      "TIGER200": 3.0,
+      "TLT": 50.0
+    },
+    "cost_source": "core/quant/validate.py COST_BP_PER_SIDE; model floors, not current broker fee quotations",
+    "cost_stress_multipliers": [
+      2.0,
+      3.0
+    ],
+    "data_manifest": "research_lab/data_manifest.json",
+    "data_manifest_sha256": "3a8646f403bd1d0417fe6b6aaeb3f98e3789d77d37d4886f59a7f4928b750697",
+    "execution_model": {
+      "boundaries": "each split starts in cash; initial fee charged; last row forces liquidation and does not initiate a new position",
+      "cash_return": 0.0,
+      "fees": "solve target post-fee portfolio weight exactly; buy value delta/(1+c*w), sell value delta/(1-c*w)",
+      "fill_timing": "signal from close t executes close t+lag; marked return earned only after that fill",
+      "portfolio": "fractional shares plus nonnegative cash, no shorting or leverage; caps are target weights at rebalance and may drift between rebalances",
+      "price_limitation": "adjusted/close-only proxies do not prove executable prices, partial fills, intraday stops, legal ownership, or affordable whole lots",
+      "primary_lag_bars": 1,
+      "rebalance_anchor": "first row of each evaluation split, then every k bars; binary signals are computed on every close",
+      "sizing": "min(cap,target_vol/trailing_annualized_vol) when target set; else cap; zero/invalid volatility gives cash",
+      "stress_lag_bars": 2
+    },
+    "grid": {
+      "crossover": {
+        "band": [
+          0.0,
+          0.005
+        ],
+        "fast": [
+          5,
+          10,
+          20,
+          40
+        ],
+        "slow": [
+          60,
+          90,
+          120,
+          180,
+          250
+        ]
+      },
+      "donchian": {
+        "constraint": "exit < entry",
+        "entry": [
+          10,
+          20,
+          40,
+          60,
+          90,
+          120
+        ],
+        "exit": [
+          5,
+          10,
+          20
+        ]
+      },
+      "drawdown": {
+        "depth": [
+          0.05,
+          0.1,
+          0.2
+        ],
+        "exit_fraction": [
+          0.25,
+          0.5,
+          0.75
+        ],
+        "peak_window": [
+          60,
+          120,
+          250
+        ]
+      },
+      "lowvol_trend": {
+        "momentum_window": [
+          20,
+          60,
+          120
+        ],
+        "quantile": [
+          0.3,
+          0.5,
+          0.7
+        ],
+        "quantile_window": 252,
+        "vol_window": [
+          20,
+          60,
+          120
+        ]
+      },
+      "rsi": {
+        "lookback": [
+          5,
+          10,
+          14,
+          20,
+          30
+        ],
+        "lower": [
+          20,
+          30,
+          40
+        ],
+        "upper": [
+          50,
+          60
+        ]
+      },
+      "sma": {
+        "band": [
+          0.0,
+          0.005,
+          0.01
+        ],
+        "lookback": [
+          5,
+          10,
+          20,
+          40,
+          60,
+          90,
+          120,
+          180,
+          250
+        ]
+      },
+      "tsmom": {
+        "lookback": [
+          5,
+          10,
+          20,
+          40,
+          60,
+          90,
+          120,
+          180,
+          250
+        ],
+        "threshold": [
+          0.0,
+          0.01,
+          0.03
+        ]
+      },
+      "zscore": {
+        "entry": [
+          1.0,
+          1.5,
+          2.0
+        ],
+        "exit": [
+          0.0,
+          0.5
+        ],
+        "lookback": [
+          10,
+          20,
+          40,
+          60,
+          90
+        ]
+      }
+    },
+    "inference": {
+      "cash_comparison": "positive mean and zero-cash p are diagnostics; positive asset risk premium is not alpha",
+      "hac": "OLS strategy return on intercept and costed same-asset benchmark return, Bartlett Newey-West lag20, n/(n-2) correction; normal one-sided alpha p diagnostic only",
+      "historical_contamination": "all source caches were in prior research; formal p values are exploratory diagnostics, not fresh confirmatory evidence",
+      "holdout_intervals": "paired circular-block percentile95% mean, mean difference and Sharpe-difference intervals",
+      "holdout_multiplicity": "Holm across all8 frozen selected-versus-benchmark mean p values; unavailable/unselected assets assigned1",
+      "monte_carlo_p": "(1 + exceedance count)/(B+1); shared date draws across all candidates; no zero p values",
+      "primary": "centered circular moving-block maximum sqrt(T)*mean(strategy-minus-costed-benchmark), floored at0",
+      "primary_block_bars": 20,
+      "primary_replications": 1999,
+      "sensitivity_block_bars": [
+        5,
+        60
+      ],
+      "sensitivity_replications": 999,
+      "validation_multiplicity": "Holm across all8 asset omnibus p values; unavailable assets assigned1"
+    },
+    "interpretation": "Exploratory retrospective internal holdout, not untouched confirmation, live authorization, or investment advice.",
+    "minimum_scored_rows": {
+      "holdout": 365,
+      "train": 500,
+      "validation": 365
+    },
+    "owner_policy": {
+      "prohibited_inferences": [
+        "marked returns equal realized daily profit",
+        "end-of-day observations establish intraday floor compliance",
+        "positive forecast guarantees target",
+        "missing inputs imply unlimited or zero allowance"
+      ],
+      "status": "separate unresolved-input and feasibility assessment",
+      "unknowns": [
+        "first-session loss allowance/scope",
+        "zero-profit-prior-day loss budget",
+        "daily loss accumulator",
+        "valuation and external-flow convention"
+      ]
+    },
+    "production_status": "NOT_VALIDATED_FOR_PRODUCTION regardless of statistical label",
+    "promising_exploratory_criteria": [
+      "validation omnibus Holm p <=0.05",
+      "holdout selected-versus-benchmark mean Holm p <=0.05",
+      "positive holdout net mean",
+      "positive holdout net mean at2x costs",
+      "at least30 holdout completed roundtrips"
+    ],
+    "provenance_rules": [
+      "commit protocol, data manifest, candidate catalogue and source hashes before candidate P&L evaluation",
+      "publish all candidate outcomes and failed/insufficient cases",
+      "never retune after holdout or rerun search until a winner appears",
+      "retain previous frozen S_C3/GrokBot/H2 artifacts unchanged",
+      "any later change is a new study version with new trial accounting"
+    ],
+    "raw_family_counts": {
+      "crossover": 40,
+      "donchian": 15,
+      "drawdown": 27,
+      "lowvol_trend": 27,
+      "rsi": 30,
+      "sma": 27,
+      "tsmom": 27,
+      "zscore": 30
+    },
+    "raw_rules_per_asset": 223,
+    "rebalance_bars": [
+      1,
+      5,
+      21
+    ],
+    "schema_version": 1,
+    "seed": 20261031,
+    "selection": {
+      "fallback": "cash; no holdout-dependent replacement",
+      "minimum_completed_roundtrips": 20,
+      "objective": "maximum net Sharpe",
+      "require_positive_net_mean": true,
+      "selected_per_asset": 1,
+      "split": "validation",
+      "tie_breakers": [
+        "lower turnover",
+        "lexical candidate ID"
+      ],
+      "tie_tolerance": 1e-12
+    },
+    "signal_semantics": {
+      "crossover": "long when SMA_fast[t]/SMA_slow[t]-1 > band, otherwise cash",
+      "donchian": "enter above prior L closes max; exit below prior M closes min; current close excluded from thresholds; equality retains state",
+      "drawdown": "DD=P[t]/rolling_max_including_current-1; enter DD < -depth; exit DD > -depth*exit_fraction; equality retains state",
+      "lowvol_trend": "annualized trailing log-return sample SD <= quantile of252 prior vol estimates excluding current, and L-period price change >0",
+      "rsi": "simple rolling arithmetic mean of last L positive/negative price changes; enter RSI < lower, exit RSI > upper; equal retains; no losses gives100, both zero gives50",
+      "sma": "long when P[t]/mean(P[t-L+1:t+1])-1 > band, otherwise cash",
+      "tsmom": "long when P[t]/P[t-L]-1 > threshold, otherwise cash",
+      "zscore": "rolling log-price mean and sample SD include current close; enter z < -entry; exit z > -exit; equality retains state"
+    },
+    "sizing_vol_window": 20,
+    "splits": {
+      "holdout": {
+        "end": "2026-09-24",
+        "start": "2023-01-01"
+      },
+      "train": {
+        "end": "2020-12-31",
+        "start": null
+      },
+      "validation": {
+        "end": "2022-12-31",
+        "start": "2021-01-01"
+      }
+    },
+    "status": "PREREGISTERED_COMPUTATION_ON_PREVIOUSLY_INSPECTED_HISTORY",
+    "study_id": "TRADEGEN_RETROSPECTIVE_STRATEGY_LAB_2026_10_31",
+    "total_configurations": 21408,
+    "vol_targets": [
+      null,
+      0.15
+    ],
+    "warmup_bars": 500
+  },
+  "purpose": "retrospective exploratory internal holdout; no account, trading or live-validation path",
+  "schema_version": 1
+}

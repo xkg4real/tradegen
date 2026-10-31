@@ -24,6 +24,22 @@ inside Korean law.
   quotations only" describes the macro package; the P0 read-only guards are
   narrowed, file by file, for `execution/kis_inquiry.py` and
   `execution/upbit_inquiry.py`.
+- **Account evidence and connection readiness.** Exact cash/FIFO/history/FX
+  reconciliation and a sanitized E1 inquiry interface are implemented in
+  `execution_accounts`. New orders bind the actual settlement currency and
+  current account FX; pending capital is revalued without treating cash as an
+  existing investment. The [connection runbook](docs/account-connection-runbook.md)
+  distinguishes configuration, complete authenticated evidence, owner signing
+  and execution. Current Cloud credentials/venue access, proxy integration and
+  a complete venue-history collector are still unavailable. No live connection,
+  owner signature or activation is claimed.
+- **Strategy research (2026-10-31).** A frozen exploratory study evaluated
+  **21,408 configurations** from eight economic families across eight assets.
+  Six were selected on validation data; **zero passed** the specified joint
+  validation/holdout screen. This reused previously studied history, so it is
+  not independent confirmation. The [research PDF](docs/research/2026-10-31-strategy-lab/paper/TRADEGEN_Strategy_Research.pdf)
+  and [complete results](docs/research/2026-10-31-strategy-lab/results/) preserve
+  costs, execution delays, multiplicity adjustments and unsuccessful outcomes.
 - **Not legal, tax or investment advice.** The software and its author are not a
   licensed advisor.
 - **Honest odds.** Turning $30 into $30,000 in a month has at most about a 0.1%
@@ -804,8 +820,8 @@ Two tiers, reported honestly on Settings:
 
 Execution, Rules, Workflows, Skills, KRX, Runs, and Settings are the NEXTGEN
 surfaces, unchanged: the DISARMED→ARMED→HALTED engine, frozen rules with
-edit-revokes-confirmation, the simulated order book (there is still **no
-broker order path** in this repository), the 72-skill cockpit, and the
+edit-revokes-confirmation, the simulated order book (this inherited engine has **no
+broker order path**; E2/E3 adapters are separate), the 72-skill cockpit, and the
 KIS/OpenDART/KRX data layer. The macro overlay does not run through this
 engine: each v2 book has its own runtime state (see [Statuses](#statuses)).
 The navigation rail scrolls, so all nineteen entries are reachable at the
@@ -826,7 +842,7 @@ Optional: `TRADEGEN_MACRO_DIR` moves the macro state out of `~/.tradegen/macro`.
 
 ```bash
 .venv/Scripts/python tests/run_all.py                  # every suite; writes qa/acceptance_results.json
-.venv/Scripts/python tests/run_all.py --suite macro    # one suite: cockpit, engine, ui, quant, ficc, expansion, macro, paper, grokteam, compliance, odds, execution or execution_control
+.venv/Scripts/python tests/run_all.py --suite macro    # one suite: cockpit, engine, ui, quant, ficc, expansion, macro, paper, grokteam, compliance, odds, execution, execution_control, execution_accounts or strategy_research
 .venv/Scripts/python tests/run_all.py --milestone M8   # the exit set of a milestone (tests/macro_registry.csv)
 .venv/Scripts/python -m tests.macro_acceptance         # resync the registry's implemented_in column
 ```
@@ -840,7 +856,7 @@ exit code; the exit code is 0 only when nothing failed. The summary line reads
 
 | Group | Suite | What it covers | Checks |
 |---|---|---|---|
-| cockpit | `tests/acceptance.py` | The inherited NEXTGEN cockpit, including the read-only scans (no order path, no account credentials requested outside `execution/kis_inquiry.py`, Settings shows presence not values) | 47 PASS |
+| cockpit | `tests/acceptance.py` | The inherited NEXTGEN cockpit, including the read-only scans (no order path, credential boundaries remain guarded; readiness exposes names only, Settings shows presence not values) | 47 PASS |
 | engine | `tests/engine_acceptance.py` | The DISARMED→ARMED→HALTED engine, rules, the simulated order book, the quote path, one live order per rule, a cap-rejected trigger retrying once its cap clears | 92 PASS |
 | ui | `tests/flet_api_guard.py` | Every `page.<method>()`, every checked Flet control keyword and attribute, and every `pal.<token>` in `ui/*.py` exists in Flet 0.85.2 and the palette | 4 PASS |
 | quant | `tests/quant_acceptance.py` | Monte Carlo, optimizer, signal and backtest invariants; GARCH parameter recovery, unit-variance t shocks, guardrail flags, likelihood ordering against GBM and normal-GARCH, forecast convergence, the drift modes, the bounded-innovation and martingale checks, the LR null size, interval coverage, every chart renders | 53 PASS |
@@ -852,8 +868,10 @@ exit code; the exit code is 0 only when nothing failed. The summary line reads
 | compliance | `tests/compliance_acceptance.py` over `tests/compliance_*.py` | The compliance gate, offline: the strict YAML loader (duplicate keys, anchors, native dates, 256 KB cap), the rules table, instrument map and venue file with the 38-row coverage and the monthly review cadence, the derived classes, the `decide()` kernel (conduct and hard-coded floor, fail-closed inputs, exits that stay open under D11, the OKX grey row with its cap, acknowledgement and 2026-12-03 auto-off at the Asia/Seoul boundary, D15 refusals and D16 refusals that only live deposit evidence lifts), permits and plan screening, purity, the Ed25519 owner log (chain, anchors, key rotation, system halts), D12 tighten-now/loosen-tomorrow, the approved-version store and signed code hash, `load_context`, the `--check` exit codes 0-4 and the alert template, the owner-kept signer's refusals and key file, and the isolation residual (links, junctions, hard links, final-target checks) | 341 PASS / 1 NOT_RUN |
 | odds | `tests/odds_acceptance.py` over `tests/odds_*.py` | The odds engine, offline with every price feed faked: the single-leg plan whitelist and the named refusals in their fixed order, the cost ledger with the per-fill tick floor (the KRX stock sell tax inside it), floor-protected and stop-based stakes with lot rounding, the no-edge two-point bootstrap and GARCH-t with their pilot checks and corruption tests, the path engine (open and close checks, limit-down locks, the daily loss, rule dates, delisting stress, the OKX cap per entry), the ceiling, the KRX structural maximum and exact bold play, the HIDDEN_EDGE and CEILING_BREACH bug checks, the S_C3 replay against its pinned card with lower-bound Kelly, the report's sentence catalogue, outward number formats and language guard, the unsigned bar loader and its checked cache, the signed calendar, one seed per comparison, the CLI, and the odds guards (the import allowlist, no clock and no file I/O in the signed core) | 287 PASS |
 | execution | `tests/execution_acceptance.py` over `tests/execution_*.py` | E1 read-only account inquiry, offline: the frozen allowlists and refusals before any key is read, Upbit JWT and OKX signing, the shared KIS token cache, KIS read only under signed code, the OKX read-only self-check, snapshots and fail-closed positions, D16 deposit evidence (written on change and daily) with next-Seoul-day lifting and 7-day expiry, every poll check, alert text without balances or addresses, the poller CLI, and the guards (file-exact KIS and Upbit exceptions) | 228 PASS |
-| execution_control | `tests/control_acceptance.py` over `tests/control_*.py` and `tests/orders_*.py` | E2/E3 offline: exact durable reservations, FIFO realized accounting, equity policy, fresh bound odds and owner sessions, one-use capabilities, unknown-outcome retention, authenticated cash limit-order codecs and four mocked venue lifecycles | 131 PASS |
-| **Total** | `tests/run_all.py` | | 1715/1837 passed, 0 failed, 122 not run (2026-10-31, TRADEGEN `.venv`) |
+| execution_control | `tests/control_acceptance.py` over `tests/control_*.py` and `tests/orders_*.py` | E2/E3 offline: exact durable reservations, FIFO realized accounting, equity policy, fresh bound odds and owner sessions, one-use capabilities, unknown-outcome retention, authenticated cash limit-order codecs and four mocked venue lifecycles and changing-FX regression | 140 PASS |
+| execution_accounts | `tests/accounts_acceptance.py` | Exact account cash/FIFO/history/FX evidence, conservative refusal cases, read-only readiness, explicit mocked E1 connection and signed/runtime guards | 42 PASS |
+| strategy_research | `tests/research_acceptance.py` | Frozen data/source integrity, causal costed execution, validation-only selection, block bootstrap and multiplicity checks | 35 PASS |
+| **Total** | `tests/run_all.py` | | 1801/1923 passed, 0 failed, 122 not run (2026-10-31, TRADEGEN `.venv`) |
 
 The macro group (new in v2) discovers every `tests/macro_*.py` module,
 wraps each test in a hermetic guard, and brackets the run with T-HERM-01 (every

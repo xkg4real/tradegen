@@ -1,0 +1,1162 @@
+{
+  "schema_version": 1,
+  "study_date": "2026-10-31",
+  "cutoff_inclusive": "2026-09-24",
+  "raw_data_modified": false,
+  "selection_rule": "Eight asset/venue series selected by economic coverage before new candidate performance evaluation, not by their historical strategy scores.",
+  "prior_use": "All selected caches were used by prior asset-expansion research. No block is asserted untouched, prospective or independent confirmation.",
+  "closed_candle_policy": "The original downloader does not enforce closed candles and no per-file capture timestamp is retained. Exclude cache rows after fixed 2026-09-24; this removes the last stored crypto/US date. KRX cache ends 2026-09-23. This convention is conservative but is not independent timestamp certification.",
+  "forbidden_data": "No GrokBot post-freeze events, grokteam/frozen_book contents, paper_live H2 holdout, owner homes, credentials or account data are loaded.",
+  "provenance_files": {
+    "docs/asset_expansion_study.py": "76b96e34eca5459d2b3f89c9e55f855cf52570a60e64c0291213a3b106c94e22",
+    "data/crypto/crypto_client.py": "f799c510e754292d1467004b87266e08b48afa00cc9d7138d7ee1c7c4396f04b",
+    "docs/asset_expansion/manifest.json": "18c88d75bac9e111cfb4546a9ea7a1313b4f9484f3fa6a2a6b64a921706aef70"
+  },
+  "limitations": [
+    "Only dates and closes are retained: no OHLCV, bid/ask, order-book depth or execution records.",
+    "Yahoo auto_adjust=True identifies provider adjustment, not an independently audited total-return series or point-in-time corporate-action vintage.",
+    "USD, KRW and USDT series remain in native currency. USDT is not assumed identical to USD and no account-level FX profit is inferred.",
+    "Daily close return models cannot certify limit-order fills, intraday stops, principal protection, minimum cash/order sizes, taxes or real-account realized PnL.",
+    "The fixed surviving instruments are not a historical point-in-time security universe and do not identify causal economic effects.",
+    "FRED values in the inventory include holiday missingness/current vintages and are not selected as predictive inputs.",
+    "KODEX 069500 contains an 800-day early gap and is excluded; selected TIGER 102110 begins 2009-04-17.",
+    "Calendar gaps are diagnostic only; no exchange-calendar completeness certification or forward-filled price is created."
+  ],
+  "inventory_file_count": 46,
+  "inventory": [
+    {
+      "path": "docs/asset_expansion/cache/binance_BTCUSDT.csv",
+      "sha256": "efd78ccd87c29d8c1fbab385473987e314f748193b20a518c0f36895435358c7",
+      "bytes": 68632,
+      "rows": 3327,
+      "columns": [
+        "",
+        "binance_BTCUSDT"
+      ],
+      "first_date": "2017-08-17",
+      "last_date": "2026-09-25",
+      "missing_values": 0,
+      "malformed_values": 0,
+      "nonfinite_values": 0,
+      "nonpositive_values": 0,
+      "duplicate_dates": 0,
+      "dates_strictly_increasing": true,
+      "max_calendar_gap_days": 1,
+      "calendar_gaps_over_10_days": []
+    },
+    {
+      "path": "docs/asset_expansion/cache/binance_ETHUSDT.csv",
+      "sha256": "b1f928cb63aae2913ad288d5a4d15c39e25e12c52c3c9e48815f347c8da9ab01",
+      "bytes": 64868,
+      "rows": 3327,
+      "columns": [
+        "",
+        "binance_ETHUSDT"
+      ],
+      "first_date": "2017-08-17",
+      "last_date": "2026-09-25",
+      "missing_values": 0,
+      "malformed_values": 0,
+      "nonfinite_values": 0,
+      "nonpositive_values": 0,
+      "duplicate_dates": 0,
+      "dates_strictly_increasing": true,
+      "max_calendar_gap_days": 1,
+      "calendar_gaps_over_10_days": []
+    },
+    {
+      "path": "docs/asset_expansion/cache/binance_funding_BTCUSDT.csv",
+      "sha256": "54d07c7fa48ee5752454b56b5f8168be2519ed46b7da9fd2e132906c0b0fdafc",
+      "bytes": 73382,
+      "rows": 2573,
+      "columns": [
+        "",
+        "0"
+      ],
+      "first_date": "2019-09-10",
+      "last_date": "2026-09-25",
+      "missing_values": 0,
+      "malformed_values": 0,
+      "nonfinite_values": 0,
+      "nonpositive_values": 324,
+      "duplicate_dates": 0,
+      "dates_strictly_increasing": true,
+      "max_calendar_gap_days": 1,
+      "calendar_gaps_over_10_days": []
+    },
+    {
+      "path": "docs/asset_expansion/cache/fred_DEXKOUS.csv",
+      "sha256": "625d69f4829d7400aea9d9f554ff85721f996ed7202ab916f8e38e9b529bc232",
+      "bytes": 49660,
+      "rows": 2535,
+      "columns": [
+        "DATE",
+        "DEXKOUS"
+      ],
+      "first_date": "2017-01-02",
+      "last_date": "2026-09-18",
+      "missing_values": 109,
+      "malformed_values": 0,
+      "nonfinite_values": 0,
+      "nonpositive_values": 0,
+      "duplicate_dates": 0,
+      "dates_strictly_increasing": true,
+      "max_calendar_gap_days": 3,
+      "calendar_gaps_over_10_days": []
+    },
+    {
+      "path": "docs/asset_expansion/cache/fred_DGS3MO.csv",
+      "sha256": "33a3b49ebbdb3552f48435ff9bc0034e2bd4cd5e21c17320f599efedccd8e8b8",
+      "bytes": 160578,
+      "rows": 9583,
+      "columns": [
+        "DATE",
+        "DGS3MO"
+      ],
+      "first_date": "1990-01-01",
+      "last_date": "2026-09-23",
+      "missing_values": 395,
+      "malformed_values": 0,
+      "nonfinite_values": 0,
+      "nonpositive_values": 21,
+      "duplicate_dates": 0,
+      "dates_strictly_increasing": true,
+      "max_calendar_gap_days": 3,
+      "calendar_gaps_over_10_days": []
+    },
+    {
+      "path": "docs/asset_expansion/cache/upbit_KRW-BTC.csv",
+      "sha256": "a08e693dc090677985501719d289d55d074428fb930e66eec805da1794de0d6f",
+      "bytes": 75588,
+      "rows": 3288,
+      "columns": [
+        "",
+        "upbit_KRW-BTC"
+      ],
+      "first_date": "2017-09-25",
+      "last_date": "2026-09-25",
+      "missing_values": 0,
+      "malformed_values": 0,
+      "nonfinite_values": 0,
+      "nonpositive_values": 0,
+      "duplicate_dates": 0,
+      "dates_strictly_increasing": true,
+      "max_calendar_gap_days": 1,
+      "calendar_gaps_over_10_days": []
+    },
+    {
+      "path": "docs/asset_expansion/cache/yf_000270.KS.csv",
+      "sha256": "c0303e00ee70380611f13b45974826e10daa98fc829dab8e9fda67b207c61a72",
+      "bytes": 179157,
+      "rows": 6681,
+      "columns": [
+        "Date",
+        "yf_000270.KS"
+      ],
+      "first_date": "2000-01-04",
+      "last_date": "2026-09-23",
+      "missing_values": 0,
+      "malformed_values": 0,
+      "nonfinite_values": 0,
+      "nonpositive_values": 0,
+      "duplicate_dates": 0,
+      "dates_strictly_increasing": true,
+      "max_calendar_gap_days": 11,
+      "calendar_gaps_over_10_days": [
+        {
+          "days": 11,
+          "from": "2017-09-29",
+          "to": "2017-10-10"
+        }
+      ]
+    },
+    {
+      "path": "docs/asset_expansion/cache/yf_005380.KS.csv",
+      "sha256": "7e592a607086ce07cf4db72926ce7488b4f444c24f1243d2a8453be2115a71a2",
+      "bytes": 172632,
+      "rows": 6681,
+      "columns": [
+        "Date",
+        "yf_005380.KS"
+      ],
+      "first_date": "2000-01-04",
+      "last_date": "2026-09-23",
+      "missing_values": 0,
+      "malformed_values": 0,
+      "nonfinite_values": 0,
+      "nonpositive_values": 0,
+      "duplicate_dates": 0,
+      "dates_strictly_increasing": true,
+      "max_calendar_gap_days": 11,
+      "calendar_gaps_over_10_days": [
+        {
+          "days": 11,
+          "from": "2017-09-29",
+          "to": "2017-10-10"
+        }
+      ]
+    },
+    {
+      "path": "docs/asset_expansion/cache/yf_005930.KS.csv",
+      "sha256": "060495d1feb99c6a6fa57ad3117d2b08f2c35439be4c320f0877279553eb709b",
+      "bytes": 180021,
+      "rows": 6681,
+      "columns": [
+        "Date",
+        "yf_005930.KS"
+      ],
+      "first_date": "2000-01-04",
+      "last_date": "2026-09-23",
+      "missing_values": 0,
+      "malformed_values": 0,
+      "nonfinite_values": 0,
+      "nonpositive_values": 0,
+      "duplicate_dates": 0,
+      "dates_strictly_increasing": true,
+      "max_calendar_gap_days": 11,
+      "calendar_gaps_over_10_days": [
+        {
+          "days": 11,
+          "from": "2017-09-29",
+          "to": "2017-10-10"
+        }
+      ]
+    },
+    {
+      "path": "docs/asset_expansion/cache/yf_005935.KS.csv",
+      "sha256": "ffd9da02f88ad0fd9ef913f1c662aed9797fad395cfcdeabe2333eef76ac6733",
+      "bytes": 140114,
+      "rows": 5184,
+      "columns": [
+        "Date",
+        "yf_005935.KS"
+      ],
+      "first_date": "2005-09-29",
+      "last_date": "2026-09-23",
+      "missing_values": 0,
+      "malformed_values": 0,
+      "nonfinite_values": 0,
+      "nonpositive_values": 0,
+      "duplicate_dates": 0,
+      "dates_strictly_increasing": true,
+      "max_calendar_gap_days": 11,
+      "calendar_gaps_over_10_days": [
+        {
+          "days": 11,
+          "from": "2017-09-29",
+          "to": "2017-10-10"
+        }
+      ]
+    },
+    {
+      "path": "docs/asset_expansion/cache/yf_069500.KS.csv",
+      "sha256": "142ad6165670d7af53228bbeff1c04361107ec19508e2eb11409372c8cf00a34",
+      "bytes": 114521,
+      "rows": 4274,
+      "columns": [
+        "Date",
+        "yf_069500.KS"
+      ],
+      "first_date": "2007-01-29",
+      "last_date": "2026-09-23",
+      "missing_values": 0,
+      "malformed_values": 0,
+      "nonfinite_values": 0,
+      "nonpositive_values": 0,
+      "duplicate_dates": 0,
+      "dates_strictly_increasing": true,
+      "max_calendar_gap_days": 800,
+      "calendar_gaps_over_10_days": [
+        {
+          "days": 800,
+          "from": "2007-02-07",
+          "to": "2009-04-17"
+        },
+        {
+          "days": 11,
+          "from": "2017-09-29",
+          "to": "2017-10-10"
+        }
+      ]
+    },
+    {
+      "path": "docs/asset_expansion/cache/yf_102110.KS.csv",
+      "sha256": "710228fde9e520ffbe1417293aebf804e82e26b1705791b434345c974cb00d68",
+      "bytes": 114265,
+      "rows": 4266,
+      "columns": [
+        "Date",
+        "yf_102110.KS"
+      ],
+      "first_date": "2009-04-17",
+      "last_date": "2026-09-23",
+      "missing_values": 0,
+      "malformed_values": 0,
+      "nonfinite_values": 0,
+      "nonpositive_values": 0,
+      "duplicate_dates": 0,
+      "dates_strictly_increasing": true,
+      "max_calendar_gap_days": 11,
+      "calendar_gaps_over_10_days": [
+        {
+          "days": 11,
+          "from": "2017-09-29",
+          "to": "2017-10-10"
+        }
+      ]
+    },
+    {
+      "path": "docs/asset_expansion/cache/yf_122630.KS.csv",
+      "sha256": "480cc807c6d776bd4844e5a19f649e977eed3172603c5c0a6f3f3a93ad8583e1",
+      "bytes": 80945,
+      "rows": 4052,
+      "columns": [
+        "Date",
+        "yf_122630.KS"
+      ],
+      "first_date": "2010-02-22",
+      "last_date": "2026-09-23",
+      "missing_values": 0,
+      "malformed_values": 0,
+      "nonfinite_values": 0,
+      "nonpositive_values": 0,
+      "duplicate_dates": 0,
+      "dates_strictly_increasing": true,
+      "max_calendar_gap_days": 11,
+      "calendar_gaps_over_10_days": [
+        {
+          "days": 11,
+          "from": "2017-09-29",
+          "to": "2017-10-10"
+        }
+      ]
+    },
+    {
+      "path": "docs/asset_expansion/cache/yf_132030.KS.csv",
+      "sha256": "03d49e31cfe16b6155c846581dc4a6b75b272c6ee9042470d9a96457d1862e1f",
+      "bytes": 106050,
+      "rows": 3900,
+      "columns": [
+        "Date",
+        "yf_132030.KS"
+      ],
+      "first_date": "2010-10-01",
+      "last_date": "2026-09-23",
+      "missing_values": 0,
+      "malformed_values": 0,
+      "nonfinite_values": 0,
+      "nonpositive_values": 0,
+      "duplicate_dates": 0,
+      "dates_strictly_increasing": true,
+      "max_calendar_gap_days": 11,
+      "calendar_gaps_over_10_days": [
+        {
+          "days": 11,
+          "from": "2017-09-29",
+          "to": "2017-10-10"
+        }
+      ]
+    },
+    {
+      "path": "docs/asset_expansion/cache/yf_152380.KS.csv",
+      "sha256": "09320c901c372d2423a05fb2b16114580582e887f48514c9c487ca394902950a",
+      "bytes": 90328,
+      "rows": 3559,
+      "columns": [
+        "Date",
+        "yf_152380.KS"
+      ],
+      "first_date": "2012-01-20",
+      "last_date": "2026-09-23",
+      "missing_values": 0,
+      "malformed_values": 0,
+      "nonfinite_values": 0,
+      "nonpositive_values": 0,
+      "duplicate_dates": 0,
+      "dates_strictly_increasing": true,
+      "max_calendar_gap_days": 11,
+      "calendar_gaps_over_10_days": [
+        {
+          "days": 11,
+          "from": "2017-09-29",
+          "to": "2017-10-10"
+        }
+      ]
+    },
+    {
+      "path": "docs/asset_expansion/cache/yf_229200.KS.csv",
+      "sha256": "9fb7b5f761776ff3c25c3b4496a6f00a29be9447ffc5ea8d82a3d428473c556c",
+      "bytes": 73048,
+      "rows": 2663,
+      "columns": [
+        "Date",
+        "yf_229200.KS"
+      ],
+      "first_date": "2015-10-01",
+      "last_date": "2026-09-23",
+      "missing_values": 0,
+      "malformed_values": 0,
+      "nonfinite_values": 0,
+      "nonpositive_values": 0,
+      "duplicate_dates": 0,
+      "dates_strictly_increasing": true,
+      "max_calendar_gap_days": 11,
+      "calendar_gaps_over_10_days": [
+        {
+          "days": 11,
+          "from": "2017-09-29",
+          "to": "2017-10-10"
+        }
+      ]
+    },
+    {
+      "path": "docs/asset_expansion/cache/yf_379800.KS.csv",
+      "sha256": "a7c77d328e0b55a3e432636315c04483bfc9007c6d907c9df484b585e7a77ca2",
+      "bytes": 35959,
+      "rows": 1315,
+      "columns": [
+        "Date",
+        "yf_379800.KS"
+      ],
+      "first_date": "2021-04-09",
+      "last_date": "2026-09-23",
+      "missing_values": 0,
+      "malformed_values": 0,
+      "nonfinite_values": 0,
+      "nonpositive_values": 0,
+      "duplicate_dates": 0,
+      "dates_strictly_increasing": true,
+      "max_calendar_gap_days": 8,
+      "calendar_gaps_over_10_days": []
+    },
+    {
+      "path": "docs/asset_expansion/cache/yf_BTC-USD.csv",
+      "sha256": "d8f9ff14f14f9598bb1be2abeaefa02bbb58d92bea93dd9c62f66d0a99b5219f",
+      "bytes": 120553,
+      "rows": 4392,
+      "columns": [
+        "Date",
+        "yf_BTC-USD"
+      ],
+      "first_date": "2014-09-17",
+      "last_date": "2026-09-25",
+      "missing_values": 0,
+      "malformed_values": 0,
+      "nonfinite_values": 0,
+      "nonpositive_values": 0,
+      "duplicate_dates": 0,
+      "dates_strictly_increasing": true,
+      "max_calendar_gap_days": 1,
+      "calendar_gaps_over_10_days": []
+    },
+    {
+      "path": "docs/asset_expansion/cache/yf_CL_F.csv",
+      "sha256": "1177e7a1bb74bdd8882c35d2f3d711b4aab945f4aa4d3ff9a5e4930237286f50",
+      "bytes": 194498,
+      "rows": 6551,
+      "columns": [
+        "Date",
+        "yf_CL=F"
+      ],
+      "first_date": "2000-08-23",
+      "last_date": "2026-09-25",
+      "missing_values": 0,
+      "malformed_values": 0,
+      "nonfinite_values": 0,
+      "nonpositive_values": 1,
+      "duplicate_dates": 0,
+      "dates_strictly_increasing": true,
+      "max_calendar_gap_days": 5,
+      "calendar_gaps_over_10_days": []
+    },
+    {
+      "path": "docs/asset_expansion/cache/yf_GC_F.csv",
+      "sha256": "8a3b32594abbbe54448b25f9a25cb508560513b8208591dc2cae89880f70e063",
+      "bytes": 182816,
+      "rows": 6543,
+      "columns": [
+        "Date",
+        "yf_GC=F"
+      ],
+      "first_date": "2000-08-30",
+      "last_date": "2026-09-25",
+      "missing_values": 0,
+      "malformed_values": 0,
+      "nonfinite_values": 0,
+      "nonpositive_values": 0,
+      "duplicate_dates": 0,
+      "dates_strictly_increasing": true,
+      "max_calendar_gap_days": 5,
+      "calendar_gaps_over_10_days": []
+    },
+    {
+      "path": "docs/asset_expansion/cache/yf_GLD.csv",
+      "sha256": "2f44fd3cc15e15e4a34fd4121e5843dc121b9bb7fb65b559cf9eef730b7e362c",
+      "bytes": 164731,
+      "rows": 5497,
+      "columns": [
+        "Date",
+        "yf_GLD"
+      ],
+      "first_date": "2004-11-18",
+      "last_date": "2026-09-25",
+      "missing_values": 0,
+      "malformed_values": 0,
+      "nonfinite_values": 0,
+      "nonpositive_values": 0,
+      "duplicate_dates": 0,
+      "dates_strictly_increasing": true,
+      "max_calendar_gap_days": 5,
+      "calendar_gaps_over_10_days": []
+    },
+    {
+      "path": "docs/asset_expansion/cache/yf_HG_F.csv",
+      "sha256": "c344c1f4b9071a605e6e38699d55e9d49fd6d3d7257e40205b96a48d2395ddf3",
+      "bytes": 199192,
+      "rows": 6547,
+      "columns": [
+        "Date",
+        "yf_HG=F"
+      ],
+      "first_date": "2000-08-30",
+      "last_date": "2026-09-25",
+      "missing_values": 0,
+      "malformed_values": 0,
+      "nonfinite_values": 0,
+      "nonpositive_values": 0,
+      "duplicate_dates": 0,
+      "dates_strictly_increasing": true,
+      "max_calendar_gap_days": 5,
+      "calendar_gaps_over_10_days": []
+    },
+    {
+      "path": "docs/asset_expansion/cache/yf_IAU.csv",
+      "sha256": "46bbeff347bd3d127175137d2ea6272e93319214c149493f2d53df2dd6f330bb",
+      "bytes": 163774,
+      "rows": 5449,
+      "columns": [
+        "Date",
+        "yf_IAU"
+      ],
+      "first_date": "2005-01-28",
+      "last_date": "2026-09-25",
+      "missing_values": 0,
+      "malformed_values": 0,
+      "nonfinite_values": 0,
+      "nonpositive_values": 0,
+      "duplicate_dates": 0,
+      "dates_strictly_increasing": true,
+      "max_calendar_gap_days": 5,
+      "calendar_gaps_over_10_days": []
+    },
+    {
+      "path": "docs/asset_expansion/cache/yf_NG_F.csv",
+      "sha256": "7b3920111776acddf5b993488ecbcf9db8a8188b07481c3aa2b71bd6834b275b",
+      "bytes": 198028,
+      "rows": 6548,
+      "columns": [
+        "Date",
+        "yf_NG=F"
+      ],
+      "first_date": "2000-08-30",
+      "last_date": "2026-09-25",
+      "missing_values": 0,
+      "malformed_values": 0,
+      "nonfinite_values": 0,
+      "nonpositive_values": 0,
+      "duplicate_dates": 0,
+      "dates_strictly_increasing": true,
+      "max_calendar_gap_days": 5,
+      "calendar_gaps_over_10_days": []
+    },
+    {
+      "path": "docs/asset_expansion/cache/yf_QQQ.csv",
+      "sha256": "57f9f8e0a03ad117cc6fd448391ddd2aa4b1b3147f89f9c541c3a6c67eabc452",
+      "bytes": 209230,
+      "rows": 6930,
+      "columns": [
+        "Date",
+        "yf_QQQ"
+      ],
+      "first_date": "1999-03-10",
+      "last_date": "2026-09-25",
+      "missing_values": 0,
+      "malformed_values": 0,
+      "nonfinite_values": 0,
+      "nonpositive_values": 0,
+      "duplicate_dates": 0,
+      "dates_strictly_increasing": true,
+      "max_calendar_gap_days": 7,
+      "calendar_gaps_over_10_days": []
+    },
+    {
+      "path": "docs/asset_expansion/cache/yf_SI_F.csv",
+      "sha256": "4dba125dc78d15898ffb874a3a337c49da7c6d243e53a7a2228cc8d758d58fc7",
+      "bytes": 198641,
+      "rows": 6544,
+      "columns": [
+        "Date",
+        "yf_SI=F"
+      ],
+      "first_date": "2000-08-30",
+      "last_date": "2026-09-25",
+      "missing_values": 0,
+      "malformed_values": 0,
+      "nonfinite_values": 0,
+      "nonpositive_values": 0,
+      "duplicate_dates": 0,
+      "dates_strictly_increasing": true,
+      "max_calendar_gap_days": 5,
+      "calendar_gaps_over_10_days": []
+    },
+    {
+      "path": "docs/asset_expansion/cache/yf_SPY.csv",
+      "sha256": "5b6754cb4514247970da589ce77bcc6df29f4a59871a5fab8f9efdd5646cee89",
+      "bytes": 239905,
+      "rows": 7986,
+      "columns": [
+        "Date",
+        "yf_SPY"
+      ],
+      "first_date": "1995-01-03",
+      "last_date": "2026-09-25",
+      "missing_values": 0,
+      "malformed_values": 0,
+      "nonfinite_values": 0,
+      "nonpositive_values": 0,
+      "duplicate_dates": 0,
+      "dates_strictly_increasing": true,
+      "max_calendar_gap_days": 7,
+      "calendar_gaps_over_10_days": []
+    },
+    {
+      "path": "docs/asset_expansion/cache/yf_TLT.csv",
+      "sha256": "523bbd66d3e07f16c500a28d5a8739460e161e48fe6baeb4c1c4c080c519bc80",
+      "bytes": 182583,
+      "rows": 6079,
+      "columns": [
+        "Date",
+        "yf_TLT"
+      ],
+      "first_date": "2002-07-30",
+      "last_date": "2026-09-25",
+      "missing_values": 0,
+      "malformed_values": 0,
+      "nonfinite_values": 0,
+      "nonpositive_values": 0,
+      "duplicate_dates": 0,
+      "dates_strictly_increasing": true,
+      "max_calendar_gap_days": 5,
+      "calendar_gaps_over_10_days": []
+    },
+    {
+      "path": "docs/asset_expansion/cache/yf_VIXY.csv",
+      "sha256": "0d4271c194cfb58fa9659bc317ac753f3580f4ff499b8bfed7c5ed303f6df0e5",
+      "bytes": 100675,
+      "rows": 3955,
+      "columns": [
+        "Date",
+        "yf_VIXY"
+      ],
+      "first_date": "2011-01-04",
+      "last_date": "2026-09-25",
+      "missing_values": 0,
+      "malformed_values": 0,
+      "nonfinite_values": 0,
+      "nonpositive_values": 0,
+      "duplicate_dates": 0,
+      "dates_strictly_increasing": true,
+      "max_calendar_gap_days": 5,
+      "calendar_gaps_over_10_days": []
+    },
+    {
+      "path": "docs/asset_expansion/cache/yf_XLB.csv",
+      "sha256": "275e0d2d4ec011d9007229627aab55de36a5d9cc0aac62665403324990404582",
+      "bytes": 211968,
+      "rows": 6982,
+      "columns": [
+        "Date",
+        "yf_XLB"
+      ],
+      "first_date": "1998-12-22",
+      "last_date": "2026-09-25",
+      "missing_values": 0,
+      "malformed_values": 0,
+      "nonfinite_values": 0,
+      "nonpositive_values": 0,
+      "duplicate_dates": 0,
+      "dates_strictly_increasing": true,
+      "max_calendar_gap_days": 7,
+      "calendar_gaps_over_10_days": []
+    },
+    {
+      "path": "docs/asset_expansion/cache/yf_XLE.csv",
+      "sha256": "0bd0b6a32f3770e6334d3d059c13c239e460268ba7cb032044bab018c8253a67",
+      "bytes": 212341,
+      "rows": 6982,
+      "columns": [
+        "Date",
+        "yf_XLE"
+      ],
+      "first_date": "1998-12-22",
+      "last_date": "2026-09-25",
+      "missing_values": 0,
+      "malformed_values": 0,
+      "nonfinite_values": 0,
+      "nonpositive_values": 0,
+      "duplicate_dates": 0,
+      "dates_strictly_increasing": true,
+      "max_calendar_gap_days": 7,
+      "calendar_gaps_over_10_days": []
+    },
+    {
+      "path": "docs/asset_expansion/cache/yf_XLF.csv",
+      "sha256": "095ecb5a38570d8485939bf3d0a29b6fdd9568abc613a4010c534769024cb8e9",
+      "bytes": 212991,
+      "rows": 6982,
+      "columns": [
+        "Date",
+        "yf_XLF"
+      ],
+      "first_date": "1998-12-22",
+      "last_date": "2026-09-25",
+      "missing_values": 0,
+      "malformed_values": 0,
+      "nonfinite_values": 0,
+      "nonpositive_values": 0,
+      "duplicate_dates": 0,
+      "dates_strictly_increasing": true,
+      "max_calendar_gap_days": 7,
+      "calendar_gaps_over_10_days": []
+    },
+    {
+      "path": "docs/asset_expansion/cache/yf_XLI.csv",
+      "sha256": "67ce62fccb0476603537734c86a1d270d089201639d5da672dee0e8c4161c9a2",
+      "bytes": 212142,
+      "rows": 6982,
+      "columns": [
+        "Date",
+        "yf_XLI"
+      ],
+      "first_date": "1998-12-22",
+      "last_date": "2026-09-25",
+      "missing_values": 0,
+      "malformed_values": 0,
+      "nonfinite_values": 0,
+      "nonpositive_values": 0,
+      "duplicate_dates": 0,
+      "dates_strictly_increasing": true,
+      "max_calendar_gap_days": 7,
+      "calendar_gaps_over_10_days": []
+    },
+    {
+      "path": "docs/asset_expansion/cache/yf_XLK.csv",
+      "sha256": "2f2a05b491e2b23944a7a1af5544008abe676735f8e592a6159bed02aad43929",
+      "bytes": 211526,
+      "rows": 6982,
+      "columns": [
+        "Date",
+        "yf_XLK"
+      ],
+      "first_date": "1998-12-22",
+      "last_date": "2026-09-25",
+      "missing_values": 0,
+      "malformed_values": 0,
+      "nonfinite_values": 0,
+      "nonpositive_values": 0,
+      "duplicate_dates": 0,
+      "dates_strictly_increasing": true,
+      "max_calendar_gap_days": 7,
+      "calendar_gaps_over_10_days": []
+    },
+    {
+      "path": "docs/asset_expansion/cache/yf_XLP.csv",
+      "sha256": "1cd2b23af3eb9ffa138d21a733bab169ca2ac30f7273aaf9b8e47b915bcb774b",
+      "bytes": 212305,
+      "rows": 6982,
+      "columns": [
+        "Date",
+        "yf_XLP"
+      ],
+      "first_date": "1998-12-22",
+      "last_date": "2026-09-25",
+      "missing_values": 0,
+      "malformed_values": 0,
+      "nonfinite_values": 0,
+      "nonpositive_values": 0,
+      "duplicate_dates": 0,
+      "dates_strictly_increasing": true,
+      "max_calendar_gap_days": 7,
+      "calendar_gaps_over_10_days": []
+    },
+    {
+      "path": "docs/asset_expansion/cache/yf_XLU.csv",
+      "sha256": "22a988a06f886d177b27cbaddbbfdc4a2f17d59a57bdbc80c78e131ce2833df4",
+      "bytes": 211834,
+      "rows": 6982,
+      "columns": [
+        "Date",
+        "yf_XLU"
+      ],
+      "first_date": "1998-12-22",
+      "last_date": "2026-09-25",
+      "missing_values": 0,
+      "malformed_values": 0,
+      "nonfinite_values": 0,
+      "nonpositive_values": 0,
+      "duplicate_dates": 0,
+      "dates_strictly_increasing": true,
+      "max_calendar_gap_days": 7,
+      "calendar_gaps_over_10_days": []
+    },
+    {
+      "path": "docs/asset_expansion/cache/yf_XLV.csv",
+      "sha256": "6e4f4fe31c57a8aa3b461c9b57e557881dce57d33a0e2ea5f5050e346f471ab4",
+      "bytes": 212411,
+      "rows": 6982,
+      "columns": [
+        "Date",
+        "yf_XLV"
+      ],
+      "first_date": "1998-12-22",
+      "last_date": "2026-09-25",
+      "missing_values": 0,
+      "malformed_values": 0,
+      "nonfinite_values": 0,
+      "nonpositive_values": 0,
+      "duplicate_dates": 0,
+      "dates_strictly_increasing": true,
+      "max_calendar_gap_days": 7,
+      "calendar_gaps_over_10_days": []
+    },
+    {
+      "path": "docs/asset_expansion/cache/yf_XLY.csv",
+      "sha256": "1a5ec83b74596b49d37e1a67bf2a3c63c3946ebdea9c9b8ff6be966cfe6ab8e5",
+      "bytes": 212103,
+      "rows": 6982,
+      "columns": [
+        "Date",
+        "yf_XLY"
+      ],
+      "first_date": "1998-12-22",
+      "last_date": "2026-09-25",
+      "missing_values": 0,
+      "malformed_values": 0,
+      "nonfinite_values": 0,
+      "nonpositive_values": 0,
+      "duplicate_dates": 0,
+      "dates_strictly_increasing": true,
+      "max_calendar_gap_days": 7,
+      "calendar_gaps_over_10_days": []
+    },
+    {
+      "path": "docs/asset_expansion/cache/yf_ZB_F.csv",
+      "sha256": "1860ad9e122694c7e1e3a71552b051644b1e431dbffcbe92bf2e16d67b8ee7d6",
+      "bytes": 145114,
+      "rows": 6538,
+      "columns": [
+        "Date",
+        "yf_ZB=F"
+      ],
+      "first_date": "2000-09-21",
+      "last_date": "2026-09-25",
+      "missing_values": 0,
+      "malformed_values": 0,
+      "nonfinite_values": 0,
+      "nonpositive_values": 0,
+      "duplicate_dates": 0,
+      "dates_strictly_increasing": true,
+      "max_calendar_gap_days": 5,
+      "calendar_gaps_over_10_days": []
+    },
+    {
+      "path": "docs/asset_expansion/cache/yf_ZC_F.csv",
+      "sha256": "250be4510e7a808116444b3170cf4057f1958f34982457256325b4b201a06578",
+      "bytes": 121095,
+      "rows": 6554,
+      "columns": [
+        "Date",
+        "yf_ZC=F"
+      ],
+      "first_date": "2000-07-17",
+      "last_date": "2026-09-25",
+      "missing_values": 0,
+      "malformed_values": 0,
+      "nonfinite_values": 0,
+      "nonpositive_values": 0,
+      "duplicate_dates": 0,
+      "dates_strictly_increasing": true,
+      "max_calendar_gap_days": 14,
+      "calendar_gaps_over_10_days": [
+        {
+          "days": 14,
+          "from": "2000-12-04",
+          "to": "2000-12-18"
+        },
+        {
+          "days": 14,
+          "from": "2001-01-02",
+          "to": "2001-01-16"
+        }
+      ]
+    },
+    {
+      "path": "docs/asset_expansion/cache/yf_ZF_F.csv",
+      "sha256": "78b88aebc53ee2e729d8fd5a92dc400088e375b66216f78af84a33d8cd15b5df",
+      "bytes": 156396,
+      "rows": 6544,
+      "columns": [
+        "Date",
+        "yf_ZF=F"
+      ],
+      "first_date": "2000-09-21",
+      "last_date": "2026-09-25",
+      "missing_values": 0,
+      "malformed_values": 0,
+      "nonfinite_values": 0,
+      "nonpositive_values": 0,
+      "duplicate_dates": 0,
+      "dates_strictly_increasing": true,
+      "max_calendar_gap_days": 5,
+      "calendar_gaps_over_10_days": []
+    },
+    {
+      "path": "docs/asset_expansion/cache/yf_ZN_F.csv",
+      "sha256": "26d180bed7b611cead2514127ec880f74dc0436ad0f8f40e244616c7b99d824a",
+      "bytes": 151381,
+      "rows": 6532,
+      "columns": [
+        "Date",
+        "yf_ZN=F"
+      ],
+      "first_date": "2000-09-21",
+      "last_date": "2026-09-25",
+      "missing_values": 0,
+      "malformed_values": 0,
+      "nonfinite_values": 0,
+      "nonpositive_values": 0,
+      "duplicate_dates": 0,
+      "dates_strictly_increasing": true,
+      "max_calendar_gap_days": 12,
+      "calendar_gaps_over_10_days": [
+        {
+          "days": 12,
+          "from": "2008-06-19",
+          "to": "2008-07-01"
+        }
+      ]
+    },
+    {
+      "path": "docs/asset_expansion/cache/yf_ZS_F.csv",
+      "sha256": "c1f660739016bd4a8721d356ffb2f5e39fb79c8bf264a2343718e9a51667fe0d",
+      "bytes": 123772,
+      "rows": 6546,
+      "columns": [
+        "Date",
+        "yf_ZS=F"
+      ],
+      "first_date": "2000-09-15",
+      "last_date": "2026-09-25",
+      "missing_values": 0,
+      "malformed_values": 0,
+      "nonfinite_values": 0,
+      "nonpositive_values": 0,
+      "duplicate_dates": 0,
+      "dates_strictly_increasing": true,
+      "max_calendar_gap_days": 5,
+      "calendar_gaps_over_10_days": []
+    },
+    {
+      "path": "docs/asset_expansion/cache/yf__KS200.csv",
+      "sha256": "d48e9f551ef9b61c95bcde17a58c24c4da50ef101b3542ef498b24066f7723de",
+      "bytes": 47,
+      "rows": 1,
+      "columns": [
+        "Date",
+        "yf_^KS200"
+      ],
+      "first_date": "2026-09-23",
+      "last_date": "2026-09-23",
+      "missing_values": 0,
+      "malformed_values": 0,
+      "nonfinite_values": 0,
+      "nonpositive_values": 0,
+      "duplicate_dates": 0,
+      "dates_strictly_increasing": true,
+      "max_calendar_gap_days": 0,
+      "calendar_gaps_over_10_days": []
+    },
+    {
+      "path": "docs/asset_expansion/cache/yf__VIX.csv",
+      "sha256": "1769605eb9c860e6e35c8bf4b089493e087bf6a8fac8c22a598e9f01c2e3fcde",
+      "bytes": 240484,
+      "rows": 7988,
+      "columns": [
+        "Date",
+        "yf_^VIX"
+      ],
+      "first_date": "1995-01-03",
+      "last_date": "2026-09-25",
+      "missing_values": 0,
+      "malformed_values": 0,
+      "nonfinite_values": 0,
+      "nonpositive_values": 0,
+      "duplicate_dates": 0,
+      "dates_strictly_increasing": true,
+      "max_calendar_gap_days": 7,
+      "calendar_gaps_over_10_days": []
+    },
+    {
+      "path": "docs/asset_expansion/cache/yf__VIX3M.csv",
+      "sha256": "d72950f280b38153b6142c43c01337cd0db6e065cd34191fad817e8ab5c7ac1a",
+      "bytes": 153051,
+      "rows": 5081,
+      "columns": [
+        "Date",
+        "yf_^VIX3M"
+      ],
+      "first_date": "2006-07-17",
+      "last_date": "2026-09-25",
+      "missing_values": 0,
+      "malformed_values": 0,
+      "nonfinite_values": 0,
+      "nonpositive_values": 0,
+      "duplicate_dates": 0,
+      "dates_strictly_increasing": true,
+      "max_calendar_gap_days": 5,
+      "calendar_gaps_over_10_days": []
+    }
+  ],
+  "selection": {
+    "SPY": {
+      "path": "docs/asset_expansion/cache/yf_SPY.csv",
+      "source_sha256": "5b6754cb4514247970da589ce77bcc6df29f4a59871a5fab8f9efdd5646cee89",
+      "provider": "Yahoo Finance",
+      "symbol": "SPY",
+      "currency": "USD",
+      "annualization": 252,
+      "adjustment_status": "provider_adjusted_close",
+      "time_basis": "US_exchange_session_date",
+      "start": "1995-01-03",
+      "end": "2026-09-24",
+      "rows": 7985,
+      "selected_rows_sha256": "77d4481f68ed16341cab47ae4bc2d32bb6ab25d0efa47738f89de992792311e3",
+      "excluded_after_cutoff_rows": 1,
+      "prior_use": "Previously inspected in QUANTGEN asset-expansion study; exploratory/internal pseudo-out-of-sample only."
+    },
+    "QQQ": {
+      "path": "docs/asset_expansion/cache/yf_QQQ.csv",
+      "source_sha256": "57f9f8e0a03ad117cc6fd448391ddd2aa4b1b3147f89f9c541c3a6c67eabc452",
+      "provider": "Yahoo Finance",
+      "symbol": "QQQ",
+      "currency": "USD",
+      "annualization": 252,
+      "adjustment_status": "provider_adjusted_close",
+      "time_basis": "US_exchange_session_date",
+      "start": "1999-03-10",
+      "end": "2026-09-24",
+      "rows": 6929,
+      "selected_rows_sha256": "d78079d38bc457544ebcf3263c2385c467567a9b7b08e83a5b50c0cda1471e6e",
+      "excluded_after_cutoff_rows": 1,
+      "prior_use": "Previously inspected in QUANTGEN asset-expansion study; exploratory/internal pseudo-out-of-sample only."
+    },
+    "GLD": {
+      "path": "docs/asset_expansion/cache/yf_GLD.csv",
+      "source_sha256": "2f44fd3cc15e15e4a34fd4121e5843dc121b9bb7fb65b559cf9eef730b7e362c",
+      "provider": "Yahoo Finance",
+      "symbol": "GLD",
+      "currency": "USD",
+      "annualization": 252,
+      "adjustment_status": "provider_adjusted_close",
+      "time_basis": "US_exchange_session_date",
+      "start": "2004-11-18",
+      "end": "2026-09-24",
+      "rows": 5496,
+      "selected_rows_sha256": "715da5e7c4385fa4c6a9d062707219e1f391c682a9771551c006e954184508b4",
+      "excluded_after_cutoff_rows": 1,
+      "prior_use": "Previously inspected in QUANTGEN asset-expansion study; exploratory/internal pseudo-out-of-sample only."
+    },
+    "TLT": {
+      "path": "docs/asset_expansion/cache/yf_TLT.csv",
+      "source_sha256": "523bbd66d3e07f16c500a28d5a8739460e161e48fe6baeb4c1c4c080c519bc80",
+      "provider": "Yahoo Finance",
+      "symbol": "TLT",
+      "currency": "USD",
+      "annualization": 252,
+      "adjustment_status": "provider_adjusted_close",
+      "time_basis": "US_exchange_session_date",
+      "start": "2002-07-30",
+      "end": "2026-09-24",
+      "rows": 6078,
+      "selected_rows_sha256": "dd88c8978996f9325c3405b71f4ccdd147126753ad7ec56c0d1ccaba39aa20f0",
+      "excluded_after_cutoff_rows": 1,
+      "prior_use": "Previously inspected in QUANTGEN asset-expansion study; exploratory/internal pseudo-out-of-sample only."
+    },
+    "TIGER200": {
+      "path": "docs/asset_expansion/cache/yf_102110.KS.csv",
+      "source_sha256": "710228fde9e520ffbe1417293aebf804e82e26b1705791b434345c974cb00d68",
+      "provider": "Yahoo Finance",
+      "symbol": "102110.KS",
+      "currency": "KRW",
+      "annualization": 252,
+      "adjustment_status": "provider_adjusted_close",
+      "time_basis": "KRX_exchange_session_date",
+      "start": "2009-04-17",
+      "end": "2026-09-23",
+      "rows": 4266,
+      "selected_rows_sha256": "66b6b6a4353cd2b65ac0f2cd4f470c04f217004c3db7543ef82b40c296cdbdfd",
+      "excluded_after_cutoff_rows": 0,
+      "prior_use": "Previously inspected in QUANTGEN asset-expansion study; exploratory/internal pseudo-out-of-sample only."
+    },
+    "BTC_KRW": {
+      "path": "docs/asset_expansion/cache/upbit_KRW-BTC.csv",
+      "source_sha256": "a08e693dc090677985501719d289d55d074428fb930e66eec805da1794de0d6f",
+      "provider": "Upbit public candles",
+      "symbol": "KRW-BTC",
+      "currency": "KRW",
+      "annualization": 365,
+      "adjustment_status": "unadjusted_spot_close",
+      "time_basis": "UTC daily candle; 09:00 Asia/Seoul boundary",
+      "start": "2017-09-25",
+      "end": "2026-09-24",
+      "rows": 3287,
+      "selected_rows_sha256": "8b959dab02ba39d837f592e75ed6489557f61db8887143c941408cf32949d84a",
+      "excluded_after_cutoff_rows": 1,
+      "prior_use": "Previously inspected in QUANTGEN asset-expansion study; exploratory/internal pseudo-out-of-sample only."
+    },
+    "BTC_USDT": {
+      "path": "docs/asset_expansion/cache/binance_BTCUSDT.csv",
+      "source_sha256": "efd78ccd87c29d8c1fbab385473987e314f748193b20a518c0f36895435358c7",
+      "provider": "Binance public spot klines",
+      "symbol": "BTCUSDT",
+      "currency": "USDT",
+      "annualization": 365,
+      "adjustment_status": "unadjusted_spot_close",
+      "time_basis": "UTC daily candle",
+      "start": "2017-08-17",
+      "end": "2026-09-24",
+      "rows": 3326,
+      "selected_rows_sha256": "16dd48bfb564ebd98da311e20e2f2a1d963f875e87549ddecbb675fbd3ba8e0d",
+      "excluded_after_cutoff_rows": 1,
+      "prior_use": "Previously inspected in QUANTGEN asset-expansion study; exploratory/internal pseudo-out-of-sample only."
+    },
+    "ETH_USDT": {
+      "path": "docs/asset_expansion/cache/binance_ETHUSDT.csv",
+      "source_sha256": "b1f928cb63aae2913ad288d5a4d15c39e25e12c52c3c9e48815f347c8da9ab01",
+      "provider": "Binance public spot klines",
+      "symbol": "ETHUSDT",
+      "currency": "USDT",
+      "annualization": 365,
+      "adjustment_status": "unadjusted_spot_close",
+      "time_basis": "UTC daily candle",
+      "start": "2017-08-17",
+      "end": "2026-09-24",
+      "rows": 3326,
+      "selected_rows_sha256": "2bbcecbb07ce448b1c3f393942abba2fb78028f3f5deef22e041d56524408714",
+      "excluded_after_cutoff_rows": 1,
+      "prior_use": "Previously inspected in QUANTGEN asset-expansion study; exploratory/internal pseudo-out-of-sample only."
+    }
+  },
+  "inventory_sha256": "249d8467cae95b56f854adaa2e7dcf661398e86a1ce976e244f84cf362288f93",
+  "selection_sha256": "bfe30da1c01f67e1c1c709afb8a03d8bfd48cdc4ed73f61dc2d0f9a4cc8cae9b"
+}
