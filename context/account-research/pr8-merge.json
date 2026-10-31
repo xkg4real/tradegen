@@ -1,0 +1,13 @@
+{
+  "pull_request": 8,
+  "approved_head": "dec1f942c596f8eb0650f40d996325289113afdc",
+  "merge_commit": "8cd4e833eef44ff32cd2464c3a16d689f5dc4e78",
+  "merged": true,
+  "merged_tree_equals_approved_head": true,
+  "recorded_at": "2026-10-31T16:48:42+09:00",
+  "authorization": "Explicit owner instruction to merge PR8 received after previous auto-review refusal.",
+  "previous_code_review_record": "code-review-approval.json",
+  "cryptographic_signature_verified": false,
+  "session_activation_verified": false,
+  "real_account_connected": false
+}
