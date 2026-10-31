@@ -20,7 +20,7 @@ The owner authorized PR #6/#7 merges, account connection development, owner setu
 
 - Before historical evaluation, 35 unique research tests passed: data11, engine14, inference7 and guards3. These check data hashes/chronology, causal execution, exact cash/fee behavior, selection, frozen-source refusal, shared-block inference and multiplicity. The first run contained33 tests; two subsequently added orchestration regressions passed before performance evaluation.
 - Initial readiness run:12 PASS,2 FAIL,0 NOT_RUN. Both were incorrect fixture expectations: a name-only report legitimately includes the substring `SECRET`, and the E1 Upbit fixture map contains an intentionally unused wallet-status route. Corrections check the entire sentinel credential value, trap `.env` reads and assert the exact eight inquiry routes. Runtime was unchanged by these corrections.
-- Corrected readiness rerun:14/14 PASS. Complete account suite:42/42 PASS (provider23, readiness14, guards5). Existing control integration and final regression results are pending at this checkpoint. Tests are serialized under all19 KEYLESS names, isolated state and actual-home metadata watches. No skipped test is counted as a pass.
+- Corrected readiness rerun:14/14 PASS. Complete account suite:42/42 PASS (provider23, readiness14, guards5). Complete E2/E3 control integration:140/140 PASS,0 FAIL,0 NOT_RUN. Final regression is pending at this checkpoint. Tests are serialized under all19 KEYLESS names, isolated state and actual-home metadata watches. No skipped test is counted as a pass.
 
 ## Research interpretation
 
@@ -32,3 +32,5 @@ The owner authorized PR #6/#7 merges, account connection development, owner setu
 ## Live work not completed
 
 The current managed Cloud has no credential/runtime/outbound-identity bindings and does not allow the venue hosts. E1's reviewed direct-only transport also does not support the mandatory Cloud proxy path. This work does not bypass that boundary, broaden inquiry-key permissions, contact a venue, access owner keys, sign code, arm a session or submit an order. Complete authenticated history collection, reviewed network integration, owner configuration/signing/activation, unresolved policy measurements and a suitable independently validated strategy remain prerequisites.
+
+- First full-suite attempt was stopped after119.423 seconds when two inherited text guards found the new diagnostic name `ORDER_CASH_RESERVATION_INCOMPLETE` containing the forbidden order-path token. The partial log contains411 PASS,2 FAIL,45 NOT_RUN; restored prior QA is not this attempt’s result. The diagnostic was renamed `CASH_RESERVATION_INCOMPLETE`; execution logic and guard rules remain unchanged. Both affected guards and the entire account suite passed together:44/44 PASS,0 FAIL,0 NOT_RUN. The final full verification follows this source checkpoint.

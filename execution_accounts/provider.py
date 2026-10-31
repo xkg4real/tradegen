@@ -284,7 +284,7 @@ def _account(account, now):
                 cancelable[order.client_id] = order.cancelable_quantity
         if active and order.side == "buy":
             _require(order.quote_currency in fx and order.reserved_cash >= order.remaining_quantity*order.limit_price,
-                     "ORDER_CASH_RESERVATION_INCOMPLETE")
+                     "CASH_RESERVATION_INCOMPLETE")
             reservations[order.client_id or "broker:"+order.order_id] = _legacy(order.reserved_cash*fx[order.quote_currency])
             reserved_by_currency[order.quote_currency] = reserved_by_currency.get(order.quote_currency, _ZERO)+order.reserved_cash
         else:
