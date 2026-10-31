@@ -34,6 +34,12 @@ FORBIDDEN_TEXT_CI = (
 )
 FORBIDDEN_TEXT_CS = ("KIS_ACCOUNT", "CANO", "ACNT_PRDT_CD")           # an account number implies an order path
 FORBIDDEN_PATH_RE = re.compile(r"/uapi/[^\s'\"]*/trading/")           # every KIS trading domain
+# E1 (execution spec 8; ruling X6): file-exact exceptions to the TEXT checks only. Every other check (imports, calls,
+# mutating HTTP) still runs on these files, and tests/execution_guards.py pins what each may hold.
+TEXT_EXCEPTIONS = {
+    "execution/kis_inquiry.py": frozenset({"KIS_ACCOUNT", "CANO", "ACNT_PRDT_CD", FORBIDDEN_PATH_RE.pattern}),
+    "execution/upbit_inquiry.py": frozenset({"/v1/orders", "/v1/withdraws"}),
+}
 # Top-level modules of order-submission clients; an import anywhere fails.
 FORBIDDEN_IMPORTS = frozenset({
     "ccxt", "web3", "pyupbit", "binance", "python_binance", "ib_insync", "alpaca", "alpaca_trade_api",
@@ -77,9 +83,11 @@ def _offences(path: Path) -> list[str]:
     rel = path.relative_to(ROOT).as_posix()
     code = _code_only(path)
     low = code.lower()
-    hits = [f"{rel}: {n!r}" for n in FORBIDDEN_TEXT_CI if n in low]
-    hits += [f"{rel}: {n!r}" for n in FORBIDDEN_TEXT_CS if n in code]
-    hits += [f"{rel}: {m.group(0)!r}" for m in FORBIDDEN_PATH_RE.finditer(code)]
+    skip = TEXT_EXCEPTIONS.get(rel, frozenset())
+    hits = [f"{rel}: {n!r}" for n in FORBIDDEN_TEXT_CI if n in low and n not in skip]
+    hits += [f"{rel}: {n!r}" for n in FORBIDDEN_TEXT_CS if n in code and n not in skip]
+    if FORBIDDEN_PATH_RE.pattern not in skip:
+        hits += [f"{rel}: {m.group(0)!r}" for m in FORBIDDEN_PATH_RE.finditer(code)]
     tree = ast.parse(code)
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):

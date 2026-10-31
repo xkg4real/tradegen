@@ -127,16 +127,19 @@ def test_a_stored_calendar_set_with_a_link_is_not_stored():
 
 
 def test_code_files_is_the_import_closure():
-    """P6 on the real tree: core/__init__.py, core/isolation.py, core/compliance/*.py, core/odds/*.py and the RECORD
-    files of PyYAML and cryptography; never config.py or data/ (the import allowlist keeps the closure small)."""
+    """P6 on the real tree: core/__init__.py, core/isolation.py, core/compliance/*.py, core/odds/*.py, execution/*.py
+    (E1 spec 8) and the RECORD files of PyYAML and cryptography; never config.py, data/, core/quant/, core/calendars/
+    or core/engine/ (the import allowlists keep the closure small)."""
     files = owner.code_files(ROOT)
     names = [name for name, _ in files]
     assert names == sorted(set(names)), "not sorted, or a repeat"
     repo = {name for name in names if not name.startswith("venv:")}
     expected = {"core/__init__.py", "core/isolation.py"} | {
-        f"core/{sub}/{p.name}" for sub in ("compliance", "odds") for p in (ROOT / "core" / sub).glob("*.py")}
+        f"core/{sub}/{p.name}" for sub in ("compliance", "odds") for p in (ROOT / "core" / sub).glob("*.py")} | {
+        f"execution/{p.name}" for p in (ROOT / "execution").glob("*.py")}
     assert repo == expected, sorted(repo ^ expected)
     assert "config.py" not in repo and not any(name.startswith("data/") for name in repo)
+    assert not any(name.startswith(("core/quant/", "core/calendars/", "core/engine/")) for name in repo), repo
     assert dict(files)["core/isolation.py"] == model.sha256_hex((ROOT / "core" / "isolation.py").read_bytes())
     assert owner.code_hash(ROOT) == model.sha256_hex(model.canonical_json(files)) == owner.code_hash(ROOT)
     venv = set(names) - repo

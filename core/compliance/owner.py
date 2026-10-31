@@ -787,12 +787,13 @@ def _repo_imports(root: Path, path: Path) -> set[Path]:
 
 
 def code_files(repo_root: Path) -> list[tuple[str, str]]:
-    """Sorted (relative POSIX path, sha256) of the D14 code closure (P6): core/compliance/*.py and core/odds/*.py,
-    every in-repo file they import at any depth, every ancestor package __init__.py, and the RECORD files of the
-    cryptography and PyYAML installs of the running interpreter as venv:<dist>-<version>.dist-info/RECORD (absent
-    when not installed)."""
+    """Sorted (relative POSIX path, sha256) of the D14 code closure (P6): core/compliance/*.py, core/odds/*.py and
+    execution/*.py, every in-repo file they import at any depth, every ancestor package __init__.py, and the RECORD
+    files of the cryptography and PyYAML installs of the running interpreter as venv:<dist>-<version>.dist-info/RECORD
+    (absent when not installed)."""
     root = Path(repo_root)
-    todo = [p for sub in ("compliance", "odds") for p in sorted((root / "core" / sub).glob("*.py"))]
+    todo = [p for base in (root / "core" / "compliance", root / "core" / "odds", root / "execution")
+            for p in sorted(base.glob("*.py"))]
     seen: set[Path] = set()
     while todo:
         path = todo.pop()
@@ -1036,7 +1037,131 @@ def _context(day: _dt.date, now_utc: str, positions, session_id) -> model.Contex
     return model.seal_context(
         date=day, active=active, snapshot=snapshot, owner=owner, code_hash=current, code_signed=signed,
         session=model.SessionState(session_id=session_id, armed=session_id in owner.armed_sessions),
-        equity_krw=equity, holdings=holdings, shorts=shorts, exposure=exposure)
+        equity_krw=equity, holdings=holdings, shorts=shorts, exposure=exposure, live_evidence=_live_evidence(day))
+
+
+# --------------------------------------------------------------------------- #
+# Live D16 evidence (E1 spec 6 and 8): the pure fold of execution/evidence.jsonl
+# --------------------------------------------------------------------------- #
+from types import MappingProxyType  # noqa: E402
+
+EVIDENCE_THRESHOLDS_KRW = MappingProxyType({"deposit_krw_10m": 10_000_000.0, "deposit_krw_15m": 15_000_000.0,
+                                            "deposit_krw_20m": 20_000_000.0, "cash_krw_30m": 30_000_000.0})
+EVIDENCE_KEYS = ("seq", "prev_sha256", "utc", "requirement", "met", "value_krw", "snapshot_sha256")
+EVIDENCE_MAX_AGE_DAYS = 7
+_EVIDENCE_LINE_KEYS = frozenset(EVIDENCE_KEYS) | {"row_sha256"}
+
+
+def evidence_path() -> Path:
+    """`<state root>/execution/evidence.jsonl`, which only execution/evidence.py writes. Creates nothing."""
+    return state_root() / "execution" / "evidence.jsonl"
+
+
+def _evidence_row(n: int, line, prev: str) -> dict:
+    """Line `n` of evidence.jsonl checked against the row_sha256 of the line before it; ValueError naming the first
+    defect by field name, never by value."""
+    if not isinstance(line, bytes) or not line.endswith(b"\n") or b"\n" in line[:-1] or b"\r" in line:
+        raise ValueError("not one newline-terminated line")
+    try:
+        obj = json.loads(line[:-1].decode("utf-8"), object_pairs_hook=_no_duplicates)
+    except ValueError:                                  # UnicodeDecodeError and a duplicate key included
+        raise ValueError("unreadable") from None
+    if not isinstance(obj, dict):
+        raise ValueError("not a JSON object")
+    try:
+        same = canonical_json(obj).encode("utf-8") == line[:-1]
+    except (TypeError, ValueError):
+        same = False
+    if not same:
+        raise ValueError("not its canonical JSON")
+    if set(obj) != _EVIDENCE_LINE_KEYS:
+        raise ValueError("not exactly the evidence keys")
+    if type(obj["seq"]) is not int or obj["seq"] != n:
+        raise ValueError("seq does not count up from 1")
+    if obj["prev_sha256"] != prev:
+        raise ValueError("prev_sha256 does not chain to the line before")
+    if not _utc(obj["utc"]):
+        raise ValueError("utc is not YYYY-MM-DDTHH:MM:SSZ")
+    try:
+        _seoul_date(obj["utc"])
+    except OverflowError:                               # 9999-12-31T15:00:00Z and later: past date.max in Seoul
+        raise ValueError("utc has no Asia/Seoul date") from None
+    if not isinstance(obj["requirement"], str) or obj["requirement"] not in EVIDENCE_THRESHOLDS_KRW:
+        raise ValueError("requirement is not an E1 evidence item")
+    if type(obj["met"]) is not bool:
+        raise ValueError("met is not true or false")
+    if not _number(obj["value_krw"]) or obj["value_krw"] < 0:
+        raise ValueError("value_krw is not a number at or above zero")
+    if obj["met"] != (obj["value_krw"] >= EVIDENCE_THRESHOLDS_KRW[obj["requirement"]]):
+        raise ValueError("met disagrees with value_krw")
+    if not _hex64(obj["snapshot_sha256"]):
+        raise ValueError("snapshot_sha256 is not lower-case hex")
+    if obj["row_sha256"] != sha256_hex(canonical_json({k: obj[k] for k in EVIDENCE_KEYS})):
+        raise ValueError("row_sha256 does not recompute")
+    return obj
+
+
+def evidence_chain(lines: list[bytes]) -> tuple[list[dict], str]:
+    """(every evidence.jsonl row in order, "") when every line is sound, else ([], "line N: <defect>"). Never raises.
+    execution/evidence.py checks the chain with it before it appends."""
+    rows, prev, n = [], GENESIS_PREV, 0
+    try:
+        for n, line in enumerate(lines, start=1):
+            rows.append(_evidence_row(n, line, prev))
+            prev = rows[-1]["row_sha256"]
+    except ValueError as exc:
+        return [], f"line {n}: {exc}"
+    except Exception as exc:                            # RecursionError on a deeply nested line, and the like
+        return [], f"line {n}: {type(exc).__name__}"
+    return rows, ""
+
+
+def evidence_in_force(lines: list[bytes], today: _dt.date) -> frozenset[str]:
+    """The live D16 items in force on Asia/Seoul `today` (E1 spec 6): an item counts when its latest record is met,
+    is stamped on or before `today` and at most EVIDENCE_MAX_AGE_DAYS before it, and the unbroken run of met records
+    ending there began before `today`. A record is dated as late as the log allows, by the latest Asia/Seoul date
+    among the lines up to and including it (as _owner_fold dates a loosening), so a record stamped back counts from
+    no earlier than the line before it. A later unmet record removes the item at once. A broken chain gives
+    frozenset(). Never raises."""
+    try:
+        rows, why = evidence_chain(lines)
+        if why:
+            return frozenset()
+        late, seen = [], _dt.date.min
+        for row in rows:
+            seen = max(seen, _seoul_date(row["utc"]))
+            late.append(seen)
+        out = set()
+        for item in EVIDENCE_THRESHOLDS_KRW:
+            mine = [i for i, row in enumerate(rows) if row["requirement"] == item]
+            if not mine or not rows[mine[-1]]["met"]:
+                continue
+            on = _seoul_date(rows[mine[-1]]["utc"])
+            if not (on <= today and (today - on).days <= EVIDENCE_MAX_AGE_DAYS):
+                continue
+            first = mine[-1]
+            for i in reversed(mine):
+                if not rows[i]["met"]:
+                    break
+                first = i
+            if late[first] < today:
+                out.add(item)
+        return frozenset(out)
+    except Exception:
+        return frozenset()
+
+
+def _live_evidence(day: _dt.date) -> frozenset[str]:
+    """evidence_in_force over execution/evidence.jsonl for load_context: frozenset() when the file is missing,
+    unreadable or refused (A0). Creates nothing."""
+    try:
+        path = evidence_path()
+        if not path.exists():
+            return frozenset()
+        lines = path.read_bytes().splitlines(keepends=True)
+    except (OSError, RuntimeError):                     # RuntimeError: the state root holds a link (A0)
+        return frozenset()
+    return evidence_in_force(lines, day)
 
 
 # --------------------------------------------------------------------------- #

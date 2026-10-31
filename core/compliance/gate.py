@@ -304,8 +304,9 @@ def _row_check(row, intent, ctx) -> tuple[list[str], tuple | None]:
     out = [_stale(row)] if ctx.date > row.review_by else []
     if row.treatment not in ("allow", "gated", "grey"):              # hard_block, out_of_scope
         return out + [f"{row.treatment}: {row.id}"], None
-    if row.requires_live:                                              # D16: no owner event satisfies these
-        out.append(f"needs live broker evidence (execution spec): {row.id}")
+    missing = sorted(set(row.requires_live) - ctx.live_evidence)       # D16: only live broker evidence lifts these
+    if missing:
+        out.append(f"needs live broker evidence: {row.id}: {', '.join(missing)}")
     out += [f"requires {item}: {row.id}" for item in row.requires_owner if item not in ctx.owner.flags]
     if row.treatment == "grey":
         out += _grey(row, intent, ctx)
