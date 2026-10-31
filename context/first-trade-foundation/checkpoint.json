@@ -1,0 +1,16 @@
+{
+  "source_commit": "db7ddeca7de13745f33663cf5801b8d7709512af",
+  "status": "full_acceptance_running",
+  "focused": {
+    "PASS": 139,
+    "FAIL": 0,
+    "NOT_RUN": 0
+  },
+  "new_suite_tests": 82,
+  "real_connection": false,
+  "actual_signing": false,
+  "activation": false,
+  "qualified_live_strategy": false,
+  "usage_weekly_pct": null,
+  "usage_source": "unavailable"
+}
