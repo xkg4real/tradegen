@@ -213,6 +213,9 @@ def _signed_lifecycle(case):
                 exposure={order.venue: M.Exposure(held_krw=0.0)}), account_scopes={order.venue: SCOPE},
             settled_cash_krw={(order.venue, SCOPE): D("1000000")}, holdings={},
             held_exposure_krw={(order.venue, SCOPE): D("0")},
+            quote_currency_by_account={(order.venue, SCOPE): _quote(order)},
+            inventory_exposure_krw={(order.venue, SCOPE): D("0")},
+            quote_rates_krw={(order.venue, SCOPE, _quote(order)): order.quote_krw},
             risk=RiskObservation(equity=D("1000000"), prior_high_watermark=D("1000000"),
                 day_start_equity=D("1000000"), current_day_realized_net_profit=D("0"),
                 prior_day_realized_net_profit=D("100"), observed_daily_loss=D("0"),
@@ -289,6 +292,7 @@ def _account(env, fills, *client_ids):
     env.observation = replace(env.observation, positions=positions,
         holdings={(order.venue, SCOPE, order.market, order.symbol): held},
         held_exposure_krw={(order.venue, SCOPE): marked},
+        inventory_exposure_krw={(order.venue, SCOPE): marked},
         settled_cash_krw={(order.venue, SCOPE): D("1000000") + cash_delta}, fills=tuple(fills),
         reconciled_client_ids=frozenset(client_ids),
         risk=replace(env.observation.risk, equity=D("1000000") - fees,
@@ -384,3 +388,34 @@ def test_kis_us_authenticated_partial_final_kill_exit_and_ambiguous_cancel_lifec
 
 def test_okx_authenticated_partial_final_grey_ack_kill_exit_and_cancel_lifecycle():
     _lifecycle("okx")
+
+
+def test_current_foreign_fx_binds_new_orders_but_preserves_existing_cancel_and_reconcile():
+    with _signed_lifecycle('okx') as env:
+        buy=env.order
+        _refused(lambda:_reserve(env,replace(buy,quote_krw=D('1'))))
+        assert not env.wire.calls
+        assert _reserve(env,buy).status=='RESERVED'
+        original_rates=env.observation.quote_rates_krw
+        changed_rates={(buy.venue,SCOPE,_quote(buy)):buy.quote_krw+D('100')}
+        env.observation=replace(env.observation,quote_rates_krw=changed_rates)
+        _refused(lambda:env.controller.dispatch(buy.client_id,now=env.now))
+        assert not env.wire.calls
+        env.observation=replace(env.observation,quote_rates_krw=original_rates)
+        env.wire.expect(buy,'create')
+        assert env.controller.dispatch(buy.client_id,now=env.now).status=='ACKNOWLEDGED'
+        first=_fill(env,buy,1)
+        _account(env,(first,),buy.client_id)
+        env.observation=replace(env.observation,quote_rates_krw=changed_rates)
+        assert _reconcile(env,buy,filled=buy.quantity/2,state='partial').status=='PARTIAL'
+        env.wire.expect(buy,'cancel',filled=buy.quantity/2,state='canceled')
+        env.controller.cancel(buy.client_id,now=env.now)
+        assert _reconcile(env,buy,filled=buy.quantity/2,state='canceled').status=='CANCELED'
+        sell=replace(buy,client_id='fxSell',side='sell',quantity=buy.quantity/2)
+        _refused(lambda:_reserve(env,sell))
+        sell=replace(sell,quote_krw=changed_rates[(buy.venue,SCOPE,_quote(buy))])
+        assert _reserve(env,sell).status=='RESERVED'
+        env.observation=replace(env.observation,quote_rates_krw=original_rates)
+        _refused(lambda:env.controller.dispatch(sell.client_id,now=env.now))
+        assert env.controller.cancel(sell.client_id,now=env.now).status=='CANCELLED_LOCAL'
+        assert sum(operation=='create' for operation,*_ in env.wire.calls)==1

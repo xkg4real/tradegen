@@ -43,6 +43,8 @@ TEXT_EXCEPTIONS = {
     "execution_orders/kis.py": frozenset({"order-cash", FORBIDDEN_PATH_RE.pattern}),
     "execution_orders/upbit.py": frozenset({"/v1/orders"}),
     "execution_orders/transport.py": frozenset({"CANO", "ACNT_PRDT_CD"}),
+    # Readiness checks names only; accounts_guards prohibits credential value access.
+    "execution_accounts/readiness.py": frozenset({"KIS_ACCOUNT"}),
 }
 # Top-level modules of order-submission clients; an import anywhere fails.
 FORBIDDEN_IMPORTS = frozenset({

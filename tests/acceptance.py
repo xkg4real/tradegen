@@ -48,7 +48,7 @@ def _code_only(path: Path) -> str:
 def runtime_py() -> list[Path]:
     files: list[Path] = []
     for base in (ROOT / "core", ROOT / "data", ROOT / "ui", ROOT / "execution",
-                 ROOT / "execution_control", ROOT / "execution_orders"):
+                 ROOT / "execution_control", ROOT / "execution_orders", ROOT / "execution_accounts"):
         if base.is_dir():
             files.extend(p for p in base.rglob("*.py") if "__pycache__" not in p.parts)
     files.extend([ROOT / "main.py", ROOT / "config.py"])
@@ -184,7 +184,8 @@ def test_08_no_broker_order_path():
 def test_09_no_account_credentials_requested():
     """Account fields stay in E1 inquiry and E3's credential boundary, each with exact guard coverage."""
     exceptions = {"execution/kis_inquiry.py": frozenset({"KIS_ACCOUNT", "CANO", "ACNT_PRDT_CD"}),
-                  "execution_orders/transport.py": frozenset({"CANO", "ACNT_PRDT_CD"})}
+                  "execution_orders/transport.py": frozenset({"CANO", "ACNT_PRDT_CD"}),
+                  "execution_accounts/readiness.py": frozenset({"KIS_ACCOUNT"})}
     for path in runtime_py():
         rel = path.relative_to(ROOT).as_posix()
         text = _read(path)

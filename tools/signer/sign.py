@@ -599,7 +599,7 @@ def store_calendar(src_dir: Path, anchor: tuple[int, str]) -> str:
 
 # --------------------------------------------------------------------------- #
 # The D14 code hash: a copy of owner.code_files (P6). core/compliance, core/odds and execution .py files,
-# recursive execution_control/ and execution_orders/ files, every in-repo file they import at any depth
+# recursive execution_control/, execution_orders/ and execution_accounts/ files, every in-repo file they import at any depth
 # (function bodies included), every ancestor package __init__.py, and the
 # RECORD files of the cryptography and PyYAML installs. An `if` body that never runs at import is skipped (see
 # _skipped); every other body is scanned.
@@ -718,7 +718,7 @@ def code_files(repo_root: Path) -> list[tuple[str, str]]:
     root = Path(repo_root)
     todo = [p for base in (root / "core" / "compliance", root / "core" / "odds", root / "execution")
             for p in sorted(base.glob("*.py"))]
-    todo.extend(p for base in (root / "execution_control", root / "execution_orders")
+    todo.extend(p for base in (root / "execution_control", root / "execution_orders", root / "execution_accounts")
                 for p in sorted(base.rglob("*.py")))
     seen: set[Path] = set()
     while todo:

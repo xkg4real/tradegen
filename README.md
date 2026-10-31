@@ -24,6 +24,22 @@ inside Korean law.
   quotations only" describes the macro package; the P0 read-only guards are
   narrowed, file by file, for `execution/kis_inquiry.py` and
   `execution/upbit_inquiry.py`.
+- **Account evidence and connection readiness.** Exact cash/FIFO/history/FX
+  reconciliation and a sanitized E1 inquiry interface are implemented in
+  `execution_accounts`. New orders bind the actual settlement currency and
+  current account FX; pending capital is revalued without treating cash as an
+  existing investment. The [connection runbook](docs/account-connection-runbook.md)
+  distinguishes configuration, complete authenticated evidence, owner signing
+  and execution. Current Cloud credentials/venue access, proxy integration and
+  a complete venue-history collector are still unavailable. No live connection,
+  owner signature or activation is claimed.
+- **Strategy research (2026-10-31).** A frozen exploratory study evaluated
+  **21,408 configurations** from eight economic families across eight assets.
+  Six were selected on validation data; **zero passed** the specified joint
+  validation/holdout screen. This reused previously studied history, so it is
+  not independent confirmation. The [research PDF](docs/research/2026-10-31-strategy-lab/paper/TRADEGEN_Strategy_Research.pdf)
+  and [complete results](docs/research/2026-10-31-strategy-lab/results/) preserve
+  costs, execution delays, multiplicity adjustments and unsuccessful outcomes.
 - **Not legal, tax or investment advice.** The software and its author are not a
   licensed advisor.
 - **Honest odds.** Turning $30 into $30,000 in a month has at most about a 0.1%
@@ -804,8 +820,8 @@ Two tiers, reported honestly on Settings:
 
 Execution, Rules, Workflows, Skills, KRX, Runs, and Settings are the NEXTGEN
 surfaces, unchanged: the DISARMED→ARMED→HALTED engine, frozen rules with
-edit-revokes-confirmation, the simulated order book (there is still **no
-broker order path** in this repository), the 72-skill cockpit, and the
+edit-revokes-confirmation, the simulated order book (this inherited engine has **no
+broker order path**; E2/E3 adapters are separate), the 72-skill cockpit, and the
 KIS/OpenDART/KRX data layer. The macro overlay does not run through this
 engine: each v2 book has its own runtime state (see [Statuses](#statuses)).
 The navigation rail scrolls, so all nineteen entries are reachable at the
@@ -826,7 +842,7 @@ Optional: `TRADEGEN_MACRO_DIR` moves the macro state out of `~/.tradegen/macro`.
 
 ```bash
 .venv/Scripts/python tests/run_all.py                  # every suite; writes qa/acceptance_results.json
-.venv/Scripts/python tests/run_all.py --suite macro    # one suite: cockpit, engine, ui, quant, ficc, expansion, macro, paper, grokteam, compliance, odds, execution or execution_control
+.venv/Scripts/python tests/run_all.py --suite macro    # one suite: cockpit, engine, ui, quant, ficc, expansion, macro, paper, grokteam, compliance, odds, execution, execution_control, execution_accounts or strategy_research
 .venv/Scripts/python tests/run_all.py --milestone M8   # the exit set of a milestone (tests/macro_registry.csv)
 .venv/Scripts/python -m tests.macro_acceptance         # resync the registry's implemented_in column
 ```

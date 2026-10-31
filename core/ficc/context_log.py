@@ -71,7 +71,7 @@ COMPONENT = "core/ficc/context_log"
 ACTING_MODULE_PREFIXES = ("core.quant.", "core.engine.", "core.rules.", "core.calendars", "core.markets",
                           "core.ficc.pit", "core.ficc.contracts", "core.ficc.lag_audit",
                           "core.compliance.", "core.odds.",             # spec 4: the gate and the odds engine act
-                          "execution.", "execution_control.", "execution_orders.")  # inquiry and order control act
+                          "execution.", "execution_control.", "execution_orders.", "execution_accounts.")  # inquiry and order control act
 ACTING_EXEMPT = ("core.quant.refusal", "core.quant.insights")      # refusal legs are protected; insights is narrative
 # The workflow orchestrator (M8) calls the context writers inside `run_context_step`, so it may import this module;
 # it may never read a context value: the callee and path checks apply to it, the import ban does not.
@@ -167,7 +167,7 @@ def imports_of(module: str, source: str) -> tuple[set[str], set[str], set[str]]:
 def repo_modules(root: Path = REPO_ROOT) -> dict[str, str]:
     """dotted module name -> source for runtime packages and config.py (the repo-internal import graph)."""
     out = {}
-    for top in ("core", "data", "execution", "execution_control", "execution_orders"):
+    for top in ("core", "data", "execution", "execution_control", "execution_orders", "execution_accounts"):
         for p in sorted((root / top).rglob("*.py")):
             if "__pycache__" in p.parts:
                 continue
