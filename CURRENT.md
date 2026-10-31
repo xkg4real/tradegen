@@ -1,18 +1,18 @@
 ---
-status: taken
-reason: owner_authorized_policy_and_strategy_followup
+status: returned
+reason: policy_followup_complete_owner_merge_pending
 from: gpt
 task: odds-engine
 cycle: 2026-10-27
-done_ids: cloud-compat-1, cloud-compat-2, cloud-compat-3, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr, spec-rev-3-3
-next_ids: policy-plan-1, policy-preview-1, policy-pr, e1-1
-updated_at: 2026-10-31T14:25:46+09:00
+done_ids: cloud-compat-1, cloud-compat-2, cloud-compat-3, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr, spec-rev-3-3, policy-plan-1, policy-preview-1, policy-pr
+next_ids: e1-1
+updated_at: 2026-10-31T14:27:43+09:00
 stale_after_hours: 3
-waiting_on: owner_merge_pr_4
+waiting_on: owner_merge_pr_4_and_review_pr_5
 work_branch: gpt/odds-spec-3-3
-work_commit: 3f97c6a44db0ed040397df7ac8e35af67adda5a3
-uncommitted_changes: yes (policy draft and standalone preview, Cloud only)
-pr: https://github.com/xkg4real/tradegen/pull/4
+work_commit: b371472a704023c3882d120bba2bfe942fa39b99
+uncommitted_changes: no
+pr: https://github.com/xkg4real/tradegen/pull/5
 usage_weekly_pct: unknown
 usage_source: unavailable
 handoff_threshold_pct: 95
@@ -25,9 +25,7 @@ session: cloud Codex (TRADEGEN)
 
 ## 0. 한 줄 요약
 
-Spec rev 3.3의 20개 승인 변경점과 추가 정합성 수정을 독립 검토 후 3f97c6a로 push했습니다. 정책 문서와 오프라인 진단기는 검토·저장 중이며 E1은 시작하지 않았습니다.
-
-소유자 후속 요청에 따라 미반영 spec rev 3.3, 평가액 보호 정책 명세와 전략 재검증 계획을 정리합니다. 개인 자금 프로필은 Cloud 비공개 산출물로 보관하고 공개 저장소에는 매개변수화한 설계만 올립니다. odds PR #4는 여전히 미병합이며, E1 착수 조건과 소유자 승인 규칙은 유지합니다.
+소유자 조건 정리, spec rev 3.3 정합성 반영, 전략 근거·재검증 설계, 독립 오프라인 정책 진단기를 완료해 PR #5로 올렸습니다. 진단 검사 14개 통과. PR #4의 기존 전체 검증은 1355 PASS / 0 FAIL / 122 NOT_RUN이며 변경하지 않았습니다. 두 PR은 미병합이고 E1 구현은 아직 시작하지 않았습니다. 새 전략의 수익성 검증이나 실주문 준비가 완료됐다는 뜻은 아닙니다.
 
 ## 1. 목표와 완료 조건
 
@@ -51,7 +49,7 @@ Spec rev 3.3의 20개 승인 변경점과 추가 정합성 수정을 독립 검�
 |---|---|---|
 | 계획 | `docs/superpowers/plans/2026-10-24-odds-engine.md` | 1~484행 머리말(목표, 결정 Q1~Q46, round-3 ruling, 파일 지도, 소유자 게이트), 123~272행 Global Constraints, `### Task N` 절(485행부터), 22654행부터 Appendix A(인터페이스 계약) |
 | 저장소 지도 | `docs/superpowers/plans/2026-10-24-odds-engine-repo-map.md` | 파일과 줄 위치 |
-| 스펙 | `docs/superpowers/specs/2026-10-23-compliance-gate-and-odds-engine-design.md` | rev 3.2. 계획이 rev 3.3으로 고칠 부분을 머리말 "For spec rev 3.3"에 적어 둠 |
+| 스펙 | `docs/superpowers/specs/2026-10-23-compliance-gate-and-odds-engine-design.md` | PR #5에서 rev 3.3으로 정합성 반영 완료; 원래 계획과 역사적 부록은 유지 |
 | round-3 판정 | `docs/superpowers/plans/wip-2026-10-24/rulings/RULINGS_ROUND3.md` | G3-1~5, O3-1~22. Task 원문과 다르면 판정이 이깁니다 |
 | 사전 점검 판정 | `context/odds-engine/progress.md`(이 브랜치) | Pre-flight ruling P1~P6과 P7~P84의 한계 (a)~(e), Task 1의 판정 |
 | 사전 점검 표 | `context/odds-engine/preflight.md`(이 브랜치) | Task별, Task 사이 점검표와 P7~P84 각각의 제안 판정 |
@@ -72,6 +70,10 @@ Spec rev 3.3의 20개 승인 변경점과 추가 정합성 수정을 독립 검�
 
 | odds-pr 역할 배정을 GPT 컨트롤러로 갱신 | 소유자의 미완료 후속 단계 진행 지시가 우선하고 Task 19 Step 10은 컨트롤러가 PR을 열도록 정함. 다른 에이전트의 taken 상태나 기존 PR 없음 | Claude 재개까지 PR 생성 자체를 보류하는 것은 필요하지 않음 |
 
+| 평가액 하한과 기존 floor_safe 현금 유보를 구분 | 같은 평가액이라는 이유만으로 모든 매수를 불가능하다고 일반화하지 않음 | 기존 현금 유보 모델을 약화하거나 실거래 원금 보장을 주장하지 않음 |
+| 신규 정책은 공개 매개변수 설계와 독립 오프라인 도구로 구현 | 소유자 금액은 비공개, E1 착수 조건 유지 | 미지정 첫날 예외나 손실 예산을 0 또는 무제한으로 만들지 않음 |
+| 기존 S_C3는 연구 기준이며 새 후보는 UNVALIDATED | 실현손익과 일별 평가손익, 원본 연구와 새 위험 규칙은 다름 | 원본 PASS나 마지막 선택 파라미터를 새 실전 전략의 검증으로 간주하지 않음 |
+
 ## 4. 진행 상황
 
 - [x] cloud-compat-1~3 — 원래 5건 및 추가 플랫폼 오류 수정
@@ -79,25 +81,30 @@ Spec rev 3.3의 20개 승인 변경점과 추가 정합성 수정을 독립 검�
 - [x] odds-final — 추가 수정 7커밋, 공통 회귀, 전체 재실행, 재검토
 - [x] odds-pr — GPT가 PR #4 생성: https://github.com/xkg4real/tradegen/pull/4
 - [x] spec-rev-3-3 — 별도 브랜치에 승인 변경점과 문서 정합성 반영
-- [ ] policy-plan-1 / policy-preview-1 — 검토 및 체크포인트 중
+- [x] policy-plan-1 — 매개변수 정책·회계·전략 검증 설계
+- [x] policy-preview-1 — 독립 Decimal 진단기, 14/14 검사 통과
+- [x] policy-pr — PR #5 생성, OPEN / merged=false / mergeable=true
 - [ ] E1 — odds PR 병합 뒤에만 시작
 
 ## 5. 현재 지점
 
-- 최종 코드 `d773b6c44c73b82492d7d9ce89d4d76c8ea62110`, 작업 트리 clean, 원격 gpt/odds-engine과 일치.
-- 최종 QA 기록 커밋 `e5c4a3d6c4921f2253fd3f7ea8b48ddf03cca686`; 1355 PASS / 0 FAIL / 122 NOT_RUN, 380.641 s. odds 287개 모두 PASS이며 모든 모듈 시간 목표 이내.
-- 기준 Python 3.13.16, numpy 2.3.5, scipy 1.18.0. KEYLESS 19개, 격리 홈, 외부 데이터 seam 대체. 기존 두 localhost 테스트를 위해 loopback 권한을 사용했습니다.
-- 새 NOT_RUN은 `compliance/compliance_signer/test_stdin_terminal_check_follows_getconsolemode` 1건, 사유 `REFDATA: GetConsoleMode needs Windows`. 나머지 121개는 기준 기록과 동일합니다.
-- 최종 smoke exit 2 STATE_UNUSABLE, provenance 포함, seam 호출 0, 상태 항목 생성 0. 실제 기본 홈은 전체 실행 전후 불변. 사용자 PC에서 실행한 smoke가 아닙니다.
-- 모든 커밋·판정·수치는 실행 장부와 context validation JSON에 보존했습니다. 원본 실패 기록은 cloud-compat-3 및 odds-final 검증 기록에 설명돼 있습니다.
+- 새 작업 브랜치 `gpt/odds-spec-3-3`, HEAD `b371472a704023c3882d120bba2bfe942fa39b99`, clean 및 원격 일치. spec 정합성 커밋은 `3f97c6a`.
+- PR #5: https://github.com/xkg4real/tradegen/pull/5 (main 대상, 2커밋·4파일). 기존 signed core, 런타임, QA baseline 수정 없음.
+- 공개 정책 문서 `docs/superpowers/specs/2026-10-30-equity-policy-and-strategy-design.md`; 도구와 테스트는 `tools/research/`. 검사 원문은 `context/policy-strategy/preview-unittest.txt`, 결과·검토는 validation.json과 spec-review.json.
+- 비공개 조건은 Cloud의 `/workspace/tradegen-session/owner-policy/requirements.json` 및 `requirements.ko.txt`, 전략 근거는 `strategy_evidence.json`. 공개 GitHub에는 개인 금액·기한을 복사하지 않았습니다. 다른 환경에서 이 파일이 없으면 소유자 대화나 비공개 전달본으로 복원하고 값을 추측하지 않습니다.
+- odds 브랜치 `gpt/odds-engine`, HEAD `d773b6c44c73b82492d7d9ce89d4d76c8ea62110`, clean. PR #4는 OPEN / merged=false / mergeable=true.
+- 기존 최종 QA `e5c4a3d`: 1355/1477 PASS, FAIL 0, NOT_RUN 122 (380.641 s); odds 287/287. Windows GetConsoleMode 전용 검사 1건 외 추가 미실행 없음. 이번 문서·독립 도구 변경으로 이 전체 검사를 재실행하거나 결과를 덮어쓰지 않았습니다.
+- E1의 읽기 전용 사전 점검은 부분 결과만 보관했습니다. E1 Task 완료로 기록하지 않았고 실행 코드는 만들지 않았습니다.
+- 이전 세션에서 하위 에이전트 사용량 제한 오류가 있었으나 이번 재개에서 독립 검토 2건과 root 검증을 마쳤습니다. 계정의 주간 사용률/리셋 시각은 여전히 조회 불가이며 95%라고 추측하지 않습니다. `context/policy-strategy/continuation.json` 참고.
 
 ## 6. 다음 할 일 (순서대로)
 
-1. 소유자가 PR #4 (https://github.com/xkg4real/tradegen/pull/4)의 병합을 승인합니다. 승인 전 병합하지 않습니다.
-2. 실제 병합을 확인하고 최신 main에서 E1 계획을 시작합니다. next_ids e1-1은 이 선행 조건을 충족한 뒤에만 착수합니다.
-3. E1은 조회 전용입니다. 자동주문에는 E2 실행 제어 및 E3 거래소별 실제 주문 연결이 추가로 필요합니다. 소유자 키·서명·계좌의 준비 완료는 아직 확인되지 않았습니다.
-4. 별도 문서 변경으로 승인된 spec rev 3.3 변경점을 반영합니다. odds PR에는 실행 장부 외의 문서 변경을 추가하지 않습니다.
-5. 원금, 하루/전체 손실 한도는 소유자 답변과 실제 서명으로 확정합니다. 순이익 목표나 일정만으로 승인·손실 제한·검증을 생략하지 않습니다.
+1. 소유자가 PR #4와 #5를 각각 승인하는지 확인합니다. 일반적인 계속 진행 지시나 이전 PR #3 승인을 새 PR 승인으로 바꾸지 않습니다. 승인 후 실제 GitHub 병합 결과를 확인합니다.
+2. PR #4 병합을 확인한 최신 main에서 E1 계획 Task 1부터 시작합니다. 계획 719행의 X1을 충족하기 전에는 E1을 구현하지 않습니다. PR #5와 새 후보 설계는 E1의 완료 조건을 대신하지 않습니다.
+3. Cloud에서 E1 계획의 Windows 명령을 그대로 실행하지 말고 검증된 Python 3.13 격리 환경과 KEYLESS 변수를 유지합니다. Task 4의 _winapi 링크 검사는 기존 `tests.compliance_fixtures.directory_link` 활용 여부를 판정하고 POSIX 검증을 생략하지 않습니다.
+4. E1은 조회 전용입니다. E2 실행 제어와 모의 어댑터 검증, E3 거래소별 주문 연결은 후속 단계입니다. 이번 작업으로 어느 단계도 완료 처리하지 않습니다.
+5. 새 정책의 실행 통합 전에 첫날 예외 범위, 첫날/전날 수익 0인 날의 손실 예산, 당일 손실 누적 방식, 평가·현금흐름 처리, D3 경계와 D12 완화 전환을 확정합니다. 이미 확정한 자금과 주요 손실 공식을 다시 미확정이라고 쓰지 않습니다.
+6. 새 후보는 별도 사전등록·비용·체결·실현손익 회계와 표본외 검증이 필요합니다. 원본 S_C3 핀·PASS를 새 후보의 검증으로 승계하지 않습니다.
 
 ## 7. 주의사항 / 하지 말 것
 
@@ -115,12 +122,20 @@ Spec rev 3.3의 20개 승인 변경점과 추가 정합성 수정을 독립 검�
 
 ## 8. 사용자에게 물어야 할 것
 
-PR #4 병합 승인이 필요합니다. AGENTS.md 5절은 “병합은 사용자가 PR마다 직접 승인합니다”라고 정합니다. 자금과 주요 손실 공식은 소유자가 확정했고 비공개 프로필에 기록했습니다. 첫날 예외의 범위와 별도 일일 손실 예산 등 일부 실행 입력은 아직 미지정이며 실제 키·서명·무장은 별도 소유자 행위입니다. 자동주문 기한 및 미래 수익 달성을 검증한 상태가 아닙니다.
+현재 승인 요청은 PR #4 및 PR #5의 병합입니다. AGENTS.md 5절은 “병합은 사용자가 PR마다 직접 승인합니다”라고 정하고, E1 계획 X1은 odds가 main에 병합된 뒤에만 Task 1을 허용합니다. 두 PR의 diff와 검증 기록은 준비돼 있습니다.
+
+자금과 주요 손실 공식은 확정·기록됐습니다. 첫날 예외 범위 등 일부 실행 입력은 별도 확정이 필요합니다. 실제 키·서명·세션 무장은 소유자 행위이며, 자동주문 기한 및 미래 순수익 목표를 달성할 준비나 성과를 검증한 상태가 아닙니다.
 
 ## 9. 이어받는 에이전트에게 주는 지시문
 
-GPT가 정책·전략 후속 문서 작업 중입니다. returned 전에는 중복 작업하지 않습니다. PR #4를 중복 생성하거나 승인 없이 병합하지 않습니다. 개인 자금 프로필과 확정되지 않은 예외 값을 공개하거나 임의로 실행 설정에 적용하지 않습니다.
+먼저 CURRENT, LEDGER, context/policy-strategy/ 및 기존 odds 기록을 읽으세요. 이번 완료 ID를 다시 구현하지 말고 두 PR의 실제 상태와 최신 main을 확인하세요. PR #4 병합 전에는 E1을 시작하지 않습니다. 사용자 승인 없이 두 PR을 병합하지 않습니다.
+
+오프라인 진단기의 `new_entry_blocked=False`와 `exits_allowed=True`는 실행 허가가 아닙니다. 승인된 유효 하한은 호출자가 공급하는 예제 입력이며 서명이나 하루 전환을 검증하지 않습니다. 첫날 상태의 지속 저장, 실제 체결 회계, 영구 중단, D12 승인 전환은 후속 실행 계층에서 구현해야 합니다. 새 전략의 수익성 검증은 미실시입니다.
+
+개인 프로필은 공개 저장소에 올리지 않습니다. Cloud 비공개 파일을 사용할 수 없으면 소유자 문맥에서 안전하게 복원하되 자금·한도를 추정하지 마세요. 주간 사용량을 신뢰할 수 있게 조회할 수 없으면 unknown/unavailable을 유지하고 작업 단위별로 저장하세요.
 
 ## 10. 결과 확인 방법
 
-`git fetch origin gpt/odds-engine handoff` 후 코드 HEAD, CURRENT의 work_commit과 실행 장부를 대조합니다. 전체 결과 원문은 코드 브랜치 `qa/acceptance_results.json`, 요약은 `context/odds-engine/task-19-final-validation.json`에 있습니다. `odds-final-validation.json`은 7개 수정 커밋과 14묶음 회귀 결과를 담습니다. 최종 smoke와 run-check 출력도 함께 저장했습니다. 재실행 방법과 Cloud 경로·KEYLESS·loopback 조건은 `context/odds-engine/cloud-verification/README.md`를 보세요.
+`git fetch origin gpt/odds-engine gpt/odds-spec-3-3 handoff` 후 각 브랜치 SHA와 PR head를 대조합니다. 새 브랜치에서 `python -m unittest discover -s tools/research -p 'test_*.py' -v`를 실행하면 독립 검사 14개가 통과합니다. 이는 정책 진단 검사이며 전략 수익성 검증이나 E1 회귀가 아닙니다.
+
+기존 전체 결과 원문은 odds 코드 브랜치 `qa/acceptance_results.json`, 요약은 `context/odds-engine/task-19-final-validation.json`에 있습니다. `odds-final-validation.json`은 추가 수정과 회귀 기록이며 Cloud 재실행 조건은 `context/odds-engine/cloud-verification/README.md`를 따릅니다.

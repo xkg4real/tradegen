@@ -1,0 +1,39 @@
+{
+  "checked_at": "2026-10-31T14:26:05+09:00",
+  "status": "offline_diagnostic_verified_strategy_unvalidated",
+  "command": [
+    "/workspace/.venvs/tradegen/bin/python",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "tools/research",
+    "-p",
+    "test_*.py",
+    "-v"
+  ],
+  "exit_code": 0,
+  "test_count": 14,
+  "production_integration": false,
+  "new_strategy_backtest_run": false,
+  "market_or_account_api_calls": 0,
+  "owner_values_published": false,
+  "reviewer": "finish_strategy_review",
+  "closed_findings": [
+    "parameter-dependent drawdown compatibility wording",
+    "cache-file hash source citation",
+    "implemented preview and standalone test command"
+  ],
+  "root_review_fixes": [
+    "strict peak drawdown fraction below one",
+    "inconsistent day-start/high-watermark rejection",
+    "exit diagnostic is not an execution permit"
+  ],
+  "additional_checks": [
+    "relative file links resolve",
+    "LF preserved",
+    "no new private owner financial values or dates in changed public artifacts"
+  ],
+  "suite_scope": "new standalone preview only; original full suite result remains unchanged and was not rerun",
+  "commit": "b371472a704023c3882d120bba2bfe942fa39b99"
+}

@@ -1,0 +1,44 @@
+{
+  "updated_at": "2026-10-31T14:27:43+09:00",
+  "code_commit": "b371472a704023c3882d120bba2bfe942fa39b99",
+  "odds_commit": "d773b6c44c73b82492d7d9ce89d4d76c8ea62110",
+  "prs": [
+    {
+      "number": 4,
+      "state": "open",
+      "merged": false,
+      "mergeable": true
+    },
+    {
+      "number": 5,
+      "state": "open",
+      "merged": false,
+      "mergeable": true
+    }
+  ],
+  "usage_weekly_pct": "unknown",
+  "usage_source": "unavailable",
+  "prior_interruption": {
+    "source": "prior-session continuation summary",
+    "observed_at": "not_recorded",
+    "event": "Subagent usage-limit errors; no reliable percentage or account reset timestamp available",
+    "recovery": "Two fresh independent reviews and root tests completed in resumed session"
+  },
+  "e1_preflight": {
+    "status": "partial_read_only_not_a_completed_task",
+    "observations": [
+      "X1 requires actual odds merge before Task 1",
+      "post-odds public pubkey_at/full_home helpers exist",
+      "run_all suite help ends with compliance or odds",
+      "existing directory_link fixture supports Windows/POSIX; review Task 4 hardcoded _winapi"
+    ]
+  },
+  "private_profile_publication": false,
+  "remaining": [
+    "owner PR-specific merge decisions",
+    "E1 after merge",
+    "execution policy decisions and candidate validation",
+    "E2 dry-run execution control then E3 adapters"
+  ],
+  "artifact_attachment": "PR5 attachment tool called twice; host connection closed, GitHub PR exists and is linked in records"
+}
