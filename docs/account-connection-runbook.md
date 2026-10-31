@@ -12,11 +12,13 @@ network policy, no configured secrets, no runtime bindings and no outbound accou
 KIS, Upbit and OKX hosts were absent from the allowed-host list. No live account connection was
 attempted, and no credentials were requested in chat or copied into the repository.
 
-E1 intentionally uses `requests.Session(trust_env=False)`. Managed Cloud networking uses its
-sidecar proxy and CA configuration, so adding hosts and credentials alone would not establish
-compatibility. The readiness report exposes `E1_PROXY_PATH_UNSUPPORTED` when that proxy path is
-required. A reviewed transport integration would be needed; do not bypass the sidecar, disable
-TLS verification or weaken E1's fixed route allowlists to obtain a successful probe.
+E1 intentionally sets `requests.Session.trust_env=False`. Managed Cloud routing now has an
+explicit [sidecar and CA integration](cloud-transport-contract.md). Build a `ManagedRoute` from
+current nonsecret policy/runtime observations and the approved proxy/CA selectors, then pass it
+to `inspect_configuration(..., route=route)` and the reader. Inspection revalidates this route
+without activating it. Without that explicit opt-in, the report still exposes
+`E1_PROXY_PATH_UNSUPPORTED` when a proxy path is required. A configured route is not proof of
+connectivity, credential validity or account permissions.
 
 ## Read the configuration report
 
@@ -59,7 +61,11 @@ it never invokes the E1 poller, owner-context loader, alert writer or order adap
    Its canonical context hash is rechecked before the E1 client is called.
    The probe does not call `owner.load_context`, because that loader can write state snapshots.
    For OKX supply an explicit finite positive KRW value for USDT, as required by E1.
-4. Call `inquire_once(..., reader=reader, configuration=report, allow_read_only_probe=True)` with
+4. For managed Cloud, pass the validated `route` and an explicit callable `clock` to
+   `E1InquiryReader`. Every clock read must return an aware datetime; there is no implicit wall
+   clock. The route and clock bindings apply only during that reader call and are restored on
+   exit. Existing direct integrations may continue supplying E1's reviewed poll/test clock seam.
+5. Call `inquire_once(..., reader=reader, configuration=report, allow_read_only_probe=True)` with
    an aware timestamp. Environment/network blockers refuse before the reader is called. There
    is no implicit live reader and no probe command in the default CLI.
 

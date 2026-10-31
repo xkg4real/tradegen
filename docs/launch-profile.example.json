@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "profile_id": "example-unconfigured",
+  "venue": null,
+  "account_scope": null,
+  "market": null,
+  "symbol": null,
+  "quote_currency": null,
+  "time_in_force": null,
+  "policy": {
+    "version": null,
+    "source_sha256": null,
+    "initial_equity": null,
+    "drawdown_activation_equity": null,
+    "positive_profit_loss_fraction": null,
+    "peak_drawdown_fraction": null,
+    "zero_profit_day_target_fraction": null,
+    "first_day_loss_budget": null,
+    "zero_profit_day_loss_budget": null
+  },
+  "conventions": {
+    "valuation": null,
+    "daily_loss": null,
+    "external_flows": null,
+    "realized_profit": null,
+    "fx": null,
+    "rounding": null,
+    "day_boundary": null,
+    "first_day_scope": null
+  },
+  "instrument_rules": null,
+  "strategy_id": null,
+  "strategy_code_sha256": null
+}

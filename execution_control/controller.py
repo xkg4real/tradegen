@@ -335,6 +335,12 @@ class Controller:
         self._known = set()
         self._reconciled_at = {}
 
+    @_exact
+    def states(self) -> tuple[OrderState, ...]:
+        """Validated durable order views, without state initialization or repair."""
+        orders, _, _, _ = _fold(self.journal.snapshot())
+        return tuple(_view(orders[key]) for key in sorted(orders))
+
     def _account(self, now, events, order=None):
         _instant(now)
         obs = self.account_provider(now)

@@ -344,7 +344,52 @@ def test_one_send_seam_disables_environment_redirects_and_keeps_tls_verification
         T.requests = old
     assert len(events) == 2 and events[1] == "closed"
     options = events[0][2]
-    assert options == {"headers": {}, "data": b"{}", "timeout": 10.0, "allow_redirects": False, "verify": True}
+    assert options == {"headers": {}, "data": b"{}", "timeout": 10.0, "allow_redirects": False, "proxies": {}, "verify": True}
+
+
+def test_managed_order_send_uses_explicit_proxy_ca_once_and_does_not_fallback():
+    from execution_network.route import ManagedRoute, managed_route
+    route = ManagedRoute(proxy_url="http://proxy:8080", ca_bundle="/etc/ssl/certs/ca-certificates.crt",
+                         permitted_hosts=frozenset({"api.upbit.com"}))
+    events = []
+
+    class Session:
+        trust_env = True
+
+        def __enter__(self):
+            events.append("opened")
+            return self
+
+        def __exit__(self, *args):
+            events.append("closed")
+
+        def request(self, method, url, **kwargs):
+            assert self.trust_env is False
+            events.append((method, url, kwargs))
+            raise OSError("synthetic proxy failure")
+
+    old = T.requests
+    T.requests = SimpleNamespace(Session=Session)
+    try:
+        with managed_route(route):
+            try:
+                F.REAL_SEND("POST", "https://api.upbit.com/v1/orders", headers={}, body=b"{}", timeout=10.0)
+            except OSError:
+                pass
+            else:
+                raise AssertionError("proxy failure disappeared")
+            try:
+                F.REAL_SEND("POST", "https://www.okx.com/api/v5/trade/order", headers={}, body=b"{}", timeout=10.0)
+            except ValueError as exc:
+                assert str(exc) == "MANAGED_DESTINATION_BLOCKED"
+            else:
+                raise AssertionError("blocked destination opened a session")
+    finally:
+        T.requests = old
+    assert len(events) == 3 and events[0] == "opened" and events[-1] == "closed", events
+    assert events[1][2] == {"headers": {}, "data": b"{}", "timeout": 10.0, "allow_redirects": False,
+                            "proxies": {"http": "http://proxy:8080", "https": "http://proxy:8080"},
+                            "verify": "/etc/ssl/certs/ca-certificates.crt"}
 
 
 def test_dispatch_requires_aware_explicit_clock_before_any_provider_or_send():

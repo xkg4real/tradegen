@@ -663,7 +663,7 @@ def test_code_files_match_owner():
     assert {"core/__init__.py", "core/isolation.py", "core/compliance/__init__.py"} <= paths, paths
     assert {f"core/compliance/{p.name}" for p in (ROOT / "core" / "compliance").glob("*.py")} <= paths, paths
     assert {f"execution/{p.name}" for p in (ROOT / "execution").glob("*.py")} <= paths, paths      # E1 spec 8
-    assert {p.relative_to(ROOT).as_posix() for package in ("execution_control", "execution_orders", "execution_accounts")
+    assert {p.relative_to(ROOT).as_posix() for package in ("execution_control", "execution_orders", "execution_accounts", "execution_network", "execution_launch")
             for p in (ROOT / package).rglob("*.py")} <= paths, paths                            # E2/E3
     assert not any(p.startswith(("core/quant/", "core/calendars/", "core/engine/")) for p in paths), paths
     assert "config.py" not in paths and not any(p.startswith("data/") for p in paths), paths

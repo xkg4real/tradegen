@@ -37,7 +37,11 @@ are outside this order interface. See [value types](../execution_control/model.p
   `(venue, account_scope)` and returns matching `Credentials`. Its default refuses credentials;
   it has no environment reader, token refresh, automatic retry or default live configuration.
 
-There is no turnkey E2/E3 trading CLI or strategy scheduler; integration supplies providers, rules and strategy inputs.
+An explicit synchronous [launch runner](automatic-runner-contract.md) now connects supplied
+quote, account, strategy and controller providers. Its default observes only; rehearsal uses
+exact dry adapters and isolated state. A caller supplies bounded timestamps; there is no hidden
+background worker or default live configuration. See the [owner checklist](first-trade-owner-checklist.md)
+for configuration, strategy qualification and actual signing still required before a first trade.
 
 ## Owner setup still required
 

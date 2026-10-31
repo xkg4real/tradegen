@@ -13,7 +13,7 @@ from execution.transport import AuthError, InquiryError, InquiryRefused, KeyMiss
 ENDPOINTS = frozenset({
     ("GET", "/v1/accounts"), ("GET", "/v1/orders/open"), ("GET", "/v1/orders/closed"), ("GET", "/v1/withdraws"),
     ("GET", "/v1/withdraws/coin_addresses"), ("GET", "/v1/deposits"), ("GET", "/v1/api_keys"),
-    ("GET", "/v1/status/wallet"), ("GET", "/v1/ticker"),
+    ("GET", "/v1/status/wallet"), ("GET", "/v1/ticker"), ("GET", "/v1/order"),
 })
 PUBLIC = frozenset({"/v1/ticker"})
 

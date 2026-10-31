@@ -138,8 +138,14 @@ def test_constants_errors_and_answer_have_the_contract_shape():
     assert [defaults[k] for k in ("_sleep", "_next_issue_at", "_okx_offset_s", "_bad_tokens")] == [
         "time.sleep", "None", "None", "set()"], defaults
     clock = [n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "_clock"]
-    assert len(clock) == 1 and ast.unparse(clock[0].body[-1]) == (
-        "raise RuntimeError('transport: no clock; poll.main sets one')"), ast.dump(clock[0])
+    assert len(clock) == 1 and ast.unparse(clock[0].body[-1]) == "return _context_clock()", ast.dump(clock[0])
+    assert defaults["_INQUIRY_CLOCK"] == "ContextVar('tradegen_inquiry_clock', default=None)"
+    try:
+        T._context_clock()
+    except RuntimeError:
+        pass
+    else:
+        raise AssertionError("standalone inquiry unexpectedly has an implicit clock")
 
 
 def test_every_refusal_comes_before_any_key_is_read():
@@ -175,7 +181,9 @@ def test_every_refusal_comes_before_any_key_is_read():
         (("upbit", "POST", "/v1/orders"), f"upbit: POST /v1/orders {not_listed}"),
         (("upbit", "DELETE", "/v1/orders/open"), f"upbit: DELETE /v1/orders/open {not_listed}"),
         (("upbit", "GET", "/v1/orders"), f"upbit: GET /v1/orders {not_listed}"),
-        (("upbit", "GET", "/v1/order"), f"upbit: GET /v1/order {not_listed}"),
+        (("upbit", "POST", "/v1/order"), f"upbit: POST /v1/order {not_listed}"),
+        (("upbit", "DELETE", "/v1/order"), f"upbit: DELETE /v1/order {not_listed}"),
+        (("upbit", "GET", "/v1/order/new"), f"upbit: GET /v1/order/new {not_listed}"),
         (("upbit", "GET", "/v1/deposits/generate_coin_address"),
          f"upbit: GET /v1/deposits/generate_coin_address {not_listed}"),
         (("upbit", "GET", "/v1/withdraws/coin"), f"upbit: GET /v1/withdraws/coin {not_listed}"),
@@ -348,13 +356,140 @@ def test_send_opens_one_session_with_trust_env_off_and_no_redirects():
     assert got == (200, {"Date": F.DATE_HEADER}, b'{"ok": true}') and got_get == got, (got, got_get)
     want = [("session",),
             ("request", "POST", "https://openapi.koreainvestment.com:9443/oauth2/tokenP", False,
-             {"headers": headers, "params": None, "json": body, "timeout": 10.0, "allow_redirects": False}),
+             {"headers": headers, "params": None, "json": body, "timeout": 10.0, "allow_redirects": False,
+              "proxies": {}, "verify": True}),
             ("content",), ("closed",),
             ("session",),
             ("request", "GET", "https://api.upbit.com/v1/accounts", False,
-             {"headers": headers, "params": None, "json": None, "timeout": 10.0, "allow_redirects": False}),
+             {"headers": headers, "params": None, "json": None, "timeout": 10.0, "allow_redirects": False,
+              "proxies": {}, "verify": True}),
             ("content",), ("closed",)]
     assert calls == want, calls
+
+
+def test_explicit_managed_send_uses_sidecar_ca_and_never_falls_back_direct():
+    from execution_network.route import ManagedRoute, managed_route
+    route = ManagedRoute(proxy_url="http://proxy:8080", ca_bundle="/etc/ssl/certs/ca-certificates.crt",
+                         permitted_hosts=frozenset({"api.upbit.com"}))
+    events = []
+
+    class Session:
+        trust_env = True
+
+        def __enter__(self):
+            events.append("opened")
+            return self
+
+        def __exit__(self, *args):
+            events.append("closed")
+
+        def request(self, method, url, **kwargs):
+            assert self.trust_env is False
+            events.append((method, url, kwargs))
+            raise requests.exceptions.ProxyError("synthetic refusal")
+
+    with _t2_patched(T, "requests", types.SimpleNamespace(Session=Session)), managed_route(route):
+        try:
+            F.REAL_SEND("GET", "https://api.upbit.com/v1/accounts", headers={}, params=None,
+                        json_body=None, timeout=10.0)
+        except requests.exceptions.ProxyError:
+            pass
+        else:
+            raise AssertionError("proxy failure disappeared")
+        try:
+            F.REAL_SEND("GET", "https://www.okx.com/api/v5/public/time", headers={}, params=None,
+                        json_body=None, timeout=10.0)
+        except ValueError as exc:
+            assert str(exc) == "MANAGED_DESTINATION_BLOCKED"
+        else:
+            raise AssertionError("blocked destination opened a session")
+    assert len(events) == 3 and events[0] == "opened" and events[-1] == "closed", events
+    assert events[1][2] == {"headers": {}, "params": None, "json": None, "timeout": 10.0,
+                            "allow_redirects": False,
+                            "proxies": {"http": "http://proxy:8080", "https": "http://proxy:8080"},
+                            "verify": "/etc/ssl/certs/ca-certificates.crt"}
+
+
+def test_public_inquiry_clock_is_explicit_aware_nested_and_restored():
+    from contextvars import Context
+    later = F.NOW + timedelta(seconds=2)
+    with T.inquiry_clock(lambda: F.NOW) as read:
+        assert read() == F.NOW
+        try:
+            with T.inquiry_clock(lambda: later) as inner:
+                assert inner() == later
+                raise RuntimeError("synthetic")
+        except RuntimeError:
+            pass
+        assert read() == F.NOW
+        try:
+            Context().run(read)
+        except RuntimeError:
+            pass
+        else:
+            raise AssertionError("clock escaped its context")
+    try:
+        read()
+    except RuntimeError:
+        pass
+    else:
+        raise AssertionError("clock remained bound after context exit")
+    for bad in (None, F.NOW.replace(tzinfo=None), "2026-10-31"):
+        with T.inquiry_clock(lambda bad=bad: bad) as invalid:
+            try:
+                invalid()
+            except ValueError as exc:
+                assert str(exc) == "INQUIRY_CLOCK_MUST_BE_AWARE"
+            else:
+                raise AssertionError("invalid clock accepted")
+    try:
+        with T.inquiry_clock(None):
+            pass
+    except ValueError as exc:
+        assert str(exc) == "INQUIRY_CLOCK_REQUIRED"
+    else:
+        raise AssertionError("noncallable clock accepted")
+
+
+def test_explicit_clock_overrides_installed_legacy_clock_for_receipts_auth_and_token_age():
+    explicit = F.NOW + timedelta(seconds=7)
+    legacy_reads = []
+
+    def legacy_clock():
+        legacy_reads.append(True)
+        raise AssertionError("legacy clock selected")
+
+    routes = F.upbit_routes() | F.okx_routes() | F.kis_routes()
+    with _t2_patched(T, "_clock", legacy_clock), F.fake_keys(), F.serve(routes) as calls:
+        with T.inquiry_clock(lambda: explicit):
+            upbit = T.request("upbit", "GET", "/v1/accounts")
+            public = T.request("okx", "GET", "/api/v5/public/time")
+            okx = T.request("okx", "GET", "/api/v5/account/balance")
+            kis = T.request("kis", "GET", _T2_BALANCE, [("INQR_DVSN", "01"), ("PDNO", "%")],
+                            tr_id="TTTC8434R")
+            assert all(answer.received_utc == explicit for answer in (upbit, public, okx, kis))
+            signed_okx = next(call for call in calls if call["path"] == "/api/v5/account/balance")
+            assert signed_okx["headers"]["OK-ACCESS-TIMESTAMP"] == T._okx_timestamp(explicit)
+            assert T._next_issue_at == explicit.timestamp() + T.TOKEN_MIN_GAP_S
+            cached = json.loads((_t3_home() / "kis_token.json").read_text(encoding="utf-8"))
+            assert cached["expires_at"] == explicit.timestamp() + F.KIS_BODIES["token"]["expires_in"]
+            assert not legacy_reads
+        with T.inquiry_clock(lambda: None):
+            try:
+                T._now()
+            except ValueError as exc:
+                assert str(exc) == "INQUIRY_CLOCK_MUST_BE_AWARE"
+            else:
+                raise AssertionError("invalid explicit clock used a legacy fallback")
+            assert not legacy_reads
+        try:
+            T._now()
+        except AssertionError as exc:
+            assert str(exc) == "legacy clock selected"
+        else:
+            raise AssertionError("legacy seam was not restored")
+        assert legacy_reads == [True]
+    assert T._now() == F.NOW
 
 
 def test_trust_env_off_ignores_proxy_ca_bundle_and_netrc_settings():
@@ -779,6 +914,7 @@ def test_the_answer_carries_body_server_time_receipt_and_sha256():
         assert got.body == [{"market": "KRW-BTC", "trade_price": 100000000.0}], got.body
         assert got.server_utc == want and (want is None or got.server_utc.tzinfo == timezone.utc), (headers, got)
         assert got.received_utc == F.NOW + timedelta(seconds=2) and got.sha256 == hashlib.sha256(raw).hexdigest()
+        assert got.raw_body == raw and type(got.raw_body) is bytes
         assert "KRW-BTC" not in repr(got) and "trade_price" not in repr(got), repr(got)
 
 

@@ -48,7 +48,8 @@ def _code_only(path: Path) -> str:
 def runtime_py() -> list[Path]:
     files: list[Path] = []
     for base in (ROOT / "core", ROOT / "data", ROOT / "ui", ROOT / "execution",
-                 ROOT / "execution_control", ROOT / "execution_orders", ROOT / "execution_accounts"):
+                 ROOT / "execution_control", ROOT / "execution_orders", ROOT / "execution_accounts",
+                 ROOT / "execution_network", ROOT / "execution_launch"):
         if base.is_dir():
             files.extend(p for p in base.rglob("*.py") if "__pycache__" not in p.parts)
     files.extend([ROOT / "main.py", ROOT / "config.py"])
