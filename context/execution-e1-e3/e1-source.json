@@ -1,0 +1,20 @@
+{
+  "updated_at": "2026-10-31T15:02:25+09:00",
+  "source_commit": "94fb3cb0b3e82c3177b51eb57bbea199c80854be",
+  "status": "e1_tasks_1_through_12_complete_full_regression_running",
+  "counts": {
+    "PASS": 228,
+    "FAIL": 0,
+    "NOT_RUN": 0
+  },
+  "reviewers": [
+    "e1_foundation",
+    "e1_polling"
+  ],
+  "fix": "token expiry nonfinite/malformed cases RED then GREEN",
+  "full_suite_session": "active; no simultaneous suites",
+  "next_worktree": "/workspace/tradegen-e2e3",
+  "next_branch": "gpt/execution-control-adapters",
+  "live_calls": false,
+  "owner_setup": "not performed"
+}

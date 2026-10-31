@@ -1,0 +1,15 @@
+Traceback (most recent call last):
+  File "/workspace/tradegen-execution/tests/run_all.py", line 102, in run
+    fn()
+    ~~^^
+  File "/workspace/tradegen-execution/tests/execution_acceptance.py", line 98, in run
+    fn()
+    ~~^^
+  File "/workspace/tradegen-execution/tests/execution_transport.py", line 870, in test_the_token_targets_are_checked_before_the_post_and_the_write_is_atomic
+    exc = _t3_raises(T.InquiryError, T._kis_token)
+  File "/workspace/tradegen-execution/tests/execution_transport.py", line 447, in _t3_raises
+    raise AssertionError(f"{getattr(fn, '__name__', fn)} did not raise {kind.__name__}")
+AssertionError: _kis_token did not raise InquiryError
+FAIL execution_transport/test_the_token_targets_are_checked_before_the_post_and_the_write_is_atomic AssertionError: _kis_token did not raise InquiryError
+
+0/1 passed, 1 failed, 0 not run

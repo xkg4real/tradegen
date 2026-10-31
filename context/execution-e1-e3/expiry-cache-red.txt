@@ -1,0 +1,14 @@
+Traceback (most recent call last):
+  File "/workspace/tradegen-execution/tests/run_all.py", line 102, in run
+    fn()
+    ~~^^
+  File "/workspace/tradegen-execution/tests/execution_acceptance.py", line 98, in run
+    fn()
+    ~~^^
+  File "/workspace/tradegen-execution/tests/execution_transport.py", line 809, in test_a_cached_token_is_reused_until_120_s_before_it_expires
+    assert T._read_token(path, now) is None, text
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {"access_token": "t", "expires_at": Infinity}
+FAIL execution_transport/test_a_cached_token_is_reused_until_120_s_before_it_expires AssertionError: {"access_token": "t", "expires_at": Infinity}
+
+0/1 passed, 1 failed, 0 not run
