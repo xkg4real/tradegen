@@ -1,0 +1,153 @@
+{
+  "candidate_catalogue_sha256": "2f3fd10bd0b4da2e778e133af5284f1133e36e05fa62e639234fca630d48c7cc",
+  "freeze_commit": "8e7c6c85c5ed3799a7cb6d4ac350ebdf57af1175",
+  "holdout_evaluated": false,
+  "schema_version": 1,
+  "selection_rule": {
+    "fallback": "cash; no holdout-dependent replacement",
+    "minimum_completed_roundtrips": 20,
+    "objective": "maximum net Sharpe",
+    "require_positive_net_mean": true,
+    "selected_per_asset": 1,
+    "split": "validation",
+    "tie_breakers": [
+      "lower turnover",
+      "lexical candidate ID"
+    ],
+    "tie_tolerance": 1e-12
+  },
+  "selections": {
+    "BTC_KRW": {
+      "candidate_id": "sma-23835b7a8be46790",
+      "family": "sma",
+      "parameters": [
+        [
+          "band",
+          0.01
+        ],
+        [
+          "lookback",
+          5
+        ]
+      ],
+      "raw_index": 29,
+      "rebalance_bars": 5,
+      "target_cap": 0.5,
+      "volatility_target": null
+    },
+    "BTC_USDT": {
+      "candidate_id": "sma-6291e9eb728ab677",
+      "family": "sma",
+      "parameters": [
+        [
+          "band",
+          0.01
+        ],
+        [
+          "lookback",
+          5
+        ]
+      ],
+      "raw_index": 29,
+      "rebalance_bars": 5,
+      "target_cap": 1.0,
+      "volatility_target": null
+    },
+    "ETH_USDT": {
+      "candidate_id": "sma-227f25dc26ddfa3e",
+      "family": "sma",
+      "parameters": [
+        [
+          "band",
+          0.01
+        ],
+        [
+          "lookback",
+          5
+        ]
+      ],
+      "raw_index": 29,
+      "rebalance_bars": 5,
+      "target_cap": 1.0,
+      "volatility_target": 0.15
+    },
+    "GLD": null,
+    "QQQ": {
+      "candidate_id": "rsi_reversion-30781661a965f9ab",
+      "family": "rsi_reversion",
+      "parameters": [
+        [
+          "lookback",
+          5
+        ],
+        [
+          "lower",
+          20
+        ],
+        [
+          "upper",
+          50
+        ]
+      ],
+      "raw_index": 139,
+      "rebalance_bars": 1,
+      "target_cap": 1.0,
+      "volatility_target": null
+    },
+    "SPY": {
+      "candidate_id": "rsi_reversion-bd69fa14cdf69a80",
+      "family": "rsi_reversion",
+      "parameters": [
+        [
+          "lookback",
+          5
+        ],
+        [
+          "lower",
+          30
+        ],
+        [
+          "upper",
+          60
+        ]
+      ],
+      "raw_index": 142,
+      "rebalance_bars": 1,
+      "target_cap": 1.0,
+      "volatility_target": null
+    },
+    "TIGER200": {
+      "candidate_id": "rsi_reversion-93fcf01f24f5e330",
+      "family": "rsi_reversion",
+      "parameters": [
+        [
+          "lookback",
+          5
+        ],
+        [
+          "lower",
+          40
+        ],
+        [
+          "upper",
+          50
+        ]
+      ],
+      "raw_index": 143,
+      "rebalance_bars": 1,
+      "target_cap": 1.0,
+      "volatility_target": null
+    },
+    "TLT": null
+  },
+  "validation_holm": {
+    "BTC_KRW": 1.0,
+    "BTC_USDT": 1.0,
+    "ETH_USDT": 1.0,
+    "GLD": 1.0,
+    "QQQ": 1.0,
+    "SPY": 1.0,
+    "TIGER200": 0.644,
+    "TLT": 0.544
+  }
+}

@@ -1,0 +1,1928 @@
+{
+  "assets": {
+    "BTC_KRW": {
+      "annualization": 365,
+      "candidate_count": 2676,
+      "cost_bps_per_side": 10.0,
+      "currency": "KRW",
+      "distinct_validation_return_paths": 2188,
+      "economic_families": 8,
+      "eligible_validation_candidates": 94,
+      "holdout": {
+        "annual_vol": 0.11019944407382946,
+        "annualization": 365,
+        "annualized_mean": 0.08175551407564777,
+        "avg_exposure": 0.15137187362373342,
+        "cagr": 0.07865653614162017,
+        "completed_trades": 61,
+        "cost_per_side": 0.001,
+        "entries": 61,
+        "lag": 1,
+        "max_drawdown": -0.2435770446319988,
+        "mean_daily": 0.00022398770979629526,
+        "n": 1363,
+        "sharpe": 0.7418868104350387,
+        "total_return": 0.3267646757296432,
+        "turnover": 61.142963874969716
+      },
+      "holdout_benchmark": {
+        "annual_vol": 0.4080750181906687,
+        "annualization": 365,
+        "annualized_mean": 0.536232674997172,
+        "avg_exposure": 0.9992663242846662,
+        "cagr": 0.5738737431536032,
+        "completed_trades": 1,
+        "cost_per_side": 0.001,
+        "entries": 1,
+        "lag": 1,
+        "max_drawdown": -0.4993567813225026,
+        "mean_daily": 0.001469130616430608,
+        "n": 1363,
+        "sharpe": 1.314054159391406,
+        "total_return": 4.439188846943429,
+        "turnover": 1.9990009990009991
+      },
+      "holdout_cash_holm_p": 0.7244999999999999,
+      "holdout_holm_p": 1.0,
+      "holdout_inference": {
+        "annualized_mean": 0.08175551407564777,
+        "benchmark_sharpe": 1.314054159391406,
+        "block_length": 20,
+        "cagr": 0.07865653614161983,
+        "interpretation": "retrospective internal holdout; previous research contamination remains",
+        "market_model": {
+          "alpha_daily": 1.1838389696698995e-05,
+          "alpha_p_one_sided": 0.46265368481027114,
+          "alpha_se_hac": 0.00012627551029594826,
+          "available": true,
+          "beta": 0.14440466880680294,
+          "hac_lags": 20,
+          "interpretation": "diagnostic market-model intercept, not causal or independent confirmation",
+          "p_value_is_upper_bound": false,
+          "small_sample_factor": 1.0014695077149156
+        },
+        "max_drawdown": -0.24357704463199925,
+        "mean": 0.00022398770979629526,
+        "mean_ci": [
+          -0.00012273259777087462,
+          0.0005835853491467703
+        ],
+        "mean_diff": -0.0012451429066343128,
+        "mean_diff_ci": [
+          -0.0023600466988911626,
+          -0.00015995575444846256
+        ],
+        "mean_diff_p_value": 0.988,
+        "mean_p_value": 0.1085,
+        "nobs": 1363,
+        "replications": 1999,
+        "sharpe": 0.7418868104350467,
+        "sharpe_diff_ci": [
+          -1.548762610461686,
+          0.3492525649065064
+        ]
+      },
+      "phases": {
+        "holdout": {
+          "end": "2026-09-24",
+          "n": 1363,
+          "start": "2023-01-01"
+        },
+        "train": {
+          "end": "2020-12-31",
+          "n": 694,
+          "start": "2019-02-07"
+        },
+        "validation": {
+          "end": "2022-12-31",
+          "n": 730,
+          "start": "2021-01-01"
+        }
+      },
+      "production_status": "NOT_VALIDATED_FOR_PRODUCTION",
+      "research_gate_conditions": {
+        "holdout_vs_benchmark_familywise": false,
+        "positive_double_cost_mean": true,
+        "positive_holdout_mean": true,
+        "sufficient_holdout_activity": true,
+        "validation_familywise": false
+      },
+      "research_label": "not_supported_by_preregistered_screen",
+      "selected": {
+        "candidate_id": "sma-23835b7a8be46790",
+        "family": "sma",
+        "parameters": [
+          [
+            "band",
+            0.01
+          ],
+          [
+            "lookback",
+            5
+          ]
+        ],
+        "raw_index": 29,
+        "rebalance_bars": 5,
+        "target_cap": 0.5,
+        "volatility_target": null
+      },
+      "status": "evaluated",
+      "stress": {
+        "cost_2x": {
+          "annual_vol": 0.11022817568996901,
+          "annualization": 365,
+          "annualized_mean": 0.0653783184510795,
+          "avg_exposure": 0.1513718736237334,
+          "cagr": 0.0611345142271114,
+          "completed_trades": 61,
+          "cost_per_side": 0.002,
+          "entries": 61,
+          "lag": 1,
+          "max_drawdown": -0.2614301315318709,
+          "mean_daily": 0.00017911868068788903,
+          "n": 1363,
+          "sharpe": 0.5931180303207091,
+          "total_return": 0.24805343320637263,
+          "turnover": 61.12791657740881
+        },
+        "cost_3x": {
+          "annual_vol": 0.11032375368987699,
+          "annualization": 365,
+          "annualized_mean": 0.049009168745167836,
+          "avg_exposure": 0.1513718736237334,
+          "cagr": 0.0438970601229326,
+          "completed_trades": 61,
+          "cost_per_side": 0.003,
+          "entries": 61,
+          "lag": 1,
+          "max_drawdown": -0.2788617859929391,
+          "mean_daily": 0.00013427169519224065,
+          "n": 1363,
+          "sharpe": 0.4442304318518196,
+          "total_return": 0.17401151640755197,
+          "turnover": 61.11288466431743
+        },
+        "lag_2": {
+          "annual_vol": 0.10592366861750269,
+          "annualization": 365,
+          "annualized_mean": 0.026704954695233547,
+          "avg_exposure": 0.14757615778428906,
+          "cagr": 0.021348298770376837,
+          "completed_trades": 57,
+          "cost_per_side": 0.001,
+          "entries": 57,
+          "lag": 2,
+          "max_drawdown": -0.21997859908792994,
+          "mean_daily": 7.316425943899602e-05,
+          "n": 1363,
+          "sharpe": 0.25211508479438044,
+          "total_return": 0.0820753207288194,
+          "turnover": 57.0714707474781
+        }
+      },
+      "train": {
+        "annual_vol": 0.18825110824847813,
+        "annualization": 365,
+        "annualized_mean": 0.36288008731527016,
+        "avg_exposure": 0.1687737299266497,
+        "cagr": 0.4123389413558462,
+        "completed_trades": 29,
+        "cost_per_side": 0.001,
+        "entries": 29,
+        "lag": 1,
+        "max_drawdown": -0.1377743568545423,
+        "mean_daily": 0.0009941920200418361,
+        "n": 694,
+        "sharpe": 1.9276385179963675,
+        "total_return": 0.9279216036828002,
+        "turnover": 29.315544465350236
+      },
+      "validation": {
+        "annual_vol": 0.2022024204784937,
+        "annualization": 365,
+        "annualized_mean": 0.3097084279306648,
+        "avg_exposure": 0.1823941228643369,
+        "cagr": 0.3356236484030026,
+        "completed_trades": 28,
+        "cost_per_side": 0.001,
+        "entries": 28,
+        "lag": 1,
+        "max_drawdown": -0.16954430766828676,
+        "mean_daily": 0.0008485162409059308,
+        "n": 730,
+        "sharpe": 1.5316751757855707,
+        "total_return": 0.7838905301733474,
+        "turnover": 28.28801856698846
+      },
+      "validation_benchmark": {
+        "annual_vol": 0.628781416784295,
+        "annualization": 365,
+        "annualized_mean": -0.016175963051506093,
+        "avg_exposure": 0.9986301369863013,
+        "cagr": -0.19292045758526793,
+        "completed_trades": 1,
+        "cost_per_side": 0.001,
+        "entries": 1,
+        "lag": 1,
+        "max_drawdown": -0.7413127157475768,
+        "mean_daily": -4.431770699042765e-05,
+        "n": 730,
+        "sharpe": -0.025725892368500602,
+        "total_return": -0.34862261221562674,
+        "turnover": 1.9990009990009991
+      },
+      "validation_family_test": {
+        "n_candidates": 2676,
+        "nobs": 730,
+        "primary": {
+          "benchmark": "costed_buy_and_hold",
+          "block_length": 20,
+          "critical_value_95": 0.08064593878484909,
+          "method": "centered_circular_moving_block_max_mean",
+          "n_candidates": 2676,
+          "nobs": 730,
+          "p_value": 0.3655,
+          "replications": 1999,
+          "statistic": 0.04659467829143054
+        },
+        "sensitivity": {
+          "5": {
+            "benchmark": "costed_buy_and_hold",
+            "block_length": 5,
+            "critical_value_95": 0.08101368525652318,
+            "method": "centered_circular_moving_block_max_mean",
+            "n_candidates": 2676,
+            "nobs": 730,
+            "p_value": 0.389,
+            "replications": 999,
+            "statistic": 0.04659467829143054
+          },
+          "60": {
+            "benchmark": "costed_buy_and_hold",
+            "block_length": 60,
+            "critical_value_95": 0.08481100667512481,
+            "method": "centered_circular_moving_block_max_mean",
+            "n_candidates": 2676,
+            "nobs": 730,
+            "p_value": 0.37,
+            "replications": 999,
+            "statistic": 0.04659467829143054
+          }
+        }
+      },
+      "validation_holm_p": 1.0
+    },
+    "BTC_USDT": {
+      "annualization": 365,
+      "candidate_count": 2676,
+      "cost_bps_per_side": 10.0,
+      "currency": "USDT",
+      "distinct_validation_return_paths": 1935,
+      "economic_families": 8,
+      "eligible_validation_candidates": 111,
+      "holdout": {
+        "annual_vol": 0.26284514646978213,
+        "annualization": 365,
+        "annualized_mean": 0.015410430838584243,
+        "avg_exposure": 0.33528980190755686,
+        "cagr": -0.018773944161021662,
+        "completed_trades": 67,
+        "cost_per_side": 0.001,
+        "entries": 67,
+        "lag": 1,
+        "max_drawdown": -0.5678120170831185,
+        "mean_daily": 4.222035846187464e-05,
+        "n": 1363,
+        "sharpe": 0.0586293148097216,
+        "total_return": -0.06832662259000988,
+        "turnover": 133.9330669330669
+      },
+      "holdout_benchmark": {
+        "annual_vol": 0.46547486555710976,
+        "annualization": 365,
+        "annualized_mean": 0.5424771394228989,
+        "avg_exposure": 0.9992663242846662,
+        "cagr": 0.5444998511152714,
+        "completed_trades": 1,
+        "cost_per_side": 0.001,
+        "entries": 1,
+        "lag": 1,
+        "max_drawdown": -0.5297176591351062,
+        "mean_daily": 0.0014862387381449284,
+        "n": 1363,
+        "sharpe": 1.165427350784296,
+        "total_return": 4.069678978851351,
+        "turnover": 1.9990009990009991
+      },
+      "holdout_cash_holm_p": 1.0,
+      "holdout_holm_p": 1.0,
+      "holdout_inference": {
+        "annualized_mean": 0.015410430838584243,
+        "benchmark_sharpe": 1.165427350784296,
+        "block_length": 20,
+        "cagr": -0.01877394416102085,
+        "interpretation": "retrospective internal holdout; previous research contamination remains",
+        "market_model": {
+          "alpha_daily": -0.0004308301843417453,
+          "alpha_p_one_sided": 0.9339858361332418,
+          "alpha_se_hac": 0.0002860470744184123,
+          "available": true,
+          "beta": 0.31828704949116415,
+          "hac_lags": 20,
+          "interpretation": "diagnostic market-model intercept, not causal or independent confirmation",
+          "p_value_is_upper_bound": false,
+          "small_sample_factor": 1.0014695077149156
+        },
+        "max_drawdown": -0.5678120170831173,
+        "mean": 4.222035846187464e-05,
+        "mean_ci": [
+          -0.0006780770158140586,
+          0.0008184960223990567
+        ],
+        "mean_diff": -0.001444018379683054,
+        "mean_diff_ci": [
+          -0.0024991105318727153,
+          -0.0004338298023034172
+        ],
+        "mean_diff_p_value": 0.998,
+        "mean_p_value": 0.4375,
+        "nobs": 1363,
+        "replications": 1999,
+        "sharpe": 0.05862931480972104,
+        "sharpe_diff_ci": [
+          -2.0165110664466055,
+          -0.2577260431501394
+        ]
+      },
+      "phases": {
+        "holdout": {
+          "end": "2026-09-24",
+          "n": 1363,
+          "start": "2023-01-01"
+        },
+        "train": {
+          "end": "2020-12-31",
+          "n": 733,
+          "start": "2018-12-30"
+        },
+        "validation": {
+          "end": "2022-12-31",
+          "n": 730,
+          "start": "2021-01-01"
+        }
+      },
+      "production_status": "NOT_VALIDATED_FOR_PRODUCTION",
+      "research_gate_conditions": {
+        "holdout_vs_benchmark_familywise": false,
+        "positive_double_cost_mean": false,
+        "positive_holdout_mean": true,
+        "sufficient_holdout_activity": true,
+        "validation_familywise": false
+      },
+      "research_label": "not_supported_by_preregistered_screen",
+      "selected": {
+        "candidate_id": "sma-6291e9eb728ab677",
+        "family": "sma",
+        "parameters": [
+          [
+            "band",
+            0.01
+          ],
+          [
+            "lookback",
+            5
+          ]
+        ],
+        "raw_index": 29,
+        "rebalance_bars": 5,
+        "target_cap": 1.0,
+        "volatility_target": null
+      },
+      "status": "evaluated",
+      "stress": {
+        "cost_2x": {
+          "annual_vol": 0.2628164785196798,
+          "annualization": 365,
+          "annualized_mean": -0.020472867358275044,
+          "avg_exposure": 0.33528980190755686,
+          "cagr": -0.05336015992240571,
+          "completed_trades": 67,
+          "cost_per_side": 0.002,
+          "entries": 67,
+          "lag": 1,
+          "max_drawdown": -0.6002415629785146,
+          "mean_daily": -5.609004755691793e-05,
+          "n": 1363,
+          "sharpe": -0.07789795934253804,
+          "total_return": -0.18516797543332475,
+          "turnover": 133.86626746506982
+        },
+        "cost_3x": {
+          "annual_vol": 0.2629106370903045,
+          "annualization": 365,
+          "annualized_mean": -0.05632049588648542,
+          "avg_exposure": 0.33528980190755686,
+          "cagr": -0.08672741325850289,
+          "completed_trades": 67,
+          "cost_per_side": 0.003,
+          "entries": 67,
+          "lag": 1,
+          "max_drawdown": -0.6302378492082437,
+          "mean_daily": -0.00015430272845612443,
+          "n": 1363,
+          "sharpe": -0.2142191602051478,
+          "total_return": -0.28735661179433714,
+          "turnover": 133.79960119641066
+        },
+        "lag_2": {
+          "annual_vol": 0.2539666354008861,
+          "annualization": 365,
+          "annualized_mean": -0.04276844512815247,
+          "avg_exposure": 0.33162142333088773,
+          "cagr": -0.07213514180623788,
+          "completed_trades": 65,
+          "cost_per_side": 0.001,
+          "entries": 65,
+          "lag": 2,
+          "max_drawdown": -0.5695903938940574,
+          "mean_daily": -0.00011717382226891088,
+          "n": 1363,
+          "sharpe": -0.16840182593529468,
+          "total_return": -0.24389875741502143,
+          "turnover": 129.9350649350649
+        }
+      },
+      "train": {
+        "annual_vol": 0.49651039115672546,
+        "annualization": 365,
+        "annualized_mean": 1.1633370994816445,
+        "avg_exposure": 0.48021828103683495,
+        "cagr": 1.8340867647420938,
+        "completed_trades": 34,
+        "cost_per_side": 0.001,
+        "entries": 34,
+        "lag": 1,
+        "max_drawdown": -0.2660667448607693,
+        "mean_daily": 0.0031872249300866975,
+        "n": 733,
+        "sharpe": 2.343026692294205,
+        "total_return": 7.101114080982775,
+        "turnover": 67.96603396603395
+      },
+      "validation": {
+        "annual_vol": 0.4447998951433991,
+        "annualization": 365,
+        "annualized_mean": 0.37556031376066656,
+        "avg_exposure": 0.4041095890410959,
+        "cagr": 0.32082520453526436,
+        "completed_trades": 32,
+        "cost_per_side": 0.001,
+        "entries": 32,
+        "lag": 1,
+        "max_drawdown": -0.43390740343406764,
+        "mean_daily": 0.0010289323664675796,
+        "n": 730,
+        "sharpe": 0.8443354368138722,
+        "total_return": 0.744579220935623,
+        "turnover": 63.96803196803195
+      },
+      "validation_benchmark": {
+        "annual_vol": 0.7300227671430176,
+        "annualization": 365,
+        "annualized_mean": -0.020556451873151915,
+        "avg_exposure": 0.9986301369863013,
+        "cagr": -0.2497665544611888,
+        "completed_trades": 1,
+        "cost_per_side": 0.001,
+        "entries": 1,
+        "lag": 1,
+        "max_drawdown": -0.7662925431645935,
+        "mean_daily": -5.631904622781347e-05,
+        "n": 730,
+        "sharpe": -0.028158644905830355,
+        "total_return": -0.4371497771949636,
+        "turnover": 1.9990009990009991
+      },
+      "validation_family_test": {
+        "n_candidates": 2676,
+        "nobs": 730,
+        "primary": {
+          "benchmark": "costed_buy_and_hold",
+          "block_length": 20,
+          "critical_value_95": 0.08246671176269987,
+          "method": "centered_circular_moving_block_max_mean",
+          "n_candidates": 2676,
+          "nobs": 730,
+          "p_value": 0.4965,
+          "replications": 1999,
+          "statistic": 0.04074381031498044
+        },
+        "sensitivity": {
+          "5": {
+            "benchmark": "costed_buy_and_hold",
+            "block_length": 5,
+            "critical_value_95": 0.08590120836163405,
+            "method": "centered_circular_moving_block_max_mean",
+            "n_candidates": 2676,
+            "nobs": 730,
+            "p_value": 0.533,
+            "replications": 999,
+            "statistic": 0.04074381031498044
+          },
+          "60": {
+            "benchmark": "costed_buy_and_hold",
+            "block_length": 60,
+            "critical_value_95": 0.07964801932337699,
+            "method": "centered_circular_moving_block_max_mean",
+            "n_candidates": 2676,
+            "nobs": 730,
+            "p_value": 0.432,
+            "replications": 999,
+            "statistic": 0.04074381031498044
+          }
+        }
+      },
+      "validation_holm_p": 1.0
+    },
+    "ETH_USDT": {
+      "annualization": 365,
+      "candidate_count": 2676,
+      "cost_bps_per_side": 10.0,
+      "currency": "USDT",
+      "distinct_validation_return_paths": 1709,
+      "economic_families": 8,
+      "eligible_validation_candidates": 260,
+      "holdout": {
+        "annual_vol": 0.11718490947517746,
+        "annualization": 365,
+        "annualized_mean": 0.09786106360290775,
+        "avg_exposure": 0.09912018333477653,
+        "cagr": 0.09541797920167858,
+        "completed_trades": 61,
+        "cost_per_side": 0.001,
+        "entries": 61,
+        "lag": 1,
+        "max_drawdown": -0.1865122764843281,
+        "mean_daily": 0.00026811250302166505,
+        "n": 1363,
+        "sharpe": 0.835099536631353,
+        "total_return": 0.40540331781301475,
+        "turnover": 36.43027627976421
+      },
+      "holdout_benchmark": {
+        "annual_vol": 0.6321932960045179,
+        "annualization": 365,
+        "annualized_mean": 0.4130149897603473,
+        "avg_exposure": 0.9992663242846662,
+        "cagr": 0.2403095998972596,
+        "completed_trades": 1,
+        "cost_per_side": 0.001,
+        "entries": 1,
+        "lag": 1,
+        "max_drawdown": -0.6755345017766712,
+        "mean_daily": 0.0011315479171516364,
+        "n": 1363,
+        "sharpe": 0.6533049185599014,
+        "total_return": 1.2349328279731338,
+        "turnover": 1.9990009990009991
+      },
+      "holdout_cash_holm_p": 0.7244999999999999,
+      "holdout_holm_p": 1.0,
+      "holdout_inference": {
+        "annualized_mean": 0.09786106360290775,
+        "benchmark_sharpe": 0.6533049185599014,
+        "block_length": 20,
+        "cagr": 0.09541797920167938,
+        "interpretation": "retrospective internal holdout; previous research contamination remains",
+        "market_model": {
+          "alpha_daily": 0.0001607582375764238,
+          "alpha_p_one_sided": 0.16275319262567622,
+          "alpha_se_hac": 0.00016350423498090287,
+          "available": true,
+          "beta": 0.09487381295833797,
+          "hac_lags": 20,
+          "interpretation": "diagnostic market-model intercept, not causal or independent confirmation",
+          "p_value_is_upper_bound": false,
+          "small_sample_factor": 1.0014695077149156
+        },
+        "max_drawdown": -0.18651227648432755,
+        "mean": 0.00026811250302166505,
+        "mean_ci": [
+          -0.00010967772098295438,
+          0.0007239981214476771
+        ],
+        "mean_diff": -0.0008634354141299714,
+        "mean_diff_ci": [
+          -0.0023789187194331735,
+          0.0006835206296563739
+        ],
+        "mean_diff_p_value": 0.8605,
+        "mean_p_value": 0.1035,
+        "nobs": 1363,
+        "replications": 1999,
+        "sharpe": 0.8350995366313521,
+        "sharpe_diff_ci": [
+          -0.9199547874739169,
+          1.0906374633757256
+        ]
+      },
+      "phases": {
+        "holdout": {
+          "end": "2026-09-24",
+          "n": 1363,
+          "start": "2023-01-01"
+        },
+        "train": {
+          "end": "2020-12-31",
+          "n": 733,
+          "start": "2018-12-30"
+        },
+        "validation": {
+          "end": "2022-12-31",
+          "n": 730,
+          "start": "2021-01-01"
+        }
+      },
+      "production_status": "NOT_VALIDATED_FOR_PRODUCTION",
+      "research_gate_conditions": {
+        "holdout_vs_benchmark_familywise": false,
+        "positive_double_cost_mean": true,
+        "positive_holdout_mean": true,
+        "sufficient_holdout_activity": true,
+        "validation_familywise": false
+      },
+      "research_label": "not_supported_by_preregistered_screen",
+      "selected": {
+        "candidate_id": "sma-227f25dc26ddfa3e",
+        "family": "sma",
+        "parameters": [
+          [
+            "band",
+            0.01
+          ],
+          [
+            "lookback",
+            5
+          ]
+        ],
+        "raw_index": 29,
+        "rebalance_bars": 5,
+        "target_cap": 1.0,
+        "volatility_target": 0.15
+      },
+      "status": "evaluated",
+      "stress": {
+        "cost_2x": {
+          "annual_vol": 0.11717484990074756,
+          "annualization": 365,
+          "annualized_mean": 0.08810052287767328,
+          "avg_exposure": 0.09912018333477653,
+          "cagr": 0.08478156438973587,
+          "completed_trades": 61,
+          "cost_per_side": 0.002,
+          "entries": 61,
+          "lag": 1,
+          "max_drawdown": -0.19101361833878838,
+          "mean_daily": 0.00024137129555526927,
+          "n": 1363,
+          "sharpe": 0.7518722913005516,
+          "total_return": 0.35511716753485034,
+          "turnover": 36.42445914625389
+        },
+        "cost_3x": {
+          "annual_vol": 0.1171896111723508,
+          "annualization": 365,
+          "annualized_mean": 0.07834309275533173,
+          "avg_exposure": 0.09912018333477651,
+          "cagr": 0.07424836670016816,
+          "completed_trades": 61,
+          "cost_per_side": 0.003,
+          "entries": 61,
+          "lag": 1,
+          "max_drawdown": -0.19549000138662398,
+          "mean_daily": 0.00021463861028858008,
+          "n": 1363,
+          "sharpe": 0.6685156813099458,
+          "total_return": 0.3066300054530018,
+          "turnover": 36.41864736896341
+        },
+        "lag_2": {
+          "annual_vol": 0.10341655430440767,
+          "annualization": 365,
+          "annualized_mean": 0.0007474584027926439,
+          "avg_exposure": 0.10084940864432941,
+          "cagr": -0.004564489949409933,
+          "completed_trades": 61,
+          "cost_per_side": 0.001,
+          "entries": 61,
+          "lag": 2,
+          "max_drawdown": -0.27415050954604614,
+          "mean_daily": 2.0478312405277912e-06,
+          "n": 1363,
+          "sharpe": 0.007227647525293604,
+          "total_return": -0.016938847256587897,
+          "turnover": 34.69435495881813
+        }
+      },
+      "train": {
+        "annual_vol": 0.1309554644992736,
+        "annualization": 365,
+        "annualized_mean": 0.27921251049819584,
+        "avg_exposure": 0.0938559606967053,
+        "cagr": 0.3107577730629632,
+        "completed_trades": 35,
+        "cost_per_side": 0.001,
+        "entries": 35,
+        "lag": 1,
+        "max_drawdown": -0.09707599063705108,
+        "mean_daily": 0.0007649657821868379,
+        "n": 733,
+        "sharpe": 2.132118056820337,
+        "total_return": 0.7219114803524778,
+        "turnover": 14.502678028498073
+      },
+      "validation": {
+        "annual_vol": 0.1192144631974152,
+        "annualization": 365,
+        "annualized_mean": 0.2379715170267161,
+        "avg_exposure": 0.07956098889217973,
+        "cagr": 0.259682790952153,
+        "completed_trades": 31,
+        "cost_per_side": 0.001,
+        "entries": 31,
+        "lag": 1,
+        "max_drawdown": -0.0539812220006014,
+        "mean_daily": 0.0006519767589773044,
+        "n": 730,
+        "sharpe": 1.9961631386339687,
+        "total_return": 0.5868007338210057,
+        "turnover": 12.051100376345225
+      },
+      "validation_benchmark": {
+        "annual_vol": 0.9833692764648254,
+        "annualization": 365,
+        "annualized_mean": 0.7316843899491607,
+        "avg_exposure": 0.9986301369863013,
+        "cagr": 0.2797287968175242,
+        "completed_trades": 1,
+        "cost_per_side": 0.001,
+        "entries": 1,
+        "lag": 1,
+        "max_drawdown": -0.7930253453633335,
+        "mean_daily": 0.002004614766984002,
+        "n": 730,
+        "sharpe": 0.7440586232056565,
+        "total_return": 0.6377057934040282,
+        "turnover": 1.9990009990009991
+      },
+      "validation_family_test": {
+        "n_candidates": 2676,
+        "nobs": 730,
+        "primary": {
+          "benchmark": "costed_buy_and_hold",
+          "block_length": 20,
+          "critical_value_95": 0.11456362218244374,
+          "method": "centered_circular_moving_block_max_mean",
+          "n_candidates": 2676,
+          "nobs": 730,
+          "p_value": 0.7665,
+          "replications": 1999,
+          "statistic": 0.033369689083995895
+        },
+        "sensitivity": {
+          "5": {
+            "benchmark": "costed_buy_and_hold",
+            "block_length": 5,
+            "critical_value_95": 0.11951436711653102,
+            "method": "centered_circular_moving_block_max_mean",
+            "n_candidates": 2676,
+            "nobs": 730,
+            "p_value": 0.796,
+            "replications": 999,
+            "statistic": 0.033369689083995895
+          },
+          "60": {
+            "benchmark": "costed_buy_and_hold",
+            "block_length": 60,
+            "critical_value_95": 0.11864565867861011,
+            "method": "centered_circular_moving_block_max_mean",
+            "n_candidates": 2676,
+            "nobs": 730,
+            "p_value": 0.725,
+            "replications": 999,
+            "statistic": 0.033369689083995895
+          }
+        }
+      },
+      "validation_holm_p": 1.0
+    },
+    "GLD": {
+      "annualization": 252,
+      "candidate_count": 2676,
+      "cost_bps_per_side": 50.0,
+      "currency": "USD",
+      "distinct_validation_return_paths": 1761,
+      "economic_families": 8,
+      "eligible_validation_candidates": 0,
+      "holdout_benchmark": {
+        "annual_vol": 0.20079188613497292,
+        "annualization": 252,
+        "annualized_mean": 0.24094555090073944,
+        "avg_exposure": 0.9989304812834224,
+        "cagr": 0.24681124128595922,
+        "completed_trades": 1,
+        "cost_per_side": 0.005,
+        "entries": 1,
+        "lag": 1,
+        "max_drawdown": -0.26404517857029675,
+        "mean_daily": 0.0009561331384949978,
+        "n": 935,
+        "sharpe": 1.1999765306192458,
+        "total_return": 1.2669975155878186,
+        "turnover": 1.9950248756218907
+      },
+      "holdout_cash_holm_p": 1.0,
+      "holdout_holm_p": 1.0,
+      "phases": {
+        "holdout": {
+          "end": "2026-09-24",
+          "n": 935,
+          "start": "2023-01-03"
+        },
+        "train": {
+          "end": "2020-12-31",
+          "n": 3558,
+          "start": "2006-11-13"
+        },
+        "validation": {
+          "end": "2022-12-30",
+          "n": 503,
+          "start": "2021-01-04"
+        }
+      },
+      "production_status": "NOT_VALIDATED_FOR_PRODUCTION",
+      "research_label": "no_eligible_validation_candidate",
+      "selected": null,
+      "status": "no_eligible_validation_candidate",
+      "validation_benchmark": {
+        "annual_vol": 0.14401175207568467,
+        "annualization": 252,
+        "annualized_mean": -0.030785461038546603,
+        "avg_exposure": 0.9980119284294234,
+        "cagr": -0.040316313548700494,
+        "completed_trades": 1,
+        "cost_per_side": 0.005,
+        "entries": 1,
+        "lag": 1,
+        "max_drawdown": -0.21032844203783363,
+        "mean_daily": -0.00012216452793074048,
+        "n": 503,
+        "sharpe": -0.21377047772023117,
+        "total_return": -0.0788568117695767,
+        "turnover": 1.9950248756218907
+      },
+      "validation_family_test": {
+        "n_candidates": 2676,
+        "nobs": 503,
+        "primary": {
+          "benchmark": "costed_buy_and_hold",
+          "block_length": 20,
+          "critical_value_95": 0.021599543346477693,
+          "method": "centered_circular_moving_block_max_mean",
+          "n_candidates": 2676,
+          "nobs": 503,
+          "p_value": 0.642,
+          "replications": 1999,
+          "statistic": 0.00879581419241389
+        },
+        "sensitivity": {
+          "5": {
+            "benchmark": "costed_buy_and_hold",
+            "block_length": 5,
+            "critical_value_95": 0.021892769789758522,
+            "method": "centered_circular_moving_block_max_mean",
+            "n_candidates": 2676,
+            "nobs": 503,
+            "p_value": 0.647,
+            "replications": 999,
+            "statistic": 0.00879581419241389
+          },
+          "60": {
+            "benchmark": "costed_buy_and_hold",
+            "block_length": 60,
+            "critical_value_95": 0.020125802513941787,
+            "method": "centered_circular_moving_block_max_mean",
+            "n_candidates": 2676,
+            "nobs": 503,
+            "p_value": 0.627,
+            "replications": 999,
+            "statistic": 0.00879581419241389
+          }
+        }
+      },
+      "validation_holm_p": 1.0
+    },
+    "QQQ": {
+      "annualization": 252,
+      "candidate_count": 2676,
+      "cost_bps_per_side": 50.0,
+      "currency": "USD",
+      "distinct_validation_return_paths": 1986,
+      "economic_families": 8,
+      "eligible_validation_candidates": 9,
+      "holdout": {
+        "annual_vol": 0.12364870669180177,
+        "annualization": 252,
+        "annualized_mean": -0.03717613195965923,
+        "avg_exposure": 0.18181818181818182,
+        "cagr": -0.043737789860482684,
+        "completed_trades": 36,
+        "cost_per_side": 0.005,
+        "entries": 36,
+        "lag": 1,
+        "max_drawdown": -0.297095823999172,
+        "mean_daily": -0.0001475243331732509,
+        "n": 935,
+        "sharpe": -0.30065928673497483,
+        "total_return": -0.15290039354371554,
+        "turnover": 71.82089552238813
+      },
+      "holdout_benchmark": {
+        "annual_vol": 0.20138960191627797,
+        "annualization": 252,
+        "annualized_mean": 0.3010668123273572,
+        "avg_exposure": 0.9989304812834224,
+        "cagr": 0.3241108515948885,
+        "completed_trades": 1,
+        "cost_per_side": 0.005,
+        "entries": 1,
+        "lag": 1,
+        "max_drawdown": -0.22768313348448688,
+        "mean_daily": 0.001194709572727608,
+        "n": 935,
+        "sharpe": 1.4949471544837614,
+        "total_return": 1.8338576126131292,
+        "turnover": 1.9950248756218907
+      },
+      "holdout_cash_holm_p": 1.0,
+      "holdout_holm_p": 1.0,
+      "holdout_inference": {
+        "annualized_mean": -0.03717613195965923,
+        "benchmark_sharpe": 1.4949471544837616,
+        "block_length": 20,
+        "cagr": -0.04373778986048227,
+        "interpretation": "retrospective internal holdout; previous research contamination remains",
+        "market_model": {
+          "alpha_daily": -0.0005752605660613228,
+          "alpha_p_one_sided": 0.9990253111024157,
+          "alpha_se_hac": 0.00018569741722118796,
+          "available": true,
+          "beta": 0.35802528300791925,
+          "hac_lags": 20,
+          "interpretation": "diagnostic market-model intercept, not causal or independent confirmation",
+          "p_value_is_upper_bound": false,
+          "small_sample_factor": 1.0021436227224008
+        },
+        "max_drawdown": -0.29709582399917156,
+        "mean": -0.0001475243331732509,
+        "mean_ci": [
+          -0.000502669787605278,
+          0.00018199771583495727
+        ],
+        "mean_diff": -0.0013422339059008589,
+        "mean_diff_ci": [
+          -0.0019497673956502114,
+          -0.0007840626365532373
+        ],
+        "mean_diff_p_value": 1.0,
+        "mean_p_value": 0.7915,
+        "nobs": 935,
+        "replications": 1999,
+        "sharpe": -0.3006592867349754,
+        "sharpe_diff_ci": [
+          -2.8462139746585664,
+          -1.0215705605819663
+        ]
+      },
+      "phases": {
+        "holdout": {
+          "end": "2026-09-24",
+          "n": 935,
+          "start": "2023-01-03"
+        },
+        "train": {
+          "end": "2020-12-31",
+          "n": 4991,
+          "start": "2001-03-02"
+        },
+        "validation": {
+          "end": "2022-12-30",
+          "n": 503,
+          "start": "2021-01-04"
+        }
+      },
+      "production_status": "NOT_VALIDATED_FOR_PRODUCTION",
+      "research_gate_conditions": {
+        "holdout_vs_benchmark_familywise": false,
+        "positive_double_cost_mean": false,
+        "positive_holdout_mean": false,
+        "sufficient_holdout_activity": true,
+        "validation_familywise": false
+      },
+      "research_label": "not_supported_by_preregistered_screen",
+      "selected": {
+        "candidate_id": "rsi_reversion-30781661a965f9ab",
+        "family": "rsi_reversion",
+        "parameters": [
+          [
+            "lookback",
+            5
+          ],
+          [
+            "lower",
+            20
+          ],
+          [
+            "upper",
+            50
+          ]
+        ],
+        "raw_index": 139,
+        "rebalance_bars": 1,
+        "target_cap": 1.0,
+        "volatility_target": null
+      },
+      "status": "evaluated",
+      "stress": {
+        "cost_2x": {
+          "annual_vol": 0.12935832687883084,
+          "annualization": 252,
+          "annualized_mean": -0.13344040754621128,
+          "avg_exposure": 0.18181818181818182,
+          "cagr": -0.13216660447706566,
+          "completed_trades": 36,
+          "cost_per_side": 0.01,
+          "entries": 36,
+          "lag": 1,
+          "max_drawdown": -0.42673776364978455,
+          "mean_daily": -0.0005295254267706797,
+          "n": 935,
+          "sharpe": -1.0315563811458703,
+          "total_return": -0.4090110704737071,
+          "turnover": 71.6435643564356
+        },
+        "cost_3x": {
+          "annual_vol": 0.13801324107732837,
+          "annualization": 252,
+          "annualized_mean": -0.22923380561299175,
+          "avg_exposure": 0.18181818181818182,
+          "cagr": -0.21242574958111507,
+          "completed_trades": 36,
+          "cost_per_side": 0.015,
+          "entries": 36,
+          "lag": 1,
+          "max_drawdown": -0.5940008186821973,
+          "mean_daily": -0.0009096579587817133,
+          "n": 935,
+          "sharpe": -1.6609551650522636,
+          "total_return": -0.5877045203272221,
+          "turnover": 71.46798029556652
+        },
+        "lag_2": {
+          "annual_vol": 0.12313087317415833,
+          "annualization": 252,
+          "annualized_mean": -0.006330540568261145,
+          "avg_exposure": 0.18288770053475936,
+          "cagr": -0.013710055464153202,
+          "completed_trades": 36,
+          "cost_per_side": 0.005,
+          "entries": 36,
+          "lag": 2,
+          "max_drawdown": -0.22910020177157653,
+          "mean_daily": -2.512119273119502e-05,
+          "n": 935,
+          "sharpe": -0.05141310546305576,
+          "total_return": -0.04993092314811498,
+          "turnover": 71.82089552238813
+        }
+      },
+      "train": {
+        "annual_vol": 0.14649098275581987,
+        "annualization": 252,
+        "annualized_mean": -0.01289588787098073,
+        "avg_exposure": 0.21378481266279303,
+        "cagr": -0.023296067288198878,
+        "completed_trades": 193,
+        "cost_per_side": 0.005,
+        "entries": 193,
+        "lag": 1,
+        "max_drawdown": -0.6232269004020438,
+        "mean_daily": -5.11741582181775e-05,
+        "n": 4991,
+        "sharpe": -0.08803195683707293,
+        "total_return": -0.3730263796744865,
+        "turnover": 385.03980099502365
+      },
+      "validation": {
+        "annual_vol": 0.15989945829378308,
+        "annualization": 252,
+        "annualized_mean": 0.03198791711040619,
+        "avg_exposure": 0.2524850894632207,
+        "cagr": 0.019457394285591623,
+        "completed_trades": 25,
+        "cost_per_side": 0.005,
+        "entries": 25,
+        "lag": 1,
+        "max_drawdown": -0.14535097259590135,
+        "mean_daily": 0.00012693617900954836,
+        "n": 503,
+        "sharpe": 0.20005019061187082,
+        "total_return": 0.03921390671024305,
+        "turnover": 49.87562189054729
+      },
+      "validation_benchmark": {
+        "annual_vol": 0.2614588639513532,
+        "annualization": 252,
+        "annualized_mean": -0.03980199166999078,
+        "avg_exposure": 0.9980119284294234,
+        "cagr": -0.07130076336318326,
+        "completed_trades": 1,
+        "cost_per_side": 0.005,
+        "entries": 1,
+        "lag": 1,
+        "max_drawdown": -0.35118708219213257,
+        "mean_daily": -0.0001579444113888523,
+        "n": 503,
+        "sharpe": -0.15223041616747904,
+        "total_return": -0.13726452361174235,
+        "turnover": 1.9950248756218907
+      },
+      "validation_family_test": {
+        "n_candidates": 2676,
+        "nobs": 503,
+        "primary": {
+          "benchmark": "costed_buy_and_hold",
+          "block_length": 20,
+          "critical_value_95": 0.03574629330648958,
+          "method": "centered_circular_moving_block_max_mean",
+          "n_candidates": 2676,
+          "nobs": 503,
+          "p_value": 0.492,
+          "replications": 1999,
+          "statistic": 0.017462067929462692
+        },
+        "sensitivity": {
+          "5": {
+            "benchmark": "costed_buy_and_hold",
+            "block_length": 5,
+            "critical_value_95": 0.03565967953606478,
+            "method": "centered_circular_moving_block_max_mean",
+            "n_candidates": 2676,
+            "nobs": 503,
+            "p_value": 0.525,
+            "replications": 999,
+            "statistic": 0.017462067929462692
+          },
+          "60": {
+            "benchmark": "costed_buy_and_hold",
+            "block_length": 60,
+            "critical_value_95": 0.03176778257241697,
+            "method": "centered_circular_moving_block_max_mean",
+            "n_candidates": 2676,
+            "nobs": 503,
+            "p_value": 0.389,
+            "replications": 999,
+            "statistic": 0.017462067929462692
+          }
+        }
+      },
+      "validation_holm_p": 1.0
+    },
+    "SPY": {
+      "annualization": 252,
+      "candidate_count": 2676,
+      "cost_bps_per_side": 50.0,
+      "currency": "USD",
+      "distinct_validation_return_paths": 1845,
+      "economic_families": 8,
+      "eligible_validation_candidates": 1,
+      "holdout": {
+        "annual_vol": 0.11537285431643325,
+        "annualization": 252,
+        "annualized_mean": -0.01736150119444069,
+        "avg_exposure": 0.31016042780748665,
+        "cagr": -0.02366504941483263,
+        "completed_trades": 47,
+        "cost_per_side": 0.005,
+        "entries": 47,
+        "lag": 1,
+        "max_drawdown": -0.22183266664207013,
+        "mean_daily": -6.889484600968528e-05,
+        "n": 935,
+        "sharpe": -0.15048168217129554,
+        "total_return": -0.08502678453085122,
+        "turnover": 93.76616915422896
+      },
+      "holdout_benchmark": {
+        "annual_vol": 0.14956007570745924,
+        "annualization": 252,
+        "annualized_mean": 0.2100141375602089,
+        "avg_exposure": 0.9989304812834224,
+        "cagr": 0.21996053736775403,
+        "completed_trades": 1,
+        "cost_per_side": 0.005,
+        "entries": 1,
+        "lag": 1,
+        "max_drawdown": -0.18755237333914387,
+        "mean_daily": 0.0008333894347627338,
+        "n": 935,
+        "sharpe": 1.4042125651968667,
+        "total_return": 1.091078153269871,
+        "turnover": 1.9950248756218907
+      },
+      "holdout_cash_holm_p": 1.0,
+      "holdout_holm_p": 1.0,
+      "holdout_inference": {
+        "annualized_mean": -0.01736150119444069,
+        "benchmark_sharpe": 1.4042125651968664,
+        "block_length": 20,
+        "cagr": -0.023665049414832495,
+        "interpretation": "retrospective internal holdout; previous research contamination remains",
+        "market_model": {
+          "alpha_daily": -0.0005371969530599063,
+          "alpha_p_one_sided": 0.9999412182051959,
+          "alpha_se_hac": 0.00013948994462934146,
+          "available": true,
+          "beta": 0.5619246987256883,
+          "hac_lags": 20,
+          "interpretation": "diagnostic market-model intercept, not causal or independent confirmation",
+          "p_value_is_upper_bound": false,
+          "small_sample_factor": 1.0021436227224008
+        },
+        "max_drawdown": -0.22183266664207013,
+        "mean": -6.889484600968528e-05,
+        "mean_ci": [
+          -0.00039677219473176786,
+          0.0002230219258073226
+        ],
+        "mean_diff": -0.000902284280772419,
+        "mean_diff_ci": [
+          -0.00124924625664437,
+          -0.0005619655067688754
+        ],
+        "mean_diff_p_value": 1.0,
+        "mean_p_value": 0.668,
+        "nobs": 935,
+        "replications": 1999,
+        "sharpe": -0.15048168217129457,
+        "sharpe_diff_ci": [
+          -2.3850109874736907,
+          -0.9023532299242994
+        ]
+      },
+      "phases": {
+        "holdout": {
+          "end": "2026-09-24",
+          "n": 935,
+          "start": "2023-01-03"
+        },
+        "train": {
+          "end": "2020-12-31",
+          "n": 6047,
+          "start": "1996-12-23"
+        },
+        "validation": {
+          "end": "2022-12-30",
+          "n": 503,
+          "start": "2021-01-04"
+        }
+      },
+      "production_status": "NOT_VALIDATED_FOR_PRODUCTION",
+      "research_gate_conditions": {
+        "holdout_vs_benchmark_familywise": false,
+        "positive_double_cost_mean": false,
+        "positive_holdout_mean": false,
+        "sufficient_holdout_activity": true,
+        "validation_familywise": false
+      },
+      "research_label": "not_supported_by_preregistered_screen",
+      "selected": {
+        "candidate_id": "rsi_reversion-bd69fa14cdf69a80",
+        "family": "rsi_reversion",
+        "parameters": [
+          [
+            "lookback",
+            5
+          ],
+          [
+            "lower",
+            30
+          ],
+          [
+            "upper",
+            60
+          ]
+        ],
+        "raw_index": 142,
+        "rebalance_bars": 1,
+        "target_cap": 1.0,
+        "volatility_target": null
+      },
+      "status": "evaluated",
+      "stress": {
+        "cost_2x": {
+          "annual_vol": 0.1229912584064406,
+          "annualization": 252,
+          "annualized_mean": -0.14308292677860968,
+          "avg_exposure": 0.31016042780748665,
+          "cagr": -0.13983474477534277,
+          "completed_trades": 47,
+          "cost_per_side": 0.01,
+          "entries": 47,
+          "lag": 1,
+          "max_drawdown": -0.4432081642405329,
+          "mean_daily": -0.0005677893919786098,
+          "n": 935,
+          "sharpe": -1.1633585072019799,
+          "total_return": -0.4281553442446796,
+          "turnover": 93.53465346534647
+        },
+        "cost_3x": {
+          "annual_vol": 0.13434856228572753,
+          "annualization": 252,
+          "annualized_mean": -0.26818959560085337,
+          "avg_exposure": 0.31016042780748665,
+          "cagr": -0.2421915333385001,
+          "completed_trades": 47,
+          "cost_per_side": 0.015,
+          "entries": 47,
+          "lag": 1,
+          "max_drawdown": -0.6485320239150036,
+          "mean_daily": -0.0010642444269875133,
+          "n": 935,
+          "sharpe": -1.9962222969716468,
+          "total_return": -0.6426223933186324,
+          "turnover": 93.30541871921191
+        },
+        "lag_2": {
+          "annual_vol": 0.11338912780319006,
+          "annualization": 252,
+          "annualized_mean": -0.03639922438421478,
+          "avg_exposure": 0.31122994652406416,
+          "cagr": -0.041861308738214704,
+          "completed_trades": 47,
+          "cost_per_side": 0.005,
+          "entries": 47,
+          "lag": 2,
+          "max_drawdown": -0.25741936252305797,
+          "mean_daily": -0.0001444413666040269,
+          "n": 935,
+          "sharpe": -0.3210115915821582,
+          "total_return": -0.14671642309964272,
+          "turnover": 93.76616915422896
+        }
+      },
+      "train": {
+        "annual_vol": 0.1514576913046854,
+        "annualization": 252,
+        "annualized_mean": -0.0451155546852035,
+        "avg_exposure": 0.3464527865057053,
+        "cagr": -0.05500904289192335,
+        "completed_trades": 316,
+        "cost_per_side": 0.005,
+        "entries": 316,
+        "lag": 1,
+        "max_drawdown": -0.7934058740706564,
+        "mean_daily": -0.0001790299789095377,
+        "n": 6047,
+        "sharpe": -0.2978756264972054,
+        "total_return": -0.742746570784382,
+        "turnover": 630.4278606965148
+      },
+      "validation": {
+        "annual_vol": 0.14646686027725278,
+        "annualization": 252,
+        "annualized_mean": 0.0021292472508752584,
+        "avg_exposure": 0.35984095427435386,
+        "cagr": -0.008534908717570367,
+        "completed_trades": 31,
+        "cost_per_side": 0.005,
+        "entries": 31,
+        "lag": 1,
+        "max_drawdown": -0.17327890290050862,
+        "mean_daily": 8.449393852679597e-06,
+        "n": 503,
+        "sharpe": 0.014537399428408067,
+        "total_return": -0.01696353628934666,
+        "turnover": 61.84577114427866
+      },
+      "validation_benchmark": {
+        "annual_vol": 0.1945125684081355,
+        "annualization": 252,
+        "annualized_mean": 0.04678396844565208,
+        "avg_exposure": 0.9980119284294234,
+        "cagr": 0.028274044259734323,
+        "completed_trades": 1,
+        "cost_per_side": 0.005,
+        "entries": 1,
+        "lag": 1,
+        "max_drawdown": -0.24496388853798667,
+        "mean_daily": 0.0001856506684351273,
+        "n": 503,
+        "sharpe": 0.2405190000241411,
+        "total_return": 0.05723052983071364,
+        "turnover": 1.9950248756218907
+      },
+      "validation_family_test": {
+        "n_candidates": 2676,
+        "nobs": 503,
+        "primary": {
+          "benchmark": "costed_buy_and_hold",
+          "block_length": 20,
+          "critical_value_95": 0.02688779361360875,
+          "method": "centered_circular_moving_block_max_mean",
+          "n_candidates": 2676,
+          "nobs": 503,
+          "p_value": 0.7675,
+          "replications": 1999,
+          "statistic": 0.007896073266280602
+        },
+        "sensitivity": {
+          "5": {
+            "benchmark": "costed_buy_and_hold",
+            "block_length": 5,
+            "critical_value_95": 0.027220897233763013,
+            "method": "centered_circular_moving_block_max_mean",
+            "n_candidates": 2676,
+            "nobs": 503,
+            "p_value": 0.783,
+            "replications": 999,
+            "statistic": 0.007896073266280602
+          },
+          "60": {
+            "benchmark": "costed_buy_and_hold",
+            "block_length": 60,
+            "critical_value_95": 0.023772790239266192,
+            "method": "centered_circular_moving_block_max_mean",
+            "n_candidates": 2676,
+            "nobs": 503,
+            "p_value": 0.726,
+            "replications": 999,
+            "statistic": 0.007896073266280602
+          }
+        }
+      },
+      "validation_holm_p": 1.0
+    },
+    "TIGER200": {
+      "annualization": 252,
+      "candidate_count": 2676,
+      "cost_bps_per_side": 3.0,
+      "currency": "KRW",
+      "distinct_validation_return_paths": 1813,
+      "economic_families": 8,
+      "eligible_validation_candidates": 39,
+      "holdout": {
+        "annual_vol": 0.24687295743123797,
+        "annualization": 252,
+        "annualized_mean": 0.15631837481809874,
+        "avg_exposure": 0.35241301907968575,
+        "cagr": 0.13519953531635276,
+        "completed_trades": 60,
+        "cost_per_side": 0.0003,
+        "entries": 60,
+        "lag": 1,
+        "max_drawdown": -0.3402873683562996,
+        "mean_daily": 0.0006203110111829316,
+        "n": 891,
+        "sharpe": 0.6331935925450175,
+        "total_return": 0.5657397626514418,
+        "turnover": 119.98200539838041
+      },
+      "holdout_benchmark": {
+        "annual_vol": 0.3569772361038356,
+        "annualization": 252,
+        "annualized_mean": 0.4658004433268531,
+        "avg_exposure": 0.9988776655443322,
+        "cagr": 0.49544961761769035,
+        "completed_trades": 1,
+        "cost_per_side": 0.0003,
+        "entries": 1,
+        "lag": 1,
+        "max_drawdown": -0.4062640862519026,
+        "mean_daily": 0.0018484144576462426,
+        "n": 891,
+        "sharpe": 1.3048463493379832,
+        "total_return": 3.148996807158226,
+        "turnover": 1.999700089973008
+      },
+      "holdout_cash_holm_p": 0.536,
+      "holdout_holm_p": 1.0,
+      "holdout_inference": {
+        "annualized_mean": 0.15631837481809874,
+        "benchmark_sharpe": 1.3048463493379832,
+        "block_length": 20,
+        "cagr": 0.13519953531635265,
+        "interpretation": "retrospective internal holdout; previous research contamination remains",
+        "market_model": {
+          "alpha_daily": -0.00026069725560162504,
+          "alpha_p_one_sided": 0.7513020131036174,
+          "alpha_se_hac": 0.00038417339030517617,
+          "available": true,
+          "beta": 0.476629179749236,
+          "hac_lags": 20,
+          "interpretation": "diagnostic market-model intercept, not causal or independent confirmation",
+          "p_value_is_upper_bound": false,
+          "small_sample_factor": 1.0022497187851518
+        },
+        "max_drawdown": -0.3402873683562997,
+        "mean": 0.0006203110111829316,
+        "mean_ci": [
+          -0.00023180343980694647,
+          0.0014248223815355387
+        ],
+        "mean_diff": -0.0012281034464633107,
+        "mean_diff_ci": [
+          -0.0022813513247544595,
+          -0.00020164302351471616
+        ],
+        "mean_diff_p_value": 0.989,
+        "mean_p_value": 0.067,
+        "nobs": 891,
+        "replications": 1999,
+        "sharpe": 0.6331935925450183,
+        "sharpe_diff_ci": [
+          -1.5736103255648959,
+          0.16519894679139493
+        ]
+      },
+      "phases": {
+        "holdout": {
+          "end": "2026-09-23",
+          "n": 891,
+          "start": "2023-01-02"
+        },
+        "train": {
+          "end": "2020-12-30",
+          "n": 2385,
+          "start": "2011-04-14"
+        },
+        "validation": {
+          "end": "2022-12-29",
+          "n": 490,
+          "start": "2021-01-04"
+        }
+      },
+      "production_status": "NOT_VALIDATED_FOR_PRODUCTION",
+      "research_gate_conditions": {
+        "holdout_vs_benchmark_familywise": false,
+        "positive_double_cost_mean": true,
+        "positive_holdout_mean": true,
+        "sufficient_holdout_activity": true,
+        "validation_familywise": false
+      },
+      "research_label": "not_supported_by_preregistered_screen",
+      "selected": {
+        "candidate_id": "rsi_reversion-93fcf01f24f5e330",
+        "family": "rsi_reversion",
+        "parameters": [
+          [
+            "lookback",
+            5
+          ],
+          [
+            "lower",
+            40
+          ],
+          [
+            "upper",
+            50
+          ]
+        ],
+        "raw_index": 143,
+        "rebalance_bars": 1,
+        "target_cap": 1.0,
+        "volatility_target": null
+      },
+      "status": "evaluated",
+      "stress": {
+        "cost_2x": {
+          "annual_vol": 0.24694631419657642,
+          "annualization": 252,
+          "annualized_mean": 0.1461511361789546,
+          "avg_exposure": 0.35241301907968575,
+          "cagr": 0.12369978118317673,
+          "completed_trades": 60,
+          "cost_per_side": 0.0006,
+          "entries": 60,
+          "lag": 1,
+          "max_drawdown": -0.3410785488771656,
+          "mean_daily": 0.0005799648261069627,
+          "n": 891,
+          "sharpe": 0.5918336406617273,
+          "total_return": 0.5103756527438432,
+          "turnover": 119.96402158704791
+        },
+        "cost_3x": {
+          "annual_vol": 0.24703031584761775,
+          "annualization": 252,
+          "annualized_mean": 0.13598694659394725,
+          "avg_exposure": 0.35241301907968575,
+          "cagr": 0.11231651733442327,
+          "completed_trades": 60,
+          "cost_per_side": 0.0009,
+          "entries": 60,
+          "lag": 1,
+          "max_drawdown": -0.34186878083494276,
+          "mean_daily": 0.0005396307404521716,
+          "n": 891,
+          "sharpe": 0.5504868749705671,
+          "total_return": 0.45696918303556,
+          "turnover": 119.94604855629922
+        },
+        "lag_2": {
+          "annual_vol": 0.2536113058237367,
+          "annualization": 252,
+          "annualized_mean": 0.08952309504078451,
+          "avg_exposure": 0.35241301907968575,
+          "cagr": 0.06002865742420766,
+          "completed_trades": 60,
+          "cost_per_side": 0.0003,
+          "entries": 60,
+          "lag": 2,
+          "max_drawdown": -0.41860001439327776,
+          "mean_daily": 0.00035525037714597026,
+          "n": 891,
+          "sharpe": 0.35299331293615227,
+          "total_return": 0.22889795804120094,
+          "turnover": 119.98200539838041
+        }
+      },
+      "train": {
+        "annual_vol": 0.12417687733844823,
+        "annualization": 252,
+        "annualized_mean": 0.023679035790107855,
+        "avg_exposure": 0.3970649895178197,
+        "cagr": 0.016125393686343616,
+        "completed_trades": 176,
+        "cost_per_side": 0.0003,
+        "entries": 176,
+        "lag": 1,
+        "max_drawdown": -0.30538319962661553,
+        "mean_daily": 9.396442773852324e-05,
+        "n": 2385,
+        "sharpe": 0.19068796298983953,
+        "total_return": 0.16345952060358315,
+        "turnover": 351.94721583525023
+      },
+      "validation": {
+        "annual_vol": 0.1292736935674933,
+        "annualization": 252,
+        "annualized_mean": 0.06630769430076071,
+        "avg_exposure": 0.40816326530612246,
+        "cagr": 0.059670959883528704,
+        "completed_trades": 40,
+        "cost_per_side": 0.0003,
+        "entries": 40,
+        "lag": 1,
+        "max_drawdown": -0.11708178495938415,
+        "mean_daily": 0.0002631257710347647,
+        "n": 490,
+        "sharpe": 0.5129248841810319,
+        "total_return": 0.11929270885062726,
+        "turnover": 79.98800359892033
+      },
+      "validation_benchmark": {
+        "annual_vol": 0.17984559694910368,
+        "annualization": 252,
+        "annualized_mean": -0.12044667951521522,
+        "avg_exposure": 0.9979591836734694,
+        "cagr": -0.12769420133075912,
+        "completed_trades": 1,
+        "cost_per_side": 0.0003,
+        "entries": 1,
+        "lag": 1,
+        "max_drawdown": -0.34154021922053823,
+        "mean_daily": -0.00047796301394926674,
+        "n": 490,
+        "sharpe": -0.6697227041332663,
+        "total_return": -0.23328546061311561,
+        "turnover": 1.999700089973008
+      },
+      "validation_family_test": {
+        "n_candidates": 2676,
+        "nobs": 490,
+        "primary": {
+          "benchmark": "costed_buy_and_hold",
+          "block_length": 20,
+          "critical_value_95": 0.023257938606595734,
+          "method": "centered_circular_moving_block_max_mean",
+          "n_candidates": 2676,
+          "nobs": 490,
+          "p_value": 0.092,
+          "replications": 1999,
+          "statistic": 0.020968922950231193
+        },
+        "sensitivity": {
+          "5": {
+            "benchmark": "costed_buy_and_hold",
+            "block_length": 5,
+            "critical_value_95": 0.024097164669321332,
+            "method": "centered_circular_moving_block_max_mean",
+            "n_candidates": 2676,
+            "nobs": 490,
+            "p_value": 0.102,
+            "replications": 999,
+            "statistic": 0.020968922950231193
+          },
+          "60": {
+            "benchmark": "costed_buy_and_hold",
+            "block_length": 60,
+            "critical_value_95": 0.02057043645831419,
+            "method": "centered_circular_moving_block_max_mean",
+            "n_candidates": 2676,
+            "nobs": 490,
+            "p_value": 0.044,
+            "replications": 999,
+            "statistic": 0.020968922950231193
+          }
+        }
+      },
+      "validation_holm_p": 0.644
+    },
+    "TLT": {
+      "annualization": 252,
+      "candidate_count": 2676,
+      "cost_bps_per_side": 50.0,
+      "currency": "USD",
+      "distinct_validation_return_paths": 1657,
+      "economic_families": 8,
+      "eligible_validation_candidates": 0,
+      "holdout_benchmark": {
+        "annual_vol": 0.14176746041287938,
+        "annualization": 252,
+        "annualized_mean": -0.018712840485936744,
+        "avg_exposure": 0.9989304812834224,
+        "cagr": -0.028346063840213626,
+        "completed_trades": 1,
+        "cost_per_side": 0.005,
+        "entries": 1,
+        "lag": 1,
+        "max_drawdown": -0.22444204792778,
+        "mean_daily": -7.4257303515622e-05,
+        "n": 935,
+        "sharpe": -0.1319967249990796,
+        "total_return": -0.10119780448196469,
+        "turnover": 1.9950248756218907
+      },
+      "holdout_cash_holm_p": 1.0,
+      "holdout_holm_p": 1.0,
+      "phases": {
+        "holdout": {
+          "end": "2026-09-24",
+          "n": 935,
+          "start": "2023-01-03"
+        },
+        "train": {
+          "end": "2020-12-31",
+          "n": 4140,
+          "start": "2004-07-26"
+        },
+        "validation": {
+          "end": "2022-12-30",
+          "n": 503,
+          "start": "2021-01-04"
+        }
+      },
+      "production_status": "NOT_VALIDATED_FOR_PRODUCTION",
+      "research_label": "no_eligible_validation_candidate",
+      "selected": null,
+      "status": "no_eligible_validation_candidate",
+      "validation_benchmark": {
+        "annual_vol": 0.17436468108217112,
+        "annualization": 252,
+        "annualized_mean": -0.20034165649381874,
+        "avg_exposure": 0.9980119284294234,
+        "cagr": -0.19394264276895273,
+        "completed_trades": 1,
+        "cost_per_side": 0.005,
+        "entries": 1,
+        "lag": 1,
+        "max_drawdown": -0.3978319659237777,
+        "mean_daily": -0.0007950065733881696,
+        "n": 503,
+        "sharpe": -1.1489807181731129,
+        "total_return": -0.34971541922627125,
+        "turnover": 1.9950248756218907
+      },
+      "validation_family_test": {
+        "n_candidates": 2676,
+        "nobs": 503,
+        "primary": {
+          "benchmark": "costed_buy_and_hold",
+          "block_length": 20,
+          "critical_value_95": 0.02511941527123548,
+          "method": "centered_circular_moving_block_max_mean",
+          "n_candidates": 2676,
+          "nobs": 503,
+          "p_value": 0.068,
+          "replications": 1999,
+          "statistic": 0.024263227563795918
+        },
+        "sensitivity": {
+          "5": {
+            "benchmark": "costed_buy_and_hold",
+            "block_length": 5,
+            "critical_value_95": 0.0239631101617436,
+            "method": "centered_circular_moving_block_max_mean",
+            "n_candidates": 2676,
+            "nobs": 503,
+            "p_value": 0.046,
+            "replications": 999,
+            "statistic": 0.024263227563795918
+          },
+          "60": {
+            "benchmark": "costed_buy_and_hold",
+            "block_length": 60,
+            "critical_value_95": 0.027932610006173114,
+            "method": "centered_circular_moving_block_max_mean",
+            "n_candidates": 2676,
+            "nobs": 503,
+            "p_value": 0.106,
+            "replications": 999,
+            "statistic": 0.024263227563795918
+          }
+        }
+      },
+      "validation_holm_p": 0.544
+    }
+  },
+  "catalogue_sha256": "2f3fd10bd0b4da2e778e133af5284f1133e36e05fa62e639234fca630d48c7cc",
+  "configurations_per_asset": 2676,
+  "data_manifest_sha256": "3a8646f403bd1d0417fe6b6aaeb3f98e3789d77d37d4886f59a7f4928b750697",
+  "declared_asset_configurations": 21408,
+  "economic_family_count": 8,
+  "elapsed_seconds": 15.493,
+  "evaluated_asset_configurations": 21408,
+  "freeze_commit": "8e7c6c85c5ed3799a7cb6d4ac350ebdf57af1175",
+  "limitations": [
+    "Previously inspected historical caches; no independent or prospective confirmation.",
+    "Long/cash fractional shares, close-only next-close execution and synthetic cost floors.",
+    "Per-asset native currency; no mixed-currency or realized account P&L claim.",
+    "No leverage, account credentials, live data, order routing, intraday stop or limit-fill validation."
+  ],
+  "mode": "retrospective_exploratory_internal_holdout",
+  "owner_policy_status": {
+    "prohibited_inferences": [
+      "marked returns equal realized daily profit",
+      "end-of-day observations establish intraday floor compliance",
+      "positive forecast guarantees target",
+      "missing inputs imply unlimited or zero allowance"
+    ],
+    "status": "separate unresolved-input and feasibility assessment",
+    "unknowns": [
+      "first-session loss allowance/scope",
+      "zero-profit-prior-day loss budget",
+      "daily loss accumulator",
+      "valuation and external-flow convention"
+    ]
+  },
+  "production_status": "NOT_VALIDATED_FOR_PRODUCTION",
+  "protocol_sha256": "5b32f60cec5e893af9dd2ef685c369240ded00c846ca521990d0a7b3e9b38aff",
+  "raw_rule_count": 223,
+  "schema_version": 1,
+  "selection_registry_sha256": "1fdb53bb4400270e72e3bc84346f0f16dbd5f907f483faa7ce7d0442c2316c3b",
+  "study_id": "TRADEGEN_RETROSPECTIVE_STRATEGY_LAB_2026_10_31",
+  "usd_basket": {
+    "assets": [
+      "SPY",
+      "QQQ",
+      "GLD",
+      "TLT"
+    ],
+    "buy_hold_metrics": {
+      "annual_vol": 0.12972765875666245,
+      "annualization": 252,
+      "cagr": 0.20907523252687565,
+      "max_drawdown": -0.11971505295399676,
+      "mean_daily": 0.0007869841228851667,
+      "n": 935,
+      "sharpe": 1.5287410631456946,
+      "total_return": 1.0226838692472175
+    },
+    "currency": "USD",
+    "interpretation": "secondary descriptive fractional-capital model; no extra hypothesis gate; never a KRW account or mixed-currency realized P&L",
+    "selected_metrics": {
+      "annual_vol": 0.052129451109627606,
+      "annualization": 252,
+      "cagr": -0.016392200774034027,
+      "max_drawdown": -0.12932766793203154,
+      "mean_daily": -6.022221544028816e-05,
+      "n": 935,
+      "sharpe": -0.2911213904600237,
+      "total_return": -0.05948179451864333
+    },
+    "status": "descriptive_only"
+  },
+  "warmup_bars": 500
+}
