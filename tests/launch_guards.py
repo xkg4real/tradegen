@@ -24,8 +24,23 @@ PROCESS_CALLS = frozenset({"system", "popen", "startfile", "fork", "forkpty", "p
 PROCESS_PREFIXES = ("execv", "spawn")
 ENDPOINT = re.compile(r"(?i)/(?:v1|uapi|api/v5)/")
 # One write ban for both packages. A writer row pins its exact call shapes under its own package-relative path;
-# every other write, any other shape and any other file is a hit. No writer is pinned yet.
-PINNED_WRITES: dict[str, tuple[str, ...]] = {}
+# every other write, any other shape and any other file is a hit.
+HEAD = "execution_launch/baseline_head.py"
+PINNED_WRITES: dict[str, tuple[str, ...]] = {
+    HEAD: (
+        'checked_target(self._dir, "baseline head directory", within=self._root).mkdir(mode=0o700, exist_ok=True)',
+        'os.open(checked_target(self._dir / "head.lock", "baseline head lock", within=self._dir), '
+        'os.O_RDWR | (os.O_CREAT if create else 0) | _FLAGS, 0o600)',
+        'os.fdopen(descriptor, "r+b")',
+        'os.open(checked_target(self._dir / "head.tmp", "baseline head temporary file", within=self._dir), '
+        'os.O_WRONLY | os.O_CREAT | os.O_EXCL | _FLAGS, 0o600)',
+        'os.fdopen(descriptor, "wb")',
+        'os.replace(checked_target(self._dir / "head.tmp", "baseline head temporary file", within=self._dir), '
+        'checked_target(self._dir / "head.json", "baseline head record", within=self._dir))',
+    ),
+}
+# The head's initialization is an explicit reviewed operator step: no runtime module may reference it.
+OPERATOR_ONLY = frozenset({"initialize_reviewed_head"})
 _PINNED_WRITE_TREES = {relative: frozenset(ast.dump(ast.parse(shape, mode="eval").body) for shape in shapes)
                        for relative, shapes in PINNED_WRITES.items()}
 WRITE_FLAGS = frozenset({"O_CREAT", "O_WRONLY", "O_RDWR", "O_APPEND", "O_TRUNC"})
@@ -122,6 +137,9 @@ def problems(source, relative=""):
         if ((isinstance(node, ast.Attribute) and node.attr == "compare_and_set")
                 or (isinstance(node, ast.Name) and node.id == "compare_and_set")) and relative not in CAS_CALLERS:
             failures.append("trusted head advance outside pinned callers")
+        if ((isinstance(node, ast.Attribute) and node.attr in OPERATOR_ONLY)
+                or (isinstance(node, ast.Name) and node.id in OPERATOR_ONLY)) and relative != HEAD:
+            failures.append("operator-only head initialization outside its module")
     return failures
 
 
@@ -279,6 +297,36 @@ def test_trusted_head_is_advanced_only_by_pinned_callers():
                or (isinstance(n, ast.Name) and n.id == "compare_and_set") for n in ast.walk(tree)):
             callers.add(path.relative_to(ROOT).as_posix())
     assert callers and callers <= CAS_CALLERS, callers
+
+
+def test_head_authority_writes_are_exact_and_operator_steps_have_no_runtime_caller():
+    from tests.acceptance import runtime_py
+    source = (ROOT / HEAD).read_text(encoding="utf-8")
+    assert not problems(source, HEAD), problems(source, HEAD)
+    calls = {ast.dump(node) for node in ast.walk(ast.parse(source)) if isinstance(node, ast.Call)}
+    assert _PINNED_WRITE_TREES[HEAD] <= calls, "a pinned head write shape is unused"
+    write = "write outside pinned writer"
+    for shape in PINNED_WRITES[HEAD]:
+        for relative in ("", "execution_launch/runner.py", "execution_launch/nested/baseline_head.py"):
+            assert write in problems(shape, relative), (shape, relative)
+    assert write in problems(PINNED_WRITES[HEAD][0].replace("self._root", "other_root"), HEAD)
+    assert write in problems(PINNED_WRITES[HEAD][3].replace("os.O_EXCL", "os.O_TRUNC"), HEAD)
+    for extra in ("os.replace(a, b)", "path.unlink()", "os.open(p, os.O_WRONLY | os.O_TRUNC)", "import shutil",
+                  "flags = os.O_APPEND", "os.fdopen(descriptor, 'ab')"):
+        assert write in problems(extra, HEAD), extra
+    operator = "operator-only head initialization outside its module"
+    for text in ("head.initialize_reviewed_head(x)", "f = head.initialize_reviewed_head", "initialize_reviewed_head(x)"):
+        for relative in ("", "execution_launch/runner.py", "execution_accounts/baseline_bridge.py"):
+            assert operator in problems(text, relative), (text, relative)
+        assert operator not in problems(text, HEAD)
+    assert "trusted head advance outside pinned callers" in problems("trusted_head.compare_and_set(a, b)", HEAD)
+    referencing = set()
+    for path in runtime_py():
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        if any((isinstance(n, ast.Attribute) and n.attr in OPERATOR_ONLY)
+               or (isinstance(n, ast.Name) and n.id in OPERATOR_ONLY) for n in ast.walk(tree)):
+            referencing.add(path.relative_to(ROOT).as_posix())
+    assert not referencing, referencing
 
 
 def test_guard_reads_pin_utf8():
