@@ -1,12 +1,12 @@
 {
-  "source_commit": "db7ddeca7de13745f33663cf5801b8d7709512af",
+  "source_commit": "c5ae030caedaa7e9de3fc8b501244614d172085c",
   "status": "full_acceptance_running",
-  "focused": {
-    "PASS": 139,
+  "focused_20261102": {
+    "PASS": 108,
     "FAIL": 0,
     "NOT_RUN": 0
   },
-  "new_suite_tests": 82,
+  "synthetic_cli_smoke": true,
   "real_connection": false,
   "actual_signing": false,
   "activation": false,
