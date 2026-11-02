@@ -1,17 +1,17 @@
 ---
-status: returned
-reason: owner_requested_stop_and_main_session_handoff
+status: taken
+reason: owner_requested_resume_and_complete_independent_launch_work
 from: gpt
 task: first-trade-foundation
 cycle: 2026-10-27
 done_ids: cloud-compat-1, cloud-compat-2, cloud-compat-3, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr, spec-rev-3-3, policy-plan-1, policy-preview-1, policy-pr, e1-1, e1-2, e1-3, e1-4, e1-5, e1-6, e1-7, e1-8, e1-9, e1-10, e1-11, e1-12, e1-13, e1-pr, e2-1, e2-2, e3-1, e3-2, e3-3, e2-3, e3-4, e2-e3-pr, pr6-pr7-merge, research-preregister-1, research-evaluate-1, account-readiness-1, research-paper-1, account-provider-1, account-regression-1, account-research-pr, pr8-human-code-review-approval, pr8-merge, launch-network-1, launch-collector-1, launch-profile-1, launch-strategy-1, launch-runner-1
 next_ids: launch-regression-1, launch-delivery-1, launch-owner-inputs, launch-live-evidence, launch-prospective-study, e1-14-owner-setup
-updated_at: 2026-10-31T19:43:20+09:00
+updated_at: 2026-11-02T10:51:34+09:00
 stale_after_hours: 3
-waiting_on: owner stopped this session; main session handoff only; full regression outcome unverified
+waiting_on: operational wiring and final regression in progress; owner inputs remain explicit
 work_branch: gpt/first-trade-foundation
 work_commit: db7ddeca7de13745f33663cf5801b8d7709512af
-uncommitted_changes: documentation patch existed in unavailable prior environment; preserved in stop note
+uncommitted_changes: implementation underway in restored worktree
 pr: https://github.com/xkg4real/tradegen/pull/9 (last verified draft and unmerged)
 usage_weekly_pct: unknown
 usage_source: unavailable
@@ -22,6 +22,10 @@ session: cloud Codex (TRADEGEN)
 ---
 
 # 인수인계: 첫 자동거래 기반 5개
+
+## 2026-11-02 사용자 명시적 재개 지시
+
+사용자가 남은 과업을 제시하고 입력 없이 진행할 수 있는 개발을 재개하도록 지시했습니다. 아래 10월31일 중단 기록은 이 새 지시로 대체됩니다. PR9 head db7ddec와 main8cd4e83가 그대로임을 확인했습니다. 별도 운영 경로·자료 기록/평가·계좌 위험 기준 갱신·배포 해시 비교를 구현하고 최종 전체 검증을 완료합니다. 실제 서명/설정/검증 근거를 있다고 가정하지 않습니다. 최초 한도를 오늘 서명하는 경우 다음 서울 날짜인11월3일 전에는 효력이 발생하지 않는 기존 규칙도 유지합니다.
 
 ## 사용자 중단 지시 — 메인 세션 우선 확인
 
