@@ -6,7 +6,7 @@ import sys
 
 from tests.control_acceptance import _wrap
 
-MODULES = ("accounts_guards", "accounts_provider", "accounts_readiness")
+MODULES = ("accounts_guards", "accounts_provider", "accounts_readiness", "accounts_baseline", "accounts_quotes")
 
 
 def tests():

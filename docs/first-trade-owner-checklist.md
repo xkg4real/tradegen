@@ -20,7 +20,12 @@ not make those complete launch paths. No new strategy passed a real prospective 
 3. **Review and receive the final code version.** Review the new PR and its measured verification,
    then approve that PR's merge if acceptable. Synchronize the reviewed tree in the owner
    environment. Git commit approval, a chat signature and a merged PR do not produce an app
-   code signature. A later runtime change invalidates that signature and needs renewed review.
+   code signature. The app's signed hash also includes dependency RECORD files from the signer
+   interpreter; the same Git commit in Windows and Cloud can therefore have different hashes.
+   Compare the actual deployment closure using the [deployment manifest](deployment-readiness.md)
+   before relying on an approval transferred between environments. Copying a public key or owner
+   log does not complete an unsupported remote-approval workflow. A later runtime change needs
+   renewed review.
 4. **Prepare the trusted signer once.** Open Windows Terminal yourself, outside the app's process.
    Review `tools/signer/sign.py`, copy it outside the repository and independently compare/record
    the two SHA256 hashes. Inspect the repository venv's `Lib/site-packages/*.pth`: the signer

@@ -29,11 +29,13 @@ def problems(source, relative_path=""):
         if isinstance(node, ast.Call):
             call = node.func.id if isinstance(node.func, ast.Name) else node.func.attr if isinstance(node.func, ast.Attribute) else ""
             regex_compile = isinstance(node.func, ast.Attribute) and ast.unparse(node.func) == "re.compile"
-            collector_read = (relative_path == "upbit_collector.py" and isinstance(node.func, ast.Name)
+            fixed_read_routes = (COLLECTOR_ROUTES if relative_path == "upbit_collector.py" else
+                                 frozenset({"/v1/orderbook"}) if relative_path == "quotes.py" else frozenset())
+            collector_read = (bool(fixed_read_routes) and isinstance(node.func, ast.Name)
                 and node.func.id == "request" and len(node.args) == 4 and not node.keywords
                 and all(isinstance(arg, ast.Constant) for arg in node.args[:3])
                 and node.args[0].value == "upbit" and node.args[1].value == "GET"
-                and node.args[2].value in COLLECTOR_ROUTES
+                and node.args[2].value in fixed_read_routes
                 and isinstance(node.args[3], ast.Name) and node.args[3].id == "params")
             if call in FORBIDDEN_CALLS and not (call == "compile" and regex_compile) and not collector_read:
                 failures.append("effectful call")
@@ -83,6 +85,19 @@ def test_account_guard_negative_controls_cover_privileged_neighbors():
         assert problems(source), source
     assert not problems("present = 'KIS_APP_KEY' in os.environ\nstate = os.environ.get('TRADEGEN_HOME')\n")
     assert not problems("pattern = re.compile(r'[A-Z]+')\n")
+
+
+def test_quote_source_exception_is_public_get_and_file_exact():
+    source = 'request("upbit", "GET", "/v1/orderbook", params)'
+    assert not problems(source, "quotes.py")
+    for path in ("provider.py", "upbit_collector.py", "nested/quotes.py", ""):
+        assert problems(source, path)
+    for method in ("POST", "DELETE", "PUT"):
+        assert problems(source.replace('"GET"', repr(method)), "quotes.py")
+    for route in COLLECTOR_ROUTES | {"/v1/orders", "/v1/orderbooks"}:
+        assert problems(source.replace('"/v1/orderbook"', repr(route)), "quotes.py")
+    assert problems('request("upbit", "GET", path, params)', "quotes.py")
+    assert problems('request("upbit", "GET", "/v1/orderbook", params, data=x)', "quotes.py")
 
 
 def test_account_code_is_signed_recursively_in_owner_and_signer():

@@ -1,5 +1,5 @@
 """Upbit read-only inquiry (E1 spec 5 and 6; plan C7, C10): the frozen allowlist and the Upbit snapshot of one poll,
-for the owner's main pocket. Transport signs every call but the public ticker with an HS512 JWT whose query hash
+for the owner's main pocket. Transport signs every call but public quotation endpoints with an HS512 JWT whose query hash
 covers the exact query sent. The wallet status stays on the allowlist but nothing reads it (E22)."""
 from __future__ import annotations
 
@@ -13,9 +13,9 @@ from execution.transport import AuthError, InquiryError, InquiryRefused, KeyMiss
 ENDPOINTS = frozenset({
     ("GET", "/v1/accounts"), ("GET", "/v1/orders/open"), ("GET", "/v1/orders/closed"), ("GET", "/v1/withdraws"),
     ("GET", "/v1/withdraws/coin_addresses"), ("GET", "/v1/deposits"), ("GET", "/v1/api_keys"),
-    ("GET", "/v1/status/wallet"), ("GET", "/v1/ticker"), ("GET", "/v1/order"),
+    ("GET", "/v1/status/wallet"), ("GET", "/v1/ticker"), ("GET", "/v1/order"), ("GET", "/v1/orderbook"),
 })
-PUBLIC = frozenset({"/v1/ticker"})
+PUBLIC = frozenset({"/v1/ticker", "/v1/orderbook"})
 
 _ACCOUNTS = "/v1/accounts"
 _OPEN = "/v1/orders/open"
