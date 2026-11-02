@@ -1,18 +1,18 @@
 ---
-status: taken
-reason: owner_requested_complete_independent_launch_work
+status: returned
+reason: validated_checkpoint_and_owner_requested_claude_handoff
 from: gpt
 task: first-trade-foundation
 cycle: 2026-10-27
-done_ids: cloud-compat-1, cloud-compat-2, cloud-compat-3, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr, spec-rev-3-3, policy-plan-1, policy-preview-1, policy-pr, e1-1, e1-2, e1-3, e1-4, e1-5, e1-6, e1-7, e1-8, e1-9, e1-10, e1-11, e1-12, e1-13, e1-pr, e2-1, e2-2, e3-1, e3-2, e3-3, e2-3, e3-4, e2-e3-pr, pr6-pr7-merge, research-preregister-1, research-evaluate-1, account-readiness-1, research-paper-1, account-provider-1, account-regression-1, account-research-pr, pr8-human-code-review-approval, pr8-merge, launch-network-1, launch-collector-1, launch-profile-1, launch-strategy-1, launch-runner-1, launch-program-2, launch-workflow-2, launch-baseline-2, launch-quotes-2, launch-deployment-2, launch-review-request-2, launch-driver-2, launch-review-auth-2, launch-baseline-integration-2, launch-market-protocol-1, launch-recovery-cutoff-1, kis-live-contract-1, kis-live-backend-1, kis-live-ui-1, launch-static-guard-1, launch-windows-design-1
-next_ids: kis-live-regression-1, launch-regression-1, launch-delivery-1, launch-live-evidence, launch-prospective-study, e1-14-owner-setup
-updated_at: 2026-11-02T11:49:46+09:00
+done_ids: cloud-compat-1, cloud-compat-2, cloud-compat-3, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr, spec-rev-3-3, policy-plan-1, policy-preview-1, policy-pr, e1-1, e1-2, e1-3, e1-4, e1-5, e1-6, e1-7, e1-8, e1-9, e1-10, e1-11, e1-12, e1-13, e1-pr, e2-1, e2-2, e3-1, e3-2, e3-3, e2-3, e3-4, e2-e3-pr, pr6-pr7-merge, research-preregister-1, research-evaluate-1, account-readiness-1, research-paper-1, account-provider-1, account-regression-1, account-research-pr, pr8-human-code-review-approval, pr8-merge, launch-network-1, launch-collector-1, launch-profile-1, launch-strategy-1, launch-runner-1, launch-program-2, launch-workflow-2, launch-baseline-2, launch-quotes-2, launch-deployment-2, launch-review-request-2, launch-driver-2, launch-review-auth-2, launch-baseline-integration-2, launch-market-protocol-1, launch-recovery-cutoff-1, kis-live-contract-1, kis-live-backend-1, kis-live-ui-1, launch-static-guard-1, launch-windows-design-1, kis-live-regression-1, launch-regression-1, launch-delivery-1
+next_ids: launch-windows-inputs-1, launch-live-evidence, launch-live-history-1, launch-owner-authority-1, launch-windows-coordinator-1, launch-prospective-study, e1-14-owner-setup, pr9-owner-review
+updated_at: 2026-11-02T12:05:06+09:00
 stale_after_hours: 3
-waiting_on: final integrated acceptance and delivery; authentic deployment inputs
+waiting_on: authentic deployment integration, prospective evidence, owner signatures and per-PR9 merge approval
 work_branch: gpt/first-trade-foundation
-work_commit: 074d7606cff005ec79c8b5e9e6cb2b8a22a6f960
-uncommitted_changes: none at source freeze; full acceptance running
-pr: https://github.com/xkg4real/tradegen/pull/9 (draft, unmerged)
+work_commit: ab21116cc16a32271e466ad168ee70afb6a0ef6a
+uncommitted_changes: none
+pr: https://github.com/xkg4real/tradegen/pull/9 (ready for review, unmerged)
 usage_weekly_pct: unknown
 usage_source: unavailable
 handoff_threshold_pct: 95
@@ -21,64 +21,85 @@ usage_resets_at: unknown
 session: cloud Codex (TRADEGEN)
 ---
 
-# 인수인계: 첫 자동거래 운영 연결과 회복시각 검사
+# 인수인계: KIS 시세 화면과 첫 거래 도구 검증 완료
 
-## 추가 지시와 완료 체크포인트
+## 0. 사용자에게 전달할 최신 상태
 
-최신 source `074d7606cff005ec79c8b5e9e6cb2b8a22a6f960`를 commit/push했습니다. KIS 구현 af46688의 첫 전체검사는2196개 중2073PASS/1FAIL/122NOT_RUN이며 유일한 실패는 새 계좌 조회기의 조회용 URL에 대한 macro 가드 누락입니다. 테스트를 삭제하지 않고 해당 파일·정확한 GET 경로만 허용하며 별칭/동적경로/쓰기요청까지 거부하도록 보강했습니다. 집중97PASS/0FAIL/0NR이며 수정 소스로 전체회귀를 다시 실행 중입니다. 아직 전체성공으로 기록하지 않습니다. KIS45개집중검사와기존51개검사는통과했고 실제시세접속/주문은없습니다.
+소스·QA·문서를 `ab21116cc16a32271e466ad168ee70afb6a0ef6a`에 commit/push했습니다. PR9는 검토 가능한 상태이며 병합하지 않았습니다. 전체2199개 중2077PASS/0FAIL/122기존NOT_RUN입니다. 기존1923개ID의 상태는 모두 유지됐고 신규276개는 전부PASS입니다. KIS Live의 체결·호가·표본지표와 기존 첫 거래 라이브러리 확장을 완료했습니다. 실제 계좌 연결·전자서명·활성화·주문이나 적격 실전 전략은 아직 없습니다.
 
-Windows 연속계좌·독립head·원본history·현재owner권한·입력loader·실행coordinator 연결은 구체적인 API/순서/완료조건을 docs/windows-first-trade-integration.md에 설계했습니다. 설계는 launcher 구현 완료를 뜻하지 않습니다. 실제전자서명이나운영증거를있다고가정하지않습니다. 사용자가11월2일토큰부족시Claude인수인계를다시요청했으며, 조회불가사용량은unknown으로유지합니다. 새 작업을늘리지않고현재검증/문서전달단위를마무리합니다.
+사용자는 토큰 한도가 가까우면 새 작업을 멈추고 Claude에게 넘기라고 다시 지시했습니다. 사용량 조회 수단이 없어 unknown/unavailable로 유지합니다. 추측한95% 수치를 기록하지 않았습니다. 현재 검증 단위를 완료하고 returned로 돌려줍니다.
 
-## 0. 최신 상태
+## 1. 확정한 운영 결정
 
-사용자가11월2일 명시적으로 개발을 재개하도록 지시했습니다. 과거10월31일 중단 기록은 이 지시로 대체됩니다. 입력 없이 진행할 수 있는 운영 연결을 구현하고 PR9에 저장했습니다. 실제 전자서명은 아직 하지 않았다고 사용자가 확인했습니다. 오늘 최초 한도를 서명하면 기존D12상 가장 빠른 효력일은11월3일 KST입니다. 실제 계좌 연결·서명·활성화·주문·적격 실전 전략은 없습니다.
-
-## 1. 현재 목표
-
-Windows PC 운영을 준비합니다. 시장 선택은 사용자에게 다시 묻지 않고 내부의 독립 검증·통과 자산 폭·위험조정성과 비교로 결정합니다. 현재 적격 시장은 없습니다. 사용자가 지정한 예외일 회복시각 조건을 구현했으며, 기존 원금·최고점 보호 하한은 항상 유지한다고 확인했습니다. 개인 금액/비율/계정정보는 공개 저장소에 넣지 않습니다.
+- 실제 운영 환경은 Windows PC입니다. 개발은 Cloud에서 했습니다.
+- 시장·종목 선택은 내부 독립 검증에 위임됐습니다. 사용자에게 시장을 다시 고르라고 묻지 않습니다. 현재 적격 시장/전략은 없습니다.
+- 예외일의 일중 손실 예산과22:00KST 회복 조건은 확정됐으며, 기존 원금·최고점 보호 하한은 항상 유지합니다. 하한과평가액의 동률 자체는 위반이 아닙니다.
+- 실제 전자서명은 아직 전이라고 사용자가 확인했습니다. 최초 한도를11월2일 서명하면 기존D12상 가장 빠른 효력일은11월3일KST이며 다른 운영 조건도 충족해야 합니다.
+- 개인 금액/계좌정보는 공개 저장소에 넣지 않습니다. 비공개 정책의 확정값은 사용자 대화와 권한 있는 Notion 기록을 참조합니다. 이미 답한 조건을 미정으로 되돌리지 않습니다.
 
 ## 2. 근거
 
-- work branch docs/superpowers/plans/2026-11-02-first-trade-operational-completion.md 및 operational-execution-ledger
-- docs/fixed-driver-contract.md, strategy-review-signing.md, account-baseline-integration.md, market-selection-protocol.md
-- docs/first-trade-owner-checklist.md 및 deployment-readiness.md
-- context/first-trade-foundation/pre-recovery-current-20261102.md: 이전 기록 원문
+- work branch `qa/acceptance_results.json`, `qa/launch_operational_validation.json`
+- `docs/superpowers/plans/2026-11-02-first-trade-operational-execution-ledger.md`
+- `docs/superpowers/plans/2026-11-02-kis-live-execution-ledger.md`
+- `docs/kis-live-api-contract.md`, `docs/kis-live-usage.md`
+- `docs/windows-first-trade-integration.md`, `docs/first-trade-owner-checklist.md`
+- `docs/fixed-driver-contract.md`, `docs/strategy-review-signing.md`, `docs/account-baseline-integration.md`
+- `context/first-trade-foundation/pre-final-current-20261102.md`: 최종 갱신 전 기록
 
-## 3. 판단
+## 3. 구현과 판단
 
-같은 tick의 계좌 자료를 여러 번 호출해도 기준이 두 번 전진하지 않으며, 재시작 후 바뀐 시세/계좌 anchor로 동일 판단을 새 주문으로 만들지 않습니다. 고정 driver와 서명 문서는 원본 자료 공급기의 진위를 대신하지 않습니다. 실제 연속자료와 독립 저장 head, 최신 owner loader는 운영 통합이 필요합니다. 회복시각 이후 일일 손실 한도를0으로 바꾸면 이미 회복한 과거 손실까지 차단하므로, 실제 경계시각 평가액과 현재 평가액을 별도로 검증합니다. 하한이나 과거 최고점/손실 기록은 완화·삭제하지 않습니다.
+첨부22개XLSX의353시트를 조사해32개공개채널/1487개필드 계약을 기록했습니다. 모순된TR, 미확정 시각·가격단위는 제외합니다. 원본XLSX와예시인증값은Git에올리지않았습니다. 명시적인 KIS 연결·중지, 같은시장 체결/호가 동시구독, stale/delayed/partial-venue 표시, 수신표본 VWAP/수익률/스프레드/불균형을 구현했습니다. 공개시세 조회와 E1인증계좌조회/자동주문은 별도입니다. 공식ws 전송의비암호화특성은UI/안내에표시하며문서없는wss를발명하지않았습니다.
 
-## 4. 완료
+기존 첫 거래 도구에는 기록·평가CLI, 인과적papercapture, 공개호가, 고정driver, 정확한계좌baseline/checkpoint/CAS연결, detached owner review와standalone signer명령, 배포해시비교,22시경계증거·현재평가액 검사와일일중단지속을 추가했습니다. 실제자료의진위나연속성을콜백/해시만으로인증하지않습니다. 서명하지않은값을승인으로취급하지않습니다.
 
-- PR8 main8cd4e83 병합 완료. 이전 full1801/1923PASS,0FAIL,122NOT_RUN.
-- 최초 launch 기반 source db7ddec: 집중139PASS.
-- 추가 기록/평가·공개 호가·기준 reducer·배포 manifest·unsigned review source c5ae030: 집중108PASS,0FAIL; 합성CLI 흐름 완료.
-- 고정 전략 driver·detached owner review·계좌 checkpoint/provider 및 좁은 가드 추가: 집중114PASS,0FAIL,기존Windows GetConsoleMode1NOT_RUN. 새 테스트는 모두PASS.
-- 새 owner signer 명령은 고정된 테스트 키와 임시홈에서만 검사했습니다. 실제 서명은 없습니다.
-- frozen research21408설정/6선택/0통과 및 PDF는 변경하지 않았습니다.
+## 4. 검증 완료
 
-## 5. 실패와 현재 작업
+- 실제 전체 검사 소스: `074d7606cff005ec79c8b5e9e6cb2b8a22a6f960`,806.232초,2077PASS/0FAIL/122NOT_RUN.
+- 최종 전달 `ab21116cc16a32271e466ad168ee70afb6a0ef6a`는 검사 소스 위의QA·문서만 변경했습니다. runtime hash 불변이며 owner/standalone signer가같은closure/hash를계산합니다.
+- 기존 baseline1923개ID/상태 불변, 신규276개전부PASS. 기존122skip은macro자료/owner의존121개와실제Windows콘솔1개이며PASS가아닙니다.
+- KIS45PASS,기존cockpit/Flet51PASS,강화조회가드집중97PASS. 실제Flet/Chromium화면검사에서wrap/expand오류를수정하고회귀검사를추가했습니다. Windowsnative검증은아직별도입니다.
+-19KEYLESS·임시state·fake HTTP/WebSocket,실제홈metadata불변. 실제API/서명/arm/주문없음.
+- frozen research21408설정/6선택/0통과와17쪽PDF,PREREG/frozen_book은변경하지않았습니다.
 
-첫 full 시도는 cockpit의CANO 부분문자열 가드가 NOT_CANONICAL 진단코드를 감지하여 중단했습니다. 가드를 유지하고 진단명을 FORMAT_INVALID로 바꿨고 집중 가드/통합 검사 통과했습니다. 이 중단 실행은 새QA를 완성하지 않았으므로 이전QA 수치를 새 결과로 쓰지 않습니다. 다음 full은 회복시각 기능을 포함한 고정 소스로 수행합니다.
+## 5. 발견·수정한 실패
 
-## 6. 다음 작업
+초기진단명NOT_CANONICAL이CANO부분문자열가드와충돌해FORMAT_INVALID로변경했습니다. KIS UI테스트탐색기/정리와suitehelp등록,실제wrap헤더오류를수정했습니다. af46688 전체검사는2073PASS/1FAIL/122NR였고유일한실패는조회collector의전역text가드누락이었습니다. 해당파일의정확한GET경로만예외로하고macro가accounts AST가드를직접호출하도록보강했습니다. alias/동적경로/쓰기요청/인접경로를거부하는3개검사를추가했습니다. 실패한실행을성공으로합산하지않았으며마지막전체실행은독립적으로0FAIL입니다.
 
-1. 동결 source에서 전체 회귀 완료: 19KEYLESS·임시홈·실제홈 metadata watch. baseline1923의 모든ID/상태와122기존skip 비교; frozen study 불변 확인.
-2. 실제QA/README/validation ledger 갱신, PR9 설명/검토가능 상태 갱신, 요청한Notion 최신화, handoff returned.
-3. 실제 운영 자료·독립 미래 전략 검증·Windows 소유자 서명/세션 준비는 별도 실제 증거가 필요합니다.
+Cloud 기본network sandbox에서는최소asyncio.to_thread프로그램도종료가멈췄습니다. localhost가능환경에서동일프로그램과suite가정상종료했습니다. 테스트자체의rawsocket/HTTP/WS가드는유지했으며실제시장API를열지않았습니다.
+
+## 6. 남은 개발과 실제 운영
+
+Windows통합설계는완료했지만launcher구현완료가아닙니다. 다음을기존라이브러리에연결해야합니다.
+
+1. Windows의bounded private-input loader(현재launch CLI의POSIX파일경계제약유지).
+2. 진짜연속계좌interval/extrema/수수료/흐름/정확한22시경계자료,외부독립head의durable CAS.
+3. 검증된원본livehistory와재시작에도불변인판단slot/accountanchor.
+4. 최신owner context/public key권한adapter;임의Context/receipt를만들지않음.
+5. 실제prepared객체/Controller/Runner를연결하는Windows coordinator와중단가능scheduler.실제자료가없어도가짜자료로구현·검증할부분은먼저진행하되ready로표시하지않음.
+6. 새로운독립prospective전략검증과내부시장선정.현재완성된collector/evaluator경로는UpbitKRW현물이며KIS시세표시가이범위를자동확장하지않음.
+7. 실제Windows설치·보안설정,PR9별도병합승인,소유자code/tables/limits/review서명,진짜준비세션확인·서명과운영리허설.
 
 ## 7. 제한
 
-실제 키·.env값·owner 개인기록을 읽지 않습니다. 실제API·서명·arm·주문을 실행하지 않습니다. QUANTGEN과 frozen study를 수정하지 않습니다. 테스트 중 signed source는 동결하며 root만 직렬 검사를 실행합니다. CRLF 보존, 명시 파일 stage, append-only LEDGER를 유지합니다.
+AGENTS.md5절을지킵니다.실제키/.env값/owner개인로그를읽거나쓰지않고실제API/서명/활성화/주문을실행하지않습니다. QUANTGEN/frozen study를수정하지않습니다. 사용자PC에설치하지않습니다. runtime변경후에는해당검사를하고정확한결과만기록합니다. CRLF보존,명시파일stage,append-only LEDGER유지. PR별승인없이병합하지않습니다.
 
-## 8. 승인/입력
+## 8. 소유자 절차
 
-PR9 병합은 PR별 사용자 승인 대상이며 아직 승인되지 않았습니다. 이전PR8 승인을 재사용하지 않습니다. 사용자 금액/예산은 비공개 부분 설정에 보관합니다. 실제 전자서명 전이라는 답변과 Windows 운영·내부 시장선정 위임은 확정됐으므로 다시 묻지 않습니다. 외부 자료/권한/서명을 있다고 가정하지 않습니다.
+PR9의검토·병합승인 → 최종Windowscheckout/venv/외부신뢰signer준비 → code/규칙/계좌조건/효력있는한도승인 → 실제연구/구현검토서명 → 실제반환된prepared.session_id확인·서명 순서입니다. 코드승인서/병합은전자서명이아닙니다. 비밀값은본인PC터미널에만입력하며채팅에묻지않습니다. KIS Live보기는전자서명게이트가없지만E1 KIS계좌조회에는signedcode가필요합니다.
 
-## 9. 이어받을 지시
+## 9. Claude/메인세션이 이어받을 지시
 
-현재 source와 전체회귀 진행상태를 먼저 확인합니다. 이미 완료된ID를 반복하지 않습니다. 모든 runtime 소스가 동결돼 있으므로 검사 중 바꾸지 않습니다. 집중 및 full을 소스 동결 뒤 직렬로 마치고, 실제 결과만 기록합니다. 최종 실전 준비 완료나 수익을 보장하지 않습니다.
+CURRENT,LEDGER,위근거와Windows통합설계를읽고source를확인합니다. 완료ID는반복하지않습니다. 새입력없는구현을먼저진행하며이미확정된Windows/시장위임/예외예산/하한조건을다시묻지않습니다. 실제증거/서명/계좌설정을있다고가정하지않습니다. 미래검증자료를기존frozenstudy로대체하거나0통과를적격으로바꾸지않습니다. PR9는검토가능·미병합이며PR8승인을재사용하지않습니다.
 
-## 10. 검사 위치
+## 10. 로컬 검사와 비공개 자료
 
-현재Cloud /workspace/tradegen-launch, /workspace/tradegen-session. 초기108개 focused 및 추가114PASS/1NR 로그 보존. full harness run-launch-full.py는 미완료 실행의QA를 복원합니다. 초기 실패 콘솔은 launch-operational-20261102-initial-full.log. 새로운 full 결과는 완료 후 final-validation.json으로 게시합니다. 사용량은unknown/unavailable이며95%를 추측하지 않습니다.
+Cloud checkout `/workspace/tradegen-launch`,scratch `/workspace/tradegen-session`. 최종full log `launch-operational-20261102-full.log`,run/final-validation JSON,실패한af46688로그·결과를보존했습니다. 테스트환경은test-env.sh19KEYLESS와격리state를사용했습니다. 이Cloud파일이없으면공개QA와계획으로복구합니다.
+
+비공개 `/workspace/tradegen-session/owner-policy/`에는partial profile/operating decisions/unsigned policy-source가0600으로있으며Git에올리지않았습니다. provenance는모든정책조건과검토용기술집계기준을묶고actualapproval=false입니다. 공개소스만으로개인금액을추정하지않습니다.
+
+## 11. 요청한 Notion
+
+https://app.notion.com/p/40a5c916fe0c81619685e0ce61a906c6
+
+전체검증결과,핵심5개상태,KIS사용안내,확정정책,남은개발과소유자순차절차를갱신했습니다. 키/비밀번호/계좌번호는넣지않았습니다.
