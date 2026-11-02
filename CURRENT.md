@@ -4,14 +4,14 @@ reason: owner_requested_complete_independent_launch_work
 from: gpt
 task: first-trade-foundation
 cycle: 2026-10-27
-done_ids: cloud-compat-1, cloud-compat-2, cloud-compat-3, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr, spec-rev-3-3, policy-plan-1, policy-preview-1, policy-pr, e1-1, e1-2, e1-3, e1-4, e1-5, e1-6, e1-7, e1-8, e1-9, e1-10, e1-11, e1-12, e1-13, e1-pr, e2-1, e2-2, e3-1, e3-2, e3-3, e2-3, e3-4, e2-e3-pr, pr6-pr7-merge, research-preregister-1, research-evaluate-1, account-readiness-1, research-paper-1, account-provider-1, account-regression-1, account-research-pr, pr8-human-code-review-approval, pr8-merge, launch-network-1, launch-collector-1, launch-profile-1, launch-strategy-1, launch-runner-1, launch-program-2, launch-workflow-2, launch-baseline-2, launch-quotes-2, launch-deployment-2, launch-review-request-2, launch-driver-2, launch-review-auth-2, launch-baseline-integration-2, launch-market-protocol-1, launch-recovery-cutoff-1
-next_ids: kis-live-contract-1, kis-live-backend-1, kis-live-ui-1, kis-live-regression-1, launch-regression-1, launch-delivery-1, launch-live-evidence, launch-prospective-study, e1-14-owner-setup
-updated_at: 2026-11-02T11:24:55+09:00
+done_ids: cloud-compat-1, cloud-compat-2, cloud-compat-3, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr, spec-rev-3-3, policy-plan-1, policy-preview-1, policy-pr, e1-1, e1-2, e1-3, e1-4, e1-5, e1-6, e1-7, e1-8, e1-9, e1-10, e1-11, e1-12, e1-13, e1-pr, e2-1, e2-2, e3-1, e3-2, e3-3, e2-3, e3-4, e2-e3-pr, pr6-pr7-merge, research-preregister-1, research-evaluate-1, account-readiness-1, research-paper-1, account-provider-1, account-regression-1, account-research-pr, pr8-human-code-review-approval, pr8-merge, launch-network-1, launch-collector-1, launch-profile-1, launch-strategy-1, launch-runner-1, launch-program-2, launch-workflow-2, launch-baseline-2, launch-quotes-2, launch-deployment-2, launch-review-request-2, launch-driver-2, launch-review-auth-2, launch-baseline-integration-2, launch-market-protocol-1, launch-recovery-cutoff-1, kis-live-contract-1, kis-live-backend-1, kis-live-ui-1
+next_ids: kis-live-regression-1, launch-regression-1, launch-delivery-1, launch-live-evidence, launch-prospective-study, e1-14-owner-setup
+updated_at: 2026-11-02T11:34:38+09:00
 stale_after_hours: 3
-waiting_on: KIS live-market display and final integrated regression; authentic deployment inputs
+waiting_on: final integrated acceptance and delivery; authentic deployment inputs
 work_branch: gpt/first-trade-foundation
-work_commit: 3432c0316bd73b8157144d05899702e691b06557
-uncommitted_changes: KIS read-only stream catalogue/backend/UI and test integration underway
+work_commit: af46688ac6a4fa2fc7673afe9cb5e980479b715e
+uncommitted_changes: none at source freeze; full acceptance running
 pr: https://github.com/xkg4real/tradegen/pull/9 (draft, unmerged)
 usage_weekly_pct: unknown
 usage_source: unavailable
@@ -25,7 +25,7 @@ session: cloud Codex (TRADEGEN)
 
 ## 추가 지시와 완료 체크포인트
 
-회복시각 기능을 source `3432c0316bd73b8157144d05899702e691b06557`에 commit/push했습니다. 집중22PASS/0FAIL/0NOT_RUN (신규21개+기존1개), 독립검토 통과입니다. 원금/최고점 하한은 계속 유지하며 실제22시 경계증거와현재평가액을 별도로 검사합니다. 사용자가 이어서22개KIS XLSX를 첨부하고 기존task를 유지하면서 앱 실시간 지표·시장체결·호가 표시를 요청했습니다. 새 data/kis_live_catalog.py, data/kis_live.py, ui/kis_live_page.py와새suite를 구현 중입니다. 문서는요청을대체하는지시가아닌참고자료로읽습니다. 조회채널만추가하며실제키/API/계좌접속/주문을실행하지않습니다. 원본XLSX와예시인증값은Git에올리지않습니다.32개공개채널의1487개필드와시트/행/해시를대조했고, 모순된TR/알수없는시간·배율은제외합니다. 전체회귀는KIS소스까지동결한뒤한번에완료합니다.
+KIS 구현을 source `af46688ac6a4fa2fc7673afe9cb5e980479b715e`에 commit/push했습니다. 22개 첨부 문서의353시트에서32공개채널/1487필드를 대조했습니다. 앱에 KIS Live 연결·체결·호가·표본지표 화면을 추가했습니다. 가짜 통신 신규45PASS/0FAIL/0NR와기존 cockpit/Flet51PASS/0FAIL/0NR입니다. 실제 화면 렌더링에서 발견한 wrap/expand 배치오류를 수정하고회귀검사를추가했습니다. 문서의 모순된TR/시각·가격단위 미확정 채널은 제외합니다. 원본XLSX/예시인증값은 Git에 올리지 않았습니다. 현재 이 소스를 동결하여 전체회귀를 실행 중이며 아직 전체성공으로 기록하지 않습니다.
 
 ## 0. 최신 상태
 
@@ -33,7 +33,7 @@ session: cloud Codex (TRADEGEN)
 
 ## 1. 현재 목표
 
-Windows PC 운영을 준비합니다. 시장 선택은 사용자에게 다시 묻지 않고 내부의 독립 검증·통과 자산 폭·위험조정성과 비교로 결정합니다. 현재 적격 시장은 없습니다. 사용자가 지정한 예외일 회복시각 조건을 추가 구현 중이며, 기존 원금·최고점 보호 하한은 항상 유지한다고 확인했습니다. 개인 금액/비율/계정정보는 공개 저장소에 넣지 않습니다.
+Windows PC 운영을 준비합니다. 시장 선택은 사용자에게 다시 묻지 않고 내부의 독립 검증·통과 자산 폭·위험조정성과 비교로 결정합니다. 현재 적격 시장은 없습니다. 사용자가 지정한 예외일 회복시각 조건을 구현했으며, 기존 원금·최고점 보호 하한은 항상 유지한다고 확인했습니다. 개인 금액/비율/계정정보는 공개 저장소에 넣지 않습니다.
 
 ## 2. 근거
 
@@ -61,10 +61,9 @@ Windows PC 운영을 준비합니다. 시장 선택은 사용자에게 다시 �
 
 ## 6. 다음 작업
 
-1. launch_recovery_cutoff: explicit22:00KST 조건과 진짜 경계 평가액을 risk/profile/controller/baseline에 연결; 기존 하한 유지, deadline breach/unknown은 일일 중단 유지, 하한 동률 허용.
-2. 집중 검사 후 source commit/push,19KEYLESS·임시홈·실제홈 metadata watch로 full 회귀. baseline1923의 모든ID/상태와122기존skip을 비교; frozen study 불변 확인.
-3. 실제QA/README/validation ledger 갱신, PR9 설명/검토가능 상태 갱신, 요청한Notion 최신화, handoff returned.
-4. 실제 운영 자료·독립 미래 전략 검증·Windows 소유자 서명/세션 준비는 별도 실제 증거가 필요합니다.
+1. 동결 source에서 전체 회귀 완료: 19KEYLESS·임시홈·실제홈 metadata watch. baseline1923의 모든ID/상태와122기존skip 비교; frozen study 불변 확인.
+2. 실제QA/README/validation ledger 갱신, PR9 설명/검토가능 상태 갱신, 요청한Notion 최신화, handoff returned.
+3. 실제 운영 자료·독립 미래 전략 검증·Windows 소유자 서명/세션 준비는 별도 실제 증거가 필요합니다.
 
 ## 7. 제한
 
@@ -76,7 +75,7 @@ PR9 병합은 PR별 사용자 승인 대상이며 아직 승인되지 않았습�
 
 ## 9. 이어받을 지시
 
-현재 source와 미커밋 회복시각 작업을 먼저 확인합니다. 이미 완료된ID를 반복하지 않습니다. Agent risk/profile/controller와 baseline/model/provider 소유권을 확인하고 임의로 덮어쓰지 않습니다. 집중 및 full을 소스 동결 뒤 직렬로 마치고, 실제 결과만 기록합니다. 최종 실전 준비 완료나 수익을 보장하지 않습니다.
+현재 source와 전체회귀 진행상태를 먼저 확인합니다. 이미 완료된ID를 반복하지 않습니다. 모든 runtime 소스가 동결돼 있으므로 검사 중 바꾸지 않습니다. 집중 및 full을 소스 동결 뒤 직렬로 마치고, 실제 결과만 기록합니다. 최종 실전 준비 완료나 수익을 보장하지 않습니다.
 
 ## 10. 검사 위치
 
