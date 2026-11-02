@@ -16,6 +16,7 @@ from unittest.mock import patch
 from execution_launch import workflow as W, program, paper_capture
 from execution_launch.profile import profile_body, profile_contract_digest
 from execution_launch.strategy import protocol_json, register_protocol
+from tests import compliance_fixtures as F
 from tests.launch_profile import fixture_profile
 from tests.launch_strategy import START, fixture_capture
 from tools.research import prepare_launch_example as example
@@ -253,8 +254,11 @@ def test_example_writer_never_overwrites_or_follows_private_or_linked_destinatio
         existing = root / 'existing'; existing.mkdir()
         marker = existing / 'keep.txt'; marker.write_text('keep')
         linked = root / 'linked'; linked.symlink_to(root, target_is_directory=True)
-        for path in (existing, linked / 'child', root / '.tradegen' / 'child', root / '..' / 'child',
-                     Path('/home/owner/child'), Path('/root/child'), Path('/Users/owner/child')):
+        real = root / 'real'; real.mkdir()
+        F.directory_link(root / 'junction', real)       # a junction on Windows, a symlink elsewhere
+        for path in (existing, linked / 'child', root / 'junction' / 'child', root / '.tradegen' / 'child',
+                     root / '..' / 'child', Path('/home/owner/child'), Path('/root/child'),
+                     Path('/Users/owner/child'), Path.home() / 'child'):
             try:
                 example.write_new_directory(str(path), contents)
             except W.WorkflowError:
@@ -262,7 +266,18 @@ def test_example_writer_never_overwrites_or_follows_private_or_linked_destinatio
             else:
                 raise AssertionError('unsafe destination accepted')
         assert marker.read_text() == 'keep' and set(p.name for p in existing.iterdir()) == {'keep.txt'}
-        assert not (root / 'child').exists()
+        assert not (root / 'child').exists() and not any(real.iterdir())
+        fresh = root / 'fresh'
+        example.write_new_directory(str(fresh), contents)
+        assert {p.name: p.read_text(encoding='utf-8') for p in fresh.iterdir()} == contents
+        assert all(os.lstat(p).st_nlink == 1 and not p.is_symlink() for p in fresh.iterdir())
+        try:
+            example.write_new_directory(str(fresh), contents)
+        except W.WorkflowError:
+            pass
+        else:
+            raise AssertionError('existing destination written twice')
+        assert {p.name: p.read_text(encoding='utf-8') for p in fresh.iterdir()} == contents
         try:
             example.example_files(now=START.replace(tzinfo=None))
         except W.WorkflowError as exc:

@@ -21,14 +21,14 @@ def forbidden_imports(source):
 
 def test_research_has_no_live_account_network_or_protected_holdout_imports():
     for path in (ROOT / "research_lab").glob("*.py"):
-        assert not forbidden_imports(path.read_text()), path.name
+        assert not forbidden_imports(path.read_text(encoding="utf-8")), path.name
     for module in ("requests", "execution_orders.transport", "core.compliance.owner", "grokteam.book", "paper_live.replay"):
         assert forbidden_imports("import " + module)
 
 
 def test_research_protocol_manifest_and_catalogue_are_bound():
     from research_lab.candidates import catalogue, catalogue_bytes, raw_rules
-    protocol = json.loads((ROOT / "research_lab/protocol.json").read_text())
+    protocol = json.loads((ROOT / "research_lab/protocol.json").read_text(encoding="utf-8"))
     raw = (ROOT / "research_lab/data_manifest.json").read_bytes()
     assert protocol["data_manifest_sha256"] == hashlib.sha256(raw).hexdigest()
     assert len(raw_rules()) == protocol["raw_rules_per_asset"] == 223
@@ -44,4 +44,4 @@ def test_research_suite_is_complete_and_registered():
     for module in research_acceptance.MODULES:
         assert any(n.startswith("strategy_research/" + module + "/test_") for n in names), module
     for name in ("README.md", "tests/run_all.py"):
-        assert "strategy_research" in _suite_names((ROOT / name).read_text())
+        assert "strategy_research" in _suite_names((ROOT / name).read_text(encoding="utf-8"))

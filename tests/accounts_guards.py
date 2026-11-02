@@ -94,7 +94,8 @@ def problems(source, relative_path=""):
 def test_account_sources_have_no_signing_orders_network_or_writes():
     for path in (ROOT / "execution_accounts").rglob("*.py"):
         relative = path.relative_to(ROOT / "execution_accounts").as_posix()
-        assert not problems(path.read_text(), relative), (relative, problems(path.read_text(), relative))
+        found = problems(path.read_text(encoding="utf-8"), relative)
+        assert not found, (relative, found)
 
 
 def test_only_reviewed_collector_literals_can_use_e1_authenticated_get():
@@ -236,12 +237,12 @@ def test_account_code_is_signed_recursively_in_owner_and_signer():
         root = Path(directory)
         nested = root / "execution_accounts" / "nested"
         nested.mkdir(parents=True)
-        (root / "execution_accounts" / "__init__.py").write_text("")
-        (nested / "unused.py").write_text("VALUE = 1\n")
+        (root / "execution_accounts" / "__init__.py").write_text("", encoding="utf-8")
+        (nested / "unused.py").write_text("VALUE = 1\n", encoding="utf-8")
         first = dict(owner.code_files(root))
         assert first == dict(sign.code_files(root))
         assert "execution_accounts/nested/unused.py" in first
-        (nested / "unused.py").write_text("VALUE = 2\n")
+        (nested / "unused.py").write_text("VALUE = 2\n", encoding="utf-8")
         second = dict(owner.code_files(root))
         assert second == dict(sign.code_files(root))
         assert first["execution_accounts/nested/unused.py"] != second["execution_accounts/nested/unused.py"]
@@ -263,4 +264,4 @@ def test_account_suite_is_complete_and_registered():
     for module in accounts_acceptance.MODULES:
         assert any(n.startswith("execution_accounts/" + module + "/test_") for n in names), module
     for name in ("README.md", "tests/run_all.py"):
-        assert "execution_accounts" in _suite_names((ROOT / name).read_text())
+        assert "execution_accounts" in _suite_names((ROOT / name).read_text(encoding="utf-8"))
