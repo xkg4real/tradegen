@@ -1,12 +1,17 @@
 {
-  "source_commit": "c5ae030caedaa7e9de3fc8b501244614d172085c",
-  "status": "full_acceptance_running",
+  "source_commit": "d4ee239823371d6eb7ec5490b41840a3efbb7d3a",
+  "status": "recovery_cutoff_implementation_in_progress",
   "focused_20261102": {
     "PASS": 108,
     "FAIL": 0,
     "NOT_RUN": 0
   },
-  "synthetic_cli_smoke": true,
+  "focused_operational_integration": {
+    "PASS": 114,
+    "FAIL": 0,
+    "NOT_RUN": 1
+  },
+  "full_acceptance_complete": false,
   "real_connection": false,
   "actual_signing": false,
   "activation": false,

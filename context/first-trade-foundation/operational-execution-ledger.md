@@ -40,20 +40,61 @@ recording, evaluation, account-baseline, quote and deployment diagnostics.
 - Full acceptance and comparison against main's 1923-case baseline are pending
   the source checkpoint. Measured results will be appended after completion.
 
+## Initial full-run finding
+
+The first full attempt at `c5ae030` was deliberately interrupted after the cockpit
+credential-token scan failed. The existing uppercase `CANO` substring prohibition
+also matched `NOT_CANONICAL` diagnostic names in runner/review-request code.
+Those diagnostics were renamed to `FORMAT_INVALID`; the original guard was not
+weakened or exempted, and its focused rerun passes. The interrupted run did not
+write a complete new QA record; its inherited QA counts are not new results.
+The prior QA file was restored and the partial console log retained locally.
+
+The independent integration audit also identified implementable fixed-driver,
+review authentication and durable baseline bridge gaps. These are being completed
+under the same owner authorization before the final full run.
+
+## Additional operational integration
+
+- A fixed cash/trend driver now issues exactly sized, delayed signals with stable
+  slot identities, original account anchors and factory-instance verification.
+  Its tests reproduce the paper evaluator's exact fees, turnover and final NAV.
+- Detached review authentication binds current owner key, sealed context, approved
+  deployment code, source evidence and exact issued driver/history dependencies.
+  A standalone owner-only `review-approve` signer command preserves the existing
+  Windows/TTY/isolation/confirmation/password protections and separate signature
+  domain. It does not append a fictitious owner-log event or activate trading.
+- Explicit checkpoint persistence and account bridge reconcile actual anchors,
+  full FIFO profit and endpoint evidence, with atomic local writes and an external
+  trusted-head compare-and-set. Repeated same-tick evidence does not advance twice;
+  torn writes, mismatched heads and changed endpoint evidence refuse.
+- Focused new integration, existing runner, boundary guards and complete signer
+  suite: **114 PASS, 0 FAIL, 1 inherited NOT_RUN**. The skip is the real Windows
+  GetConsoleMode check, unavailable on this Linux Cloud. All new cases passed.
+- Read-only review found and fixed a FIFO-blocking risk in the standalone bounded
+  file reader. Synthetic signing tests use only fixed test keys in temporary state.
+
+The owner then specified an exception-day recovery deadline while explicitly
+preserving all existing principal/high-watermark floors. A separate current-equity
+and authentic boundary-evidence check is being designed; historical daily loss
+must not be reset or compared with an artificial zero budget after recovery.
+
 ## Remaining production integration
 
-A fixed reviewed order-generating driver, authenticated source/implementation
-review adapters, continuous complete account extrema and trusted durable baseline
-storage still need deployment-specific integration. The current full-scan account
-collector does not establish that continuous coverage. Missing owner choices are
-explicit inputs; they are not assumed to have been supplied or signed.
+A fixed driver, detached review verifier, checkpoint store and account bridge are
+implemented. Authentic continuous account extrema, durable immutable live-history
+anchors, an independently trusted head service and freshly verified owner-context
+providers still need deployment-specific integration. The current full-scan account
+collector does not establish continuous coverage. Missing actual approvals and
+source evidence are not assumed to have been supplied.
 
 The actual deployment, venue/market, exceptional-day budgets and loss-accounting
 conventions remain to be confirmed. Real secret/host bindings, current effective
 owner approval, qualified independent strategy evidence and the issued prepared
 session are operational prerequisites. First limits signed on November2 KST cannot
-take effect before November3 KST under unchanged D12. Existing effective limits
-are unknown. The owner alone performs actual signing and activation.
+take effect before November3 KST under unchanged D12. The owner confirmed there
+has been no actual electronic signature yet. The owner alone performs actual
+signing and activation.
 
 Frozen research and its zero-passing result are unchanged. PR9 requires its own
 merge approval. Usage telemetry is unavailable; no percentage is inferred.
