@@ -856,11 +856,21 @@ The navigation rail scrolls, so all nineteen entries are reachable at the
 
 Optional: `TRADEGEN_MACRO_DIR` moves the macro state out of `~/.tradegen/macro`.
 
+## KIS Live market data
+
+The KIS Live page provides explicit public market-data subscriptions, recent trades,
+orderbook depth and sampled return/VWAP/spread/imbalance indicators. It displays
+connection state, delay, coverage and stale-data limits. See the
+[Windows usage guide](docs/kis-live-usage.md) and
+[workbook-backed channel contract](docs/kis-live-api-contract.md).
+No connection starts when the page opens. Account readiness and automatic-order
+approvals remain separate. Development validation uses fake transports only.
+
 ## Verification
 
 ```bash
 .venv/Scripts/python tests/run_all.py                  # every suite; writes qa/acceptance_results.json
-.venv/Scripts/python tests/run_all.py --suite macro    # one suite: cockpit, engine, ui, quant, ficc, expansion, macro, paper, grokteam, compliance, odds, execution, execution_control, execution_accounts, strategy_research or execution_launch
+.venv/Scripts/python tests/run_all.py --suite macro    # one suite: cockpit, engine, ui, quant, ficc, expansion, macro, paper, grokteam, compliance, odds, execution, execution_control, execution_accounts, strategy_research, execution_launch or kis_live
 .venv/Scripts/python tests/run_all.py --milestone M8   # the exit set of a milestone (tests/macro_registry.csv)
 .venv/Scripts/python -m tests.macro_acceptance         # resync the registry's implemented_in column
 ```

@@ -5,12 +5,13 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "tradegen"
 version = "2.0.0"
-description = "TRADEGEN — personal trading program split off QUANTGEN (2026-10-23); no order path yet"
+description = "TRADEGEN — personal trading program with guarded execution and market data"
 requires-python = ">=3.12"
 dependencies = [
   "flet[all]==0.85.2",
   "pyyaml>=6.0",
   "requests>=2.31",
+  "websockets==16.0",
   "python-dotenv>=1.0", "tzdata>=2024.1; sys_platform == 'win32'",
   "numpy>=1.26", "pandas>=2.1", "scipy>=1.11", "matplotlib>=3.8", "gs-quant>=1.0",
   "yfinance>=0.2", "pandas-datareader>=0.10",
@@ -21,7 +22,7 @@ dependencies = [
 py-modules = ["main", "config"]
 
 [tool.setuptools.packages.find]
-include = ["core*", "data*", "ui*"]
+include = ["core*", "data*", "ui*", "execution*"]
 exclude = ["_legacy*", "tests*", "qa*"]
 
 [tool.flet]

@@ -56,6 +56,7 @@ from ui.etf_page import build_etf_page
 from ui.fx_page import build_fx_page
 from ui.strategy_lab_page import build_strategy_lab_page
 from ui.krx_page import build_krx_page
+from ui.kis_live_page import build_kis_live_page
 from ui.macro_page import build_macro_page
 from ui.portfolio_page import build_portfolio_page
 from ui.quant_lab_page import build_quant_lab_page
@@ -89,6 +90,7 @@ NAV = (
     ("workflows", "Workflows", ft.Icons.ACCOUNT_TREE_OUTLINED),
     ("skills", "Skills", ft.Icons.EXTENSION_OUTLINED),
     ("krx", "KRX", ft.Icons.SHOW_CHART_ROUNDED),
+    ("kis", "KIS Live", ft.Icons.SENSORS),
     ("runs", "Runs", ft.Icons.HISTORY),
     ("settings", "Settings", ft.Icons.SETTINGS_OUTLINED),
 )
@@ -151,6 +153,8 @@ def main(page: ft.Page) -> None:
         if name == "skills":
             return build_skills_page(page, on_open_settings=lambda: navigate("settings"),
                                      focus_skill=kwargs.get("focus", ""))
+        if name == "kis":
+            return build_kis_live_page(page, on_open_settings=lambda: navigate("settings"))
         if name == "krx":
             return build_krx_page(page, gateway, locale=LOCALE,
                                   on_open_settings=lambda: navigate("settings"))
@@ -159,9 +163,11 @@ def main(page: ft.Page) -> None:
         return build_settings_page(page, on_reload=reload_catalogue)
 
     def navigate(name: str, *, focus: str = "", rebuild: bool = False) -> None:
+        if current["page"] == "kis" and name != "kis" and "kis" in cache:
+            cache["kis"].deactivate()
         # Runs and Skills-with-focus must reflect state that changed elsewhere;
         # everything else keeps its live view so a pipeline survives a tab switch.
-        if rebuild or name in ("runs", "trading") or (name == "skills" and focus):
+        if (rebuild and name != "kis") or name in ("runs", "trading") or (name == "skills" and focus):
             cache.pop(name, None)
         if name not in cache:
             cache[name] = build(name, focus=focus)
@@ -172,7 +178,13 @@ def main(page: ft.Page) -> None:
 
     def reload_catalogue() -> None:
         reload_all()
+        # Retain the one feed owner even if its shutdown is still pending.
+        live = cache.get("kis")
+        if live is not None:
+            live.deactivate()
         cache.clear()
+        if live is not None:
+            cache["kis"] = live
         navigate("settings", rebuild=True)
 
     # -------------------------------------------------------------------- nav
@@ -234,6 +246,22 @@ def main(page: ft.Page) -> None:
     # Flet 0.85 names this `on_resize`; the previous build used `on_resized`,
     # which is silently accepted and never fires.
     page.on_resize = resize
+
+    async def close_market_streams(e=None) -> bool:
+        live = cache.get("kis")
+        return await live.close_async() if live is not None else True
+
+    async def window_event(e) -> None:
+        if e.type == ft.WindowEventType.CLOSE:
+            if await close_market_streams():
+                await page.window.destroy()
+
+    # Native close waits for the market-data worker; browser disconnect also
+    # requests cancellation. No subscription is started by these handlers.
+    page.on_disconnect = close_market_streams
+    page.on_close = close_market_streams
+    page.window.prevent_close = True
+    page.window.on_event = window_event
 
     page.add(ft.Row(
         [rail, ft.VerticalDivider(width=1, color=pal.border), content],

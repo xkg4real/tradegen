@@ -108,8 +108,10 @@ providers still need deployment-specific integration. The current full-scan acco
 collector does not establish continuous coverage. Missing actual approvals and
 source evidence are not assumed to have been supplied.
 
-The actual deployment, venue/market, exceptional-day budgets and loss-accounting
-conventions remain to be confirmed. Real secret/host bindings, current effective
+The owner selected Windows PC and delegated market selection to independent
+validation. Exceptional-day budget and recovery decisions are recorded privately,
+and supported technical accounting conventions are filled for review. Actual account
+bindings and a qualifying market/strategy remain unresolved. Real secret/host bindings, current effective
 owner approval, qualified independent strategy evidence and the issued prepared
 session are operational prerequisites. First limits signed on November2 KST cannot
 take effect before November3 KST under unchanged D12. The owner confirmed there

@@ -5,9 +5,13 @@ It does not certify live connectivity, a qualifying strategy, signatures or acti
 collector and prospective evaluator currently cover Upbit KRW spot; other E1/E3 venue adapters do
 not make those complete launch paths. No new strategy passed a real prospective study during development.
 
-1. **Resolve private profile inputs.** Choose venue, market, symbol and an opaque account scope;
-   supply current lot/tick/minimum/fee evidence. Confirm the first-day and zero-profit-day loss
-   budgets and accounting conventions. Keep actual values in a private file. The published
+1. **Complete the private launch profile.** The owner selected Windows PC, delegated market
+   selection to independent validation, and confirmed the exceptional-day intraday budget
+   and 22:00 KST recovery requirement without relaxing principal or peak protection.
+   These decisions are already recorded privately; do not request them again. Development
+   must select a qualifying market/symbol and current lot/tick/minimum/fee evidence. The owner
+   supplies the actual private account binding and reviews the completed terms. Keep actual
+   values in a private file. The published
    [template](launch-profile.example.json) intentionally contains nulls. The existing principal,
    peak protection, prior-day realized-profit and first-day rules remain unchanged; equality
    with a protection floor is not itself a breach. A profit target does not increase risk limits.
