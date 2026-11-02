@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import base64
 import binascii
-from dataclasses import dataclass, fields
+from dataclasses import fields
 from datetime import datetime, timedelta, timezone
 import hashlib
 import json
@@ -16,6 +16,7 @@ import re
 
 from core.compliance import model as compliance
 from execution_control.capability import digest
+from execution_control.owner_authority import MAX_AUTHORITY_AGE_SECONDS, ReviewAuthority
 from execution_launch.driver import FACTORY_ID, FixedDriverError, describe_fixed_driver, fixed_history_dependencies
 from execution_launch.review_request import parse_review_request, review_request_json, ReviewRequestError
 from execution_launch.runner import ImplementationBinding, ImplementationReceipt
@@ -24,7 +25,6 @@ from execution_launch.strategy import ReviewBinding, ReviewReceipt, evidence_dig
 REVIEW_DOMAIN = b"tradegen-strategy-review/1\n"
 MAX_DOCUMENT_BYTES = 98304
 MAX_REVIEW_SECONDS = 86400
-MAX_AUTHORITY_AGE_SECONDS = 30
 REVIEW_CHECKS = (
     "original_source_identity_and_records", "publication_before_capture",
     "independent_capture_window", "complete_candidate_and_retry_family",
@@ -143,18 +143,6 @@ def parse_review_document(raw):
         raise
     except (TypeError, ValueError, UnicodeError, OverflowError, RecursionError, binascii.Error):
         raise ReviewAuthenticationError("REVIEW_DOCUMENT_INVALID") from None
-
-
-@dataclass(frozen=True, kw_only=True)
-class ReviewAuthority:
-    """From the trusted owner loader, refreshed on every callback invocation.
-
-    observed_at is the loader's observation time, never a relabelled cached state.
-    Public-key bytes must belong to the current PEM verified by that loader.
-    """
-    context: compliance.Context
-    public_key_raw: bytes
-    observed_at: datetime
 
 
 def _authenticate(document, authority, now):
