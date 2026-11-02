@@ -106,7 +106,7 @@ def program_digest(driver: StrategyDriver) -> str:
             raise ValueError('invalid parameter number')
         body = json.loads(driver.parameters_json, parse_float=invalid, parse_constant=invalid)
         canonical = json.dumps(body, sort_keys=True, separators=(',', ':'), ensure_ascii=True, allow_nan=False)
-        _require(type(body) is dict and canonical == driver.parameters_json, 'RUNNER_PARAMETERS_NOT_CANONICAL')
+        _require(type(body) is dict and canonical == driver.parameters_json, 'RUNNER_PARAMETERS_FORMAT_INVALID')
     except (ValueError, TypeError, RecursionError):
         raise RunnerError('RUNNER_PARAMETERS_INVALID') from None
     return digest({'artifact_sha256': hashlib.sha256(driver.artifact).hexdigest(), 'parameters': body})

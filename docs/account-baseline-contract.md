@@ -96,9 +96,11 @@ permission. Pass the exported baseline into a complete `AccountBundle` and let t
 existing provider reconcile account evidence normally. Compare its realized-profit
 totals against the producer's totals before using the result in an automated loop.
 
+The [checkpoint store and account bridge](account-baseline-integration.md) provide
+local atomic persistence, exact account reconciliation and a callable provider.
 The current full-scan Upbit collector does not supply the required continuous
-interval extrema or durable trusted checkpoint storage. Connecting such a producer
-remains an explicit production integration task. There is no claim that a static
-owner profile or successful synthetic test establishes that live integration.
+interval extrema or an independently trusted durable head service. Connecting
+those producers remains a production integration task. A static owner profile
+or successful synthetic test does not establish that live integration.
 
 This software is not legal, tax or investment advice and is not a licensed adviser.

@@ -68,7 +68,7 @@ def _time(value):
     _require(type(value) is str and len(value) <= 40, "REVIEW_TIME_INVALID")
     try:
         stamp = datetime.fromisoformat(value)
-        _require(_stamp(stamp) == value, "REVIEW_TIME_NOT_CANONICAL")
+        _require(_stamp(stamp) == value, "REVIEW_TIME_FORMAT_INVALID")
         return stamp
     except (ValueError, TypeError, OverflowError):
         raise ReviewRequestError("REVIEW_TIME_INVALID") from None
@@ -180,7 +180,7 @@ def build_review_request(profile, protocol, result, *, now, program_artifact: by
                  "REVIEW_PROFILE_RULES_REQUIRED")
         spec = parse_program(parameters_json)
         _require(type(parameters_json) is str and canonical_parameters(spec) == parameters_json,
-                 "REVIEW_PARAMETERS_NOT_CANONICAL")
+                 "REVIEW_PARAMETERS_FORMAT_INVALID")
         code = program_digest(spec, program_artifact)
         contract = profile_contract_digest(profile)
         terms = rule_terms_digest(profile.instrument_rules)

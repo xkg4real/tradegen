@@ -57,39 +57,33 @@ These checks are requirements for a subsequent human/technical review, not claim
 that this artifact has satisfied them. Software fixtures demonstrate request
 handling; they are not authentic source reviews or profitable live studies.
 
-## Authentication design left explicit
+## Authenticated review is a separate workflow
 
-The existing signer has no reviewed detached strategy-document signing command,
-and the current owner ledger schemas contain no strategy-review event. This
-change adds neither and does not reinterpret a code approval as a data review.
+The standalone signer now provides a reviewed `review-approve` command, and
+`execution_launch.review_auth` verifies its detached documents. Follow
+[strategy-review-signing.md](strategy-review-signing.md) for owner steps and the
+runtime integration contract. The existing owner ledger schemas are unchanged;
+a code approval is never reinterpreted as a source review.
 
-A future detached source-review workflow can use a separately versioned signing
-domain, pin the raw Ed25519 public key to the **current** fingerprint in a fresh,
-intact, sealed owner context, and require current signed code. In the existing
-code, `Context.owner.fingerprint` is the current PEM key fingerprint;
-`LogCheck.first_key_fingerprint` is the historical first key. They must not be
-confused. A fresh authority provider must reflect rotations/revocation; a cached
-same-day context does not prove that its key is still current.
+The separately versioned signing domain binds the full unsigned request, actual
+fixed-driver identity, deployment code, reviewer/current key, audit-document
+hash, issuance time and bounded expiry. Verification pins raw Ed25519 public
+bytes to the **current** fingerprint in a freshly loaded, intact sealed owner
+context with current signed code. `Context.owner.fingerprint` is the current
+PEM fingerprint; `LogCheck.first_key_fingerprint` is the historical first key.
+A cached same-day context cannot prove that its key remains current. The trusted
+authority provider must observe rotations and current state on each invocation.
 
-The signed document should bind review kind/version, exact protocol/result/input/
-registry/profile/program/deployment hashes, actual review identity, audit-document
-digest, issuance time and bounded expiry. Domain separation prevents interpreting
-an owner-log signature as a detached review. Binding and expiry prevent reuse for
-a different account/profile, study, program or evidence window. Any owner-log
-anchor design must allow subsequent legitimate session events through verified
-ancestry rather than invalidating every review when the log head advances.
+The fixed implementation verifier requires an actual factory-issued driver and
+its unchanged callback, program, dependencies, profile, protocol and deployment
+window. Artifact hashes alone never authenticate an arbitrary Python callable.
+It also compares the exact upstream history provider and verifier with explicitly
+selected trusted deployment objects. Those identities establish selection only;
+they do not cryptographically prove that the adapters or live records are valid.
 
-An implementation review requires more than that signature. A callable's claimed
-artifact digest does not establish that it executes the artifact. A verifier
-which merely compares artifact bytes and then returns the arbitrary supplied
-`driver.callback` would authenticate unrelated code. The smallest defensible
-integration is a fixed, audited driver factory/type included in the approved code
-closure, with canonical parameters and exact per-process instance binding. A
-reviewed registry can bind that issued driver; a generic JSON importer cannot.
-
-Until those workflows exist and actual review evidence is supplied, existing
-`review_verifier` and `implementation_verifier` remain explicit trusted integration
-boundaries. This request preparation does not close them. E2 owner/session and
-per-order checks remain separate even after a future review succeeds.
+Actual human source review, fresh owner-loader/public-key integration, and
+trusted live-history capture/verification remain separate deployment work.
+This unsigned request never satisfies them. E2 owner/session and per-order
+checks remain separate even after a genuine detached review succeeds.
 
 This software is not legal, tax or investment advice and is not a licensed adviser.

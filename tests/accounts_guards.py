@@ -15,6 +15,13 @@ FORBIDDEN_CALLS = {"eval", "exec", "__import__", "compile", "request", "urlopen"
 COLLECTOR_ROUTES = frozenset({"/v1/accounts", "/v1/orders/open", "/v1/orders/closed",
                               "/v1/order", "/v1/deposits", "/v1/withdraws", "/v1/ticker"})
 
+CHECKPOINT_WRITES = (
+    'checked_target(self._root, "baseline directory", within=self._base).mkdir(mode=0o700, exist_ok=True)',
+    'os.replace(checked_target(self._root / "checkpoint.tmp", "baseline temporary file", within=self._root), '
+    'checked_target(self._root / "checkpoint.json", "baseline checkpoint", within=self._root))',
+)
+_CHECKPOINT_WRITE_TREES = frozenset(ast.dump(ast.parse(s, mode="eval").body) for s in CHECKPOINT_WRITES)
+
 
 def problems(source, relative_path=""):
     tree = ast.parse(source)
@@ -37,7 +44,9 @@ def problems(source, relative_path=""):
                 and node.args[0].value == "upbit" and node.args[1].value == "GET"
                 and node.args[2].value in fixed_read_routes
                 and isinstance(node.args[3], ast.Name) and node.args[3].id == "params")
-            if call in FORBIDDEN_CALLS and not (call == "compile" and regex_compile) and not collector_read:
+            checkpoint_write = (relative_path == "baseline_store.py"
+                                and ast.dump(node) in _CHECKPOINT_WRITE_TREES)
+            if call in FORBIDDEN_CALLS and not (call == "compile" and regex_compile) and not collector_read and not checkpoint_write:
                 failures.append("effectful call")
             if isinstance(node.func, ast.Attribute) and ast.unparse(node.func.value) == "os.environ":
                 if not (call == "get" and len(node.args) == 1 and isinstance(node.args[0], ast.Constant)
@@ -98,6 +107,20 @@ def test_quote_source_exception_is_public_get_and_file_exact():
         assert problems(source.replace('"/v1/orderbook"', repr(route)), "quotes.py")
     assert problems('request("upbit", "GET", path, params)', "quotes.py")
     assert problems('request("upbit", "GET", "/v1/orderbook", params, data=x)', "quotes.py")
+
+
+def test_checkpoint_write_exception_is_path_shape_and_file_exact():
+    for source in CHECKPOINT_WRITES:
+        assert not problems(source, "baseline_store.py")
+        for path in ("", "provider.py", "baseline_bridge.py", "nested/baseline_store.py"):
+            assert problems(source, path)
+        assert problems(source.replace("self._root", "other_root"), "baseline_store.py")
+    for source in ('os.replace(source, destination)',
+                   'os.replace(checked_target(source), checked_target(destination))',
+                   'checked_target(path).mkdir(mode=0o777)',
+                   'target.write_text(secret)', 'target.unlink()',
+                   'request("upbit", "POST", "/v1/orders", params)'):
+        assert problems(source, "baseline_store.py"), source
 
 
 def test_account_code_is_signed_recursively_in_owner_and_signer():

@@ -1,0 +1,123 @@
+# Durable baseline and account reconciliation
+
+`execution_accounts.baseline_bridge` connects the pure reducer to actual
+`AccountBundle` reconciliation, and `baseline_store` saves exact private state.
+`ContinuousAccountProvider` implements the callable account-provider interface
+used by the existing controller and runner. It does not collect market data,
+authenticate a source, select owner policy, sign approval or grant execution.
+
+## Explicit setup and integration
+
+1. Select the reviewed baseline conventions and a complete account-history
+   origin with zero opening inventory. The supported route is one KRW-settled
+   account, `maximum_net_equity_loss_from_day_open`, and `no_external_flows`.
+   The cumulative realized net P&L counter starts at this same history origin;
+   an arbitrary offset is unsupported. The first trading day is the reviewed
+   actual date, never the process start date. The day-opening value, historical
+   peak and observed loss require their own reviewed history.
+2. Obtain authenticated, complete `AccountEvidence` at the anchor cut-off. Set
+   `anchor.baseline.source_sha256 = content_digest(accounts)` for the exact tuple
+   of records. Call `initialize_account_baseline(conventions, anchor, accounts,
+   now=observed_now)`. It reconciles the real balance, cumulative FIFO P&L,
+   current/prior-day P&L and cut-off before returning a `BaselineUpdate`.
+   It uses the actual initialized baseline; there is no provisional permissive
+   baseline or circular readiness check.
+3. Independently review and retain that resulting `state.state_digest` as the
+   trusted initial head. Select one explicit absolute private `TRADEGEN_HOME`,
+   already created by the operator's provisioning process. Construct
+   `CheckpointStore(root=selected_root)` and explicitly call
+   `store.seed(update.state, expected_head=reviewed_head)` once. Existing state
+   refuses reseeding. Normal provider calls never initialize missing state.
+4. Implement an authenticated interval source callable
+   `source(previous_state, now) -> BaselineFrame(interval, accounts)` and a
+   separately trusted durable head adapter exposing `read() -> digest` and
+   `compare_and_set(previous_digest, new_digest) -> bool`. Exact `True` means
+   that the external compare-and-set durably succeeded. These adapters are
+   trusted application code, not a sandbox or an authorization substitute.
+5. Construct `ContinuousAccountProvider(source=source, store=store,
+   trusted_head=head_adapter)` and supply it where the controller/runner expects
+   `account_provider`. Each successful new interval is reconciled, saved,
+   committed to the external head and read back before an observation returns.
+   All separate code approval, risk policy, credentials and execution gates
+   remain required by their existing contracts.
+
+The initializer and bridge are pure: they do not fetch records, create files or
+advance the trusted head. The store writes only after explicit seed/commit.
+The lower-level `CheckpointStore.seed` verifies structure/integrity and trusts
+the externally reviewed head; integrations must use the account initializer
+above to establish the balance/P&L reconciliation rather than treating a local
+hash as evidence of review.
+
+## Continuous source and runner timing
+
+An interval covers all account activity in `[start, end)`. Its snapshot is just
+before events timestamped exactly at `end`; the bridge refuses fills/flows at
+that endpoint. Source history and totals must keep the same complete origin.
+`interval.source_sha256` must equal `content_digest(accounts)`. Its separate
+`coverage_sha256` identifies the authenticated coverage/extrema evidence.
+Both hashes are integrity bindings, **not source authentication**.
+
+The source must establish complete equity maxima and minima for every interval,
+including between snapshots. Periodic account polls alone do not establish
+these extrema. Source coverage gaps, missing gross-flow coverage, sequence/time
+rollback, unsupported external flows, stale evidence and inconsistent balances
+or realized totals refuse. The bridge independently rejects account-history
+flows inside an interval claiming zero flows. A new Seoul day requires an exact
+midnight opening sample, with the prior day's realized P&L reconciled from fills.
+See [the reducer contract](account-baseline-contract.md) for exact semantics.
+
+Fetch/validate required source records before choosing the runner tick's `now`;
+the provider must consume that already collected frame. Do not start HTTP work
+after the fixed tick time, rewrite source receipt times or mark old data fresh.
+Runner observe, reserve and dispatch may call the same provider several times
+with the same `now`. If that exact interval is already committed, the source
+must redeliver the **identical interval and account evidence**. The reducer
+accepts identical redelivery without increasing sequence or changing the
+timestamp; the provider performs no second save/CAS. A new interval with an
+equal endpoint, or changed account evidence with the old interval, refuses.
+The provider does not cache account evidence or hide later source changes.
+Sources must retain the latest exact frame across process restarts; the store
+retains its digest, not the complete source frame.
+
+The no-flow choice is deliberate: the existing controller retains a monotone
+raw-equity high-water mark and a fixed daily opening. A general deposit or
+withdrawal adjustment would require a jointly reviewed change to those
+contracts. This implementation does not silently change those meanings.
+
+## Files, durability and refusal recovery
+
+The only state files are under the selected root's `execution-baseline/`:
+`checkpoint.json`, `checkpoint.tmp`, and `checkpoint.lock`. Root selection must
+match `state_root()` exactly. Existing path isolation, symlink/junction checks,
+bounded regular files, no hardlinks, descriptor checks and platform locking
+apply. New files use mode `0600` and the new directory uses `0700` where the
+platform enforces POSIX modes; platform access controls still require normal
+operator provisioning. No arbitrary filename or automatic directory traversal
+is accepted. Loading existing state opens the existing lock for locking only;
+it does not create a missing lock or state directory.
+
+Writes validate exact serialization, exclusively create the fixed temporary
+file, flush/fsync it, atomically replace the checkpoint and fsync the directory
+on POSIX. There is no claim of directory-fsync durability on Windows or of
+protection from hostile code controlling both files and external head.
+An unexpected temporary file, malformed/oversized record or linked path refuses;
+the store does not erase evidence or automatically repair it.
+
+Local replacement and external head CAS are two separate durable operations.
+Failure between them can leave a new local file with the old external head.
+No observation is returned; the next read refuses the mismatch before requesting
+another source interval. Operators must compare independently retained heads
+and authenticated source evidence, reconcile any in-flight activity, and carry
+out a reviewed recovery. Never fix this by blindly copying a local digest to
+the trusted head, deleting the store or resetting the first trading day. A
+local checkpoint alone does not prevent rollback; an externally retained latest
+head is an explicit operational prerequisite. A failed final head read or a
+concurrent head change likewise returns no observation.
+
+The files contain private account amounts and identifiers. Do not commit them,
+attach them to public handoffs or copy them into user-facing reports. Tests use
+invented records and temporary roots only. No autonomous continuous source or
+external trusted-head service is shipped by this integration.
+
+This software and document are not legal, tax or investment advice, and their
+authors do not act as licensed advisers.

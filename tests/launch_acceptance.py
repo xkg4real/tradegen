@@ -8,7 +8,7 @@ from tests.control_acceptance import _wrap
 
 MODULES = ("launch_guards", "network_route", "accounts_collector", "launch_profile",
            "launch_strategy", "launch_runner", "launch_cli", "launch_capture", "launch_workflow",
-           "launch_deployment", "launch_review_request")
+           "launch_deployment", "launch_review_request", "launch_driver", "launch_review_auth")
 
 
 def tests():

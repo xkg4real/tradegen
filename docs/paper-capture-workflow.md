@@ -37,8 +37,9 @@ binding as `runner.program_digest`. The artifact must be the actual reviewed
 source or package manifest, provided explicitly by the caller. Matching a digest
 does not prove that a callback implements those bytes. This module does not
 construct an order-generating runner callback or an implementation-review receipt.
-Sizing, current holdings, lot rules, per-order costs and actual E2 authorization
-remain responsibilities of a separately reviewed deployment adapter.
+The [fixed driver](fixed-driver-contract.md) now supplies delayed sizing, holdings,
+lot and cost handling for these programs. Its separately bound implementation,
+reviewed live-history adapters and actual E2 authorization remain required.
 
 ## Bind before capturing
 

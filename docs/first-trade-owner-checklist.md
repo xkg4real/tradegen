@@ -60,7 +60,12 @@ not make those complete launch paths. No new strategy passed a real prospective 
    before the new capture window. Preserve the original negative research result. Review the
    independent capture/registry and causal decisions; run the cost/lot/delay evaluation and
    verify the exact implementation used by the runner. A hash alone does not authenticate a
-   source or reviewer. Confirm the rehearsal's partial fills, cancellation, restart, uncertain
+   source or reviewer. Use the [offline workflow](launch-workflow.md) to recompute
+   results and prepare the unsigned request, then review the actual
+   [fixed driver identity](fixed-driver-contract.md) and deployment closure. The
+   owner-only [detached review signer](strategy-review-signing.md) signs the exact
+   request, driver identity and audit document; it does not sign synthetic evidence
+   as real or replace the current runtime history adapters. Confirm the rehearsal's partial fills, cancellation, restart, uncertain
    sends, duplicate protection and risk responses. Passing software fixtures is not passing
    strategy evidence. See [validation](forward-strategy-validation.md) and
    [runner contract](automatic-runner-contract.md).

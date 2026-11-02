@@ -38,6 +38,22 @@ and unsigned forms must never become actual authorization or verified evidence.
 8. `launch-delivery-1`: update PR9, the requested Notion tracker, and append-only
    handoff records. PR9 merge still requires its own explicit owner approval.
 
+The integration audit identified three more implementation gaps independent of
+missing owner values. Complete these before the final source freeze:
+
+- `launch-driver-2`: fixed, auditable program-to-signal factory with exact sizing,
+  causal explicit history and restart-stable decision identity. It must not accept
+  arbitrary callbacks as implementations of claimed source bytes.
+- `launch-review-auth-2`: domain-separated detached review verification and a
+  corresponding owner-only signer command. Preserve current-key/code approval,
+  strict binding and expiry, and the existing standalone Windows signer boundary.
+  Synthetic signed documents do not count as actual owner review.
+- `launch-baseline-integration-2`: explicit isolated checkpoint persistence,
+  externally trusted expected heads, exact account reconciliation and a callable
+  continuous-source bridge. Atomic local storage is not proof against rollback;
+  the real complete interval source and independent trusted-head service remain
+  deployment inputs. Never infer continuous extrema from periodic endpoints.
+
 ## Ownership and verification
 
 Program/capture, workflow, baseline, quote source, deployment and review request
@@ -56,8 +72,9 @@ financial choices belong in a private partial profile, not in published examples
 
 - The current managed Cloud has no venue secret/runtime/identity bindings and
   does not permit the venue hosts. An implementation cannot grant those settings.
-- First caps/loss limits signed on November2 cannot take effect before November3
-  in Seoul under the unchanged D12 rule; existing effective approvals are unknown.
+- The owner confirmed actual electronic signing has not yet happened. First
+  caps/loss limits signed on November2 cannot take effect before November3 in Seoul
+  under the unchanged D12 rule; there is no earlier effective approval to assume.
 - The owner signer requires its reviewed Windows workflow and the target venv.
   Dependency RECORD files participate in D14; Windows and Cloud approvals are not
   interchangeable just because the Git commit is equal.

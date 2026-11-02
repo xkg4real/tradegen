@@ -40,6 +40,17 @@ inside Korean law.
   collector. The new evaluator supports Upbit KRW spot only. It has not qualified
   any real strategy. See the [ordered owner checklist](docs/first-trade-owner-checklist.md)
   for unresolved inputs, trusted signer setup, effective limits and session approval.
+- **Operational launch tools.** The [offline workflow](docs/launch-workflow.md)
+  records causal paper decisions, recomputes results and prepares review requests.
+  A [fixed driver](docs/fixed-driver-contract.md) converts the reviewed program
+  into delayed, exactly sized signals; [review authentication](docs/strategy-review-signing.md)
+  verifies owner-attested source and implementation documents. The
+  [continuous account bridge](docs/account-baseline-integration.md) reconciles
+  exact baselines and persists checkpoints against a separately trusted head.
+  Real source/history adapters, independent strategy evidence, secure environment
+  configuration and effective owner approvals still need deployment setup.
+  The [deployment manifest](docs/deployment-readiness.md) compares the existing
+  dependency-inclusive approval hash without issuing an approval.
 - **Strategy research (2026-10-31).** A frozen exploratory study evaluated
   **21,408 configurations** from eight economic families across eight assets.
   Six were selected on validation data; **zero passed** the specified joint

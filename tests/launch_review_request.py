@@ -80,7 +80,7 @@ def test_computed_request_binds_actual_inputs_and_leaves_all_review_authority_pe
 def test_actual_program_parameters_profile_and_capital_must_match_computed_study():
     profile, p, _, _, _, parameters = fixture()
     refused(lambda: request(program_artifact=b"unrelated private artifact"), "REVIEW_PROGRAM_OR_PROFILE_MISMATCH")
-    refused(lambda: request(parameters_json=" " + parameters), "REVIEW_PARAMETERS_NOT_CANONICAL")
+    refused(lambda: request(parameters_json=" " + parameters), "REVIEW_PARAMETERS_FORMAT_INVALID")
     refused(lambda: request(profile=replace(profile, account_scope="other-account")),
             "REVIEW_PROGRAM_OR_PROFILE_MISMATCH")
     changed = replace(profile, policy=replace(profile.policy, initial_equity=Decimal("2000")))
