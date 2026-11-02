@@ -42,3 +42,18 @@
 No real key/account read, real API request, actual owner signature, activation or
 order was performed. Frozen strategy research remains unchanged with zero passing
 candidates. Runtime source is frozen for the final acceptance run.
+
+## Final integrated acceptance
+
+Frozen test source `074d7606cff005ec79c8b5e9e6cb2b8a22a6f960`: **2077 PASS, 0 FAIL,
+122 inherited NOT_RUN; 2199 total**, completed in 806.232 seconds.
+All1923 baseline IDs retain their statuses; all276 added cases pass.
+The existing122 skips remain explicit (121 macro/reference/owner dependencies and
+one actual Windows console check). No skip is counted as a pass.
+
+All19 KEYLESS inputs, isolated state and unchanged real-home metadata were verified.
+Owner and standalone signer enumerate the same runtime closure and produce the same
+code hash. Frozen research paths are unchanged. No actual API, owner signature,
+activation or order occurred. Detailed evidence is in
+`qa/launch_operational_validation.json`; the QA record and README use these measured
+results. Subsequent delivery edits are documentation/QA only.
