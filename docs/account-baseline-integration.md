@@ -79,6 +79,18 @@ The provider does not cache account evidence or hide later source changes.
 Sources must retain the latest exact frame across process restarts; the store
 retains its digest, not the complete source frame.
 
+If the reviewed risk policy enables recovery by 22:00 Seoul time, select the
+matching `BaselineConventions.recovery_cutoff_seconds=79200` before initializing
+the source state. The source must additionally capture the exact boundary on
+first trading days and days following zero realized net profit. Its genuine
+endpoint proof is reconciled into `RiskBaseline.recovery_checkpoint` and
+`RiskObservation.recovery_checkpoint`, durably retained for that day, and never
+replaced by later recovery. Pre-boundary evidence cannot be reused after the
+deadline, even inside the normal freshness window. A late anchor without proof
+remains unknown. This option uses schema 2; existing schema 1 checkpoints keep
+their original hashes and are never automatically migrated or reset. See the
+[boundary contract](account-baseline-contract.md#optional-recovery-boundary).
+
 The no-flow choice is deliberate: the existing controller retains a monotone
 raw-equity high-water mark and a fixed daily opening. A general deposit or
 withdrawal adjustment would require a jointly reviewed change to those

@@ -15,6 +15,7 @@ import re
 
 from core.compliance.model import KST
 from execution_accounts.model import RiskBaseline, canonical, content_digest
+from execution_control.risk import RecoveryCheckpoint
 
 _ZERO = Decimal(0)
 _HASH = re.compile(r"[0-9a-f]{64}")
@@ -50,6 +51,15 @@ def _hash(value):
 @dataclass(frozen=True, kw_only=True)
 class BaselineConventions:
     # No default choice: the operator's approved policy must select these terms.
+    daily_loss: str
+    external_flows: str
+    max_interval_seconds: int
+    recovery_cutoff_seconds: int | None = None
+
+
+@dataclass(frozen=True, kw_only=True)
+class _V1Conventions:
+    """The original digest representation; never silently migrate a trusted head."""
     daily_loss: str
     external_flows: str
     max_interval_seconds: int
@@ -111,6 +121,7 @@ class BaselineState:
     previous_state_digest: str
     last_interval_digest: str
     state_digest: str
+    recovery_checkpoint: RecoveryCheckpoint | None = None
 
 
 def _conventions(value):
@@ -121,11 +132,49 @@ def _conventions(value):
              "BASELINE_FLOW_CONVENTION_UNSUPPORTED")
     _require(type(value.max_interval_seconds) is int and 1 <= value.max_interval_seconds <= 300,
              "BASELINE_INTERVAL_BOUND_REQUIRED")
+    _require(value.recovery_cutoff_seconds is None
+             or (type(value.recovery_cutoff_seconds) is int and value.recovery_cutoff_seconds == 79200),
+             "BASELINE_RECOVERY_CUTOFF_UNSUPPORTED")
 
 
 def _body(state):
-    return tuple(getattr(state, field.name) for field in fields(BaselineState)
-                 if field.name != "state_digest")
+    values = []
+    for field in fields(BaselineState):
+        if field.name == "state_digest" or (field.name == "recovery_checkpoint" and state.schema_version == 1):
+            continue
+        value = getattr(state, field.name)
+        if field.name == "conventions" and state.schema_version == 1:
+            value = _V1Conventions(daily_loss=value.daily_loss, external_flows=value.external_flows,
+                                   max_interval_seconds=value.max_interval_seconds)
+        values.append(value)
+    return tuple(values)
+
+
+def _required_cutoff(state):
+    if state.conventions.recovery_cutoff_seconds is None:
+        return None
+    day = state.asof.astimezone(KST).date()
+    if state.first_trading_day != day and state.previous_day_realized_net_krw != _ZERO:
+        return None
+    return datetime.combine(day, time(22), tzinfo=KST)
+
+
+def _validate_recovery(state):
+    checkpoint = state.recovery_checkpoint
+    cutoff = _required_cutoff(state)
+    if checkpoint is None:
+        _require(cutoff is None or state.asof != cutoff, "BASELINE_RECOVERY_BOUNDARY_REQUIRED")
+        return
+    _require(type(checkpoint) is RecoveryCheckpoint and cutoff is not None,
+             "BASELINE_RECOVERY_CHECKPOINT_INVALID")
+    _instant(checkpoint.cutoff_at); _amount(checkpoint.equity_krw, positive=True); _hash(checkpoint.source_sha256)
+    _require(checkpoint.cutoff_at == cutoff and cutoff <= state.asof,
+             "BASELINE_RECOVERY_CHECKPOINT_INVALID")
+    _require(state.high_watermark >= checkpoint.equity_krw
+             and state.observed_daily_loss >= max(_ZERO, state.day_start_equity-checkpoint.equity_krw),
+             "BASELINE_RECOVERY_HISTORY_CONTRADICTION")
+    if state.asof == cutoff:
+        _require(checkpoint.equity_krw == state.equity_krw, "BASELINE_RECOVERY_EQUITY_CONTRADICTION")
 
 
 def _state(**values):
@@ -135,8 +184,10 @@ def _state(**values):
 
 def _validate(state):
     _require(type(state) is BaselineState and type(state.schema_version) is int
-             and state.schema_version == 1, "BASELINE_STATE_REQUIRED")
+             and state.schema_version in (1, 2), "BASELINE_STATE_REQUIRED")
     _conventions(state.conventions); _instant(state.asof)
+    _require((state.schema_version == 1) == (state.conventions.recovery_cutoff_seconds is None),
+             "BASELINE_SCHEMA_CONVENTION_MISMATCH")
     _require(type(state.account_scope) is str and _ID.fullmatch(state.account_scope) is not None,
              "BASELINE_SCOPE_INVALID")
     _require(type(state.first_trading_day) is date
@@ -158,6 +209,7 @@ def _validate(state):
              "BASELINE_PEAK_CONTRADICTION")
     _require(state.observed_daily_loss >= max(_ZERO, state.day_start_equity-state.equity_krw),
              "BASELINE_DAILY_LOSS_CONTRADICTION")
+    _validate_recovery(state)
     _hash(state.anchor_sha256); _hash(state.state_digest)
     _require(bool(state.previous_state_digest) == bool(state.last_interval_digest),
              "BASELINE_CHAIN_INVALID")
@@ -179,7 +231,8 @@ def initialize_baseline(conventions: BaselineConventions, anchor: BaselineAnchor
             _amount(b.prior_high_watermark, positive=True)
             _amount(b.day_start_equity, positive=True)
             _require(b.prior_high_watermark >= b.day_start_equity, "BASELINE_PEAK_CONTRADICTION")
-            state = _state(schema_version=1, account_scope=anchor.account_scope, conventions=conventions,
+            state = _state(schema_version=1 if conventions.recovery_cutoff_seconds is None else 2,
+                account_scope=anchor.account_scope, conventions=conventions,
                 first_trading_day=b.first_trading_day, asof=b.asof, sequence=anchor.sequence,
                 equity_krw=anchor.equity_krw, day_start_equity=b.day_start_equity,
                 high_watermark=max(b.prior_high_watermark, anchor.equity_krw),
@@ -188,6 +241,16 @@ def initialize_baseline(conventions: BaselineConventions, anchor: BaselineAnchor
                 previous_day_realized_net_krw=anchor.previous_day_realized_net_krw,
                 approved_effective_floor=b.approved_effective_floor,
                 anchor_sha256=content_digest(anchor), previous_state_digest="", last_interval_digest="")
+            cutoff = _required_cutoff(state)
+            checkpoint = (RecoveryCheckpoint(cutoff_at=cutoff, equity_krw=anchor.equity_krw,
+                          source_sha256=b.source_sha256) if cutoff is not None and b.asof == cutoff else None)
+            _require(b.recovery_checkpoint is None
+                     or (type(b.recovery_checkpoint) is RecoveryCheckpoint and b.recovery_checkpoint == checkpoint),
+                     "BASELINE_RECOVERY_ANCHOR_REFUSED")
+            if checkpoint is not None:
+                state = _state(**{field.name: (checkpoint if field.name == "recovery_checkpoint"
+                                  else getattr(state, field.name)) for field in fields(BaselineState)
+                                  if field.name != "state_digest"})
             _validate(state)
             return state
     except BaselineError:
@@ -236,10 +299,17 @@ def advance_baseline(state: BaselineState, interval: BaselineInterval) -> Baseli
             _require(new_day == old_day or interval.end == next_open,
                      "BASELINE_MIDNIGHT_OPENING_REQUIRED")
             rollover = new_day != old_day
+            cutoff = _required_cutoff(state)
+            _require(cutoff is None or not (state.asof < cutoff < interval.end),
+                     "BASELINE_RECOVERY_BOUNDARY_REQUIRED")
+            checkpoint = None if rollover else state.recovery_checkpoint
+            if cutoff is not None and interval.end == cutoff:
+                checkpoint = RecoveryCheckpoint(cutoff_at=cutoff, equity_krw=interval.equity_krw,
+                                                source_sha256=interval.source_sha256)
             opening = interval.equity_krw if rollover else state.day_start_equity
             loss = (_ZERO if rollover else
                     max(state.observed_daily_loss, opening-interval.minimum_equity_krw, _ZERO))
-            out = _state(schema_version=1, account_scope=state.account_scope, conventions=state.conventions,
+            out = _state(schema_version=state.schema_version, account_scope=state.account_scope, conventions=state.conventions,
                 first_trading_day=state.first_trading_day, asof=interval.end, sequence=interval.sequence,
                 equity_krw=interval.equity_krw, day_start_equity=opening,
                 high_watermark=max(state.high_watermark, interval.maximum_equity_krw), observed_daily_loss=loss,
@@ -249,7 +319,8 @@ def advance_baseline(state: BaselineState, interval: BaselineInterval) -> Baseli
                 previous_day_realized_net_krw=(interval.realized_net_total_krw-state.day_open_realized_net_total_krw
                                                if rollover else state.previous_day_realized_net_krw),
                 approved_effective_floor=state.approved_effective_floor, anchor_sha256=state.anchor_sha256,
-                previous_state_digest=state.state_digest, last_interval_digest=interval_sha)
+                previous_state_digest=state.state_digest, last_interval_digest=interval_sha,
+                recovery_checkpoint=checkpoint)
             _validate(out)
             return out
     except BaselineError:
@@ -268,9 +339,13 @@ def risk_baseline(state: BaselineState, *, now: datetime, expected_head: str) ->
             _require(timedelta(0) <= now-state.asof <= timedelta(seconds=30)
                      and now.astimezone(KST).date() == state.asof.astimezone(KST).date(),
                      "BASELINE_STALE_OR_FUTURE")
+            cutoff = _required_cutoff(state)
+            _require(cutoff is None or not (state.asof < cutoff <= now),
+                     "BASELINE_RECOVERY_BOUNDARY_REQUIRED")
             return RiskBaseline(day_start_equity=state.day_start_equity, prior_high_watermark=state.high_watermark,
                 observed_daily_loss=state.observed_daily_loss, approved_effective_floor=state.approved_effective_floor,
-                first_trading_day=state.first_trading_day, asof=state.asof, source_sha256=state.state_digest)
+                first_trading_day=state.first_trading_day, asof=state.asof, source_sha256=state.state_digest,
+                recovery_checkpoint=state.recovery_checkpoint)
     except BaselineError:
         raise
     except (ValueError, TypeError, AttributeError, DecimalException, OverflowError):
@@ -282,7 +357,11 @@ def state_json(state: BaselineState) -> str:
     with localcontext() as numeric:
         numeric.prec = 512; numeric.traps[Inexact] = True
         _validate(state)
-        return json.dumps(canonical(state), sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+        body = canonical(state)
+        if state.schema_version == 1:
+            body.pop("recovery_checkpoint")
+            body["conventions"].pop("recovery_cutoff_seconds")
+        return json.dumps(body, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
 
 
 def restore_state(raw: str | bytes, *, expected_head: str) -> BaselineState:
@@ -299,10 +378,18 @@ def restore_state(raw: str | bytes, *, expected_head: str) -> BaselineState:
         def bad_number(value):
             raise BaselineError("BASELINE_CHECKPOINT_NUMBER_INVALID")
         body = json.loads(raw, object_pairs_hook=pairs, parse_float=bad_number, parse_constant=bad_number)
-        _require(type(body) is dict and set(body) == {f.name for f in fields(BaselineState)},
+        _require(type(body) is dict and type(body.get("schema_version")) is int
+                 and body["schema_version"] in (1, 2), "BASELINE_CHECKPOINT_SCHEMA_INVALID")
+        legacy = body["schema_version"] == 1
+        state_fields = {f.name for f in fields(BaselineState)}
+        convention_fields = {f.name for f in fields(BaselineConventions)}
+        if legacy:
+            state_fields.remove("recovery_checkpoint")
+            convention_fields.remove("recovery_cutoff_seconds")
+        _require(set(body) == state_fields,
                  "BASELINE_CHECKPOINT_SCHEMA_INVALID")
         convention = body["conventions"]
-        _require(type(convention) is dict and set(convention) == {f.name for f in fields(BaselineConventions)},
+        _require(type(convention) is dict and set(convention) == convention_fields,
                  "BASELINE_CHECKPOINT_SCHEMA_INVALID")
         body["conventions"] = BaselineConventions(**convention)
         _require(type(body["asof"]) is str and type(body["first_trading_day"]) is str,
@@ -318,6 +405,15 @@ def restore_state(raw: str | bytes, *, expected_head: str) -> BaselineState:
             _require(type(value) is str and len(value) <= 128 and _NUMBER.fullmatch(value) is not None,
                      "BASELINE_CHECKPOINT_NUMBER_INVALID")
             body[name] = Decimal(value)
+        if not legacy and body["recovery_checkpoint"] is not None:
+            checkpoint = body["recovery_checkpoint"]
+            _require(type(checkpoint) is dict and set(checkpoint) == {f.name for f in fields(RecoveryCheckpoint)}
+                     and type(checkpoint["cutoff_at"]) is str, "BASELINE_CHECKPOINT_SCHEMA_INVALID")
+            value = checkpoint["equity_krw"]
+            _require(type(value) is str and len(value) <= 128 and _NUMBER.fullmatch(value) is not None,
+                     "BASELINE_CHECKPOINT_NUMBER_INVALID")
+            body["recovery_checkpoint"] = RecoveryCheckpoint(cutoff_at=datetime.fromisoformat(checkpoint["cutoff_at"]),
+                equity_krw=Decimal(value), source_sha256=checkpoint["source_sha256"])
         state = BaselineState(**body)
         with localcontext() as numeric:
             numeric.prec = 512; numeric.traps[Inexact] = True

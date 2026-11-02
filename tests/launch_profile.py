@@ -7,7 +7,7 @@ from pathlib import Path
 
 from core.compliance import model as M
 from execution_control.model import InstrumentRules
-from execution_control.risk import RiskObservation, evaluate
+from execution_control.risk import RecoveryCondition, RiskObservation, evaluate
 from execution_launch.profile import (
     AccountingConventions, LaunchProfile, PolicyInputs, ProfileError,
     limit_change_earliest_date, parse_profile_json, preflight_profile, profile_body,
@@ -102,6 +102,24 @@ def test_profile_digest_binds_scope_policy_strategy_rules_and_accounting_choices
     report=preflight_profile(replace(profile,conventions=replace(profile.conventions,daily_loss='unimplemented')),now=NOW)
     assert 'ACCOUNTING_CONVENTION_UNSUPPORTED' in report.reasons
     rejected(lambda:risk_policy(replace(profile,conventions=replace(profile.conventions,daily_loss='unimplemented'))))
+
+
+def test_explicit_recovery_condition_roundtrip_binds_profile_and_policy_without_relaxing_floors():
+    profile=fixture_profile()
+    assert profile_body(profile)['policy']['recovery_condition'] is None
+    condition=RecoveryCondition(cutoff_seconds=79200,timezone='Asia/Seoul',reference='day_start_marked_equity')
+    configured=replace(profile,policy=replace(profile.policy,recovery_condition=condition))
+    parsed=parse_profile_json(json.dumps(profile_body(configured)))
+    assert parsed==configured and risk_policy(parsed).recovery_condition==condition
+    assert profile_digest(configured)!=profile_digest(profile)
+    assert profile_contract_digest(configured)!=profile_contract_digest(profile)
+    assert preflight_profile(configured,now=NOW).profile_complete
+    assert risk_policy(configured).initial_equity==risk_policy(profile).initial_equity
+    for body in ({}, {'cutoff_seconds':79200},
+                 {'cutoff_seconds':79200,'timezone':'UTC','reference':'day_start_marked_equity'},
+                 {'cutoff_seconds':79200,'timezone':'Asia/Seoul','reference':'day_start_marked_equity','approved':True}):
+        raw=profile_body(profile);raw['policy']['recovery_condition']=body
+        rejected(lambda:parse_profile_json(json.dumps(raw)))
 
 
 def test_complete_profile_never_claims_execution_and_requires_current_signed_context():

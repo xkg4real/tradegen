@@ -49,6 +49,9 @@ def _reconcile(state, accounts, *, now, source_sha256, interval_start=None):
     _require(type(accounts) is tuple and len(accounts) == 1 and type(accounts[0]) is AccountEvidence,
              "BASELINE_BRIDGE_SINGLE_ACCOUNT_REQUIRED")
     _require(content_digest(accounts) == source_sha256, "BASELINE_BRIDGE_ENDPOINT_CHANGED")
+    checkpoint = state.recovery_checkpoint
+    if checkpoint is not None and checkpoint.cutoff_at == state.asof:
+        _require(checkpoint.source_sha256 == source_sha256, "BASELINE_BRIDGE_RECOVERY_SOURCE_CHANGED")
     account = accounts[0]
     _require(account.account_scope == state.account_scope and account.execution_quote == "KRW"
              and account.observed_at == state.asof, "BASELINE_BRIDGE_ACCOUNT_BINDING_MISMATCH")

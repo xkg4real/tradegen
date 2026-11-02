@@ -2,10 +2,11 @@
 from dataclasses import replace
 from datetime import timedelta
 from decimal import Decimal, localcontext
+from unittest.mock import patch
 
 from core.compliance import model as M, owner
 from execution_control.controller import Controller, _fold
-from execution_control.risk import Fill
+from execution_control.risk import Fill, RecoveryCheckpoint, RecoveryCondition, RiskPolicy
 from execution_orders.model import AdapterResult
 from tests import compliance_fixtures as F
 from tests.control_session import signed_control, refused
@@ -200,6 +201,73 @@ def test_signed_daily_ceiling_latches_until_next_seoul_day():
         later=env.now+timedelta(days=1)
         snapshot(env,asof=later,server_time=later,risk=replace(env.observation.risk,asof=later))
         assert not restart(env).observe(now=later).new_entry_blocked
+
+
+def _cutoff_policy():
+    return RiskPolicy(version='synthetic-cutoff',initial_equity=D('2000'),
+        drawdown_activation_equity=D('8000'),positive_profit_loss_fraction=D('0.2'),
+        peak_drawdown_fraction=D('0.25'),zero_profit_day_target_fraction=D('0.1'),
+        first_day_loss_budget=D('8'),zero_profit_day_loss_budget=D('8'),
+        recovery_condition=RecoveryCondition(cutoff_seconds=79200,timezone='Asia/Seoul',
+                                             reference='day_start_marked_equity'))
+
+
+def _cutoff_observation(env, now, checkpoint=None):
+    snapshot(env,asof=now,server_time=now,risk=replace(env.observation.risk,asof=now,
+        prior_day_realized_net_profit=D('0'),observed_daily_loss=D('5'),recovery_checkpoint=checkpoint))
+
+
+def test_recovery_equality_keeps_historical_loss_without_raising_lifetime_floor():
+    with signed_control(prepare=False,policy=_cutoff_policy()) as env:
+        cutoff=env.now.replace(hour=22,minute=0,second=0,microsecond=0)
+        proof=RecoveryCheckpoint(cutoff_at=cutoff,equity_krw=D('1000000'),source_sha256='e'*64)
+        _cutoff_observation(env,cutoff,proof)
+        result=env.controller.observe(now=cutoff)
+        assert not result.new_entry_blocked and result.recovery_status=='satisfied'
+        assert result.effective_floor==D('750000') and result.recovery_floor==D('1000000')
+        assert env.observation.risk.observed_daily_loss==D('5')
+        assert not restart(env).observe(now=cutoff).new_entry_blocked
+        events=env.journal.snapshot()
+        history=[row['data'] for row in events if row['kind']=='risk_snapshot']
+        assert not _fold(events)[2] and history
+        assert all(Decimal(row['effective_floor'])==D('750000') for row in history)
+
+
+def test_recovery_missing_or_breached_boundary_persists_until_next_day_after_recovery():
+    for missing in (True,False):
+        with signed_control(prepare=False,policy=_cutoff_policy()) as env:
+            cutoff=env.now.replace(hour=22,minute=0,second=0,microsecond=0)
+            proof=RecoveryCheckpoint(cutoff_at=cutoff,equity_krw=D('1000000'),source_sha256='e'*64)
+            failed=None if missing else replace(proof,equity_krw=D('999999'))
+            _cutoff_observation(env,cutoff,failed)
+            result=env.controller.observe(now=cutoff)
+            assert result.new_entry_blocked and 'PERSISTENT_DAILY_STOP' in result.reasons
+            assert result.recovery_status==('unverified' if missing else 'breached')
+            # A later caller cannot erase the recorded failure with a replacement proof.
+            _cutoff_observation(env,cutoff,proof)
+            result=restart(env).observe(now=cutoff)
+            assert result.recovery_status=='satisfied' and 'PERSISTENT_DAILY_STOP' in result.reasons
+            assert not _fold(env.journal.snapshot())[2]  # No invented permanent floor halt.
+            next_day=(cutoff+timedelta(days=1)).replace(hour=0,minute=0,second=1)
+            _cutoff_observation(env,next_day)
+            assert not restart(env).observe(now=next_day).new_entry_blocked
+
+
+def test_recovery_reservation_before_cutoff_cannot_dispatch_after_with_recent_old_snapshot():
+    before=F.NOW.replace(hour=21,minute=59,second=59,microsecond=0)
+    with patch.object(F,'NOW',before),signed_control(policy=_cutoff_policy()) as env:
+        _cutoff_observation(env,before)
+        assert reserve(env).status=='RESERVED'
+        cutoff=before+timedelta(seconds=1)
+        # The account is fresh by ordinary30s rules but predates the deadline.
+        refused(lambda:env.controller.dispatch(env.order.client_id,now=cutoff))
+        assert not env.adapter.requests
+        assert any(row['data']['daily_stopped'] for row in env.journal.snapshot() if row['kind']=='risk_snapshot')
+        proof=RecoveryCheckpoint(cutoff_at=cutoff,equity_krw=D('1000000'),source_sha256='e'*64)
+        _cutoff_observation(env,cutoff,proof)
+        assert 'PERSISTENT_DAILY_STOP' in restart(env).observe(now=cutoff).reasons
+        refused(lambda:restart(env).dispatch(env.order.client_id,now=cutoff))
+        assert not env.adapter.requests
 
 
 def test_floor_equality_allows_monitoring_but_breach_persists_across_recovery():

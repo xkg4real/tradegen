@@ -355,7 +355,7 @@ class Runner:
             report = preflight_profile(self.profile, now=now)
             _require(report.profile_complete, 'RUNNER_PROFILE_INCOMPLETE')
             quote, account = self._observations(now)
-            risk = risk if risk is not None else evaluate(risk_policy(self.profile), account.risk)
+            risk = risk if risk is not None else evaluate(risk_policy(self.profile), account.risk, now=now)
             assessment, binding = _assess(self.profile, self.evidence, self.driver,
                                           self.implementation_verifier, now)
             signal = self.driver.callback(DecisionInput(now=now, profile=self.profile, quote=quote, account=account),

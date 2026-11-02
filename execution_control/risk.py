@@ -9,7 +9,7 @@ This is an accounting convention, not a tax calculation or a floor guarantee.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, datetime, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from decimal import Context, Decimal, DecimalException, Inexact, ROUND_DOWN, ROUND_HALF_EVEN, localcontext
 import re
 from zoneinfo import ZoneInfo
@@ -22,6 +22,32 @@ _ID = re.compile(r"[A-Za-z0-9_.:/-]{1,128}")
 _CURRENCY = re.compile(r"[A-Z][A-Z0-9]{0,11}")
 _ORDER_DATE = re.compile(r"[0-9]{8}")
 _BROKER_ID = re.compile(r"[0-9]{1,20}")
+_SHA = re.compile(r"[0-9a-f]{64}")
+
+
+@dataclass(frozen=True, kw_only=True)
+class RecoveryCondition:
+    """Explicit exceptional-day recovery terms; never relax a principal/peak floor."""
+    cutoff_seconds: int
+    timezone: str
+    reference: str
+
+
+@dataclass(frozen=True, kw_only=True)
+class RecoveryCheckpoint:
+    """Authenticated-source boundary evidence, never a relabelled later balance."""
+    cutoff_at: datetime
+    equity_krw: Decimal
+    source_sha256: str
+
+
+def validate_recovery_condition(value: RecoveryCondition) -> None:
+    """Only the explicitly implemented 22:00 Seoul day-opening rule is supported."""
+    if (type(value) is not RecoveryCondition or type(value.cutoff_seconds) is not int
+            or value.cutoff_seconds != 22 * 60 * 60 or type(value.timezone) is not str
+            or value.timezone != "Asia/Seoul" or type(value.reference) is not str
+            or value.reference != "day_start_marked_equity"):
+        raise ValueError("RECOVERY_CONDITION_UNSUPPORTED")
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -36,6 +62,7 @@ class RiskPolicy:
     zero_profit_day_loss_budget: Decimal | None = None
     valuation_convention: str = "marked_equity"
     daily_loss_convention: str = "externally_reconciled"
+    recovery_condition: RecoveryCondition | None = None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -53,6 +80,7 @@ class RiskObservation:
     external_flows_known: bool = True
     legacy_floor_conflict: bool = False
     halted: bool = False
+    recovery_checkpoint: RecoveryCheckpoint | None = None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -68,6 +96,9 @@ class RiskResult:
     daily_profit_target_met: bool | None = None
     protective_action_needed: bool = False
     exits_allowed: bool = True  # No risk-policy veto; all execution/conduct checks still apply.
+    recovery_deadline: datetime | None = None
+    recovery_floor: Decimal | None = None
+    recovery_status: str | None = None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -130,6 +161,11 @@ def _context() -> Context:
 
 def _risk_errors(policy: RiskPolicy, observation: RiskObservation) -> tuple[str, ...]:
     reasons = []
+    if policy.recovery_condition is not None:
+        try:
+            validate_recovery_condition(policy.recovery_condition)
+        except ValueError:
+            reasons.append("RECOVERY_CONDITION_UNSUPPORTED")
     for name in ("version", "valuation_convention", "daily_loss_convention"):
         if not _identifier(getattr(policy, name)):
             reasons.append("INVALID_POLICY_" + name.upper())
@@ -174,7 +210,7 @@ def _risk_errors(policy: RiskPolicy, observation: RiskObservation) -> tuple[str,
     return tuple(reasons)
 
 
-def evaluate(policy: RiskPolicy, observation: RiskObservation) -> RiskResult:
+def evaluate(policy: RiskPolicy, observation: RiskObservation, *, now: datetime | None = None) -> RiskResult:
     """Evaluate supplied aggregates; equality alone is not a monitor breach.
 
     Persistent first-session/day/peak state, input freshness and any D12 approval
@@ -187,14 +223,52 @@ def evaluate(policy: RiskPolicy, observation: RiskObservation) -> RiskResult:
     errors = _risk_errors(policy, observation)
     if errors:
         return RiskResult(new_entry_blocked=True, reasons=errors)
+    if policy.recovery_condition is not None:
+        if not _stamp(now):
+            return RiskResult(new_entry_blocked=True, reasons=("RECOVERY_EVALUATION_TIME_REQUIRED",))
+        try:
+            valid_time = (observation.asof <= now and observation.asof.astimezone(_SEOUL).date()
+                          == now.astimezone(_SEOUL).date())
+        except (ValueError, TypeError, OverflowError):
+            valid_time = False
+        if not valid_time:
+            return RiskResult(new_entry_blocked=True, reasons=("RECOVERY_OBSERVATION_TIME_INVALID",))
     try:
         with localcontext(_context()):
-            return _evaluate(policy, observation)
+            return _evaluate(policy, observation, now=now)
     except (DecimalException, ValueError, OverflowError):
         return RiskResult(new_entry_blocked=True, reasons=("ARITHMETIC_NOT_EXACT_OR_FINITE",))
 
 
-def _evaluate(policy: RiskPolicy, observation: RiskObservation) -> RiskResult:
+def _recovery(policy, observation, now, high):
+    condition = policy.recovery_condition
+    previous = observation.prior_day_realized_net_profit
+    eligible = (previous is None and observation.is_first_trading_day) or previous == _ZERO
+    if condition is None or not eligible:
+        return None, None, None, ()
+    deadline = datetime.combine(now.astimezone(_SEOUL).date(), time(), tzinfo=_SEOUL)
+    deadline += timedelta(seconds=condition.cutoff_seconds)
+    floor = observation.day_start_equity
+    if now < deadline:
+        return deadline, floor, "before_cutoff", ()
+    checkpoint = observation.recovery_checkpoint
+    try:
+        verified = (type(checkpoint) is RecoveryCheckpoint and _stamp(checkpoint.cutoff_at)
+            and checkpoint.cutoff_at == deadline <= observation.asof <= now
+            and _decimal(checkpoint.equity_krw) and 0 < checkpoint.equity_krw <= high
+            and type(checkpoint.source_sha256) is str and _SHA.fullmatch(checkpoint.source_sha256) is not None)
+    except (ValueError, TypeError, OverflowError, DecimalException):
+        verified = False
+    if not verified:
+        return deadline, floor, "unverified", ("RECOVERY_DEADLINE_UNVERIFIED",)
+    if checkpoint.equity_krw < floor:
+        return deadline, floor, "breached", ("RECOVERY_DEADLINE_BREACHED",)
+    if observation.equity < floor:
+        return deadline, floor, "breached", ("RECOVERY_CURRENT_EQUITY_BELOW_OPEN",)
+    return deadline, floor, "satisfied", ()
+
+
+def _evaluate(policy: RiskPolicy, observation: RiskObservation, *, now=None) -> RiskResult:
     reasons = []
     high = max(observation.prior_high_watermark, observation.equity)
     requested = (high if high < policy.drawdown_activation_equity else
@@ -238,10 +312,13 @@ def _evaluate(policy: RiskPolicy, observation: RiskObservation) -> RiskResult:
     exhausted = budget is not None and observation.observed_daily_loss >= budget
     if exhausted:
         reasons.append("DAILY_LOSS_BUDGET_REACHED")
+    deadline, recovery_floor, recovery_status, recovery_reasons = _recovery(policy, observation, now, high)
+    reasons.extend(recovery_reasons)
     return RiskResult(new_entry_blocked=bool(reasons), reasons=tuple(reasons), high_watermark=high,
                       calculated_floor=requested, effective_floor=effective, relaxation_pending=pending,
                       daily_loss_budget=budget, daily_profit_target=target, daily_profit_target_met=target_met,
-                      protective_action_needed=breach or exhausted or observation.halted)
+                      protective_action_needed=breach or exhausted or observation.halted or bool(recovery_reasons),
+                      recovery_deadline=deadline, recovery_floor=recovery_floor, recovery_status=recovery_status)
 
 
 def _fill_error(fill: Fill) -> str | None:

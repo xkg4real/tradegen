@@ -16,7 +16,8 @@
     "peak_drawdown_fraction": null,
     "zero_profit_day_target_fraction": null,
     "first_day_loss_budget": null,
-    "zero_profit_day_loss_budget": null
+    "zero_profit_day_loss_budget": null,
+    "recovery_condition": null
   },
   "conventions": {
     "valuation": null,

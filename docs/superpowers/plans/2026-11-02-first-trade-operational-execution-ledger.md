@@ -76,8 +76,28 @@ under the same owner authorization before the final full run.
 
 The owner then specified an exception-day recovery deadline while explicitly
 preserving all existing principal/high-watermark floors. A separate current-equity
-and authentic boundary-evidence check is being designed; historical daily loss
-must not be reset or compared with an artificial zero budget after recovery.
+and authentic boundary-evidence check is now implemented; historical daily loss
+is not reset or compared with an artificial zero budget after recovery.
+
+## Recovery-condition implementation
+
+- The optional typed 22:00 KST condition checks genuine first-day or previous-zero
+  days using explicit decision time, the exact boundary checkpoint and current
+  marked equity. Equality with day-opening equity is permitted. Existing principal,
+  peak and signed floors always apply; no floor exception or owner-schema change.
+- Controller monitoring, reserve and dispatch apply the condition and retain its
+  daily stop across restart. Ordinary profit/loss-day behavior is unchanged.
+- Baseline schema2 records exact cutoff evidence and refuses boundary gaps or
+  pre-cutoff observations used after the deadline. Legacy schema1 JSON/digests
+  still restore without silently creating evidence or migrating history.
+- Independent review found and corrected direct checkpoint commits which could
+  lower same-day historical loss or change the opening reference. Source tests
+  include self-consistent forged digests and exact same-tick redelivery.
+- Focused recovery checks: **22 PASS, 0 FAIL, 0 NOT_RUN** (21 newly added cases and
+  one existing recovery/equality regression). AST and whitespace checks also pass.
+- Actual operator values are stored in an uncommitted private partial profile.
+  Technical accounting conventions follow the supported implementation and remain
+  visible for owner review. This is not a signature or an active session.
 
 ## Remaining production integration
 

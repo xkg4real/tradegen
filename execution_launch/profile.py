@@ -18,7 +18,7 @@ import re
 
 from core.compliance import model as compliance
 from execution_control.model import InstrumentRules, decimal_text, rules_digest
-from execution_control.risk import RiskPolicy
+from execution_control.risk import RecoveryCondition, RiskPolicy, validate_recovery_condition
 
 MAX_PROFILE_BYTES = 65536
 _SCHEMA_VERSION = 1
@@ -60,6 +60,7 @@ class PolicyInputs:
     zero_profit_day_target_fraction: Decimal | None = None
     first_day_loss_budget: Decimal | None = None
     zero_profit_day_loss_budget: Decimal | None = None
+    recovery_condition: RecoveryCondition | None = None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -174,6 +175,11 @@ def _validate_profile(profile):
         value = getattr(profile.policy, name)
         if value is not None:
             _amount(value, "policy."+name)
+    if profile.policy.recovery_condition is not None:
+        try:
+            validate_recovery_condition(profile.policy.recovery_condition)
+        except (ValueError, TypeError, AttributeError):
+            raise ProfileError("RECOVERY_CONDITION_UNSUPPORTED", "policy.recovery_condition") from None
     for name in _CONVENTIONS:
         value = getattr(profile.conventions, name)
         if value is not None:
@@ -217,6 +223,13 @@ def parse_profile_json(raw: str | bytes) -> LaunchProfile:
         value = _known_object(value, (f.name for f in fields(LaunchProfile)), "profile")
         policy = _known_object(value.get("policy", {}), (f.name for f in fields(PolicyInputs)), "policy")
         conventions = _known_object(value.get("conventions", {}), _CONVENTIONS, "conventions")
+        recovery = policy.get("recovery_condition")
+        if recovery is not None:
+            recovery = _known_object(recovery, (f.name for f in fields(RecoveryCondition)),
+                                     "policy.recovery_condition")
+            if set(recovery) != {f.name for f in fields(RecoveryCondition)}:
+                raise ProfileError("RECOVERY_CONDITION_INCOMPLETE", "policy.recovery_condition")
+            policy["recovery_condition"] = RecoveryCondition(**recovery)
         policy = PolicyInputs(**{key: _parse_amount(item, "policy."+key) if key in _POLICY_NUMBERS else item
                                 for key, item in policy.items()})
         rules = value.get("instrument_rules")
@@ -249,6 +262,9 @@ def profile_body(profile: LaunchProfile) -> dict:
             if f.name not in ("policy", "conventions", "instrument_rules")}
     body["policy"] = {f.name: decimal_text(v) if type(v := getattr(profile.policy, f.name)) is Decimal else v
                       for f in fields(PolicyInputs)}
+    condition = profile.policy.recovery_condition
+    body["policy"]["recovery_condition"] = (None if condition is None else
+        {f.name: getattr(condition, f.name) for f in fields(RecoveryCondition)})
     body["conventions"] = {f.name: getattr(profile.conventions, f.name) for f in fields(AccountingConventions)}
     rules = profile.instrument_rules
     body["instrument_rules"] = None if rules is None else {
@@ -322,7 +338,7 @@ def _configuration_issues(profile, now):
             add("QUOTE_CURRENCY_MISMATCH", "quote_currency", "Bind the actual settlement currency of the instrument.")
     policy = profile.policy
     for field in fields(PolicyInputs):
-        if getattr(policy, field.name) is None:
+        if field.name != "recovery_condition" and getattr(policy, field.name) is None:
             add("POLICY_INPUT_REQUIRED", "policy."+field.name,
                 "Obtain this explicit owner policy choice; missing does not mean zero or unlimited.")
     if policy.initial_equity is not None and policy.initial_equity <= 0:
@@ -360,7 +376,7 @@ def risk_policy(profile: LaunchProfile) -> RiskPolicy:
     """
     _validate_profile(profile)
     policy = profile.policy
-    if any(getattr(policy, f.name) is None for f in fields(PolicyInputs)):
+    if any(getattr(policy, f.name) is None for f in fields(PolicyInputs) if f.name != "recovery_condition"):
         raise ProfileError("POLICY_INPUTS_INCOMPLETE", "policy")
     if any(getattr(profile.conventions, name) != value for name, value in _CONVENTIONS.items()):
         raise ProfileError("ACCOUNTING_CONVENTIONS_INCOMPLETE_OR_UNSUPPORTED", "conventions")
@@ -369,7 +385,8 @@ def risk_policy(profile: LaunchProfile) -> RiskPolicy:
         raise ProfileError("POLICY_INPUTS_INCONSISTENT", "policy")
     return RiskPolicy(version=policy.version, **{name: getattr(policy, name) for name in _POLICY_NUMBERS},
                       valuation_convention=profile.conventions.valuation,
-                      daily_loss_convention=profile.conventions.daily_loss)
+                      daily_loss_convention=profile.conventions.daily_loss,
+                      recovery_condition=policy.recovery_condition)
 
 
 def preflight_profile(profile: LaunchProfile, *, now: datetime, context=None) -> PreflightReport:

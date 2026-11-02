@@ -3,7 +3,8 @@ from dataclasses import replace
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal, localcontext
 
-from execution_control.risk import Fill, RiskObservation, RiskPolicy, account_fills, evaluate
+from execution_control.risk import (Fill, RecoveryCheckpoint, RecoveryCondition, RiskObservation,
+                                    RiskPolicy, account_fills, evaluate)
 
 D = Decimal
 NOW = datetime(2026, 10, 20, 14, 0, tzinfo=timezone.utc)
@@ -133,6 +134,86 @@ def test_risk_arithmetic_is_independent_of_ambient_decimal_precision():
     assert result.calculated_floor == D("7999.999999999999999") and not result.new_entry_blocked
     huge = evaluate(_policy(), _observation(equity=D("1e999999999")))
     assert huge.reasons == ("ARITHMETIC_NOT_EXACT_OR_FINITE",)
+
+
+def _recovery_case():
+    cutoff = NOW.replace(hour=13, minute=0, second=0, microsecond=0)  # 22:00 Seoul.
+    condition = RecoveryCondition(cutoff_seconds=79200, timezone='Asia/Seoul', reference='day_start_marked_equity')
+    policy = _policy(first_day_loss_budget=D('8'), zero_profit_day_loss_budget=D('8'), recovery_condition=condition)
+    observation = _observation(equity=D('10000'), prior_high_watermark=D('10000'), day_start_equity=D('10000'),
+        approved_effective_floor=D('7500'), prior_day_realized_net_profit=D('0'), observed_daily_loss=D('5'),
+        asof=cutoff)
+    proof = RecoveryCheckpoint(cutoff_at=cutoff, equity_krw=D('10000'), source_sha256='e'*64)
+    return policy, observation, cutoff, proof
+
+
+def test_recovery_cutoff_preserves_allowed_history_and_equality_after_recovery():
+    policy, observation, cutoff, proof = _recovery_case()
+    before = cutoff-timedelta(seconds=1)
+    dip = replace(observation, equity=D('9995'), asof=before)
+    early = evaluate(policy, dip, now=before)
+    assert not early.new_entry_blocked and early.recovery_status == 'before_cutoff'
+    recovered = replace(observation, recovery_checkpoint=proof)
+    on_time = evaluate(policy, recovered, now=cutoff)
+    assert not on_time.new_entry_blocked and on_time.recovery_status == 'satisfied'
+    assert on_time.effective_floor == D('7500') and on_time.recovery_floor == D('10000')
+    assert recovered.observed_daily_loss == D('5') and on_time.daily_loss_budget == D('8')
+    later = cutoff+timedelta(seconds=1)
+    assert not evaluate(policy, replace(recovered, asof=later), now=later).new_entry_blocked
+    first = replace(recovered, prior_day_realized_net_profit=None, is_first_trading_day=True)
+    assert not evaluate(policy, first, now=cutoff).new_entry_blocked
+    exhausted = evaluate(policy, replace(recovered, observed_daily_loss=D('8')), now=cutoff)
+    assert exhausted.new_entry_blocked and 'DAILY_LOSS_BUDGET_REACHED' in exhausted.reasons
+
+
+def test_recovery_requires_actual_boundary_and_cannot_use_fresh_pre_cutoff_snapshot():
+    policy, observation, cutoff, proof = _recovery_case()
+    for checkpoint in (None, replace(proof, cutoff_at=cutoff+timedelta(seconds=1)),
+                       replace(proof, cutoff_at=cutoff-timedelta(days=1)),
+                       replace(proof, source_sha256='not-a-source'),
+                       replace(proof, equity_krw=D('NaN')), True):
+        result = evaluate(policy, replace(observation, recovery_checkpoint=checkpoint), now=cutoff)
+        assert result.recovery_status == 'unverified' and result.new_entry_blocked
+        assert result.protective_action_needed and result.exits_allowed
+    recent = replace(observation, asof=cutoff-timedelta(seconds=1), recovery_checkpoint=proof)
+    result = evaluate(policy, recent, now=cutoff+timedelta(seconds=1))
+    assert result.reasons == ('RECOVERY_DEADLINE_UNVERIFIED',)
+    assert evaluate(policy, observation).reasons == ('RECOVERY_EVALUATION_TIME_REQUIRED',)
+    assert evaluate(policy, observation, now=cutoff.replace(tzinfo=None)).new_entry_blocked
+
+
+def test_recovery_boundary_shortfall_cannot_be_erased_by_later_recovery():
+    policy, observation, cutoff, proof = _recovery_case()
+    later = cutoff+timedelta(seconds=1)
+    late_recovery = replace(observation, asof=later, recovery_checkpoint=replace(proof, equity_krw=D('9999')))
+    result = evaluate(policy, late_recovery, now=later)
+    assert result.reasons == ('RECOVERY_DEADLINE_BREACHED',) and result.recovery_status == 'breached'
+    subsequent_dip = replace(observation, asof=later, equity=D('9999'), recovery_checkpoint=proof)
+    assert evaluate(policy, subsequent_dip, now=later).reasons == ('RECOVERY_CURRENT_EQUITY_BELOW_OPEN',)
+
+
+def test_recovery_keeps_ordinary_profit_prior_loss_and_lifetime_floor_rules():
+    policy, observation, cutoff, proof = _recovery_case()
+    for previous in (D('50'), D('-1'), None):
+        obs = replace(observation, prior_day_realized_net_profit=previous)
+        expected = evaluate(replace(policy, recovery_condition=None), obs)
+        assert evaluate(policy, obs, now=cutoff) == expected
+    first_loss = replace(observation, prior_day_realized_net_profit=D('-1'), is_first_trading_day=True)
+    result = evaluate(policy, first_loss, now=cutoff)
+    assert result.daily_loss_budget == 0 and result.recovery_status is None and 'PREVIOUS_DAY_LOSS' in result.reasons
+    before = cutoff-timedelta(seconds=1)
+    principal_bound = _observation(equity=D('2499'), prior_day_realized_net_profit=D('0'), asof=before)
+    result = evaluate(policy, principal_bound, now=before)
+    assert result.effective_floor == D('2500') and 'EQUITY_BELOW_EFFECTIVE_FLOOR' in result.reasons
+    assert result.high_watermark == D('2500')
+
+
+def test_recovery_condition_rejects_unsupported_cutoffs_and_ambiguous_types():
+    policy, observation, cutoff, proof = _recovery_case()
+    for change in ({'cutoff_seconds':0}, {'cutoff_seconds':79200.0}, {'cutoff_seconds':True},
+                   {'timezone':'UTC'}, {'reference':'realized_profit'}):
+        changed = replace(policy, recovery_condition=replace(policy.recovery_condition, **change))
+        assert evaluate(changed, observation, now=cutoff).reasons == ('RECOVERY_CONDITION_UNSUPPORTED',)
 
 
 def test_fifo_acquisition_and_exit_fees_allocate_across_partial_lots():

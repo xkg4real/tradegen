@@ -13,6 +13,7 @@ from pathlib import Path
 import stat
 from threading import Lock
 
+from core.compliance.model import KST
 from core.isolation import checked_target, state_root
 from execution_accounts.baseline import BaselineError, BaselineState, restore_state, state_json
 
@@ -148,6 +149,8 @@ class CheckpointStore:
         restored = restore_state(state_json(state), expected_head=expected_head)
         _require(not restored.previous_state_digest and not restored.last_interval_digest,
                  "BASELINE_STORE_ANCHOR_REQUIRED")
+        _require(restored.recovery_checkpoint is None or restored.recovery_checkpoint.cutoff_at == restored.asof,
+                 "BASELINE_STORE_RECOVERY_ANCHOR_REFUSED")
         with self._locked(create=True):
             _require(not (self._root / "checkpoint.json").exists(), "BASELINE_STORE_ALREADY_INITIALIZED")
             self._write(restored)
@@ -164,6 +167,16 @@ class CheckpointStore:
                          "approved_effective_floor", "anchor_sha256"):
                 _require(getattr(restored, name) == getattr(previous, name), "BASELINE_STORE_ANCHOR_CHANGED")
             _require(restored.high_watermark >= previous.high_watermark, "BASELINE_STORE_PEAK_ROLLBACK")
+            if previous.asof.astimezone(KST).date() == restored.asof.astimezone(KST).date():
+                _require(restored.day_start_equity == previous.day_start_equity
+                         and restored.observed_daily_loss >= previous.observed_daily_loss,
+                         "BASELINE_STORE_DAILY_HISTORY_CHANGED")
+                if previous.recovery_checkpoint is not None:
+                    _require(restored.recovery_checkpoint == previous.recovery_checkpoint,
+                             "BASELINE_STORE_RECOVERY_CHANGED")
+                elif restored.recovery_checkpoint is not None:
+                    _require(previous.asof < restored.recovery_checkpoint.cutoff_at == restored.asof,
+                             "BASELINE_STORE_RECOVERY_CHANGED")
             self._write(restored)
         return CommitReceipt(previous_head=previous.state_digest, new_head=restored.state_digest,
                              sequence=restored.sequence)

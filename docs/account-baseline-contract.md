@@ -8,7 +8,8 @@ the authentic source feed or an initial lifetime history anchor.
 
 ## Explicit supported conventions
 
-Construct `BaselineConventions` with all three fields:
+Construct `BaselineConventions` with three required fields and an optional explicit
+recovery boundary:
 
 - `daily_loss="maximum_net_equity_loss_from_day_open"`: the largest nonnegative
   difference between that Seoul day's opening marked account equity and the lowest
@@ -20,6 +21,10 @@ Construct `BaselineConventions` with all three fields:
   not count as no flow. A funded account with no subsequent transfers is supported.
 - `max_interval_seconds`: an explicit integer from1 to300. A longer uncovered time
   range refuses rather than interpolating missing peaks, troughs or activity.
+- `recovery_cutoff_seconds`: `None` preserves the original behavior. The only
+  supported enabled value is the exact integer `79200`, meaning 22:00 Seoul time.
+  The matching risk policy must independently enable the same recovery condition;
+  a source convention does not choose a loss budget or lower any protected floor.
 
 The existing profile's `externally_reconciled` convention can receive this reducer's
 result only when the operator explicitly chooses and reviews the detailed convention
@@ -86,6 +91,39 @@ at midnight belong to the next interval and therefore the new day. Previous-day
 realized profit is the cumulative-profit difference across the completed day,
 never inferred from equity changes. It is retained in reducer state for comparison
 with the account provider's independently reconstructed FIFO daily result.
+
+## Optional recovery boundary
+
+For a configured first trading day or a day whose previous realized net profit
+was exactly zero, the source must supply an interval ending exactly at 22:00
+Seoul time. An interval from before that boundary to a later time refuses even
+when its duration is otherwise valid. A pre-boundary observation also refuses
+export after the boundary despite fitting the ordinary 30-second freshness
+window. No timestamp is rewritten and no balance is interpolated.
+
+The boundary creates `RecoveryCheckpoint(cutoff_at, equity_krw, source_sha256)`
+from that exact endpoint. The account bridge reconciles the endpoint's actual
+balance and binds its complete account evidence to the source digest. The proof
+is retained unchanged through later recovery, repeated calls and process
+restarts; its equity is never replaced with a later, better balance. Existing
+daily maximum loss, lifetime high-watermark, first trading date and approved
+floor remain intact. Only the next Seoul midnight clears that day's proof.
+
+An anchor exactly at the boundary can capture its actual value. An anchor after
+the boundary has no proof and remains unknown; supplied historical proof is not
+accepted as a shortcut to recreate a completed day. Restoring an existing trusted
+checkpoint preserves its already established proof. The risk guard separately
+distinguishes missing proof from an evidenced deadline breach and compares the
+proof against the day's opening equity. Source evidence does not grant an order
+permission or an exception to principal/high-watermark protection.
+
+Disabled conventions continue using schema 1 with the original serialized field
+shape and digest representation, so existing trusted heads still restore. The
+enabled convention uses schema 2 with explicit boundary configuration and proof.
+There is no automatic migration, reseeding or history reset. Moving an existing
+deployment to the new convention requires a reviewed transition preserving its
+full history and independently trusted head; this module does not provide a
+shortcut that promotes local state to external authority.
 
 ## Integration boundary
 

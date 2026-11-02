@@ -54,6 +54,26 @@ missing owner values. Complete these before the final source freeze:
   the real complete interval source and independent trusted-head service remain
   deployment inputs. Never infer continuous extrema from periodic endpoints.
 
+## Owner recovery-condition clarification
+
+The owner selected Windows PC operation and delegated market selection to internal
+evidence comparison. See the market-selection protocol; no qualifying market is
+currently established. The owner also clarified exception-day intraday budgets
+and a 22:00 Asia/Seoul recovery requirement, expressly preserving existing
+principal/high-watermark floors at all times. Financial values stay in the private
+profile, not this public plan.
+
+`launch-recovery-cutoff-1` implements an optional typed 22:00 recovery condition for
+the genuine first trading day and a day following exactly zero realized profit.
+Use current decision time and authentic boundary equity, with current equity at
+least day-start equity after the deadline. Never replace the historical daily loss
+budget with zero or erase its observed maximum. Missing/breached recovery evidence
+persists through the existing daily stop; lifetime floors, HWM, prior-loss-day
+rules, equality semantics and D12 are unchanged. Baseline schema2 explicitly stores
+the exact boundary proof; legacy schema1 remains readable without inventing proof
+or silently migrating/reseeding history. A missing/late source cannot establish
+that the requirement was met at the deadline. Software cannot guarantee recovery.
+
 ## Ownership and verification
 
 Program/capture, workflow, baseline, quote source, deployment and review request

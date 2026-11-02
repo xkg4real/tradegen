@@ -9,12 +9,20 @@
 `LaunchProfile` contains:
 
 - Profile/schema version; an opaque local account scope; venue, market, symbol, quote currency and time in force.
-- `PolicyInputs`: a version and provenance reference digest, principal and drawdown activation equity, the existing profit/loss/target fractions, and explicit first-day/zero-profit-day loss budgets. The source digest is a reference, not a signature or proof of authenticity.
+- `PolicyInputs`: a version and provenance reference digest, principal and drawdown activation equity, the existing profit/loss/target fractions, explicit first-day/zero-profit-day loss budgets, and optional typed `recovery_condition`. The source digest is a reference, not a signature or proof of authenticity.
 - Explicit accounting conventions and first-day scope. The currently supported contracts are listed below. Choosing another convention blocks readiness until it is implemented and verified.
 - Complete exact `InstrumentRules`, including source digest and aware observation timestamp; or `null` while absent.
 - Strategy ID and implementation SHA256. Strategy evidence is supplied separately, so its digest does not form a circular dependency with the profile digest.
 
 The instrument-rules JSON object has exactly the existing `InstrumentRules` fields: `venue`, `market`, `symbol`, decimal strings `lot_size`, `tick_size`, `min_quantity`, `min_notional_krw`, `fee_fraction`, aware ISO8601 `asof`, and lowercase64hex `source_digest`. Rules must match the selected instrument and be no older than five minutes, matching E2's current execution boundary. Fractions, whole-share limits, current tick bands and actual affordability are still checked by E2 for each order; a parsed profile does not replace them.
+
+The optional `policy.recovery_condition` is `null` when disabled. When selected,
+it contains exactly `{"cutoff_seconds":79200,"timezone":"Asia/Seoul","reference":"day_start_marked_equity"}`.
+Only that cutoff is currently supported; monetary budgets remain separate explicit
+private inputs. This condition requires real boundary evidence and a separate
+current-equity recovery check; it never relaxes a principal or peak floor. See
+[the recovery cutoff contract](recovery-cutoff-contract.md). Its complete typed
+value is included in both profile hashes and the prepared session's policy digest.
 
 ## Supported accounting contracts
 
