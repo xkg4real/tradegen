@@ -1,6 +1,6 @@
 {
-  "source_commit": "d4ee239823371d6eb7ec5490b41840a3efbb7d3a",
-  "status": "recovery_cutoff_implementation_in_progress",
+  "source_commit": "3432c0316bd73b8157144d05899702e691b06557",
+  "status": "kis_live_market_data_implementation_in_progress",
   "focused_20261102": {
     "PASS": 108,
     "FAIL": 0,
@@ -17,5 +17,10 @@
   "activation": false,
   "qualified_live_strategy": false,
   "usage_weekly_pct": null,
-  "usage_source": "unavailable"
+  "usage_source": "unavailable",
+  "focused_recovery": {
+    "PASS": 22,
+    "FAIL": 0,
+    "NOT_RUN": 0
+  }
 }
