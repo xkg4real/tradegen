@@ -4,13 +4,13 @@ reason: owner_requested_complete_independent_launch_work
 from: gpt
 task: first-trade-foundation
 cycle: 2026-10-27
-done_ids: cloud-compat-1, cloud-compat-2, cloud-compat-3, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr, spec-rev-3-3, policy-plan-1, policy-preview-1, policy-pr, e1-1, e1-2, e1-3, e1-4, e1-5, e1-6, e1-7, e1-8, e1-9, e1-10, e1-11, e1-12, e1-13, e1-pr, e2-1, e2-2, e3-1, e3-2, e3-3, e2-3, e3-4, e2-e3-pr, pr6-pr7-merge, research-preregister-1, research-evaluate-1, account-readiness-1, research-paper-1, account-provider-1, account-regression-1, account-research-pr, pr8-human-code-review-approval, pr8-merge, launch-network-1, launch-collector-1, launch-profile-1, launch-strategy-1, launch-runner-1, launch-program-2, launch-workflow-2, launch-baseline-2, launch-quotes-2, launch-deployment-2, launch-review-request-2, launch-driver-2, launch-review-auth-2, launch-baseline-integration-2, launch-market-protocol-1, launch-recovery-cutoff-1, kis-live-contract-1, kis-live-backend-1, kis-live-ui-1
+done_ids: cloud-compat-1, cloud-compat-2, cloud-compat-3, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr, spec-rev-3-3, policy-plan-1, policy-preview-1, policy-pr, e1-1, e1-2, e1-3, e1-4, e1-5, e1-6, e1-7, e1-8, e1-9, e1-10, e1-11, e1-12, e1-13, e1-pr, e2-1, e2-2, e3-1, e3-2, e3-3, e2-3, e3-4, e2-e3-pr, pr6-pr7-merge, research-preregister-1, research-evaluate-1, account-readiness-1, research-paper-1, account-provider-1, account-regression-1, account-research-pr, pr8-human-code-review-approval, pr8-merge, launch-network-1, launch-collector-1, launch-profile-1, launch-strategy-1, launch-runner-1, launch-program-2, launch-workflow-2, launch-baseline-2, launch-quotes-2, launch-deployment-2, launch-review-request-2, launch-driver-2, launch-review-auth-2, launch-baseline-integration-2, launch-market-protocol-1, launch-recovery-cutoff-1, kis-live-contract-1, kis-live-backend-1, kis-live-ui-1, launch-static-guard-1, launch-windows-design-1
 next_ids: kis-live-regression-1, launch-regression-1, launch-delivery-1, launch-live-evidence, launch-prospective-study, e1-14-owner-setup
-updated_at: 2026-11-02T11:34:38+09:00
+updated_at: 2026-11-02T11:49:46+09:00
 stale_after_hours: 3
 waiting_on: final integrated acceptance and delivery; authentic deployment inputs
 work_branch: gpt/first-trade-foundation
-work_commit: af46688ac6a4fa2fc7673afe9cb5e980479b715e
+work_commit: 074d7606cff005ec79c8b5e9e6cb2b8a22a6f960
 uncommitted_changes: none at source freeze; full acceptance running
 pr: https://github.com/xkg4real/tradegen/pull/9 (draft, unmerged)
 usage_weekly_pct: unknown
@@ -25,7 +25,9 @@ session: cloud Codex (TRADEGEN)
 
 ## 추가 지시와 완료 체크포인트
 
-KIS 구현을 source `af46688ac6a4fa2fc7673afe9cb5e980479b715e`에 commit/push했습니다. 22개 첨부 문서의353시트에서32공개채널/1487필드를 대조했습니다. 앱에 KIS Live 연결·체결·호가·표본지표 화면을 추가했습니다. 가짜 통신 신규45PASS/0FAIL/0NR와기존 cockpit/Flet51PASS/0FAIL/0NR입니다. 실제 화면 렌더링에서 발견한 wrap/expand 배치오류를 수정하고회귀검사를추가했습니다. 문서의 모순된TR/시각·가격단위 미확정 채널은 제외합니다. 원본XLSX/예시인증값은 Git에 올리지 않았습니다. 현재 이 소스를 동결하여 전체회귀를 실행 중이며 아직 전체성공으로 기록하지 않습니다.
+최신 source `074d7606cff005ec79c8b5e9e6cb2b8a22a6f960`를 commit/push했습니다. KIS 구현 af46688의 첫 전체검사는2196개 중2073PASS/1FAIL/122NOT_RUN이며 유일한 실패는 새 계좌 조회기의 조회용 URL에 대한 macro 가드 누락입니다. 테스트를 삭제하지 않고 해당 파일·정확한 GET 경로만 허용하며 별칭/동적경로/쓰기요청까지 거부하도록 보강했습니다. 집중97PASS/0FAIL/0NR이며 수정 소스로 전체회귀를 다시 실행 중입니다. 아직 전체성공으로 기록하지 않습니다. KIS45개집중검사와기존51개검사는통과했고 실제시세접속/주문은없습니다.
+
+Windows 연속계좌·독립head·원본history·현재owner권한·입력loader·실행coordinator 연결은 구체적인 API/순서/완료조건을 docs/windows-first-trade-integration.md에 설계했습니다. 설계는 launcher 구현 완료를 뜻하지 않습니다. 실제전자서명이나운영증거를있다고가정하지않습니다. 사용자가11월2일토큰부족시Claude인수인계를다시요청했으며, 조회불가사용량은unknown으로유지합니다. 새 작업을늘리지않고현재검증/문서전달단위를마무리합니다.
 
 ## 0. 최신 상태
 
