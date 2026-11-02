@@ -120,3 +120,20 @@ signing and activation.
 
 Frozen research and its zero-passing result are unchanged. PR9 requires its own
 merge approval. Usage telemetry is unavailable; no percentage is inferred.
+
+## Full-run static integration correction
+
+The complete af46688 run measured2073PASS/1FAIL/122NOT_RUN (2196 total). Its
+sole failure was the macro text guard missing the new collector's read-only order
+history and withdrawal-history paths. Added a file-exact collector exception that
+itself invokes the strict account-route/call guard. Arbitrary neighboring URLs,
+POST/DELETE/PUT, dynamic request arguments, import aliases and extracted request
+functions remain rejected. Runtime endpoints and transport behavior are unchanged.
+
+Focused cockpit/Flet/macro-harness/E1/account guards: **97 PASS, 0 FAIL, 0 NOT_RUN**,
+including three new negative-control tests. Failed full output is preserved locally;
+the inherited QA record was restored until the corrected full run finishes.
+
+The Windows composition design now records actual APIs, remaining source/head/history
+authority adapters, bounded loader/coordinator work and acceptance criteria. It is
+explicitly a design, not a completed Windows launcher or authentic live evidence.

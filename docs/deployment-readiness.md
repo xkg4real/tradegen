@@ -48,8 +48,8 @@ The current signer runs in the owner's Windows Terminal and requires the target
 repository's own venv. Its signed hash includes that interpreter's dependency RECORD
 files. The same Git commit on Windows and Cloud can therefore require different code
 approval. Copying a public PEM or signed owner log does not make different hashes
-equivalent. Remote manifest approval is not implemented by this tool. Choose the
-actual deployment environment before relying on a transferred approval.
+equivalent. Remote manifest approval is not implemented by this tool. Use the already selected Windows deployment's interpreter and checkout before relying
+on a transferred approval.
 
 ## Missing owner inputs and timing
 

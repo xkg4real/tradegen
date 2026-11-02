@@ -114,8 +114,9 @@ never the input label. The existing owner workflow accepts a `session_armed` eve
 readiness tool does not generate, sign, append or run that event. A restart or changed code needs
 fresh reconciliation/preparation and the corresponding owner review.
 
-Before activation, resolve missing first-day/zero-profit-day loss budgets and valuation/flow
-conventions without guessing. The research paper does not establish a validated live strategy,
+Before activation, populate the private profile with the already confirmed exceptional-day
+budgets and 22:00 KST recovery condition, retain principal/peak protection, and review the
+supported valuation/flow conventions and actual effective approvals. The research paper does not establish a validated live strategy,
 reliable intraday fills or a profit guarantee. Inquiry capability, complete account evidence,
 owner approval and a suitable strategy are independent requirements.
 

@@ -17,9 +17,9 @@ not make those complete launch paths. No new strategy passed a real prospective 
    with a protection floor is not itself a breach. A profit target does not increase risk limits.
 2. **Configure the selected environment securely.** Use the supported secure environment/account
    setup for credential names, venue host access and approved IP restrictions. Do not paste keys,
-   passwords or account numbers into chat, Notion or GitHub. The current development Cloud has
-   no venue credential bindings or permitted venue hosts. The new route supports its sidecar;
-   it cannot grant network access. Keep inquiry and order capabilities separate; do not add
+   passwords or account numbers into chat, Notion or GitHub. The development Cloud has no venue credential bindings or permitted venue hosts;
+   that observation is not a requirement to change the selected Windows deployment. The
+   Cloud route supports its sidecar but cannot grant network access. Keep inquiry and order capabilities separate; do not add
    withdrawal permission. See the [connection runbook](account-connection-runbook.md).
 3. **Review and receive the final code version.** Review the new PR and its measured verification,
    then approve that PR's merge if acceptable. Synchronize the reviewed tree in the owner
@@ -51,8 +51,10 @@ not make those complete launch paths. No new strategy passed a real prospective 
    eligibility/acknowledgments, then explicit caps and loss limits through the existing signer
    workflow. Do not copy invented event JSON or session IDs. Initial or loosened limits cannot
    take effect before the next Seoul date and also depend on existing session/halt state.
-   Verify their actual effective values; an advisory date is insufficient. KIS authenticated
-   inquiry additionally requires code approval before its first inquiry.
+   Verify their actual effective values; an advisory date is insufficient. KIS authenticated account
+   inquiries through E1 require signed code. KIS Live market-data viewing is separate: it
+   obtains a temporary subscription approval key and does not read account balances,
+   activate an owner session or submit orders. See the [KIS Live guide](kis-live-usage.md).
 6. **Verify authentic account evidence.** Perform an explicitly requested read-only inquiry in
    the configured owner environment. Check identity, permissions, server time, settled cash,
    complete fills/fees/flows and opening inventory. The collector requires reviewed identity,
@@ -79,6 +81,9 @@ not make those complete launch paths. No new strategy passed a real prospective 
    Do not use a label, example ID or deserialized substitute. Preparation expires and is bound
    to the process; restart requires reconciliation and fresh preparation. Final order checks
    still apply after activation. The development agent does not perform this owner action.
+
+The [Windows integration plan](windows-first-trade-integration.md) lists the remaining
+source adapters and coordinator implementation. This checklist is not a completed launcher.
 
 ## Safe offline status
 

@@ -15,6 +15,14 @@ FORBIDDEN_CALLS = {"eval", "exec", "__import__", "compile", "request", "urlopen"
 COLLECTOR_ROUTES = frozenset({"/v1/accounts", "/v1/orders/open", "/v1/orders/closed",
                               "/v1/order", "/v1/deposits", "/v1/withdraws", "/v1/ticker"})
 
+READ_ROUTES = {"upbit_collector.py": COLLECTOR_ROUTES,
+               "quotes.py": frozenset({"/v1/orderbook"})}
+TRANSPORT_IMPORTS = {
+    "upbit_collector.py": frozenset({"inquiry_clock", "request"}),
+    "quotes.py": frozenset({"Answer", "inquiry_clock", "request"}),
+    "readiness.py": frozenset({"inquiry_clock"}),
+}
+
 CHECKPOINT_WRITES = (
     'checked_target(self._root, "baseline directory", within=self._base).mkdir(mode=0o700, exist_ok=True)',
     'os.replace(checked_target(self._root / "checkpoint.tmp", "baseline temporary file", within=self._root), '
@@ -23,9 +31,20 @@ CHECKPOINT_WRITES = (
 _CHECKPOINT_WRITE_TREES = frozenset(ast.dump(ast.parse(s, mode="eval").body) for s in CHECKPOINT_WRITES)
 
 
+def _fixed_read_call(node, routes):
+    return (isinstance(node, ast.Call) and bool(routes) and isinstance(node.func, ast.Name)
+            and node.func.id == "request" and len(node.args) == 4 and not node.keywords
+            and all(isinstance(arg, ast.Constant) for arg in node.args[:3])
+            and node.args[0].value == "upbit" and node.args[1].value == "GET"
+            and node.args[2].value in routes
+            and isinstance(node.args[3], ast.Name) and node.args[3].id == "params")
+
+
 def problems(source, relative_path=""):
     tree = ast.parse(source)
     failures = []
+    routes = READ_ROUTES.get(relative_path, frozenset())
+    allowed_requests = {id(node.func) for node in ast.walk(tree) if _fixed_read_call(node, routes)}
     for node in ast.walk(tree):
         if isinstance(node, (ast.Import, ast.ImportFrom)):
             modules = [a.name for a in node.names] if isinstance(node, ast.Import) else [node.module or ""]
@@ -33,17 +52,28 @@ def problems(source, relative_path=""):
                 failures.append("effectful import")
             if isinstance(node, ast.ImportFrom) and node.module == "core.compliance" and any(a.name == "owner" for a in node.names):
                 failures.append("owner side effects")
+            if isinstance(node, ast.Import):
+                if any(a.name == "execution.transport" or a.name.startswith("execution.transport.")
+                       for a in node.names):
+                    failures.append("transport module import")
+            elif node.module == "execution.transport":
+                permitted = TRANSPORT_IMPORTS.get(relative_path, frozenset())
+                if node.level or any(a.name not in permitted or a.asname is not None for a in node.names):
+                    failures.append("transport import outside fixed names")
+            elif ((node.module or "").startswith("execution.transport.")
+                  or node.module == "execution" and any(a.name == "transport" for a in node.names)):
+                failures.append("transport module import")
+        if (isinstance(node, ast.Constant) and isinstance(node.value, str)
+                and "/v1/" in node.value.lower() and node.value not in routes):
+            failures.append("endpoint literal outside fixed routes")
+        if isinstance(node, ast.Name) and node.id == "request" and id(node) not in allowed_requests:
+            failures.append("request outside fixed GET call")
+        if isinstance(node, ast.Attribute) and node.attr == "request":
+            failures.append("request attribute alias")
         if isinstance(node, ast.Call):
             call = node.func.id if isinstance(node.func, ast.Name) else node.func.attr if isinstance(node.func, ast.Attribute) else ""
             regex_compile = isinstance(node.func, ast.Attribute) and ast.unparse(node.func) == "re.compile"
-            fixed_read_routes = (COLLECTOR_ROUTES if relative_path == "upbit_collector.py" else
-                                 frozenset({"/v1/orderbook"}) if relative_path == "quotes.py" else frozenset())
-            collector_read = (bool(fixed_read_routes) and isinstance(node.func, ast.Name)
-                and node.func.id == "request" and len(node.args) == 4 and not node.keywords
-                and all(isinstance(arg, ast.Constant) for arg in node.args[:3])
-                and node.args[0].value == "upbit" and node.args[1].value == "GET"
-                and node.args[2].value in fixed_read_routes
-                and isinstance(node.args[3], ast.Name) and node.args[3].id == "params")
+            collector_read = id(node.func) in allowed_requests
             checkpoint_write = (relative_path == "baseline_store.py"
                                 and ast.dump(node) in _CHECKPOINT_WRITE_TREES)
             if call in FORBIDDEN_CALLS and not (call == "compile" and regex_compile) and not collector_read and not checkpoint_write:
@@ -81,6 +111,82 @@ def test_only_reviewed_collector_literals_can_use_e1_authenticated_get():
                    'request("okx", "GET", "/v1/accounts", params)',
                    'request("upbit", "GET", "/v1/accounts", params, data=body)'):
         assert problems(source, "upbit_collector.py"), source
+
+
+def test_e1_transport_imports_and_request_aliases_are_pinned():
+    for relative, names in TRANSPORT_IMPORTS.items():
+        source = "from execution.transport import " + ", ".join(sorted(names))
+        assert not problems(source, relative), (relative, source)
+        assert problems(source, "nested/" + relative)
+        assert problems(source, "provider.py")
+    bad = (
+        'from execution.transport import request as fetch\nfetch("upbit", "POST", "/v1/orders", params)',
+        'from execution.transport import request as fetch\nfetch("upbit", "DELETE", "/v1/order", params)',
+        'from execution.transport import request as request',
+        'from execution.transport import *',
+        'from execution.transport import _send',
+        'import execution.transport as transport',
+        'from execution import transport as wire',
+        'r = request\nr("upbit", "GET", "/v1/accounts", params)',
+        'r = transport.request\nr("upbit", "GET", "/v1/accounts", params)',
+    )
+    for relative in READ_ROUTES:
+        for source in bad:
+            assert problems(source, relative), (relative, source)
+
+
+def test_account_endpoint_literals_are_file_exact():
+    for relative, routes in READ_ROUTES.items():
+        for route in routes:
+            source = f'PATH = {route!r}'
+            assert not problems(source, relative), (relative, route)
+            assert problems(source, "provider.py")
+            assert problems(source, "nested/" + relative)
+    for route in ("/v1/orders", "/v1/withdraws/coin", "/v1/withdraws/krw",
+                  "/v1/orders/open/x", "/v1/orders/uuids", "/v1/order/new",
+                  "/v1/deposits/generate_coin_address", "/V1/ORDERS/OPEN",
+                  "/v1/orderbook", "/v1/withdraws/coin_addresses"):
+        assert problems(f'PATH = {route!r}', "upbit_collector.py"), route
+
+
+def test_macro_collector_exception_preserves_exact_get_checks():
+    from tests import macro_m0_harness as macro
+    saved_root = macro.ROOT
+    try:
+        with tempfile.TemporaryDirectory(prefix="collector-guard-") as directory:
+            macro.ROOT = root = Path(directory)
+            collector = root / "execution_accounts" / "upbit_collector.py"
+            collector.parent.mkdir()
+            source = ('from execution.transport import inquiry_clock, request\n'
+                      + "\n".join(f'request("upbit", "GET", {route!r}, params)'
+                                  for route in sorted(COLLECTOR_ROUTES)))
+            collector.write_text(source, encoding="utf-8")
+            assert not macro._offences(collector), macro._offences(collector)
+            for relative in ("execution_accounts/unreviewed.py",
+                             "execution_accounts/nested/upbit_collector.py"):
+                neighbor = root / relative
+                neighbor.parent.mkdir(parents=True, exist_ok=True)
+                neighbor.write_text(source, encoding="utf-8")
+                assert macro._offences(neighbor), relative
+            rejected = (
+                'PATH = "/v1/orders"', 'PATH = "/v1/withdraws/coin"',
+                'PATH = "/v1/orders/open/x"', 'PATH = "/V1/ORDERS/OPEN"',
+                'request("upbit", "POST", "/v1/accounts", params)',
+                'request("upbit", "DELETE", "/v1/order", params)',
+                'request("upbit", "PUT", "/v1/accounts", params)',
+                'request("upbit", "GET", path, params)',
+                'request("upbit", "GET", "/v1/accounts", params, data=body)',
+                'request("upbit", "GET", "/v1/accounts", body)',
+                'from execution.transport import request as fetch\n'
+                'fetch("upbit", "GET", "/v1/accounts", params)',
+                'import ccxt', 'wallet.withdraw()',
+                'requests.post("https://example.invalid/v1/orders")',
+            )
+            for candidate in rejected:
+                collector.write_text(candidate, encoding="utf-8")
+                assert macro._offences(collector), candidate
+    finally:
+        macro.ROOT = saved_root
 
 
 def test_account_guard_negative_controls_cover_privileged_neighbors():
