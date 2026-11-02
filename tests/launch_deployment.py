@@ -12,6 +12,7 @@ from unittest.mock import patch
 
 from core.compliance import owner
 from execution_launch import deployment as D
+from tests import compliance_fixtures as F
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -153,6 +154,15 @@ def test_export_rejects_other_checkout_and_linked_source_before_closure_read():
             linked.unlink(); os.link(source, linked)
             with patch.object(D, "_ROOT", root):
                 refused(lambda: D.export_manifest(repo_root=root), "DEPLOYMENT_LINKED_SOURCE_REFUSED")
+            # A junction (a reparse point that is not a symlink) in the source tree or above the checkout root.
+            linked.unlink()
+            real = root / "real-source"; real.mkdir(); (real / "module.py").write_text("VALUE=2\n", encoding="utf-8")
+            F.directory_link(package / "junction", real)
+            F.directory_link(root / "checkout-alias", root)
+            with patch.object(D, "_ROOT", root):
+                refused(lambda: D.export_manifest(repo_root=root), "DEPLOYMENT_LINKED_SOURCE_REFUSED")
+                refused(lambda: D.export_manifest(repo_root=root / "checkout-alias"),
+                        "DEPLOYMENT_CURRENT_CHECKOUT_REQUIRED")
 
 
 def test_cli_compares_bounded_explicit_files_and_redacts_paths_and_rejected_arguments():

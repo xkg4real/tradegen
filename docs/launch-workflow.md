@@ -36,8 +36,10 @@ Use the repository's configured Python environment. All paths are explicit and
 all times include a UTC offset. Files must be bounded regular JSON files; linked
 paths, hard links, credential/state directories, duplicate keys and nonfinite
 numbers are refused. Configuration files are limited to 64 KiB and capture files
-to 16 MiB. The current file reader requires POSIX no-follow/descriptor support;
-unsupported platforms refuse rather than weaken the boundary.
+to 16 MiB. The file reader is descriptor-relative and no-follow on POSIX; on Windows
+it is `execution_launch/private_input.py`, which also refuses junctions and other
+reparse points, cloud placeholders, 8.3 aliases and SUBST or network drives. Other
+platforms refuse rather than weaken the boundary.
 
 1. Prepare a private profile using the existing template:
 

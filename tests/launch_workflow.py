@@ -19,6 +19,7 @@ from execution_launch.strategy import protocol_json, register_protocol
 from tests import compliance_fixtures as F
 from tests.launch_profile import fixture_profile
 from tests.launch_strategy import START, fixture_capture
+from tests.notrun import NotRun
 from tools.research import prepare_launch_example as example
 
 D = Decimal
@@ -130,9 +131,10 @@ def test_reader_refuses_private_paths_links_nonregular_files_and_bounds_even_sta
         source = root / 'data.json'; source.write_text('{}')
         linked = root / 'link.json'; linked.symlink_to(source)
         directory = root / 'dirlink'; directory.symlink_to(root, target_is_directory=True)
-        fifo = root / 'pipe.json'; os.mkfifo(fifo)
-        denied = [linked, directory / 'data.json', fifo, root / '.env.json',
+        denied = [linked, directory / 'data.json', root / '.env.json',
                   root / '.tradegen' / 'profile.json', root / '..' / 'escape.json']
+        if os.name != 'nt':
+            fifo = root / 'pipe.json'; os.mkfifo(fifo); denied.append(fifo)
         for path in denied:
             try:
                 W._read_file(str(path), 16)
@@ -147,6 +149,9 @@ def test_reader_refuses_private_paths_links_nonregular_files_and_bounds_even_sta
             pass
         else:
             raise AssertionError('hard link accepted')
+        if os.name == 'nt':
+            raise NotRun('REFDATA: the descriptor fstat seam and os.mkfifo need POSIX; '
+                         'Windows cases run in launch_private_input T7/T8/T11')
         oversized = root / 'oversize.json'; oversized.write_text(' ' * 17)
         with patch.object(W.os, 'fstat', return_value=SimpleNamespace(st_mode=stat.S_IFREG | 0o600, st_size=0, st_nlink=1)):
             try:

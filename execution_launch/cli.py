@@ -19,12 +19,17 @@ import stat
 import sys
 
 from core.compliance.model import KST
+from execution_launch.private_input import PrivateInputError, read_private_file
 from execution_launch.profile import (
     MAX_PROFILE_BYTES, LaunchProfile, ProfileError, parse_profile_json,
     preflight_profile, profile_body,
 )
 
 _PRIVATE_COMPONENTS = frozenset({".tradegen", ".nextgen", ".ssh", ".aws", ".gnupg", ".azure", ".kube"})
+_WINDOWS_CODES = {"PRIVATE_INPUT_PLATFORM_UNSUPPORTED": "PROFILE_FILE_PLATFORM_UNSUPPORTED",
+                  "PRIVATE_INPUT_PATH_REFUSED": "PROFILE_FILE_REFUSED",
+                  "PRIVATE_INPUT_FILE_REFUSED": "PROFILE_FILE_REFUSED",
+                  "PRIVATE_INPUT_TOO_LARGE": "PROFILE_JSON_TOO_LARGE"}
 
 
 class _ArgumentsError(ValueError):
@@ -75,6 +80,7 @@ def _read_profile(path: str) -> bytes:
     Directory descriptors prevent a parent-link replacement from redirecting the
     read. Platforms without no-follow relative opens fail closed. No home lookup
     or environment-based state-root discovery is needed for the lexical denial.
+    Windows uses execution_launch.private_input.
     """
     candidate = Path(path)
     parts = candidate.parts
@@ -86,6 +92,11 @@ def _read_profile(path: str) -> bytes:
     if any(part.casefold() in _PRIVATE_COMPONENTS or part.casefold() == ".env"
            or part.casefold().startswith(".env.") for part in absolute.parts):
         raise ProfileError("PROFILE_FILE_REFUSED")
+    if os.name == "nt":
+        try:
+            return read_private_file(path, maximum=MAX_PROFILE_BYTES, suffix=".json", private=_PRIVATE_COMPONENTS)
+        except PrivateInputError as exc:
+            raise ProfileError(_WINDOWS_CODES.get(str(exc), "PROFILE_FILE_UNAVAILABLE_OR_REFUSED")) from None
     if (os.open not in os.supports_dir_fd or not hasattr(os, "O_NOFOLLOW")
             or not hasattr(os, "O_DIRECTORY")):
         raise ProfileError("PROFILE_FILE_PLATFORM_UNSUPPORTED")

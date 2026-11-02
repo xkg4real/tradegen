@@ -97,8 +97,11 @@ python -m execution_launch.cli --profile <private-profile.json> --now <aware-ISO
 
 The current Cloud CLI accepts an explicit bounded regular file, refuses linked/private credential
 paths and emits redacted field-level blockers. No owner context is loaded, so a complete file
-alone still reports `SIGNED_CONTEXT_REQUIRED` and `execution_ready=false`. This release's
-no-follow file reader requires POSIX support; use the pure parser/preflight library in another
-reviewed integration rather than weakening the file boundary.
+alone still reports `SIGNED_CONTEXT_REQUIRED` and `execution_ready=false`. On POSIX the file
+reader is descriptor-relative and no-follow. On Windows `execution_launch/private_input.py`
+enforces the same boundary: a plain, singly-linked regular file on a local lettered drive, every
+path component checked for reparse points and cloud placeholders, 8.3 aliases and SUBST or
+network drives refused, and the opened handle must be the file that was checked. There is no
+override; a file that fails these checks is moved to a plain local folder, not read another way.
 
 This software is not legal, tax or investment advice and is not a licensed adviser.

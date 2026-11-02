@@ -22,10 +22,11 @@ repository, interpreter or home path is included in output.
 The command prints JSON to stdout and writes no file. If saving it locally, use a
 normal private `.json` file outside credential/owner-state directories. Comparison
 uses the existing bounded, no-follow file reader: at most64KiB; symlinks, hard links,
-nonregular files and known private credential/state paths are refused. That file
-reader currently requires POSIX support. The pure `parse_manifest` and
-`compare_manifests` APIs accept explicitly supplied bytes/objects in another reviewed
-integration. Export itself is independent of that POSIX reader.
+nonregular files and known private credential/state paths are refused. On Windows the
+same reader goes through `execution_launch/private_input.py`, which also refuses
+junctions and other reparse points, cloud placeholders, 8.3 aliases and SUBST or network
+drives. The pure `parse_manifest` and `compare_manifests` APIs accept explicitly supplied
+bytes/objects as well. Export itself is independent of the file reader.
 
 ## What the hashes mean
 
