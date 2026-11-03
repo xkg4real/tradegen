@@ -34,6 +34,16 @@ authenticate a source, select owner policy, sign approval or grant execution.
    `compare_and_set(previous_digest, new_digest) -> bool`. Exact `True` means
    that the external compare-and-set durably succeeded. These adapters are
    trusted application code, not a sandbox or an authorization substitute.
+   The shipped source is `execution_launch/account_interval.py`
+   `UpbitIntervalSource`: `collect(...)` runs one fenced `collect_upbit`
+   capture before the tick time is chosen and stages one frame, and
+   `__call__(previous, now)` returns it without I/O. It is flat-only: a held
+   position, any fill at or after the previous endpoint or any external flow
+   refuses, so the chain stops after a first fill until a reviewed
+   intra-interval price-path source exists (owner open item). It brackets the
+   22:00 and Seoul-midnight boundaries only with a capture that reads the
+   balance at or before the boundary and finishes at or after it, and never
+   relabels a late capture.
 5. Construct `ContinuousAccountProvider(source=source, store=store,
    trusted_head=head_adapter)` and supply it where the controller/runner expects
    `account_provider`. Each successful new interval is reconciled, saved,
