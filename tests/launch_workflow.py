@@ -253,19 +253,35 @@ def test_generated_example_records_evaluates_and_creates_only_unsigned_review_re
 
 
 def test_example_writer_allows_windows_scratch_only_while_temp_lies_under_localappdata():
-    """On nt the profile is refused except the interpreter's temporary directory, and only while that directory
-    itself lies under %LOCALAPPDATA%: a TEMP pointed elsewhere under the profile keeps the home refusal, before any
-    write. POSIX never has the allowance, so the same path is refused there as home."""
+    """On nt the profile is refused except the interpreter's temporary directory, and only while that directory and
+    the destination, both resolved, lie under %LOCALAPPDATA%: a TEMP that is a junction leaving LocalAppData, or a
+    destination that leaves TEMP through one, keeps the home refusal before any write. Everything is built inside
+    this test's own temporary directory, so a regression could write nowhere else. POSIX never has the allowance:
+    the linked-destination test below refuses Path.home() outright there."""
+    scratch = Path(tempfile.gettempdir()).resolve()
+    if os.name != 'nt' or len(scratch.parts) < 2 or scratch.parts[1].casefold() != 'users':
+        raise NotRun('REFDATA: the LocalAppData scratch allowance needs Windows with TEMP inside the profile')
     contents = {name: '{}' for name in ('profile.json', 'protocol.json', 'program.json', 'bars.json')}
-    elsewhere = Path.home() / 'Documents' / 'scratch-not-under-localappdata'
-    with patch.object(example.tempfile, 'gettempdir', return_value=str(elsewhere)):
-        try:
-            example.write_new_directory(str(elsewhere / 'child'), contents)
-        except W.WorkflowError as exc:
-            assert str(exc) == 'EXAMPLE_HOME_DIRECTORY_REFUSED', exc
-        else:
-            raise AssertionError('a temporary directory outside LocalAppData was accepted under the profile')
-    assert not elsewhere.exists()
+    with tempfile.TemporaryDirectory() as root:
+        local, elsewhere = Path(root) / 'local', Path(root) / 'elsewhere'
+        for directory in (local, local / 'temp', elsewhere):
+            directory.mkdir()
+        F.directory_link(local / 'temp-link', elsewhere)        # TEMP itself leaves LocalAppData through a junction
+        F.directory_link(local / 'temp' / 'link', elsewhere)    # TEMP is real; the destination leaves it through one
+        with patch.dict(os.environ, {'LOCALAPPDATA': str(local)}):
+            for temp, destination in ((local / 'temp-link', local / 'temp-link' / 'child'),
+                                      (local / 'temp', local / 'temp' / 'link' / 'child')):
+                with patch.object(example.tempfile, 'gettempdir', return_value=str(temp)):
+                    try:
+                        example.write_new_directory(str(destination), contents)
+                    except W.WorkflowError as exc:
+                        assert str(exc) == 'EXAMPLE_HOME_DIRECTORY_REFUSED', (temp.name, exc)
+                    else:
+                        raise AssertionError('a junction out of LocalAppData was accepted under the profile')
+            assert not any(elsewhere.iterdir()) and not any((local / 'temp').glob('child'))
+            with patch.object(example.tempfile, 'gettempdir', return_value=str(local / 'temp')):
+                example.write_new_directory(str(local / 'temp' / 'fresh'), contents)   # the real TEMP is allowed
+        assert {p.name for p in (local / 'temp' / 'fresh').iterdir()} == set(contents)
 
 
 def test_example_writer_never_overwrites_or_follows_private_or_linked_destinations():

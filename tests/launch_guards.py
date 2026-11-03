@@ -24,9 +24,10 @@ PROCESS_CALLS = frozenset({"system", "popen", "startfile", "fork", "forkpty", "p
 PROCESS_PREFIXES = ("execv", "execl", "spawn")
 ENDPOINT = re.compile(r"(?i)/(?:v1|uapi|api/v5)/")
 # One write ban for both packages. A writer row pins its exact call shapes under its own package-relative path;
-# every other write, any other shape and any other file is a hit, whether it is spelt as a call, a bare name, a
-# from-import, a module alias or a getattr with a constant name. A getattr with a computed name (the dataclass
-# field loops) is left to review.
+# every other write and any other file is a hit when it is spelt as a call, a bare name, a from-import, a module
+# alias, a getattr with a constant name, or os.open flags that are not provably os.O_* bits. Left to review by
+# design: a getattr with a computed name (the dataclass field loops), and a reference alias that is called later
+# (f = os.replace, f = open, x = p.write_text), because os.open in os.supports_dir_fd is a legitimate reference.
 HEAD = "execution_launch/baseline_head.py"
 HISTORY = "execution_launch/live_history.py"
 STUDY = "execution_launch/study.py"
@@ -63,9 +64,10 @@ OS_WRITES = frozenset({"replace", "rename", "renames", "remove", "unlink", "mkdi
                        "pwritev"})
 PATH_WRITES = frozenset({"write_text", "write_bytes", "touch", "unlink", "rename", "rmdir", "mkdir",
                          "symlink_to", "hardlink_to"})
-WRITE_NAMES = OS_WRITES | PATH_WRITES | WRITE_FLAGS | {"open", "fdopen"}   # a write however it is reached
-WRITER_MODULES = ("shutil", "tempfile", "logging")                          # modules that write, in any form
-OS_MODULES = frozenset({"os", "io", "nt", "posix", "builtins"})            # where a from-import finds a writer
+WRITE_NAMES = OS_WRITES | PATH_WRITES | WRITE_FLAGS | {"open", "fdopen", "FileIO"}   # a write however it is reached
+WRITER_MODULES = ("shutil", "tempfile", "logging")                                    # modules that write, in any form
+OS_MODULES = frozenset({"os", "io", "_io", "nt", "posix", "builtins"})               # where a from-import finds a writer
+MODE_AT_ONE = ("io", "_io", "builtins", "codecs", "gzip", "bz2", "lzma")              # their open/FileIO take (file, mode)
 WRITE_MODE = re.compile(r"[wax+]")
 # The trusted baseline head is advanced only by the account provider and the live-history journal.
 CAS_CALLERS = frozenset({"execution_accounts/baseline_bridge.py", "execution_launch/live_history.py"})
@@ -107,11 +109,26 @@ def _reached(node):
     return _named(node)
 
 
-def _pure_flags(expression):
-    """os.open flags that can only be os.O_* bits: os.O_* attributes, names and getattr(os, "O_*", 0) fallbacks
-    joined by |. A number anywhere (1 | 64 is O_WRONLY | O_CREAT), a call or any other form is not."""
+def _assignments(tree):
+    """Every expression a module assigns to each plain name, an augmented assignment as the BinOp it computes."""
+    assigned = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign):
+            for target in node.targets:
+                if isinstance(target, ast.Name):
+                    assigned.setdefault(target.id, []).append(node.value)
+        elif isinstance(node, (ast.AnnAssign, ast.AugAssign)) and isinstance(node.target, ast.Name) and node.value:
+            value = node.value if isinstance(node, ast.AnnAssign) else ast.BinOp(node.target, node.op, node.value)
+            assigned.setdefault(node.target.id, []).append(value)
+    return assigned
+
+
+def _pure_flags(expression, assigned, seen=frozenset()):
+    """os.open flags that can only be os.O_* bits: os.O_* attributes, getattr(os, "O_*", 0) fallbacks and names whose
+    every assignment in the module is itself pure, joined by |. A number anywhere (1 | 64 is O_WRONLY | O_CREAT), a
+    call, a parameter, a name the module never assigns, or any other form is not."""
     if isinstance(expression, ast.BinOp) and isinstance(expression.op, ast.BitOr):
-        return _pure_flags(expression.left) and _pure_flags(expression.right)
+        return _pure_flags(expression.left, assigned, seen) and _pure_flags(expression.right, assigned, seen)
     if isinstance(expression, ast.Attribute):
         return ast.unparse(expression.value) == "os" and expression.attr.startswith("O_")
     if isinstance(expression, ast.Call):
@@ -119,12 +136,17 @@ def _pure_flags(expression):
                 and ast.unparse(expression.args[0]) == "os"
                 and str(getattr(expression.args[1], "value", "")).startswith("O_")
                 and isinstance(expression.args[2], ast.Constant) and expression.args[2].value == 0)
-    return isinstance(expression, ast.Name)
+    if isinstance(expression, ast.Name):
+        if expression.id in seen:                         # flags |= os.O_X: its other assignments decide
+            return True
+        values = assigned.get(expression.id, ())
+        return bool(values) and all(_pure_flags(v, assigned, seen | {expression.id}) for v in values)
+    return False
 
 
-def _writes(node):
+def _writes(node, assigned):
     """A write of a file, directory or link, a write flag, or a writer module, in any form: a call, a bare name, a
-    from-import, a getattr with a constant name, or os.open flags that are not os.O_* bits."""
+    from-import, a getattr with a constant name, or os.open flags that are not provably os.O_* bits."""
     if isinstance(node, ast.Name):
         return node.id in WRITER_MODULES or node.id.startswith("O_")
     if isinstance(node, (ast.Import, ast.ImportFrom)):
@@ -137,17 +159,19 @@ def _writes(node):
     if not isinstance(node, ast.Call):
         return False
     name = _call_name(node)
+    if _named(node) & WRITE_NAMES:                        # getattr(x, "<writer>"), bare or as builtins.getattr
+        return True
     if isinstance(node.func, ast.Name):
-        return (name == "open" and _mode_writes(node, 1)) or bool(_named(node) & WRITE_NAMES)
+        return name == "open" and _mode_writes(node, 1)
     if not isinstance(node.func, ast.Attribute):
         return False
     owner = ast.unparse(node.func.value)
     if owner == "os":
         if name == "open":                                # anything but os.O_* bits can hide a write mode
-            return not _pure_flags(_mode_argument(node, 1, "flags"))
+            return not _pure_flags(_mode_argument(node, 1, "flags"), assigned)
         return name in OS_WRITES or (name == "fdopen" and _mode_writes(node, 1))
     if name in ("open", "FileIO"):
-        return _mode_writes(node, 1 if owner in ("io", "codecs", "gzip", "bz2", "lzma") else 0)
+        return _mode_writes(node, 1 if owner in MODE_AT_ONE else 0)
     if name == "replace":                                 # Path.replace(target); str.replace takes two, datetime.replace keywords
         return (len(node.args) == 1 and not node.keywords) or [k.arg for k in node.keywords] == ["target"]
     return name in PATH_WRITES
@@ -155,6 +179,7 @@ def _writes(node):
 
 def problems(source, relative=""):
     tree, failures = ast.parse(source), []
+    assigned = _assignments(tree)
     pinned = {id(inner) for node in ast.walk(tree) if isinstance(node, ast.Call)
               and ast.dump(node) in _PINNED_WRITE_TREES.get(relative, frozenset()) for inner in ast.walk(node)}
     for node in ast.walk(tree):
@@ -170,7 +195,8 @@ def problems(source, relative=""):
                     alias.name in TRANSPORT_FROM.get(node.module, frozenset()) for alias in node.names):
                 failures.append("inquiry or order transport import")
             if isinstance(node, ast.Import) and any(
-                    alias.name in OS_MODULES and (alias.asname or alias.name in ("nt", "posix")) for alias in node.names):
+                    alias.name in OS_MODULES and (alias.asname or alias.name in ("nt", "posix", "_io"))
+                    for alias in node.names):
                 failures.append("os module under another name")
             if isinstance(node, ast.ImportFrom) and any(alias.name == "*" for alias in node.names):
                 failures.append("star import")
@@ -191,7 +217,7 @@ def problems(source, relative=""):
             failures.append("privileged reference")
         if isinstance(node, ast.Constant) and isinstance(node.value, str) and ENDPOINT.search(node.value):
             failures.append("venue endpoint literal")
-        if id(node) not in pinned and _writes(node):
+        if id(node) not in pinned and _writes(node, assigned):
             failures.append("write outside pinned writer")
         if "compare_and_set" in reached and relative not in CAS_CALLERS:
             failures.append("trusted head advance outside pinned callers")
@@ -295,7 +321,7 @@ HITS = (
     "f = getattr(os, 'popen')", "getattr(owner, 'load_context')(now, pos)", "f = getattr(controller, 'arm')",
     "getattr(os, 'getenv')('API_KEY')", "import os as o\no.replace(a, b)", "import nt\nnt.replace(a, b)",
     "import posix", "import io as x", "from os import *\nreplace(a, b)", "from os import system as s\ns(c)",
-    "from core.compliance.owner import load_context as lc\nlc(now)", "from os import getenv",
+    "from core.compliance.owner import load_context as lc\nlc(now)", "from os import getenv", "import _io",
 )
 CLEAN = (
     "from urllib.parse import urlsplit", "import msvcrt", "pattern = re.compile('x')",
@@ -307,7 +333,10 @@ CLEAN = (
     # Negative controls for the bare-name, alias and getattr rules: the reads, the computed names and the constant
     # getattr uses the runtime files make today.
     "from os import fstat\nfstat(fd)", "from os import lstat as ls\nls(p)", "from os import path",
-    "from io import StringIO\nStringIO()", "from builtins import str", "import os\nimport os.path", "import stat",
+    "from io import StringIO\nStringIO()", "from io import BytesIO", "from builtins import str",
+    "import builtins\nbuiltins.open(p, 'rb')", "builtins.getattr(os, 'fstat')(fd)", "os.open not in os.supports_dir_fd",
+    "flags = os.O_RDONLY\nflags |= getattr(os, 'O_NOFOLLOW', 0)\nos.open(p, flags)",
+    "a = os.O_RDONLY\nb = a | os.O_NOFOLLOW\nos.open(p, b)", "import os\nimport os.path", "import stat",
     "from types import SimpleNamespace", "os.getpid()", "hasattr(os, 'O_NOFOLLOW')", "getattr(os, 'fstat')(fd)",
     "getattr(os, 'getpid')()", "getattr(owner, 'read_pubkey')(path)", "x = getattr(head, 'read')",
     "getattr(value, name)", "getattr(entry, 'st_file_attributes', 0)",
@@ -336,6 +365,13 @@ WRITES = (
     "os.open(p, os.O_RDONLY | 64)", "os.open(p, flags=1025)", "os.open(p, int(x))", "io.FileIO(p, 'w')",
     "import tempfile", "from tempfile import mkstemp", "tempfile.mkstemp()", "import logging",
     "logging.basicConfig(filename=p)", "from logging import FileHandler", "import logging.handlers",
+    # Numeric flags laundered through a name, a parameter or an unassigned name; FileIO and open by from-import or
+    # under builtins and _io; a getattr spelt builtins.getattr.
+    "flags = 1 | 64\nos.open(p, flags)", "w = 64\nos.open(p, os.O_RDONLY | w)", "flags = int(x)\nos.open(p, flags)",
+    "def f(p, flags):\n    os.open(p, flags)", "os.open(p, flags)", "flags = os.O_RDONLY\nflags = 1025\nos.open(p, flags)",
+    "flags = os.O_RDONLY\nflags |= 1\nos.open(p, flags)", "from io import FileIO\nFileIO(p, 'w')",
+    "from _io import FileIO", "_io.open(p, 'w')", "import builtins\nbuiltins.open(p, 'w')", "builtins.open('f', 'w')",
+    "builtins.getattr(os, 'replace')(a, b)",
 )
 
 

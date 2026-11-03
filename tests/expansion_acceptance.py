@@ -296,21 +296,25 @@ def test_crypto_client_refusals_and_router():
                 raise AssertionError(repr(code))
             except cc.CryptoError as exc:
                 assert "OKX code ?" in str(exc) and "UPSTREAM" not in str(exc) and "upstream" not in str(exc), exc
-        # A malformed row from any parser is a named provider error, never a raw exception quoting the row.
-        for data, call in (([[str(t0), "1", "2", "0.5", "3"]], lambda: okx.OKXPublic().daily("BTC-USDT", days=1)),
-                           ([[str(t0), "1", "2", "0.5", "UPSTREAM-PX", "9", "450", "450", "1"]],
-                            lambda: okx.OKXPublic().daily("BTC-USDT", days=1)),
-                           ([{"ts": str(t0)}], lambda: okx.OKXPublic().daily("BTC-USDT", days=1)),
-                           ([{"instId": "BTC-USDT-SWAP"}], lambda: okx.OKXPublic().premium_index("BTCUSDT")),
-                           ([{"markPx": "UPSTREAM-MARK", "idxPx": "1"}], lambda: okx.OKXPublic().premium_index("BTCUSDT")),
-                           ([{"fundingTime": "9" * 400, "realizedRate": "0.0001"}],
-                            lambda: okx.OKXPublic().funding("BTCUSDT"))):
+        # A malformed row from any parser is a named provider error, never a raw exception quoting the row. Each
+        # member of _MALFORMED is pinned by a row that raises it, except OSError (Windows refusing a negative
+        # timestamp), which the tuple assertion below pins on every platform.
+        daily = lambda: okx.OKXPublic().daily("BTC-USDT", days=1)                        # noqa: E731
+        premium = lambda: okx.OKXPublic().premium_index("BTCUSDT")                       # noqa: E731
+        for data, call, kind in (([[str(t0), "1", "2", "0.5", "3"]], daily, "IndexError"),
+                                 ([[str(t0), "1", "2", "0.5", "UPSTREAM-PX", "9", "450", "450", "1"]], daily, "ValueError"),
+                                 ([{"ts": str(t0)}], daily, "KeyError"), ([None], daily, "TypeError"),
+                                 ([{"instId": "BTC-USDT-SWAP"}], premium, "KeyError"),
+                                 ([{"markPx": "UPSTREAM-MARK", "idxPx": "1"}], premium, "ValueError"),
+                                 ([{"fundingTime": "9" * 400, "realizedRate": "0.0001"}],
+                                  lambda: okx.OKXPublic().funding("BTCUSDT"), "OverflowError")):
             cc._get = lambda url, params=None, headers=None, *, label, data=data: {"code": "0", "data": data}
             try:
                 call()
                 raise AssertionError(data)
             except cc.CryptoError as exc:
-                assert "malformed row (" in str(exc) and "UPSTREAM" not in str(exc), exc
+                assert f"malformed row ({kind})" in str(exc) and "UPSTREAM" not in str(exc), exc
+        assert okx._MALFORMED == (KeyError, IndexError, TypeError, ValueError, OverflowError, OSError)
         from core.quant.history import HistoryError
         saved_ttl, config.FICC_CACHE_TTL_SECONDS = config.FICC_CACHE_TTL_SECONDS, 0.0
         try:
