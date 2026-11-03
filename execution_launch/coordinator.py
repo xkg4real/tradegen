@@ -62,7 +62,7 @@ from execution_launch.review_auth import MAX_DOCUMENT_BYTES, ReviewVerifiers
 from execution_launch.runner import (EvidencePackage, LaunchSession, Runner, StrategyDriver, TickResult,
                                      prepare_launch_session)
 from execution_launch.strategy import ForwardProtocol, evaluate_capture_json, parse_protocol
-from execution_launch.workflow import MAX_CAPTURE_BYTES, MAX_CONFIG_BYTES, _artifact, _read_file
+from execution_launch.workflow import MAX_CAPTURE_BYTES, MAX_CONFIG_BYTES, artifact, read_file
 
 SLOT_WINDOW = timedelta(seconds=10)      # the driver's execution slot and the quote freshness bound
 ACCOUNT_AGE = timedelta(seconds=30)      # the runner's and the reducer's account freshness bound
@@ -205,7 +205,8 @@ class CancellableTimer:
 
 @dataclass(frozen=True, kw_only=True)
 class CoordinatorStatus:
-    """Immutable, sanitized: fixed codes, counts and instants only; never an amount, a scope or upstream text."""
+    """Immutable, sanitized: fixed codes, counts, instants and the Controller's order states; never equity, scope,
+    paths or upstream text."""
     phase: str = "new"                  # new, running, monitoring or closed
     strategy_stopped: bool = False
     in_flight: str = ""                 # "", account_source, quote_source, history or control
@@ -438,9 +439,10 @@ class Coordinator:
         """One strategy slot: the book at the prefetch lead, then the account capture (it may end inside the slot
         window), the sample at or after the slot, the record, one Runner tick."""
         with self._work:
-            stage = "account"
+            stage = "gate"                                  # the gate is no account step: `reasons` only
             try:
                 _require(self._ready, "COORDINATOR_STARTUP_RECONCILE_REQUIRED")
+                stage = "account"
                 previous = self._load_previous()
                 stage = "quote"
                 book = self._read_book()
@@ -511,8 +513,9 @@ class Coordinator:
     # -- public contract ---------------------------------------------------------------------------------------
 
     def run(self) -> CoordinatorStatus:
-        _require(not self._started, "COORDINATOR_ALREADY_RUN")
-        self._started = True
+        with self._status_lock:                             # test-and-set: one run per instance
+            _require(not self._started, "COORDINATOR_ALREADY_RUN")
+            self._started = True
         try:
             if not self._closing.is_set():
                 self._run()
@@ -539,7 +542,7 @@ class Coordinator:
         self._update()
         timer = CancellableTimer(schedule(window=self._window, bar_seconds=self._bar_seconds, start=start,
                                           monitor_until=self._monitor_until, cutoff_seconds=self._cutoff,
-                                          **self._knobs), clock=self._clock, cancel=self._closing, wait=self._wait)
+                                          **self._knobs), clock=self._now, cancel=self._closing, wait=self._wait)
         self._monitor("startup")
         seen = 0
         for due in timer:
@@ -567,7 +570,9 @@ class Coordinator:
         self._closing.set()
         self._runner.stop()
         self._update()
-        return True if not self._started else self._finished.wait(timeout)
+        with self._status_lock:
+            started = self._started
+        return True if not started else self._finished.wait(timeout)
 
     def prepare(self, *, selected_plan, inputs, selection_seed_hex: str, expires_at: datetime | None = None):
         """prepare_launch_session over the last unit's observation; the actual PreparedSession is kept here and
@@ -621,17 +626,17 @@ def compose(*, profile_path: str, program_path: str, protocol_path: str, capture
     history head must already hold GENESIS from the operator step, and the clock must still be before
     window.start), ReviewVerifiers over a CurrentOwnerAuthority on the same clock, then the EvidencePackage.
     Nothing here fetches, signs, arms or orders; every refusal is the fixed code of the stage that refused."""
-    profile = parse_profile_json(_read_file(profile_path, MAX_CONFIG_BYTES))
-    program = parse_program(_read_file(program_path, MAX_CONFIG_BYTES))
-    protocol = parse_protocol(_read_file(protocol_path, MAX_CONFIG_BYTES))
-    result = evaluate_capture_json(protocol, _read_file(capture_path, MAX_CAPTURE_BYTES), profile.instrument_rules,
+    profile = parse_profile_json(read_file(profile_path, MAX_CONFIG_BYTES))
+    program = parse_program(read_file(program_path, MAX_CONFIG_BYTES))
+    protocol = parse_protocol(read_file(protocol_path, MAX_CONFIG_BYTES))
+    result = evaluate_capture_json(protocol, read_file(capture_path, MAX_CAPTURE_BYTES), profile.instrument_rules,
                                    now=evaluated_at)
-    document = _read_file(review_path, MAX_DOCUMENT_BYTES)
+    document = read_file(review_path, MAX_DOCUMENT_BYTES)
     root = state_root().absolute()
     head = BaselineHead(root=head_root, name=history_head_name(window), chain=HistoryChain(root=root, window=window))
     history = LiveHistory(program, protocol, profile, window=window, root=root, clock=clock, trusted_head=head)
     driver = make_fixed_driver(program, protocol, profile, window=window, history_provider=history.provider,
-                               history_verifier=history.verifier, program_artifact=_artifact("program.py"))
+                               history_verifier=history.verifier, program_artifact=artifact("program.py"))
     identity = history.bind(driver)
     authority = CurrentOwnerAuthority(clock=clock)
     verifiers = ReviewVerifiers(document, clock=clock, authority_provider=authority,

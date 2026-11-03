@@ -43,7 +43,7 @@ from execution_control.capability import digest
 from execution_control.controller import AccountObservation
 from execution_control.store import (GENESIS, MAX_ROW_BYTES, SCHEMA, _ROW_KEYS, _canonical, _decode, _lock,
                                      _sync_directory, _utc, _valid_stamp)
-from execution_launch.baseline_head import BaselineHead
+from execution_launch.baseline_head import BaselineHead, BaselineHeadError
 from execution_launch.driver import (AccountAnchor, DeploymentWindow, FixedDriverIdentity, HistoryFrame,
                                      HistoryReceipt, describe_fixed_driver, fixed_history_dependencies,
                                      history_frame_digest)
@@ -255,8 +255,10 @@ class LiveHistory:
     def _read_head(self):
         try:
             return self._head_authority.read()
-        except Exception:
-            raise LiveHistoryError("HISTORY_TRUSTED_HEAD_READ_FAILED") from None
+        except Exception as exc:
+            uninitialized = isinstance(exc, BaselineHeadError) and str(exc) == "HEAD_NOT_INITIALIZED"
+            raise LiveHistoryError("HISTORY_HEAD_NOT_INITIALIZED" if uninitialized
+                                   else "HISTORY_TRUSTED_HEAD_READ_FAILED") from None
 
     def _file_size(self):
         try:

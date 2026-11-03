@@ -449,6 +449,13 @@ def test_identity_head_and_failures_fail_closed():
         env.c[0] = env.start - timedelta(minutes=5)
         refused(lambda: other.h.bind(other.d), "HISTORY_HEAD_NOT_INITIALIZED")
         assert not directory(other.window).exists()
+        # (c) a head the operator never initialized (no head.json) is the same refusal, not a read failure (K10)
+        bare = SimpleNamespace(**vars(env))
+        bare.window = replace(env.window, deployment_id="invented-bare-deployment")
+        bare.head = BaselineHead(root=hroot, name="live-history-bare", chain=chain_for(bare))
+        attach(bare)
+        refused(lambda: bare.h.bind(bare.d), "HISTORY_HEAD_NOT_INITIALIZED")
+        assert not directory(bare.window).exists() and not (hroot / "live-history-bare").exists()
         # (e) a failing clock or head read is a fixed code without the private text
         def secret():
             raise RuntimeError("SECRET-CLOCK")

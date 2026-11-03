@@ -699,6 +699,66 @@ def test_coordinator_source_static_contract():
                                          "execution_orders.transport", "execution_orders.upbit")) for m in modules), modules
     assert isinstance(tree.body[0], ast.Expr) and isinstance(tree.body[0].value, ast.Constant)
     assert not any(isinstance(node, ast.Expr) for node in tree.body[1:])
+    # K9: compose reaches the loader through workflow's public aliases; neither module is a fixed-driver source.
+    from execution_launch import driver as fixed, workflow as W
+    assert W.read_file is W._read_file and W.artifact is W._artifact
+    assert MODULE not in fixed._SOURCE_FILES and "execution_launch/workflow.py" not in fixed._SOURCE_FILES
+    for node in tree.body:
+        if isinstance(node, ast.ImportFrom) and node.module == "execution_launch.workflow":
+            assert not any(alias.name.startswith("_") for alias in node.names), [alias.name for alias in node.names]
+    assert "CoordinatorStatus" in text and "Controller's order states" in ast.get_docstring(
+        next(node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == "CoordinatorStatus"))
+
+
+# -- K11: the refusal codes no test named, the timer's clock and the gate stage --------------------------------
+
+def test_untested_refusal_codes_publish_no_frame():
+    """K11: COORDINATOR_ACCOUNT_FRAME_INVALID (a non-frame, or a frame ending after the unit time),
+    COORDINATOR_STARTUP_RECONCILE_REQUIRED (a slot before the first successful observe: carried in `reasons`, never
+    in `account_source`, and refused before the book is read), COORDINATOR_NO_PUBLISHED_TICK (the board outside a
+    unit) and COORDINATOR_CLOCK_ROLLBACK (a unit time earlier than the previous unit's): none publishes a frame,
+    commits a checkpoint or reaches the driver."""
+    for invalid in (lambda previous, now: "not-a-frame",
+                    lambda previous, now: env.producer(previous, now + seconds(1))):
+        with fixture() as env:
+            c = build(env, account_source=invalid)
+            seen = observe_at(env, c, 58, 75)
+            env.fake.at(env.t0 + seconds(30),
+                        lambda: refused(lambda: c._board.quote(env.fake.now), "COORDINATOR_NO_PUBLISHED_TICK"))
+            status = c.run()
+            assert status.account_source == "COORDINATOR_ACCOUNT_FRAME_INVALID" and status.published_units == 0
+            assert seen[58].reasons == ("COORDINATOR_STARTUP_RECONCILE_REQUIRED",), seen[58]
+            assert seen[58].account_source == "COORDINATOR_ACCOUNT_FRAME_INVALID", seen[58]   # the gate: no account step
+            assert seen[75].reasons == ("COORDINATOR_STARTUP_RECONCILE_REQUIRED",) and status.new_entry_blocked
+            assert env.books.reads == 0 and env.head.commits == [] and env.decisions == [] and env.adapter.requests == []
+            assert len(env.producer.prefetches) == 11                       # startup and ten monitors, never a slot
+            refused(lambda: c._board.quote(env.fake.now), "COORDINATOR_NO_PUBLISHED_TICK")
+            refused(lambda: c._board.account_frame(env.state, env.fake.now), "COORDINATOR_NO_PUBLISHED_TICK")
+    with fixture() as env:
+        c = build(env)
+        marks, seen = {}, observe_at(env, c, 82)
+        env.fake.at(env.t0 + seconds(70), lambda: (marks.update(published=c.status().published_units),
+                                                   setattr(env.producer, "latency", -30)))   # the monitor at 80 reads 50
+        env.fake.at(env.t0 + seconds(85), lambda: setattr(env.producer, "latency", 0))
+        status = c.run()
+        assert seen[82].account_source == "COORDINATOR_CLOCK_ROLLBACK", seen[82]
+        assert seen[82].published_units == marks["published"] == 5          # startup, three monitors, one slot
+        assert status.account_source == "" and status.published_units == len(env.head.commits)
+        assert len(env.decisions) == 3 and len(creates(env)) == 1 and status.reasons == ()
+
+
+def test_timer_clock_failure_is_a_fixed_code():
+    """K11: a clock that raises while the timer waits ends run() with COORDINATOR_CLOCK_INVALID from the
+    coordinator's own clock wrapper, never the raw exception or its text; the finally still closes the run."""
+    with fixture() as env:
+        def clock():
+            if env.fake.now >= env.t0 + seconds(5):
+                raise RuntimeError("CLOCK-SECRET /c/Users/x")
+            return env.fake.clock()
+        c = build(env, clock=clock)
+        exc = refused(c.run, "COORDINATOR_CLOCK_INVALID")
+        assert exc.__cause__ is None and exc.__suppress_context__ and "CLOCK-SECRET" not in repr(exc)
+        assert c.status().phase == "closed" and c.status().published_units == 1 and env.decisions == []
 
 
 # -- ruling R8: the timing budget, the schedule and the timer -----------------------------------------------------
@@ -988,7 +1048,7 @@ def test_compose_wires_loader_driver_history_reviews_and_evidence():
         with private_inputs(reviewed_set.files) as paths:
             args = compose_args(paths, reviewed_set.evaluated_at, window, fake.clock, hroot)
             # The operator has not initialized the history head: the bind refuses before any file is created.
-            refused(lambda: compose(**args), "HISTORY_TRUSTED_HEAD_READ_FAILED")
+            refused(lambda: compose(**args), "HISTORY_HEAD_NOT_INITIALIZED")
             assert not (home / STORE_DIRECTORY).exists()
             BaselineHead(root=hroot, name=history_head_name(window),
                          chain=HistoryChain(root=state_root().absolute(), window=window)).initialize_reviewed_head(GENESIS)

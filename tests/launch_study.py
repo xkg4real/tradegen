@@ -679,6 +679,37 @@ def test_cli_capture_runs_through_the_injected_clock_and_writes_only_new_files()
             assert code == 2 and report["reasons"] == ["STUDY_PREWINDOW_PROBE_FAILED"] and not any(probe.iterdir())
 
 
+def test_cli_maps_a_keyboard_interrupt_anywhere_to_the_stopped_code():
+    """K13: Ctrl+C outside the capture waiter (inside the pre-window probe read, and inside another command's plan
+    parse) prints only the fixed code STUDY_CAPTURE_STOPPED: no traceback, no path, nothing written."""
+    p = plan()
+    driver = Driver(p)
+
+    class InterruptedSource:
+        def __init__(self, *, symbol, clock):
+            assert symbol == "KRW-BTC" and callable(clock)
+
+        def read(self):
+            raise KeyboardInterrupt
+    with tempfile.TemporaryDirectory(prefix="launch_study_") as directory:
+        root = Path(os.path.realpath(directory))
+        plan_path = root / "plan.json"
+        plan_path.write_text(S.study_plan_json(p), encoding="utf-8")
+        out = root / "out"
+        out.mkdir()
+        with ExitStack() as stack:
+            stack.enter_context(patch("execution_accounts.quotes.E1UpbitQuoteSource", InterruptedSource))
+            stack.enter_context(patch.object(S, "datetime", SimpleNamespace(now=lambda tz: driver.clock[0])))
+            code, report, raw = invoke("capture", "--plan", str(plan_path), "--out", str(out))
+        assert code == 2 and report["reasons"] == ["STUDY_CAPTURE_STOPPED"] and report["execution_ready"] is False
+        assert "Traceback" not in raw and str(root) not in raw and not any(out.iterdir())
+        with patch.object(S, "parse_study_plan", side_effect=KeyboardInterrupt):
+            code, report, raw = invoke("select", "--plan", str(plan_path), "--profile", str(plan_path),
+                                       "--captures", str(out), "--now", "2031-01-01T00:00:00+00:00")
+        assert code == 2 and report["reasons"] == ["STUDY_CAPTURE_STOPPED"] and report["execution_ready"] is False
+        assert "Traceback" not in raw and str(root) not in raw
+
+
 # -- static contract (T15) -----------------------------------------------------------------------------------
 
 def test_study_reads_clock_only_in_main_and_has_no_endpoint_literal():

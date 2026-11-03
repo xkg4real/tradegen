@@ -671,6 +671,8 @@ def main(argv: list[str] | None = None) -> int:
             code = "STUDY_INPUT_REFUSED"
     except (OSError, TypeError, AttributeError, ArithmeticError, RecursionError, KeyError):
         code = "STUDY_INPUT_REFUSED"
+    except KeyboardInterrupt:                      # Ctrl+C anywhere outside the capture waiter: the same fixed code
+        code = "STUDY_CAPTURE_STOPPED"
     output = _base(command if command in _COMMANDS else None)
     output["reasons"] = [code]
     print(json.dumps(output, sort_keys=True))

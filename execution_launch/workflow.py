@@ -151,6 +151,10 @@ def _artifact(name):
     return _read_file(str(Path(__file__).absolute().with_name(name)), MAX_ARTIFACT_BYTES, suffix='.py')
 
 
+read_file = _read_file      # the public names other modules in the closure use (coordinator.compose)
+artifact = _artifact
+
+
 def _json(raw):
     def pairs(rows):
         output = {}
