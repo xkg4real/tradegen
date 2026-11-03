@@ -357,7 +357,7 @@ def quant_provider_status() -> list[dict]:
 
 
 # --------------------------------------------------------------------------- #
-# Crypto — keyless public data (Upbit, Binance) and an optional read-only
+# Crypto — keyless public data (Upbit, OKX) and an optional read-only
 # Upbit key. The key must be issued with 자산조회 (balance) scope only; QUANTGEN
 # never implements an order, withdrawal or transfer path on any venue and
 # never holds a private key or seed phrase.
@@ -372,7 +372,7 @@ def upbit_keys() -> tuple[str, str]:
 
 def crypto_provider_status() -> list[dict]:
     """Presence-only report for the Settings page. No values are returned."""
-    from data.crypto.crypto_client import provider_status
+    from data.crypto.okx_public import provider_status
     return provider_status()
 
 

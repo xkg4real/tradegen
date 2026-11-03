@@ -117,7 +117,7 @@ Version 3 widens the asset coverage and adds the gate that decides what is
 offered. Four surfaces — **Derivatives, ETF, Crypto, Strategy Lab** — sit on
 the KIS asset domains the stock-account key already quotes (ETF NAV, KOSPI 200
 futures and options, KTB and USD futures, KRW benchmark yields, overseas
-prices) and on keyless Upbit / Binance / CoinGecko data. Every strategy and
+prices) and on keyless Upbit / OKX / CoinGecko data. Every strategy and
 distributional model was validated on real history by one pre-registered
 gate; what failed is shown as a refusal, not hidden. See
 [The expansion surfaces](#the-expansion-surfaces-version-3).
@@ -787,13 +787,13 @@ Model defaults to `claude-sonnet-5`; override with `QUANTGEN_AI_MODEL`.
 | **Yahoo Finance** | FX spot histories (EURUSD, USDJPY, USDKRW, …), 10y note future, gold | nothing — keyless |
 | FMP | US (and plan-permitting international) daily EOD, closes adjusted for splits **and dividends** (`/historical-price-eod/dividend-adjusted`) | `FMP_API_KEY` |
 | KIS | KRX daily OHLCV (6-digit codes route here automatically); **version 3**: ETF NAV / premium / constituents, KOSPI 200 futures and the option chain, KTB and USD futures (market `CF`), KRW benchmark yields (`Y0101`…`Y0117`, CD 91d), US yields, USD/KRW fixing, overseas prices (`NAS:AAPL`), exchange-traded KTBs, investor flows and short sales — all quotation-only, one stock-account key | `KIS_APP_KEY` + `KIS_APP_SECRET` |
-| **Upbit / Binance / CoinGecko** | KRW-BTC daily candles since 2017, USDT spot klines, perpetual funding history, premium index, open interest, the top-N list; `KRW-BTC` / `BTCUSDT` route here automatically | nothing — keyless (`UPBIT_ACCESS_KEY` / `UPBIT_SECRET_KEY`, asset-inquiry scope, only for the balance tile) |
+| **Upbit / OKX / CoinGecko** | KRW-BTC daily candles since 2017, OKX USDT spot daily candles (BTC-USDT from 2018-01-11; Binance's began 2017-08-17), BTC-USDT-SWAP funding (OKX keeps about three months, so the funding percentile and decile study run on that window only; Binance went back to 2019), mark/index premium, the top-N list; open interest is no longer fetched; `KRW-BTC` / `BTCUSDT` route here automatically | nothing — keyless (`UPBIT_ACCESS_KEY` / `UPBIT_SECRET_KEY`, asset-inquiry scope, only for the balance tile) |
 | Synthetic | Seeded per-symbol series, curves and rates | nothing |
 
 FICC fetches are cached on disk (`~/.tradegen/ficc_cache`, six hours by default)
 so a page refresh does not re-download two years of the curve. The same cache
 now holds every price history that goes through `load_history` (FMP, KIS,
-Yahoo, Upbit, Binance), so re-running Quant Lab, Signals, Portfolio or Strategy
+Yahoo, Upbit, OKX), so re-running Quant Lab, Signals, Portfolio or Strategy
 Lab does not spend provider quota on unchanged bars; a series served from disk
 says `cached <time>` in its note, which each page shows beside the source. A
 series fetched while its market may be trading ends in a running price, so it

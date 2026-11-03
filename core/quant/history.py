@@ -55,7 +55,7 @@ class HistoryError(RuntimeError):
 @dataclass(frozen=True)
 class History:
     symbol: str
-    source: str                       # "FMP" | "KIS" | "YFINANCE" | "UPBIT" | "BINANCE" | "SYNTHETIC"
+    source: str                       # "FMP" | "KIS" | "YFINANCE" | "UPBIT" | "OKX" | "SYNTHETIC"
     dates: tuple[str, ...]            # ISO dates, ascending
     closes: tuple[float, ...]
     note: str = ""
@@ -283,13 +283,14 @@ def yf_history(symbol: str, *, days: int = 504) -> History:
 
 
 def crypto_history(symbol: str, *, days: int = 504) -> History:
-    """`KRW-BTC` (Upbit, KRW) or `BTCUSDT` (Binance spot, USDT), keyless."""
-    from data.crypto.crypto_client import BinancePublic, CryptoError, UpbitPublic
+    """`KRW-BTC` (Upbit, KRW) or `BTCUSDT` (OKX spot BTC-USDT, USDT), keyless."""
+    from data.crypto.crypto_client import CryptoError, UpbitPublic
+    from data.crypto.okx_public import OKXPublic
     s = symbol.upper()
     try:
         if s.startswith("KRW-") or s.startswith("BTC-") or s.startswith("USDT-"):
             return UpbitPublic().daily(s, days=days).to_history()
-        return BinancePublic().daily(s, days=days).to_history()
+        return OKXPublic().daily(s, days=days).to_history()
     except CryptoError as exc:
         raise HistoryError(str(exc)) from exc
 
@@ -465,7 +466,7 @@ SOURCES = ("auto", "fmp", "kis", "yfinance", "crypto", "synthetic")
 
 def load_history(symbol: str, *, source: str = "auto", days: int = 504) -> History:
     """Fetch daily closes for `symbol`. `source="auto"` routes by the symbol's
-    shape: 6-digit KRX codes to KIS; `KRW-BTC` / `BTCUSDT` to Upbit / Binance
+    shape: 6-digit KRX codes to KIS; `KRW-BTC` / `BTCUSDT` to Upbit / OKX
     (keyless); `^VIX`, `ZN=F`, `KRW=X`, `BTC-USD` to Yahoo (keyless; a
     `005930.KS` code is a KRX code and goes to KIS — ask for `yfinance`
     explicitly to get Yahoo's dividend-adjusted series); `NAS:AAPL`, KRX derivative codes, bond ISINs and `Y0101`-style

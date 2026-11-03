@@ -32,7 +32,7 @@ _SIGNUP = {
     "opendart": "opendart.fss.or.kr",
     "krx": "data.krx.co.kr",
     "upbit": "docs.upbit.com (no key needed)",
-    "binance": "developers.binance.com (no key needed)",
+    "okx": "www.okx.com/docs-v5 (no key needed)",
     "upbit_account": "upbit.com → Open API 관리 (자산조회 only)",
 }
 
@@ -154,12 +154,12 @@ def build_settings_page(page: ft.Page, *, on_reload: Optional[Callable] = None) 
 
     def run_crypto_probe(e=None) -> None:
         crypto_probe_host.controls = [ft.ProgressRing(width=16, height=16),
-                                      ft.Text("contacting Upbit and Binance…", size=12, color=pal.muted)]
+                                      ft.Text("contacting Upbit and OKX…", size=12, color=pal.muted)]
         page.update()
 
         def worker():
             try:
-                from data.crypto.crypto_client import probe as cprobe
+                from data.crypto.okx_public import probe as cprobe
                 result = cprobe()
             except Exception as exc:
                 result = {"crypto": {"ok": False, "detail": f"{type(exc).__name__}: {exc}"}}
@@ -262,7 +262,7 @@ def build_settings_page(page: ft.Page, *, on_reload: Optional[Callable] = None) 
         ft.Container(kis_probe_host, padding=ft.Padding(0, 4, 0, 4)),
 
         ft.Text("Crypto providers", size=15, weight=ft.FontWeight.W_600, color=pal.text),
-        notice("Upbit and Binance public data are keyless. An Upbit key is optional and must be issued with 자산조회 "
+        notice("Upbit and OKX public data are keyless. An Upbit key is optional and must be issued with 자산조회 "
                "(balance) scope only; QUANTGEN never submits orders, withdrawals or transfers and never holds a wallet key.",
                "accent", icon=ft.Icons.LOCK_OUTLINE),
         ft.ResponsiveRow([ft.Container(provider_row(p), col={"xs": 12, "md": 6})

@@ -1,15 +1,15 @@
-"""Crypto analytics on keyless Upbit / Binance data: the kimchi premium, funding
+"""Crypto analytics on keyless Upbit / OKX data: the kimchi premium, funding
 as carry, a six-component market-regime score, the ETH/BTC ratio test, the
 weekday table, and an out-of-sample scorecard for the app's GARCH(1,1)-t on
 Bitcoin. Nothing here trades; every number carries its sample size.
 
-  kimchi_premium      p = P_Upbit(KRW-BTC) / (P_Binance(BTCUSDT) · USDKRW) − 1,
+  kimchi_premium      p = P_Upbit(KRW-BTC) / (P_OKX(BTC-USDT) · USDKRW) − 1,
                       1-year z, ADF, half-life, and the next-7-day predictive
                       regression (Makarov & Schoar 2020 JFE; Choi, Lehar &
                       Stauffer). A signal, never a trade: FETA remittance caps,
                       the Travel Rule and the 2027 tax close the arbitrage.
   funding_carry       8-hourly funding → annualised carry (×1,095), its
-                      percentile since 2019-09-10, crowded flags, and the
+                      percentile over the history fetched (OKX keeps ~3 months), crowded flags, and the
                       decile event study (BIS WP 1087: high carry predicts
                       crashes; He, Manela, Ross & von Wachter 2022).
   regime_score        the six components of the crypto-regime-analyzer skill
@@ -73,11 +73,11 @@ class KimchiPremium:
     note: str = ""
 
 
-def kimchi_premium(upbit_krw: dict[str, float], binance_usdt: dict[str, float],
+def kimchi_premium(upbit_krw: dict[str, float], usdt_close: dict[str, float],
                    usdkrw: dict[str, float], *, z_window: int = 365, horizon: int = 7) -> KimchiPremium:
     """Inputs are {date: close} dicts; USD/KRW is forward-filled by date because
     the FX fixing has no weekend rows."""
-    dates = sorted(set(upbit_krw) & set(binance_usdt))
+    dates = sorted(set(upbit_krw) & set(usdt_close))
     fx_dates = np.array(sorted(usdkrw))
     fx_vals = np.array([usdkrw[d] for d in fx_dates], dtype=float)
     idx = np.searchsorted(fx_dates, np.array(dates), side="right") - 1
@@ -85,7 +85,7 @@ def kimchi_premium(upbit_krw: dict[str, float], binance_usdt: dict[str, float],
     dates = [d for d, k in zip(dates, keep) if k]
     fx = fx_vals[idx[keep]]
     kr = np.array([upbit_krw[d] for d in dates])
-    us = np.array([binance_usdt[d] for d in dates])
+    us = np.array([usdt_close[d] for d in dates])
     prem = (kr / (us * fx) - 1.0) * 100.0
     z = np.full(prem.size, np.nan)
     for t in range(min(z_window, 90), prem.size):
