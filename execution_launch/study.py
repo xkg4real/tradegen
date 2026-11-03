@@ -33,6 +33,7 @@ from fractions import Fraction
 import hashlib
 import json
 import math
+import ntpath
 import os
 from pathlib import Path
 import random
@@ -180,6 +181,12 @@ def _structure(plan):
     ids = tuple(c.program.strategy_id for c in plan.candidates)
     _require(ids == tuple(sorted(set(ids)))
              and all(c.protocol.strategy_id == c.program.strategy_id for c in plan.candidates),
+             "STUDY_PLAN_SCHEMA_INVALID")
+    # The archive <study_id>.capture.json must be a legal file name on Windows (no stream colon, no DOS device
+    # such as CON.<id>) or the writer would refuse it only after the window; ntpath is pure, so a plan frozen
+    # anywhere is refused here, before any data is seen.
+    _require(all(type(c.protocol.study_id) is str and ":" not in c.protocol.study_id
+                 and not ntpath.isreserved(c.protocol.study_id + ".capture.json") for c in plan.candidates),
              "STUDY_PLAN_SCHEMA_INVALID")
     _require(all(c.program.kind != "cash" for c in plan.candidates), "STUDY_CASH_MEMBER_CANNOT_QUALIFY")
     return ids

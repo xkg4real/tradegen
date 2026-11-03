@@ -346,6 +346,8 @@ def test_plan_binds_complete_common_family():
     cash = ProgramSpec(schema_version=1, strategy_id="fixture-cash", kind="cash", fast_window=0, slow_window=0,
                        exposure_fraction=D("0"))
     refused(lambda: plan(programs=PROGRAMS + (cash,)), "STUDY_CASH_MEMBER_CANNOT_QUALIFY")
+    refused(lambda: plan(study_id="fixture:study"), "STUDY_PLAN_SCHEMA_INVALID")   # NTFS stream in the archive name
+    refused(lambda: plan(study_id="CON"), "STUDY_PLAN_SCHEMA_INVALID")             # DOS device: CON.<id>.capture.json
     retuned = tuple(replace(c, protocol=replace(c.protocol, alpha=D("0.04"))) for c in candidates)
     refused(lambda: S.validate_study_plan(replace(p, candidates=retuned)), "CAPTURE_PROTOCOL_NOT_REGISTERED")
     refused(lambda: S.validate_study_plan(replace(p, prior_research_sha256="f" * 64)), "STUDY_PRIOR_RESEARCH_MISMATCH")
