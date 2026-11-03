@@ -116,9 +116,12 @@ def narrative(a: dict) -> str:
         + (f", and its predictive slope on next-week returns is {kp.pred_slope:+.4f} (t {kp.pred_t:+.1f})." if math.isfinite(kp.pred_t) else "."),
     ]
     if fc:
+        decile = (f"after top-decile funding the next 30 days returned {fc.top_decile_fwd30:+.1%} against "
+                  f"{fc.bottom_decile_fwd30:+.1%} after bottom-decile funding (bootstrap p {fc.bootstrap_p:.2f})"
+                  if math.isfinite(fc.bootstrap_p) else
+                  "there are too few funding days for the decile test (OKX keeps about three months of funding history)")
         parts.append(f"Perpetual funding runs {fc.last_ann_pct:+.1f} % a year on the 7-day mean, the {fc.percentile:.0%} percentile since "
-                     f"{fc.dates[0]} ({fc.flag}); after top-decile funding the next 30 days returned {fc.top_decile_fwd30:+.1%} against "
-                     f"{fc.bottom_decile_fwd30:+.1%} after bottom-decile funding (bootstrap p {fc.bootstrap_p:.2f}).")
+                     f"{fc.dates[0]} ({fc.flag}); {decile}.")
     live = [c for c in rs.components if c.score is not None]
     parts.append(f"The regime score is {rs.score:.0f}/100 ({rs.zone}) from {len(live)} components: " +
                  "; ".join(f"{c.label} {c.score:.0f} ({c.signal})" for c in live) + ". " + rs.note)
@@ -135,10 +138,12 @@ def narrative(a: dict) -> str:
 
 def payload(a: dict) -> dict:
     kp, fc, rs = a["kimchi"], a["funding"], a["regime"]
+    tested = bool(fc) and math.isfinite(fc.bootstrap_p)        # the decile means are a result only when the test ran
     return {"source": a["source"], "kimchi": {"last_pct": kp.last_pct, "z": kp.last_z, "mean_pct": kp.mean_pct, "max_pct": kp.max_pct,
                                               "half_life_days": kp.half_life_days, "adf_p": kp.adf_p, "pred_t": kp.pred_t, "n": kp.n},
-            "funding": ({"last_ann_pct": fc.last_ann_pct, "percentile": fc.percentile, "flag": fc.flag, "top_decile_fwd30": fc.top_decile_fwd30,
-                         "bottom_decile_fwd30": fc.bottom_decile_fwd30, "bootstrap_p": fc.bootstrap_p} if fc else None),
+            "funding": ({"last_ann_pct": fc.last_ann_pct, "percentile": fc.percentile, "flag": fc.flag,
+                         "top_decile_fwd30": fc.top_decile_fwd30 if tested else None,
+                         "bottom_decile_fwd30": fc.bottom_decile_fwd30 if tested else None, "bootstrap_p": fc.bootstrap_p} if fc else None),
             "premium_index": a["premium_index"], "regime": {"score": rs.score, "zone": rs.zone, "components":
                                                             [{"key": c.key, "score": c.score, "signal": c.signal} for c in rs.components]},
             "garch": a["garch"], "ethbtc": a["ethbtc"], "weekday": a["weekday"], "verdicts": a["verdicts"],

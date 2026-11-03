@@ -16,6 +16,8 @@ Every call goes through crypto_client._get, looked up at call time (the shared s
 suites' hermetic patches). The host execution already allow-lists is tried first and the documented production host
 second, the way the Binance spot client tried its two hosts; a reply that is not an OKX envelope with code "0" fails
 on the spot (a rate limit can come back as HTTP 200 with code 50011, and no other host would answer differently).
+Errors never carry OKX's own text: an envelope failure names the code only when it is a short number, and a row in
+an unexpected shape is named by its exception type ("malformed row (ValueError)"), never quoted.
 """
 from __future__ import annotations
 
@@ -27,6 +29,8 @@ from data.crypto.crypto_client import Candles, CryptoError, FundingSeries
 OKX_HOSTS = ("https://www.okx.com/api/v5",       # the host execution already allow-lists (probed 2026-11-03)
              "https://openapi.okx.com/api/v5")   # the production host the docs name (#overview-production-trading-services)
 _PAGE = 300                                       # history-candles rows per call (the documented maximum)
+_MALFORMED = (KeyError, IndexError, TypeError, ValueError, OverflowError, OSError)   # a row in an unexpected shape
+_FIXED_TEXT = {"51001": " (instrument does not exist)"}                              # local words, not OKX's msg
 
 
 def _inst(symbol: str) -> str:
@@ -50,8 +54,10 @@ def _okx(path: str, params: dict, *, label: str) -> list:
     else:
         raise CryptoError(f"{label}: no OKX host answered ({last})")
     if not (isinstance(r, dict) and str(r.get("code")) == "0" and isinstance(r.get("data"), list)):
-        code, msg = (r.get("code"), r.get("msg") or "") if isinstance(r, dict) else ("?", "not an OKX envelope")
-        raise CryptoError(f"{label}: OKX code {code} {msg}".rstrip())
+        code = str(r.get("code")) if isinstance(r, dict) else "?"           # never the envelope's msg
+        if not (code.isascii() and code.isdigit() and len(code) <= 6):
+            code = "?"
+        raise CryptoError(f"{label}: OKX code {code}{_FIXED_TEXT.get(code, '')}")
     return r["data"]
 
 
@@ -72,25 +78,29 @@ class OKXPublic:
     def daily(self, symbol: str = "BTC-USDT", *, days: int = 504) -> Candles:
         """The last `days` UTC daily candles of a spot pair, oldest first."""
         sym, inst = symbol.strip().upper(), _inst(symbol)
+        label = f"OKX {inst}"
         rows: dict[int, list] = {}
         after = None
-        for _ in range(days // 100 + 2):          # room for 100-row pages, should OKX ever cap below _PAGE
-            params = {"instId": inst, "bar": "1Dutc", "limit": min(_PAGE, max(1, days - len(rows)))}
-            if after is not None:
-                params["after"] = after
-            fresh = [k for k in _okx("/market/history-candles", params, label=f"OKX {inst}") if int(k[0]) not in rows]
-            for k in fresh:
-                rows[int(k[0])] = k
-            if not fresh or len(rows) >= days:
-                break
-            after = min(rows)                     # exclusive: the next page is older
-        if not rows:
-            raise CryptoError(f"OKX returned no candles for {inst}.")
-        ts = sorted(rows)
-        col = lambda i: tuple(float(rows[t][i]) for t in ts)                 # noqa: E731
-        return Candles(symbol=sym, dates=tuple(_utc(t).strftime("%Y-%m-%d") for t in ts), close=col(4), open=col(1),
-                       high=col(2), low=col(3), volume=col(5), quote_volume=col(7), source=self.source,
-                       note=f"OKX spot 1Dutc candle, UTC, {inst.rsplit('-', 1)[1]} quote")
+        try:
+            for _ in range(days // 100 + 2):      # room for 100-row pages, should OKX ever cap below _PAGE
+                params = {"instId": inst, "bar": "1Dutc", "limit": min(_PAGE, max(1, days - len(rows)))}
+                if after is not None:
+                    params["after"] = after
+                fresh = [k for k in _okx("/market/history-candles", params, label=label) if int(k[0]) not in rows]
+                for k in fresh:
+                    rows[int(k[0])] = k
+                if not fresh or len(rows) >= days:
+                    break
+                after = min(rows)                 # exclusive: the next page is older
+            if not rows:
+                raise CryptoError(f"OKX returned no candles for {inst}.")
+            ts = sorted(rows)
+            col = lambda i: tuple(float(rows[t][i]) for t in ts)             # noqa: E731
+            return Candles(symbol=sym, dates=tuple(_utc(t).strftime("%Y-%m-%d") for t in ts), close=col(4),
+                           open=col(1), high=col(2), low=col(3), volume=col(5), quote_volume=col(7),
+                           source=self.source, note=f"OKX spot 1Dutc candle, UTC, {inst.rsplit('-', 1)[1]} quote")
+        except _MALFORMED as exc:                 # a CryptoError from _okx passes through
+            raise CryptoError(f"{label}: malformed row ({type(exc).__name__})") from None
 
     def funding(self, symbol: str = "BTCUSDT", *, days: int = 730) -> FundingSeries:
         """Settled funding of the USDT perpetual over the last `days`, as far back as OKX keeps it (about three
@@ -101,7 +111,7 @@ class OKXPublic:
         page = _okx("/public/funding-rate-history", {"instId": inst, "limit": 400}, label=f"OKX funding {inst}")
         try:
             rows = {int(r["fundingTime"]): float(r["realizedRate"]) for r in page if _utc(r["fundingTime"]) >= cutoff}
-        except (KeyError, TypeError, ValueError) as exc:
+        except _MALFORMED as exc:
             raise CryptoError(f"OKX funding {inst}: malformed row ({type(exc).__name__})") from None
         if not rows:
             raise CryptoError(f"OKX returned no funding history for {inst}.")
@@ -113,14 +123,17 @@ class OKXPublic:
         """The fields Binance's premiumIndex gave, from three OKX calls."""
         inst = _inst(symbol)
         swap = inst + "-SWAP"
-        mark = float(_first("/public/mark-price", {"instType": "SWAP", "instId": swap}, label="OKX mark")["markPx"])
-        index = float(_first("/market/index-tickers", {"instId": inst}, label="OKX index")["idxPx"])
-        fr = _first("/public/funding-rate", {"instId": swap}, label="OKX funding rate")
-        return {"symbol": symbol.upper(), "mark": mark, "index": index,
-                "premium_pct": (mark / index - 1.0) * 100 if index else 0.0,
-                "last_funding_rate": float(fr.get("fundingRate") or 0.0),
-                "next_funding_time": _utc(fr.get("fundingTime") or 0).isoformat(timespec="minutes"),
-                "as_of": datetime.now(timezone.utc).isoformat(timespec="seconds")}
+        try:
+            mark = float(_first("/public/mark-price", {"instType": "SWAP", "instId": swap}, label="OKX mark")["markPx"])
+            index = float(_first("/market/index-tickers", {"instId": inst}, label="OKX index")["idxPx"])
+            fr = _first("/public/funding-rate", {"instId": swap}, label="OKX funding rate")
+            return {"symbol": symbol.upper(), "mark": mark, "index": index,
+                    "premium_pct": (mark / index - 1.0) * 100 if index else 0.0,
+                    "last_funding_rate": float(fr.get("fundingRate") or 0.0),
+                    "next_funding_time": _utc(fr.get("fundingTime") or 0).isoformat(timespec="minutes"),
+                    "as_of": datetime.now(timezone.utc).isoformat(timespec="seconds")}
+        except _MALFORMED as exc:                 # a CryptoError from _first passes through
+            raise CryptoError(f"OKX premium {swap}: malformed row ({type(exc).__name__})") from None
 
 
 def provider_status() -> list[dict]:
@@ -140,6 +153,6 @@ def probe() -> dict:
         try:
             v = fn()
             out[name] = {"ok": bool(v), "detail": f"last {v:,.2f}"}
-        except Exception as exc:
-            out[name] = {"ok": False, "detail": f"{type(exc).__name__}: {exc}"}
+        except Exception as exc:                  # a CryptoError names a label and a code; anything else its type only
+            out[name] = {"ok": False, "detail": str(exc) if isinstance(exc, CryptoError) else type(exc).__name__}
     return out
