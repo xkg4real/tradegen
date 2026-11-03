@@ -270,6 +270,15 @@ def test_crypto_client_refusals_and_router():
             raise AssertionError("no host")
         except cc.CryptoError as exc:
             assert "no OKX host answered" in str(exc), exc
+        # A malformed funding row is a named provider error, not a raw ValueError on the Crypto page.
+        now_ms = str(int(datetime.now(timezone.utc).timestamp() * 1000))
+        cc._get = lambda url, params=None, headers=None, *, label: {
+            "code": "0", "data": [{"fundingTime": now_ms, "realizedRate": ""}]}
+        try:
+            okx.OKXPublic().funding("BTCUSDT")
+            raise AssertionError("malformed")
+        except cc.CryptoError as exc:
+            assert "malformed row (ValueError)" in str(exc), exc
     finally:
         cc._get = saved
     from core.quant.history import _looks_crypto, _looks_kis_market, _looks_yahoo

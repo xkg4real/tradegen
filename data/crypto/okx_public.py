@@ -99,7 +99,10 @@ class OKXPublic:
         inst = _inst(symbol) + "-SWAP"
         cutoff = datetime.now(timezone.utc) - timedelta(days=days)
         page = _okx("/public/funding-rate-history", {"instId": inst, "limit": 400}, label=f"OKX funding {inst}")
-        rows = {int(r["fundingTime"]): float(r["realizedRate"]) for r in page if _utc(r["fundingTime"]) >= cutoff}
+        try:
+            rows = {int(r["fundingTime"]): float(r["realizedRate"]) for r in page if _utc(r["fundingTime"]) >= cutoff}
+        except (KeyError, TypeError, ValueError) as exc:
+            raise CryptoError(f"OKX funding {inst}: malformed row ({type(exc).__name__})") from None
         if not rows:
             raise CryptoError(f"OKX returned no funding history for {inst}.")
         ts = sorted(rows)
