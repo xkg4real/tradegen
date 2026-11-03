@@ -252,6 +252,22 @@ def test_generated_example_records_evaluates_and_creates_only_unsigned_review_re
         assert code == 2 and rejected['reasons'] == ['WORKFLOW_PROGRAM_BINDING_MISMATCH']
 
 
+def test_example_writer_allows_windows_scratch_only_while_temp_lies_under_localappdata():
+    """On nt the profile is refused except the interpreter's temporary directory, and only while that directory
+    itself lies under %LOCALAPPDATA%: a TEMP pointed elsewhere under the profile keeps the home refusal, before any
+    write. POSIX never has the allowance, so the same path is refused there as home."""
+    contents = {name: '{}' for name in ('profile.json', 'protocol.json', 'program.json', 'bars.json')}
+    elsewhere = Path.home() / 'Documents' / 'scratch-not-under-localappdata'
+    with patch.object(example.tempfile, 'gettempdir', return_value=str(elsewhere)):
+        try:
+            example.write_new_directory(str(elsewhere / 'child'), contents)
+        except W.WorkflowError as exc:
+            assert str(exc) == 'EXAMPLE_HOME_DIRECTORY_REFUSED', exc
+        else:
+            raise AssertionError('a temporary directory outside LocalAppData was accepted under the profile')
+    assert not elsewhere.exists()
+
+
 def test_example_writer_never_overwrites_or_follows_private_or_linked_destinations():
     contents = {name: '{}' for name in ('profile.json', 'protocol.json', 'program.json', 'bars.json')}
     with tempfile.TemporaryDirectory() as root:

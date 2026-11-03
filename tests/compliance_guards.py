@@ -576,7 +576,8 @@ def test_cryptography_is_pinned_installed_and_usable():
         assert lines.count(pin) == 1, f"{name} must pin {pin} exactly once"
     project = tomllib.loads((ROOT / "pyproject.toml").read_bytes().decode("utf-8"))["project"]
     assert project["dependencies"].count(pin) == 1, f"pyproject.toml dependencies must pin {pin} exactly once"
-    assert project["requires-python"] == ">=3.12", "rules.calendar_stream calls Path.is_junction (Python 3.12)"
+    assert project["requires-python"] == ">=3.13", ("baseline_head and study call ntpath.isreserved (Python 3.13); "
+                                                    "rules.calendar_stream calls Path.is_junction (3.12)")
     dist = importlib.metadata.distribution("cryptography")
     assert dist.version == "49.0.0", f"cryptography {dist.version} is installed, not 49.0.0"
     where = Path(dist.locate_file("")).resolve()

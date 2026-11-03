@@ -132,8 +132,13 @@ def write_new_directory(path, contents):
     _require('..' not in candidate.parts and candidate.name not in ('', '.', '..'), 'EXAMPLE_DIRECTORY_REFUSED')
     absolute = Path(os.path.abspath(candidate))
     # Home directories are refused. Windows has no /tmp: its scratch area lives inside the profile, so on nt only
-    # the interpreter's temporary directory is allowed under C:\Users (the rest of the profile stays refused).
-    scratch = os.name == 'nt' and absolute.is_relative_to(Path(os.path.abspath(tempfile.gettempdir())))
+    # the interpreter's temporary directory is allowed under C:\Users, and only while that directory (resolved)
+    # lies under the resolved %LOCALAPPDATA%; a TEMP pointed elsewhere in the profile keeps the refusal.
+    scratch = False
+    if os.name == 'nt':
+        local, temp = os.environ.get('LOCALAPPDATA'), Path(os.path.realpath(tempfile.gettempdir()))
+        scratch = (bool(local) and temp.is_relative_to(Path(os.path.realpath(local)))
+                   and Path(os.path.realpath(absolute)).is_relative_to(temp))
     _require(len(absolute.parts) > 1 and (absolute.parts[1].casefold() not in ('home', 'root', 'users') or scratch),
              'EXAMPLE_HOME_DIRECTORY_REFUSED')
     _require(not any(part.casefold() in _PRIVATE or part.casefold() == '.env'

@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "tradegen"
 version = "2.0.0"
 description = "TRADEGEN — personal trading program with guarded execution and market data"
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 dependencies = [
   "flet[all]==0.85.2",
   "pyyaml>=6.0",
