@@ -142,7 +142,7 @@ def test_constants_are_the_contracts():
     assert P.LIMIT_KEYS == owner._LIMIT_KEYS == ("total_loss_floor_krw", "daily_loss_krw")
     assert P.OKX_CAP_KEY == "okx_equity_share" and P.OKX_CAP_KEY in OF.odds_ctx().owner.caps
     assert P.FEEDS == {("kis", "krx"): "kis_daily", ("kis", "us"): "yfinance", ("upbit", "crypto"): "upbit_daily",
-                       ("okx", "crypto"): "binance_x_upbit_usdt"}
+                       ("okx", "crypto"): "okx_x_upbit_usdt"}
     assert P.MARKET == {("kis", "krx"): "KR", ("kis", "us"): "US", ("upbit", "crypto"): "CRYPTO",
                         ("okx", "crypto"): "CRYPTO"}
     assert set(P.MARKET.values()) == set(P.STALE_DAYS) and set(P.MARKET) == set(P.FEEDS)

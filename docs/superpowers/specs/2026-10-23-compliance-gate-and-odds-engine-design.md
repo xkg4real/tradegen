@@ -749,8 +749,8 @@ negative. Two traps were ruled out in review:
 **`TwoPointBootstrap`** (the primary model; KRX, US and crypto legs):
 - **Price series.** Each leg is priced in KRW, so historical KRW/USD moves are part of the series:
   - US legs: price × KRW=X;
-  - OKX legs: Binance BTCUSDT × Upbit KRW-USDT, falling back to KRW=X on dates before Upbit listed KRW-USDT. The dates
-    are recorded and flagged `PROXY_DATA`.
+  - OKX legs: OKX BTC-USDT (bar 1Dutc) × Upbit KRW-USDT (amended 2026-11-03; was Binance BTCUSDT), falling back to
+    KRW=X on dates before Upbit listed KRW-USDT. The dates are recorded and flagged `PROXY_DATA`.
 - **Moves.** From each historical session the model takes two magnitudes: the overnight move m_o = |ln(open/previous
   close)| and the intraday move m_i = |ln(close/open)|.
 - **Blocks.** Rows are drawn in stationary-bootstrap blocks with mean length b = max(pw_block(r), pw_block(r²)), using

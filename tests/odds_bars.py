@@ -77,7 +77,7 @@ def _dates(first: date, last: date, *, weekdays: bool = False) -> list[str]:
 
 
 def _candles(dates, opens, closes):
-    """What crypto_client's UpbitPublic().daily and BinancePublic().daily return (the fields bars reads)."""
+    """What crypto_client's UpbitPublic().daily and okx_public.OKXPublic().daily return (the fields bars reads)."""
     return types.SimpleNamespace(dates=tuple(dates), open=tuple(opens), close=tuple(closes))
 
 
@@ -114,9 +114,9 @@ def _upbit_fake(calls: list, dates, opens, closes):
 def test_unpatched_seams_are_refused_inside_the_suite():
     """O13: inside the odds wrapper every seam is the raising stub, so a test that forgets a fake is refused, and the
     real functions are kept for the seam-body tests."""
-    assert OA.SEAMS == ("_kis_daily", "_upbit_daily", "_binance_daily", "_yf_download")
+    assert OA.SEAMS == ("_kis_daily", "_upbit_daily", "_okx_daily", "_yf_download")
     for name, args in (("_kis_daily", ("005930", "20260101", "20261022")), ("_upbit_daily", ("KRW-BTC", 10)),
-                       ("_binance_daily", ("BTCUSDT", 10)), ("_yf_download", (["SPY"], "2026-01-01", "2026-02-01"))):
+                       ("_okx_daily", ("BTC-USDT", 10)), ("_yf_download", (["SPY"], "2026-01-01", "2026-02-01"))):
         assert vars(bars)[name] is MA._boom, name
         _raises(lambda: getattr(bars, name)(*args), MA.HermeticViolation)
         real = OA.REAL_SEAMS[name]
@@ -178,9 +178,9 @@ def test_yf_seam_moves_the_tz_cache_before_downloading():
 
 
 def test_client_seams_call_their_client_as_documented():
-    """The real `_kis_daily`, `_upbit_daily` and `_binance_daily` against fake client classes (swapped on the
+    """The real `_kis_daily`, `_upbit_daily` and `_okx_daily` against fake client classes (swapped on the
     already imported client modules, restored afterwards)."""
-    from data.crypto import crypto_client
+    from data.crypto import crypto_client, okx_public
     from data.krx import kis_client
     calls = []
 
@@ -194,21 +194,21 @@ def test_client_seams_call_their_client_as_documented():
             calls.append(("upbit", market, days))
             return "upbit candles"
 
-    class FakeBinance:
-        def daily(self, symbol="BTCUSDT", *, days=504, interval="1d", market="spot"):
-            calls.append(("binance", symbol, days, interval, market))
-            return "binance candles"
+    class FakeOKX:
+        def daily(self, symbol="BTC-USDT", *, days=504):
+            calls.append(("okx", symbol, days))
+            return "okx candles"
 
-    saved = (kis_client.KISClient, crypto_client.UpbitPublic, crypto_client.BinancePublic)
-    kis_client.KISClient, crypto_client.UpbitPublic, crypto_client.BinancePublic = FakeKIS, FakeUpbit, FakeBinance
+    saved = (kis_client.KISClient, crypto_client.UpbitPublic, okx_public.OKXPublic)
+    kis_client.KISClient, crypto_client.UpbitPublic, okx_public.OKXPublic = FakeKIS, FakeUpbit, FakeOKX
     try:
         got = (OA.REAL_SEAMS["_kis_daily"]("005930", "20160101", "20261022"),
-               OA.REAL_SEAMS["_upbit_daily"]("KRW-BTC", 297), OA.REAL_SEAMS["_binance_daily"]("BTCUSDT", 297))
+               OA.REAL_SEAMS["_upbit_daily"]("KRW-BTC", 297), OA.REAL_SEAMS["_okx_daily"]("BTC-USDT", 297))
     finally:
-        kis_client.KISClient, crypto_client.UpbitPublic, crypto_client.BinancePublic = saved
-    assert got == (["kis rows"], "upbit candles", "binance candles"), got
+        kis_client.KISClient, crypto_client.UpbitPublic, okx_public.OKXPublic = saved
+    assert got == (["kis rows"], "upbit candles", "okx candles"), got
     assert calls == [("kis", "005930", "20160101", "20261022", True), ("upbit", "KRW-BTC", 297),
-                     ("binance", "BTCUSDT", 297, "1d", "spot")], calls
+                     ("okx", "BTC-USDT", 297)], calls
 
 
 # --------------------------------------------------------------------------- #
@@ -284,7 +284,7 @@ def test_a_krx_bar_dated_today_is_final_from_1540_kst():
 
 
 def test_crypto_candles_are_filtered_to_the_window_and_to_final_bars():
-    """Upbit and Binance: dates outside the window dropped; bar d kept only from 00:00Z of d + 1; an open or close of
+    """Upbit and OKX: dates outside the window dropped; bar d kept only from 00:00Z of d + 1; an open or close of
     0.0 (Upbit's missing field) dropped; `days` reaches back to the window start plus one spare."""
     dates = _dates(date(2025, 12, 25), DAY)                         # 2025-12-25 .. 2026-10-23, the last one running
     opens = [1000.0 + i for i in range(len(dates))]
@@ -294,7 +294,7 @@ def test_crypto_candles_are_filtered_to_the_window_and_to_final_bars():
     late = datetime(2026, 10, 23, 8, 59, 59, tzinfo=KST)            # 23:59:59Z on 2026-10-22
     keep = [i for i, d in enumerate(dates) if "2026-01-01" <= d and i not in (20, 40)]
     for fetch, seam, symbol, source in ((bars.upbit_part, "_upbit_daily", "KRW-BTC", "UPBIT"),
-                                        (bars.binance_part, "_binance_daily", "BTCUSDT", "BINANCE")):
+                                        (bars.okx_part, "_okx_daily", "BTC-USDT", "OKX")):
         calls = []
         with _seams(**{seam: _upbit_fake(calls, dates, opens, closes)}):
             early, final = fetch(symbol, start, end, late), fetch(symbol, start, end, NOW)
@@ -420,7 +420,7 @@ def test_us_krw_prices_use_fx_of_the_day_before_for_the_open():
 
 
 def test_the_okx_composite_uses_krw_usdt_and_krw_x_before_it():
-    """O7, Q35: BTCUSDT x KRW-USDT on the same UTC date; before the first KRW-USDT candle, KRW=X with FX(d - 1) and
+    """O7, Q35: OKX BTC-USDT x KRW-USDT on the same UTC date; before the first KRW-USDT candle, KRW=X with FX(d - 1) and
     FX(d), recorded as proxy_dates; a later date with no KRW-USDT candle is dropped. With KRW-USDT on every date the
     FX feed is never asked (its seam would raise)."""
     btc_days = _dates(date(2026, 10, 10), date(2026, 10, 22))
@@ -437,42 +437,42 @@ def test_the_okx_composite_uses_krw_usdt_and_krw_x_before_it():
         asked.append(market)
         return _candles(usdt_days, [usdt_o[d] for d in usdt_days], [usdt_c[d] for d in usdt_days])
 
-    def binance(symbol, n):
+    def okx(symbol, n):
         asked.append(symbol)
         return _candles(btc_days, [btc_o[d] for d in btc_days], [btc_c[d] for d in btc_days])
 
     def yf(tickers, start, end):
         asked.append(tickers[0])
         return _frame("KRW=X", fx_days, [v - 1.0 for v in fx_c.values()], list(fx_c.values()))
-    with _seams(_upbit_daily=upbit, _binance_daily=binance, _yf_download=yf):
+    with _seams(_upbit_daily=upbit, _okx_daily=okx, _yf_download=yf):
         s = bars.load_leg(_plan("okx", "BTC"), CRYPTO, NOW)
-    assert asked == ["BTCUSDT", "KRW-USDT", "KRW=X"], asked
+    assert asked == ["BTC-USDT", "KRW-USDT", "KRW=X"], asked
     before = {d: (date.fromisoformat(d) - timedelta(days=1)).isoformat() for d in btc_days}
     want = [(d, btc_o[d] * fx_c[before[d]], btc_c[d] * fx_c[d]) for d in btc_days if d < "2026-10-15"]
     want += [(d, btc_o[d] * usdt_o[d], btc_c[d] * usdt_c[d]) for d in btc_days if d in usdt_o]
     assert s.dates == tuple(w[0] for w in want) and "2026-10-18" not in s.dates, s.dates
     assert s.open == tuple(w[1] for w in want) and s.close == tuple(w[2] for w in want)
-    assert (s.symbol, s.source, s.adjustment, s.status) == ("BTC", "BINANCE:BTCUSDT*UPBIT:KRW-USDT", "", "final"), s
+    assert (s.symbol, s.source, s.adjustment, s.status) == ("BTC", "OKX:BTC-USDT*UPBIT:KRW-USDT", "", "final"), s
     assert s.proxy_dates == ("2026-10-10", "2026-10-14"), s.proxy_dates
     fx_final = [d for d in fx_days if d <= "2026-10-21"]              # KRW=X x is final from 00:00Z of x + 2
-    parts = (bars.Part(symbol="BTCUSDT", source="BINANCE", dates=tuple(btc_days), open=tuple(btc_o.values()),
+    parts = (bars.Part(symbol="BTC-USDT", source="OKX", dates=tuple(btc_days), open=tuple(btc_o.values()),
                        close=tuple(btc_c.values()), adjustment=""),
              bars.Part(symbol="KRW-USDT", source="UPBIT", dates=tuple(usdt_days), open=tuple(usdt_o.values()),
                        close=tuple(usdt_c.values()), adjustment=""),
              bars.Part(symbol="KRW=X", source="YAHOO", dates=tuple(fx_final),
                        open=tuple(fx_c[d] - 1.0 for d in fx_final), close=tuple(fx_c[d] for d in fx_final),
                        adjustment=""))
-    labels = ("BINANCE:BTCUSDT", "UPBIT:KRW-USDT", "YAHOO:KRW=X")
+    labels = ("OKX:BTC-USDT", "UPBIT:KRW-USDT", "YAHOO:KRW=X")
     assert s.components == tuple(zip(labels, map(bars.part_md5, parts))), s.components
     assert s.md5 == P.series_md5("BTC", s.source, s.dates, s.open, s.close, "", "final"), s.md5
     with _seams(_upbit_daily=lambda m, n: _candles(btc_days, [1.0] * len(btc_days), [2.0] * len(btc_days)),
-                _binance_daily=binance):
+                _okx_daily=okx):
         full = bars.load_leg(_plan("okx", "BTC", date(2026, 10, 24)), CRYPTO, datetime(2026, 10, 24, 9, 0, tzinfo=KST))
-    assert full.proxy_dates is None and [lb for lb, _m in full.components] == ["BINANCE:BTCUSDT", "UPBIT:KRW-USDT"]
+    assert full.proxy_dates is None and [lb for lb, _m in full.components] == ["OKX:BTC-USDT", "UPBIT:KRW-USDT"]
     assert full.close == tuple(btc_c[d] * 2.0 for d in btc_days), full.close
 
     # P63: needed historical proxy data cannot silently vanish on an FX outage.
-    with _seams(_upbit_daily=upbit, _binance_daily=binance,
+    with _seams(_upbit_daily=upbit, _okx_daily=okx,
                 _yf_download=lambda tickers, start, end: _frame("KRW=X", [], [], [])):
         err = _raises(lambda: bars.load_leg(_plan("okx", "BTC"), CRYPTO, NOW, refetch=True), RuntimeError)
     assert "FX proxy" in str(err), err

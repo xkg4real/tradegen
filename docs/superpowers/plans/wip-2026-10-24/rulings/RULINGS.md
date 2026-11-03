@@ -122,6 +122,8 @@ rev 3.2. Every departure from the spec below is recorded so it can be folded int
 - Upbit: its own KRW-* daily candles (UpbitPublic().daily).
 - OKX BTC/USDT: Binance BTCUSDT x Upbit KRW-USDT, falling back to KRW=X before Upbit listed KRW-USDT (found at run time
   from the data and recorded); flagged PROXY_DATA with the dates.
+  - Amended 2026-11-03 (OWNER, chat): OKX BTC/USDT is OKX's own BTC-USDT daily candles (bar 1Dutc) x Upbit KRW-USDT,
+    feed okx_x_upbit_usdt; the KRW=X fallback and its PROXY_DATA dates are unchanged. No live path reads Binance.
 - Refused: OKX BTC/USDC, bithumb, coinone, korbit, and any venue without its own feed and signed minimum (NOT_TRADABLE
   or UNSUPPORTED_PRODUCT with a named sub-reason).
 - KIS: KRX shares and 1x ETFs from KIS daily rows (paged, 100 per call, opens/closes <= 0 or None dropped); US shares

@@ -41,8 +41,8 @@ def _krx_series(**changes):
 
 
 def _okx_series():
-    """The OKX composite (Binance BTCUSDT x Upbit KRW-USDT), its first 30 dates priced through KRW=X."""
-    s = OF.fresh_series(symbol="BTC", source="BINANCE:BTCUSDT*UPBIT:KRW-USDT")
+    """The OKX composite (OKX BTC-USDT x Upbit KRW-USDT), its first 30 dates priced through KRW=X."""
+    s = OF.fresh_series(symbol="BTC", source="OKX:BTC-USDT*UPBIT:KRW-USDT")
     return dataclasses.replace(s, proxy_dates=(s.dates[0], s.dates[29]))
 
 
