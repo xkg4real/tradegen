@@ -21,10 +21,12 @@ PRIVILEGED = frozenset({"eval", "exec", "__import__", "sign", "sign_entry", "arm
                         "seal_context"})
 PRIVILEGED_REFERENCES = frozenset({"sign_entry", "arm", "load_context", "seal_context"})   # called or not
 PROCESS_CALLS = frozenset({"system", "popen", "startfile", "fork", "forkpty", "posix_spawn", "posix_spawnp"})
-PROCESS_PREFIXES = ("execv", "spawn")
+PROCESS_PREFIXES = ("execv", "execl", "spawn")
 ENDPOINT = re.compile(r"(?i)/(?:v1|uapi|api/v5)/")
 # One write ban for both packages. A writer row pins its exact call shapes under its own package-relative path;
-# every other write, any other shape and any other file is a hit.
+# every other write, any other shape and any other file is a hit, whether it is spelt as a call, a bare name, a
+# from-import, a module alias or a getattr with a constant name. A getattr with a computed name (the dataclass
+# field loops) is left to review.
 HEAD = "execution_launch/baseline_head.py"
 HISTORY = "execution_launch/live_history.py"
 STUDY = "execution_launch/study.py"
@@ -61,6 +63,9 @@ OS_WRITES = frozenset({"replace", "rename", "renames", "remove", "unlink", "mkdi
                        "pwritev"})
 PATH_WRITES = frozenset({"write_text", "write_bytes", "touch", "unlink", "rename", "rmdir", "mkdir",
                          "symlink_to", "hardlink_to"})
+WRITE_NAMES = OS_WRITES | PATH_WRITES | WRITE_FLAGS | {"open", "fdopen"}   # a write however it is reached
+WRITER_MODULES = ("shutil", "tempfile", "logging")                          # modules that write, in any form
+OS_MODULES = frozenset({"os", "io", "nt", "posix", "builtins"})            # where a from-import finds a writer
 WRITE_MODE = re.compile(r"[wax+]")
 # The trusted baseline head is advanced only by the account provider and the live-history journal.
 CAS_CALLERS = frozenset({"execution_accounts/baseline_bridge.py", "execution_launch/live_history.py"})
@@ -83,28 +88,65 @@ def _mode_writes(call, at):
     return not (isinstance(mode, ast.Constant) and isinstance(mode.value, str)) or bool(WRITE_MODE.search(mode.value))
 
 
-def _writes(node):
-    """A write of a file, directory or link, a write flag, or shutil in any form."""
+def _named(node):
+    """The names a from-import binds (as the module spells them) or a getattr with a constant name reaches."""
+    if isinstance(node, ast.ImportFrom):
+        return {alias.name for alias in node.names}
+    if (isinstance(node, ast.Call) and _call_name(node) == "getattr" and len(node.args) >= 2
+            and isinstance(node.args[1], ast.Constant) and isinstance(node.args[1].value, str)):
+        return {node.args[1].value}
+    return set()
+
+
+def _reached(node):
+    """Every name a node reaches: an attribute, a bare name, or what _named finds."""
+    if isinstance(node, ast.Attribute):
+        return {node.attr}
     if isinstance(node, ast.Name):
-        return node.id == "shutil"
+        return {node.id}
+    return _named(node)
+
+
+def _pure_flags(expression):
+    """os.open flags that can only be os.O_* bits: os.O_* attributes, names and getattr(os, "O_*", 0) fallbacks
+    joined by |. A number anywhere (1 | 64 is O_WRONLY | O_CREAT), a call or any other form is not."""
+    if isinstance(expression, ast.BinOp) and isinstance(expression.op, ast.BitOr):
+        return _pure_flags(expression.left) and _pure_flags(expression.right)
+    if isinstance(expression, ast.Attribute):
+        return ast.unparse(expression.value) == "os" and expression.attr.startswith("O_")
+    if isinstance(expression, ast.Call):
+        return (_call_name(expression) == "getattr" and len(expression.args) == 3
+                and ast.unparse(expression.args[0]) == "os"
+                and str(getattr(expression.args[1], "value", "")).startswith("O_")
+                and isinstance(expression.args[2], ast.Constant) and expression.args[2].value == 0)
+    return isinstance(expression, ast.Name)
+
+
+def _writes(node):
+    """A write of a file, directory or link, a write flag, or a writer module, in any form: a call, a bare name, a
+    from-import, a getattr with a constant name, or os.open flags that are not os.O_* bits."""
+    if isinstance(node, ast.Name):
+        return node.id in WRITER_MODULES or node.id.startswith("O_")
     if isinstance(node, (ast.Import, ast.ImportFrom)):
         modules = [a.name for a in node.names] if isinstance(node, ast.Import) else [node.module or ""]
-        return any(m == "shutil" or m.startswith("shutil.") for m in modules)
+        if any(m == w or m.startswith(w + ".") for m in modules for w in WRITER_MODULES):
+            return True
+        return isinstance(node, ast.ImportFrom) and node.module in OS_MODULES and bool(_named(node) & WRITE_NAMES)
     if isinstance(node, ast.Attribute):
         return node.attr in WRITE_FLAGS
     if not isinstance(node, ast.Call):
         return False
     name = _call_name(node)
     if isinstance(node.func, ast.Name):
-        return name == "open" and _mode_writes(node, 1)
+        return (name == "open" and _mode_writes(node, 1)) or bool(_named(node) & WRITE_NAMES)
     if not isinstance(node.func, ast.Attribute):
         return False
     owner = ast.unparse(node.func.value)
     if owner == "os":
-        if name == "open":                                # numeric flags hide a write mode
-            return isinstance(_mode_argument(node, 1, "flags"), ast.Constant)
+        if name == "open":                                # anything but os.O_* bits can hide a write mode
+            return not _pure_flags(_mode_argument(node, 1, "flags"))
         return name in OS_WRITES or (name == "fdopen" and _mode_writes(node, 1))
-    if name == "open":
+    if name in ("open", "FileIO"):
         return _mode_writes(node, 1 if owner in ("io", "codecs", "gzip", "bz2", "lzma") else 0)
     if name == "replace":                                 # Path.replace(target); str.replace takes two, datetime.replace keywords
         return (len(node.args) == 1 and not node.keywords) or [k.arg for k in node.keywords] == ["target"]
@@ -127,30 +169,33 @@ def problems(source, relative=""):
             if isinstance(node, ast.ImportFrom) and any(
                     alias.name in TRANSPORT_FROM.get(node.module, frozenset()) for alias in node.names):
                 failures.append("inquiry or order transport import")
-        if isinstance(node, ast.Call):
-            name = _call_name(node)
-            if name in PRIVILEGED:
-                failures.append("privileged or dynamic call")
-            if name == "compile" and ast.unparse(node.func) != "re.compile":
-                failures.append("dynamic compilation")
-            if name in PROCESS_CALLS or name.startswith(PROCESS_PREFIXES):
-                failures.append("process escape")
+            if isinstance(node, ast.Import) and any(
+                    alias.name in OS_MODULES and (alias.asname or alias.name in ("nt", "posix")) for alias in node.names):
+                failures.append("os module under another name")
+            if isinstance(node, ast.ImportFrom) and any(alias.name == "*" for alias in node.names):
+                failures.append("star import")
+        called = {_call_name(node)} if isinstance(node, ast.Call) else set()
+        reached = _reached(node)
+        if (called | _named(node)) & PRIVILEGED:
+            failures.append("privileged or dynamic call")
+        if "compile" in called and ast.unparse(node.func) != "re.compile":
+            failures.append("dynamic compilation")
+        if (called | reached) & PROCESS_CALLS or any(name.startswith(PROCESS_PREFIXES) for name in called | reached):
+            failures.append("process escape")
         if isinstance(node, ast.Attribute):
             if ast.unparse(node) == "os.environ":
                 failures.append("environment access")
             if node.attr in {"__globals__", "__code__", "__closure__", "_ISSUED"}:
                 failures.append("runtime mutation")
-            if node.attr in PRIVILEGED_REFERENCES:
-                failures.append("privileged reference")
+        if reached & PRIVILEGED_REFERENCES:
+            failures.append("privileged reference")
         if isinstance(node, ast.Constant) and isinstance(node.value, str) and ENDPOINT.search(node.value):
             failures.append("venue endpoint literal")
         if id(node) not in pinned and _writes(node):
             failures.append("write outside pinned writer")
-        if ((isinstance(node, ast.Attribute) and node.attr == "compare_and_set")
-                or (isinstance(node, ast.Name) and node.id == "compare_and_set")) and relative not in CAS_CALLERS:
+        if "compare_and_set" in reached and relative not in CAS_CALLERS:
             failures.append("trusted head advance outside pinned callers")
-        if ((isinstance(node, ast.Attribute) and node.attr in OPERATOR_ONLY)
-                or (isinstance(node, ast.Name) and node.id in OPERATOR_ONLY)) and relative != HEAD:
+        if reached & OPERATOR_ONLY and relative != HEAD:
             failures.append("operator-only head initialization outside its module")
     return failures
 
@@ -245,6 +290,12 @@ HITS = (
     "os.spawnv(0, a, b)", "os.posix_spawn(a, b, c)", "import multiprocessing", "import asyncio", "import ssl",
     "import ctypes", "from selectors import DefaultSelector", "f = owner.load_context", "x = controller.arm",
     "s = ledger.sign_entry", "make = model.seal_context",
+    # The same effects behind a bare name, a module alias, a star import or a getattr with a constant name.
+    "os.execl(a, b)", "os.execlp(a, b)", "os.execvpe(a, b, c)", "getattr(os, 'system')(c)",
+    "f = getattr(os, 'popen')", "getattr(owner, 'load_context')(now, pos)", "f = getattr(controller, 'arm')",
+    "getattr(os, 'getenv')('API_KEY')", "import os as o\no.replace(a, b)", "import nt\nnt.replace(a, b)",
+    "import posix", "import io as x", "from os import *\nreplace(a, b)", "from os import system as s\ns(c)",
+    "from core.compliance.owner import load_context as lc\nlc(now)", "from os import getenv",
 )
 CLEAN = (
     "from urllib.parse import urlsplit", "import msvcrt", "pattern = re.compile('x')",
@@ -253,6 +304,19 @@ CLEAN = (
     "import math\nmath.copysign(1, x)", "text.replace('a', 'b')", "when.replace(tzinfo=None)",
     "with open(p, 'rb') as fh:\n    fh.read()", "path.open('rb')", "data = path.read_bytes()",
     "os.open(p, os.O_RDONLY | os.O_NOFOLLOW)", "os.fstat(fd)", "is_sealed(context)",
+    # Negative controls for the bare-name, alias and getattr rules: the reads, the computed names and the constant
+    # getattr uses the runtime files make today.
+    "from os import fstat\nfstat(fd)", "from os import lstat as ls\nls(p)", "from os import path",
+    "from io import StringIO\nStringIO()", "from builtins import str", "import os\nimport os.path", "import stat",
+    "from types import SimpleNamespace", "os.getpid()", "hasattr(os, 'O_NOFOLLOW')", "getattr(os, 'fstat')(fd)",
+    "getattr(os, 'getpid')()", "getattr(owner, 'read_pubkey')(path)", "x = getattr(head, 'read')",
+    "getattr(value, name)", "getattr(entry, 'st_file_attributes', 0)",
+    'getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_BINARY", 0) | getattr(os, "O_NONBLOCK", 0)',
+    "os.open(p, os.O_RDONLY | os.O_NOFOLLOW | getattr(os, 'O_CLOEXEC', 0))",
+    "flags = os.O_RDONLY | os.O_DIRECTORY\nos.open(p, flags, dir_fd=parent)", "os.open(p, os.O_RDONLY, 0o600)",
+    "getattr(quote_source, 'read', None)", "getattr(chain, 'seed', None)", "getattr(chain, 'successor', None)",
+    "getattr(exc, 'code', None)", "getattr(inputs, 'now', None)", "getattr(source, 'account_scope', None)",
+    "getattr(protocol, 'bar_seconds', None)", "getattr(history, 'record_slot', None)",
 )
 WRITES = (
     "open(p, 'ab')", "open(p, mode='w')", "open(p, m)", "p.open('a')", "p.open(mode='xb')", "io.open(p, 'w')",
@@ -261,6 +325,17 @@ WRITES = (
     "os.makedirs(p)", "os.link(a, b)", "os.truncate(p, 0)", "os.write(fd, b'x')", "os.fdopen(fd, 'w')",
     "os.open(p, os.O_CREAT | os.O_WRONLY)", "os.open(p, 769)", "flags = os.O_APPEND", "import shutil",
     "from shutil import copyfile", "shutil.rmtree(p)",
+    # The same writes behind a from-import, a bare flag name, a getattr with a constant name, flags that are not
+    # os.O_* attributes, and the other stdlib writers.
+    "from os import replace\nreplace(a, b)", "from os import remove as rm\nrm(p)",
+    "from os import makedirs\nmakedirs(p)", "from io import open as io_open\nio_open(p, 'w')",
+    "from builtins import open as o\no(p, 'w')", "from nt import replace", "from posix import write",
+    "from os import O_WRONLY, O_CREAT\nos.open(p, O_WRONLY | O_CREAT)", "os.open(p, O_WRONLY)", "flags = O_APPEND",
+    "getattr(os, 'replace')(a, b)", "x = getattr(p, 'write_text')",
+    "os.open(p, getattr(os, 'O_WRONLY') | getattr(os, 'O_CREAT'))", "os.open(p, 1 | 64)",
+    "os.open(p, os.O_RDONLY | 64)", "os.open(p, flags=1025)", "os.open(p, int(x))", "io.FileIO(p, 'w')",
+    "import tempfile", "from tempfile import mkstemp", "tempfile.mkstemp()", "import logging",
+    "logging.basicConfig(filename=p)", "from logging import FileHandler", "import logging.handlers",
 )
 
 
@@ -269,6 +344,30 @@ def test_launch_guard_pins_transport_routes_and_process_effects():
         assert problems(source), source
     for source in CLEAN:
         assert not problems(source), (source, problems(source))
+
+
+def test_launch_guard_names_the_effect_behind_bare_names_aliases_and_constant_getattr():
+    """The ban sees through a from-import, a module alias, a star import and a getattr with a constant name, and
+    names the effect it found; a getattr with a computed name (the dataclass field loops) is left to review."""
+    for source, why in (("getattr(os, 'system')(c)", "process escape"), ("f = getattr(os, 'spawnv')", "process escape"),
+                        ("os.execl(a, b)", "process escape"), ("from os import system as s", "process escape"),
+                        ("getattr(owner, 'load_context')(now)", "privileged reference"),
+                        ("getattr(owner, 'load_context')(now)", "privileged or dynamic call"),
+                        ("from core.compliance.owner import load_context as lc", "privileged reference"),
+                        ("getattr(os, 'getenv')('K')", "privileged or dynamic call"),
+                        ("import os as o", "os module under another name"), ("import nt", "os module under another name"),
+                        ("from os import *", "star import"), ("getattr(os, 'replace')(a, b)", "write outside pinned writer"),
+                        ("from os import O_CREAT", "write outside pinned writer"),
+                        ("os.open(p, 1 | 64)", "write outside pinned writer"), ("import tempfile", "write outside pinned writer")):
+        assert why in problems(source), (source, problems(source))
+    cas = "trusted head advance outside pinned callers"
+    for source in ("x = getattr(head, 'compare_and_set')", "from execution_launch.baseline_head import compare_and_set"):
+        assert cas in problems(source, "execution_launch/driver.py"), source
+        assert cas not in problems(source, HISTORY), source
+    operator = "operator-only head initialization outside its module"
+    assert operator in problems("getattr(head, 'initialize_reviewed_head')(x)", "execution_launch/runner.py")
+    assert operator not in problems("getattr(head, 'initialize_reviewed_head')(x)", HEAD)
+    assert not problems("n = 'replace'\ngetattr(os, n)(a, b)")           # a computed name is review's, by design
 
 
 def test_launch_write_ban_covers_every_shape_and_pins_writers_by_file_and_exact_call():
@@ -305,8 +404,7 @@ def test_trusted_head_is_advanced_only_by_pinned_callers():
     callers = set()
     for path in runtime_py():
         tree = ast.parse(path.read_text(encoding="utf-8"))
-        if any((isinstance(n, ast.Attribute) and n.attr == "compare_and_set")
-               or (isinstance(n, ast.Name) and n.id == "compare_and_set") for n in ast.walk(tree)):
+        if any("compare_and_set" in _reached(n) for n in ast.walk(tree)):
             callers.add(path.relative_to(ROOT).as_posix())
     assert callers and callers <= CAS_CALLERS, callers
 
@@ -335,8 +433,7 @@ def test_head_authority_writes_are_exact_and_operator_steps_have_no_runtime_call
     referencing = set()
     for path in runtime_py():
         tree = ast.parse(path.read_text(encoding="utf-8"))
-        if any((isinstance(n, ast.Attribute) and n.attr in OPERATOR_ONLY)
-               or (isinstance(n, ast.Name) and n.id in OPERATOR_ONLY) for n in ast.walk(tree)):
+        if any(_reached(n) & OPERATOR_ONLY for n in ast.walk(tree)):
             referencing.add(path.relative_to(ROOT).as_posix())
     assert not referencing, referencing
 
