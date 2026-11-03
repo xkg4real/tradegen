@@ -10,7 +10,7 @@ MODULES = ("launch_guards", "network_route", "accounts_collector", "launch_profi
            "launch_strategy", "launch_runner", "launch_cli", "launch_capture", "launch_workflow",
            "launch_deployment", "launch_review_request", "launch_driver", "launch_review_auth",
            "launch_private_input", "launch_windows_owner_authority", "launch_baseline_head",
-           "launch_account_interval", "launch_live_history", "launch_coordinator")
+           "launch_account_interval", "launch_live_history", "launch_coordinator", "launch_study")
 
 
 def tests():
