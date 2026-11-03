@@ -26,6 +26,7 @@ ENDPOINT = re.compile(r"(?i)/(?:v1|uapi|api/v5)/")
 # One write ban for both packages. A writer row pins its exact call shapes under its own package-relative path;
 # every other write, any other shape and any other file is a hit.
 HEAD = "execution_launch/baseline_head.py"
+HISTORY = "execution_launch/live_history.py"
 PINNED_WRITES: dict[str, tuple[str, ...]] = {
     HEAD: (
         'checked_target(self._dir, "baseline head directory", within=self._root).mkdir(mode=0o700, exist_ok=True)',
@@ -37,6 +38,11 @@ PINNED_WRITES: dict[str, tuple[str, ...]] = {
         'os.fdopen(descriptor, "wb")',
         'os.replace(checked_target(self._dir / "head.tmp", "baseline head temporary file", within=self._dir), '
         'checked_target(self._dir / "head.json", "baseline head record", within=self._dir))',
+    ),
+    HISTORY: (
+        'checked_target(self._dir, "history directory", within=self._base).mkdir(mode=0o700, parents=True, exist_ok=True)',
+        'open(checked_target(self._dir / "history.lock", "history lock", within=self._dir), "a+b")',
+        'open(checked_target(self._dir / "history.jsonl", "history journal", within=self._dir), "ab")',
     ),
 }
 # The head's initialization is an explicit reviewed operator step: no runtime module may reference it.
@@ -327,6 +333,28 @@ def test_head_authority_writes_are_exact_and_operator_steps_have_no_runtime_call
                or (isinstance(n, ast.Name) and n.id in OPERATOR_ONLY) for n in ast.walk(tree)):
             referencing.add(path.relative_to(ROOT).as_posix())
     assert not referencing, referencing
+
+
+def test_live_history_writes_are_exact_and_only_through_pinned_checked_targets():
+    source = (ROOT / HISTORY).read_text(encoding="utf-8")
+    assert not problems(source, HISTORY), problems(source, HISTORY)
+    calls = {ast.dump(node) for node in ast.walk(ast.parse(source)) if isinstance(node, ast.Call)}
+    assert _PINNED_WRITE_TREES[HISTORY] <= calls, "a pinned history write shape is unused"
+    write = "write outside pinned writer"
+    for shape in PINNED_WRITES[HISTORY]:
+        assert not problems(shape, HISTORY), shape
+        for relative in ("", "execution_launch/driver.py", "execution_launch/nested/live_history.py",
+                         "execution_network/route.py"):
+            assert write in problems(shape, relative), (shape, relative)
+        assert write in problems(shape.replace("self._dir", "other_dir"), HISTORY), shape
+    for extra in ("open(p, 'ab')", "open(p, mode='w')", "open(p, m)", "p.open('a')", "p.open(mode='xb')",
+                  "p.write_text(s)", "p.write_bytes(b'')", "p.touch()", "p.unlink()", "p.mkdir()",
+                  "checked_target(p).mkdir(mode=0o777)", "os.replace(a, b)", "os.remove(p)", "os.makedirs(p)",
+                  "os.open(p, os.O_CREAT | os.O_WRONLY)", "import shutil", "from shutil import copyfile"):
+        assert write in problems(extra, HISTORY), extra
+    assert not problems("with open(p, 'rb') as fh:\n    fh.read()\npath.open('rb')\nos.open(p, os.O_RDONLY)", HISTORY)
+    assert not problems("self._head_authority.compare_and_set(old, new)", HISTORY)
+    assert "operator-only head initialization outside its module" in problems("head.initialize_reviewed_head(x)", HISTORY)
 
 
 def test_guard_reads_pin_utf8():
