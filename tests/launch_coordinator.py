@@ -72,6 +72,7 @@ EQUITY = D("1000000")
 EXIT = Signal(signal_id="fixed-exit", action="exit", quantity=D("0.0001"), limit_price=PRICE)
 HOLD = Signal(signal_id="fixed-hold", action="hold")
 CUTOFF_NOW = datetime(2026, 10, 24, 21, 58, tzinfo=KST)
+SAME = object()                      # fixture(chain_cutoff=SAME): the chain carries the profile's cutoff
 
 
 def seconds(value):
@@ -163,7 +164,7 @@ class Producer:
     def __init__(self, fake, fills, orders):
         self.fake, self.calls, self.prefetches, self.states = fake, [], [], []
         self.fills, self.orders, self.cash, self.units = fills, orders, D("900000"), D("0.001")
-        self.latency, self.crossing, self.fail, self.block = 0, False, None, None
+        self.latency, self.crossing, self.fail, self.block, self.jump_once = 0, False, None, None, 0
 
     def prefetch(self, previous):
         self.prefetches.append((self.fake.now, previous.state_digest))
@@ -174,6 +175,8 @@ class Producer:
             release.wait(5)
         if self.latency:
             self.fake.now += seconds(self.latency)
+        if self.jump_once:
+            self.fake.now, self.jump_once = self.fake.now + seconds(self.jump_once), 0
         if self.fail is not None:
             raise self.fail
 
@@ -200,10 +203,12 @@ class Books:
     """A quote source double: the book is received at the read time with a one-second-old orderbook stamp."""
     def __init__(self, fake, *, bid=99999999, ask=100000000):
         self.fake, self.reads, self.jump_once, self.bid, self.ask = fake, 0, 0, bid, ask
+        self.received = []
 
     def read(self):
         self.reads += 1
         received = self.fake.clock()
+        self.received.append(received)
         if self.jump_once:
             self.fake.now, self.jump_once = self.fake.now + seconds(self.jump_once), 0
         return book(received, received_delta=0, asof_delta=-1, bid=self.bid, ask=self.ask)
@@ -241,10 +246,11 @@ def driver_for(env):
 
 
 @contextmanager
-def fixture(*, now=None, cutoff=None):
+def fixture(*, now=None, cutoff=None, chain_cutoff=SAME):
     """runner_fixture (temporary signed home, DryRunAdapter, policy: initial equity 100000, activation 800000,
     budgets 10) plus the seeded flat account chain, the fake clock, the producer and book doubles and a recording
-    driver whose default decision is the exit signal."""
+    driver whose default decision is the exit signal. `cutoff` is the profile's recovery condition and, unless
+    `chain_cutoff` says otherwise, the chain's recovery_cutoff_seconds."""
     with memoized_pure_loads(), (nullcontext() if now is None else patch.object(F, "NOW", now)), \
             runner_fixture(prepare=False, arm=False) as env:
         t0 = env.now
@@ -253,7 +259,7 @@ def fixture(*, now=None, cutoff=None):
             profile = replace(profile, policy=replace(profile.policy, recovery_condition=RecoveryCondition(
                 cutoff_seconds=cutoff, timezone="Asia/Seoul", reference="day_start_marked_equity")))
         env.profile, env.evidence, env.t0 = profile, evidence_for(profile, t0), t0
-        env.state, fills, orders = chain_state(t0, cutoff=cutoff)
+        env.state, fills, orders = chain_state(t0, cutoff=cutoff if chain_cutoff is SAME else chain_cutoff)
         CheckpointStore(root=env.home).seed(env.state, expected_head=env.state.state_digest)
         env.fake = FakeTime(t0)
         env.head, env.books = CountingHead(env.state.state_digest), Books(env.fake)
@@ -509,19 +515,28 @@ def test_suspend_resume_skips_slots_reconciles_first_and_never_sends_late():
 
 
 def test_mid_unit_suspend_refuses_the_slot_without_publishing():
-    with fixture() as env:
-        c = build(env)
-        env.books.jump_once = 15
-        marks, seen = {}, observe_at(env, c, 75)
-        env.fake.at(env.t0 + seconds(50), lambda: marks.update(commits=len(env.head.commits),
-                                                               calls=len(env.producer.calls)))
-        env.fake.at(env.t0 + seconds(75), lambda: marks.update(commits_after=len(env.head.commits),
-                                                               calls_after=len(env.producer.calls)))
-        c.run()
-        assert seen[75].reasons == ("COORDINATOR_SLOT_WINDOW_MISSED",), seen[75]
-        assert marks["commits_after"] - marks["commits"] == 1 and marks["calls_after"] - marks["calls"] == 1
-        assert all(d.now >= env.t0 + seconds(120) for d in env.decisions) and len(env.decisions) == 2
-        assert len(creates(env)) == 1 and env.books.reads == 3
+    """A 15 s suspend inside slot 1's unit, during the account capture (which follows the book read and may end
+    inside the slot window) or during the book read itself: the slot is refused by its window, nothing is
+    published or committed for it, the book was read at the prefetch lead, and the next slots run."""
+    for step in ("account", "book"):
+        with fixture() as env:
+            c = build(env)
+            if step == "book":
+                env.books.jump_once = 15
+            else:
+                env.fake.at(env.t0 + seconds(56), lambda: setattr(env.producer, "jump_once", 15))
+            marks, seen = {}, observe_at(env, c, 75)
+            env.fake.at(env.t0 + seconds(50), lambda: marks.update(commits=len(env.head.commits),
+                                                                   calls=len(env.producer.calls)))
+            env.fake.at(env.t0 + seconds(75), lambda: marks.update(commits_after=len(env.head.commits),
+                                                                   calls_after=len(env.producer.calls)))
+            c.run()
+            assert seen[75].reasons == ("COORDINATOR_SLOT_WINDOW_MISSED",), (step, seen[75])
+            assert seen[75].account_source == "" and seen[75].published_units == 4     # startup, three monitors
+            assert env.t0 + seconds(57) <= env.books.received[0] < env.t0 + seconds(58), (step, env.books.received)
+            assert marks["commits_after"] - marks["commits"] == 1 and marks["calls_after"] - marks["calls"] == 1
+            assert all(d.now >= env.t0 + seconds(120) for d in env.decisions) and len(env.decisions) == 2
+            assert len(creates(env)) == 1 and env.books.reads == 3
 
 
 def test_long_suspend_stops_the_account_chain_without_a_tick():
@@ -689,26 +704,37 @@ def test_coordinator_source_static_contract():
 # -- ruling R8: the timing budget, the schedule and the timer -----------------------------------------------------
 
 def test_timing_budget_fits_slot_and_account_windows_at_worst_case_latency():
+    """The slot envelope at prefetch lead 3 s with a book stamped one second before its receipt (R12): the book
+    is read at slot - 3 s, then the account capture runs and may end inside [slot, slot + 10 s]. A capture of
+    8.5 s (lead + 5.5 s) holds the slot: sampled, recorded and ticked at slot + 5.5 s, the book 8.5 s old at
+    sampling (its stamp 9.5 s, inside the 10 s quote bound), the account as old as the capture's end. A capture of
+    9.5 s refuses the slot through the quote bound (the stamp is 10.5 s old: QUOTE_BOOK_STALE_OR_FUTURE); one of
+    14 s leaves the window (slot + 11 s: COORDINATOR_SLOT_WINDOW_MISSED). A refused slot publishes nothing and
+    monitoring continues."""
     with fixture() as env:
         recorded = []
         history = SimpleNamespace(record_slot=lambda book, account: recorded.append(
             (env.fake.now, account.asof, book.received_at)))
-        env.producer.latency = 2.9                        # the prefetch ends just before the slot
         c = build(env, history=history)
-        for offset, latency in ((100, 3.1), (160, 14)):
+        for offset, latency in ((50, 8.5), (100, 9.5), (160, 14)):
             env.fake.at(env.t0 + seconds(offset), lambda latency=latency: setattr(env.producer, "latency", latency))
         seen = observe_at(env, c, 75, 135)
         status = c.run()
         slot = env.t0 + seconds(60)
         ((sampled_at, asof, received),) = recorded
-        assert received <= slot <= sampled_at <= slot + seconds(10) and seconds(0) <= sampled_at - asof <= seconds(30)
+        assert slot - seconds(3) <= received < slot - seconds(2.9), received          # the book: read at the lead
+        assert slot + seconds(5.5) <= sampled_at < slot + seconds(5.6), sampled_at    # the capture ended in the window
+        assert slot + seconds(5.5) <= asof <= sampled_at and sampled_at - asof < seconds(0.1), asof
         (decision,) = env.decisions
-        assert slot <= decision.now <= slot + seconds(10) and seconds(0) <= decision.now - decision.account.asof <= seconds(30)
+        assert slot + seconds(5.5) <= decision.now <= slot + seconds(10)
+        assert seconds(0) <= decision.now - decision.account.asof <= seconds(30)
+        assert seconds(9.5) <= decision.now - decision.quote.asof <= seconds(10), decision.quote.asof
         assert decision.account.asof == asof and seen[75].last_tick.status == "submitted"
-        assert seen[135].reasons == ("CAPTURE_BOOK_NOT_AVAILABLE_AT_SLOT",)      # the book arrived after the slot
-        assert status.reasons == ("COORDINATOR_SLOT_WINDOW_MISSED",)             # the tick time left the window
+        assert seen[135].reasons == ("QUOTE_BOOK_STALE_OR_FUTURE",), seen[135]      # 9.5 s: the stamp is 10.5 s old
+        assert status.reasons == ("COORDINATOR_SLOT_WINDOW_MISSED",), status        # 14 s: slot + 11 s
         assert all(seen[t].account_source == "" for t in (75, 135)) and status.account_source == ""
         assert len(creates(env)) == 1 and len(recorded) == 1 and len(env.decisions) == 1
+        assert status.missed_slots == 0 and status.published_units == len(env.head.commits)
     with fixture() as env:
         env.producer.latency = 30                         # the collector's worst case: every slot is lost, the chain lives
         status = build(env).run()
@@ -741,6 +767,15 @@ def test_schedule_and_timer_order_skip_and_cancel():
                              monitor_until=night + seconds(300), monitor_seconds=20, prefetch_lead_seconds=3,
                              boundary_lead_seconds=2, cutoff_seconds=None))
     assert [due.slot for due in midnight if due.kind == "boundary"] == [datetime(2026, 10, 25, tzinfo=KST)]
+    # R14: monitors sit on the slot grid (window.start + k * monitor_seconds), strictly after the run start.
+    phased = list(schedule(window=window, bar_seconds=60, start=start + seconds(4), monitor_until=start + seconds(140),
+                           monitor_seconds=10, prefetch_lead_seconds=3, boundary_lead_seconds=2, cutoff_seconds=None))
+    grid = [(due.at - window.start).total_seconds() for due in phased if due.kind == "monitor"]
+    assert grid == [10.0 * k for k in range(14)] and grid[0] == 0.0 and window.start > start + seconds(4)
+    on_grid = [(due.at - window.start).total_seconds() for due in schedule(window=window, bar_seconds=60,
+               start=window.start, monitor_until=start + seconds(140), monitor_seconds=10, prefetch_lead_seconds=3,
+               boundary_lead_seconds=2, cutoff_seconds=None) if due.kind == "monitor"]
+    assert on_grid[0] == 10.0                                       # a start on the grid: the next point, never itself
     cancel, fake = threading.Event(), FakeTime(start)
     timer = CancellableTimer(items, clock=fake.clock, cancel=cancel, wait=fake.wait)
     first = next(timer)
@@ -763,17 +798,129 @@ def test_schedule_and_timer_order_skip_and_cancel():
     refused(lambda: next(naive), "COORDINATOR_CLOCK_INVALID")
 
 
+# -- rulings R13-R15: the boundary band, the monitor grid, the startup budget and the cutoff agreement ----------
+
+def test_slots_near_a_boundary_are_refused_at_construction():
+    """R13: construction refuses any slot within BOUNDARY_BAND (20 s) of a Seoul midnight or, with a recovery
+    condition, of 22:00 KST, including a boundary just past the window's last slot; the boundary unit alone handles
+    the boundary instant. A grid offset by 30 s (hh:mm:30 for 60 s bars) is accepted."""
+    with fixture(now=CUTOFF_NOW, cutoff=79200) as env:            # t0 is 21:58:00 KST: 22:00 is a boundary
+        until = env.t0 + seconds(400)
+
+        def window(start, span=120):
+            return DeploymentWindow(deployment_id="coord-band", start=env.t0 + seconds(start),
+                                    end=env.t0 + seconds(start + span))
+        for start in (60, 75, 100, 110):          # a slot on 22:00, 15 s after, 20 s before and 10 s after it
+            refused(lambda start=start: build(env, window=window(start), monitor_until=until),
+                    "COORDINATOR_SLOT_NEAR_BOUNDARY")
+        refused(lambda: build(env, window=window(50, 60), monitor_until=until), "COORDINATOR_SLOT_NEAR_BOUNDARY")
+        assert build(env, window=window(90), monitor_until=until).status().phase == "new"      # slots at :30
+        assert build(env, window=window(30, 60), monitor_until=until).status().phase == "new"  # last slot 21:59:30
+        assert env.fake.reads == 0 and env.head.reads == 0 and env.producer.prefetches == []
+    with fixture(now=CUTOFF_NOW) as env:                           # no recovery condition: 22:00 is no boundary
+        on_cutoff = DeploymentWindow(deployment_id="coord-band", start=env.t0 + seconds(60), end=env.t0 + seconds(180))
+        assert build(env, window=on_cutoff, monitor_until=env.t0 + seconds(200)).status().phase == "new"
+        midnight = datetime(2026, 10, 25, tzinfo=KST)
+        for offset in (0, 10, -15):
+            night = DeploymentWindow(deployment_id="coord-band", start=midnight + seconds(offset - 60),
+                                     end=midnight + seconds(offset + 60))
+            refused(lambda night=night: build(env, window=night, monitor_until=night.end + seconds(20)),
+                    "COORDINATOR_SLOT_NEAR_BOUNDARY")
+        before = DeploymentWindow(deployment_id="coord-band", start=midnight - seconds(130), end=midnight - seconds(10))
+        refused(lambda: build(env, window=before, monitor_until=before.end + seconds(20)), "COORDINATOR_SLOT_NEAR_BOUNDARY")
+        offset = DeploymentWindow(deployment_id="coord-band", start=midnight - seconds(30), end=midnight + seconds(90))
+        assert build(env, window=offset, monitor_until=offset.end + seconds(20)).status().phase == "new"
+
+
+def test_monitors_sit_on_the_slot_grid_so_the_reviews_bad_phases_hold_every_slot():
+    """R14 (review RT-C): with monitors phased from the run start, a run started 4 s or 3.1 s before a 10 s grid
+    point put a monitor's 2.2 s capture inside the slot's 3 s prefetch lead and lost every slot. Monitors now sit
+    on window.start + k * monitor_seconds, strictly after the run start, so no monitor unit starts inside a lead."""
+    for phase in (6, 6.9):
+        with fixture() as env:
+            env.fake.now = env.t0 - seconds(10 - phase)
+            env.producer.latency = 2.2                    # the fixture's 11-read capture at the 0.2 s pace
+            c = build(env, monitor_seconds=10)
+            status = c.run()
+            offsets = [round((when - env.window.start).total_seconds(), 1) for when, _ in env.producer.prefetches]
+            assert offsets[0] == round(phase - 70, 1), offsets[0]                      # the startup unit
+            monitors = [offset for offset in offsets[1:] if offset % 60 != 57.0]
+            assert len(monitors) >= 20 and all(offset % 10 == 0 for offset in monitors), (phase, monitors)
+            assert [offset for offset in offsets[1:] if offset % 60 == 57.0] == [-3.0, 57.0, 117.0], offsets
+            slots = [env.t0 + seconds(60 * k) for k in (1, 2, 3)]
+            assert len(env.decisions) == 3, [d.now for d in env.decisions]
+            assert all(slot <= d.now <= slot + seconds(10) for slot, d in zip(slots, env.decisions))
+            assert status.reasons == () and status.last_tick.status == "existing" and status.missed_slots == 0
+            assert len(creates(env)) == 1 and status.account_source == ""
+
+
+def test_late_start_and_knob_floors_are_refused_before_any_unit():
+    """R14: run() refuses COORDINATOR_START_TOO_LATE, before any unit, when the first slot's prefetch comes less
+    than STARTUP_BUDGET (15 s) after the start; a restart between slots with that budget runs, and a start after
+    the last slot only monitors. Construction requires bar_seconds % monitor_seconds == 0 and
+    monitor_seconds - prefetch_lead_seconds >= 5 (one monitor unit between a monitor and the next prefetch)."""
+    with fixture() as env:
+        c = build(env)
+        env.fake.now = env.t0 + seconds(42.5)             # 14.5 s before the first prefetch at t0 + 57
+        refused(c.run, "COORDINATOR_START_TOO_LATE")
+        assert c.status().phase == "closed" and env.producer.prefetches == [] and env.producer.calls == []
+        assert env.head.reads == 0 and env.books.reads == 0 and env.decisions == []
+        refused(c.run, "COORDINATOR_ALREADY_RUN")
+        env.fake.now = env.t0 + seconds(42)               # exactly the budget
+        status = build(env).run()
+        assert len(env.decisions) == 3 and status.reasons == () and status.missed_slots == 0
+    with fixture() as env:
+        env.fake.now = env.t0 + seconds(100)              # a restart between slots, 17 s before the next prefetch
+        status = build(env).run()
+        assert [d.now >= env.t0 + seconds(120) for d in env.decisions] == [True, True] and status.missed_slots == 0
+        assert status.published_units == len(env.head.commits) and status.reasons == ()
+    with fixture() as env:
+        env.fake.now = env.t0 + seconds(185)              # after the last slot: monitoring only
+        status = build(env).run()
+        assert env.decisions == [] and env.books.reads == 0 and status.missed_slots == 0
+        assert status.published_units == 2 and status.phase == "closed"
+    with fixture() as env:
+        for change in (dict(monitor_seconds=7), dict(monitor_seconds=10, prefetch_lead_seconds=6),
+                       dict(bar_seconds=40, monitor_seconds=15), dict(monitor_seconds=8, prefetch_lead_seconds=4)):
+            refused(lambda change=change: build(env, **change), "COORDINATOR_SCHEDULE_INVALID")
+        for change in (dict(monitor_seconds=10, prefetch_lead_seconds=5), dict(monitor_seconds=15, prefetch_lead_seconds=8),
+                       dict(monitor_seconds=12, prefetch_lead_seconds=7)):
+            assert build(env, **change).status().phase == "new"
+
+
+def test_cutoff_mismatch_is_refused_before_the_startup_unit():
+    """R15: the chain's recovery_cutoff_seconds and the profile's recovery condition must be both set or both
+    absent; otherwise run() refuses COORDINATOR_CUTOFF_MISMATCH before any unit. Construction stays inert."""
+    for cutoff, chain_cutoff in ((None, 79200), (79200, None)):
+        with fixture(now=CUTOFF_NOW, cutoff=cutoff, chain_cutoff=chain_cutoff) as env:
+            window = DeploymentWindow(deployment_id="coord-cutoff", start=env.t0 + seconds(20), end=env.t0 + seconds(80))
+            c = build(env, window=window, monitor_until=env.t0 + seconds(150), monitor_seconds=10)
+            assert env.head.reads == 0
+            refused(c.run, "COORDINATOR_CUTOFF_MISMATCH")
+            assert c.status().phase == "closed" and env.producer.prefetches == [] and env.producer.calls == []
+            assert env.head.commits == [] and env.books.reads == 0 and env.decisions == [] and env.head.reads == 1
+    with fixture(now=CUTOFF_NOW, cutoff=79200) as env:                 # matched: the startup unit runs
+        window = DeploymentWindow(deployment_id="coord-cutoff", start=env.t0 + seconds(20), end=env.t0 + seconds(80))
+        c = build(env, window=window, monitor_until=env.t0 + seconds(150), monitor_seconds=10)
+        env.fake.at(env.t0 + seconds(5), c.close)
+        assert c.run().published_units == 1
+
+
 # -- ruling R8: compose() and the real adapters over fake transports ---------------------------------------------
 
-def reviewed(t0, window):
+def reviewed(t0, window, *, cutoff=False):
     """The reviewed artifacts for one window: a moving-average program over the installed program.py, a profile
-    bound to the interval fixture's account with its 100090 KRW anchor cash, a minute-bar prospective capture that
-    qualifies, the unsigned request and a review document signed by the fixture owner key (K1) over the real D14
-    hash and the actual fixed-driver identity."""
+    bound to the interval fixture's account with its 100090 KRW anchor cash (with the 22:00 recovery condition
+    when `cutoff`, matching the interval fixture's chain), a minute-bar prospective capture that qualifies, the
+    unsigned request and a review document signed by the fixture owner key (K1) over the real D14 hash and the
+    actual fixed-driver identity."""
     artifact = (ROOT / "execution_launch" / "program.py").read_bytes()
     spec = ProgramSpec(schema_version=1, strategy_id="test-strategy", kind="moving_average_trend", fast_window=2,
                        slow_window=3, exposure_fraction=D("1"))
     base = fixture_profile(t0)
+    if cutoff:
+        base = replace(base, policy=replace(base.policy, recovery_condition=RecoveryCondition(
+            cutoff_seconds=79200, timezone="Asia/Seoul", reference="day_start_marked_equity")))
     profile = replace(base, account_scope=INTERVAL_SCOPE, strategy_code_sha256=program_digest(spec, artifact),
         instrument_rules=replace(base.instrument_rules, asof=t0 - seconds(60)),
         policy=replace(base.policy, initial_equity=D("100090"), drawdown_activation_equity=D("100090")))
@@ -871,23 +1018,38 @@ def test_compose_wires_loader_driver_history_reviews_and_evidence():
 
 
 def test_real_adapters_run_under_the_coordinator_over_fake_transports():
-    t0 = at(26, 20, 0)                                   # the interval fixture's first trading day, cutoff at 22:00
+    """The interval fixture's first trading day, so the chain requires 22:00 and the profile carries the matching
+    recovery condition (R15). The window sits on the :30 grid across 22:00 (R13) and every authenticated read is
+    charged the 0.2 s pace, so the 11-read capture lasts 2.2 s: the boundary unit at 21:59:58 brackets 22:00 and
+    the chain commits the cutoff checkpoint, the one monitor inside the producer's 10 s boundary window refuses
+    (cosmetic, by R8's single attempt), the book is read before each capture (R12) and every slot holds (R14)."""
+    t0 = at(26, 21, 58)
+    b = t0 + seconds(120)                                # 22:00:00 KST
     with signed_home() as home, head_root() as hroot, \
             patch("execution_accounts.upbit_collector.request", side_effect=AssertionError("network forbidden")):
-        window = DeploymentWindow(deployment_id="compose-fixture", start=t0 + seconds(60), end=t0 + seconds(180))
-        reviewed_set = reviewed(t0, window)
+        window = DeploymentWindow(deployment_id="compose-fixture", start=t0 + seconds(90), end=t0 + seconds(210))
+        reviewed_set = reviewed(t0, window, cutoff=True)
         exchange = FakeUpbit()
         state, store, _, _ = seed_interval_chain(home, exchange, FEES, t0 - seconds(20), day_start=D("100000"),
             high=D("100100"), loss=D("0"), realized=D("90"), day_open=D("0"), previous=None)
+        assert state.conventions.recovery_cutoff_seconds == 79200
         baseline_head = BaselineHead(root=hroot, name="baseline-head", chain=CheckpointChain(store))
         baseline_head.initialize_reviewed_head(state.state_digest)
         BaselineHead(root=hroot, name=history_head_name(window),
                      chain=HistoryChain(root=state_root().absolute(), window=window)).initialize_reviewed_head(GENESIS)
         fake = FakeTime(t0 - seconds(10))
         exchange.clock = fake.clock
-        source = UpbitIntervalSource()
+        fetch, reads = exchange.fetch, []
+
+        def paced_fetch(path, params):
+            fake.now += seconds(0.2)                      # the E1 pace per authenticated read
+            reads.append(fake.now)
+            return fetch(path, params)
+        exchange.fetch = paced_fetch
+        source, states = UpbitIntervalSource(), []
 
         def prefetch(previous):
+            states.append(previous)
             source.collect(exchange, previous=previous, anchor=ANCHOR, coverage=COVERAGE, clock=fake.clock,
                            trade_fees=FEES)
         with private_inputs(reviewed_set.files) as paths:
@@ -897,19 +1059,25 @@ def test_real_adapters_run_under_the_coordinator_over_fake_transports():
                 implementation_verifier=comp.verifiers.implementation, adapters={"upbit": adapter},
                 account_source=source, account_prefetch=prefetch, trusted_head=baseline_head,
                 quote_source=Books(fake, bid=100, ask=102), window=window, bar_seconds=60,
-                monitor_until=t0 + seconds(200), clock=fake.clock, history=comp.history, monitor_seconds=20,
+                monitor_until=t0 + seconds(230), clock=fake.clock, history=comp.history, monitor_seconds=20,
                 prefetch_lead_seconds=3, wait=fake.wait)
             seen = {}
-            for offset in (75, 135, 185):
+            for offset in (95, 115, 125, 155, 215):
                 fake.at(t0 + seconds(offset), lambda offset=offset: seen.__setitem__(offset, c.status()))
             status = c.run()
             assert status.phase == "closed" and status.account_source == "" and status.reasons == ()
             assert status.missed_slots == 0 and status.missed_boundaries == 0 and status.data_gap_at is None
-            assert [seen[t].last_tick.status for t in (75, 135, 185)] == ["hold"] * 3
-            assert all(seen[t].last_tick.reasons == () for t in (75, 135, 185))
-            assert status.published_units == 14 and adapter.requests == [] and not status.new_entry_blocked
+            assert [seen[t].last_tick.status for t in (95, 155, 215)] == ["hold"] * 3
+            assert all(seen[t].last_tick.reasons == () for t in (95, 155, 215))
+            assert seen[115].account_source == "ACCOUNT_INTERVAL_BOUNDARY_NOT_BRACKETED"   # the monitor at 21:59:50
+            assert seen[125].account_source == "" and seen[125].recovery_status == "satisfied"
+            assert any(previous.asof == b and previous.recovery_checkpoint.cutoff_at == b for previous in states)
+            assert status.recovery_status == "satisfied" and status.recovery_deadline == b
+            # startup, 12 grid monitors (21:58:10 .. 22:01:50) less the refused one, the boundary and three slots
+            assert status.published_units == 16 and adapter.requests == [] and not status.new_entry_blocked
+            assert len(reads) == 11 * (status.published_units + 1)
             record = json.loads((hroot / "baseline-head" / "head.json").read_bytes())
-            assert record["baseline_sequence"] == 14 and record["head"] == baseline_head.read()
+            assert record["baseline_sequence"] == 16 and record["head"] == baseline_head.read()
             assert len(history_journal(home, window).read_bytes().splitlines()) == 4     # bound + three slots
             assert status.account_asof is not None and status.orders == ()
             again = compose(**compose_args(paths, reviewed_set.evaluated_at, window, fake.clock, hroot))

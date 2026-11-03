@@ -10,20 +10,29 @@ state root, checked by runner.py). "controlled" is refused: the shipped interval
 A unit of work (startup, monitor, boundary, gap, slot, or an explicit cancel/exit) loads the checkpoint behind the
 trusted head, runs the account prefetch, picks its time only after every fetch has finished, publishes exactly one
 immutable frame that every provider call inside the unit sees (so same-tick redelivery advances the head once),
-then does its control work; one work lock serializes units and operator calls. A slot unit also reads the book
-before the slot, samples it at the slot, records it in the history adapter and feeds the Runner one prefetched
-timestamp. The timer waits on the cancel event in steps of at most one second and re-reads the injected wall
-clock after each, so a Windows suspend shows up as skipped deadlines: a late slot is never run, moved or re-run,
-a late boundary is reported as missed, and a gap unit reconciles before the next decision. A boundary capture is
-attempted exactly once, at boundary_lead_seconds before the boundary; it spans the boundary only when the capture
-lasts longer than the lead (the producer's own window and rules decide). compose() is the owned wiring of the
-reviewed artifacts: loader -> make_fixed_driver with the history callables -> LiveHistory.bind ->
-ReviewVerifiers over CurrentOwnerAuthority -> EvidencePackage.
+then does its control work; one work lock serializes units and operator calls. A slot unit reads the book at
+prefetch_lead_seconds before the slot and only then runs the account capture, which may end inside the slot's
+10 s window; it samples the book at or after the slot (received by the slot, at most 10 s old at sampling),
+records it in the history adapter and feeds the Runner one prefetched timestamp, all by slot + 10 s, with the
+account at most 30 s old and never newer than sampling. Monitors sit on the slot grid (window.start plus multiples
+of monitor_seconds, strictly after the run start), so no monitor unit starts inside a slot's lead. Construction
+refuses a slot within BOUNDARY_BAND of a Seoul midnight or, with a recovery condition, of 22:00 KST, so the
+boundary unit alone handles a boundary; run() refuses a start less than STARTUP_BUDGET before the first slot's
+prefetch, and a chain whose cutoff convention disagrees with the profile's recovery condition. The timer waits on
+the cancel event in steps of at most one second and re-reads the injected wall clock after each, so a Windows
+suspend shows up as skipped deadlines: a late slot is never run, moved or re-run, a late boundary is reported as
+missed, and a gap unit reconciles before the next decision. A boundary capture is attempted exactly once, at
+boundary_lead_seconds before the boundary; it spans the boundary only when the capture lasts longer than the lead
+(the producer's own window and rules decide). compose() is the owned wiring of the reviewed artifacts: loader ->
+make_fixed_driver with the history callables -> LiveHistory.bind -> ReviewVerifiers over CurrentOwnerAuthority ->
+EvidencePackage.
 
 Ceilings (ponytail): operator calls block on the work lock for at most one unit, which is bounded by the
-dependencies' own timeouts; prefetch_lead_seconds caps at 8 s and the book must arrive by the slot, so an account
-collection slower than the lead loses every slot (monitoring continues); nothing here retries a capture, a send or
-a boundary. Nothing here signs, arms, orders, reads credentials or writes a file of its own.
+dependencies' own timeouts; a slot's account capture must end with the book still inside its 10 s bound and the
+history verified by slot + 10 s, about prefetch_lead_seconds + 5.5 s of capture in real time, and a longer capture
+loses the slot, which ends every later slot of the window because the history never backfills (monitoring
+continues); nothing here retries a capture, a send or a boundary. Nothing here signs, arms, orders, reads
+credentials or writes a file of its own.
 """
 from __future__ import annotations
 
@@ -57,6 +66,13 @@ from execution_launch.workflow import MAX_CAPTURE_BYTES, MAX_CONFIG_BYTES, _arti
 
 SLOT_WINDOW = timedelta(seconds=10)      # the driver's execution slot and the quote freshness bound
 ACCOUNT_AGE = timedelta(seconds=30)      # the runner's and the reducer's account freshness bound
+BOUNDARY_BAND = 2 * SLOT_WINDOW          # calibration: no slot this close to a boundary, so the slot unit's tail
+                                         # (its 10 s window plus the tick) and the boundary unit never overlap
+MONITOR_UNIT_SECONDS = 5                 # calibration floor: one monitor unit (a capture plus load_context) fits
+                                         # between a monitor and the next slot's prefetch
+# ponytail: STARTUP_BUDGET is the knob; 15 s is about twice a measured startup unit with one transport retry (an
+# 11-read capture of 2.2-3.3 s, a 2.2 s retry, load_context 1.4 s, the commit). Raise it for a slower link.
+STARTUP_BUDGET = timedelta(seconds=15)   # the least time between run() and the first slot's prefetch
 MAX_WAIT_SECONDS = 1.0                   # re-read the wall clock at least once a second (Windows suspend)
 _CODE = re.compile(r"[A-Z][A-Z0-9_]{0,95}")
 _RANK = {"boundary": 0, "slot": 1, "monitor": 2}
@@ -105,11 +121,28 @@ class Due:
     slot: datetime | None = None    # the slot time, or the boundary instant
 
 
+def _boundaries(first: datetime, last: datetime, cutoff_seconds: int | None) -> Iterator[datetime]:
+    """Every Seoul midnight and, with a cutoff, every 22:00 KST (midnight plus cutoff_seconds) in [first, last]."""
+    day = first.astimezone(KST).date()
+    while True:
+        opening = datetime.combine(day, time(), tzinfo=KST)
+        instants = [opening + timedelta(days=1)]
+        if cutoff_seconds is not None:
+            instants.append(opening + timedelta(seconds=cutoff_seconds))
+        for instant in sorted(instants):
+            if first <= instant <= last:
+                yield instant
+        if instants[0] > last:
+            return
+        day += timedelta(days=1)
+
+
 def schedule(*, window: DeploymentWindow, bar_seconds: int, start: datetime, monitor_until: datetime,
              monitor_seconds: int, prefetch_lead_seconds: int, boundary_lead_seconds: int,
              cutoff_seconds: int | None) -> Iterator[Due]:
-    """Slots (prefetch lead before each slot at or after start), monitors (every monitor_seconds after start) and
-    boundaries (each Seoul midnight and, with a cutoff, each 22:00 in (start, monitor_until]), merged lazily."""
+    """Slots (prefetch lead before each slot at or after start), monitors (window.start + k * monitor_seconds,
+    strictly after start, up to monitor_until) and boundaries (each Seoul midnight and, with a cutoff, each 22:00
+    in (start, monitor_until]), merged lazily."""
     step, lead, monitor = timedelta(seconds=bar_seconds), timedelta(seconds=prefetch_lead_seconds), timedelta(seconds=monitor_seconds)
 
     def slots():
@@ -119,26 +152,17 @@ def schedule(*, window: DeploymentWindow, bar_seconds: int, start: datetime, mon
                 yield Due(kind="slot", at=slot - lead, deadline=slot, slot=slot)
 
     def monitors():
-        count = 1
-        while start + count * monitor <= monitor_until:
-            at = start + count * monitor
+        count = (start - window.start) // monitor + 1
+        while window.start + count * monitor <= monitor_until:
+            at = window.start + count * monitor
             yield Due(kind="monitor", at=at, deadline=at + monitor)
             count += 1
 
     def boundaries():
-        day = start.astimezone(KST).date()
-        while True:
-            opening = datetime.combine(day, time(), tzinfo=KST)
-            instants = [opening + timedelta(days=1)]
-            if cutoff_seconds is not None:
-                instants.append(opening + timedelta(seconds=cutoff_seconds))
-            for boundary in sorted(instants):
-                if start < boundary <= monitor_until:
-                    yield Due(kind="boundary", at=boundary - timedelta(seconds=boundary_lead_seconds),
-                              deadline=boundary, slot=boundary)
-            if instants[0] > monitor_until:
-                return
-            day += timedelta(days=1)
+        for boundary in _boundaries(start, monitor_until, cutoff_seconds):
+            if boundary > start:
+                yield Due(kind="boundary", at=boundary - timedelta(seconds=boundary_lead_seconds),
+                          deadline=boundary, slot=boundary)
     return heapq.merge(boundaries(), slots(), monitors(), key=lambda due: (due.at, _RANK[due.kind]))
 
 
@@ -252,6 +276,8 @@ class Coordinator:
         step, span = timedelta(seconds=bar_seconds), window.end - window.start
         _require(span > timedelta(0) and span % step == timedelta(0) and 2 <= span // step + 1 <= 20000,
                  "COORDINATOR_WINDOW_INVALID")
+        _require(bar_seconds % monitor_seconds == 0 and monitor_seconds - prefetch_lead_seconds >= MONITOR_UNIT_SECONDS,
+                 "COORDINATOR_SCHEDULE_INVALID")              # monitors on the slot grid; one monitor unit per lead
         try:
             identity = describe_fixed_driver(driver)
         except FixedDriverError as exc:
@@ -270,6 +296,11 @@ class Coordinator:
             boundary = datetime.combine(window.end.astimezone(KST).date(), time(), tzinfo=KST) + timedelta(seconds=cutoff)
             _require(window.end >= boundary or monitor_until >= boundary + timedelta(seconds=monitor_seconds),
                      "COORDINATOR_MONITOR_ENDS_BEFORE_CUTOFF")
+        for boundary in _boundaries(window.start - BOUNDARY_BAND, window.end + BOUNDARY_BAND, cutoff):
+            index = (boundary - window.start) // step                 # the two slots around the boundary
+            for slot in (window.start + index * step, window.start + (index + 1) * step):
+                _require(not (window.start <= slot <= window.end and abs(slot - boundary) <= BOUNDARY_BAND),
+                         "COORDINATOR_SLOT_NEAR_BOUNDARY")
         root = state_root().absolute()
         self._store = CheckpointStore(root=root)                              # path metadata only
         self._board = _TickBoard()
@@ -404,19 +435,22 @@ class Coordinator:
                 self._update(in_flight="")
 
     def _slot(self, slot) -> None:
-        """One strategy slot: prefetch and book before the slot, sample at the slot, record, one Runner tick."""
+        """One strategy slot: the book at the prefetch lead, then the account capture (it may end inside the slot
+        window), the sample at or after the slot, the record, one Runner tick."""
         with self._work:
             stage = "account"
             try:
                 _require(self._ready, "COORDINATOR_STARTUP_RECONCILE_REQUIRED")
                 previous = self._load_previous()
+                stage = "quote"
+                book = self._read_book()
+                if self._stopping.is_set():
+                    return
+                stage = "account"
                 self._prefetch(previous)
                 if self._stopping.is_set():
                     return
-                book = self._read_book()
                 stage = "quote"
-                if self._stopping.is_set():
-                    return
                 self._await(slot)
                 if self._stopping.is_set():
                     return
@@ -492,6 +526,15 @@ class Coordinator:
 
     def _run(self) -> None:
         start = self._time()
+        step, lead = timedelta(seconds=self._bar_seconds), timedelta(seconds=self._knobs["prefetch_lead_seconds"])
+        first = self._window.start + max(0, -((self._window.start - start) // step)) * step   # the first slot at or after start
+        _require(first > self._window.end or first - lead - start >= STARTUP_BUDGET, "COORDINATOR_START_TOO_LATE")
+        try:
+            previous = self._load_previous()
+        except CoordinatorError:
+            previous = None                                       # the startup unit reports the checkpoint refusal
+        _require(previous is None or (previous.conventions.recovery_cutoff_seconds is None) == (self._cutoff is None),
+                 "COORDINATOR_CUTOFF_MISMATCH")
         self._phase = "running"
         self._update()
         timer = CancellableTimer(schedule(window=self._window, bar_seconds=self._bar_seconds, start=start,
