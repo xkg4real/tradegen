@@ -8,14 +8,14 @@ Readiness here describes account evidence, never permission to place an order.
 from __future__ import annotations
 
 from collections.abc import Callable
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal, DecimalException, Inexact, localcontext
 import math
 import re
 
 from core.compliance import model as compliance
 from execution_control.controller import AccountObservation
-from execution_control.risk import Fill, RiskObservation, account_fills
+from execution_control.risk import Fill, RecoveryCheckpoint, RiskObservation, account_fills
 from execution_accounts.model import (
     AccountBundle, AccountEvidence, AccountRestrictions, BrokerOrder, CashAmount,
     CashBalance, EvidenceAssessment, EvidencePage, ExternalFlow, FxRate, MarketTradeDate, Position,
@@ -360,6 +360,15 @@ def _build(bundle, now):
     _require(baseline.prior_high_watermark >= baseline.day_start_equity, "HIGH_WATERMARK_CONTRADICTION")
     if baseline.approved_effective_floor is not None:
         _amount(baseline.approved_effective_floor)
+    checkpoint = baseline.recovery_checkpoint
+    if checkpoint is not None:
+        _require(type(checkpoint) is RecoveryCheckpoint, "RECOVERY_CHECKPOINT_INVALID")
+        _instant(checkpoint.cutoff_at); _amount(checkpoint.equity_krw, positive=True); _sha(checkpoint.source_sha256)
+        _require(checkpoint.cutoff_at == datetime.combine(today, time(22), tzinfo=compliance.KST)
+                 and checkpoint.cutoff_at <= baseline.asof, "RECOVERY_CHECKPOINT_INVALID")
+        _require(checkpoint.equity_krw <= baseline.prior_high_watermark
+                 and baseline.observed_daily_loss >= max(_ZERO, baseline.day_start_equity-checkpoint.equity_krw),
+                 "RECOVERY_HISTORY_CONTRADICTION")
     scopes, cash, holdings, exact_holdings, exposures, held, inventory, quotes, rates = {}, {}, {}, {}, {}, {}, {}, {}, {}
     fills, days, stamps, server_stamps, all_clients = [], [], [], [], set()
     reconciled, cancelable, trade_dates = set(), {}, {}
@@ -386,14 +395,21 @@ def _build(bundle, now):
         trade_dates.update(result['trade_dates'])
     _require(equity > 0, "NONPOSITIVE_EQUITY")
     _require(max(server_stamps)-min(server_stamps) <= timedelta(seconds=60), "VENUE_CLOCK_DISAGREEMENT")
+    _require(all(fill.executed_at.astimezone(compliance.KST).date() >= baseline.first_trading_day
+                 for fill in fills), "FIRST_TRADING_DAY_CONTRADICTS_HISTORY")
     asof = min(stamps)
     current = sum((amount for _, _, day, amount in days if day == today), _ZERO)
     previous = sum((amount for _, _, day, amount in days if day == today-timedelta(days=1)), _ZERO)
     first = baseline.first_trading_day == today
+    if checkpoint is not None:
+        _require((first or previous == 0) and checkpoint.cutoff_at <= asof, "RECOVERY_CHECKPOINT_INVALID")
+        if checkpoint.cutoff_at == asof:
+            _require(checkpoint.equity_krw == equity, "RECOVERY_EQUITY_CONTRADICTION")
     observation = RiskObservation(equity=equity, prior_high_watermark=baseline.prior_high_watermark,
         day_start_equity=baseline.day_start_equity, current_day_realized_net_profit=current,
         prior_day_realized_net_profit=None if first else previous, observed_daily_loss=baseline.observed_daily_loss,
-        approved_effective_floor=baseline.approved_effective_floor, is_first_trading_day=first, asof=asof)
+        approved_effective_floor=baseline.approved_effective_floor, is_first_trading_day=first, asof=asof,
+        recovery_checkpoint=checkpoint)
     return AccountObservation(positions=compliance.Positions(equity_krw=_legacy(equity), holdings=holdings,
         exposure=exposures), account_scopes=scopes, settled_cash_krw=cash, holdings=exact_holdings,
         risk=observation, asof=asof, server_time=min(server_stamps), no_credit=True, fills=tuple(fills),

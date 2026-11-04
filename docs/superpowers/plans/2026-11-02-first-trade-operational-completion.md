@@ -1,0 +1,105 @@
+# First-trade operational completion
+
+The owner explicitly resumed work on November 2 after the earlier stop. Continue
+PR9 from `db7ddeca7de13745f33663cf5801b8d7709512af`; main is still PR8's
+`8cd4e833eef44ff32cd2464c3a16d689f5dc4e78`. The October31 full run has no recovered
+completion evidence. Do not present its predicted totals or PR8 QA as a new result.
+
+## Scope
+
+Implement tasks that do not require missing owner choices, and make those choices
+explicit late-bound inputs. Mocked setup, assumed credentials, hypothetical review
+and unsigned forms must never become actual authorization or verified evidence.
+
+1. `launch-program-2`: fixed deterministic candidate definitions and causal paper
+   capture/export. Replay remains retrospective/synthetic; genuine prospective
+   provenance still requires external review. Do not tune or rerun frozen research.
+2. `launch-workflow-2`: bounded-file offline commands for paper recording, actual
+   evaluation and review preparation. Reuse the evaluator and keep private values
+   out of default reports. No production CLI imports synthetic signing fixtures.
+3. `launch-baseline-2`: exact immutable risk-baseline reduction with explicit
+   conventions, KST rollover and continuity validation. Initial implementation
+   supports an account with no external flows after its reviewed anchor; it must
+   refuse unsupported adjustments rather than conflict with E2's monotone peak.
+4. `launch-quotes-2`: narrowly documented public Upbit orderbook inquiry and exact
+   best bid/ask normalization. Preserve clocks and native unaggregated prices;
+   never substitute a ticker last price for an executable spread. All HTTP in
+   tests is synthetic; no real venue call occurs during development.
+5. `launch-deployment-2`: source/dependency approval-hash manifest export/compare
+   and explicit owner setup requirements. No secret values or owner-log reads.
+6. `launch-review-request-2`: canonical review-request artifacts with all review
+   authority pending. A generic signed artifact cannot prove an arbitrary Python
+   callback implements its declared source; document the fixed reviewed adapter
+   and current-key verification work still needed.
+7. `launch-regression-1`: serial focused and complete acceptance on frozen source,
+   actual-home metadata watches, all19 KEYLESS inputs and fake network seams.
+   Retain inherited test identities and report every skip separately. Root may
+   update QA/README/final evidence only after the measured full run completes.
+8. `launch-delivery-1`: update PR9, the requested Notion tracker, and append-only
+   handoff records. PR9 merge still requires its own explicit owner approval.
+
+The integration audit identified three more implementation gaps independent of
+missing owner values. Complete these before the final source freeze:
+
+- `launch-driver-2`: fixed, auditable program-to-signal factory with exact sizing,
+  causal explicit history and restart-stable decision identity. It must not accept
+  arbitrary callbacks as implementations of claimed source bytes.
+- `launch-review-auth-2`: domain-separated detached review verification and a
+  corresponding owner-only signer command. Preserve current-key/code approval,
+  strict binding and expiry, and the existing standalone Windows signer boundary.
+  Synthetic signed documents do not count as actual owner review.
+- `launch-baseline-integration-2`: explicit isolated checkpoint persistence,
+  externally trusted expected heads, exact account reconciliation and a callable
+  continuous-source bridge. Atomic local storage is not proof against rollback;
+  the real complete interval source and independent trusted-head service remain
+  deployment inputs. Never infer continuous extrema from periodic endpoints.
+
+## Owner recovery-condition clarification
+
+The owner selected Windows PC operation and delegated market selection to internal
+evidence comparison. See the market-selection protocol; no qualifying market is
+currently established. The owner also clarified exception-day intraday budgets
+and a 22:00 Asia/Seoul recovery requirement, expressly preserving existing
+principal/high-watermark floors at all times. Financial values stay in the private
+profile, not this public plan.
+
+`launch-recovery-cutoff-1` implements an optional typed 22:00 recovery condition for
+the genuine first trading day and a day following exactly zero realized profit.
+Use current decision time and authentic boundary equity, with current equity at
+least day-start equity after the deadline. Never replace the historical daily loss
+budget with zero or erase its observed maximum. Missing/breached recovery evidence
+persists through the existing daily stop; lifetime floors, HWM, prior-loss-day
+rules, equality semantics and D12 are unchanged. Baseline schema2 explicitly stores
+the exact boundary proof; legacy schema1 remains readable without inventing proof
+or silently migrating/reseeding history. A missing/late source cannot establish
+that the requirement was met at the deadline. Software cannot guarantee recovery.
+
+## Ownership and verification
+
+Program/capture, workflow, baseline, quote source, deployment and review request
+each have a separate author. Root owns shared suite registration, account guard
+exceptions, integration, all test execution, commits, PR and handoff. Authors
+perform static inspection only until root freezes and tests the whole closure.
+No runtime source edit is allowed during signed tests. Meaningful synthetic
+cases must cover causality, loss/day continuity, exact decimals, invalid sources,
+schema/path boundaries and permission separation; do not mirror implementation.
+
+Retain CRLF in existing README/tests runner/QA files and LF elsewhere. Stage only
+named files. Preserve all frozen study artifacts and QUANTGEN. User-specific
+financial choices belong in a private partial profile, not in published examples.
+
+## Known live prerequisites
+
+- The current managed Cloud has no venue secret/runtime/identity bindings and
+  does not permit the venue hosts. An implementation cannot grant those settings.
+- The owner confirmed actual electronic signing has not yet happened. First
+  caps/loss limits signed on November2 cannot take effect before November3 in Seoul
+  under the unchanged D12 rule; there is no earlier effective approval to assume.
+- The owner signer requires its reviewed Windows workflow and the target venv.
+  Dependency RECORD files participate in D14; Windows and Cloud approvals are not
+  interchangeable just because the Git commit is equal.
+- Genuine complete account coverage/identity and capture fencing, selected risk
+  conventions, an authenticated review integration, a qualified strategy, and the
+  actual final prepared-session signature remain distinct requirements.
+- No implementation or synthetic result may be described as a live strategy
+  success, actual signature, account connection or first trade.

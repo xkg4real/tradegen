@@ -22,6 +22,7 @@ from urllib.parse import unquote, urlencode
 import requests
 
 from execution_control.capability import consume_capability
+from execution_network.route import route_options
 from execution_orders.model import AdapterResult, PreparedRequest, request_digest, validate_request
 
 
@@ -139,11 +140,12 @@ def _wire(request: PreparedRequest, credentials: Credentials, now: datetime) -> 
 
 
 def _send(method: str, url: str, *, headers: dict, body: bytes, timeout: float):
-    """Only HTTP seam. Tests replace it; one attempt, verified TLS, no ambient proxy."""
+    """Only HTTP seam: one attempt, verified TLS and explicit reviewed routing."""
+    options = route_options(url)
     with requests.Session() as session:
         session.trust_env = False
         response = session.request(method, url, headers=headers, data=body or None, timeout=timeout,
-                                   allow_redirects=False, verify=True)
+                                   allow_redirects=False, proxies=options.proxies, verify=options.verify)
         return response.status_code, response.headers, response.content
 
 

@@ -9,11 +9,14 @@ existing KIS token cache only under the caller's isolated state directory.
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Mapping
+from contextlib import ExitStack
 from dataclasses import dataclass, field, fields
 from datetime import datetime, timedelta, timezone
 import math
 import os
 from pathlib import Path
+
+from execution_network.route import ManagedRoute, build_managed_route, managed_route
 
 VENUES = ("kis", "upbit", "okx")
 HOSTS = {"kis": "openapi.koreainvestment.com", "upbit": "api.upbit.com", "okx": "www.okx.com"}
@@ -26,7 +29,8 @@ _COUNTS = ("holdings", "open_orders", "fills", "deposits", "withdrawals", "withd
 _E1_FAILURE_FLAGS = frozenset({"keys_missing", "code_unsigned", "auth_error", "okx_perm", "okx_acct_lv",
                              "okx_spot_borrow", "okx_auto_loan", "okx_no_ip", "EVENTS", "derivative_position"})
 _PROBE_CODES = frozenset({"INVALID_PROBE_INPUT", "ISOLATED_STATE_REQUIRED", "CREDENTIAL_NAMES_MISSING",
-                         "KIS_SIGNED_CONTEXT_REQUIRED", "OKX_QUOTE_REQUIRED", "E1_INQUIRY_FAILED"})
+                         "KIS_SIGNED_CONTEXT_REQUIRED", "OKX_QUOTE_REQUIRED", "E1_INQUIRY_FAILED",
+                         "MANAGED_ROUTE_INVALID", "INQUIRY_CLOCK_REQUIRED"})
 
 
 class InquirySetupError(ValueError):
@@ -85,7 +89,7 @@ def configuration_manifest() -> dict:
             "okx": ["read_only"],
             "kis": ["account_inquiry_requires_owner_signed_code"],
         },
-        "network_caveat": "E1 disables environment proxies; Cloud proxy compatibility requires separate review",
+        "network_caveat": "Cloud requires an explicit validated managed sidecar/CA route; configuration is not connectivity",
         "owner_signature_status": "NOT_CHECKED",
         "account_evidence_ready": False,
         "execution_ready": False,
@@ -120,18 +124,31 @@ def _network_status(venue: str, runtime_status: Mapping | None, policy_snapshot:
 
 def inspect_configuration(*, present_names: Iterable[str], owner_public_key_present: bool,
                           runtime_status: Mapping | None = None,
-                          policy_snapshot: Mapping | None = None) -> ConfigurationReport:
+                          policy_snapshot: Mapping | None = None,
+                          route: ManagedRoute | None = None) -> ConfigurationReport:
     """Use only explicit variable names, path existence and safe runtime metadata.
 
     `present_names` may be os.environ itself: iteration accesses names only, not
     values. Placeholders and blank variables therefore remain presence-unverified.
     `owner_public_key_present` is only an existence observation, never a signature.
+    An explicit route is revalidated against these current metadata observations.
+    No route context is activated, and no inquiry or capability is created here.
     """
     if type(owner_public_key_present) is not bool:
         raise ValueError("invalid public-key presence observation")
     names = frozenset(present_names)
     if any(type(name) is not str for name in names):
         raise ValueError("invalid variable-name observation")
+    valid_route = False
+    if type(route) is ManagedRoute:
+        try:
+            current = build_managed_route(policy_snapshot=policy_snapshot, runtime_status=runtime_status,
+                                          proxy_url=route.proxy_url, ca_bundle=route.ca_bundle)
+            valid_route = (type(route.permitted_hosts) is frozenset and bool(route.permitted_hosts)
+                           and all(type(host) is str for host in route.permitted_hosts)
+                           and route.permitted_hosts <= current.permitted_hosts)
+        except (ValueError, OSError):
+            valid_route = False
     output = []
     for venue in VENUES:
         present = tuple(name for name in CREDENTIAL_NAMES[venue] if name in names)
@@ -143,13 +160,17 @@ def inspect_configuration(*, present_names: Iterable[str], owner_public_key_pres
             reasons.append("CREDENTIAL_NAMES_MISSING")
         if network != "allowed":
             reasons.append("NETWORK_HOST_BLOCKED" if network == "blocked" else "NETWORK_OBSERVATION_REQUIRED")
-        if proxy:
+        route_ready = valid_route and HOSTS[venue] in route.permitted_hosts
+        if route is not None:
+            reasons.append("MANAGED_ROUTE_CONFIGURED" if route_ready else "MANAGED_ROUTE_CONFIGURATION_INVALID")
+        elif proxy:
             reasons.append("E1_PROXY_PATH_UNSUPPORTED")
         if venue == "kis":
             reasons.append("KIS_SIGNED_CONTEXT_REQUIRED")
         output.append(VenueConfiguration(venue=venue, present_names=present, missing_names=missing,
             network_status=network, proxy_path_required=proxy,
-            probe_environment_ready=not missing and network == "allowed" and not proxy,
+            probe_environment_ready=not missing and network == "allowed" and
+                                    (route_ready if route is not None else not proxy),
             reasons=tuple(reasons)))
     return ConfigurationReport(venues=tuple(output), owner_public_key_present=owner_public_key_present)
 
@@ -174,6 +195,8 @@ class E1InquiryReader:
     state_directory: Path
     kis_context: object = field(default=None, repr=False)
     okx_usdt_krw: float | None = None
+    route: ManagedRoute | None = field(default=None, repr=False)
+    clock: Callable[[], datetime] | None = field(default=None, repr=False)
 
     def __call__(self, now: datetime):
         _aware(now)
@@ -195,6 +218,22 @@ class E1InquiryReader:
                 raise InquirySetupError("ISOLATED_STATE_REQUIRED")
         except (OSError, RuntimeError, ValueError):
             raise InquirySetupError("ISOLATED_STATE_REQUIRED") from None
+        if (self.route is not None or self.clock is not None) and not callable(self.clock):
+            raise InquirySetupError("INQUIRY_CLOCK_REQUIRED")
+        with ExitStack() as contexts:
+            if self.route is not None:
+                try:
+                    contexts.enter_context(managed_route(self.route))
+                    if HOSTS[self.venue] not in self.route.permitted_hosts:
+                        raise ValueError("MANAGED_DESTINATION_BLOCKED")
+                except ValueError:
+                    raise InquirySetupError("MANAGED_ROUTE_INVALID") from None
+            if self.clock is not None:
+                from execution.transport import inquiry_clock
+                contexts.enter_context(inquiry_clock(self.clock))
+            return self._snapshot(now)
+
+    def _snapshot(self, now: datetime):
         if self.venue == "kis":
             from core.compliance import model
             try:

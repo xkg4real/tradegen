@@ -177,10 +177,10 @@ class Journal:
                    checked_target(self._root / "checkpoint.json", "control checkpoint", within=self._root))
         _sync_directory(self._root)
 
-    def _load(self) -> tuple[list[dict], int]:
+    def _load(self, *, initialize: bool = True) -> tuple[list[dict], int]:
         journal = self._root / "journal.jsonl"
         anchor = self._root / "checkpoint.json"
-        if not journal.exists() and not anchor.exists():
+        if initialize and not journal.exists() and not anchor.exists():
             # Only a genuinely empty pair is initialized. A partial first write is a refusal.
             with open(checked_target(journal, "control journal", within=self._root), "xb") as fh:
                 fh.flush()
@@ -222,6 +222,29 @@ class Journal:
         if checkpoint["seq"] != len(rows) or checkpoint["head_sha256"] != previous:
             raise JournalError("control journal checkpoint mismatch")
         return rows, len(raw)
+
+    def snapshot(self) -> tuple[dict, ...]:
+        """Read an existing journal under its existing lock, without initializing it.
+
+        Missing, partial and corrupt state refuses. This path never creates a
+        directory, lock, journal or checkpoint, and never repairs a torn write.
+        """
+        if getattr(_THREAD, "active", False):
+            raise JournalError("nested control snapshot refused")
+        with _PROCESS_LOCK:
+            try:
+                self._check_paths()
+                with open(checked_target(self._root / "control.lock", "control lock", within=self._root), "rb") as fh:
+                    _lock(fh, True)
+                    try:
+                        rows, _ = self._load(initialize=False)
+                        return tuple(json.loads(_canonical(row)) for row in rows)
+                    finally:
+                        _lock(fh, False)
+            except JournalError:
+                raise
+            except (OSError, RuntimeError, ValueError, TypeError, RecursionError):
+                raise JournalError("control snapshot refused") from None
 
     @contextmanager
     def transaction(self):

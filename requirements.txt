@@ -14,3 +14,4 @@ yfinance>=0.2
 pandas-datareader>=0.10
 # TRADEGEN compliance gate: owner-log signatures (exact pin, spec 6.4)
 cryptography==49.0.0
+websockets==16.0

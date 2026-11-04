@@ -663,7 +663,7 @@ def test_code_files_match_owner():
     assert {"core/__init__.py", "core/isolation.py", "core/compliance/__init__.py"} <= paths, paths
     assert {f"core/compliance/{p.name}" for p in (ROOT / "core" / "compliance").glob("*.py")} <= paths, paths
     assert {f"execution/{p.name}" for p in (ROOT / "execution").glob("*.py")} <= paths, paths      # E1 spec 8
-    assert {p.relative_to(ROOT).as_posix() for package in ("execution_control", "execution_orders", "execution_accounts")
+    assert {p.relative_to(ROOT).as_posix() for package in ("execution_control", "execution_orders", "execution_accounts", "execution_network", "execution_launch")
             for p in (ROOT / package).rglob("*.py")} <= paths, paths                            # E2/E3
     assert not any(p.startswith(("core/quant/", "core/calendars/", "core/engine/")) for p in paths), paths
     assert "config.py" not in paths and not any(p.startswith("data/") for p in paths), paths
@@ -1197,3 +1197,92 @@ def test_help_names_owner_acts_1_and_2():
     parser = signer._parser()
     assert parser.parse_args(["approve", "--kind", "calendar", "--path", "d"]).run is signer._cmd_approve
     assert parser.parse_args(["event", "limit_set", "--data", "{}"]).run is signer._cmd_event
+
+
+def test_detached_review_schema_and_signing_bytes_match_runtime_without_repo_imports():
+    from tests.launch_review_auth import review_fixture
+    from execution_launch.review_auth import review_signing_bytes, REVIEW_DOMAIN
+    body=review_fixture()[-1]
+    assert signer._rv_REVIEW_DOMAIN == REVIEW_DOMAIN != signer.SIG_DOMAIN
+    assert signer._rv_review_signing_bytes(body) == review_signing_bytes(body)
+    assert signer._rr_parse_review_request(json.dumps(body['request'])) == body['request']
+    assert signer._review_source_hash(ROOT) == body['driver_identity']['deployment_code_sha256']
+    for key,value in (('schema_version',True),('approved_checks',[]),('expires_at','2099-01-01T00:00:00.000000+00:00')):
+        changed=dict(body);changed[key]=value
+        _raises(lambda:signer._rv_review_signing_bytes(changed),ValueError)
+        _raises(lambda:review_signing_bytes(changed),ValueError)
+    changed=dict(body['request']);changed['execution_ready']=True
+    _raises(lambda:signer._rr_parse_review_request(json.dumps(changed)),ValueError)
+
+
+def test_detached_review_reader_refuses_links_oversize_directories_and_fifo_before_open():
+    import tempfile
+    with tempfile.TemporaryDirectory(dir=_home()) as folder:
+        root=Path(folder);good=root/'audit.md';good.write_bytes(b'test audit')
+        assert signer._review_read(good,100)==b'test audit'
+        _raises(lambda:signer._review_read(good,1),ValueError)
+        _raises(lambda:signer._review_read(root,100),ValueError)
+        alias=root/'hard.md';os.link(good,alias)
+        _raises(lambda:signer._review_read(alias,100),RuntimeError)
+        if hasattr(os,'mkfifo'):
+            fifo=root/'fifo';os.mkfifo(fifo)
+            with _patched(signer.os,'open',_never):
+                _raises(lambda:signer._review_read(fifo,100),ValueError)
+
+
+def _detached_command_fixture(*, change_during_confirm=False):
+    from cryptography.hazmat.primitives import serialization
+    from tests.launch_review_auth import review_fixture
+    from execution_launch.review_auth import parse_review_document, review_signing_bytes
+    body=review_fixture()[-1];key=review_fixture()[-2]
+    audit=b'invented owner-review notes for a unit test only'
+    paths={ROOT/'request-review.json':json.dumps(body['request']).encode(),
+        ROOT/'driver-review.json':json.dumps(body['driver_identity']).encode(),ROOT/'audit-review.md':audit,
+        ROOT/'core/compliance/owner_pubkey.pem':key.public_key().public_bytes(serialization.Encoding.PEM,
+            serialization.PublicFormat.SubjectPublicKeyInfo)}
+    closure=signer.sha256_hex(signer.canonical_json(_FILES))
+    utc=review_fixture()[4].strftime('%Y-%m-%dT%H:%M:%SZ')
+    line,_=signer.entry_line(key,1,signer.GENESIS_PREV,'code_approved',{'sha256':closure,'files':_FILES},utc)
+    shown=[];written=[]
+    def confirm(value):
+        shown.append(value)
+        if change_during_confirm:
+            paths[ROOT/'audit-review.md']=b'changed review after confirmation'
+    args=signer._parser().parse_args(['review-approve','--repo',str(ROOT),'--request',str(ROOT/'request-review.json'),
+        '--driver-manifest',str(ROOT/'driver-review.json'),'--audit',str(ROOT/'audit-review.md'),
+        '--expires-at',body['expires_at'],'--output',str(_home()/'new-review-document.json')])
+    with contextlib.ExitStack() as stack:
+        for obj,name,value in ((signer,'_review_read',lambda p,limit:paths[Path(p)]),
+            (signer,'_review_source_hash',lambda _:body['driver_identity']['deployment_code_sha256']),
+            (signer,'code_hash',lambda _:closure),(signer,'_read_lines',lambda _:[line]),
+            (signer,'_utc_now',lambda:utc),(signer,'_confirm_review',confirm),(signer,'_unlock',lambda _:key),
+            (signer,'_exclusive',lambda _:contextlib.nullcontext()),(signer,'_commit',_never),(signer,'_sign',_never),
+            (signer,'_write_new',lambda p,data,within:written.append(data) is None),
+            (sys,'prefix',str(ROOT/'.venv'))):
+            stack.enter_context(_patched(obj,name,value))
+        if change_during_confirm:
+            _raises(lambda:_quiet(args.run,args),ValueError)
+            assert not written
+        else:
+            assert _quiet(args.run,args)[0]==0
+            assert len(written)==1 and len(shown)==1
+            envelope=parse_review_document(written[0])
+            assert envelope['body']==shown[0]
+            key.public_key().verify(base64.b64decode(envelope['signature_b64']),review_signing_bytes(envelope['body']))
+            assert envelope['body']['audit_sha256']==signer.sha256_hex(audit)
+            assert envelope['body']['deployment_code_hash']==closure
+
+
+def test_detached_review_command_signs_exact_displayed_synthetic_document_without_owner_event():
+    _detached_command_fixture()
+
+
+def test_detached_review_command_rechecks_audit_bytes_after_confirmation():
+    _detached_command_fixture(change_during_confirm=True)
+
+
+def test_detached_review_command_retains_process_refusal_and_typed_confirmation():
+    with _patched(signer,'_refusal',lambda:'synthetic process refusal'),_patched(signer,'_unlock',_never):
+        assert _quiet(signer.main,['review-approve'])[0]==2
+    with _patched(signer,'_read_typed',lambda _:('wrong',HUMAN)):
+        _raises(lambda:_quiet(signer._confirm_review,{'synthetic':True}),ValueError)

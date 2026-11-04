@@ -13,6 +13,8 @@ from decimal import Decimal
 import hashlib
 import json
 
+from execution_control.risk import RecoveryCheckpoint
+
 
 def canonical(value):
     if is_dataclass(value) and not isinstance(value, type):
@@ -172,6 +174,7 @@ class RiskBaseline:
     first_trading_day: date
     asof: datetime
     source_sha256: str
+    recovery_checkpoint: RecoveryCheckpoint | None = None
 
 
 @dataclass(frozen=True, kw_only=True)

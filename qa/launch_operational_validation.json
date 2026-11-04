@@ -1,0 +1,857 @@
+{
+  "label": "launch-operational-20261102",
+  "source_commit": "074d7606cff005ec79c8b5e9e6cb2b8a22a6f960",
+  "exit_code": 0,
+  "seconds": 806.232,
+  "total": 2199,
+  "counts": {
+    "PASS": 2077,
+    "FAIL": 0,
+    "NOT_RUN": 122
+  },
+  "keyless": true,
+  "isolated_home": true,
+  "real_homes_unchanged": true,
+  "failures": [],
+  "baseline_commit": "8cd4e833eef44ff32cd2464c3a16d689f5dc4e78",
+  "baseline_total": 1923,
+  "inherited_status_changes": [],
+  "new_test_count": 276,
+  "new_test_ids": [
+    "compliance/compliance_signer/test_detached_review_command_rechecks_audit_bytes_after_confirmation",
+    "compliance/compliance_signer/test_detached_review_command_retains_process_refusal_and_typed_confirmation",
+    "compliance/compliance_signer/test_detached_review_command_signs_exact_displayed_synthetic_document_without_owner_event",
+    "compliance/compliance_signer/test_detached_review_reader_refuses_links_oversize_directories_and_fifo_before_open",
+    "compliance/compliance_signer/test_detached_review_schema_and_signing_bytes_match_runtime_without_repo_imports",
+    "execution/execution_transport/test_explicit_clock_overrides_installed_legacy_clock_for_receipts_auth_and_token_age",
+    "execution/execution_transport/test_explicit_managed_send_uses_sidecar_ca_and_never_falls_back_direct",
+    "execution/execution_transport/test_public_inquiry_clock_is_explicit_aware_nested_and_restored",
+    "execution_accounts/accounts_baseline/test_baseline_export_preserves_first_day_approved_floor_and_actual_timestamp",
+    "execution_accounts/accounts_baseline/test_checkpoint_roundtrip_requires_separately_retained_expected_head",
+    "execution_accounts/accounts_baseline/test_exported_baseline_fits_existing_provider_without_implying_trade_permission",
+    "execution_accounts/accounts_baseline/test_first_day_exception_does_not_restart_after_seoul_rollover_or_restore",
+    "execution_accounts/accounts_baseline/test_freshness_never_crosses_seoul_day_even_within_thirty_seconds",
+    "execution_accounts/accounts_baseline/test_identical_redelivery_is_idempotent_and_changed_duplicate_is_rejected",
+    "execution_accounts/accounts_baseline/test_incomplete_time_windows_and_sequence_or_digest_rollbacks_refuse",
+    "execution_accounts/accounts_baseline/test_interval_extrema_must_bound_both_snapshots_without_rounding",
+    "execution_accounts/accounts_baseline/test_interval_peak_and_trough_are_not_inferred_from_recovered_endpoints",
+    "execution_accounts/accounts_baseline/test_malformed_checkpoint_json_cannot_smuggle_numbers_fields_or_duplicate_values",
+    "execution_accounts/accounts_baseline/test_midnight_requires_an_exact_opening_snapshot_and_keeps_lifetime_peak",
+    "execution_accounts/accounts_baseline/test_numeric_types_nonfinite_and_ambient_decimal_precision_cannot_change_accounting",
+    "execution_accounts/accounts_baseline/test_unknown_conventions_and_mutated_state_do_not_get_reinterpreted",
+    "execution_accounts/accounts_baseline/test_unknown_gross_and_offsetting_external_flows_are_refused",
+    "execution_accounts/accounts_baseline_integration/test_anchor_bridge_reconciles_first_actual_balance_profit_and_explicit_source_binding",
+    "execution_accounts/accounts_baseline_integration/test_atomic_replace_failure_keeps_old_checkpoint_and_refuses_interrupted_temporary_file",
+    "execution_accounts/accounts_baseline_integration/test_bridge_fifo_profit_equity_and_exact_arithmetic_reconcile_without_dummy_baseline",
+    "execution_accounts/accounts_baseline_integration/test_bridge_midnight_opening_matches_real_prior_day_profit_without_first_day_reset",
+    "execution_accounts/accounts_baseline_integration/test_bridge_rejects_cumulative_daily_and_prior_day_accounting_contradictions",
+    "execution_accounts/accounts_baseline_integration/test_bridge_rejects_hidden_external_flow_and_inclusive_endpoint_fill",
+    "execution_accounts/accounts_baseline_integration/test_checkpoint_construct_and_missing_load_create_nothing_then_explicit_seed_roundtrips",
+    "execution_accounts/accounts_baseline_integration/test_failed_external_cas_exposes_no_observation_and_requires_review_on_restart",
+    "execution_accounts/accounts_baseline_integration/test_missing_store_and_naive_tick_fail_before_interval_source_or_implicit_seed",
+    "execution_accounts/accounts_baseline_integration/test_provider_commits_before_head_cas_and_returns_only_after_readback_then_restarts",
+    "execution_accounts/accounts_baseline_integration/test_same_tick_exact_redelivery_is_idempotent_but_changed_endpoint_is_not_cached",
+    "execution_accounts/accounts_baseline_integration/test_source_and_head_exceptions_are_sanitized_and_leave_previous_checkpoint",
+    "execution_accounts/accounts_baseline_integration/test_store_bounded_regular_descriptors_and_malformed_content_are_required",
+    "execution_accounts/accounts_baseline_integration/test_store_commit_requires_exact_prior_head_and_preserves_restart_state",
+    "execution_accounts/accounts_baseline_integration/test_store_refuses_hardlinked_checkpoint_and_linked_directory",
+    "execution_accounts/accounts_baseline_integration/test_store_refuses_non_anchor_seed_and_duplicate_commit_without_reset",
+    "execution_accounts/accounts_baseline_integration/test_store_root_must_be_absolute_explicit_and_equal_selected_state_root",
+    "execution_accounts/accounts_guards/test_account_endpoint_literals_are_file_exact",
+    "execution_accounts/accounts_guards/test_checkpoint_write_exception_is_path_shape_and_file_exact",
+    "execution_accounts/accounts_guards/test_e1_transport_imports_and_request_aliases_are_pinned",
+    "execution_accounts/accounts_guards/test_macro_collector_exception_preserves_exact_get_checks",
+    "execution_accounts/accounts_guards/test_only_reviewed_collector_literals_can_use_e1_authenticated_get",
+    "execution_accounts/accounts_guards/test_quote_source_exception_is_public_get_and_file_exact",
+    "execution_accounts/accounts_provider/test_prior_realized_loss_cannot_be_hidden_by_a_new_first_trading_day",
+    "execution_accounts/accounts_quotes/test_construction_is_inert_and_requires_one_fixed_krw_market_and_explicit_clock",
+    "execution_accounts/accounts_quotes/test_e1_source_uses_public_fixed_get_and_explicit_clock_without_credential_reads",
+    "execution_accounts/accounts_quotes/test_empty_oversized_unordered_duplicate_locked_and_crossed_depth_refuse",
+    "execution_accounts/accounts_quotes/test_inquiry_errors_are_fixed_codes_and_do_not_include_raw_provider_details",
+    "execution_accounts/accounts_quotes/test_managed_route_is_explicit_and_restored_after_success_or_failure",
+    "execution_accounts/accounts_quotes/test_market_cardinality_and_native_level_are_required",
+    "execution_accounts/accounts_quotes/test_native_book_retains_best_prices_sizes_depth_and_raw_receipt",
+    "execution_accounts/accounts_quotes/test_nonpositive_non_numeric_and_unbounded_amounts_refuse",
+    "execution_accounts/accounts_quotes/test_only_exact_get_orderbook_route_is_allowed_before_keys_or_send",
+    "execution_accounts/accounts_quotes/test_quote_and_receipt_freshness_do_not_relabel_exchange_time",
+    "execution_accounts/accounts_quotes/test_receipt_requires_exact_scope_path_parameters_digest_and_unique_json",
+    "execution_accounts/accounts_quotes/test_runner_bridge_preserves_source_timestamp_and_refuses_future_stale_or_changed_book",
+    "execution_accounts/accounts_quotes/test_source_decodes_raw_body_not_lossy_answer_body_and_requires_date_header",
+    "execution_accounts/accounts_quotes/test_timestamp_and_server_clock_require_aware_supported_values",
+    "execution_accounts/accounts_quotes/test_total_depth_cannot_be_less_than_displayed_liquidity",
+    "execution_accounts/accounts_quotes/test_wire_decimal_precision_survives_small_ambient_context",
+    "execution_accounts/accounts_readiness/test_explicit_managed_configuration_revalidates_current_policy_without_activating_route",
+    "execution_accounts/accounts_readiness/test_managed_configuration_checks_selected_host_and_never_grants_missing_credentials",
+    "execution_accounts/accounts_readiness/test_managed_reader_binds_explicit_route_and_clock_for_one_inquiry_then_restores",
+    "execution_accounts/accounts_recovery/test_boundary_bridge_and_durable_provider_reconcile_capture_repeat_and_restart",
+    "execution_accounts/accounts_recovery/test_boundary_proof_resets_only_at_seoul_midnight_and_keeps_lifetime_anchor",
+    "execution_accounts/accounts_recovery/test_boundary_proof_survives_exact_serialization_and_refuses_tampering",
+    "execution_accounts/accounts_recovery/test_bridge_stale_pre_deadline_frame_and_changed_endpoint_never_create_proof",
+    "execution_accounts/accounts_recovery/test_cutoff_configuration_is_explicit_strict_and_legacy_null_preserves_behavior",
+    "execution_accounts/accounts_recovery/test_direct_store_commit_cannot_reset_daily_history_or_erase_established_proof",
+    "execution_accounts/accounts_recovery/test_exact_anchor_can_capture_boundary_but_late_anchor_never_invents_recovery",
+    "execution_accounts/accounts_recovery/test_first_day_exact_boundary_captures_real_equity_and_keeps_lifetime_loss_history",
+    "execution_accounts/accounts_recovery/test_missing_exact_boundary_refuses_and_pre_cutoff_observation_cannot_leak_after_deadline",
+    "execution_accounts/accounts_recovery/test_original_schema_one_json_digest_roundtrips_without_new_fields_or_migration",
+    "execution_accounts/accounts_recovery/test_provider_recovery_proof_must_match_day_timestamp_actual_equity_and_loss_history",
+    "execution_accounts/accounts_recovery/test_zero_prior_profit_needs_boundary_but_positive_or_negative_prior_profit_does_not",
+    "execution_control/control_controller/test_recovery_equality_keeps_historical_loss_without_raising_lifetime_floor",
+    "execution_control/control_controller/test_recovery_missing_or_breached_boundary_persists_until_next_day_after_recovery",
+    "execution_control/control_controller/test_recovery_reservation_before_cutoff_cannot_dispatch_after_with_recent_old_snapshot",
+    "execution_control/control_risk/test_recovery_boundary_shortfall_cannot_be_erased_by_later_recovery",
+    "execution_control/control_risk/test_recovery_condition_rejects_unsupported_cutoffs_and_ambiguous_types",
+    "execution_control/control_risk/test_recovery_cutoff_preserves_allowed_history_and_equality_after_recovery",
+    "execution_control/control_risk/test_recovery_keeps_ordinary_profit_prior_loss_and_lifetime_floor_rules",
+    "execution_control/control_risk/test_recovery_requires_actual_boundary_and_cannot_use_fresh_pre_cutoff_snapshot",
+    "execution_control/orders_transport/test_managed_order_send_uses_explicit_proxy_ca_once_and_does_not_fallback",
+    "execution_launch/accounts_collector/test_balance_mutation_and_full_history_cash_mismatch_refuse",
+    "execution_launch/accounts_collector/test_canceled_partial_order_keeps_fills_and_zeroes_remaining_reservation",
+    "execution_launch/accounts_collector/test_cash_account_requires_full_empty_history_and_preserves_exact_receipt_manifest",
+    "execution_launch/accounts_collector/test_closed_windows_are_bounded_overlap_and_do_not_invent_page_cursor",
+    "execution_launch/accounts_collector/test_completed_zero_fee_krw_flow_reconciles_but_unsupported_flows_refuse",
+    "execution_launch/accounts_collector/test_e1_binding_refuses_missing_environment_names_and_never_uses_env_fallback",
+    "execution_launch/accounts_collector/test_e1_binding_uses_only_fixed_gets_and_exact_raw_answer_not_float_body",
+    "execution_launch/accounts_collector/test_fresh_ticker_metadata_cannot_hide_a_stale_last_trade",
+    "execution_launch/accounts_collector/test_missing_trade_details_market_orders_unknown_states_and_float_amounts_refuse",
+    "execution_launch/accounts_collector/test_multitrade_order_does_not_guess_fee_allocations",
+    "execution_launch/accounts_collector/test_numbered_pages_reach_terminal_and_repeated_page_is_not_completeness",
+    "execution_launch/accounts_collector/test_order_detail_single_trade_fee_and_position_reconcile_exactly",
+    "execution_launch/accounts_collector/test_partial_open_order_fills_and_locked_cash_are_reconciled",
+    "execution_launch/accounts_collector/test_prior_day_realized_loss_cannot_be_relabeled_as_first_trading_day",
+    "execution_launch/accounts_collector/test_raw_decimal_numbers_are_lossless_duplicate_json_keys_and_digest_changes_refuse",
+    "execution_launch/accounts_collector/test_retention_identity_anchor_scope_and_capture_fence_are_required_before_fetch",
+    "execution_launch/accounts_collector/test_saturated_single_timestamp_is_refused_instead_of_fabricating_history",
+    "execution_launch/accounts_collector/test_zero_fee_multitrade_and_unused_fee_evidence_are_distinguished",
+    "execution_launch/launch_capture/test_future_marks_cannot_rewrite_earlier_replay_decisions",
+    "execution_launch/launch_capture/test_partial_stream_can_be_archived_but_mutated_past_records_refuse",
+    "execution_launch/launch_capture/test_prefetched_sampling_preserves_real_source_times_and_exact_raw_digest",
+    "execution_launch/launch_capture/test_program_identity_matches_runner_and_binds_source_and_parameters",
+    "execution_launch/launch_capture/test_program_schema_bounds_and_json_do_not_accept_implicit_parameters",
+    "execution_launch/launch_capture/test_program_warmup_equality_cash_and_prefix_decisions_are_exact",
+    "execution_launch/launch_capture/test_protocol_registry_and_both_code_artifacts_are_bound_before_recording",
+    "execution_launch/launch_capture/test_replay_export_runs_existing_evaluator_and_never_becomes_live_evidence",
+    "execution_launch/launch_capture/test_replay_missing_duplicate_future_and_late_slots_refuse_without_backfill",
+    "execution_launch/launch_capture/test_replay_parser_is_strict_and_cannot_import_decisions_or_upgrade_origin",
+    "execution_launch/launch_capture/test_sampling_refuses_post_slot_future_stale_or_changed_book",
+    "execution_launch/launch_capture/test_stream_book_adapter_uses_injected_sample_time_and_keeps_original_receipts",
+    "execution_launch/launch_capture/test_stream_records_actual_clock_and_exact_prefix_then_exports_complete_window",
+    "execution_launch/launch_capture/test_stream_start_clock_and_slot_refusals_do_not_fill_missing_history",
+    "execution_launch/launch_cli/test_argument_errors_and_invalid_json_do_not_echo_values_or_paths",
+    "execution_launch/launch_cli/test_defaults_and_template_never_read_files_environment_home_clock_or_network",
+    "execution_launch/launch_cli/test_explicit_profile_checks_freshness_but_never_claims_owner_approval_or_execution",
+    "execution_launch/launch_cli/test_missing_or_invalid_now_refuses_before_any_profile_read",
+    "execution_launch/launch_cli/test_oversize_missing_directory_and_non_regular_files_are_bounded_refusals",
+    "execution_launch/launch_cli/test_private_directories_env_parent_traversal_and_non_json_are_denied_before_open",
+    "execution_launch/launch_cli/test_symlink_files_and_parents_and_hard_links_are_refused",
+    "execution_launch/launch_cli/test_truncated_utf8_and_duplicate_json_remain_redacted_parser_refusals",
+    "execution_launch/launch_deployment/test_cli_compares_bounded_explicit_files_and_redacts_paths_and_rejected_arguments",
+    "execution_launch/launch_deployment/test_default_setup_has_no_io_environment_or_implicit_time_and_keeps_unknowns",
+    "execution_launch/launch_deployment/test_export_matches_actual_d14_closure_and_never_contains_absolute_paths",
+    "execution_launch/launch_deployment/test_export_rejects_other_checkout_and_linked_source_before_closure_read",
+    "execution_launch/launch_deployment/test_first_limit_advisory_uses_seoul_next_day_without_claiming_effectiveness",
+    "execution_launch/launch_deployment/test_forged_authority_hash_changes_and_untrusted_rows_refuse",
+    "execution_launch/launch_deployment/test_manifest_comparison_separates_source_dependency_and_runtime_differences",
+    "execution_launch/launch_deployment/test_parser_rejects_duplicates_oversize_numbers_and_unknown_fields",
+    "execution_launch/launch_driver/test_cash_warmup_and_first_slot_never_create_an_entry",
+    "execution_launch/launch_driver/test_current_quote_does_not_enter_delayed_target_and_future_slot_refuses",
+    "execution_launch/launch_driver/test_exact_sizing_is_independent_of_ambient_decimal_precision",
+    "execution_launch/launch_driver/test_inventory_reservations_fx_and_quote_anchor_mismatch_refuse",
+    "execution_launch/launch_driver/test_missing_boolean_wrong_digest_expired_and_raising_source_authentication_refuse",
+    "execution_launch/launch_driver/test_order_sizes_match_paper_evaluator_with_fees_slippage_lots_and_terminal_exit",
+    "execution_launch/launch_driver/test_prior_decision_delay_prefix_target_and_source_label_are_mandatory",
+    "execution_launch/launch_driver/test_registered_callback_parameters_contract_and_code_are_rechecked",
+    "execution_launch/launch_driver/test_registered_factory_identity_preserves_program_digest_and_rejects_clones",
+    "execution_launch/launch_driver/test_restart_reuses_same_signal_and_changed_post_fill_account_is_refused",
+    "execution_launch/launch_driver/test_same_slot_rewrite_and_later_prefix_rewrite_refuse_even_with_fixture_verifier",
+    "execution_launch/launch_driver/test_terminal_window_is_deployment_window_and_dust_is_not_reported_as_success",
+    "execution_launch/launch_guards/test_launch_and_network_do_not_directly_sign_arm_or_open_http",
+    "execution_launch/launch_guards/test_launch_guard_negative_controls",
+    "execution_launch/launch_guards/test_launch_suite_is_complete_registered_and_import_errors_fail",
+    "execution_launch/launch_guards/test_new_packages_are_in_runtime_and_acting_graph",
+    "execution_launch/launch_guards/test_new_runtime_packages_are_signed_recursively_by_owner_and_signer",
+    "execution_launch/launch_profile/test_complete_profile_never_claims_execution_and_requires_current_signed_context",
+    "execution_launch/launch_profile/test_context_mutation_and_nonfinite_or_inactive_limits_cannot_pass_preflight",
+    "execution_launch/launch_profile/test_exact_decimal_roundtrip_and_digest_ignore_numeric_context_and_object_key_order",
+    "execution_launch/launch_profile/test_explicit_recovery_condition_roundtrip_binds_profile_and_policy_without_relaxing_floors",
+    "execution_launch/launch_profile/test_floor_equality_and_profit_target_keep_existing_risk_semantics",
+    "execution_launch/launch_profile/test_inconsistent_policy_values_and_deliberately_mutated_exact_types_refuse",
+    "execution_launch/launch_profile/test_limit_timing_respects_first_setting_tightening_and_seoul_midnight",
+    "execution_launch/launch_profile/test_profile_digest_binds_scope_policy_strategy_rules_and_accounting_choices",
+    "execution_launch/launch_profile/test_prospective_contract_refreshes_only_timestamp_and_keeps_economic_terms_bound",
+    "execution_launch/launch_profile/test_public_example_is_explicitly_incomplete_and_never_execution_ready",
+    "execution_launch/launch_profile/test_scope_currency_time_in_force_and_rule_freshness_are_explicit",
+    "execution_launch/launch_profile/test_strict_json_refuses_duplicates_unknown_keys_numerical_ambiguity_and_oversize",
+    "execution_launch/launch_profile/test_unknown_owner_choices_remain_missing_and_cannot_construct_risk_policy",
+    "execution_launch/launch_profile/test_zero_budget_is_explicit_and_distinct_from_unconfigured",
+    "execution_launch/launch_review_auth/test_callback_wrapper_refreshes_owner_authority_on_every_verification",
+    "execution_launch/launch_review_auth/test_deployment_window_and_explicit_trusted_history_selection_are_bound",
+    "execution_launch/launch_review_auth/test_genuine_synthetic_signature_roundtrip_qualifies_only_exact_computed_research",
+    "execution_launch/launch_review_auth/test_registered_fixed_callback_succeeds_but_cloned_or_substituted_callback_refuses",
+    "execution_launch/launch_review_auth/test_rotation_expiry_stale_authority_and_changed_signed_deployment_refuse",
+    "execution_launch/launch_review_auth/test_signed_review_cannot_be_replayed_for_different_evidence_or_program",
+    "execution_launch/launch_review_auth/test_strict_document_rejects_booleans_unknown_fields_duplicates_and_invalid_times",
+    "execution_launch/launch_review_auth/test_wrong_signature_key_and_owner_log_domain_do_not_authenticate",
+    "execution_launch/launch_review_request/test_actual_program_parameters_profile_and_capital_must_match_computed_study",
+    "execution_launch/launch_review_request/test_changed_protocol_cannot_relabel_a_previously_computed_result",
+    "execution_launch/launch_review_request/test_computed_request_binds_actual_inputs_and_leaves_all_review_authority_pending",
+    "execution_launch/launch_review_request/test_duplicate_nonfinite_unknown_and_oversized_json_is_refused_without_echo",
+    "execution_launch/launch_review_request/test_import_is_only_unsigned_integrity_and_cannot_be_used_as_strategy_evidence",
+    "execution_launch/launch_review_request/test_imported_summary_or_rebuilt_result_is_not_computed_evidence_for_a_request",
+    "execution_launch/launch_review_request/test_replay_claim_and_expired_evidence_remain_visible_without_any_authority",
+    "execution_launch/launch_review_request/test_request_preparation_reads_no_owner_state_key_environment_or_network",
+    "execution_launch/launch_review_request/test_request_roundtrip_never_accepts_approval_fields_even_with_a_recomputed_hash",
+    "execution_launch/launch_runner/test_automatic_entry_duplicate_and_restart_never_repeat_create",
+    "execution_launch/launch_runner/test_bound_preparation_requires_real_owner_arm_and_runtime_object",
+    "execution_launch/launch_runner/test_default_observation_and_missing_evidence_never_initialize_or_touch_control",
+    "execution_launch/launch_runner/test_expired_research_and_stop_preserve_explicit_verified_exit",
+    "execution_launch/launch_runner/test_explicit_rehearsal_rejects_non_dry_adapter_and_wrong_isolation",
+    "execution_launch/launch_runner/test_partial_fill_reconciliation_keeps_residual_and_cancel_ack_is_not_terminal",
+    "execution_launch/launch_runner/test_read_only_states_never_initialize_repair_or_mutate_journal",
+    "execution_launch/launch_runner/test_research_starting_capital_cannot_be_changed_by_matching_profile_hash",
+    "execution_launch/launch_runner/test_reserved_before_crash_is_cancelled_locally_and_not_dispatched",
+    "execution_launch/launch_runner/test_scheduler_is_bounded_stoppable_and_clock_rollback_blocks",
+    "execution_launch/launch_runner/test_strategy_exit_tick_keeps_nonempty_owner_context_without_launch_session",
+    "execution_launch/launch_runner/test_strategy_receipt_quote_staleness_and_provider_errors_fail_closed",
+    "execution_launch/launch_runner/test_unknown_send_restarts_with_status_only_and_never_retries_or_releases",
+    "execution_launch/launch_strategy/test_capture_json_recomputes_results_and_refuses_a_supplied_summary",
+    "execution_launch/launch_strategy/test_capture_rejects_gaps_duplicate_times_incomplete_window_and_future_availability",
+    "execution_launch/launch_strategy/test_costs_are_nonnegative_cash_is_exact_and_ambient_decimal_precision_has_no_effect",
+    "execution_launch/launch_strategy/test_decision_history_and_timing_are_causal_and_no_leverage_is_accepted",
+    "execution_launch/launch_strategy/test_fee_floor_rule_changes_off_tick_and_too_small_cash_are_not_hidden",
+    "execution_launch/launch_strategy/test_multiplicity_counts_the_frozen_family_and_p_values_are_nonzero",
+    "execution_launch/launch_strategy/test_one_roundtrip_matches_independent_cash_fee_tick_and_lot_arithmetic",
+    "execution_launch/launch_strategy/test_planted_future_paper_edge_requires_explicit_review_and_never_grants_permission",
+    "execution_launch/launch_strategy/test_profile_code_window_and_evidence_expiry_bindings_are_enforced",
+    "execution_launch/launch_strategy/test_protocol_json_is_strict_canonical_and_does_not_import_claimed_pass",
+    "execution_launch/launch_strategy/test_registration_is_append_only_and_capture_cannot_precede_the_protocol",
+    "execution_launch/launch_strategy/test_retrospective_and_synthetic_sources_are_never_promoted_by_hash_or_review",
+    "execution_launch/launch_strategy/test_review_receipt_cannot_be_boolean_wrong_digest_future_expired_or_raw_exception",
+    "execution_launch/launch_strategy/test_summary_forgery_and_mutation_do_not_replace_replayed_arithmetic",
+    "execution_launch/launch_strategy/test_unchanged_current_rule_refresh_preserves_research_terms_but_not_execution_digest",
+    "execution_launch/launch_strategy/test_unsupported_fx_market_and_source_or_evaluator_versions_are_refused",
+    "execution_launch/launch_workflow/test_binding_and_capital_mismatch_refuse_before_evaluation_and_do_not_echo_inputs",
+    "execution_launch/launch_workflow/test_default_and_argument_errors_never_read_environment_clock_or_files",
+    "execution_launch/launch_workflow/test_evaluation_recomputes_metrics_but_never_authenticates_claimed_prospective_files",
+    "execution_launch/launch_workflow/test_example_writer_never_overwrites_or_follows_private_or_linked_destinations",
+    "execution_launch/launch_workflow/test_generated_example_records_evaluates_and_creates_only_unsigned_review_request",
+    "execution_launch/launch_workflow/test_inspect_program_hashes_actual_source_bytes_and_never_emits_program_parameters",
+    "execution_launch/launch_workflow/test_invalid_time_refuses_before_file_access_and_strict_capture_does_not_accept_pass_claims",
+    "execution_launch/launch_workflow/test_parser_errors_never_leak_raw_provider_text_or_values",
+    "execution_launch/launch_workflow/test_reader_refuses_private_paths_links_nonregular_files_and_bounds_even_stale_stat",
+    "execution_launch/launch_workflow/test_record_emits_only_on_explicit_request_and_archive_remains_synthetic",
+    "execution_launch/launch_workflow/test_unknown_loss_budgets_do_not_block_offline_arithmetic_or_become_approved",
+    "execution_launch/network_route/test_default_direct_has_no_proxy_and_keeps_verified_tls",
+    "execution_launch/network_route/test_destination_scheme_userinfo_port_and_hostname_refuse_before_route_selection",
+    "execution_launch/network_route/test_managed_route_requires_exact_enforced_current_host_metadata_and_public_ca",
+    "execution_launch/network_route/test_missing_stale_and_unenforced_policy_cannot_enable_managed_routing",
+    "execution_launch/network_route/test_nested_context_is_restored_on_error_and_does_not_leak_to_new_context",
+    "execution_launch/network_route/test_proxy_auth_alternate_hosts_ports_paths_and_unverified_ca_are_refused",
+    "execution_launch/network_route/test_route_and_options_cannot_be_reconfigured_in_place",
+    "execution_launch/network_route/test_routing_module_has_no_network_auth_environment_or_file_content_access",
+    "execution_launch/network_route/test_unrestricted_platform_still_has_only_three_exact_execution_hosts",
+    "kis_live/kis_live/test_approval_fixed_https_body_no_redirect_no_disk_and_bounded_response",
+    "kis_live/kis_live/test_book_depth_order_missing_levels_and_inferred_date_are_explicit",
+    "kis_live/kis_live/test_buffers_are_bounded_and_new_connection_generation_does_not_fill_gaps",
+    "kis_live/kis_live/test_construction_and_invalid_subscriptions_never_read_credentials_or_transport",
+    "kis_live/kis_live/test_cumulative_duplicates_zero_size_and_out_of_order_do_not_invent_trades",
+    "kis_live/kis_live/test_exact_record_counts_decimal_values_and_separate_timestamps",
+    "kis_live/kis_live/test_explicit_foreign_trading_date_and_unknown_session_reset_break_windows",
+    "kis_live/kis_live/test_explicit_worker_uses_fixed_origins_proxy_policy_and_stops_cleanly",
+    "kis_live/kis_live/test_indicative_unknown_and_delayed_data_are_never_reported_as_live_metrics",
+    "kis_live/kis_live/test_indicator_ticks_are_not_volume_weighted_trade_prints",
+    "kis_live/kis_live/test_json_controls_are_typed_and_never_surface_remote_text_or_private_material",
+    "kis_live/kis_live/test_market_symbol_unsubscribed_private_or_future_frames_fail_closed",
+    "kis_live/kis_live/test_metrics_use_only_captured_real_trades_and_exact_book_sizes",
+    "kis_live/kis_live/test_reconnect_attempts_are_bounded_with_no_raw_error_or_reissued_approval",
+    "kis_live/kis_live/test_stop_during_pending_auth_retains_worker_and_prevents_later_transport",
+    "kis_live/kis_live/test_subscription_messages_contain_only_fixed_market_registration_fields",
+    "kis_live/kis_live_catalog/test_catalog_has_no_network_credentials_environment_or_execution_imports",
+    "kis_live/kis_live_catalog/test_catalog_mapping_and_channel_records_are_immutable",
+    "kis_live/kis_live_catalog/test_channel_contracts_keep_unique_ordered_fields_and_source_row_citations",
+    "kis_live/kis_live_catalog/test_companions_pin_feed_and_validate_both_keys_without_symbol_rewriting",
+    "kis_live/kis_live_catalog/test_documented_socket_is_cleartext_and_approval_remains_exact_https",
+    "kis_live/kis_live_catalog/test_domestic_krx_integrated_and_nxt_have_distinct_wire_layouts",
+    "kis_live/kis_live_catalog/test_fixed_symbol_syntax_refuses_injection_unicode_and_whitespace",
+    "kis_live/kis_live_catalog/test_individual_trade_size_is_not_cumulative_volume",
+    "kis_live/kis_live_catalog/test_only_documented_krx_stock_channels_accept_paper_environment",
+    "kis_live/kis_live_catalog/test_overseas_keys_distinguish_free_daytime_paid_and_delayed_scopes",
+    "kis_live/kis_live_catalog/test_private_notifications_orders_unknown_and_conflicted_channels_are_refused",
+    "kis_live/kis_live_catalog/test_scaling_time_unknowns_and_auction_markers_are_not_fabricated",
+    "kis_live/kis_live_guards/test_live_display_guard_rejects_neighboring_privileged_paths",
+    "kis_live/kis_live_guards/test_live_display_has_no_account_order_signing_or_persistent_credential_effects",
+    "kis_live/kis_live_guards/test_live_suite_is_registered_complete_and_import_failure_is_a_failed_case",
+    "kis_live/kis_live_guards/test_swallowed_unfaked_network_attempt_is_not_a_passing_test",
+    "kis_live/kis_live_ui/test_build_and_mount_never_construct_or_start_a_session",
+    "kis_live/kis_live_ui/test_cached_view_remount_never_labels_disconnected_cached_values_as_live",
+    "kis_live/kis_live_ui/test_connect_companion_subscription_is_explicit_and_stop_cancels_polling",
+    "kis_live/kis_live_ui/test_delayed_and_partial_market_coverage_are_visible_before_connect",
+    "kis_live/kis_live_ui/test_fresh_snapshot_renders_actual_depth_trades_and_sample_metrics",
+    "kis_live/kis_live_ui/test_indicator_ticks_are_not_presented_as_completed_trades",
+    "kis_live/kis_live_ui/test_invalid_input_and_backend_error_do_not_expose_external_error_text",
+    "kis_live/kis_live_ui/test_main_wires_navigation_disconnect_and_native_close_without_starting_streams",
+    "kis_live/kis_live_ui/test_single_channel_choice_does_not_subscribe_a_companion",
+    "kis_live/kis_live_ui/test_stale_or_disconnected_values_remain_labelled_and_metrics_are_blank",
+    "kis_live/kis_live_ui/test_stop_timeout_retains_session_and_prevents_duplicate_connection",
+    "kis_live/kis_live_ui/test_unmount_during_start_cannot_restore_or_leak_a_session",
+    "kis_live/kis_live_ui/test_wrapped_rows_never_emit_expanded_children_without_a_flex_parent"
+  ],
+  "groups": {
+    "cockpit": {
+      "PASS": 47
+    },
+    "compliance": {
+      "PASS": 346,
+      "NOT_RUN": 1
+    },
+    "engine": {
+      "PASS": 92
+    },
+    "execution": {
+      "PASS": 231
+    },
+    "execution_accounts": {
+      "PASS": 111
+    },
+    "execution_control": {
+      "PASS": 149
+    },
+    "execution_launch": {
+      "PASS": 145
+    },
+    "expansion": {
+      "PASS": 19
+    },
+    "ficc": {
+      "PASS": 56
+    },
+    "grokteam": {
+      "PASS": 17
+    },
+    "kis_live": {
+      "PASS": 45
+    },
+    "macro": {
+      "PASS": 419,
+      "NOT_RUN": 121
+    },
+    "odds": {
+      "PASS": 287
+    },
+    "paper": {
+      "PASS": 21
+    },
+    "quant": {
+      "PASS": 53
+    },
+    "strategy_research": {
+      "PASS": 35
+    },
+    "ui": {
+      "PASS": 4
+    }
+  },
+  "skipped_tests": [
+    {
+      "test": "macro/macro_m0_instruments/test_book01_real_sleeve_notional_is_owner_input",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m0_rules/test_m0_15_e_labels_bootstrap_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m1_calendars/test_cal02_2027_files_signed_before_2026_11_01",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m1_calendars/test_close02_on_the_real_signed_files_is_owner_input",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m1_calendars/test_print01_real_kospi_close_2026_03_09",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m1_calendars/test_regime01_full_range_expected_values_file",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m1_calendars/test_sat01_real_kospi_completeness_and_variance_ratio",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m1_fixtures/test_g_post_01_m1_data_rows_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m1_fixtures/test_kis_quote_check_owner_record",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m1_pit/test_avail_01_official_calendars_are_owner_signed",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m1_pit/test_fix_01_regeneration_at_level_1_tolerance_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m1_pit/test_g_post_01_m1_data_rows_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m1_pit/test_miss_01_cpi_yoy_3_353_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m1_pit/test_print_01_real_kospi_close_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m1_pit/test_ro_02_app_key_can_trade_is_an_owner_attestation",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m1_pit/test_stale_01_g_stale_01_reference_table_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m2_costed/test_cost01_r4b_goldens_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m2_costed/test_g_kr_06_cap15_reference_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m2_costed/test_g_lad_01_reference_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m2_costed/test_g_lad_02_reference_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m2_costed/test_g_lad_03_reference_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m2_costed/test_g_mom_07_reference_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m2_risk/test_cap_02_stack_card_clause_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m2_risk/test_corr_01_plus_0_53_at_2026_09_30_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m2_risk/test_g_kr_01_buy_and_hold_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m2_risk/test_g_kr_02_vt20_gross_and_net_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m2_risk/test_g_kr_02b_delta_sharpe_shares_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m2_risk/test_g_kr_02c_static_book_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m2_risk/test_g_kr_03_window_returns_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m2_risk/test_g_kr_04_weights_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m2_risk/test_g_kr_06_cap_1_5_reference_mode_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m2_risk/test_g_us_01_vt15_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m2_risk/test_g_us_01b_static_book_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m2_risk/test_g_us_01c_ewma_challenger_deferred_to_m3",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m2_risk/test_i_02_korea_window_replays_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m2_risk/test_label_01_kospi_elevated_stressed_and_us_normal_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m2_risk/test_vt_01_rv20_28_82_and_vt_0_694_on_2_oct_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m3_estimators/test_g_b5_02_spy_refdata_with_smoke_on_local_cache",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m3_estimators/test_g_b5_03_us_market_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m3_estimators/test_g_b5_04_display_labels_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m3_estimators/test_g_est_04_sizing_books_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m3_estimators/test_g_us_01c_ewma_challenger_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m3_estimators/test_t_b5_01_kospi_golden_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m3_estimators/test_t_est_01_i_10_dlb_t1a_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m3_estimators/test_t_est_02_christoffersen_lines_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m4_sleeves/test_g_book_01_mom_strev_rmw",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m4_sleeves/test_g_intl_01_regional_wml",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m4_sleeves/test_g_mom_01_02_08_french_mom_daily",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m4_sleeves/test_g_mom_03_04_05_06_french_mom_and_market",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m4_sleeves/test_g_mom_07_reference_mode",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m4_sleeves/test_prior_01_mapping_clause_owner",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m4_sleeves/test_r03_01_french_fixture_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m5_books/test_caps_01_real_kodex_basket_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m5_books/test_g_lad_01_literal_ladder_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m5_books/test_g_lad_02_qf4_eleven_session_fix_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m5_books/test_g_lad_03_sensitivity_lines_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m5_books/test_g_post_01_pair_implied_share_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m5_books/test_i_04b_kospi_1997_2026_reentry_and_pinned_count_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m5_books/test_mono_01_i01_fixture_clause_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m5_fills_events/test_fill01_qf1_tracking_error_golden_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m5_fills_events/test_fill02_real_000660_closes_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m5_fills_events/test_g_r08_01_spell_count_smoke_then_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m5_fills_events/test_task_m5_14_halt_count_pin_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m5_fills_events/test_task_m5_15_event_conditional_variance_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m5_integration/test_g_r08_02_cardp_reject_record_is_on_file_never_reproduced",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m6_context/test_ctx_02_live_snapshot_sources_owner",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m6_context/test_ctx_section_11_context_values_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m7_cardp/test_epis_01_counts_on_official_closes_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m7_cardp/test_epis_02_pc4_on_the_korea_definitive_cell_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m7_cardp/test_es_02_korea_long_history_es_lines_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m7_cardp/test_excess_01_bok_call_rate_ecos_code_is_owner_input",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m7_cardp/test_excess_01_px2_reproduction_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m7_cardp/test_gate_01_placebo_counts_and_controls_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m7_cardp/test_gate_03_negative_controls_in_detail_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m7_cardp/test_i05_full_sample_lag_audit_over_compliant_goldens_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m7_cardp/test_i08_acceptance_test_on_the_frozen_reference_data_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m7_cardp/test_placebo_01_positive_control_fixture_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m7_cardp/test_rlayer_01_card_book_convention_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m7_cardp/test_trough_01_post_trough_and_cost_episodes_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m7_cards/test_book02_kospi_vt20_execution_variants_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m7_cards/test_card01_formal_headers_owner_blocked",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m7_cards/test_i16_r06_kr_verdict_conditions_recorded_and_formal_run_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m7_cards/test_r03_01_revisions_committed_before_their_runs_lowest_passing_acts",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m7_cards/test_r04_01_record_and_pooled_route_closed",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m7_cards/test_r14_01_header_needs_multi_line_lines_and_the_diversification_claim",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m7_cards/test_step02_binding_shares_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m7_cards/test_step03_dsr_vs_no_steps_reference_run_pending",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m7_cards/test_study_runner_dry_listing_offline_and_formal_runs_refused",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m7_integration/test_g_dsr_02_r03_net_of_cost_golden_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m7_integration/test_g_kr_l01_l13_korea_long_history_goldens_after_the_freeze_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m7_integration/test_g_lad_04_invariants_only_book_with_and_without_the_hard_stop_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m7_integration/test_g_pwr_01_02_gate_power_goldens_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m7_integration/test_g_us_f01_f10_us_fixture_goldens_after_the_freeze_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m7_integration/test_t_est_03_comb_sized_book_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m7_integration/test_t_gate_02_us_vt15_after_the_freeze_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m7_ledger/test_ledger_seeds_load_with_null_values_and_report_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m7_ledger/test_neff01_qf3_26_trial_matrix_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m7_ledger/test_sel01_e_card_run_f_vs_acceptance_report_f_after_freeze",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m7_ledger/test_step3_01_end_to_end_from_the_matrix_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m7_stats/test_pbo01_kospi_vt_grid_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m7_stats/test_power01_fixture_ses_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m7_stats/test_se01_r03_french_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m8_forward/test_g_ref_01_s1_goldens_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m8_forward/test_g_ref_02_s2_goldens_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m8_forward/test_task_m8_11_french_1926_daily_file_owner",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m8_forward/test_trend_02_french_monthly_and_us_vt15_goldens_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m8_forward/test_usfut_02_settling_run_logic_and_the_1926_fixture_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m8_forward/test_usfut_05_dla_u2_reproduction_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m8_pipeline/test_i01_golden_clauses_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m9_lab/test_i11_kospi_oos_2016_26_thresholds_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m9_lab/test_i11_replay_kospi_path_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m9_lab/test_t_crypto_01_asof_join_with_staleness_labels_owner",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m9_lab/test_t_fx_01_granularity_floor_needs_the_contract_multiplier_owner",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m9_scenarios/test_scenario_brent_history_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m9_scenarios/test_scenario_kospi_jul_2026_path_refdata",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m9_scenarios/test_scenario_latest_sep_table_owner",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_m9_scenarios/test_scenario_oil_2022_anchor_owner",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_tf_gov/test_cry1_cut_time_sensitivity_needs_intraday_candles",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_tf_gov/test_krx_tech_fund_card_formal_runs_need_the_krx_panel",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_tf_screens/test_idx_02_rebuilt_kospi_check_values_need_the_krx_panel",
+      "detail": ""
+    },
+    {
+      "test": "macro/macro_tf_screens/test_krx_01_screen_card_runs_need_the_krx_panel",
+      "detail": ""
+    },
+    {
+      "test": "compliance/compliance_signer/test_stdin_terminal_check_follows_getconsolemode",
+      "detail": ""
+    }
+  ],
+  "frozen_paths_unchanged": [
+    "research_lab",
+    "docs/research/2026-10-31-strategy-lab",
+    "grokteam/PREREG_book.json",
+    "grokteam/out/frozen_book"
+  ],
+  "runtime_code_hash": "e345d7945a6003ec8ce87283c48b5c484170fa728286733e7960e9a32ceb508c",
+  "runtime_file_count": 67,
+  "live_api_calls": false,
+  "actual_signing": false,
+  "activation": false,
+  "real_orders": false,
+  "qualified_live_strategy": false,
+  "frozen_research_passing_candidates": 0
+}

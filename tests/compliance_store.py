@@ -137,7 +137,7 @@ def test_code_files_is_the_import_closure():
     expected = {"core/__init__.py", "core/isolation.py"} | {
         f"core/{sub}/{p.name}" for sub in ("compliance", "odds") for p in (ROOT / "core" / sub).glob("*.py")} | {
         f"execution/{p.name}" for p in (ROOT / "execution").glob("*.py")} | {
-        p.relative_to(ROOT).as_posix() for package in ("execution_control", "execution_orders", "execution_accounts")
+        p.relative_to(ROOT).as_posix() for package in ("execution_control", "execution_orders", "execution_accounts", "execution_network", "execution_launch")
         for p in (ROOT / package).rglob("*.py")}
     assert repo == expected, sorted(repo ^ expected)
     assert "config.py" not in repo and not any(name.startswith("data/") for name in repo)

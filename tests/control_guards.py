@@ -59,7 +59,7 @@ def _imports_allowed(rel, module):
         return rel == CONTROLLER
     if module in STD:
         return True
-    if module in {"requests", "urllib.parse"}:
+    if module in {"requests", "urllib.parse", "execution_network.route"}:
         return rel == TRANSPORT
     if module == "core.isolation" or module == "core.compliance" or module.startswith("core.compliance."):
         return True
@@ -81,6 +81,8 @@ def _problems(rel, source):
                     hits.append("unapproved import")
                 if alias.name in {"execution_orders.transport", "execution.keys", "execution.transport"}:
                     hits.append("alternate transport or inquiry credential access")
+                if alias.name == "execution_network" or alias.name.startswith("execution_network."):
+                    hits.append("unapproved routing import")
         elif isinstance(node, ast.ImportFrom):
             module = node.module or ""
             if node.level or not _imports_allowed(rel, module) or any(a.name == "*" for a in node.names):
@@ -88,6 +90,10 @@ def _problems(rel, source):
             if module == "functools" and (rel != CONTROLLER or len(node.names) != 1
                     or node.names[0].name != "wraps" or node.names[0].asname is not None):
                 hits.append("unapproved functools helper")
+            if module == "execution_network" or module.startswith("execution_network."):
+                if (rel != TRANSPORT or module != "execution_network.route" or len(node.names) != 1
+                        or node.names[0].name != "route_options" or node.names[0].asname is not None):
+                    hits.append("unapproved routing helper")
             if module == "execution_orders.transport" and rel != TRANSPORT:
                 hits.append("direct trading transport import")
             if module == "execution_control.capability" and rel != CONTROLLER:
@@ -179,6 +185,12 @@ def test_guard_negative_controls_for_routes_effects_and_credentials():
             assert _problems(rel, f"PATH = {bad!r}\n"), (rel, bad)
     assert _problems(TRANSPORT, "import requests as r\n")
     assert _problems(TRANSPORT, "URL = 'https://attacker.invalid'\n")
+    assert not _problems(TRANSPORT, "from execution_network.route import route_options\n")
+    assert _problems(ordinary, "from execution_network.route import route_options\n")
+    for source in ("from execution_network.unreviewed import route_options\n",
+                   "from execution_network.route import managed_route\n", "import execution_network.route\n",
+                   "from execution_network.route import route_options as other\n"):
+        assert _problems(TRANSPORT, source), source
 
 
 def test_single_http_seam_is_bounded_and_has_no_redirect_or_proxy():
@@ -191,7 +203,9 @@ def test_single_http_seam_is_bounded_and_has_no_redirect_or_proxy():
     assert ast.unparse(call.func) == "session.request"
     keywords = {kw.arg: ast.unparse(kw.value) for kw in call.keywords}
     assert keywords == {"headers": "headers", "data": "body or None", "timeout": "timeout",
-                        "allow_redirects": "False", "verify": "True"}, keywords
+                        "allow_redirects": "False", "proxies": "options.proxies", "verify": "options.verify"}, keywords
+    assert any(isinstance(node, ast.Assign) and ast.unparse(node) == "options = route_options(url)"
+               for node in ast.walk(send))
     assert not any(isinstance(node, (ast.For, ast.AsyncFor, ast.While)) for node in ast.walk(send))
     assert any(isinstance(node, ast.Assign) and ast.unparse(node) == "session.trust_env = False"
                for node in ast.walk(send))

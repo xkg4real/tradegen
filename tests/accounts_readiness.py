@@ -87,6 +87,45 @@ def test_configuration_manifest_contains_names_hosts_and_no_operational_permissi
     assert manifest["credential_values_included"] is False and manifest["execution_ready"] is False
     assert manifest["credential_variable_names"] == {v: list(n) for v, n in CREDENTIAL_NAMES.items()}
     assert manifest["owner_signature_status"] == "NOT_CHECKED"
+    assert "explicit validated managed" in manifest["network_caveat"]
+
+
+def test_explicit_managed_configuration_revalidates_current_policy_without_activating_route():
+    from execution_network.route import build_managed_route, route_options
+    startup = {"version": 1, "http_proxy": "http://proxy:8080"}
+    with patch("execution_network.route.Path") as public_ca:
+        public_ca.return_value.is_file.return_value = True
+        route = build_managed_route(policy_snapshot=startup, runtime_status=_runtime(),
+            proxy_url="http://proxy:8080", ca_bundle="/etc/ssl/certs/ca-certificates.crt")
+        report = _configuration(policy_snapshot=startup, route=route)
+        assert all(v.probe_environment_ready and "MANAGED_ROUTE_CONFIGURED" in v.reasons for v in report.venues)
+        assert all(not v.inquiry_ready and not v.account_evidence_ready and not v.execution_ready for v in report.venues)
+        assert route_options("https://api.upbit.com/").verify is True
+        for changes in ({"runtime_status": _runtime(current=False)}, {"runtime_status": _runtime(allowed=False)},
+                        {"policy_snapshot": {"version": 1, "http_proxy": "http://other:8080"}},
+                        {"route": replace(route, ca_bundle=False)}, {"route": object()}):
+            blocked = _configuration(**({"policy_snapshot": startup, "route": route} | changes))
+            assert all(not v.probe_environment_ready for v in blocked.venues)
+            assert all("MANAGED_ROUTE_CONFIGURATION_INVALID" in v.reasons for v in blocked.venues)
+        public_ca.return_value.is_file.return_value = False
+        missing_ca = _configuration(policy_snapshot=startup, route=route)
+        assert all(not v.probe_environment_ready for v in missing_ca.venues)
+
+
+def test_managed_configuration_checks_selected_host_and_never_grants_missing_credentials():
+    from execution_network.route import ManagedRoute
+    startup = {"version": 1, "http_proxy": "http://proxy:8080"}
+    route = ManagedRoute(proxy_url="http://proxy:8080", ca_bundle="/etc/ssl/certs/ca-certificates.crt",
+                         permitted_hosts=frozenset({"api.upbit.com"}))
+    with patch("execution_network.route.Path") as public_ca:
+        public_ca.return_value.is_file.return_value = True
+        report = _configuration(policy_snapshot=startup, route=route)
+        assert [v.venue for v in report.venues if v.probe_environment_ready] == ["upbit"]
+        report = _configuration(policy_snapshot=startup, route=route, present_names=())
+        assert all(not v.probe_environment_ready for v in report.venues)
+        calls = []
+        result = _call(lambda now: calls.append(now), configuration=report)
+        assert result.reasons == ("PROBE_CONFIGURATION_BLOCKED",) and not calls
 
 
 def test_probe_is_opt_in_and_blocked_configuration_never_calls_the_reader():
@@ -160,6 +199,37 @@ def test_upbit_reader_runs_existing_e1_client_with_fake_http_and_no_state_writer
         assert tuple((call["method"], call["path"]) for call in calls) == tuple(("GET", path) for path in expected)
         # E1 intentionally never calls the fixture's allowlisted wallet-status route.
         assert not list(home.iterdir())
+
+
+def test_managed_reader_binds_explicit_route_and_clock_for_one_inquiry_then_restores():
+    from execution import transport, upbit_inquiry
+    from execution_network.route import ManagedRoute, route_options
+    route = ManagedRoute(proxy_url="http://proxy:8080", ca_bundle="/etc/ssl/certs/ca-certificates.crt",
+                         permitted_hosts=frozenset({"api.upbit.com"}))
+    observed = []
+    def snapshot(now):
+        observed.append((now, transport._context_clock(), route_options("https://api.upbit.com/")))
+        return EF.snap("upbit")
+    with F.temp_home() as home, EF.fake_keys(), patch.object(upbit_inquiry, "snapshot", snapshot):
+        reader = E1InquiryReader(venue="upbit", state_directory=home, route=route, clock=lambda: EF.NOW)
+        result = _call(reader)
+        assert result.inquiry_connected and len(observed) == 1
+        assert observed[0][0:2] == (EF.NOW, EF.NOW)
+        assert dict(observed[0][2].proxies) == {"http": "http://proxy:8080", "https": "http://proxy:8080"}
+        assert observed[0][2].verify == "/etc/ssl/certs/ca-certificates.crt"
+        _refused(lambda: replace(reader, clock=None)(EF.NOW), "INQUIRY_CLOCK_REQUIRED")
+        _refused(lambda: replace(reader, route=replace(route, proxy_url="http://other:8080"))(EF.NOW),
+                 "MANAGED_ROUTE_INVALID")
+        _refused(lambda: replace(reader, route=replace(route, permitted_hosts=frozenset({"www.okx.com"})))(EF.NOW),
+                 "MANAGED_ROUTE_INVALID")
+        assert len(observed) == 1 and not list(home.iterdir())
+    assert route_options("https://api.upbit.com/").verify is True
+    try:
+        transport._context_clock()
+    except RuntimeError:
+        pass
+    else:
+        raise AssertionError("reader clock leaked beyond one inquiry")
 
 
 def test_kis_reader_requires_fresh_sealed_signed_context_before_any_inquiry():

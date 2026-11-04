@@ -40,6 +40,7 @@ Other commands
                             cap_set and limit_set: a tighter value applies at once; a looser one, including the
                             first one you set, applies only from the next Asia/Seoul date, never inside a session
                             armed on or before the day you set it, and never after a system_halt
+  review-approve            detached source/fixed implementation review; see docs/strategy-review-signing.md
   fingerprint               print the key file's fingerprint (no passphrase needed)
 
 Key rotation, only when the key must change (the old key signs the change, the log stays one chain)
@@ -68,10 +69,11 @@ import math
 import os
 import re
 import secrets
+import stat
 import sys
 import time
 from contextlib import contextmanager
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 KEY_FORMAT = "tradegen-owner-key/1"
@@ -599,7 +601,7 @@ def store_calendar(src_dir: Path, anchor: tuple[int, str]) -> str:
 
 # --------------------------------------------------------------------------- #
 # The D14 code hash: a copy of owner.code_files (P6). core/compliance, core/odds and execution .py files,
-# recursive execution_control/, execution_orders/ and execution_accounts/ files, every in-repo file they import at any depth
+# recursive execution_control/, execution_orders/, execution_accounts/, execution_network/ and execution_launch/ files, every in-repo file they import at any depth
 # (function bodies included), every ancestor package __init__.py, and the
 # RECORD files of the cryptography and PyYAML installs. An `if` body that never runs at import is skipped (see
 # _skipped); every other body is scanned.
@@ -718,7 +720,7 @@ def code_files(repo_root: Path) -> list[tuple[str, str]]:
     root = Path(repo_root)
     todo = [p for base in (root / "core" / "compliance", root / "core" / "odds", root / "execution")
             for p in sorted(base.glob("*.py"))]
-    todo.extend(p for base in (root / "execution_control", root / "execution_orders", root / "execution_accounts")
+    todo.extend(p for base in (root / "execution_control", root / "execution_orders", root / "execution_accounts", root / "execution_network", root / "execution_launch")
                 for p in sorted(base.rglob("*.py")))
     seen: set[Path] = set()
     while todo:
@@ -1064,6 +1066,305 @@ def _cmd_code_approve(args) -> int:
                                          "files": [list(f) for f in files]})
 
 
+
+
+# Detached review validators: standalone copies, checked against runtime contract.
+_REVIEW_FACTORY_ID = "tradegen-fixed-cash-trend-v1"
+_rr_MAX_REQUEST_BYTES = 65536
+_rr_HASH = re.compile('[0-9a-f]{64}')
+_rr_ID = re.compile('[A-Za-z][A-Za-z0-9_.:-]{0,95}')
+_rr_KINDS = frozenset({'prospective_paper_capture', 'synthetic', 'retrospective_replay'})
+_rr_BINDINGS = frozenset({'protocol_digest', 'evidence_digest', 'registry_digest', 'inputs_digest', 'profile_contract_digest', 'runtime_profile_digest', 'rule_terms_digest', 'program_digest', 'program_artifact_sha256', 'canonical_parameters_sha256', 'capture_source_code_sha256'})
+_rr_AUTH_FLAGS = frozenset({'source_authenticated', 'implementation_authenticated', 'signature_verified', 'owner_context_verified', 'research_review_ready', 'execution_ready'})
+_rr_CHECKS = ('original_source_identity_and_records', 'publication_before_capture', 'independent_capture_window', 'complete_candidate_and_retry_family', 'causal_decisions_match_frozen_program', 'fixed_runtime_driver_matches_reviewed_program', 'deployment_source_and_dependency_closure', 'capital_fees_rules_and_account_risk_applicability', 'effective_owner_limits_and_actual_session')
+_rr_METRICS = frozenset({'observations', 'completed_roundtrips', 'total_return', 'max_drawdown', 'double_cost_total_return', 'extra_delay_total_return', 'family_adjusted_p'})
+_rr_TOP = frozenset({'schema_version', 'artifact_kind', 'requested_at', 'capture_start', 'capture_end', 'evaluated_at', 'review_deadline', 'study_id', 'strategy_id', 'capture_source_id', 'evaluator_revision', 'source_kind_claim', 'bindings', 'computed_summary', 'profile_blockers', 'assessment_reasons', 'required_checks', 'reviewer_id', 'review_public_key', 'review_signature', 'deployment_code_hash', 'authority', 'request_sha256'})
+
+class _rr_ReviewRequestError(ValueError):
+    """Fixed diagnostics with no supplied value or provider text."""
+
+def _rr_require(condition, code):
+    if not condition:
+        raise _rr_ReviewRequestError(code)
+
+def _rr_stamp(value):
+    _rr_require(type(value) is datetime and value.utcoffset() is not None, 'REVIEW_AWARE_TIME_REQUIRED')
+    try:
+        return value.astimezone(timezone.utc).isoformat(timespec='microseconds')
+    except (ValueError, OverflowError):
+        raise _rr_ReviewRequestError('REVIEW_TIME_INVALID') from None
+
+def _rr_time(value):
+    _rr_require(type(value) is str and len(value) <= 40, 'REVIEW_TIME_INVALID')
+    try:
+        stamp = datetime.fromisoformat(value)
+        _rr_require(_rr_stamp(stamp) == value, 'REVIEW_TIME_FORMAT_INVALID')
+        return stamp
+    except (ValueError, TypeError, OverflowError):
+        raise _rr_ReviewRequestError('REVIEW_TIME_INVALID') from None
+
+def _rr_hash(value):
+    return type(value) is str and _rr_HASH.fullmatch(value) is not None
+
+def _rr_identifier(value):
+    return type(value) is str and _rr_ID.fullmatch(value) is not None
+
+def _rr_canonical(value):
+    try:
+        return json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=True, allow_nan=False)
+    except (ValueError, TypeError, RecursionError, OverflowError):
+        raise _rr_ReviewRequestError('REVIEW_REQUEST_JSON_INVALID') from None
+
+def _rr_validate(request):
+    _rr_require(type(request) is dict and set(request) == _rr_TOP, 'REVIEW_REQUEST_SCHEMA_INVALID')
+    _rr_require(type(request['schema_version']) is int and request['schema_version'] == 1 and (request['artifact_kind'] == 'unsigned_strategy_review_request'), 'REVIEW_REQUEST_SCHEMA_INVALID')
+    stamps = {name: _rr_time(request[name]) for name in ('requested_at', 'capture_start', 'capture_end', 'evaluated_at', 'review_deadline')}
+    _rr_require(stamps['capture_start'] < stamps['capture_end'] <= stamps['evaluated_at'] <= stamps['requested_at'] and stamps['review_deadline'] > stamps['capture_end'], 'REVIEW_REQUEST_CHRONOLOGY_INVALID')
+    for name in ('study_id', 'strategy_id', 'capture_source_id', 'evaluator_revision'):
+        _rr_require(_rr_identifier(request[name]), 'REVIEW_REQUEST_IDENTIFIER_INVALID')
+    _rr_require(type(request['source_kind_claim']) is str and request['source_kind_claim'] in _rr_KINDS, 'REVIEW_SOURCE_KIND_INVALID')
+    bindings = request['bindings']
+    _rr_require(type(bindings) is dict and set(bindings) == _rr_BINDINGS and all((_rr_hash(v) for v in bindings.values())), 'REVIEW_REQUEST_BINDING_INVALID')
+    summary = request['computed_summary']
+    _rr_require(type(summary) is dict and set(summary) == {'mathematical_criteria_met', 'metrics'} and (type(summary['mathematical_criteria_met']) is bool), 'REVIEW_REQUEST_SUMMARY_INVALID')
+    metrics = summary['metrics']
+    _rr_require(type(metrics) is dict and set(metrics) == _rr_METRICS, 'REVIEW_REQUEST_SUMMARY_INVALID')
+    for name, value in metrics.items():
+        _rr_require(type(value) is int and 0 <= value <= 100000 if name in ('observations', 'completed_roundtrips') else type(value) in (float, int) and math.isfinite(value), 'REVIEW_REQUEST_SUMMARY_INVALID')
+    _rr_require(0 < metrics['family_adjusted_p'] <= 1 and 0 <= metrics['max_drawdown'] <= 1, 'REVIEW_REQUEST_SUMMARY_INVALID')
+    for name in ('profile_blockers', 'assessment_reasons'):
+        values = request[name]
+        _rr_require(type(values) is list and len(values) <= 100 and all((type(v) is str and re.fullmatch('[A-Z][A-Z0-9_]{0,95}', v) for v in values)), 'REVIEW_REQUEST_REASONS_INVALID')
+    expected_checks = [{'id': name, 'reviewed': None, 'evidence_sha256': None} for name in _rr_CHECKS]
+    _rr_require(request['required_checks'] == expected_checks, 'REVIEW_REQUEST_REVIEW_MUST_REMAIN_PENDING')
+    for name in ('reviewer_id', 'review_public_key', 'review_signature', 'deployment_code_hash'):
+        _rr_require(request[name] is None, 'REVIEW_REQUEST_CANNOT_CONTAIN_APPROVAL')
+    authority = request['authority']
+    _rr_require(type(authority) is dict and set(authority) == _rr_AUTH_FLAGS and all((value is False for value in authority.values())), 'REVIEW_REQUEST_CANNOT_GRANT_AUTHORITY')
+    body = {name: value for name, value in request.items() if name != 'request_sha256'}
+    _rr_require(_rr_hash(request['request_sha256']) and request['request_sha256'] == hashlib.sha256(_rr_canonical(body).encode('ascii')).hexdigest(), 'REVIEW_REQUEST_DIGEST_MISMATCH')
+
+def _rr_review_request_json(request) -> str:
+    """Serialize an unsigned request, rejecting added approval or PASS fields."""
+    _rr_validate(request)
+    raw = _rr_canonical(request)
+    _rr_require(len(raw) <= _rr_MAX_REQUEST_BYTES, 'REVIEW_REQUEST_TOO_LARGE')
+    return raw
+
+def _rr_parse_review_request(raw: str | bytes) -> dict:
+    """Inspect only request integrity; imported summaries are never recomputed evidence."""
+    _rr_require(type(raw) in (str, bytes) and len(raw) <= _rr_MAX_REQUEST_BYTES, 'REVIEW_REQUEST_TOO_LARGE')
+
+    def pairs(values):
+        result = {}
+        for key, value in values:
+            _rr_require(key not in result, 'REVIEW_REQUEST_DUPLICATE_KEY')
+            result[key] = value
+        return result
+
+    def invalid(value):
+        raise _rr_ReviewRequestError('REVIEW_REQUEST_JSON_INVALID')
+    try:
+        result = json.loads(raw, object_pairs_hook=pairs, parse_constant=invalid)
+        _rr_validate(result)
+        return result
+    except _rr_ReviewRequestError:
+        raise
+    except (ValueError, TypeError, UnicodeError, ArithmeticError, RecursionError):
+        raise _rr_ReviewRequestError('REVIEW_REQUEST_JSON_INVALID') from None
+
+_rv_REVIEW_DOMAIN = b'tradegen-strategy-review/1\n'
+_rv_MAX_DOCUMENT_BYTES = 98304
+_rv_MAX_REVIEW_SECONDS = 86400
+_rv_MAX_AUTHORITY_AGE_SECONDS = 30
+_rv_REVIEW_CHECKS = ('original_source_identity_and_records', 'publication_before_capture', 'independent_capture_window', 'complete_candidate_and_retry_family', 'causal_decisions_match_frozen_program', 'fixed_runtime_driver_matches_reviewed_program', 'deployment_source_and_dependency_closure', 'capital_fees_rules_and_account_risk_applicability')
+_rv_BODY = frozenset({'schema_version', 'purpose', 'request', 'driver_identity', 'deployment_code_hash', 'audit_sha256', 'owner_fingerprint', 'reviewer_id', 'issued_at', 'expires_at', 'approved_checks'})
+_rv_IDENTITY = frozenset({'factory_id', 'program_digest', 'deployment_code_sha256', 'protocol_digest', 'profile_contract_digest', 'rule_terms_digest', 'deployment_window_digest'})
+_rv_HASH = re.compile('[0-9a-f]{64}')
+
+class _rv_ReviewAuthenticationError(ValueError):
+    """Fixed diagnostics only, no external body, exception or private state."""
+
+def _rv_need(value, code):
+    if not value:
+        raise _rv_ReviewAuthenticationError(code)
+
+def _rv_canonical(value):
+    try:
+        return json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=True, allow_nan=False)
+    except (TypeError, ValueError, RecursionError, OverflowError):
+        raise _rv_ReviewAuthenticationError('REVIEW_DOCUMENT_INVALID') from None
+
+def _rv_time(value):
+    try:
+        _rv_need(type(value) is str and len(value) <= 40, 'REVIEW_TIME_INVALID')
+        stamp = datetime.fromisoformat(value)
+        _rv_need(stamp.utcoffset() is not None and stamp.astimezone(timezone.utc).isoformat(timespec='microseconds') == value, 'REVIEW_TIME_INVALID')
+        return stamp
+    except (TypeError, ValueError, OverflowError):
+        raise _rv_ReviewAuthenticationError('REVIEW_TIME_INVALID') from None
+
+def _rv_stamp(value):
+    _rv_need(type(value) is datetime and value.utcoffset() is not None, 'REVIEW_TIME_INVALID')
+    return value.astimezone(timezone.utc).isoformat(timespec='microseconds')
+
+def _rv_hash(value):
+    return type(value) is str and _rv_HASH.fullmatch(value) is not None
+
+def _rv_validate_body(body):
+    _rv_need(type(body) is dict and set(body) == _rv_BODY and (type(body['schema_version']) is int) and (body['schema_version'] == 1) and (body['purpose'] == 'strategy_source_and_fixed_implementation_review'), 'REVIEW_DOCUMENT_SCHEMA_INVALID')
+    try:
+        request = _rr_parse_review_request(_rv_canonical(body['request']))
+    except _rr_ReviewRequestError:
+        raise _rv_ReviewAuthenticationError('REVIEW_UNSIGNED_REQUEST_INVALID') from None
+    _rv_need(request['source_kind_claim'] == 'prospective_paper_capture' and request['computed_summary']['mathematical_criteria_met'] is True and (request['assessment_reasons'] == ['STRATEGY_TRUSTED_REVIEW_REQUIRED']) and (set(request['profile_blockers']) <= {'SIGNED_CONTEXT_REQUIRED'}), 'REVIEW_REQUEST_NOT_ELIGIBLE')
+    identity = body['driver_identity']
+    _rv_need(type(identity) is dict and set(identity) == _rv_IDENTITY and (identity['factory_id'] == _REVIEW_FACTORY_ID) and all((_rv_hash(v) for k, v in identity.items() if k != 'factory_id')), 'REVIEW_DRIVER_IDENTITY_INVALID')
+    _rv_need(all((identity[key] == request['bindings'][key] for key in ('program_digest', 'protocol_digest', 'profile_contract_digest', 'rule_terms_digest'))), 'REVIEW_DRIVER_REQUEST_MISMATCH')
+    _rv_need(_rv_hash(body['deployment_code_hash']) and _rv_hash(body['audit_sha256']), 'REVIEW_DIGEST_INVALID')
+    fp = body['owner_fingerprint']
+    _rv_need(type(fp) is str and fp.startswith('SHA256:') and _rv_hash(fp[7:]) and (body['reviewer_id'] == 'owner:' + fp[7:]), 'REVIEW_SIGNER_IDENTITY_INVALID')
+    issued, expires = (_rv_time(body['issued_at']), _rv_time(body['expires_at']))
+    _rv_need(_rv_time(request['requested_at']) <= issued < expires <= _rv_time(request['review_deadline']) and expires - issued <= timedelta(seconds=_rv_MAX_REVIEW_SECONDS), 'REVIEW_VALIDITY_INVALID')
+    _rv_need(body['approved_checks'] == list(_rv_REVIEW_CHECKS), 'REVIEW_CHECKLIST_INCOMPLETE')
+    return body
+
+def _rv_review_body(request, driver_identity, *, deployment_code_hash, audit_sha256, owner_fingerprint, issued_at, expires_at):
+    """Build strictly typed unsigned signing input; this grants no review status."""
+    body = {'schema_version': 1, 'purpose': 'strategy_source_and_fixed_implementation_review', 'request': _rr_parse_review_request(_rr_review_request_json(request)), 'driver_identity': dict(driver_identity), 'deployment_code_hash': deployment_code_hash, 'audit_sha256': audit_sha256, 'owner_fingerprint': owner_fingerprint, 'reviewer_id': 'owner:' + owner_fingerprint[7:], 'issued_at': _rv_stamp(issued_at), 'expires_at': _rv_stamp(expires_at), 'approved_checks': list(_rv_REVIEW_CHECKS)}
+    return _rv_validate_body(body)
+
+def _rv_review_signing_bytes(body):
+    return _rv_REVIEW_DOMAIN + _rv_canonical(_rv_validate_body(body)).encode('ascii')
+
+
+_REVIEW_SOURCES = ("execution_launch/driver.py", "execution_launch/program.py",
+    "execution_launch/strategy.py", "execution_launch/runner.py", "execution_launch/profile.py",
+    "execution_control/model.py", "execution_control/capability.py", "execution_control/controller.py")
+
+
+def _review_path(path):
+    """Explicit regular-file inputs/output, with no linked path components."""
+    target = Path(path).absolute()
+    for part in (target, *target.parents):
+        _checked(part)
+    return target
+
+
+def _review_read(path, limit):
+    target = _review_path(path)
+    initial = os.lstat(target)
+    if not stat.S_ISREG(initial.st_mode) or initial.st_nlink != 1 or not 0 < initial.st_size <= limit:
+        raise ValueError("review input must be a bounded regular file with one name")
+    flags = (os.O_RDONLY | getattr(os, "O_BINARY", 0) | getattr(os, "O_NOFOLLOW", 0)
+             | getattr(os, "O_NONBLOCK", 0))
+    descriptor = os.open(target, flags)
+    try:
+        before = os.fstat(descriptor)
+        if not stat.S_ISREG(before.st_mode) or before.st_nlink != 1 or not 0 < before.st_size <= limit:
+            raise ValueError("review input must be a bounded regular file with one name")
+        with os.fdopen(descriptor, "rb", closefd=False) as stream:
+            raw = stream.read(limit + 1)
+        after = os.fstat(descriptor)
+        current = os.stat(target, follow_symlinks=False)
+        if (len(raw) != before.st_size or len(raw) > limit
+                or (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns)
+                != (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns)
+                or (after.st_dev, after.st_ino) != (current.st_dev, current.st_ino)):
+            raise ValueError("review input changed while reading")
+        return raw
+    finally:
+        os.close(descriptor)
+
+
+def _review_identity(raw):
+    try:
+        value = json.loads(raw, object_pairs_hook=_no_duplicates,
+                           parse_constant=lambda _: (_ for _ in ()).throw(ValueError("invalid review number")))
+    except (UnicodeError, ValueError, TypeError, RecursionError):
+        raise ValueError("invalid fixed-driver manifest") from None
+    if (type(value) is not dict or set(value) != _rv_IDENTITY
+            or value["factory_id"] != _REVIEW_FACTORY_ID
+            or not all(_rv_hash(v) for k, v in value.items() if k != "factory_id")):
+        raise ValueError("invalid fixed-driver manifest")
+    return value
+
+
+def _review_source_hash(repo):
+    files = {name: sha256_hex(_review_read(repo / name, 1048576)) for name in _REVIEW_SOURCES}
+    return sha256_hex(canonical_json({"factory_id": _REVIEW_FACTORY_ID, "files": files}))
+
+
+def _confirm_review(body):
+    print("About to attest source and fixed implementation review. This does not arm a session or place an order.")
+    print("The live-history provider/verifier and fresh account integration require separate deployment review.")
+    print("Verify every approved_checks item against your actual audit. No profitability is guaranteed.")
+    print(json.dumps(body, indent=2, sort_keys=True, ensure_ascii=True))
+    code = "".join(secrets.choice(CODE_ALPHABET) for _ in range(8))
+    typed, stamps = _read_typed(f"Type this code to sign the review (do not paste): {code}\n> ")
+    if not _typed_ok(code, typed, stamps):
+        raise ValueError("review code was not typed exactly; nothing was signed")
+
+
+def _cmd_review_approve(args):
+    """Owner-only detached document. No owner event schema or ledger append."""
+    repo = _refuse_quantgen(Path(args.repo).resolve(), "--repo")
+    if Path(sys.prefix).resolve() != (repo / ".venv").resolve():
+        raise ValueError("run review-approve with the deployment .venv Python and -I")
+    output = _review_path(args.output)
+    if output.exists() or not output.parent.is_dir():
+        raise ValueError("review output must be a new file in an existing private folder")
+    request = _rr_parse_review_request(_review_read(args.request, _rr_MAX_REQUEST_BYTES))
+    identity = _review_identity(_review_read(args.driver_manifest, 8192))
+    audit_path = _review_path(args.audit)
+    if audit_path.suffix.lower() not in (".txt", ".md", ".pdf", ".json"):
+        raise ValueError("review audit must be an explicit txt, md, pdf or json document")
+    audit = _review_read(audit_path, 1048576)
+    pem_path = repo / "core" / "compliance" / "owner_pubkey.pem"
+    public = _pem_raw(_review_read(pem_path, 4096))
+    closure = code_hash(repo)
+    if identity["deployment_code_sha256"] != _review_source_hash(repo):
+        raise ValueError("fixed-driver manifest does not match deployment source bytes")
+    now = datetime.fromisoformat(_utc_now().replace("Z", "+00:00"))
+    expires = _rv_time(args.expires_at)
+    body = _rv_review_body(request, identity, deployment_code_hash=closure, audit_sha256=sha256_hex(audit),
+        owner_fingerprint=fingerprint(public), issued_at=now, expires_at=expires)
+    lines = _read_lines(_log_path())
+    head = _head(lines)
+    approvals = [json.loads(line) for line in lines if json.loads(line)["kind"] == "code_approved"]
+    if not approvals or approvals[-1]["data"]["sha256"] != closure:
+        raise ValueError("review and code-approve this exact deployment first")
+    _confirm_review(body)
+    key = _unlock(_key_path(args))
+    if key.public_key().public_bytes_raw() != public:
+        raise ValueError("unlocked review key does not match the current deployment PEM")
+    with _exclusive(_log_path()):
+        current = _read_lines(_log_path())
+        if _head(current) != head or _wrong_key(key, "review_document", {}, current):
+            raise ValueError("owner log or current signing key changed; review again")
+        current_time = datetime.fromisoformat(_utc_now().replace("Z", "+00:00"))
+        if not now <= current_time < min(expires, now + timedelta(minutes=5)):
+            raise ValueError("review confirmation expired or clock moved; review again")
+        if (_pem_raw(_review_read(pem_path, 4096)) != public or code_hash(repo) != closure
+                or _review_source_hash(repo) != identity["deployment_code_sha256"]
+                or sha256_hex(_review_read(audit_path, 1048576)) != body["audit_sha256"]):
+            raise ValueError("review deployment, public key or audit changed; review again")
+        if (_rr_parse_review_request(_review_read(args.request, _rr_MAX_REQUEST_BYTES)) != request
+                or _review_identity(_review_read(args.driver_manifest, 8192)) != identity):
+            raise ValueError("review inputs changed; review again")
+        _review_path(output)
+        if output.exists():
+            raise ValueError("review output already exists; nothing was signed")
+        signature = base64.b64encode(key.sign(_rv_review_signing_bytes(body))).decode("ascii")
+        encoded = (canonical_json({"body": body, "signature_b64": signature}) + "\n").encode("ascii")
+        if len(encoded) > _rv_MAX_DOCUMENT_BYTES:
+            raise ValueError("review document too large")
+        if not _write_new(output, encoded, None):
+            raise ValueError("review output appeared; existing document was preserved")
+    print("signed detached review; owner log unchanged; runtime verification and session gates still required")
+    return 0
+
+
 def _cmd_event(args) -> int:
     data = json.loads(args.data)
     if args.kind in ("cap_set", "limit_set") and isinstance(data, dict):
@@ -1079,6 +1380,7 @@ def _parser() -> argparse.ArgumentParser:
                             ("fingerprint", _cmd_fingerprint, "print the key fingerprint"),
                             ("approve", _cmd_approve, "approve a table file or the calendar folder"),
                             ("code-approve", _cmd_code_approve, "sign the code hash of the repo"),
+                            ("review-approve", _cmd_review_approve, "attest a prospective source and fixed implementation review"),
                             ("event", _cmd_event, "sign one owner event")):
         p = sub.add_parser(name, help=text)
         p.set_defaults(run=run)
@@ -1088,6 +1390,9 @@ def _parser() -> argparse.ArgumentParser:
             p.add_argument("--path", required=True, help="the file, or the calendar data folder")
         elif name == "code-approve":
             p.add_argument("--repo", required=True, help="the TRADEGEN repo folder")
+        elif name == "review-approve":
+            for flag in ("repo", "request", "driver-manifest", "audit", "expires-at", "output"):
+                p.add_argument("--" + flag, required=True)
         elif name == "event":
             p.add_argument("kind", choices=sorted(set(SCHEMAS) - {"approved", "code_approved"}))
             p.add_argument("--data", required=True, help="the event data as one JSON object")

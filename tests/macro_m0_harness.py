@@ -45,6 +45,8 @@ TEXT_EXCEPTIONS = {
     "execution_orders/transport.py": frozenset({"CANO", "ACNT_PRDT_CD"}),
     # Readiness checks names only; accounts_guards prohibits credential value access.
     "execution_accounts/readiness.py": frozenset({"KIS_ACCOUNT"}),
+    # Collector history GETs: _offences also applies the exact account-route/call guard below.
+    "execution_accounts/upbit_collector.py": frozenset({"/v1/orders", "/v1/withdraws"}),
 }
 # Top-level modules of order-submission clients; an import anywhere fails.
 FORBIDDEN_IMPORTS = frozenset({
@@ -94,6 +96,9 @@ def _offences(path: Path) -> list[str]:
     hits += [f"{rel}: {n!r}" for n in FORBIDDEN_TEXT_CS if n in code and n not in skip]
     if FORBIDDEN_PATH_RE.pattern not in skip:
         hits += [f"{rel}: {m.group(0)!r}" for m in FORBIDDEN_PATH_RE.finditer(code)]
+    if rel == "execution_accounts/upbit_collector.py":
+        from tests.accounts_guards import problems as account_problems
+        hits += [f"{rel}: {problem}" for problem in account_problems(code, "upbit_collector.py")]
     tree = ast.parse(code)
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):

@@ -335,6 +335,12 @@ class Controller:
         self._known = set()
         self._reconciled_at = {}
 
+    @_exact
+    def states(self) -> tuple[OrderState, ...]:
+        """Validated durable order views, without state initialization or repair."""
+        orders, _, _, _ = _fold(self.journal.snapshot())
+        return tuple(_view(orders[key]) for key in sorted(orders))
+
     def _account(self, now, events, order=None):
         _instant(now)
         obs = self.account_provider(now)
@@ -384,10 +390,11 @@ class Controller:
         first = obs.risk.is_first_trading_day and (not reservation_days or min(reservation_days) == today)
         view = replace(obs.risk, prior_high_watermark=high, day_start_equity=start,
                        approved_effective_floor=floor, is_first_trading_day=first)
-        result = risk.evaluate(self.policy, view)
+        result = risk.evaluate(self.policy, view, now=now)
         signed_daily = ctx.owner.limits.get('daily_loss_krw') if ctx.owner.ok else None
         daily_stopped = (any(e['daily_stopped'] for e in same)
                          or 'DAILY_LOSS_BUDGET_REACHED' in result.reasons
+                         or result.recovery_status in ('unverified', 'breached')
                          or (signed_daily is not None and obs.risk.observed_daily_loss >= Decimal(str(signed_daily))))
         if daily_stopped and 'PERSISTENT_DAILY_STOP' not in result.reasons:
             result = replace(result, new_entry_blocked=True,
@@ -451,7 +458,7 @@ class Controller:
                 raise ValueError('floor reduction is not eligible until a later Seoul day')
             high = max([obs.risk.prior_high_watermark] + [Decimal(e['high_watermark']) for e in past])
             result = risk.evaluate(self.policy, replace(obs.risk, prior_high_watermark=high,
-                                                        approved_effective_floor=floor))
+                                                        approved_effective_floor=floor), now=now)
             if result.calculated_floor != floor or result.effective_floor != floor:
                 raise ValueError('approved floor does not match current policy')
             same = [e for e in past if e['day'] == today]
