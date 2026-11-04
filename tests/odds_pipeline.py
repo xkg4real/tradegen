@@ -123,7 +123,8 @@ def test_every_refusal_in_q24_order():
             OF.plan(leg=ETF, start=saturday, horizon_days=1), OF.odds_ctx(date=saturday),
             _krx_series(symbol="069500", end="2026-10-23")))),
         ("SYNTHETIC_REFUSED", "", None, lambda: OF.pipeline(series_obj=_synthetic(OF.fresh_series()))),
-        ("NOT_TRADABLE", "", None, lambda: OF.pipeline(ctx=OF.odds_ctx(active=F.approved()))),   # shipped venues
+        ("NOT_TRADABLE", "", None, lambda: OF.pipeline(                     # shipped venues: OKX has no lot
+            OF.plan(leg=OKX), OF.odds_ctx(active=F.approved()), _okx_series())),
         ("NOT_TRADABLE", "", "2027", lambda: _signed(lambda: OF.pipeline(      # R2-1: a 2027 sell has no signed tax
             OF.plan(leg=STOCK, horizon_days=366), series_obj=_krx_series()))),
         ("SPECIAL_REGIME", "", None, lambda: _signed(lambda: OF.pipeline(

@@ -2,6 +2,8 @@
 # as `approved {kind: venues}` are in force. The compliance plan writes markets, settlement and deposits only; the
 # odds plan added the sourced lots, minimums and the KRX stock tick ladder; every other odds value is absent until
 # the owner adds it, so those legs are not tradable, and this file's sha256 changed, so it needs a new approval.
+# On 2026-11-05 Upbit's lot and fixed charges (0) were added from Upbit's developer docs (research_notes/Korean
+# resident trading venue legality/upbit_order_terms.md); the sha256 changed again, so it needs a new approval.
 # A venue with no deposit entry for a coin credits none, so a withdrawal there fails closed.
 schema: tradegen.venues/1
 venues:
@@ -24,7 +26,9 @@ venues:
     default_quote: KRW
     deposits:                       # UNVERIFIED: no repo source names the network; owner to confirm before approval
       - {symbol: BTC, network: bitcoin, tag_required: false}
+    lot: {source: "https://docs.upbit.com/kr/docs/faq-order", units: {default: 0.00000001}}
     min_order: {source: "https://docs.upbit.com/kr/docs/krw-market-info", quote: {KRW: 5000}}
+    fee_extras: {source: "https://docs.upbit.com/kr/reference/available-order-information", phi_buy: 0, phi_sell: 0}
     source: "https://api.upbit.com/v1/market/all?is_details=false"
   bithumb:
     sections: [crypto]
