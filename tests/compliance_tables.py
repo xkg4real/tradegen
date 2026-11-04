@@ -1551,14 +1551,16 @@ def test_shipped_urls_come_from_the_research():
 
 
 # --------------------------------------------------------------------------- #
-# Odds plan Task 3 (Q18): the sourced odds values of the shipped venues.yaml. No research source gives a fixed
-# charge, an Upbit, OKX or US lot, or a US or OKX minimum, so those stay absent and every leg is not tradable until
+# Odds plan Task 3 (Q18): the sourced odds values of the shipped venues.yaml. No research source gives a KIS or OKX
+# fixed charge, an OKX or US lot, or a US or OKX minimum, so those stay absent and those legs are not tradable until
 # the owner adds them (an explicit 0 included) and approves the venues file (O11; a replay leg needs only the Upbit
-# lot, R2-5).
+# lot, R2-5). Upbit's lot and fixed charges (0) were added on 2026-11-05 from Upbit's developer docs.
 # --------------------------------------------------------------------------- #
 _T5_KIS_LOTS = "research_notes/Korean resident trading venue legality/domestic_securities_derivatives.md#L161"
 _T5_KIS_TICKS = "https://global.krx.co.kr/contents/GLB/06/0602/0602010201/GLB0602010201T3.jsp"
 _T5_UPBIT_MIN = "https://docs.upbit.com/kr/docs/krw-market-info"
+_T5_UPBIT_LOT = "https://docs.upbit.com/kr/docs/faq-order"
+_T5_UPBIT_FEES = "https://docs.upbit.com/kr/reference/available-order-information"
 
 
 def test_shipped_venue_odds_values_are_the_sourced_ones():
@@ -1570,17 +1572,25 @@ def test_shipped_venue_odds_values_are_the_sourced_ones():
     assert kis.lot == (("005930", 1.0), ("069500", 1.0)) and kis.min_order == (("KRW", 0.0),)
     ladder = tuple((float(p), float(t)) for p, t in _KRX_LADDER)
     assert kis.tick_ladder == (("KRX_stock_book", "2026-10-02", ladder),), kis.tick_ladder
-    assert upbit.odds_sources == (("min_order", _T5_UPBIT_MIN),) and upbit.min_order == (("KRW", 5000.0),)
-    assert upbit.lot == () and upbit.tick_ladder == ()
+    assert upbit.odds_sources == (("fee_extras", _T5_UPBIT_FEES), ("lot", _T5_UPBIT_LOT),
+                                  ("min_order", _T5_UPBIT_MIN)), upbit.odds_sources
+    assert upbit.min_order == (("KRW", 5000.0),) and upbit.lot == (("default", 1e-8),)
+    assert upbit.fee_extras == (0.0, 0.0) and upbit.tick_ladder == ()
     for vid, venue in v.items():
-        assert venue.fee_extras is None, vid                 # no fixed charge is researched: not tradable (O11)
+        if vid != "upbit":
+            assert venue.fee_extras is None, vid             # no fixed charge is researched: not tradable (O11)
         if vid not in ("kis", "upbit"):
             assert (venue.lot, venue.min_order, venue.tick_ladder, venue.odds_sources) == ((), (), (), ()), vid
         for key, source in venue.odds_sources:
             assert _t5_ref_ok(source) or source == _T5_UNVERIFIED, (vid, key, source)
     assert kis.lot_for("005930") == kis.lot_for("069500") == 1.0 and kis.lot_for("SPY") is None
     assert kis.min_order_for("KRW") == 0.0 and kis.min_order_for("USD") is None    # a US leg has no signed minimum
-    assert upbit.lot_for("BTC") is None and upbit.min_order_for("KRW") == 5000.0
+    assert upbit.lot_for("BTC") == upbit.lot_for("USDT") == 1e-8 and upbit.min_order_for("KRW") == 5000.0
+    note = (_T5_REPO / "research_notes" / "Korean resident trading venue legality" / "upbit_order_terms.md"
+            ).read_bytes().decode("utf-8")
+    lot_row, fee_row = (next(r for r in note.splitlines() if r.startswith(f"| {k}")) for k in ("Quantity", "Fixed"))
+    assert "0.33333333" in lot_row and f"{upbit.lot_for('BTC'):.8f}" in lot_row and _T5_UPBIT_LOT in lot_row, lot_row
+    assert "fees only as rates" in fee_row and "phi_buy: 0, phi_sell: 0" in fee_row and _T5_UPBIT_FEES in fee_row
     assert kis.ladder_for("KRX_stock_book") == ("2026-10-02", ladder) and kis.ladder_for("KRX_ETF_line") is None
     # _t5_ref_ok only checks that a cited line exists; pin what the research says for every shipped value
     path, _, anchor = _T5_KIS_LOTS.partition("#")
