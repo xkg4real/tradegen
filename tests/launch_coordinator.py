@@ -1279,7 +1279,7 @@ def test_real_adapters_run_under_the_coordinator_over_fake_transports():
 # -- ruling R19: the default boundary lead against the shortest real capture -----------------------------------
 
 @contextmanager
-def shortest_capture_run(b, *, cutoff):
+def shortest_capture_run(b, *, cutoff, earlier=0, **knobs):
     """The real interval producer under a coordinator built with every default knob, around the boundary b. The fake
     exchange holds nothing and lists no order since the opening anchor, so every capture is the shortest real one, 9
     reads. Each read is answered at the clock, as request() stamps received_utc right after _send (zero round trip,
@@ -1289,7 +1289,9 @@ def shortest_capture_run(b, *, cutoff):
     interval fixture's first trading day at 100000 KRW, with the 22:00 convention when `cutoff` is set and none
     otherwise, and a profile on that account whose recovery condition matches (R15); a window ending 90 s before b
     and a run from b - 30 s to b + 30 s: no slot, monitors on the 10 s grid (the one at b - 10 s inside the
-    producer's 10 s window, one at b) and the boundary unit. env.captures holds each unit's capture."""
+    producer's 10 s window, one at b) and the boundary unit. env.captures holds each unit's capture. For the shapes
+    the R19 review found, `earlier` starts the window that many seconds earlier (2: hh:mm:28 instead of :30) and
+    `knobs` override the coordinator's defaults."""
     with memoized_pure_loads(), patch.object(F, "NOW", b - seconds(30)), \
             runner_fixture(prepare=False, arm=False) as env, \
             patch("tests.launch_account_interval.CONVENTIONS", replace(CONVENTIONS, recovery_cutoff_seconds=cutoff)), \
@@ -1324,8 +1326,9 @@ def shortest_capture_run(b, *, cutoff):
         env.coordinator = Coordinator(mode="rehearsal", profile=profile, evidence=evidence_for(profile, env.now),
             driver=env.driver, implementation_verifier=env.review, adapters={"upbit": env.adapter},
             account_source=source, account_prefetch=prefetch, trusted_head=env.head, quote_source=Books(env.fake),
-            window=DeploymentWindow(deployment_id="coord-shortest", start=b - seconds(150), end=b - seconds(90)),
-            bar_seconds=60, monitor_until=b + seconds(30), clock=env.fake.clock, wait=env.fake.wait)
+            window=DeploymentWindow(deployment_id="coord-shortest", start=b - seconds(150 + earlier),
+                                    end=b - seconds(90 + earlier)),
+            bar_seconds=60, monitor_until=b + seconds(30), clock=env.fake.clock, wait=env.fake.wait, **knobs)
         yield env
 
 
@@ -1374,4 +1377,60 @@ def test_default_boundary_lead_holds_a_first_reply_at_0_9_s_and_misses_one_at_1_
             else:
                 assert not any(c.previous.asof >= b for c in env.captures)
                 assert later == ["ACCOUNT_INTERVAL_BOUNDARY_MISSED"] * 5, later    # the unit, then b .. b + 30 s
+                assert status.account_source == "ACCOUNT_INTERVAL_BOUNDARY_MISSED" and status.new_entry_blocked
+
+
+def test_default_boundary_lead_lets_a_monitor_2_s_before_the_boundary_commit_it_and_report_a_miss():
+    """Pinned for the controller, a shape where the 1 s lead is worse than 2 s (the R19 addendum): a window starting
+    at hh:mm:28 puts a 10 s monitor 2 s before the boundary, and at the default lead it runs before the boundary
+    unit. When its capture spans the boundary (here its first reply comes 0.5 s after it starts) it commits the
+    boundary itself and nothing refuses, but the boundary unit's deadline passes behind the work lock, so status()
+    counts a missed boundary with a data gap and a gap unit runs. At a 2 s lead the boundary unit shares the
+    monitor's instant, runs first by rank and commits the boundary, and nothing is reported. Status only; a signed
+    change that runs the boundary unit first, or does not count a boundary the chain holds, flips the default case."""
+    b = at(26, 22)
+    for knobs in ({}, {"boundary_lead_seconds": 2}):
+        with shortest_capture_run(b, cutoff=79200, earlier=2, **knobs) as env:
+            env.fake.at(b - seconds(5), lambda: env.round_trip.append(0.5))      # the 1st read of the unit at b - 2 s
+            status = env.coordinator.run()
+            (unit,) = [c for c in env.captures if c.start < b <= (c.observed or c.start)]
+            assert b - seconds(2) <= unit.start < b - seconds(1.99), unit
+            assert seconds(0.5) <= unit.reads[0] - unit.start < seconds(0.51), unit
+            assert any(c.previous.asof == b for c in env.captures) and status.account_source == "", status
+            assert [c.code for c in env.captures] == [""] * len(env.captures), env.captures
+            if knobs:
+                assert status.missed_boundaries == 0 and status.data_gap_at is None, status
+            else:
+                assert status.missed_boundaries == 1 and b + seconds(8) <= status.data_gap_at < b + seconds(8.1), status
+                assert not any(b - seconds(1) <= c.start < b + seconds(8) for c in env.captures)   # no boundary unit
+
+
+def test_default_boundary_lead_leaves_20_s_monitors_about_1_s_of_the_30_s_freshness_rule():
+    """Pinned for the controller, a shape where the 1 s lead is worse than 2 s (R21): a window starting at hh:mm:10,
+    :30 or :50 puts a 20 s monitor 10 s before the boundary, inside the producer's 10 s window, so it refuses (R20)
+    and the last commit is the unit 30 s before the boundary. Every capture must observe within 30 s of the last
+    commit (execution_accounts/provider.py _fresh), which leaves the boundary capture about 1 s over the shortest
+    capture's 1.8 s at the default lead and about 2 s at a 2 s lead. Here its reads 2 to 9 take 1.5 s longer in all:
+    at the default lead it refuses EVIDENCE_STALE_OR_FUTURE, every later unit refuses
+    ACCOUNT_INTERVAL_BOUNDARY_MISSED and the chain waits for the reviewed re-anchor, while at a 2 s lead the same
+    capture commits the boundary. The default 10 s monitors keep that gap at most 19 s, and R21's upgrade path
+    (monitor_seconds within 5 to 12) removes the shape."""
+    b = at(26, 22)
+    for knobs in ({}, {"boundary_lead_seconds": 2}):
+        with shortest_capture_run(b, cutoff=79200, monitor_seconds=20, **knobs) as env:
+            env.fake.at(b - seconds(5), lambda: env.round_trip.extend([1.5 / 8] * 8 + [0]))   # pop(): read 1 gets 0
+            status = env.coordinator.run()
+            (monitor,) = [c for c in env.captures if b - seconds(10) <= c.start < b - seconds(9)]
+            (unit,) = [c for c in env.captures if b - seconds(2) <= c.start < b]
+            assert monitor.code == "ACCOUNT_INTERVAL_BOUNDARY_NOT_BRACKETED" and len(unit.reads) == 9, env.captures
+            assert seconds(28) < b - unit.previous.asof < seconds(28.2), unit             # the unit at b - 30 s
+            later = [c.code for c in env.captures if c.start > unit.start]                # monitors at b + 10, + 30 s
+            if knobs:
+                assert unit.code == "" and seconds(29) < unit.observed - unit.previous.asof <= seconds(30), unit
+                assert any(c.previous.asof == b for c in env.captures) and later == ["", ""], later
+                assert status.account_source == ""
+            else:
+                assert unit.code == "EVIDENCE_STALE_OR_FUTURE", unit
+                assert not any(c.previous.asof >= b for c in env.captures)
+                assert later == ["ACCOUNT_INTERVAL_BOUNDARY_MISSED"] * 2, later
                 assert status.account_source == "ACCOUNT_INTERVAL_BOUNDARY_MISSED" and status.new_entry_blocked

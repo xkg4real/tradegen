@@ -24,10 +24,10 @@ suspend shows up as skipped deadlines: a late slot is never run, moved or re-run
 missed, and a gap unit reconciles before the next decision. A boundary capture is attempted exactly once, at
 boundary_lead_seconds before the boundary; it spans the boundary only when the capture lasts longer than the lead
 (the producer's own window and rules decide). The shortest Upbit capture, 9 requests, lasts at least 1.8 s because
-the transport pauses 0.2 s after each one, so the default lead of 1 s always spans the boundary as long as the first
-reply lands within about 1 s (R19). compose() is the owned wiring of the reviewed artifacts: loader ->
-make_fixed_driver with the history callables -> LiveHistory.bind -> ReviewVerifiers over CurrentOwnerAuthority ->
-EvidencePackage.
+the transport pauses 0.2 s after each one, so at the default lead of 1 s a boundary unit that starts on time spans
+the boundary whenever its first reply lands within about 1 s (R19). compose() is the owned wiring of the reviewed
+artifacts: loader -> make_fixed_driver with the history callables -> LiveHistory.bind -> ReviewVerifiers over
+CurrentOwnerAuthority -> EvidencePackage.
 
 Ceilings (ponytail): operator calls block on the work lock for at most one unit, which is bounded by the
 dependencies' own timeouts; a slot's account capture must end with the book still inside its 10 s bound and the
