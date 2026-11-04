@@ -836,6 +836,35 @@ def test_a_book_received_after_the_slot_is_refused_without_a_record_or_a_decisio
         assert len(env.producer.prefetches) == 14                        # startup, ten monitors, three slot captures
 
 
+def test_a_book_read_that_raises_is_a_quote_stage_refusal_without_an_account_step():
+    """A re-review N1 (finding 7): a quote source whose read() raises a plain exception with secret-looking text
+    refuses every slot at the prefetch lead with COORDINATOR_QUOTE_SOURCE_FAILED in `reasons` only, before the
+    slot's account capture. Just after the first slot's unit (before the next monitor runs) account_source is "",
+    new_entry_blocked keeps its value, there is no tick and the slot published nothing. The text never reaches the
+    status, nothing is recorded, decided or sent, and the account chain keeps publishing on the monitors."""
+    with fixture() as env:
+        recorded, reads = [], []
+
+        def failing_read():
+            reads.append(env.fake.now)
+            raise RuntimeError("BOOK-SECRET")
+        c = build(env, quote_source=SimpleNamespace(read=failing_read),
+                  history=SimpleNamespace(record_slot=lambda book, account: recorded.append(book)))
+        seen = observe_at(env, c, 50, 58)                 # before slot 1's unit (at 57) and after it, before 60
+        status = c.run()
+        slot = env.window.start
+        assert len(reads) == 3 and slot - seconds(3) <= reads[0] < slot - seconds(2.9), reads
+        assert seen[58].reasons == status.reasons == ("COORDINATOR_QUOTE_SOURCE_FAILED",), seen[58]
+        assert seen[58].account_source == status.account_source == "", seen[58]
+        assert seen[58].new_entry_blocked == seen[50].new_entry_blocked and not seen[50].new_entry_blocked
+        assert seen[58].last_tick is None and status.last_tick is None
+        assert seen[58].published_units == seen[50].published_units == 3   # startup and the monitors at 20 and 40
+        assert "BOOK-SECRET" not in repr(seen) + repr(status)
+        assert recorded == [] and env.decisions == [] and env.adapter.requests == []
+        assert status.missed_slots == 0 and status.published_units == len(env.head.commits) == 11
+        assert len(env.producer.prefetches) == 11                        # startup and ten monitors, no slot capture
+
+
 def test_schedule_and_timer_order_skip_and_cancel():
     start = datetime(2026, 10, 24, 21, 59, 50, tzinfo=KST)
     window = DeploymentWindow(deployment_id="timer", start=start + seconds(10), end=start + seconds(130))
@@ -1019,6 +1048,25 @@ def test_cutoff_mismatch_is_refused_before_the_startup_unit():
         assert status.account_source == "COORDINATOR_CUTOFF_MISMATCH" and status.new_entry_blocked, status
         assert status.published_units == 0 and env.producer.prefetches == [] and env.head.commits == []
         assert env.decisions == [] and env.books.reads == 0 and status.phase == "closed"
+
+
+def test_operator_cancel_and_exit_refuse_a_cutoff_mismatch_before_any_commit():
+    """A re-review N3: over the mismatched chains above (chain set and profile absent, and the reverse), an operator
+    cancel and an operator exit each raise COORDINATOR_CUTOFF_MISMATCH to the caller from the unit's checkpoint
+    load: no clock read, prefetch, producer call, book read, head commit, order request or decision. The operator
+    path raises instead of reporting through _refused, so the status keeps its constructed defaults. The calls need
+    no run(): the operator path has no phase gate, and run() refuses these chains before any unit."""
+    for cutoff, chain_cutoff in ((None, 79200), (79200, None)):
+        with fixture(now=CUTOFF_NOW, cutoff=cutoff, chain_cutoff=chain_cutoff) as env:
+            window = DeploymentWindow(deployment_id="coord-cutoff", start=env.t0 + seconds(20), end=env.t0 + seconds(80))
+            c = build(env, window=window, monitor_until=env.t0 + seconds(150), monitor_seconds=10)
+            for call in (lambda: c.cancel("x"), lambda: c.submit_exit(EXIT)):
+                exc = refused(call, "COORDINATOR_CUTOFF_MISMATCH")
+                assert type(exc) is CoordinatorError and exc.__cause__ is None and exc.__suppress_context__
+                assert c.status() == C.CoordinatorStatus(), c.status()      # account_source "", reasons (), "new"
+            assert env.head.reads == 2 and env.fake.reads == 0 and env.head.commits == []   # one load per call
+            assert env.producer.prefetches == [] and env.producer.calls == [] and env.books.reads == 0
+            assert env.adapter.requests == [] and env.decisions == []
 
 
 # -- ruling R8: compose() and the real adapters over fake transports ---------------------------------------------
