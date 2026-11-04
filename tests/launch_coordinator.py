@@ -200,13 +200,16 @@ class Producer:
 
 
 class Books:
-    """A quote source double: the book is received at the read time with a one-second-old orderbook stamp."""
+    """A quote source double: the book is received at the read time with a one-second-old orderbook stamp;
+    `delay` seconds pass before the receipt (a slow request), `jump_once` seconds after it."""
     def __init__(self, fake, *, bid=99999999, ask=100000000):
         self.fake, self.reads, self.jump_once, self.bid, self.ask = fake, 0, 0, bid, ask
-        self.received = []
+        self.received, self.delay = [], 0
 
     def read(self):
         self.reads += 1
+        if self.delay:
+            self.fake.now += seconds(self.delay)
         received = self.fake.clock()
         self.received.append(received)
         if self.jump_once:
@@ -708,6 +711,15 @@ def test_coordinator_source_static_contract():
             assert not any(alias.name.startswith("_") for alias in node.names), [alias.name for alias in node.names]
     assert "CoordinatorStatus" in text and "Controller's order states" in ast.get_docstring(
         next(node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == "CoordinatorStatus"))
+    # K11: every read and write of `_started` in run() and close() sits under the status lock (test-and-set).
+    coordinator = next(node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == "Coordinator")
+    for name in ("run", "close"):
+        function = next(node for node in coordinator.body if isinstance(node, ast.FunctionDef) and node.name == name)
+        locked = {id(inner) for node in ast.walk(function) if isinstance(node, ast.With)
+                  and [ast.unparse(item.context_expr) for item in node.items] == ["self._status_lock"]
+                  for inner in ast.walk(node)}
+        uses = [node for node in ast.walk(function) if isinstance(node, ast.Attribute) and node.attr == "_started"]
+        assert uses and all(id(node) in locked for node in uses), (name, len(uses))
 
 
 # -- K11: the refusal codes no test named, the timer's clock and the gate stage --------------------------------
@@ -803,6 +815,27 @@ def test_timing_budget_fits_slot_and_account_windows_at_worst_case_latency():
         assert len(env.head.commits) == status.published_units >= 6
 
 
+def test_a_book_received_after_the_slot_is_refused_without_a_record_or_a_decision():
+    """R12: a quote read that takes longer than the prefetch lead (4 s at lead 3) delivers the book about 1 s
+    after the slot. sample_prefetched_book still binds in the new order: every slot is refused with
+    CAPTURE_BOOK_NOT_AVAILABLE_AT_SLOT in `reasons` only (a quote-stage failure never sets account_source or
+    flips new_entry_blocked), nothing is recorded, decided or sent, and the account chain keeps publishing."""
+    with fixture() as env:
+        recorded = []
+        env.books.delay = 4
+        c = build(env, history=SimpleNamespace(record_slot=lambda book, account: recorded.append(book)))
+        seen = observe_at(env, c, 50, 75)
+        status = c.run()
+        slot = env.window.start
+        assert slot + seconds(1) <= env.books.received[0] < slot + seconds(1.1), env.books.received
+        assert seen[75].reasons == status.reasons == ("CAPTURE_BOOK_NOT_AVAILABLE_AT_SLOT",), seen[75]
+        assert seen[75].account_source == status.account_source == ""
+        assert seen[75].new_entry_blocked == seen[50].new_entry_blocked and seen[75].last_tick is None
+        assert recorded == [] and env.decisions == [] and env.adapter.requests == [] and env.books.reads == 3
+        assert status.missed_slots == 0 and status.published_units == len(env.head.commits) == 11
+        assert len(env.producer.prefetches) == 14                        # startup, ten monitors, three slot captures
+
+
 def test_schedule_and_timer_order_skip_and_cancel():
     start = datetime(2026, 10, 24, 21, 59, 50, tzinfo=KST)
     window = DeploymentWindow(deployment_id="timer", start=start + seconds(10), end=start + seconds(130))
@@ -870,12 +903,17 @@ def test_slots_near_a_boundary_are_refused_at_construction():
         def window(start, span=120):
             return DeploymentWindow(deployment_id="coord-band", start=env.t0 + seconds(start),
                                     end=env.t0 + seconds(start + span))
-        for start in (60, 75, 100, 110):          # a slot on 22:00, 15 s after, 20 s before and 10 s after it
+        for start in (60, 75, 100, 110):          # a slot on 22:00, 15 s after, 20 s before and 10 s before it
             refused(lambda start=start: build(env, window=window(start), monitor_until=until),
                     "COORDINATOR_SLOT_NEAR_BOUNDARY")
         refused(lambda: build(env, window=window(50, 60), monitor_until=until), "COORDINATOR_SLOT_NEAR_BOUNDARY")
         assert build(env, window=window(90), monitor_until=until).status().phase == "new"      # slots at :30
         assert build(env, window=window(30, 60), monitor_until=until).status().phase == "new"  # last slot 21:59:30
+        # the band is inclusive at exactly 20 s on the slot grid too: with 20 s bars the last slot 21:59:40
+        refused(lambda: build(env, window=window(60, 40), bar_seconds=20, monitor_seconds=10, monitor_until=until),
+                "COORDINATOR_SLOT_NEAR_BOUNDARY")
+        assert build(env, window=window(59, 40), bar_seconds=20, monitor_seconds=10,
+                     monitor_until=until).status().phase == "new"                              # last slot 21:59:39
         assert env.fake.reads == 0 and env.head.reads == 0 and env.producer.prefetches == []
     with fixture(now=CUTOFF_NOW) as env:                           # no recovery condition: 22:00 is no boundary
         on_cutoff = DeploymentWindow(deployment_id="coord-band", start=env.t0 + seconds(60), end=env.t0 + seconds(180))
@@ -890,6 +928,10 @@ def test_slots_near_a_boundary_are_refused_at_construction():
         refused(lambda: build(env, window=before, monitor_until=before.end + seconds(20)), "COORDINATOR_SLOT_NEAR_BOUNDARY")
         offset = DeploymentWindow(deployment_id="coord-band", start=midnight - seconds(30), end=midnight + seconds(90))
         assert build(env, window=offset, monitor_until=offset.end + seconds(20)).status().phase == "new"
+        dawn = DeploymentWindow(deployment_id="coord-band", start=midnight + seconds(20), end=midnight + seconds(80))
+        refused(lambda: build(env, window=dawn, monitor_until=dawn.end + seconds(20)), "COORDINATOR_SLOT_NEAR_BOUNDARY")
+        later = replace(dawn, start=dawn.start + seconds(1), end=dawn.end + seconds(1))   # first slot 21 s past midnight
+        assert build(env, window=later, monitor_until=later.end + seconds(20)).status().phase == "new"
 
 
 def test_monitors_sit_on_the_slot_grid_so_the_reviews_bad_phases_hold_every_slot():
@@ -964,6 +1006,19 @@ def test_cutoff_mismatch_is_refused_before_the_startup_unit():
         c = build(env, window=window, monitor_until=env.t0 + seconds(150), monitor_seconds=10)
         env.fake.at(env.t0 + seconds(5), c.close)
         assert c.run().published_units == 1
+    with fixture(now=CUTOFF_NOW, cutoff=79200, chain_cutoff=None) as env:   # the pre-start load fails once (a head
+        window = DeploymentWindow(deployment_id="coord-cutoff", start=env.t0 + seconds(20), end=env.t0 + seconds(80))
+        c = build(env, window=window, monitor_until=env.t0 + seconds(150), monitor_seconds=10)
+        real = env.head.read                                                 # read error): every unit's own load
+
+        def once():
+            env.head.read = real
+            raise RuntimeError("HEAD-SECRET")
+        env.head.read = once                                                 # still enforces the agreement
+        status = c.run()
+        assert status.account_source == "COORDINATOR_CUTOFF_MISMATCH" and status.new_entry_blocked, status
+        assert status.published_units == 0 and env.producer.prefetches == [] and env.head.commits == []
+        assert env.decisions == [] and env.books.reads == 0 and status.phase == "closed"
 
 
 # -- ruling R8: compose() and the real adapters over fake transports ---------------------------------------------

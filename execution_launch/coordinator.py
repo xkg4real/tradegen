@@ -29,7 +29,8 @@ EvidencePackage.
 
 Ceilings (ponytail): operator calls block on the work lock for at most one unit, which is bounded by the
 dependencies' own timeouts; a slot's account capture must end with the book still inside its 10 s bound and the
-history verified by slot + 10 s, about prefetch_lead_seconds + 5.5 s of capture in real time, and a longer capture
+history verified by slot + 10 s, that is about min(prefetch_lead_seconds + 5.5 s, 10 s - the book's stamp lag) of
+capture in real time (8.5 s at lead 3, about 9 s at lead 8 with a stamp 1 s before the receipt), and a longer capture
 loses the slot, which ends every later slot of the window because the history never backfills (monitoring
 continues); nothing here retries a capture, a send or a boundary. Nothing here signs, arms, orders, reads
 credentials or writes a file of its own.
@@ -123,7 +124,7 @@ class Due:
 
 def _boundaries(first: datetime, last: datetime, cutoff_seconds: int | None) -> Iterator[datetime]:
     """Every Seoul midnight and, with a cutoff, every 22:00 KST (midnight plus cutoff_seconds) in [first, last]."""
-    day = first.astimezone(KST).date()
+    day = first.astimezone(KST).date() - timedelta(days=1)       # so a midnight equal to `first` is yielded too
     while True:
         opening = datetime.combine(day, time(), tzinfo=KST)
         instants = [opening + timedelta(days=1)]
@@ -298,8 +299,8 @@ class Coordinator:
             _require(window.end >= boundary or monitor_until >= boundary + timedelta(seconds=monitor_seconds),
                      "COORDINATOR_MONITOR_ENDS_BEFORE_CUTOFF")
         for boundary in _boundaries(window.start - BOUNDARY_BAND, window.end + BOUNDARY_BAND, cutoff):
-            index = (boundary - window.start) // step                 # the two slots around the boundary
-            for slot in (window.start + index * step, window.start + (index + 1) * step):
+            index = (boundary - window.start) // step                 # the grid points around the boundary (the
+            for slot in (window.start + (index + k) * step for k in (-1, 0, 1)):   # one before it when it is on the grid)
                 _require(not (window.start <= slot <= window.end and abs(slot - boundary) <= BOUNDARY_BAND),
                          "COORDINATOR_SLOT_NEAR_BOUNDARY")
         root = state_root().absolute()
@@ -366,9 +367,12 @@ class Coordinator:
 
     def _load_previous(self):
         try:
-            return self._store.load(expected_head=self._head.read())
+            previous = self._store.load(expected_head=self._head.read())
         except Exception:
             raise CoordinatorError("COORDINATOR_CHECKPOINT_REFUSED") from None
+        _require((previous.conventions.recovery_cutoff_seconds is None) == (self._cutoff is None),
+                 "COORDINATOR_CUTOFF_MISMATCH")                 # R15: every unit's load checks the cutoff agreement
+        return previous
 
     def _prefetch(self, previous) -> None:
         self._update(in_flight="account_source")
@@ -532,12 +536,12 @@ class Coordinator:
         step, lead = timedelta(seconds=self._bar_seconds), timedelta(seconds=self._knobs["prefetch_lead_seconds"])
         first = self._window.start + max(0, -((self._window.start - start) // step)) * step   # the first slot at or after start
         _require(first > self._window.end or first - lead - start >= STARTUP_BUDGET, "COORDINATOR_START_TOO_LATE")
-        try:
-            previous = self._load_previous()
-        except CoordinatorError:
-            previous = None                                       # the startup unit reports the checkpoint refusal
-        _require(previous is None or (previous.conventions.recovery_cutoff_seconds is None) == (self._cutoff is None),
-                 "COORDINATOR_CUTOFF_MISMATCH")
+        with self._work:                                          # R15 before any unit: COORDINATOR_CUTOFF_MISMATCH
+            try:
+                self._load_previous()
+            except CoordinatorError as exc:
+                if str(exc) != "COORDINATOR_CHECKPOINT_REFUSED":  # the startup unit reports a checkpoint refusal
+                    raise
         self._phase = "running"
         self._update()
         timer = CancellableTimer(schedule(window=self._window, bar_seconds=self._bar_seconds, start=start,
