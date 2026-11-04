@@ -1057,29 +1057,34 @@ def test_operator_cancel_and_exit_refuse_a_cutoff_mismatch_before_any_commit():
     """A re-review N3: an operator cancel and an operator exit over a chain whose cutoff convention disagrees with
     the profile each raise COORDINATOR_CUTOFF_MISMATCH to the caller from the unit's checkpoint load, before any
     clock or book read, prefetch, commit or order; the operator path raises instead of reporting through _refused,
-    so the status keeps its constructed defaults. The live case is a restart: a matched run places the fixture
-    exit, then the profile loses its recovery condition; without the check the restarted coordinator sends a second
-    create for the same exit (its cancel of that order is refused by the Runner's client-id scope anyway, but would
-    still publish a frame first). Over the fresh mismatched chains above (chain set and profile absent, and the
+    so the status keeps its constructed defaults. The live cases are restarts: a matched run places the fixture
+    exit, then the profile loses its recovery condition or gains one the chain lacks; without the check the
+    restarted coordinator sends a second create for the same exit (its cancel of that order is refused by the
+    Runner's client-id scope anyway, but would still publish a frame first).
+    Over the fresh mismatched chains above (chain set and profile absent, and the
     reverse; the calls need no run(), the operator path has no phase gate) no clock read, prefetch, producer call,
     book read or head commit happens; the journal is empty and operator calls never reach the strategy, so the
     request and decision checks there cannot fail."""
-    with fixture(now=CUTOFF_NOW, cutoff=79200) as env:               # matched: the first slot places the fixture exit
+    gained = RecoveryCondition(cutoff_seconds=79200, timezone="Asia/Seoul", reference="day_start_marked_equity")
+    for cutoff, condition in ((79200, None), (None, gained)):      # the profile loses its condition, or gains one
+        with fixture(now=CUTOFF_NOW, cutoff=cutoff) as env:       # matched: the first slot places the fixture exit
 
-        def effects():
-            return ([r.operation for r in env.adapter.requests], len(env.head.commits), len(env.producer.prefetches),
-                    len(env.producer.calls), env.books.reads, env.fake.reads)
-        window = DeploymentWindow(deployment_id="coord-cutoff", start=env.t0 + seconds(20), end=env.t0 + seconds(80))
-        a = build(env, window=window, monitor_until=env.t0 + seconds(150), monitor_seconds=10)
-        env.fake.at(env.t0 + seconds(30), a.close)
-        tick, before = a.run().last_tick, effects()
-        assert (tick.status, tick.order_status, before[0]) == ("submitted", "ACKNOWLEDGED", ["create", "status"]), tick
-        profile = replace(env.profile, policy=replace(env.profile.policy, recovery_condition=None))
-        b = build(env, profile=profile, evidence=evidence_for(profile, env.t0), window=window,
-                  monitor_until=env.t0 + seconds(150), monitor_seconds=10)     # restarted after the profile edit
-        for call in (lambda: b.submit_exit(EXIT), lambda: b.cancel(tick.client_id)):
-            refused(call, "COORDINATOR_CUTOFF_MISMATCH")
-            assert effects() == before and b.status() == C.CoordinatorStatus(), (effects(), b.status())
+            def effects():
+                return ([r.operation for r in env.adapter.requests], len(env.head.commits),
+                        len(env.producer.prefetches), len(env.producer.calls), env.books.reads, env.fake.reads)
+            window = DeploymentWindow(deployment_id="coord-cutoff", start=env.t0 + seconds(20),
+                                      end=env.t0 + seconds(80))
+            a = build(env, window=window, monitor_until=env.t0 + seconds(150), monitor_seconds=10)
+            env.fake.at(env.t0 + seconds(30), a.close)
+            tick, before = a.run().last_tick, effects()
+            assert (tick.status, tick.order_status, before[0]) == ("submitted", "ACKNOWLEDGED",
+                                                                   ["create", "status"]), tick
+            profile = replace(env.profile, policy=replace(env.profile.policy, recovery_condition=condition))
+            b = build(env, profile=profile, evidence=evidence_for(profile, env.t0), window=window,
+                      monitor_until=env.t0 + seconds(150), monitor_seconds=10)     # restarted after the profile edit
+            for call in (lambda: b.submit_exit(EXIT), lambda: b.cancel(tick.client_id)):
+                refused(call, "COORDINATOR_CUTOFF_MISMATCH")
+                assert effects() == before and b.status() == C.CoordinatorStatus(), (effects(), b.status())
     for cutoff, chain_cutoff in ((None, 79200), (79200, None)):
         with fixture(now=CUTOFF_NOW, cutoff=cutoff, chain_cutoff=chain_cutoff) as env:
             window = DeploymentWindow(deployment_id="coord-cutoff", start=env.t0 + seconds(20), end=env.t0 + seconds(80))
