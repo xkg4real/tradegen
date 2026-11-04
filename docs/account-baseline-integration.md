@@ -173,7 +173,10 @@ Started later, the startup unit reports `EVIDENCE_STALE_OR_FUTURE` in
 reports `ACCOUNT_INTERVAL_BOUNDARY_MISSED`, with the same result, when Seoul
 midnight or a pending 22:00 KST cutoff passes before its first balance read,
 so no anchor read goes in the last minute before either. The startup capture
-lasts at least 1.8 s, so call `run()` that much earlier. Give every anchor a
+lasts at least 1.8 s plus the round trips of its 9 or more requests, each
+retried request adds at least 2.2 s, and `run()` loads the checkpoint before
+the capture starts. So call `run()` at once: called 1.8 s before the 30 s
+end, it is already too late. Give every anchor a
 `max_interval_seconds` of at least 30: the reducer bounds each interval by
 it, so a smaller value shortens each of these 30 s limits to it, the startup
 unit's included, and a longer interval refuses
