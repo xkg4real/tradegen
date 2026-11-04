@@ -23,6 +23,7 @@ from unittest.mock import patch
 from core.compliance import owner, rules
 from core.compliance.model import KST
 from core.isolation import state_root
+from execution.transport import PACE_S
 from execution_accounts.baseline import BaselineAnchor, BaselineConventions, BaselineInterval
 from execution_accounts.baseline_bridge import BaselineFrame, initialize_account_baseline
 from execution_accounts.baseline_store import CheckpointStore
@@ -53,7 +54,7 @@ from tests import launch_driver as LD
 from tests.accounts_baseline_integration import Head
 from tests.accounts_provider import SCOPE, bundle, fill, order
 from tests.control_session import selected
-from tests.launch_account_interval import ANCHOR, COVERAGE, FEES, SCOPE as INTERVAL_SCOPE, FakeUpbit, at
+from tests.launch_account_interval import ANCHOR, CONVENTIONS, COVERAGE, FEES, SCOPE as INTERVAL_SCOPE, FakeUpbit, at
 from tests.launch_account_interval import seed as seed_interval_chain
 from tests.launch_baseline_head import head_root
 from tests.launch_capture import book
@@ -1206,7 +1207,7 @@ def test_compose_wires_loader_driver_history_reviews_and_evidence():
 def test_real_adapters_run_under_the_coordinator_over_fake_transports():
     """The interval fixture's first trading day, so the chain requires 22:00 and the profile carries the matching
     recovery condition (R15). The window sits on the :30 grid across 22:00 (R13) and every authenticated read is
-    charged the 0.2 s pace, so the 11-read capture lasts 2.2 s: the boundary unit at 21:59:58 brackets 22:00 and
+    charged the 0.2 s pace, so the 11-read capture lasts 2.2 s: the boundary unit at 21:59:59 brackets 22:00 and
     the chain commits the cutoff checkpoint, the one monitor inside the producer's 10 s boundary window refuses
     (cosmetic, by R8's single attempt), the book is read before each capture (R12) and every slot holds (R14)."""
     t0 = at(26, 21, 58)
@@ -1268,3 +1269,104 @@ def test_real_adapters_run_under_the_coordinator_over_fake_transports():
             assert status.account_asof is not None and status.orders == ()
             again = compose(**compose_args(paths, reviewed_set.evaluated_at, window, fake.clock, hroot))
             assert again.identity == comp.identity
+
+
+# -- ruling R19: the default boundary lead against the shortest real capture -----------------------------------
+
+@contextmanager
+def shortest_capture_run(b, *, cutoff):
+    """The real interval producer under a coordinator built with every default knob, around the boundary b. The fake
+    exchange holds nothing and lists no order since the opening anchor, so every capture is the shortest real one, 9
+    reads. Each read is answered at the clock, as request() stamps received_utc right after _send (zero round trip,
+    or one queued in env.round_trip), and then charged execution.transport.PACE_S, as request() sleeps after every
+    attempt: a capture's first receipt is at its start and its observation 1.8 s later (plus the fake clock's 1 ms
+    per read). runner_fixture's signed home and fixture driver; the flat chain anchored 35 s before b on the
+    interval fixture's first trading day at 100000 KRW, with the 22:00 convention when `cutoff` is set and none
+    otherwise, and a profile on that account whose recovery condition matches (R15); a window ending 90 s before b
+    and a run from b - 30 s to b + 30 s: no slot, monitors on the 10 s grid (the one at b - 10 s inside the
+    producer's 10 s window, one at b) and the boundary unit. env.captures holds each unit's capture."""
+    with memoized_pure_loads(), patch.object(F, "NOW", b - seconds(30)), \
+            runner_fixture(prepare=False, arm=False) as env, \
+            patch("tests.launch_account_interval.CONVENTIONS", replace(CONVENTIONS, recovery_cutoff_seconds=cutoff)), \
+            patch("execution_accounts.upbit_collector.request", side_effect=AssertionError("network forbidden")):
+        exchange = FakeUpbit(cash="100000", orders=())
+        _, _, env.head, _ = seed_interval_chain(env.home, exchange, (), b - seconds(35), day_start=D("100000"),
+            high=D("100000"), loss=D("0"), realized=D("0"), day_open=D("0"), previous=None)
+        env.fake, env.round_trip, env.captures, fetch = FakeTime(env.now), [], [], exchange.fetch
+        exchange.clock = env.fake.clock
+
+        def paced_fetch(path, params):
+            env.fake.now += seconds(env.round_trip.pop() if env.round_trip else 0)
+            receipt = fetch(path, params)
+            env.captures[-1].reads.append(receipt.received_at)
+            env.fake.now += seconds(PACE_S)
+            return receipt
+        exchange.fetch, source = paced_fetch, UpbitIntervalSource()
+
+        def prefetch(previous):
+            capture = SimpleNamespace(start=env.fake.now, previous=previous, reads=[], observed=None, code="")
+            env.captures.append(capture)
+            try:
+                capture.observed = source.collect(exchange, previous=previous, anchor=ANCHOR, coverage=COVERAGE,
+                                                  clock=env.fake.clock).observed_at
+            except ValueError as exc:
+                capture.code = str(exc)
+                raise
+        profile = replace(env.profile, account_scope=INTERVAL_SCOPE)
+        if cutoff is not None:
+            profile = replace(profile, policy=replace(profile.policy, recovery_condition=RecoveryCondition(
+                cutoff_seconds=cutoff, timezone="Asia/Seoul", reference="day_start_marked_equity")))
+        env.coordinator = Coordinator(mode="rehearsal", profile=profile, evidence=evidence_for(profile, env.now),
+            driver=env.driver, implementation_verifier=env.review, adapters={"upbit": env.adapter},
+            account_source=source, account_prefetch=prefetch, trusted_head=env.head, quote_source=Books(env.fake),
+            window=DeploymentWindow(deployment_id="coord-shortest", start=b - seconds(150), end=b - seconds(90)),
+            bar_seconds=60, monitor_until=b + seconds(30), clock=env.fake.clock, wait=env.fake.wait)
+        yield env
+
+
+def test_default_boundary_lead_spans_the_shortest_capture_at_midnight_and_at_the_cutoff():
+    """R19 (docs re-review C, note 2): with every default knob the boundary unit starts 1 s before a Seoul midnight
+    (no recovery condition) and 1 s before the first trading day's 22:00 cutoff (with one), and the shortest real
+    capture, first receipt at its start and observation 1.8 s later, spans the boundary: the chain commits an
+    interval ending exactly at the boundary (at 22:00 with the recovery checkpoint) and no later unit refuses
+    ACCOUNT_INTERVAL_BOUNDARY_MISSED. At the former 2 s default that capture ended about 0.2 s before the boundary,
+    the next unit's first read came after it and the chain stopped until the reviewed re-anchor."""
+    for b, cutoff in ((at(27, 0), None), (at(26, 22), 79200)):
+        with shortest_capture_run(b, cutoff=cutoff) as env:
+            status = env.coordinator.run()
+            committed = [c.previous for c in env.captures if c.previous.asof == b]     # loaded by the next unit
+            assert committed, (b, [(c.start.time().isoformat(), c.code) for c in env.captures])
+            checkpoint = committed[0].recovery_checkpoint
+            assert (checkpoint is None) == (b.hour == 0) and (checkpoint is None or checkpoint.cutoff_at == b)
+            assert "ACCOUNT_INTERVAL_BOUNDARY_MISSED" not in [c.code for c in env.captures], env.captures
+            assert all(b - seconds(10) <= c.start < b for c in env.captures if c.code)   # inside the 10 s window
+            (unit,) = [c for c in env.captures if c.start < b <= (c.observed or c.start)]
+            assert b - seconds(1) <= unit.start < b - seconds(0.99) and len(unit.reads) == 9, unit
+            assert unit.reads[0] - unit.start < seconds(0.01), unit
+            assert seconds(1.8) <= unit.observed - unit.start < seconds(1.82), unit
+            assert status.account_source == "" and status.missed_boundaries == 0 and status.data_gap_at is None
+
+
+def test_default_boundary_lead_holds_a_first_reply_at_0_9_s_and_misses_one_at_1_1_s():
+    """R19's accepted cost, under the same default knobs and shortest capture before the first trading day's 22:00:
+    the boundary unit's first read gets a 0.9 s or a 1.1 s round trip, so its first reply arrives that long after
+    the unit starts (1 s before the cutoff). At 0.9 s the reply is in before the cutoff and the capture still
+    brackets it. At 1.1 s it lands after the cutoff: the boundary unit refuses ACCOUNT_INTERVAL_BOUNDARY_MISSED,
+    nothing ending at the cutoff is committed and every later unit refuses the same way, so the chain waits for the
+    reviewed re-anchor."""
+    b = at(26, 22)
+    for round_trip in (0.9, 1.1):
+        with shortest_capture_run(b, cutoff=79200) as env:
+            env.fake.at(b - seconds(5), lambda delay=round_trip: env.round_trip.append(delay))   # the unit's 1st read
+            status = env.coordinator.run()
+            (unit,) = [c for c in env.captures if b - seconds(5) < c.start < b]
+            assert b - seconds(1) <= unit.start < b - seconds(0.99), unit
+            assert seconds(round_trip) <= unit.reads[0] - unit.start < seconds(round_trip + 0.01), unit
+            later = [c.code for c in env.captures if c.start >= unit.start]
+            if round_trip < 1:
+                assert any(c.previous.asof == b for c in env.captures) and status.account_source == ""
+                assert "ACCOUNT_INTERVAL_BOUNDARY_MISSED" not in later, later
+            else:
+                assert not any(c.previous.asof >= b for c in env.captures)
+                assert later == ["ACCOUNT_INTERVAL_BOUNDARY_MISSED"] * 5, later    # the unit, then b .. b + 30 s
+                assert status.account_source == "ACCOUNT_INTERVAL_BOUNDARY_MISSED" and status.new_entry_blocked
