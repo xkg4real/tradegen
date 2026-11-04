@@ -91,7 +91,9 @@ retains its digest, not the complete source frame. The shipped `UpbitIntervalSou
 (`execution_launch/account_interval.py`) keeps its frame in memory only: after a
 restart it refuses until a fresh capture, and that capture passes the collector's
 30 s evidence-freshness check only if it observes within 30 s of the last committed
-interval end. Otherwise recovery is the reviewed re-anchor described below.
+interval end. The one exception is a capture that brackets a Seoul midnight: it is
+checked against the midnight opening, so it heals a gap no longer than the configured
+`max_interval_seconds`. Otherwise recovery is the reviewed re-anchor described below.
 
 If the reviewed risk policy enables recovery by 22:00 Seoul time, select the
 matching `BaselineConventions.recovery_cutoff_seconds=79200` before initializing
@@ -167,10 +169,13 @@ reset-valued successor all refuse. A coherent rollback of both roots (one backup
 restored over both) is not detected by the files themselves: no frame is retained
 durably in this phase, so it is refused only when it is old, by the collector's
 30 s evidence-freshness check on the exported `risk_baseline`
-(`execution_accounts/provider.py`; the reducer's own bound is the configured
-`max_interval_seconds`, not a 30 s rule) and by the fixed driver's 30 s
+(`execution_accounts/provider.py`; the reducer's interval bound in `advance_baseline`
+is the configured `max_interval_seconds`, and its own 30 s export rule does not fire
+here because the producer exports at `previous.asof`) and by the fixed driver's 30 s
 account-anchor rule; a coherent rollback younger than 30 s followed
-by a fresh honest interval is indistinguishable from an ordinary tick. Code running
+by a fresh honest interval is indistinguishable from an ordinary tick, and at a Seoul
+midnight a coherent rollback no older than `max_interval_seconds` is accepted by the
+bracketing capture, which is checked against the midnight opening. Code running
 as the same Windows user can rewrite both roots; that boundary is unchanged.
 
 Recovery after any refusal (owner-performed; the code adopts nothing): stop the

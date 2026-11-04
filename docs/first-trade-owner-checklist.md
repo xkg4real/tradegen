@@ -89,11 +89,14 @@ not make those complete launch paths. No new strategy passed a real prospective 
 The [Windows integration plan](windows-first-trade-integration.md) describes the implemented
 adapters and what still blocks a first trade. The account interval producer is flat-only, so the
 coordinator refuses `controlled`, and a first fill would stop the account chain. A gap over 30 s
-between account captures, or a missed 22:00 or midnight boundary, stops the account chain until
-the reviewed re-anchor. A missed strategy slot ends that deployment window, and a new window needs
-a new `review-approve`. The prospective study that can select a market is described in the
-[offline workflow](launch-workflow.md); nothing trades until the owner signs `review-approve` on
-one of its review requests. This checklist is not a completed launcher.
+between account captures stops the account chain until the reviewed re-anchor, except that a
+capture bracketing a Seoul midnight is checked against the midnight opening and heals a gap no
+longer than the configured `max_interval_seconds`; a missed 22:00 or midnight boundary stops the
+chain until the reviewed re-anchor. A missed strategy slot ends that deployment window, and a new
+window needs a new `review-approve`. The prospective study that captures and ranks candidate
+markets is described in the [offline workflow](launch-workflow.md); its `select` command always
+reports `NO_QUALIFIED_MARKET`, and nothing trades until the owner signs `review-approve` on one of
+its review requests. This checklist is not a completed launcher.
 
 ## Safe offline status
 
