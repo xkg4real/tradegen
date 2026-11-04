@@ -169,8 +169,15 @@ the coordinator's startup unit, must observe within 30 s of it. Review the
 anchor values beforehand, then run the anchor capture, these three calls (the
 review of `d` included) and `run()` back to back from one prepared script.
 Started later, the startup unit reports `EVIDENCE_STALE_OR_FUTURE` in
-`account_source` (or `ACCOUNT_INTERVAL_BOUNDARY_MISSED` once a boundary has
-passed) and the new chain stops at once.
+`account_source` and the new chain stops at once. Even inside the 30 s it
+reports `ACCOUNT_INTERVAL_BOUNDARY_MISSED`, with the same result, when Seoul
+midnight or a pending 22:00 KST cutoff passes before its first balance read,
+so no anchor read goes in the last minute before either. The startup capture
+lasts at least 1.8 s, so call `run()` that much earlier. Give every anchor a
+`max_interval_seconds` of at least 30: the reducer bounds each interval by
+it, so a smaller value shortens each of these 30 s limits to it, the startup
+unit's included, and a longer interval refuses
+`BASELINE_BRIDGE_EVIDENCE_REFUSED`.
 
 Honest limits. A rollback of either root alone, a crash between the two replaces,
 a mutated or truncated record, a hard link or junction, a second process and a
