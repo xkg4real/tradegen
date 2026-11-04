@@ -53,9 +53,10 @@ platforms refuse rather than weaken the boundary.
    Actual initial capital, instrument terms, strategy identity and stable profile
    binding must agree with the study protocol. Changing those inputs later changes
    the binding and requires appropriate new evidence; do not relabel old results.
-   Save the file as UTF-8 without a byte-order mark; the profile reader decodes
-   strict UTF-8. In Windows PowerShell 5.1 do not write it with `>` or `Out-File`,
-   which add a BOM; pipe to `Set-Content -Encoding ascii <file>.json` instead.
+   Save the file as UTF-8 without a byte-order mark (BOM); the profile reader
+   decodes strict UTF-8. In Windows PowerShell 5.1 do not write it with `>` or
+   `Out-File`, which add a BOM; pipe to `Set-Content -Encoding ascii <file>.json`
+   instead.
 
 2. Create an explicit program specification. For example, the non-trading cash
    baseline uses the following complete schema:
@@ -167,19 +168,20 @@ publish it before `capture_start`. `capture` is the only command that reads a
 wall clock or opens the public E1 quote source; it feeds the same prefetched book
 to every candidate at every slot of the frozen grid and writes one
 `<study_id>.capture.json` per candidate when the window completes. The planned
-window is 300 s bars over 2,016 observations, about seven days; the code floor is
-far lower, 60 observations (`STRATEGY_CAPTURE_WINDOW_TOO_SHORT` below
-`bar_seconds` x `minimum_observations`), so a window that passes the software
-check is not thereby long enough. The first refusal, Ctrl+C
+window is 300 s bars over 2,016 observations, about seven days. The code floor is
+far lower: 60 observations (`STRATEGY_CAPTURE_WINDOW_TOO_SHORT` below
+`bar_seconds` x `minimum_observations`), so a window can pass the software check
+and still be too short for the study. The first refusal, Ctrl+C
 (`STUDY_CAPTURE_STOPPED`) or missed slot ends the trial for every candidate;
 nothing is backfilled, re-slotted or relabelled, and the partial archives are
 written as `.incomplete.json`. `select` recomputes every capture with the exact
 evaluator and ranks the qualified rows in the protocol's frozen order; the
 criteria are those in [validation](forward-strategy-validation.md). It wires no
-trusted review, so its result is `NO_QUALIFIED_MARKET`, and for each row that
-meets the arithmetic it prints an unsigned review request in its output. Nothing
-trades until the owner reviews such a request and signs `review-approve` on it;
-no study result is ever `execution_ready`.
+trusted review, so its result is `NO_QUALIFIED_MARKET`. For each row whose only
+refusal is `STRATEGY_TRUSTED_REVIEW_REQUIRED`, it prints an unsigned review
+request in the `review_requests` list. Nothing trades until the owner reviews
+such a request and signs `review-approve` on it; no study result is ever
+`execution_ready`.
 
 ## Output and limits
 

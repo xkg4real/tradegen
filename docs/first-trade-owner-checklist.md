@@ -17,8 +17,8 @@ not make those complete launch paths. No new strategy passed a real prospective 
    with a protection floor is not itself a breach. Below `drawdown_activation_equity` the protection
    floor equals the peak, so the first fee or loss blocks new entries. A profit target does not
    increase risk limits. Save the private profile as UTF-8 without a byte-order mark: the profile
-   reader decodes strict UTF-8, so in Windows PowerShell 5.1 do not write it with `>` or `Out-File`;
-   pipe to `Set-Content -Encoding ascii <file>.json` instead.
+   reader decodes strict UTF-8. In Windows PowerShell 5.1 do not write it with `>` or `Out-File`,
+   which add a byte-order mark; pipe to `Set-Content -Encoding ascii <file>.json` instead.
 2. **Configure the selected environment securely.** Use the supported secure environment/account
    setup for credential names, venue host access and approved IP restrictions. Do not paste keys,
    passwords or account numbers into chat, Notion or GitHub. The development Cloud has no venue credential bindings or permitted venue hosts;
@@ -87,8 +87,8 @@ not make those complete launch paths. No new strategy passed a real prospective 
    still apply after activation. The development agent does not perform this owner action.
 
 The [Windows integration plan](windows-first-trade-integration.md) describes the implemented
-adapters and what still blocks a first trade. The account interval producer is flat-only, so the
-coordinator refuses `controlled`, and a first fill would stop the account chain. A gap over 30 s
+adapters and what still blocks a first trade. The account interval producer is flat-only: a first
+fill would stop the account chain, so the coordinator refuses `controlled`. A gap over 30 s
 between account captures, or a missed 22:00 or midnight boundary, stops the account chain until
 the reviewed re-anchor. A missed strategy slot ends that deployment window, and a new
 window needs a new `review-approve`. The prospective study that captures and ranks candidate
@@ -110,9 +110,10 @@ The current Cloud CLI accepts an explicit bounded regular file, refuses linked/p
 paths and emits redacted field-level blockers. No owner context is loaded, so a complete file
 alone still reports `SIGNED_CONTEXT_REQUIRED` and `execution_ready=false`. On POSIX the file
 reader is descriptor-relative and no-follow. On Windows `execution_launch/private_input.py`
-enforces the same boundary: a plain, singly-linked regular file on a local lettered drive, every
-path component checked for reparse points and cloud placeholders, 8.3 aliases and SUBST or
-network drives refused, and the opened handle must be the file that was checked. There is no
-override: move such a file to a plain local folder yourself; it is never read another way.
+enforces the same boundary. It accepts only a plain, singly-linked regular file on a local drive
+letter, checks every path component for reparse points and cloud placeholders, refuses 8.3
+aliases and SUBST or network drives, and requires the opened handle to be the file that was
+checked. There is no override: if a file is refused for its location, move it to a plain local
+folder yourself; it is never read another way.
 
 This software is not legal, tax or investment advice and is not a licensed adviser.

@@ -21,15 +21,15 @@ repository, interpreter or home path is included in output.
 
 The command prints JSON to stdout and writes no file. If saving it locally, use a
 normal private `.json` file outside credential/owner-state directories, saved as
-UTF-8 without a byte-order mark: `compare` decodes strict UTF-8 and refuses UTF-16
-and BOM files with `DEPLOYMENT_JSON_INVALID`. In Windows PowerShell 5.1 do not use
-`>` or `Out-File`, which write a BOM; pipe to `Set-Content -Encoding ascii <file>.json`
-(the manifest is ASCII). Comparison
-uses the existing bounded, no-follow file reader: at most64KiB; symlinks, hard links,
-nonregular files and known private credential/state paths are refused. On Windows the
-same reader goes through `execution_launch/private_input.py`, which also refuses
-junctions and other reparse points, cloud placeholders, 8.3 aliases and SUBST or network
-drives. The pure `parse_manifest` and `compare_manifests` APIs accept explicitly supplied
+UTF-8 without a byte-order mark (BOM): `compare` decodes strict UTF-8 and refuses
+UTF-16 and BOM files with `DEPLOYMENT_JSON_INVALID`. In Windows PowerShell 5.1,
+pipe to `Set-Content -Encoding ascii <file>.json` (the manifest is ASCII); do not
+use `>` or `Out-File`, which write a BOM. Comparison uses the existing bounded,
+no-follow file reader: at most64KiB; symlinks, hard links, nonregular files and
+known private credential/state paths are refused. On Windows the same reader goes
+through `execution_launch/private_input.py`, which also refuses junctions and
+other reparse points, cloud placeholders, 8.3 aliases and SUBST or network drives.
+The pure `parse_manifest` and `compare_manifests` APIs accept explicitly supplied
 bytes/objects as well. Export itself is independent of the file reader.
 
 ## What the hashes mean

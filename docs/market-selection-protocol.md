@@ -156,9 +156,8 @@ window without reselection or retuning.
 
 ## Small offline implementation boundary
 
-The pure `rank_market_evidence(...)` helper, which now lives in
-`execution_launch/study.py` and is called by `python -m execution_launch.study select`,
-reuses:
+The `rank_market_evidence(...)` helper lives in `execution_launch/study.py` and
+is called by `python -m execution_launch.study select`. It reuses:
 
 - `strategy.py`: immutable protocols and registrations, recomputed
   `ValidationResult.net_returns`, deployment bindings and reviewed assessment.
@@ -170,17 +169,17 @@ reuses:
 
 The helper takes the frozen plan, the actual evaluated results keyed by study id,
 the current profile, the current aware time and the trusted review dependency
-(`review_verifier`; `None` can never select). It returns per-row exclusions,
+(`review_verifier`; with `None` it never selects). It returns per-row exclusions,
 evidence digests, qualified asset/risk-group counts, SR estimates and uncertainty,
 stress metrics, and either a deterministic selection or `NO_QUALIFIED_MARKET`.
 Its authority fields remain `execution_ready=False`; it reads no keys, fetches no
 data, rewrites no launch profile, arms no session and submits no order. The
 `select` command wires no trusted review, so its result is always
-`NO_QUALIFIED_MARKET` with an unsigned review request per row that meets the
-arithmetic.
+`NO_QUALIFIED_MARKET`, with an unsigned review request for each row whose only
+refusal is `STRATEGY_TRUSTED_REVIEW_REQUIRED`.
 
-This document adds no real capture, synthetic winner, test run or historical
-reevaluation. Current evidence still supports no
+This document adds no real capture, synthetic winner, test run
+or historical reevaluation. Current evidence still supports no
 qualified live market. Windows deployment preparation and additional offline
 engineering may proceed independently while new evidence is gathered by the
 authorized operator and reviewed.
