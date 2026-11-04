@@ -91,8 +91,8 @@ adapters and what still blocks a first trade. The account interval producer is f
 fill would stop the account chain, so the coordinator refuses `controlled`. A gap over 30 s
 between account captures, or a missed 22:00 or midnight boundary, stops the account chain until
 the reviewed re-anchor. A missed strategy slot ends that deployment window, and a new
-window needs a new `review-approve`. The prospective study that captures and ranks candidate
-markets is described in the [offline workflow](launch-workflow.md); its `select` command always
+window needs a new `review-approve`. The prospective study that captures one market and ranks its
+candidate programs is described in the [offline workflow](launch-workflow.md); its `select` command always
 reports `NO_QUALIFIED_MARKET`, and nothing trades until the owner signs `review-approve` on one of
 its review requests. This checklist is not a completed launcher.
 

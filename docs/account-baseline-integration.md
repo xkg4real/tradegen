@@ -162,7 +162,15 @@ Setup order: `initialize_account_baseline`, `store.seed(state, expected_head=d)`
 then one call to `head.initialize_reviewed_head(d)` with the digest the operator
 retained from the reviewed anchor output. The head adopts only a seed-shaped
 checkpoint and refuses an advanced store, an existing record or a store that is
-not yet seeded. There is no runtime caller of initialization.
+not yet seeded. There is no runtime caller of initialization. The anchor's
+`asof` is its own capture's observation, and with the shipped
+`UpbitIntervalSource` every capture against the seeded state, starting with
+the coordinator's startup unit, must observe within 30 s of it. Review the
+anchor values beforehand, then run the anchor capture, these three calls (the
+review of `d` included) and `run()` back to back from one prepared script.
+Started later, the startup unit reports `EVIDENCE_STALE_OR_FUTURE` in
+`account_source` (or `ACCOUNT_INTERVAL_BOUNDARY_MISSED` once a boundary has
+passed) and the new chain stops at once.
 
 Honest limits. A rollback of either root alone, a crash between the two replaces,
 a mutated or truncated record, a hard link or junction, a second process and a
@@ -192,7 +200,9 @@ steps, in order:
    invalid.
 6. Move `<TRADEGEN_HOME>/execution-baseline` and `<head_root>/baseline-head`
    aside as evidence, then re-anchor with a new reviewed anchor, `store.seed`,
-   `initialize_reviewed_head` and fresh session preparation.
+   `initialize_reviewed_head` and fresh session preparation. The setup order's
+   30 s rule applies: run the new anchor capture through `run()` back to back,
+   and prepare the session after the startup unit.
 
 A same-day re-anchor after the cutoff carries no recovery proof, so
 recovery-dependent permission stays blocked until the next Seoul day.
