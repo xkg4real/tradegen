@@ -840,8 +840,10 @@ def test_a_book_read_that_raises_is_a_quote_stage_refusal_without_an_account_ste
     """A re-review N1 (finding 7): a quote source whose read() raises a plain exception with secret-looking text
     refuses every slot at the prefetch lead with COORDINATOR_QUOTE_SOURCE_FAILED in `reasons` only, before the
     slot's account capture. Just after the first slot's unit (before the next monitor runs) account_source is "",
-    new_entry_blocked keeps its value, there is no tick and the slot published nothing. The text never reaches the
-    status, nothing is recorded, decided or sent, and the account chain keeps publishing on the monitors."""
+    new_entry_blocked keeps its value and the slot published nothing; at 75, after the monitor at 60 (monitors never
+    tick), there is still no tick. The text never reaches the status, nothing is recorded, decided or sent, and the
+    account chain keeps publishing on the monitors. Without a book nothing can be decided or sent, so those two
+    checks cannot fail; the record, publish, prefetch and read counts are the live ones."""
     with fixture() as env:
         recorded, reads = [], []
 
@@ -850,14 +852,14 @@ def test_a_book_read_that_raises_is_a_quote_stage_refusal_without_an_account_ste
             raise RuntimeError("BOOK-SECRET")
         c = build(env, quote_source=SimpleNamespace(read=failing_read),
                   history=SimpleNamespace(record_slot=lambda book, account: recorded.append(book)))
-        seen = observe_at(env, c, 50, 58)                 # before slot 1's unit (at 57) and after it, before 60
+        seen = observe_at(env, c, 50, 58, 75)             # around slot 1's unit (at 57), then after the monitor at 60
         status = c.run()
         slot = env.window.start
         assert len(reads) == 3 and slot - seconds(3) <= reads[0] < slot - seconds(2.9), reads
         assert seen[58].reasons == status.reasons == ("COORDINATOR_QUOTE_SOURCE_FAILED",), seen[58]
         assert seen[58].account_source == status.account_source == "", seen[58]
         assert seen[58].new_entry_blocked == seen[50].new_entry_blocked and not seen[50].new_entry_blocked
-        assert seen[58].last_tick is None and status.last_tick is None
+        assert seen[75].last_tick is None and status.last_tick is None    # at 58 a slot past the read is mid-unit
         assert seen[58].published_units == seen[50].published_units == 3   # startup and the monitors at 20 and 40
         assert "BOOK-SECRET" not in repr(seen) + repr(status)
         assert recorded == [] and env.decisions == [] and env.adapter.requests == []
@@ -1051,11 +1053,32 @@ def test_cutoff_mismatch_is_refused_before_the_startup_unit():
 
 
 def test_operator_cancel_and_exit_refuse_a_cutoff_mismatch_before_any_commit():
-    """A re-review N3: over the mismatched chains above (chain set and profile absent, and the reverse), an operator
-    cancel and an operator exit each raise COORDINATOR_CUTOFF_MISMATCH to the caller from the unit's checkpoint
-    load: no clock read, prefetch, producer call, book read, head commit, order request or decision. The operator
-    path raises instead of reporting through _refused, so the status keeps its constructed defaults. The calls need
-    no run(): the operator path has no phase gate, and run() refuses these chains before any unit."""
+    """A re-review N3: an operator cancel and an operator exit over a chain whose cutoff convention disagrees with
+    the profile each raise COORDINATOR_CUTOFF_MISMATCH to the caller from the unit's checkpoint load, before any
+    clock or book read, prefetch, commit or order; the operator path raises instead of reporting through _refused,
+    so the status keeps its constructed defaults. The live case is a restart: a matched run places the fixture
+    exit, then the profile loses its recovery condition; without the check the restarted coordinator sends a second
+    create for the same exit (its cancel of that order is refused by the Runner's client-id scope anyway, but would
+    still publish a frame first). Over the fresh mismatched chains above (chain set and profile absent, and the
+    reverse; the calls need no run(), the operator path has no phase gate) no clock read, prefetch, producer call,
+    book read or head commit happens; the journal is empty and operator calls never reach the strategy, so the
+    request and decision checks there cannot fail."""
+    with fixture(now=CUTOFF_NOW, cutoff=79200) as env:               # matched: the first slot places the fixture exit
+
+        def effects():
+            return ([r.operation for r in env.adapter.requests], len(env.head.commits), len(env.producer.prefetches),
+                    len(env.producer.calls), env.books.reads, env.fake.reads)
+        window = DeploymentWindow(deployment_id="coord-cutoff", start=env.t0 + seconds(20), end=env.t0 + seconds(80))
+        a = build(env, window=window, monitor_until=env.t0 + seconds(150), monitor_seconds=10)
+        env.fake.at(env.t0 + seconds(30), a.close)
+        tick, before = a.run().last_tick, effects()
+        assert (tick.status, tick.order_status, before[0]) == ("submitted", "ACKNOWLEDGED", ["create", "status"]), tick
+        profile = replace(env.profile, policy=replace(env.profile.policy, recovery_condition=None))
+        b = build(env, profile=profile, evidence=evidence_for(profile, env.t0), window=window,
+                  monitor_until=env.t0 + seconds(150), monitor_seconds=10)     # restarted after the profile edit
+        for call in (lambda: b.submit_exit(EXIT), lambda: b.cancel(tick.client_id)):
+            refused(call, "COORDINATOR_CUTOFF_MISMATCH")
+            assert effects() == before and b.status() == C.CoordinatorStatus(), (effects(), b.status())
     for cutoff, chain_cutoff in ((None, 79200), (79200, None)):
         with fixture(now=CUTOFF_NOW, cutoff=cutoff, chain_cutoff=chain_cutoff) as env:
             window = DeploymentWindow(deployment_id="coord-cutoff", start=env.t0 + seconds(20), end=env.t0 + seconds(80))
