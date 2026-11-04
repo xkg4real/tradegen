@@ -10,13 +10,14 @@ further, so after a first fill this producer stops the chain (owner open item).
 
 Boundaries: a required 22:00 KST cutoff or the next Seoul midnight must end an interval exactly. A capture whose
 first balance read is at or before the boundary and whose fenced observation is at or after it spans the
-boundary; its evidence is stamped at the boundary instant (rows, digests, server time and the manifest stay as
-captured). A balance first read after the boundary is never relabelled. For a capture spanning midnight the
-collector's structural self-check receives a module-private opening baseline (the previous state's values at
-the midnight instant, which under the flat rule are the reducer's real opening); it is never exported, never
-staged, and is discarded before the bridge runs the reducer's own ``risk_baseline``. The capture's fenced
-observation must still lie within 30 s of ``previous.asof``, the freshness rule every capture meets (R17), so a
-boundary capture never heals a longer gap; recovery stays the reviewed re-anchor.
+boundary; its evidence is stamped at the boundary instant (rows, server time and the manifest stay as captured;
+each page's own digest is recomputed for the new end). A balance first read after the boundary is never
+relabelled. For a capture spanning midnight the collector's structural self-check receives a module-private
+opening baseline (the previous state's values at the midnight instant, which under the flat rule are the
+reducer's real opening); it is never exported, never staged, and is discarded before the bridge runs the
+reducer's own ``risk_baseline``. The capture's fenced observation must still lie within 30 s of
+``previous.asof``, the freshness rule every capture meets (R17), so a boundary capture never heals a longer
+gap; recovery stays the reviewed re-anchor.
 
 Nothing here loads owner context, signs, arms, orders, reads credentials or touches a file.
 """
@@ -82,7 +83,8 @@ def _opening_collection_baseline(previous, opening):
 
 
 def _stamped(account, end):
-    """The same evidence stamped at the boundary instant; rows, digests and the manifest are unchanged."""
+    """The same evidence stamped at the boundary instant; rows and the manifest are unchanged, and each page's
+    own digest is recomputed for the new end."""
     return replace(account, observed_at=end, restrictions=replace(account.restrictions, asof=end),
                    fx=tuple(replace(rate, asof=end) for rate in account.fx),
                    pages=tuple(replace(page, end=end, page_sha256="") for page in account.pages))
