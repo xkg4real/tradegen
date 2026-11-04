@@ -408,11 +408,11 @@ def test_midnight_early_late_and_unbracketed_captures_refuse():
         assert env.current() == env.state and env.head.commits == []
 
 
-def test_midnight_capture_after_a_gap_over_30s_refuses_and_only_the_reanchor_recovers():
+def test_midnight_capture_after_a_gap_over_30s_refuses_and_a_later_capture_misses_the_boundary():
     """R17 (docs review C, M2, the reviewer's probe): the capture bracketing midnight is collected against the
     midnight opening and must also observe within 30 s of the last committed end, as every capture does, so even
-    the reducer's widest bound never heals the gap. Once midnight passes every capture misses the boundary, and
-    only the reviewed re-anchor recovers."""
+    the reducer's widest bound never heals the gap. Once midnight passes every capture misses the boundary, so
+    only the reviewed re-anchor (not run here) can recover."""
     with midnight_series(at(27, 23, 59), conventions=WIDE) as env:
         gap = refused(lambda: env.collect(at(27, 23, 59, 40), 10), "EVIDENCE_STALE_OR_FUTURE")          # 40 s gap
         boundary = refused(lambda: env.collect(at(27, 23, 59, 59, 500), 100), "EVIDENCE_STALE_OR_FUTURE")  # 60.8 s
@@ -448,11 +448,16 @@ def test_old_coherent_rollback_restored_before_midnight_refuses_at_the_midnight_
 
 def test_midnight_capture_one_millisecond_over_30s_refuses_inside_the_default_reducer_bound():
     """R17 at the edge: observing at 00:00:00.800, 30.001 s after the committed end, refuses although the interval
-    to midnight (29.201 s) fits the default 30 s reducer bound: the threshold is the freshness rule's."""
+    to midnight (29.201 s) fits the default 30 s reducer bound: the threshold is the freshness rule's, read from
+    the collector's single ``_STALE`` (set to 20 s, a 25 s gap refuses the same way)."""
     with midnight_series(at(27, 23, 59, 30, 799)) as env:
         refused(lambda: env.collect(at(27, 23, 59, 59, 500), 100), "EVIDENCE_STALE_OR_FUTURE")
         refused(lambda: env.source(env.state, at(28, 0, 0, 1)), "ACCOUNT_INTERVAL_PREFETCH_REQUIRED")
         assert env.current() == env.state and env.head.commits == []
+    with midnight_series(at(27, 23, 59, 35, 800)) as env, patch("execution_accounts.provider._STALE",
+                                                                timedelta(seconds=20)):
+        refused(lambda: env.collect(at(27, 23, 59, 59, 500), 100), "EVIDENCE_STALE_OR_FUTURE")    # 25 s gap
+        refused(lambda: env.source(env.state, at(28, 0, 0, 1)), "ACCOUNT_INTERVAL_PREFETCH_REQUIRED")
 
 
 def test_midnight_capture_exactly_30s_after_the_committed_end_commits_the_opening():

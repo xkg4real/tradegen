@@ -14,9 +14,9 @@ boundary; its evidence is stamped at the boundary instant (rows, digests, server
 captured). A balance first read after the boundary is never relabelled. For a capture spanning midnight the
 collector's structural self-check receives a module-private opening baseline (the previous state's values at
 the midnight instant, which under the flat rule are the reducer's real opening); it is never exported, never
-staged, and is discarded before the bridge runs the reducer's own ``risk_baseline``. Its fenced observation must
-still lie within 30 s of ``previous.asof``, the freshness rule every capture meets (R17), so a boundary capture
-never heals a longer gap; recovery stays the reviewed re-anchor.
+staged, and is discarded before the bridge runs the reducer's own ``risk_baseline``. The capture's fenced
+observation must still lie within 30 s of ``previous.asof``, the freshness rule every capture meets (R17), so a
+boundary capture never heals a longer gap; recovery stays the reviewed re-anchor.
 
 Nothing here loads owner context, signs, arms, orders, reads credentials or touches a file.
 """
