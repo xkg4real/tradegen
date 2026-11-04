@@ -4,16 +4,16 @@ reason: milestone
 from: claude
 task: first-trade-foundation
 cycle: 2026-11-03
-done_ids: cloud-compat-1, cloud-compat-2, cloud-compat-3, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr, spec-rev-3-3, policy-plan-1, policy-preview-1, policy-pr, e1-1, e1-2, e1-3, e1-4, e1-5, e1-6, e1-7, e1-8, e1-9, e1-10, e1-11, e1-12, e1-13, e1-pr, e2-1, e2-2, e3-1, e3-2, e3-3, e2-3, e3-4, e2-e3-pr, pr6-pr7-merge, research-preregister-1, research-evaluate-1, account-readiness-1, research-paper-1, account-provider-1, account-regression-1, account-research-pr, pr8-human-code-review-approval, pr8-merge, launch-network-1, launch-collector-1, launch-profile-1, launch-strategy-1, launch-runner-1, launch-program-2, launch-workflow-2, launch-baseline-2, launch-quotes-2, launch-deployment-2, launch-review-request-2, launch-driver-2, launch-review-auth-2, launch-baseline-integration-2, launch-market-protocol-1, launch-recovery-cutoff-1, kis-live-contract-1, kis-live-backend-1, kis-live-ui-1, launch-static-guard-1, launch-windows-design-1, kis-live-regression-1, launch-regression-1, launch-delivery-1, pr9-owner-review, launch-windows-inputs-1, launch-owner-authority-1, launch-live-evidence, launch-live-history-1, launch-windows-coordinator-1, launch-study-module-1, okx-data-1, final-review-1
-next_ids: pr10-owner-review, e1-14-owner-setup, launch-prospective-study
-updated_at: 2026-11-04T21:18:47+09:00
+done_ids: cloud-compat-1, cloud-compat-2, cloud-compat-3, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr, spec-rev-3-3, policy-plan-1, policy-preview-1, policy-pr, e1-1, e1-2, e1-3, e1-4, e1-5, e1-6, e1-7, e1-8, e1-9, e1-10, e1-11, e1-12, e1-13, e1-pr, e2-1, e2-2, e3-1, e3-2, e3-3, e2-3, e3-4, e2-e3-pr, pr6-pr7-merge, research-preregister-1, research-evaluate-1, account-readiness-1, research-paper-1, account-provider-1, account-regression-1, account-research-pr, pr8-human-code-review-approval, pr8-merge, launch-network-1, launch-collector-1, launch-profile-1, launch-strategy-1, launch-runner-1, launch-program-2, launch-workflow-2, launch-baseline-2, launch-quotes-2, launch-deployment-2, launch-review-request-2, launch-driver-2, launch-review-auth-2, launch-baseline-integration-2, launch-market-protocol-1, launch-recovery-cutoff-1, kis-live-contract-1, kis-live-backend-1, kis-live-ui-1, launch-static-guard-1, launch-windows-design-1, kis-live-regression-1, launch-regression-1, launch-delivery-1, pr9-owner-review, launch-windows-inputs-1, launch-owner-authority-1, launch-live-evidence, launch-live-history-1, launch-windows-coordinator-1, launch-study-module-1, okx-data-1, final-review-1, pr10-owner-review
+next_ids: e1-14-owner-setup, venues-upbit-terms, launch-prospective-study
+updated_at: 2026-11-05T02:32:43+09:00
 stale_after_hours: 3
-waiting_on: owner review and merge of PR10, one code-approve on the merged tree, prospective evidence
-work_branch: claude/windows-first-trade
-work_commit: c11f5169786aa9a5d5d363a0ea77a9aabf3579cc
+waiting_on: owner code-approve on the merged tree (a5edaf4), sourced Upbit lot and fee_extras in venues.yaml, prospective evidence
+work_branch: main
+work_commit: a5edaf4c123d4797641df95dc2ffecc7af3feb66
 uncommitted_changes: none
-pr: https://github.com/xkg4real/tradegen/pull/10 (base main after the PR9 merge, ready for review, unmerged)
-usage_weekly_pct: 82
+pr: https://github.com/xkg4real/tradegen/pull/10 (merged by the owner 2026-11-05 02:24 KST as merge commit a5edaf4; tree identical to c11f516)
+usage_weekly_pct: 91
 usage_source: Claude Code desktop usage card (Weekly, all models)
 handoff_threshold_pct: 95
 usage_5h_pct: unknown
@@ -25,13 +25,15 @@ session: Claude Code desktop (TRADEGEN, Windows)
 
 ## 0. 사용자에게 전달할 최신 상태
 
-`claude/windows-first-trade`를 `c11f516`까지 push하고 `main` 대상으로 https://github.com/xkg4real/tradegen/pull/10을 열었습니다. PR9(`gpt/first-trade-foundation`, `ab21116`)는 소유자가 2026-11-04에 merge commit `d5ece51`로 병합했습니다. 그 트리가 서명한 `ab21116`과 같아서 서명은 그대로 유효합니다. 이 PR은 아직 병합 전입니다.
+`claude/windows-first-trade`(`c11f516`)를 담은 https://github.com/xkg4real/tradegen/pull/10을 소유자가 2026-11-05 02:24 KST에 merge commit `a5edaf4`(부모 `d5ece51`, `c11f516`)로 병합했습니다. 그 트리는 `c11f516`과 같습니다. PR9(`gpt/first-trade-foundation`, `ab21116`)는 2026-11-04에 `d5ece51`로 병합됐고, 소유자의 서명은 `ab21116` 코드에 대한 것입니다.
 
 GPT가 `ab21116`에 남긴 Windows 통합 설계의 남은 부분을 구현했습니다. 비공개 입력 로더, 현재 소유자 권한 조회, 계좌 구간 생성기와 독립 head, 실시간 이력, 코디네이터, 전향 연구 모듈입니다. 암호화폐 시세는 소유자 요청으로 Binance에서 OKX 공개 API로 옮겼고 Upbit는 그대로입니다. 네 관점(규칙, 런타임, OKX, 문서)의 최종 검토에서 나온 지적을 고쳤고, 수정마다 재검토 승인을 받았습니다.
 
 전체 검사(Windows, KEYLESS, 오프라인): 2202/2327 PASS, 2 FAIL, 123 NOT_RUN(매크로 참조 자료 없음 121, POSIX 전용 2). 실패 2건은 checkout 밖의 venv로 돌려서 생긴 `.venv` 위치 검사입니다.
 
-실제 계좌 연결, 이 PR 코드에 대한 서명, 세션 활성화, 주문, 검증된 전략은 아직 없습니다. 이 PR은 서명 대상 13개 파일을 바꾸므로, 병합 뒤 소유자가 `code-approve`를 한 번 해야 서명 코드가 다시 유효해집니다.
+실제 계좌 연결, 이 PR 코드에 대한 서명, 세션 활성화, 주문, 검증된 전략은 아직 없습니다. 이 PR은 서명 대상 13개 파일을 바꿨으므로, 소유자가 병합된 트리에서 `code-approve`를 한 번 해야 서명 코드가 다시 유효해집니다.
+
+병합 뒤 코드 대조와 두 차례 반박 검증으로 rehearsal조차 지금은 주문 단계에 갈 수 없다는 제한을 더 확인했습니다(6절 5번, 10-13번). Upbit 거래소 값이 없어 모든 Upbit 계획이 `NOT_TRADABLE`이고, instrument rules가 5분 뒤 만료되어 한 번의 실행에서 300초 배포 기간은 dry-run 주문도 낼 수 없으며, 어떤 정책 값으로도 수수료 여유를 둘 수 없습니다. PR10 본문의 "Limits the owner should know about"에도 같은 내용을 반영했습니다.
 
 ## 1. 확정한 운영 결정
 
@@ -89,15 +91,19 @@ GPT가 `ab21116`에 남긴 Windows 통합 설계의 남은 부분을 구현했�
 
 ## 6. 남은 개발과 실제 운영
 
-1. 이 PR의 소유자 검토와 병합(PR9는 2026-11-04에 병합 완료).
-2. 병합된 트리에서 `code-approve` 한 번.
+1. 이 PR의 소유자 검토와 병합: 2026-11-05에 `a5edaf4`로 완료(PR9는 2026-11-04).
+2. 병합된 트리에서 `code-approve` 한 번(소유자 차례).
 3. 전향 연구: 300초 간격 2,016회 관측(약 7일)의 빈틈없는 캡처, 최소 20회 왕복, 비용을 뺀 유의성 검정이 필요합니다. 첫 거부나 놓친 슬롯이 그 시행을 끝냅니다. 2026-11-20 전 통과는 현실적이지 않습니다.
 4. flat 전용 생성기라 첫 체결 뒤 체인이 멈춥니다. 보유 포지션을 증명하려면 소유자 결정(연속 가격 기록 또는 수동 청산)이 필요합니다.
-5. `drawdown_activation_equity` 아래에서는 보호 하한이 최고점과 같아서 첫 수수료나 손실이 신규 진입을 막습니다. 소유자 결정 사항입니다.
+5. `drawdown_activation_equity` 아래에서는 보호 하한이 최고점과 같아서 첫 수수료나 손실이 신규 진입을 영구 정지(halt)시킵니다. 지금 코드에서는 어떤 정책 값으로도 수수료 여유를 둘 수 없습니다. 위험 하한은 `initial_equity` 아래로 내려가지 않고(`execution_control/risk.py:206`, `:274-275`), 고정 driver는 첫 슬롯에서 KRW 현금이 `initial_equity`와 정확히 같기를 요구하며(`FIXED_DRIVER_INITIAL_STATE_INVALID`, `execution_launch/driver.py:326-328`), 서명한 `total_loss_floor_krw`가 현금과 같으면 첫 투입액이 0이라 `STUCK_AT_START`입니다(`core/odds/costs.py:357-359`, `core/odds/simulate.py:441-444`). 여유를 두려면 소유자의 위험 결정과 서명된 코드 변경이 함께 필요합니다.
 6. `kr_rules.yaml`의 가장 이른 `review_by`는 2026-11-22입니다. Upbit KRW 현물 행 `KR-DOMESTIC-SPOT`과 OKX 행을 포함한 25개 행이 이 날짜이고, 나머지 22개 행은 2026-11-23입니다. `review_by`가 지난 행은 그 행에 걸리는 신규 진입을 막고, 청산은 막지 않습니다.
 7. `AuthenticatedTransport`를 쓰는 controlled 배포는 나중에 따로 승인받을 단계입니다.
 8. 앵커의 `asof`부터 재는 30초는 `run()` 호출이 아니라 `run()` 안에서 도는 시작 단위 캡처의 관측에서 끝납니다. 이 캡처는 가장 짧아도 요청 9개라 응답 시간에 더해 1.8초가 걸리고 재시도 한 번마다 2.2초가 더 걸리므로, `run()`은 그만큼 더 일찍 불러야 합니다. 앵커 읽기, `initialize_account_baseline`, `store.seed`, `initialize_reviewed_head`, `run()`을 이렇게 연달아 실행하는 명령이 없어 소유자가 스크립트를 직접 써야 합니다. 서명 대상 코드를 바꾸는 일이므로 소유자 결정 뒤 별도 PR로 다룰 후보입니다.
 9. 300초 실캡처 전에 PC 시계가 계속 동기화되는지(계좌 캡처는 서울 자정의 날짜 검사 때문에 Upbit 시계보다 0.5초 넘게 앞서면 안 되고, 호가 읽기는 `QUOTE_BOOK_STALE_OR_FUTURE` 검사 때문에 PC 시계가 호가 타임스탬프 지연보다 더 늦으면 안 됩니다. 호가만 읽는 전향 연구 캡처에는 자정 날짜 검사가 없고 호가 검사가 걸리며, 첫 거부가 시행을 끝냅니다. 이 지연은 7일 연구 계획의 `freeze` 전에 실제 Upbit 호가에서 재야 하고(지연에는 소유자 회선이 들어가므로 소유자 PC에서 재며, 저장소에 측정 명령은 아직 없습니다), 100분의 몇 초(수십 ms) 이하로 짧으면 Windows 시계를 7일 내내 그만큼 맞춰 둔다고 장담할 수 없으므로 늦는 쪽 허용 폭을 서명된 코드로 둘지도 그 전에 소유자가 정합니다. 허용 폭은 `execution_accounts/quotes.py:142`의 검사를 바꾸는데, 이 파일은 `code-approve`가 서명하는 코드 해시에 들어 허용 폭을 넣으면 그 변경을 병합한 뒤 `code-approve`를 다시 해야 하고, `freeze`가 digest로 묶는 `CAPTURE_FILES`(`execution_launch/study.py:59`)에도 들어 그 digest가 `commitment.json`에 공개되므로, 바꾸기 전에 고정한 계획은 `capture`에서 `STUDY_CAPTURE_SOURCE_CHANGED`로 거부되고 이미 공개한 `commitment.json`도 쓸 수 없게 됩니다), 프록시 없이 인터넷에 직접 연결되는지, 인증서를 바꿔 끼우는 HTTPS 검사 백신이 없는지, Upbit 응답 형식 가정이 실제와 맞는지 확인해야 합니다. 감사에서 나온 항목이며 아직 검증하지 않았습니다.
+10. `core/odds/venues.yaml`에 Upbit `lot`과 `fee_extras`가 없어 모든 Upbit 계획이 `NOT_TRADABLE`로 거부됩니다(`core/odds/costs.py:76-85`). 세션 준비는 odds를 다시 돌리고 거부되면 멈추므로(`execution_control/session.py:80-82`) rehearsal의 연습 매수 세션도 준비할 수 없습니다. 출처가 있는 데이터 수정과 소유자의 `approve --kind venues`가 필요하고, 이 표는 코드 해시 밖이라 `code-approve`는 필요 없습니다(다음 ID `venues-upbit-terms`). 같은 파일의 UNVERIFIED 항목 4개(Upbit와 OKX의 BTC 입금 네트워크, Korbit과 OKX의 `source`)도 소유자가 확인할 대상입니다.
+11. 프로필의 instrument rules는 `asof`부터 5분만 유효하고(`execution_launch/profile.py:366-367`, `execution_control/controller.py:596-597`), 이를 Upbit에서 읽거나 갱신하는 코드가 없으며, 실행 중에는 프로필을 바꿀 수 없습니다(`RUNNER_PROFILE_MUTATED`). 고정 driver는 첫 슬롯에서 주문하지 않고(`execution_launch/driver.py:276-278`), 이동평균 프로그램은 이전 표시가 `slow_window`(2 이상)개 쌓일 때까지 현금을 유지하므로(`execution_launch/program.py:63`, `:139-140`) 첫 주문은 빨라야 세 번째 슬롯입니다. 300초 봉에서는 그 슬롯이 600초 뒤라 규칙이 이미 만료되어, 프로그램을 한 번 실행하는 동안 300초 배포 기간은 dry-run 주문조차 낼 수 없습니다. `asof`는 `profile_contract_digest`에 들지 않으므로(`execution_launch/profile.py:299-311`) 규칙을 다시 읽어 슬롯 사이에 재시작하면 같은 배포 기간에서 새 5분이 시작되지만, 첫 캡처가 마지막 확정 구간 끝에서 30초 안에 와야 하고 이를 해 주는 명령은 없습니다. 실시간 규칙 갱신은 별도의 서명 코드 변경입니다.
+12. `study select`는 신뢰할 수 있는 검토를 연결하지 않으므로(`review_verifier=None`, `execution_launch/study.py:597`) 항상 `NO_QUALIFIED_MARKET`을 보고합니다. 수치를 통과한 후보마다 출력 JSON 한 줄의 `review_requests`에 검토 요청을 싣고 파일은 쓰지 않습니다. 서명한 검토는 `compose()`가 형식만 읽고, `prepare_launch_session`과 매 `Runner.tick`이 `ReviewVerifiers.source`로 인증합니다(`execution_launch/review_auth.py:228-243`).
+13. 계좌 수집기는 `UPBIT_ACCESS_KEY`, `UPBIT_SECRET_KEY` 이름과, 상태 폴더와 같은 절대 경로의 `TRADEGEN_HOME`이 프로세스 환경에 있어야 하고 `.env`로는 안 됩니다(`execution_accounts/upbit_collector.py:55-63`). rehearsal은 `~/.tradegen` 밖의 상태 폴더를 요구하고(`execution_launch/runner.py:252-255`) owner log, 승인, 한도를 그 폴더에서 읽으므로, 소유자가 `~/.tradegen`에 서명한 상태를 rehearsal에 쓰는 방법은 아직 정해지지 않았습니다. 서명기와 `--check`도 `TRADEGEN_HOME`을 따르므로 소유자 안내서는 그 창에서 서명하지 말라고 적었습니다.
 
 ## 7. 제한
 
@@ -105,7 +111,7 @@ AGENTS.md 5절을 지킵니다. 실제 키, `.env` 값, 소유자 비공개 로�
 
 ## 8. 소유자 절차
 
-이 PR 검토와 병합(PR9는 병합 완료) → 병합된 트리에서 `code-approve` → `freeze` 전에 실제 Upbit 호가 타임스탬프 지연 측정과 늦는 쪽 허용 폭 결정(6절 9번. 지연에는 소유자 회선이 들어가므로 소유자 PC에서 재며, 7절에 따라 에이전트는 직접 호출하지 않습니다. 저장소에 측정 명령은 아직 없습니다. 허용 폭을 넣는다면 그 변경을 병합하고 `code-approve`를 다시 합니다) → 필요하면 한도 서명(다음 서울 날짜부터 효력) → 전향 연구 `freeze`와 `commitment.json` 공개 → 약 7일 `capture` → `select` → 신뢰할 수 있는 검토와 `review-approve` → rehearsal 배포 기간 순서입니다. 비밀값은 본인 PC 터미널에만 입력하고 채팅에 쓰지 않습니다.
+PR10 병합 완료(2026-11-05, `a5edaf4`) → 병합된 트리에서 `code-approve` → `freeze` 전에 실제 Upbit 호가 타임스탬프 지연 측정과 늦는 쪽 허용 폭 결정(6절 9번. 지연에는 소유자 회선이 들어가므로 소유자 PC에서 재며, 7절에 따라 에이전트는 직접 호출하지 않습니다. 저장소에 측정 명령은 아직 없습니다. 허용 폭을 넣는다면 그 변경을 병합하고 `code-approve`를 다시 합니다) → 필요하면 한도 서명(다음 서울 날짜부터 효력) → 전향 연구 `freeze`와 `commitment.json` 공개 → 약 7일 `capture` → `select` → 신뢰할 수 있는 검토와 `review-approve` → rehearsal 배포 기간 순서입니다. rehearsal 전에 Upbit 거래소 값 수정과 `approve --kind venues`(6절 10번)가 필요하고, 6절 11번 때문에 300초 배포 기간은 지금 코드로는 한 번의 실행으로 주문 단계에 가지 못합니다. 비밀값은 본인 PC 터미널에만 입력하고 채팅에 쓰지 않습니다.
 
 ## 9. 다음 에이전트가 이어받을 지시
 
