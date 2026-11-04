@@ -25,9 +25,11 @@ PROCESS_PREFIXES = ("execv", "execl", "spawn")
 ENDPOINT = re.compile(r"(?i)/(?:v1|uapi|api/v5)/")
 # One write ban for both packages. A writer row pins its exact call shapes under its own package-relative path;
 # every other write and any other file is a hit when it is spelt as a call, a bare name, a from-import, a module
-# alias, a getattr with a constant name, or os.open flags that are not provably os.O_* bits. Left to review by
-# design: a getattr with a computed name (the dataclass field loops), and a reference alias that is called later
-# (f = os.replace, f = open, x = p.write_text), because os.open in os.supports_dir_fd is a legitimate reference.
+# alias, a getattr with a constant name, or os.open flags that are not provably os.O_* bits (every binding of a
+# flags name counts, parameters and loop, with, import and unpacking targets included). Left to review by design: a
+# getattr with a computed name (the dataclass field loops), a reference alias that is called later (f = os.replace,
+# f = open, x = p.write_text), because os.open in os.supports_dir_fd is a legitimate reference, and a binding made
+# at run time (globals()[name] = ..., setattr on a module).
 HEAD = "execution_launch/baseline_head.py"
 HISTORY = "execution_launch/live_history.py"
 STUDY = "execution_launch/study.py"
@@ -110,23 +112,45 @@ def _reached(node):
 
 
 def _assignments(tree):
-    """Every expression a module assigns to each plain name, an augmented assignment as the BinOp it computes."""
-    assigned = {}
+    """Every expression a module assigns to each plain name, an augmented assignment as the BinOp it computes. A name
+    bound any other way (a parameter, an import, a for, with, walrus, unpacking, match or except target) also gets
+    an impure None, so no binding of a name is left out when its flags are judged. Scopes are merged on purpose: one
+    impure binding anywhere makes the name impure everywhere, which can only add hits."""
+    assigned, plain = {}, set()
     for node in ast.walk(tree):
         if isinstance(node, ast.Assign):
+            plain.update(id(target) for target in node.targets)
             for target in node.targets:
                 if isinstance(target, ast.Name):
                     assigned.setdefault(target.id, []).append(node.value)
-        elif isinstance(node, (ast.AnnAssign, ast.AugAssign)) and isinstance(node.target, ast.Name) and node.value:
-            value = node.value if isinstance(node, ast.AnnAssign) else ast.BinOp(node.target, node.op, node.value)
-            assigned.setdefault(node.target.id, []).append(value)
+        elif isinstance(node, (ast.AnnAssign, ast.AugAssign)):
+            plain.add(id(node.target))
+            if isinstance(node.target, ast.Name) and node.value:
+                value = node.value if isinstance(node, ast.AnnAssign) else ast.BinOp(node.target, node.op, node.value)
+                assigned.setdefault(node.target.id, []).append(value)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.arg):
+            names = [node.arg]
+        elif isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store) and id(node) not in plain:
+            names = [node.id]
+        elif isinstance(node, (ast.Import, ast.ImportFrom)):
+            names = [(alias.asname or alias.name).split(".")[0] for alias in node.names]
+        elif isinstance(node, (ast.ExceptHandler, ast.MatchAs, ast.MatchStar)) and node.name:
+            names = [node.name]
+        elif isinstance(node, ast.MatchMapping) and node.rest:
+            names = [node.rest]
+        else:
+            continue
+        for name in names:
+            assigned.setdefault(name, []).append(ast.Constant(None))
     return assigned
 
 
 def _pure_flags(expression, assigned, seen=frozenset()):
     """os.open flags that can only be os.O_* bits: os.O_* attributes, getattr(os, "O_*", 0) fallbacks and names whose
-    every assignment in the module is itself pure, joined by |. A number anywhere (1 | 64 is O_WRONLY | O_CREAT), a
-    call, a parameter, a name the module never assigns, or any other form is not."""
+    every binding in the module is itself pure, joined by |, with at least one binding that does not use the name
+    itself. A number anywhere (1 | 64 is O_WRONLY | O_CREAT), a call, a parameter or any other non-assignment
+    binding, a name the module never assigns, a name that is only augmented, or any other form is not."""
     if isinstance(expression, ast.BinOp) and isinstance(expression.op, ast.BitOr):
         return _pure_flags(expression.left, assigned, seen) and _pure_flags(expression.right, assigned, seen)
     if isinstance(expression, ast.Attribute):
@@ -140,7 +164,8 @@ def _pure_flags(expression, assigned, seen=frozenset()):
         if expression.id in seen:                         # flags |= os.O_X: its other assignments decide
             return True
         values = assigned.get(expression.id, ())
-        return bool(values) and all(_pure_flags(v, assigned, seen | {expression.id}) for v in values)
+        grounded = any(all(not (isinstance(n, ast.Name) and n.id == expression.id) for n in ast.walk(v)) for v in values)
+        return grounded and all(_pure_flags(v, assigned, seen | {expression.id}) for v in values)
     return False
 
 
@@ -346,6 +371,10 @@ CLEAN = (
     "getattr(quote_source, 'read', None)", "getattr(chain, 'seed', None)", "getattr(chain, 'successor', None)",
     "getattr(exc, 'code', None)", "getattr(inputs, 'now', None)", "getattr(source, 'account_scope', None)",
     "getattr(protocol, 'bar_seconds', None)", "getattr(history, 'record_slot', None)",
+    # Negative controls for the binding rule: a pure local, and parameters, loops and imports that are not the flags.
+    "def f(p):\n    flags = os.O_RDONLY\n    os.open(p, flags)",
+    "def f(p, mode):\n    flags = os.O_RDONLY | os.O_NOFOLLOW\n    os.open(p, flags)",
+    "import os\nfor name in names:\n    pass\nflags = os.O_RDONLY\nos.open(p, flags)",
 )
 WRITES = (
     "open(p, 'ab')", "open(p, mode='w')", "open(p, m)", "p.open('a')", "p.open(mode='xb')", "io.open(p, 'w')",
@@ -372,6 +401,21 @@ WRITES = (
     "flags = os.O_RDONLY\nflags |= 1\nos.open(p, flags)", "from io import FileIO\nFileIO(p, 'w')",
     "from _io import FileIO", "_io.open(p, 'w')", "import builtins\nbuiltins.open(p, 'w')", "builtins.open('f', 'w')",
     "builtins.getattr(os, 'replace')(a, b)",
+    # A name bound any other way is not provably os.O_* bits: a parameter (also one only augmented with pure
+    # bits), an import, a walrus, unpacking, for, with, match or except target, a name that is only augmented,
+    # and a name cycle fed by a parameter, each beside a pure assignment of the same name.
+    "flags = os.O_RDONLY\ndef f(p, flags):\n    os.open(p, flags)",
+    "def g():\n    flags = os.O_RDONLY\n    return flags\ndef f(p, flags):\n    os.open(p, flags)",
+    "def f(p, flags):\n    flags |= os.O_RDONLY\n    os.open(p, flags)",
+    "flags |= os.O_RDONLY\nos.open(p, flags)",
+    "from m import flags\nflags = flags | os.O_RDONLY\nos.open(p, flags)",
+    "flags = os.O_RDONLY\nif (flags := 1025):\n    pass\nos.open(p, flags)",
+    "flags = os.O_RDONLY\nflags, x = 1025, 0\nos.open(p, flags)",
+    "flags = os.O_RDONLY\nfor flags in (1025,):\n    os.open(p, flags)",
+    "flags = os.O_RDONLY\nwith x as flags:\n    os.open(p, flags)",
+    "flags = os.O_RDONLY\nmatch x:\n    case int() as flags:\n        os.open(p, flags)",
+    "flags = os.O_RDONLY\ntry:\n    pass\nexcept E as flags:\n    os.open(p, flags)",
+    "def f(p, b):\n    a = b\n    b = a\n    os.open(p, a)",
 )
 
 
@@ -428,6 +472,11 @@ def test_launch_write_ban_covers_every_shape_and_pins_writers_by_file_and_exact_
         assert problems(lock + "\nflags = os.O_WRONLY", "execution_launch/writer.py")
         assert problems(lock.replace("os.O_EXCL", "os.O_TRUNC"), "execution_launch/writer.py")
     assert all(relative.split("/")[0] in PACKAGES for relative in PINNED_WRITES)
+    # A helper that takes its flags as a parameter is a hit even where the module also assigns a pure flags.
+    workflow = (ROOT / "execution_launch" / "workflow.py").read_text(encoding="utf-8")
+    assert not problems(workflow, "execution_launch/workflow.py")
+    helper = workflow + "\n\ndef _helper(path, flags):\n    return os.open(path, flags)\n"
+    assert "write outside pinned writer" in problems(helper, "execution_launch/workflow.py")
 
 
 def test_trusted_head_is_advanced_only_by_pinned_callers():
