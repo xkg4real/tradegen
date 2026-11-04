@@ -14,7 +14,9 @@ boundary; its evidence is stamped at the boundary instant (rows, digests, server
 captured). A balance first read after the boundary is never relabelled. For a capture spanning midnight the
 collector's structural self-check receives a module-private opening baseline (the previous state's values at
 the midnight instant, which under the flat rule are the reducer's real opening); it is never exported, never
-staged, and is discarded before the bridge runs the reducer's own ``risk_baseline``.
+staged, and is discarded before the bridge runs the reducer's own ``risk_baseline``. Its fenced observation must
+still lie within 30 s of ``previous.asof``, the freshness rule every capture meets (R17), so a boundary capture
+never heals a longer gap; recovery stays the reviewed re-anchor.
 
 Nothing here loads owner context, signs, arms, orders, reads credentials or touches a file.
 """
@@ -30,7 +32,7 @@ from execution_accounts.baseline import BaselineError, BaselineInterval, Baselin
 from execution_accounts.baseline_bridge import BaselineFrame
 from execution_accounts.collector import CoverageEvidence, OpeningAnchor, SourceReceipt, TradeFeeEvidence, instant
 from execution_accounts.model import RiskBaseline, content_digest
-from execution_accounts.provider import EvidenceError, build_observation
+from execution_accounts.provider import EvidenceError, _fresh, build_observation
 from execution_accounts.upbit_collector import CollectionResult, collect_upbit
 
 BOUNDARY_LEAD_SECONDS = 10   # calibration knob: a boundary capture must start inside this window before the boundary
@@ -157,6 +159,8 @@ class UpbitIntervalSource:
             baseline = _opening_collection_baseline(previous, boundary) if in_window and midnight else exported
             collection = collect_upbit(collector_source, anchor=anchor, coverage=coverage, risk_baseline=baseline,
                                        clock=clock, trade_fees=trade_fees)
+            if in_window and midnight:   # R17: and the 30 s rule against previous.asof that every capture meets
+                _fresh(previous.asof, collection.bundle.accounts[0].observed_at)
             frame = upbit_interval_frame(previous, collection)
             _require(not in_window or frame.interval.end == boundary, "ACCOUNT_INTERVAL_BOUNDARY_NOT_BRACKETED")
             staged = StagedInterval(frame=frame, receipts=collection.receipts,

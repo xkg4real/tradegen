@@ -51,6 +51,7 @@ FEES = (TradeFeeEvidence(order_id="sell-1", fill_id="sell-fill-a", fee_krw=D("2"
 # The reducer's conventions are keyword-only (ruling R6).
 CONVENTIONS = BaselineConventions(daily_loss="maximum_net_equity_loss_from_day_open",
     external_flows="no_external_flows", max_interval_seconds=30, recovery_cutoff_seconds=79200)
+WIDE = replace(CONVENTIONS, max_interval_seconds=300)   # the reducer's widest bound, as the coordinator tests use
 
 
 def order(uuid, side, created, price, trades, *, paid_fee="0"):
@@ -155,7 +156,7 @@ class Env:
                              trade_fees=self.fees)
 
 
-def seed(home, exchange, fees, start, *, day_start, high, loss, realized, day_open, previous):
+def seed(home, exchange, fees, start, *, day_start, high, loss, realized, day_open, previous, conventions=None):
     """Anchor the chain from one instantaneous capture at ``start``; the reviewed anchor binds those exact accounts."""
     exchange.clock = clock = FakeClock(start)
     probe = RiskBaseline(day_start_equity=day_start, prior_high_watermark=high, observed_daily_loss=loss,
@@ -167,7 +168,7 @@ def seed(home, exchange, fees, start, *, day_start, high, loss, realized, day_op
     anchor = BaselineAnchor(account_scope=SCOPE, baseline=replace(probe, source_sha256=content_digest(accounts)),
         equity_krw=build_observation(collection.bundle, now=start).risk.equity, realized_net_total_krw=realized,
         day_open_realized_net_total_krw=day_open, previous_day_realized_net_krw=previous, sequence=0)
-    state = initialize_account_baseline(CONVENTIONS, anchor, accounts, now=start).state
+    state = initialize_account_baseline(conventions or CONVENTIONS, anchor, accounts, now=start).state
     store = CheckpointStore(root=home)
     store.seed(state, expected_head=state.state_digest)
     return state, store, Head(state.state_digest), collection
@@ -175,20 +176,21 @@ def seed(home, exchange, fees, start, *, day_start, high, loss, realized, day_op
 
 @contextmanager
 def series(start, *, exchange=None, fees=FEES, day_start=D("100000"), high=D("100100"), loss=D("10"),
-           realized=D("90"), day_open=D("0"), previous=None):
+           realized=D("90"), day_open=D("0"), previous=None, conventions=None):
     """The first-trading-day series (10-26, 22:00 cutoff required) unless the anchor values say otherwise."""
     with F.temp_home() as home, patch("execution_accounts.upbit_collector.request",
                                       side_effect=AssertionError("network forbidden")):
         exchange = FakeUpbit() if exchange is None else exchange
         state, store, head, collection = seed(home, exchange, fees, start, day_start=day_start, high=high,
-                                              loss=loss, realized=realized, day_open=day_open, previous=previous)
+                                              loss=loss, realized=realized, day_open=day_open, previous=previous,
+                                              conventions=conventions)
         yield Env(home, exchange, fees, state, store, head, collection)
 
 
-def midnight_series():
-    """10-27 23:59:40, second trading day with 90 KRW of prior-day profit: no cutoff pending, midnight next."""
-    return series(at(27, 23, 59, 40), day_start=D("100090"), high=D("100100"), loss=D("0"), realized=D("90"),
-                  day_open=D("90"), previous=D("90"))
+def midnight_series(start=at(27, 23, 59, 40), *, conventions=None):
+    """10-27 23:59:40 unless given, second trading day, 90 KRW prior-day profit: no cutoff pending, midnight next."""
+    return series(start, day_start=D("100090"), high=D("100100"), loss=D("0"), realized=D("90"),
+                  day_open=D("90"), previous=D("90"), conventions=conventions)
 
 
 def refused(call, code):
@@ -404,6 +406,66 @@ def test_midnight_early_late_and_unbracketed_captures_refuse():
         refused(lambda: env.collect(at(27, 23, 59, 45), 1500), "RISK_DAY_MISMATCH")
         refused(lambda: env.source(env.state, at(28, 0, 0, 5)), "ACCOUNT_INTERVAL_PREFETCH_REQUIRED")
         assert env.current() == env.state and env.head.commits == []
+
+
+def test_midnight_capture_after_a_gap_over_30s_refuses_and_only_the_reanchor_recovers():
+    """R17 (docs review C, M2, the reviewer's probe): the capture bracketing midnight is collected against the
+    midnight opening and must also observe within 30 s of the last committed end, as every capture does, so even
+    the reducer's widest bound never heals the gap. Once midnight passes every capture misses the boundary, and
+    only the reviewed re-anchor recovers."""
+    with midnight_series(at(27, 23, 59), conventions=WIDE) as env:
+        gap = refused(lambda: env.collect(at(27, 23, 59, 40), 10), "EVIDENCE_STALE_OR_FUTURE")          # 40 s gap
+        boundary = refused(lambda: env.collect(at(27, 23, 59, 59, 500), 100), "EVIDENCE_STALE_OR_FUTURE")  # 60.8 s
+        assert type(boundary) is type(gap)
+        refused(lambda: env.source(env.state, at(28, 0, 0, 1)), "ACCOUNT_INTERVAL_PREFETCH_REQUIRED")
+        refused(lambda: env.provider()(at(28, 0, 0, 1)), "BASELINE_INTERVAL_SOURCE_FAILED")
+        fetched = len(env.exchange.calls)
+        refused(lambda: env.collect(at(28, 0, 0, 5), 100), "ACCOUNT_INTERVAL_BOUNDARY_MISSED")
+        assert len(env.exchange.calls) == fetched
+        assert env.current() == env.state and env.head.commits == []
+
+
+def test_old_coherent_rollback_restored_before_midnight_refuses_at_the_midnight_capture():
+    """R17 with ruling R5: both roots restored (and the process restarted) to an older coherent state of this
+    chain, committed 39.5 s before the midnight observation, refuse at the bracketing capture as at any other
+    capture; nothing is staged and nothing commits, even under the reducer's widest bound."""
+    with midnight_series(at(27, 23, 59), conventions=WIDE) as env:
+        checkpoint = env.home / "execution-baseline" / "checkpoint.json"
+        first = env.collect(at(27, 23, 59, 20), 100)
+        env.provider()(first.observed_at + timedelta(milliseconds=100))
+        state1, c1 = env.current(), checkpoint.read_bytes()
+        second = env.collect(at(27, 23, 59, 40), 100)
+        env.provider()(second.observed_at + timedelta(milliseconds=100))
+        assert env.current().sequence == 2 and state1.asof == at(27, 23, 59, 21, 300)
+        checkpoint.write_bytes(c1); env.head = Head(state1.state_digest)       # the coherent rollback of both roots
+        env.source, env.store = UpbitIntervalSource(), CheckpointStore(root=env.home)              # and a restart
+        assert env.current() == state1
+        refused(lambda: env.collect(at(27, 23, 59, 59, 500), 100), "EVIDENCE_STALE_OR_FUTURE")
+        refused(lambda: env.source(state1, at(28, 0, 0, 1)), "ACCOUNT_INTERVAL_PREFETCH_REQUIRED")
+        refused(lambda: env.provider()(at(28, 0, 0, 1)), "BASELINE_INTERVAL_SOURCE_FAILED")
+        assert env.current() == state1 and env.head.commits == []
+
+
+def test_midnight_capture_one_millisecond_over_30s_refuses_inside_the_default_reducer_bound():
+    """R17 at the edge: observing at 00:00:00.800, 30.001 s after the committed end, refuses although the interval
+    to midnight (29.201 s) fits the default 30 s reducer bound: the threshold is the freshness rule's."""
+    with midnight_series(at(27, 23, 59, 30, 799)) as env:
+        refused(lambda: env.collect(at(27, 23, 59, 59, 500), 100), "EVIDENCE_STALE_OR_FUTURE")
+        refused(lambda: env.source(env.state, at(28, 0, 0, 1)), "ACCOUNT_INTERVAL_PREFETCH_REQUIRED")
+        assert env.current() == env.state and env.head.commits == []
+
+
+def test_midnight_capture_exactly_30s_after_the_committed_end_commits_the_opening():
+    """The good path at the edge: an observation exactly 30 s after the committed end is fresh (the rule is
+    inclusive), so the bracketing capture is staged and commits the midnight opening."""
+    with midnight_series(at(27, 23, 59, 30, 800)) as env:
+        staged = env.collect(at(27, 23, 59, 59, 500), 100)
+        assert staged.observed_at == at(28, 0, 0, 0, 800) == env.state.asof + timedelta(seconds=30)
+        assert staged.frame.interval.end == at(28, 0) == staged.frame.accounts[0].observed_at
+        env.provider()(staged.observed_at + timedelta(milliseconds=100))
+        state = env.current()
+        assert state.asof == at(28, 0) and state.sequence == 1 and state.day_start_equity == D("100090")
+        assert len(env.head.commits) == 1 and env.head.value == state.state_digest
 
 
 def test_tick_before_capture_gap_and_reused_capture_refuse():
