@@ -34,6 +34,16 @@ authenticate a source, select owner policy, sign approval or grant execution.
    `compare_and_set(previous_digest, new_digest) -> bool`. Exact `True` means
    that the external compare-and-set durably succeeded. These adapters are
    trusted application code, not a sandbox or an authorization substitute.
+   The shipped source is `execution_launch/account_interval.py`
+   `UpbitIntervalSource`: `collect(...)` runs one fenced `collect_upbit`
+   capture before the tick time is chosen and stages one frame, and
+   `__call__(previous, now)` returns it without I/O. It is flat-only: a held
+   position, any fill at or after the previous endpoint or any external flow
+   refuses, so the chain stops after a first fill until a reviewed
+   intra-interval price-path source exists (owner open item). It brackets the
+   22:00 and Seoul-midnight boundaries only with a capture that reads the
+   balance at or before the boundary and finishes at or after it, and never
+   relabels a late capture.
 5. Construct `ContinuousAccountProvider(source=source, store=store,
    trusted_head=head_adapter)` and supply it where the controller/runner expects
    `account_provider`. Each successful new interval is reconciled, saved,
@@ -77,7 +87,13 @@ timestamp; the provider performs no second save/CAS. A new interval with an
 equal endpoint, or changed account evidence with the old interval, refuses.
 The provider does not cache account evidence or hide later source changes.
 Sources must retain the latest exact frame across process restarts; the store
-retains its digest, not the complete source frame.
+retains its digest, not the complete source frame. The shipped `UpbitIntervalSource`
+(`execution_launch/account_interval.py`) keeps its frame in memory only: after a
+restart it refuses until a fresh capture, and that capture passes the 30 s
+evidence-freshness check only if it observes within 30 s of the last committed
+interval end. A capture that brackets a Seoul midnight must pass the same check,
+on top of the collector's check against the opening baseline stamped at midnight.
+Otherwise recovery is the reviewed re-anchor described below.
 
 If the reviewed risk policy enables recovery by 22:00 Seoul time, select the
 matching `BaselineConventions.recovery_cutoff_seconds=79200` before initializing
@@ -126,10 +142,86 @@ local checkpoint alone does not prevent rollback; an externally retained latest
 head is an explicit operational prerequisite. A failed final head read or a
 concurrent head change likewise returns no observation.
 
+The shipped head is `execution_launch/baseline_head.py`:
+`BaselineHead(root=head_root, name="baseline-head", chain=CheckpointChain(store))`.
+It keeps one record, `{"baseline_sequence":n,"head":"<digest>","schema_version":1}`,
+under `<head_root>/baseline-head/` with its own OS byte lock, fsync and atomic
+replace. The operator provisions the root: an existing, link-free folder on a
+drive letter that neither contains nor lies inside `TRADEGEN_HOME` or the
+checkout. Every operation re-checks these conditions; the code never creates
+the root or changes its permissions. `%LOCALAPPDATA%\TRADEGEN-head`
+(`$env:LOCALAPPDATA\TRADEGEN-head` in PowerShell) is the recommended root.
+Keeping the root outside OneDrive is the operator's duty: the code does not
+detect OneDrive. `compare_and_set(old, new)` returns `True` only after the
+store durably holds `new` as the committed direct successor of `old` with the
+next sequence and the record is fsynced and replaced; it returns `False` when
+the head has moved, and raises a fixed `HEAD_*` code otherwise. The record
+holds no amounts or identifiers.
+
+Setup order: `initialize_account_baseline`, `store.seed(state, expected_head=d)`,
+then one call to `head.initialize_reviewed_head(d)` with the digest the operator
+retained from the reviewed anchor output. The head adopts only a seed-shaped
+checkpoint and refuses an advanced store, an existing record or a store that is
+not yet seeded. There is no runtime caller of initialization. The anchor's
+`asof` is its own capture's observation, and with the shipped
+`UpbitIntervalSource` every capture against the seeded state, starting with
+the coordinator's startup unit, must observe within 30 s of it. Review the
+anchor values beforehand, then run the anchor capture, these three calls (the
+review of `d` included) and `run()` back to back from one prepared script.
+Started later, the startup unit reports `EVIDENCE_STALE_OR_FUTURE` in
+`account_source` and the new chain stops at once. Even inside the 30 s it
+reports `ACCOUNT_INTERVAL_BOUNDARY_MISSED`, with the same result, when Seoul
+midnight or a pending 22:00 KST cutoff passes before its first balance read,
+so no anchor read goes in the last minute before either. The startup capture
+lasts at least 1.8 s plus the round trips of its 9 or more requests, each
+retried request adds at least 2.2 s, and `run()` loads the checkpoint before
+the capture starts. So call `run()` at once: called 1.8 s before the 30 s
+end, it is already too late. Give every anchor a
+`max_interval_seconds` of at least 30: the reducer bounds each interval by
+it, so a smaller value shortens each of these 30 s limits to it, the startup
+unit's included, and a longer interval refuses
+`BASELINE_BRIDGE_EVIDENCE_REFUSED`.
+
+Honest limits. A rollback of either root alone, a crash between the two replaces,
+a mutated or truncated record, a hard link or junction, a second process and a
+reset-valued successor all refuse. A coherent rollback of both roots (one backup
+restored over both) is not detected by the files themselves, because no frame is
+retained durably in this phase. It is refused only once it is old, by three 30 s
+checks: the collector's evidence-freshness check on the exported `risk_baseline`
+(`execution_accounts/provider.py`), the producer's same check against
+`previous.asof` on a capture that brackets a Seoul midnight, and the fixed
+driver's account-anchor rule. The reducer's interval bound in `advance_baseline`
+is the configured `max_interval_seconds`, and its own 30 s export rule does not
+fire here because the producer exports at `previous.asof`. A coherent rollback
+younger than 30 s followed by a fresh honest interval is indistinguishable from
+an ordinary tick. Code running as the same Windows user can rewrite both roots;
+that boundary is unchanged.
+
+The owner performs recovery after any refusal; the code adopts nothing. The
+steps, in order:
+
+1. Stop the runner.
+2. Copy both roots to an evidence folder without editing them.
+3. Note the head record or its `HEAD_*` code, and the checkpoint's digest and
+   sequence.
+4. Reconcile outstanding orders with the venue.
+5. Classify the case: the checkpoint is the direct successor of the head, the
+   checkpoint is older or unrelated, `head.tmp` is present, or the record is
+   invalid.
+6. Move `<TRADEGEN_HOME>/execution-baseline` and `<head_root>/baseline-head`
+   aside as evidence, then re-anchor with a new reviewed anchor, `store.seed`,
+   `initialize_reviewed_head` and fresh session preparation. The setup order's
+   30 s rule applies: run the new anchor capture through `run()` back to back,
+   and prepare the session after the startup unit.
+
+A same-day re-anchor after the cutoff carries no recovery proof, so
+recovery-dependent permission stays blocked until the next Seoul day.
+
 The files contain private account amounts and identifiers. Do not commit them,
 attach them to public handoffs or copy them into user-facing reports. Tests use
-invented records and temporary roots only. No autonomous continuous source or
-external trusted-head service is shipped by this integration.
+invented records and temporary roots only. No autonomous continuous source is
+shipped by this integration; the trusted head above is a local record, not a
+service.
 
 This software and document are not legal, tax or investment advice, and their
 authors do not act as licensed advisers.

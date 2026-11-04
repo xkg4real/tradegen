@@ -12,7 +12,9 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import stat
 import sys
+import tempfile
 
 from execution_control.model import InstrumentRules
 from execution_launch import paper_capture, program
@@ -86,20 +88,72 @@ def example_files(*, now):
             'bars.json': json.dumps(envelope, indent=2, sort_keys=True)+'\n'}
 
 
+def _plain(entry):
+    """An lstat result that is neither a symlink nor any other reparse point (junction, mount, cloud placeholder)."""
+    return (not stat.S_ISLNK(entry.st_mode)
+            and not getattr(entry, 'st_file_attributes', 0) & stat.FILE_ATTRIBUTE_REPARSE_POINT)
+
+
+def _write_windows(absolute, contents):
+    """No dir_fd or O_NOFOLLOW on Windows: every ancestor is lstat-checked as a plain directory, mkdir is the
+    exclusive create (an existing entry, a dangling link included, fails), and each file is created O_EXCL and then
+    proven to be the directory entry just written (same volume and file index, no reparse point, one name)."""
+    for ancestor in reversed(absolute.parents):
+        entry = os.lstat(ancestor)
+        _require(stat.S_ISDIR(entry.st_mode) and _plain(entry), 'EXAMPLE_DIRECTORY_UNAVAILABLE_OR_EXISTS')
+    os.mkdir(absolute, mode=0o700)
+    made = os.lstat(absolute)
+    _require(stat.S_ISDIR(made.st_mode) and _plain(made), 'EXAMPLE_DIRECTORY_UNAVAILABLE_OR_EXISTS')
+    for name in _FILES:
+        target = absolute / name
+        descriptor = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_BINARY | os.O_NOINHERIT, 0o600)
+        try:
+            opened, entry = os.fstat(descriptor), os.lstat(target)
+            _require(_plain(entry) and entry.st_nlink == 1
+                     and (entry.st_dev, entry.st_ino) == (opened.st_dev, opened.st_ino),
+                     'EXAMPLE_DIRECTORY_UNAVAILABLE_OR_EXISTS')
+            raw = contents[name].encode('utf-8')
+            while raw:
+                written = os.write(descriptor, raw)
+                _require(written > 0, 'EXAMPLE_WRITE_INCOMPLETE')
+                raw = raw[written:]
+            os.fsync(descriptor)
+        finally:
+            os.close(descriptor)
+    final = os.lstat(absolute)
+    _require(_plain(final) and (final.st_dev, final.st_ino) == (made.st_dev, made.st_ino),
+             'EXAMPLE_DIRECTORY_UNAVAILABLE_OR_EXISTS')
+
+
 def write_new_directory(path, contents):
     """Write the four fixed files exclusively under a new, non-linked directory."""
     _require(type(path) is str and path and '\x00' not in path, 'EXAMPLE_DIRECTORY_REFUSED')
     candidate = Path(path)
     _require('..' not in candidate.parts and candidate.name not in ('', '.', '..'), 'EXAMPLE_DIRECTORY_REFUSED')
     absolute = Path(os.path.abspath(candidate))
-    _require(len(absolute.parts) > 1 and absolute.parts[1].casefold() not in ('home', 'root', 'users'),
+    # Home directories are refused. Windows has no /tmp: its scratch area lives inside the profile, so on nt only
+    # the interpreter's temporary directory is allowed under C:\Users, and only while that directory (resolved)
+    # lies under the resolved %LOCALAPPDATA%; a TEMP pointed elsewhere in the profile keeps the refusal.
+    scratch = False
+    if os.name == 'nt':
+        local, temp = os.environ.get('LOCALAPPDATA'), Path(os.path.realpath(tempfile.gettempdir()))
+        scratch = (bool(local) and temp.is_relative_to(Path(os.path.realpath(local)))
+                   and Path(os.path.realpath(absolute)).is_relative_to(temp))
+    _require(len(absolute.parts) > 1 and (absolute.parts[1].casefold() not in ('home', 'root', 'users') or scratch),
              'EXAMPLE_HOME_DIRECTORY_REFUSED')
     _require(not any(part.casefold() in _PRIVATE or part.casefold() == '.env'
                      or part.casefold().startswith('.env.') for part in absolute.parts), 'EXAMPLE_DIRECTORY_REFUSED')
     _require(set(contents) == set(_FILES) and all(type(v) is str for v in contents.values()),
              'EXAMPLE_CONTENTS_INVALID')
-    _require(os.open in os.supports_dir_fd and os.mkdir in os.supports_dir_fd
-             and hasattr(os, 'O_NOFOLLOW') and hasattr(os, 'O_DIRECTORY'), 'EXAMPLE_PLATFORM_UNSUPPORTED')
+    posix = (os.open in os.supports_dir_fd and os.mkdir in os.supports_dir_fd
+             and hasattr(os, 'O_NOFOLLOW') and hasattr(os, 'O_DIRECTORY'))
+    _require(posix or os.name == 'nt', 'EXAMPLE_PLATFORM_UNSUPPORTED')
+    if not posix:
+        try:
+            _write_windows(absolute, contents)
+        except OSError:
+            raise WorkflowError('EXAMPLE_DIRECTORY_UNAVAILABLE_OR_EXISTS') from None
+        return
     parent = child = None
     try:
         flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | getattr(os, 'O_CLOEXEC', 0)

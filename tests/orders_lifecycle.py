@@ -225,7 +225,7 @@ def _signed_lifecycle(case):
         selected = OF.plan(venue=order.venue, symbol=_base(order), start=now.date(), horizon_days=1)
         series = OF.fresh_series(end=(selected.start - timedelta(days=1)).isoformat(),
             symbol=order.symbol if order.venue != "okx" else "BTC",
-            source={"upbit": "UPBIT", "okx": "BINANCE:BTCUSDT*UPBIT:KRW-USDT", "krx": "KIS", "nasd": "YAHOO"}[case],
+            source={"upbit": "UPBIT", "okx": "OKX:BTC-USDT*UPBIT:KRW-USDT", "krx": "KIS", "nasd": "YAHOO"}[case],
             price={"upbit": 50000000.0, "okx": 50000000.0, "krx": 5000.0, "nasd": 14000.0}[case],
             vol=0.005 if order.venue == "kis" else 0.02)
         calendar_set, calendar_sha, calendar_error = odds_inputs.calendar_for(now)

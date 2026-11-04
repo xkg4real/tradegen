@@ -48,7 +48,9 @@ inside Korean law.
   [continuous account bridge](docs/account-baseline-integration.md) reconciles
   exact baselines and persists checkpoints against a separately trusted head.
   Real source/history adapters, independent strategy evidence, secure environment
-  configuration and effective owner approvals still need deployment setup.
+  configuration and effective owner approvals still need deployment setup; the
+  [Windows integration plan](docs/windows-first-trade-integration.md) describes the
+  implemented adapters and what still blocks a first trade.
   The [deployment manifest](docs/deployment-readiness.md) compares the existing
   dependency-inclusive approval hash without issuing an approval.
 - **Strategy research (2026-10-31).** A frozen exploratory study evaluated
@@ -117,7 +119,7 @@ Version 3 widens the asset coverage and adds the gate that decides what is
 offered. Four surfaces — **Derivatives, ETF, Crypto, Strategy Lab** — sit on
 the KIS asset domains the stock-account key already quotes (ETF NAV, KOSPI 200
 futures and options, KTB and USD futures, KRW benchmark yields, overseas
-prices) and on keyless Upbit / Binance / CoinGecko data. Every strategy and
+prices) and on keyless Upbit / OKX / CoinGecko data. Every strategy and
 distributional model was validated on real history by one pre-registered
 gate; what failed is shown as a refusal, not hidden. See
 [The expansion surfaces](#the-expansion-surfaces-version-3).
@@ -311,7 +313,9 @@ own history — every one with the validation study's verdict beside it.
 
 Kimchi premium (Upbit KRW-BTC against the world price at the FRED fixing) with
 ADF, half-life and a predictive test; perpetual funding carry with deciles and
-a bootstrap; a six-component regime score whose missing components redistribute
+a bootstrap (OKX keeps about three months of funding, too few days for the
+decile test, so the page says so instead of reporting the decile means); a
+six-component regime score whose missing components redistribute
 their weight; GARCH(1,1)-t on bitcoin with its out-of-sample verdict and the
 stationarity share; the ETH/BTC unit-root test; the weekday table; optional
 Upbit balances with an asset-inquiry-only key. Refused by construction: any
@@ -787,13 +791,13 @@ Model defaults to `claude-sonnet-5`; override with `QUANTGEN_AI_MODEL`.
 | **Yahoo Finance** | FX spot histories (EURUSD, USDJPY, USDKRW, …), 10y note future, gold | nothing — keyless |
 | FMP | US (and plan-permitting international) daily EOD, closes adjusted for splits **and dividends** (`/historical-price-eod/dividend-adjusted`) | `FMP_API_KEY` |
 | KIS | KRX daily OHLCV (6-digit codes route here automatically); **version 3**: ETF NAV / premium / constituents, KOSPI 200 futures and the option chain, KTB and USD futures (market `CF`), KRW benchmark yields (`Y0101`…`Y0117`, CD 91d), US yields, USD/KRW fixing, overseas prices (`NAS:AAPL`), exchange-traded KTBs, investor flows and short sales — all quotation-only, one stock-account key | `KIS_APP_KEY` + `KIS_APP_SECRET` |
-| **Upbit / Binance / CoinGecko** | KRW-BTC daily candles since 2017, USDT spot klines, perpetual funding history, premium index, open interest, the top-N list; `KRW-BTC` / `BTCUSDT` route here automatically | nothing — keyless (`UPBIT_ACCESS_KEY` / `UPBIT_SECRET_KEY`, asset-inquiry scope, only for the balance tile) |
+| **Upbit / OKX / CoinGecko** | KRW-BTC daily candles since 2017, OKX USDT spot daily candles (BTC-USDT from 2018-01-11; Binance's began 2017-08-17), BTC-USDT-SWAP funding (OKX keeps about three months, so the funding percentile runs on that window only and the decile test has too few days; Binance went back to 2019), mark/index premium, the top-N list; open interest is no longer fetched; `KRW-BTC` / `BTCUSDT` route here automatically | nothing — keyless (`UPBIT_ACCESS_KEY` / `UPBIT_SECRET_KEY`, asset-inquiry scope, only for the balance tile) |
 | Synthetic | Seeded per-symbol series, curves and rates | nothing |
 
 FICC fetches are cached on disk (`~/.tradegen/ficc_cache`, six hours by default)
 so a page refresh does not re-download two years of the curve. The same cache
 now holds every price history that goes through `load_history` (FMP, KIS,
-Yahoo, Upbit, Binance), so re-running Quant Lab, Signals, Portfolio or Strategy
+Yahoo, Upbit, OKX), so re-running Quant Lab, Signals, Portfolio or Strategy
 Lab does not spend provider quota on unchanged bars; a series served from disk
 says `cached <time>` in its note, which each page shows beside the source. A
 series fetched while its market may be trading ends in a running price, so it
@@ -889,19 +893,28 @@ exit code; the exit code is 0 only when nothing failed. The summary line reads
 | ui | `tests/flet_api_guard.py` | Every `page.<method>()`, every checked Flet control keyword and attribute, and every `pal.<token>` in `ui/*.py` exists in Flet 0.85.2 and the palette | 4 PASS |
 | quant | `tests/quant_acceptance.py` | Monte Carlo, optimizer, signal and backtest invariants; GARCH parameter recovery, unit-variance t shocks, guardrail flags, likelihood ordering against GBM and normal-GARCH, forecast convergence, the drift modes, the bounded-innovation and martingale checks, the LR null size, interval coverage, every chart renders | 53 PASS |
 | ficc | `tests/ficc_acceptance.py` | Bootstrap round-trips, monotone discount factors, Nelson-Siegel fits, PCA, duration and KRD, carry and roll, scenario convexity, swap and swaption parity, Black ↔ Bachelier, caps and floors, Garman-Kohlhagen, SABR, CIP, the carry backtest, CIR and Hull-White, structured products, narratives, every chart renders | 56 PASS |
-| expansion | `tests/expansion_acceptance.py` | Fake KIS and crypto transports for every new asset domain, the gate's own checks (a planted edge passes, noise is rejected, the deflated Sharpe orders them, the distribution loop calibrates), the t+1 causality of every strategy family, the five-year rule counted in whole years, the table cost floor and the Strategy Lab's withheld verdict below it, the module self-checks | 19 PASS |
+| expansion | `tests/expansion_acceptance.py` | Fake KIS and crypto transports for every new asset domain, the gate's own checks (a planted edge passes, noise is rejected, the deflated Sharpe orders them, the distribution loop calibrates), the t+1 causality of every strategy family, the five-year rule counted in whole years, the table cost floor and the Strategy Lab's withheld verdict below it, the module self-checks | 20 PASS |
 | macro | `tests/macro_acceptance.py` over `tests/macro_*.py` | The v2 build, below | 419 PASS / 121 NOT_RUN |
 | paper | `tests/paper_live_acceptance.py` | The paper_live harness after the 2026-10-18/19 fixes, offline: costs from QUANTGEN's table and KRX ETF tick floor, LSE refused rather than proxied, the per-account cost gate in `Engine._open`, the 5-minute C3 account retired, no resume from another config's state, frozen price snapshots (exact round trip, sha refusal), post-session prices by window dates, session hours from `core.markets` across clock changes and holidays, only complete pulls frozen, the same-day replay's archived code, the power line, one ledger trial per configuration, the pre-registered gate and fidelity tests, the Strategy Lab ledger, concurrent ledger appends, the refused late freeze and the report outcomes block | 21 PASS |
 | grokteam | `grokteam/selfcheck.py` | The GROKTEAM BOOK desk (Kalshi KXBTCD paper benchmark of the Grok trading-team guide), offline: the Kalshi fee and payoff with the fee inside the stake, SIZE (half Kelly, 6% cap, $50 floor), the GARCH-t digital, no look-ahead in hourly bars or quotes, the 30-minute quote lookback, the stationarity warning not skipping, each account's entry rule, the cluster t and the one-sided skill p, the verdict precedence, the TRADEGEN copy permanently blinded (no event decided after the freeze is listed, fetched or replayed at any date; no re-freeze), Python patch updates not voiding the freeze, the sha-checked cache and the new ledger family | 17 PASS |
-| compliance | `tests/compliance_acceptance.py` over `tests/compliance_*.py` | The compliance gate, offline: the strict YAML loader (duplicate keys, anchors, native dates, 256 KB cap), the rules table, instrument map and venue file with the 38-row coverage and the monthly review cadence, the derived classes, the `decide()` kernel (conduct and hard-coded floor, fail-closed inputs, exits that stay open under D11, the OKX grey row with its cap, acknowledgement and 2026-12-03 auto-off at the Asia/Seoul boundary, D15 refusals and D16 refusals that only live deposit evidence lifts), permits and plan screening, purity, the Ed25519 owner log (chain, anchors, key rotation, system halts), D12 tighten-now/loosen-tomorrow, the approved-version store and signed code hash, `load_context`, the `--check` exit codes 0-4 and the alert template, the owner-kept signer's refusals and key file, and the isolation residual (links, junctions, hard links, final-target checks) | 346 PASS / 1 NOT_RUN |
+| compliance | `tests/compliance_acceptance.py` over `tests/compliance_*.py` | The compliance gate, offline: the strict YAML loader (duplicate keys, anchors, native dates, 256 KB cap), the rules table, instrument map and venue file with the 38-row coverage and the monthly review cadence, the derived classes, the `decide()` kernel (conduct and hard-coded floor, fail-closed inputs, exits that stay open under D11, the OKX grey row with its cap, acknowledgement and 2026-12-03 auto-off at the Asia/Seoul boundary, D15 refusals and D16 refusals that only live deposit evidence lifts), permits and plan screening, purity, the Ed25519 owner log (chain, anchors, key rotation, system halts), D12 tighten-now/loosen-tomorrow, the approved-version store and signed code hash, `load_context`, the `--check` exit codes 0-4 and the alert template, the owner-kept signer's refusals and key file, and the isolation residual (links, junctions, hard links, final-target checks) | 345 PASS / 2 FAIL (environment, below) |
 | odds | `tests/odds_acceptance.py` over `tests/odds_*.py` | The odds engine, offline with every price feed faked: the single-leg plan whitelist and the named refusals in their fixed order, the cost ledger with the per-fill tick floor (the KRX stock sell tax inside it), floor-protected and stop-based stakes with lot rounding, the no-edge two-point bootstrap and GARCH-t with their pilot checks and corruption tests, the path engine (open and close checks, limit-down locks, the daily loss, rule dates, delisting stress, the OKX cap per entry), the ceiling, the KRX structural maximum and exact bold play, the HIDDEN_EDGE and CEILING_BREACH bug checks, the S_C3 replay against its pinned card with lower-bound Kelly, the report's sentence catalogue, outward number formats and language guard, the unsigned bar loader and its checked cache, the signed calendar, one seed per comparison, the CLI, and the odds guards (the import allowlist, no clock and no file I/O in the signed core) | 287 PASS |
 | execution | `tests/execution_acceptance.py` over `tests/execution_*.py` | E1 read-only account inquiry, offline: the frozen allowlists and refusals before any key is read, Upbit JWT and OKX signing, the shared KIS token cache, KIS read only under signed code, the OKX read-only self-check, snapshots and fail-closed positions, D16 deposit evidence (written on change and daily) with next-Seoul-day lifting and 7-day expiry, every poll check, alert text without balances or addresses, the poller CLI, and the guards (file-exact KIS and Upbit exceptions) | 231 PASS |
 | execution_control | `tests/control_acceptance.py` over `tests/control_*.py` and `tests/orders_*.py` | E2/E3 offline: exact durable reservations, FIFO realized accounting, equity policy, fresh bound odds and owner sessions, one-use capabilities, unknown-outcome retention, authenticated cash limit-order codecs and four mocked venue lifecycles and changing-FX regression | 149 PASS |
 | execution_accounts | `tests/accounts_acceptance.py` | Exact account cash/FIFO/history/FX evidence, conservative refusal cases, read-only readiness, explicit mocked E1 connection and signed/runtime guards | 111 PASS |
 | strategy_research | `tests/research_acceptance.py` | Frozen data/source integrity, causal costed execution, validation-only selection, block bootstrap and multiplicity checks | 35 PASS |
-| execution_launch | `tests/launch_acceptance.py` | Private launch profile, explicit network routing, account collection and baseline continuity, causal paper workflow, fixed driver/review authentication, deployment comparison and guarded runner | 145 PASS |
-| kis_live | `tests/kis_live_acceptance.py` | Workbook-backed public channels, fake approval/WebSocket frames, exact indicators, time/coverage limits, lifecycle and Flet display guards | 45 PASS |
-| **Total** | `tests/run_all.py` | | 2077/2199 passed, 0 failed, 122 not run (2026-11-02, TRADEGEN `.venv`) |
+| execution_launch | `tests/launch_acceptance.py` | Private launch profile, explicit network routing, account collection and baseline continuity, causal paper workflow, fixed driver/review authentication, deployment comparison and guarded runner, the Windows private-input reader and baseline head, live history, the Windows owner-authority lookup, account intervals, the slot coordinator and the prospective study | 268 PASS / 2 NOT_RUN |
+| kis_live | `tests/kis_live_acceptance.py` | Workbook-backed public channels, fake approval/WebSocket frames, exact indicators, time/coverage limits, lifecycle and Flet display guards | 47 PASS |
+| **Total** | `tests/run_all.py` | | 2202/2327 passed, 2 failed, 123 not run (2026-11-04, Windows, a virtual environment outside the checkout; see below) |
+
+The 2026-11-04 counts were measured on Windows with a virtual environment
+outside the checkout. The two compliance FAILs check that the suite runs under
+the checkout's own `.venv` (`test_cryptography_is_pinned_installed_and_usable`
+and `test_commands_sign_exactly_what_was_shown`); each stopped at that check, so
+its later assertions did not run. The two execution_launch NOT_RUN tests need
+POSIX (`os.mkfifo` and the descriptor `fstat` seam); their Windows cases run in
+`tests/launch_private_input.py`. Run `.venv/Scripts/python tests/run_all.py`
+from the checkout before relying on these counts.
 
 The macro group (new in v2) discovers every `tests/macro_*.py` module,
 wraps each test in a hermetic guard, and brackets the run with T-HERM-01 (every

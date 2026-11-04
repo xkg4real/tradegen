@@ -146,6 +146,15 @@ def parse_manifest(raw):
         raise DeploymentError("DEPLOYMENT_JSON_INVALID") from None
 
 
+def _linked(path):
+    """A symlink, or a directory that is any other reparse point (junction, mount point); an absent path is not one."""
+    try:
+        info = path.lstat()
+    except (OSError, ValueError):
+        return False
+    return stat.S_ISLNK(info.st_mode) or bool(getattr(info, "st_file_attributes", 0) & stat.FILE_ATTRIBUTE_REPARSE_POINT)
+
+
 def _source_tree(repo_root):
     """Inspect metadata before the trusted D14 closure reader opens source files.
 
@@ -157,7 +166,7 @@ def _source_tree(repo_root):
     _require(root.is_absolute() and ".." not in root.parts
              and not any(part.casefold() in _PRIVATE or part.casefold().startswith(".env") for part in root.parts),
              "DEPLOYMENT_REPO_REFUSED")
-    _require(all(not part.is_symlink() for part in (root, *root.parents)) and root.resolve() == _ROOT,
+    _require(all(not _linked(part) for part in (root, *root.parents)) and root.resolve() == _ROOT,
              "DEPLOYMENT_CURRENT_CHECKOUT_REQUIRED")
     # Follow only the existing D14 source graph, not unrelated study/data trees.
     # Inspect each source before reusing the owner's AST import walker.
@@ -167,15 +176,15 @@ def _source_tree(repo_root):
                                 ("execution_accounts", True), ("execution_network", True),
                                 ("execution_launch", True)):
         base = root / relative
-        _require(all(not p.is_symlink() for p in (base, *base.parents)), "DEPLOYMENT_LINKED_SOURCE_REFUSED")
+        _require(all(not _linked(p) for p in (base, *base.parents)), "DEPLOYMENT_LINKED_SOURCE_REFUSED")
         todo.extend(base.rglob("*.py") if recursive else base.glob("*.py"))
     seen, size = set(), 0
     while todo:
         target = todo.pop()
         if target in seen:
             continue
-        _require(target.is_relative_to(root) and not target.name.startswith(".env")
-                 and all(not p.is_symlink() for p in (target, *target.parents)),
+        _require(target.is_relative_to(root) and not target.name.startswith(".env") and not target.is_symlink()
+                 and all(not _linked(p) for p in target.parents),
                  "DEPLOYMENT_LINKED_SOURCE_REFUSED")
         info = target.lstat()
         _require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1, "DEPLOYMENT_LINKED_SOURCE_REFUSED")

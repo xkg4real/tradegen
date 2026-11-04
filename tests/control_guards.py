@@ -353,7 +353,8 @@ def test_processes_share_the_control_lock():
         try:
             with journal.transaction() as tx:
                 process.start()
-                assert parent.poll(10) and parent.recv() == "ready"
+                # Start-up only: spawn re-imports tests.run_all (about 3000 modules, 20 s cold on a slow PC).
+                assert parent.poll(120) and parent.recv() == "ready"
                 assert not parent.poll(0.1), "child wrote while parent held the lock"
                 tx.append("reserved", {"client_id": "parent"}, now=NOW)
             assert parent.poll(10) and parent.recv() == "written"

@@ -28,12 +28,16 @@ from execution_launch.profile import (
 from execution_launch.strategy import (
     StrategyEvidenceError, assess_strategy, evaluate_capture_json, parse_protocol,
 )
-from execution_launch import program, paper_capture, review_request
+from execution_launch import program, paper_capture, review_request, private_input
 
 MAX_CONFIG_BYTES = 65536
 MAX_CAPTURE_BYTES = 16 * 1024 * 1024
 MAX_ARTIFACT_BYTES = 1024 * 1024
 _PRIVATE = frozenset({".tradegen", ".nextgen", ".ssh", ".aws", ".gnupg", ".azure", ".kube", ".git"})
+_WINDOWS_CODES = {'PRIVATE_INPUT_PLATFORM_UNSUPPORTED': 'WORKFLOW_FILE_PLATFORM_UNSUPPORTED',
+                  'PRIVATE_INPUT_PATH_REFUSED': 'WORKFLOW_FILE_REFUSED',
+                  'PRIVATE_INPUT_FILE_REFUSED': 'WORKFLOW_FILE_REFUSED',
+                  'PRIVATE_INPUT_TOO_LARGE': 'WORKFLOW_FILE_TOO_LARGE'}
 _CODE = re.compile(r"[A-Z][A-Z0-9_]{0,95}")
 
 
@@ -91,7 +95,10 @@ def _time(raw):
 
 
 def _read_file(path, maximum, *, suffix='.json'):
-    """Bounded no-follow read of one explicit regular file, without home/env lookup."""
+    """Bounded no-follow read of one explicit regular file, without home/env lookup.
+
+    Windows uses execution_launch.private_input.
+    """
     _require(type(path) is str and path and '\x00' not in path, 'WORKFLOW_FILE_REFUSED')
     candidate = Path(path)
     parts = candidate.parts
@@ -100,6 +107,11 @@ def _read_file(path, maximum, *, suffix='.json'):
     _require(not any(part.casefold() in _PRIVATE or part.casefold() == '.env'
                      or part.casefold().startswith('.env.') for part in absolute.parts),
              'WORKFLOW_FILE_REFUSED')
+    if os.name == 'nt':
+        try:
+            return private_input.read_private_file(path, maximum=maximum, suffix=suffix, private=_PRIVATE)
+        except private_input.PrivateInputError as exc:
+            raise WorkflowError(_WINDOWS_CODES.get(str(exc), 'WORKFLOW_FILE_UNAVAILABLE_OR_REFUSED')) from None
     _require(os.open in os.supports_dir_fd and hasattr(os, 'O_NOFOLLOW')
              and hasattr(os, 'O_DIRECTORY'), 'WORKFLOW_FILE_PLATFORM_UNSUPPORTED')
     directory_fd = file_fd = None
@@ -137,6 +149,10 @@ def _read_file(path, maximum, *, suffix='.json'):
 def _artifact(name):
     _require(name in ('program.py', 'paper_capture.py'), 'WORKFLOW_ARTIFACT_REFUSED')
     return _read_file(str(Path(__file__).absolute().with_name(name)), MAX_ARTIFACT_BYTES, suffix='.py')
+
+
+read_file = _read_file      # the public names other modules in the closure use (coordinator.compose)
+artifact = _artifact
 
 
 def _json(raw):

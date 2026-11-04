@@ -32,7 +32,7 @@ _REAL_HOMES = (Path.home() / ".tradegen" / "odds", Path.home() / ".tradegen" / "
 _REPO_FILES = ("core/odds/venues.yaml", "docs/asset_expansion/cache/upbit_KRW-BTC.csv",
                "docs/asset_expansion/cards/S_C3_crypto_trend_krwbtc.json", "docs/asset_expansion/results.csv")
 _BARS = TESTS.parent / "core" / "oddsdata" / "bars.py"   # the seams are patched once this file exists (Task 15)
-SEAMS = ("_kis_daily", "_upbit_daily", "_binance_daily", "_yf_download")
+SEAMS = ("_kis_daily", "_upbit_daily", "_okx_daily", "_yf_download")
 REAL_SEAMS: dict[str, Callable] = {}    # the real seam functions, filled from vars(bars) the first time _wrap patches
 
 

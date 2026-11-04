@@ -194,9 +194,180 @@ def test_crypto_client_refusals_and_router():
         assert not any("binance" in c for c in calls[:1])
     finally:
         cc._get = saved
+
+    # OKX, the live ...USDT provider: newest-first pages walked back with an exclusive `after`, bar 1Dutc, the
+    # envelope code checked even on HTTP 200, funding from realizedRate, the premium from three calls, the route.
+    from datetime import datetime, timezone
+    from data.crypto import okx_public as okx
+    day, t0 = 86_400_000, int(datetime(2026, 9, 25, tzinfo=timezone.utc).timestamp() * 1000)
+    first, seen = t0 - 649 * day, []                                    # 650 daily bars exist
+
+    def fake_okx(url, params=None, headers=None, *, label):
+        assert url.startswith("https://www.okx.com/api/v5/"), url
+        seen.append((url.rsplit("/api/v5", 1)[1], dict(params or {})))
+        if url.endswith("/market/history-candles"):
+            top = params.get("after", t0 + day) - day
+            return {"code": "0", "msg": "", "data": [[str(t), "1", "2", "0.5", "50", "9", "450", "450", "1"]
+                                                      for t in range(top, first - 1, -day)][:params["limit"]]}
+        if url.endswith("/public/funding-rate-history"):
+            now = int(datetime.now(timezone.utc).timestamp() * 1000)
+            return {"code": "0", "data": [{"fundingTime": str(now - h * 3_600_000), "realizedRate": "0.0001",
+                                           "fundingRate": "9"} for h in (0, 8, 16, 24, 32, 40, 240)]}
+        if url.endswith("/public/mark-price"):
+            return {"code": "0", "data": [{"markPx": "101"}]}
+        if url.endswith("/market/index-tickers"):
+            return {"code": "0", "data": [{"idxPx": "100"}]}
+        if url.endswith("/public/funding-rate"):
+            if params["instId"] == "ETH-USDT-SWAP":
+                return {"code": "50011", "msg": "Too Many Requests", "data": []}
+            return {"code": "0", "data": [{"fundingRate": "0.0001", "fundingTime": str(t0)}]}
+        raise AssertionError(url)
+    cc._get = fake_okx
+    try:
+        o = okx.OKXPublic().daily("btcusdt", days=450)
+        assert len(o) == 450 and o.dates == tuple(sorted(o.dates)) and o.dates[-1] == "2026-09-25"
+        assert (o.source, o.symbol, o.close[-1], o.quote_volume[-1]) == ("OKX", "BTCUSDT", 50.0, 450.0)
+        assert [(p["instId"], p["bar"], p["limit"], p.get("after")) for u, p in seen] == [
+            ("BTC-USDT", "1Dutc", 300, None), ("BTC-USDT", "1Dutc", 150, t0 - 299 * day)], seen
+        assert len(okx.OKXPublic().daily("BTC-USDT", days=5000)) == 650          # stops on the empty page
+        f = okx.OKXPublic().funding("BTCUSDT", days=2)
+        assert f.source == "OKX" and len(f) == 6 and abs(sum(f.daily().values()) - 0.0006) < 1e-12   # 240 h ago cut
+        p = okx.OKXPublic().premium_index("BTCUSDT")
+        assert p["mark"] == 101.0 and abs(p["premium_pct"] - 1.0) < 1e-9
+        for bad, needle in ((lambda: okx.OKXPublic().premium_index("ETHUSDT"), "50011"),
+                            (lambda: okx.OKXPublic().daily("ETHBTC", days=5), "BASE-QUOTE")):
+            try:
+                bad()
+                raise AssertionError(needle)
+            except cc.CryptoError as exc:
+                assert needle in str(exc), exc
+                assert "Too Many" not in str(exc), exc                       # the envelope's msg is upstream text
+        assert [r["id"] for r in okx.provider_status()] == ["upbit", "okx", "upbit_account"]
+        from core.quant.history import load_history
+        saved_ttl, config.FICC_CACHE_TTL_SECONDS = config.FICC_CACHE_TTL_SECONDS, 0.0
+        try:
+            h = load_history("BTCUSDT", source="auto")
+        finally:
+            config.FICC_CACHE_TTL_SECONDS = saved_ttl
+        assert h.source == "OKX" and len(h) == 504 and seen[-1][1]["instId"] == "BTC-USDT", (h.source, len(h))
+        # The second host is tried only when the first one cannot answer at all (a transport or HTTP error), never on
+        # an envelope error: the fake above already proved code 50011 raises without a second call.
+        hosts = []
+
+        def one_host_down(url, params=None, headers=None, *, label):
+            hosts.append(url.split("/api/v5", 1)[0])
+            if len(hosts) == 1:
+                raise cc.CryptoError(f"{label}: HTTP 503")
+            return {"code": "0", "data": [{"idxPx": "100"}]}
+        cc._get = one_host_down
+        assert okx._first("/market/index-tickers", {"instId": "BTC-USDT"}, label="OKX index")["idxPx"] == "100"
+        assert hosts == ["https://www.okx.com", "https://openapi.okx.com"], hosts
+
+        def every_host_down(url, params=None, headers=None, *, label):
+            raise cc.CryptoError(f"{label}: HTTP 503")
+        cc._get = every_host_down
+        try:
+            okx.OKXPublic().premium_index("BTCUSDT")
+            raise AssertionError("no host")
+        except cc.CryptoError as exc:
+            assert "no OKX host answered" in str(exc), exc
+        # A malformed funding row is a named provider error, not a raw ValueError on the Crypto page.
+        now_ms = str(int(datetime.now(timezone.utc).timestamp() * 1000))
+        cc._get = lambda url, params=None, headers=None, *, label: {
+            "code": "0", "data": [{"fundingTime": now_ms, "realizedRate": ""}]}
+        try:
+            okx.OKXPublic().funding("BTCUSDT")
+            raise AssertionError("malformed")
+        except cc.CryptoError as exc:
+            assert "malformed row (ValueError)" in str(exc), exc
+        # An envelope error names a short numeric code and never OKX's msg, however long or multi-line it is.
+        long_msg = "Instrument ID does not exist\n<script>x</script> " + "A" * 5000
+        cc._get = lambda url, params=None, headers=None, *, label: {"code": "51001", "msg": long_msg, "data": []}
+        try:
+            okx.OKXPublic().daily("XYZUSDT", days=5)
+            raise AssertionError("envelope")
+        except cc.CryptoError as exc:
+            assert "OKX code 51001 (instrument does not exist)" in str(exc) and len(str(exc)) < 120, exc
+            assert not any(s in str(exc) for s in ("Instrument ID", "<script>", "\n", "AAAA")), exc
+        for code in ("UPSTREAM-CODE", {"nested": "upstream"}, "１２３４５", "1234567", None):
+            cc._get = lambda url, params=None, headers=None, *, label, code=code: {"code": code, "msg": "m", "data": []}
+            try:
+                okx.OKXPublic().premium_index("BTCUSDT")
+                raise AssertionError(repr(code))
+            except cc.CryptoError as exc:
+                assert "OKX code ?" in str(exc) and "UPSTREAM" not in str(exc) and "upstream" not in str(exc), exc
+        # A malformed row from any parser is a named provider error, never a raw exception quoting the row. Each
+        # member of _MALFORMED is pinned by a row that raises it, except OSError (Windows refusing a negative
+        # timestamp), which the tuple assertion below pins on every platform.
+        daily = lambda: okx.OKXPublic().daily("BTC-USDT", days=1)                        # noqa: E731
+        premium = lambda: okx.OKXPublic().premium_index("BTCUSDT")                       # noqa: E731
+        for data, call, kind in (([[str(t0), "1", "2", "0.5", "3"]], daily, "IndexError"),
+                                 ([[str(t0), "1", "2", "0.5", "UPSTREAM-PX", "9", "450", "450", "1"]], daily, "ValueError"),
+                                 ([{"ts": str(t0)}], daily, "KeyError"), ([None], daily, "TypeError"),
+                                 ([{"instId": "BTC-USDT-SWAP"}], premium, "KeyError"),
+                                 ([{"markPx": "UPSTREAM-MARK", "idxPx": "1"}], premium, "ValueError"),
+                                 ([{"fundingTime": "9" * 400, "realizedRate": "0.0001"}],
+                                  lambda: okx.OKXPublic().funding("BTCUSDT"), "OverflowError")):
+            cc._get = lambda url, params=None, headers=None, *, label, data=data: {"code": "0", "data": data}
+            try:
+                call()
+                raise AssertionError(data)
+            except cc.CryptoError as exc:
+                assert f"malformed row ({kind})" in str(exc) and "UPSTREAM" not in str(exc), exc
+        assert okx._MALFORMED == (KeyError, IndexError, TypeError, ValueError, OverflowError, OSError)
+        from core.quant.history import HistoryError
+        saved_ttl, config.FICC_CACHE_TTL_SECONDS = config.FICC_CACHE_TTL_SECONDS, 0.0
+        try:
+            load_history("BTCUSDT", source="crypto", days=5)
+            raise AssertionError("malformed candle through load_history")
+        except HistoryError as exc:
+            assert "malformed row (" in str(exc) and "UPSTREAM" not in str(exc), exc
+        finally:
+            config.FICC_CACHE_TTL_SECONDS = saved_ttl
+        # The Settings probe shows a CryptoError's text (a label and a code) and only the type of anything else.
+        def raw(url, params=None, headers=None, *, label):
+            raise RuntimeError("UPSTREAM-RAW")
+        cc._get = raw
+        assert {v["detail"] for v in okx.probe().values()} == {"RuntimeError"}, okx.probe()
+        cc._get = lambda url, params=None, headers=None, *, label: {"code": "51001", "msg": "upstream", "data": []}
+        p = okx.probe()
+        assert p["okx_spot"] == {"ok": False, "detail": "OKX BTC-USDT: OKX code 51001 (instrument does not exist)"}, p
+        assert p["okx_swap"]["detail"] == "OKX mark: OKX code 51001 (instrument does not exist)", p
+    finally:
+        cc._get = saved
     from core.quant.history import _looks_crypto, _looks_kis_market, _looks_yahoo
     assert _looks_crypto("ETHUSDT") and _looks_kis_market("A65612") and _looks_yahoo("ZN=F") and not _looks_yahoo("SPY")
     assert not _looks_kis_market("SPY") and not _looks_kis_market("005930")
+
+
+def test_crypto_page_reports_too_few_funding_days_for_the_decile_test():
+    """OKX keeps about three months of funding: the decile study then has about six points a decile, its bootstrap
+    p is NaN, and the page must say so instead of printing the two means as a result (or sending them to the AI
+    panel). The synthetic series cut to 93 funding days stands in for the live feed, offline."""
+    import ui.crypto_page as page
+    saved, saved_ready = page._live, config.upbit_ready
+
+    def live_93(days):
+        d = page._synthetic()
+        d["funding_daily"] = dict(sorted(d["funding_daily"].items())[-93:])
+        d["source"] = "LIVE"
+        return d
+    page._live, config.upbit_ready = live_93, lambda: False
+    try:
+        a = page.analyze(days=730, source="live")
+        fc = a["funding"]
+        assert fc is not None and math.isnan(fc.bootstrap_p) and math.isfinite(fc.top_decile_fwd30), fc
+        text = page.narrative(a)
+        assert "too few funding days" in text and "three months" in text, text
+        assert "top-decile" not in text and "nan" not in text, text
+        f = page.payload(a)["funding"]
+        assert f["top_decile_fwd30"] is None and f["bottom_decile_fwd30"] is None and math.isnan(f["bootstrap_p"]), f
+        a = page.analyze(source="synthetic")                 # 900 funding days: the decile test runs and is reported
+        assert math.isfinite(a["funding"].bootstrap_p), a["funding"]
+        assert "after top-decile funding" in page.narrative(a) and "too few funding days" not in page.narrative(a)
+        assert page.payload(a)["funding"]["top_decile_fwd30"] == a["funding"].top_decile_fwd30
+    finally:
+        page._live, config.upbit_ready = saved, saved_ready
 
 
 def test_etf_page_sleeves_use_adjusted_closes_and_survive_their_loss():
@@ -326,6 +497,7 @@ def tests():
         ("kis_markets_unavailable_without_keys", test_kis_markets_offline_is_unavailable_without_keys),
         ("kis_master_parsers", test_master_parsers),
         ("crypto_client_refusals_and_router", test_crypto_client_refusals_and_router),
+        ("crypto_page_funding_decile_limit", test_crypto_page_reports_too_few_funding_days_for_the_decile_test),
         ("history_auto_degrades_without_keys", test_history_auto_still_degrades_without_keys),
         ("etf_page_adjusted_sleeves", test_etf_page_sleeves_use_adjusted_closes_and_survive_their_loss),
         ("gate_noise_vs_edge", test_gate_rejects_noise_and_keeps_a_real_edge),

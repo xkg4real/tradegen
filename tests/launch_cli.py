@@ -12,6 +12,7 @@ from unittest.mock import patch
 from execution_launch import cli
 from execution_launch.profile import MAX_PROFILE_BYTES, LaunchProfile, profile_body
 from tests.launch_profile import NOW, fixture_profile
+from tests.notrun import NotRun
 
 
 def invoke(*argv):
@@ -119,6 +120,8 @@ def test_oversize_missing_directory_and_non_regular_files_are_bounded_refusals()
             assert code == 2 and not report["execution_ready"]
             assert report["issues"][0]["code"] in ("PROFILE_FILE_REFUSED", "PROFILE_FILE_UNAVAILABLE_OR_REFUSED")
             assert str(path) not in output
+        if os.name == "nt":
+            raise NotRun("REFDATA: descriptor fstat and os.mkfifo need POSIX; Windows cases run in launch_private_input T8/T11")
         # An inaccurate/stale size cannot defeat the independent bounded read.
         with patch("execution_launch.cli.os.fstat", return_value=SimpleNamespace(
                 st_mode=stat.S_IFREG | 0o600, st_size=0, st_nlink=1)):

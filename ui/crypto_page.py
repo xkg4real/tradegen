@@ -2,7 +2,7 @@
 the app's GARCH(1,1)-t on Bitcoin, the ETH/BTC test, the weekday table and,
 when an Upbit read-only key is configured, the holdings with their cost basis.
 
-Everything is keyless public data (`data.crypto.crypto_client`) except the
+Everything is keyless public data (Upbit via `data.crypto.crypto_client`, OKX via `data.crypto.okx_public`) except the
 balance read. Nothing here trades, and the page says so.
 """
 from __future__ import annotations
@@ -37,46 +37,47 @@ def _synthetic() -> dict:
     kr = us * fx * (1 + prem / 100)
     fund = rng.normal(0.0002, 0.0004, n)
     majors = {k: 100 * np.exp(np.cumsum(rng.normal(0.0005, 0.04, n))) for k in MAJORS}
-    return {"dates": ds, "upbit": dict(zip(ds, kr)), "binance": dict(zip(ds, us)), "usdkrw": dict(zip(ds, fx)),
+    return {"dates": ds, "upbit": dict(zip(ds, kr)), "okx": dict(zip(ds, us)), "usdkrw": dict(zip(ds, fx)),
             "funding_daily": dict(zip(ds, fund)), "majors": majors, "eth": dict(zip(ds, majors["ETHUSDT"])),
             "volume": rng.random(n) * 100, "premium_index": {"premium_pct": 0.01, "last_funding_rate": 0.0001},
-            "oi": [], "source": "SYNTHETIC"}
+            "source": "SYNTHETIC"}
 
 
 def _live(days: int) -> dict:
     from core.ficc.data import load_series
-    from data.crypto.crypto_client import BinancePublic, UpbitPublic
+    from data.crypto.crypto_client import UpbitPublic
+    from data.crypto.okx_public import OKXPublic
     up = UpbitPublic().daily("KRW-BTC", days=days)
-    bn = BinancePublic()
-    btc = bn.daily("BTCUSDT", days=days)
+    ox = OKXPublic()
+    btc = ox.daily("BTCUSDT", days=days)
     majors = {}
     for sym in MAJORS:
         try:
-            majors[sym] = np.asarray(bn.daily(sym, days=400).close)
+            majors[sym] = np.asarray(ox.daily(sym, days=400).close)
         except Exception:
             continue
-    fund = bn.funding("BTCUSDT", days=min(days, 1500)).daily()
+    fund = ox.funding("BTCUSDT", days=days).daily()   # OKX keeps about three months
     fx = load_series("DEXKOUS", source="auto", days=days + 100)
-    return {"dates": btc.dates, "upbit": dict(zip(up.dates, up.close)), "binance": dict(zip(btc.dates, btc.close)),
+    return {"dates": btc.dates, "upbit": dict(zip(up.dates, up.close)), "okx": dict(zip(btc.dates, btc.close)),
             "usdkrw": dict(zip(fx.dates, fx.values)), "usdkrw_source": fx.source, "funding_daily": fund, "majors": majors,
-            "eth": dict(zip(*(lambda c: (c.dates, c.close))(bn.daily("ETHUSDT", days=days)))),
-            "volume": np.asarray(btc.quote_volume), "premium_index": bn.premium_index("BTCUSDT"),
-            "oi": bn.open_interest_hist("BTCUSDT"), "source": "LIVE"}
+            "eth": dict(zip(*(lambda c: (c.dates, c.close))(ox.daily("ETHUSDT", days=days)))),
+            "volume": np.asarray(btc.quote_volume), "premium_index": ox.premium_index("BTCUSDT"),
+            "source": "LIVE"}
 
 
 def analyze(*, days: int = 730, source: str = "live") -> dict:
     d = _live(days) if source == "live" else _synthetic()
     out: dict = {"source": d["source"], "usdkrw_source": d.get("usdkrw_source", "synthetic")}
-    out["kimchi"] = CA.kimchi_premium(d["upbit"], d["binance"], d["usdkrw"])
+    out["kimchi"] = CA.kimchi_premium(d["upbit"], d["okx"], d["usdkrw"])
     try:
-        out["funding"] = CA.funding_carry(d["funding_daily"], d["binance"])
+        out["funding"] = CA.funding_carry(d["funding_daily"], d["okx"])
     except ValueError as exc:
         out["funding"] = None; out["funding_error"] = str(exc)
-    btc = np.array([d["binance"][k] for k in sorted(d["binance"])])
+    btc = np.array([d["okx"][k] for k in sorted(d["okx"])])
     fa = out["funding"].last_ann_pct if out["funding"] else None
     out["regime"] = CA.regime_score(btc, d["majors"], funding_ann_pct=fa)
-    out["ethbtc"] = CA.eth_btc_test(d["eth"], d["binance"])
-    out["weekday"] = CA.weekday_table(sorted(d["binance"]), btc, np.asarray(d["volume"])[-btc.size:])
+    out["ethbtc"] = CA.eth_btc_test(d["eth"], d["okx"])
+    out["weekday"] = CA.weekday_table(sorted(d["okx"]), btc, np.asarray(d["volume"])[-btc.size:])
     from core.quant.garch import fit_garch
     r = np.diff(np.log(btc))[-730:]
     fit = fit_garch(r, dist="t", profile=False)
@@ -84,8 +85,8 @@ def analyze(*, days: int = 730, source: str = "live") -> dict:
                     "half_life": fit.half_life, "cond_vol_365": fit.cond_vol_last / math.sqrt(252) * math.sqrt(CRYPTO_DAYS),
                     "uncond_vol_365": fit.uncond_vol / math.sqrt(252) * math.sqrt(CRYPTO_DAYS) if math.isfinite(fit.uncond_vol) else float("nan"),
                     "converged": fit.converged, "at_bound": list(fit.at_bound), "n": int(r.size)}
-    out["premium_index"] = d["premium_index"]; out["oi"] = d["oi"]
-    out["btc_dates"] = sorted(d["binance"]); out["btc"] = btc
+    out["premium_index"] = d["premium_index"]
+    out["btc_dates"] = sorted(d["okx"]); out["btc"] = btc
     out["balances"] = None
     if config.upbit_ready() and source == "live":
         try:
@@ -115,9 +116,12 @@ def narrative(a: dict) -> str:
         + (f", and its predictive slope on next-week returns is {kp.pred_slope:+.4f} (t {kp.pred_t:+.1f})." if math.isfinite(kp.pred_t) else "."),
     ]
     if fc:
+        decile = (f"after top-decile funding the next 30 days returned {fc.top_decile_fwd30:+.1%} against "
+                  f"{fc.bottom_decile_fwd30:+.1%} after bottom-decile funding (bootstrap p {fc.bootstrap_p:.2f})"
+                  if math.isfinite(fc.bootstrap_p) else
+                  "there are too few funding days for the decile test (OKX keeps about three months of funding history)")
         parts.append(f"Perpetual funding runs {fc.last_ann_pct:+.1f} % a year on the 7-day mean, the {fc.percentile:.0%} percentile since "
-                     f"{fc.dates[0]} ({fc.flag}); after top-decile funding the next 30 days returned {fc.top_decile_fwd30:+.1%} against "
-                     f"{fc.bottom_decile_fwd30:+.1%} after bottom-decile funding (bootstrap p {fc.bootstrap_p:.2f}).")
+                     f"{fc.dates[0]} ({fc.flag}); {decile}.")
     live = [c for c in rs.components if c.score is not None]
     parts.append(f"The regime score is {rs.score:.0f}/100 ({rs.zone}) from {len(live)} components: " +
                  "; ".join(f"{c.label} {c.score:.0f} ({c.signal})" for c in live) + ". " + rs.note)
@@ -134,10 +138,12 @@ def narrative(a: dict) -> str:
 
 def payload(a: dict) -> dict:
     kp, fc, rs = a["kimchi"], a["funding"], a["regime"]
+    tested = bool(fc) and math.isfinite(fc.bootstrap_p)        # the decile means are a result only when the test ran
     return {"source": a["source"], "kimchi": {"last_pct": kp.last_pct, "z": kp.last_z, "mean_pct": kp.mean_pct, "max_pct": kp.max_pct,
                                               "half_life_days": kp.half_life_days, "adf_p": kp.adf_p, "pred_t": kp.pred_t, "n": kp.n},
-            "funding": ({"last_ann_pct": fc.last_ann_pct, "percentile": fc.percentile, "flag": fc.flag, "top_decile_fwd30": fc.top_decile_fwd30,
-                         "bottom_decile_fwd30": fc.bottom_decile_fwd30, "bootstrap_p": fc.bootstrap_p} if fc else None),
+            "funding": ({"last_ann_pct": fc.last_ann_pct, "percentile": fc.percentile, "flag": fc.flag,
+                         "top_decile_fwd30": fc.top_decile_fwd30 if tested else None,
+                         "bottom_decile_fwd30": fc.bottom_decile_fwd30 if tested else None, "bootstrap_p": fc.bootstrap_p} if fc else None),
             "premium_index": a["premium_index"], "regime": {"score": rs.score, "zone": rs.zone, "components":
                                                             [{"key": c.key, "score": c.score, "signal": c.signal} for c in rs.components]},
             "garch": a["garch"], "ethbtc": a["ethbtc"], "weekday": a["weekday"], "verdicts": a["verdicts"],
@@ -147,7 +153,7 @@ def payload(a: dict) -> dict:
 def build_crypto_page(page: ft.Page, on_open_settings: Optional[Callable] = None) -> ft.Control:
     pal = active()
     source = ft.Dropdown(label="Source", width=260, value="live",
-                         options=[ft.dropdown.Option("live", "Upbit + Binance (keyless)"), ft.dropdown.Option("synthetic", "Synthetic demo")])
+                         options=[ft.dropdown.Option("live", "Upbit + OKX (keyless)"), ft.dropdown.Option("synthetic", "Synthetic demo")])
     days = ft.TextField(label="Days", value="730", width=100, border_radius=RADII["md"])
     busy = ft.ProgressRing(visible=False, width=20, height=20)
     host = ft.Column(spacing=14)
@@ -163,8 +169,10 @@ def build_crypto_page(page: ft.Page, on_open_settings: Optional[Callable] = None
                 busy.visible = False; page.update(); return
             kp, fc, rs, g = a["kimchi"], a["funding"], a["regime"], a["garch"]
             blocks: list[ft.Control] = []
-            blocks.append(notice("Read-only: QUANTGEN never submits crypto orders, never holds a wallet key, and never assumes an "
-                                 "account on an unregistered foreign exchange. Binance is public data only.", "accent",
+            blocks.append(notice("Read-only: this page never submits crypto orders and never holds a wallet key. OKX prices and funding "
+                                 "here are keyless public data; no exchange account is read except the optional Upbit balance. "
+                                 "OKX keeps about three months of funding history (Binance kept years), so the funding percentile "
+                                 "and the decile study cover that window only.", "accent",
                                  icon=ft.Icons.LOCK_OUTLINE))
             if a["source"] == "SYNTHETIC":
                 blocks.append(notice("Synthetic data: every series here is simulated.", "error", icon=ft.Icons.SCIENCE_OUTLINED))
@@ -182,7 +190,7 @@ def build_crypto_page(page: ft.Page, on_open_settings: Optional[Callable] = None
                 stat("Regime", f"{rs.score:.0f} · {rs.zone}", token="success" if rs.zone == "RISK_ON" else "error" if rs.zone == "RISK_OFF" else "text"),
                 stat("BTC cond. vol (365d)", f"{g['cond_vol_365']:.0%}"), stat("ν", f"{g['nu']:.1f}", token="error" if g["at_bound"] else "text"),
             ], spacing=10, wrap=True))
-            blocks.append(card(xc.lines_chart(kp.dates, {"kimchi premium %": kp.premium_pct}, title="Kimchi premium (Upbit KRW-BTC vs Binance × USD/KRW)",
+            blocks.append(card(xc.lines_chart(kp.dates, {"kimchi premium %": kp.premium_pct}, title="Kimchi premium (Upbit KRW-BTC vs OKX BTC-USDT × USD/KRW)",
                                               hlines={"0": 0.0}, pct=True)))
             if fc:
                 blocks.append(card(xc.lines_chart(fc.dates, {"funding (ann. %)": fc.carry_ann_pct}, title="Perpetual funding, 7-day mean annualised",
@@ -219,7 +227,7 @@ def build_crypto_page(page: ft.Page, on_open_settings: Optional[Callable] = None
 
     host.controls = [empty_state("Refresh the crypto sheet", "Kimchi premium, perpetual funding as carry, the six-component regime "
                                  "score, GARCH-t on Bitcoin, the ETH/BTC test and the weekday table, all from keyless Upbit and "
-                                 "Binance data; Upbit holdings when a read-only key is set.", icon=ft.Icons.CURRENCY_BITCOIN,
+                                 "OKX data; Upbit holdings when a read-only key is set.", icon=ft.Icons.CURRENCY_BITCOIN,
                                  action=ft.Button("Open Settings", on_click=lambda e: on_open_settings()) if on_open_settings else None)]
     return ft.Column([
         section("Crypto", subtitle="Kimchi premium, funding carry, regime, GARCH-t on Bitcoin — read-only."),

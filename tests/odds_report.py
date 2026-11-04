@@ -25,7 +25,7 @@ STOP_CEIL = W0 / T                        # L_min = 0 under stop-based sizing: 1
 N = 20_000
 _PROB = re.compile(r"1 in |below about|\d\s?%")
 _ZERO = re.compile(r"(?<![\d.,])0(?:\.0+)?%|\b1 in 0\b|\babout 0\b")
-_CATALOGUE_SHA256 = "61653f4c829c46bede0996726c64dd2c8320c65c81ce9d723a9053d26f630e98"
+_CATALOGUE_SHA256 = "482d0fc4372eff866e517ec195c6a49c2a15b98e9a3658b20f36718ad2ed0dd8"   # flag.proxy reworded 2026-11-03
 _REPLAY = {"y0": 2019.0, "y1": 2026.0, "cut": 1.0 - 0.60, "bench_sr": 0.788830441182887,
            "haircut_sr": 0.7296150117404476, "diff": 0.4271945783845257, "ci_lo": 0.03344352887529298,
            "ci_hi": 0.8346050647267628, "fstar": 1.0, "h": 29.0, "growth": 0.02889, "growth_iid": 0.02613}
@@ -686,7 +686,7 @@ def test_flags_for_emits_each_flag_in_the_contract_order():
         "On 2026-12-03 rule KR-OKX-SPOT ends (the gate turns this venue off), so the plan closes its position at the "
         "first price check on or after that date and opens no new one.",
         "On 2026-12-05 rule KR-OKX-SPOT ends (the rule expires), so the plan closes",
-        "Prices for this leg are a stand-in: Binance BTCUSDT times Upbit KRW-USDT",
+        "Prices for this leg are OKX BTC-USDT times Upbit KRW-USDT",
         "From 2021-01-01 to 2021-03-04, before Upbit listed KRW-USDT, Yahoo's KRW=X rate stands in for it.",
         "12 simulated sessions (1.3% of all) opened at a KRX daily limit and stayed there until the close.",
         "The worst stop fill was 4.6% below its stop level.",

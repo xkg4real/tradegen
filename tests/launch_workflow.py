@@ -16,8 +16,10 @@ from unittest.mock import patch
 from execution_launch import workflow as W, program, paper_capture
 from execution_launch.profile import profile_body, profile_contract_digest
 from execution_launch.strategy import protocol_json, register_protocol
+from tests import compliance_fixtures as F
 from tests.launch_profile import fixture_profile
 from tests.launch_strategy import START, fixture_capture
+from tests.notrun import NotRun
 from tools.research import prepare_launch_example as example
 
 D = Decimal
@@ -129,9 +131,10 @@ def test_reader_refuses_private_paths_links_nonregular_files_and_bounds_even_sta
         source = root / 'data.json'; source.write_text('{}')
         linked = root / 'link.json'; linked.symlink_to(source)
         directory = root / 'dirlink'; directory.symlink_to(root, target_is_directory=True)
-        fifo = root / 'pipe.json'; os.mkfifo(fifo)
-        denied = [linked, directory / 'data.json', fifo, root / '.env.json',
+        denied = [linked, directory / 'data.json', root / '.env.json',
                   root / '.tradegen' / 'profile.json', root / '..' / 'escape.json']
+        if os.name != 'nt':
+            fifo = root / 'pipe.json'; os.mkfifo(fifo); denied.append(fifo)
         for path in denied:
             try:
                 W._read_file(str(path), 16)
@@ -146,6 +149,9 @@ def test_reader_refuses_private_paths_links_nonregular_files_and_bounds_even_sta
             pass
         else:
             raise AssertionError('hard link accepted')
+        if os.name == 'nt':
+            raise NotRun('REFDATA: the descriptor fstat seam and os.mkfifo need POSIX; '
+                         'Windows cases run in launch_private_input T7/T8/T11')
         oversized = root / 'oversize.json'; oversized.write_text(' ' * 17)
         with patch.object(W.os, 'fstat', return_value=SimpleNamespace(st_mode=stat.S_IFREG | 0o600, st_size=0, st_nlink=1)):
             try:
@@ -246,6 +252,38 @@ def test_generated_example_records_evaluates_and_creates_only_unsigned_review_re
         assert code == 2 and rejected['reasons'] == ['WORKFLOW_PROGRAM_BINDING_MISMATCH']
 
 
+def test_example_writer_allows_windows_scratch_only_while_temp_lies_under_localappdata():
+    """On nt the profile is refused except the interpreter's temporary directory, and only while that directory and
+    the destination, both resolved, lie under %LOCALAPPDATA%: a TEMP that is a junction leaving LocalAppData, or a
+    destination that leaves TEMP through one, keeps the home refusal before any write. Everything is built inside
+    this test's own temporary directory, so a regression could write nowhere else. POSIX never has the allowance:
+    the linked-destination test below refuses Path.home() outright there."""
+    scratch = Path(tempfile.gettempdir()).resolve()
+    if os.name != 'nt' or len(scratch.parts) < 2 or scratch.parts[1].casefold() != 'users':
+        raise NotRun('REFDATA: the LocalAppData scratch allowance needs Windows with TEMP inside the profile')
+    contents = {name: '{}' for name in ('profile.json', 'protocol.json', 'program.json', 'bars.json')}
+    with tempfile.TemporaryDirectory() as root:
+        local, elsewhere = Path(root) / 'local', Path(root) / 'elsewhere'
+        for directory in (local, local / 'temp', elsewhere):
+            directory.mkdir()
+        F.directory_link(local / 'temp-link', elsewhere)        # TEMP itself leaves LocalAppData through a junction
+        F.directory_link(local / 'temp' / 'link', elsewhere)    # TEMP is real; the destination leaves it through one
+        with patch.dict(os.environ, {'LOCALAPPDATA': str(local)}):
+            for temp, destination in ((local / 'temp-link', local / 'temp-link' / 'child'),
+                                      (local / 'temp', local / 'temp' / 'link' / 'child')):
+                with patch.object(example.tempfile, 'gettempdir', return_value=str(temp)):
+                    try:
+                        example.write_new_directory(str(destination), contents)
+                    except W.WorkflowError as exc:
+                        assert str(exc) == 'EXAMPLE_HOME_DIRECTORY_REFUSED', (temp.name, exc)
+                    else:
+                        raise AssertionError('a junction out of LocalAppData was accepted under the profile')
+            assert not any(elsewhere.iterdir()) and not any((local / 'temp').glob('child'))
+            with patch.object(example.tempfile, 'gettempdir', return_value=str(local / 'temp')):
+                example.write_new_directory(str(local / 'temp' / 'fresh'), contents)   # the real TEMP is allowed
+        assert {p.name for p in (local / 'temp' / 'fresh').iterdir()} == set(contents)
+
+
 def test_example_writer_never_overwrites_or_follows_private_or_linked_destinations():
     contents = {name: '{}' for name in ('profile.json', 'protocol.json', 'program.json', 'bars.json')}
     with tempfile.TemporaryDirectory() as root:
@@ -253,8 +291,11 @@ def test_example_writer_never_overwrites_or_follows_private_or_linked_destinatio
         existing = root / 'existing'; existing.mkdir()
         marker = existing / 'keep.txt'; marker.write_text('keep')
         linked = root / 'linked'; linked.symlink_to(root, target_is_directory=True)
-        for path in (existing, linked / 'child', root / '.tradegen' / 'child', root / '..' / 'child',
-                     Path('/home/owner/child'), Path('/root/child'), Path('/Users/owner/child')):
+        real = root / 'real'; real.mkdir()
+        F.directory_link(root / 'junction', real)       # a junction on Windows, a symlink elsewhere
+        for path in (existing, linked / 'child', root / 'junction' / 'child', root / '.tradegen' / 'child',
+                     root / '..' / 'child', Path('/home/owner/child'), Path('/root/child'),
+                     Path('/Users/owner/child'), Path.home() / 'child'):
             try:
                 example.write_new_directory(str(path), contents)
             except W.WorkflowError:
@@ -262,7 +303,18 @@ def test_example_writer_never_overwrites_or_follows_private_or_linked_destinatio
             else:
                 raise AssertionError('unsafe destination accepted')
         assert marker.read_text() == 'keep' and set(p.name for p in existing.iterdir()) == {'keep.txt'}
-        assert not (root / 'child').exists()
+        assert not (root / 'child').exists() and not any(real.iterdir())
+        fresh = root / 'fresh'
+        example.write_new_directory(str(fresh), contents)
+        assert {p.name: p.read_text(encoding='utf-8') for p in fresh.iterdir()} == contents
+        assert all(os.lstat(p).st_nlink == 1 and not p.is_symlink() for p in fresh.iterdir())
+        try:
+            example.write_new_directory(str(fresh), contents)
+        except W.WorkflowError:
+            pass
+        else:
+            raise AssertionError('existing destination written twice')
+        assert {p.name: p.read_text(encoding='utf-8') for p in fresh.iterdir()} == contents
         try:
             example.example_files(now=START.replace(tzinfo=None))
         except W.WorkflowError as exc:

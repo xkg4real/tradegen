@@ -180,7 +180,8 @@ folder)
   - `LIMIT_DOWN_CARRY_COST_MULTIPLIER = 2.0` is declared locally, and a test asserts it equals the orders constant.
 - **Bars.** `History` holds closes only, so unsigned `core/oddsdata/bars.py` loads daily (open, close) bars:
   - KRX from KIS daily rows;
-  - Upbit KRW-* and Binance *USDT from `data.crypto` Candles;
+  - Upbit KRW-* from `data.crypto` Candles; OKX BTC-USDT daily candles (bar 1Dutc) from `data/crypto/okx_public.py`
+    (amended 2026-11-03; was Binance *USDT);
   - US from yfinance.
 
   Each series retains its own market date: KRX for KIS, New York for US bars, Yahoo's own date for KRW=X, and UTC
@@ -749,8 +750,8 @@ negative. Two traps were ruled out in review:
 **`TwoPointBootstrap`** (the primary model; KRX, US and crypto legs):
 - **Price series.** Each leg is priced in KRW, so historical KRW/USD moves are part of the series:
   - US legs: price × KRW=X;
-  - OKX legs: Binance BTCUSDT × Upbit KRW-USDT, falling back to KRW=X on dates before Upbit listed KRW-USDT. The dates
-    are recorded and flagged `PROXY_DATA`.
+  - OKX legs: OKX BTC-USDT (bar 1Dutc) × Upbit KRW-USDT (amended 2026-11-03; was Binance BTCUSDT), falling back to
+    KRW=X on dates before Upbit listed KRW-USDT. The dates are recorded and flagged `PROXY_DATA`.
 - **Moves.** From each historical session the model takes two magnitudes: the overnight move m_o = |ln(open/previous
   close)| and the intraday move m_i = |ln(close/open)|.
 - **Blocks.** Rows are drawn in stationary-bootstrap blocks with mean length b = max(pw_block(r), pw_block(r²)), using

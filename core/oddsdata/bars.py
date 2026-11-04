@@ -53,10 +53,10 @@ def _upbit_daily(market: str, days: int):
     return crypto_client.UpbitPublic().daily(market, days=days)
 
 
-def _binance_daily(symbol: str, days: int):
-    """The last `days` Binance spot daily klines of `symbol` (a crypto_client.Candles)."""
-    from data.crypto import crypto_client
-    return crypto_client.BinancePublic().daily(symbol, days=days)
+def _okx_daily(inst_id: str, days: int):
+    """The last `days` OKX spot UTC daily candles of `inst_id` (a crypto_client.Candles)."""
+    from data.crypto import okx_public
+    return okx_public.OKXPublic().daily(inst_id, days=days)
 
 
 def _yf_download(tickers: list[str], start: str, end: str):
@@ -129,7 +129,7 @@ def _final_end(start: date, end: date, now: datetime, final) -> date:
 # --------------------------------------------------------------------------- #
 @dataclass(frozen=True, kw_only=True)
 class Part:
-    """One downloaded series in its own quote (KRW for KIS and Upbit, USD for Yahoo, USDT for Binance)."""
+    """One downloaded series in its own quote (KRW for KIS and Upbit, USD for Yahoo, USDT for OKX)."""
     symbol: str
     source: str
     dates: tuple[str, ...]
@@ -162,7 +162,7 @@ def _ymd(d: date) -> str:
 
 
 def _days_back(start: date, now: datetime) -> int:
-    """Upbit and Binance count daily bars back from now: enough to reach `start`, plus one spare."""
+    """Upbit and OKX count daily bars back from now: enough to reach `start`, plus one spare."""
     return max(1, (now.astimezone(_UTC).date() - start).days + 2)
 
 
@@ -205,13 +205,13 @@ def upbit_part(market: str, start: date, end: date, now: datetime) -> Part:
     return _make_part(market, "UPBIT", rows, start, end, "")
 
 
-def binance_part(symbol: str, start: date, end: date, now: datetime) -> Part:
+def okx_part(symbol: str, start: date, end: date, now: datetime) -> Part:
     end = _final_end(start, end, now, final_crypto)
     rows = []
     if end > start:
-        candles = _binance_daily(symbol, _days_back(start, now))
+        candles = _okx_daily(symbol, _days_back(start, now))
         rows = list(zip(candles.dates, candles.open, candles.close))
-    return _make_part(symbol, "BINANCE", rows, start, end, "")
+    return _make_part(symbol, "OKX", rows, start, end, "")
 
 
 def yahoo_part(ticker: str, start: date, end: date, now: datetime) -> Part:
@@ -360,9 +360,10 @@ def _series(symbol: str, source: str, adjustment: str, rows: list, parts: list, 
 
 
 def _okx_btc(get) -> P.Series:
-    """BTCUSDT x KRW-USDT on the same UTC date; before the first KRW-USDT candle, KRW=X (FX(d - 1) for the open,
-    FX(d) for the close), recorded as proxy_dates. A date after the first KRW-USDT candle without one is dropped."""
-    btc, usdt = get(binance_part, "BINANCE", "BTCUSDT"), get(upbit_part, "UPBIT", "KRW-USDT")
+    """OKX BTC-USDT x Upbit KRW-USDT on the same UTC date; before the first KRW-USDT candle, KRW=X (FX(d - 1) for the
+    open, FX(d) for the close), recorded as proxy_dates. A date after the first KRW-USDT candle without one is
+    dropped."""
+    btc, usdt = get(okx_part, "OKX", "BTC-USDT"), get(upbit_part, "UPBIT", "KRW-USDT")
     first = usdt.dates[0] if usdt.dates else None
     fx = get(yahoo_part, "YAHOO", FX_TICKER) if any(first is None or d < first for d in btc.dates) else None
     if fx is not None and not fx.dates:
@@ -377,7 +378,7 @@ def _okx_btc(get) -> P.Series:
             proxied += [d] if row else []
         rows += [row] if row else []
     parts = [btc, usdt] + ([fx] if fx is not None else [])
-    return _series("BTC", "BINANCE:BTCUSDT*UPBIT:KRW-USDT", "", rows, parts,
+    return _series("BTC", "OKX:BTC-USDT*UPBIT:KRW-USDT", "", rows, parts,
                    (proxied[0], proxied[-1]) if proxied else None)
 
 
@@ -403,6 +404,6 @@ def load_leg(plan: P.Plan, inst, now: datetime, *, refetch: bool = False) -> P.S
         us, fx = get(yahoo_part, "YAHOO", leg.symbol), get(yahoo_part, "YAHOO", FX_TICKER)
         rows = [_joined(d, o, c, _fx_at(fx, _day_before(d)), _fx_at(fx, d)) for d, o, c in _rows(us)]
         return _series(leg.symbol, f"YAHOO:{leg.symbol}*YAHOO:{FX_TICKER}", "total", [r for r in rows if r], [us, fx])
-    if feed == "binance_x_upbit_usdt" and leg.symbol == "BTC":
+    if feed == "okx_x_upbit_usdt" and leg.symbol == "BTC":
         return _okx_btc(get)
     raise ValueError(f"bars: no feed serves {leg.venue} {inst.section} {leg.symbol!r}")

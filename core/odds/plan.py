@@ -41,7 +41,7 @@ STALE_DAYS = {"CRYPTO": 3, "KR": 14, "US": 14}     # Q39: the last bar at most t
 LIMIT_KEYS = ("total_loss_floor_krw", "daily_loss_krw")
 OKX_CAP_KEY = "okx_equity_share"
 FEEDS = {("kis", "krx"): "kis_daily", ("kis", "us"): "yfinance", ("upbit", "crypto"): "upbit_daily",
-         ("okx", "crypto"): "binance_x_upbit_usdt"}    # okx: symbol BTC only
+         ("okx", "crypto"): "okx_x_upbit_usdt"}    # okx: symbol BTC only
 MARKET = {("kis", "krx"): "KR", ("kis", "us"): "US", ("upbit", "crypto"): "CRYPTO", ("okx", "crypto"): "CRYPTO"}
 
 _ISO = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")

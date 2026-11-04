@@ -36,8 +36,10 @@ Use the repository's configured Python environment. All paths are explicit and
 all times include a UTC offset. Files must be bounded regular JSON files; linked
 paths, hard links, credential/state directories, duplicate keys and nonfinite
 numbers are refused. Configuration files are limited to 64 KiB and capture files
-to 16 MiB. The current file reader requires POSIX no-follow/descriptor support;
-unsupported platforms refuse rather than weaken the boundary.
+to 16 MiB. The file reader is descriptor-relative and no-follow on POSIX; on Windows
+it is `execution_launch/private_input.py`, which also refuses junctions and other
+reparse points, cloud placeholders, 8.3 aliases and SUBST or network drives. Other
+platforms refuse rather than weaken the boundary.
 
 1. Prepare a private profile using the existing template:
 
@@ -51,6 +53,10 @@ unsupported platforms refuse rather than weaken the boundary.
    Actual initial capital, instrument terms, strategy identity and stable profile
    binding must agree with the study protocol. Changing those inputs later changes
    the binding and requires appropriate new evidence; do not relabel old results.
+   Save the file as UTF-8 without a byte-order mark (BOM); the profile reader
+   decodes strict UTF-8. In Windows PowerShell 5.1 do not write it with `>` or
+   `Out-File`, which add a BOM; pipe to `Set-Content -Encoding ascii <file>.json`
+   instead.
 
 2. Create an explicit program specification. For example, the non-trading cash
    baseline uses the following complete schema:
@@ -110,8 +116,8 @@ unsupported platforms refuse rather than weaken the boundary.
    The shell performs that explicitly requested redirection; the Python command
    itself never opens an output file. Choose the destination privately and avoid
    overwriting an existing capture. Batch input cannot be upgraded to prospective
-   capture by a command flag or a JSON source label. The separate injected-clock
-   streaming recorder remains an owner-operated library integration.
+   capture by a command flag or a JSON source label. Prospective capture uses
+   `execution_launch.study` (see Prospective study below).
 
 5. Recompute paper results from a complete archive:
 
@@ -141,6 +147,41 @@ unsupported platforms refuse rather than weaken the boundary.
    `source_authenticated` remains false. Reviewer identity, key and signature
    remain absent. The artifact is neither a `ReviewReceipt` nor an implementation
    verifier and cannot approve a runner. Do not edit its status to simulate review.
+
+## Prospective study
+
+`execution_launch.study` runs the prospective single-market study: a frozen
+candidate family, a scheduled public-orderbook capture and the frozen selection
+rule from the [market selection protocol](market-selection-protocol.md). It has
+three commands:
+
+```sh
+python -m execution_launch.study freeze  --profile PROFILE.json --draft DRAFT.json --out NEW_EMPTY_DIR
+python -m execution_launch.study capture --plan PLAN.json --out NEW_EMPTY_DIR
+python -m execution_launch.study select  --plan PLAN.json --profile PROFILE.json --captures DIR --now AWARE_ISO_TIME
+```
+
+`freeze` writes `plan.json` and `commitment.json` into a new empty directory.
+`plan.json` is private because it holds the principal; `commitment.json` carries
+only digests, the window, the programs and the registry rows, so the owner can
+publish it before `capture_start`. `capture` is the only command that reads a
+wall clock or opens the public E1 quote source; it feeds the same prefetched book
+to every candidate at every slot of the frozen grid and writes one
+`<study_id>.capture.json` per candidate when the window completes. The planned
+window is 300 s bars over 2,016 observations, about seven days. The code floor is
+far lower: 60 observations (`STRATEGY_CAPTURE_WINDOW_TOO_SHORT` below
+`bar_seconds` x `minimum_observations`), so a window can pass the software check
+and still be too short for the study. The first refusal, Ctrl+C
+(`STUDY_CAPTURE_STOPPED`) or missed slot ends the trial for every candidate;
+nothing is backfilled, re-slotted or relabelled, and the partial archives are
+written as `.incomplete.json`. `select` recomputes every capture with the exact
+evaluator and ranks the qualified rows in the protocol's frozen order; the
+criteria are those in [validation](forward-strategy-validation.md). It wires no
+trusted review, so its result is `NO_QUALIFIED_MARKET`. For each row whose only
+refusal is `STRATEGY_TRUSTED_REVIEW_REQUIRED`, it prints an unsigned review
+request in the `review_requests` list. Nothing trades until the owner reviews
+such a request and signs `review-approve` on it; no study result is ever
+`execution_ready`.
 
 ## Output and limits
 

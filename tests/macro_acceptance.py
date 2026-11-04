@@ -17,6 +17,7 @@ import hashlib
 import importlib
 import os
 import socket
+import threading
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -49,6 +50,28 @@ def _refuse_connect(self, *_a, **_k):
     raise HermeticViolation("socket connect refused inside the macro suite (T-HERM-01)")
 
 
+_REAL_CONNECT = socket.socket.connect
+_REAL_SOCKETPAIR = socket.socketpair
+_PAIRING = threading.local()                             # depth of socket.socketpair calls on this thread
+
+
+def _guarded_socketpair(*args, **kwargs):
+    """socket.socketpair under the guard. On Windows the stdlib builds the pair from a loopback listener and one
+    connect to it (asyncio's self-pipe): that connect is let through while this call runs on this thread."""
+    _PAIRING.depth = getattr(_PAIRING, "depth", 0) + 1
+    try:
+        return _REAL_SOCKETPAIR(*args, **kwargs)
+    finally:
+        _PAIRING.depth -= 1
+
+
+def _connect_unless_pairing(self, address=None, *args, **kwargs):
+    if (getattr(_PAIRING, "depth", 0) and isinstance(address, tuple) and address
+            and address[0] in ("127.0.0.1", "::1")):
+        return _REAL_CONNECT(self, address, *args, **kwargs)
+    _refuse_connect(self)
+
+
 def _touchpoints() -> list[tuple[object, str, object]]:
     import config
     from core.ficc import data as ficc_data
@@ -66,7 +89,8 @@ def _touchpoints() -> list[tuple[object, str, object]]:
         (kis_client, "requests", _Refuse()), (kis_client, "_once", _Refuse()), (kis_client.KISClient, "_get", _boom),
         (opendart_client, "requests", _Refuse()), (krx_market_client, "requests", _Refuse()),
         (net.session, "request", _boom),                 # the shared session every other client binds
-        (socket.socket, "connect", _refuse_connect), (socket.socket, "connect_ex", _refuse_connect),
+        (socket.socket, "connect", _connect_unless_pairing), (socket.socket, "connect_ex", _refuse_connect),
+        (socket, "socketpair", _guarded_socketpair),
         (config, "FICC_CACHE_TTL_SECONDS", 0.0),         # no disk cache answers or is written
     ]
 

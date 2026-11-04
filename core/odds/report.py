@@ -320,8 +320,8 @@ CATALOGUE: Mapping[str, str] = MappingProxyType({
         "you hold there is capped at {cap} of your equity, and the gate turns it off on {off}."
     ),
     "flag.proxy": (
-        "Prices for this leg are a stand-in: Binance BTCUSDT times Upbit KRW-USDT, because OKX's own prices are not "
-        "loaded."
+        "Prices for this leg are OKX BTC-USDT times Upbit KRW-USDT on the same UTC day: OKX has no won market, "
+        "so Upbit's won price of USDT converts it."
     ),
     "flag.proxyfx": "From {d0} to {d1}, before Upbit listed KRW-USDT, Yahoo's KRW=X rate stands in for it.",
     "flag.openclose": "Price checks at the open and the close only: a stop can fill well below its level after a gap.",

@@ -75,13 +75,13 @@ def recorder(program, protocol, registry):
     return capture, clock
 
 
-def book(slot=START, *, symbol="KRW-BTC", received_delta=-1, asof_delta=-2):
+def book(slot=START, *, symbol="KRW-BTC", received_delta=-1, asof_delta=-2, bid=100, ask=102):
     asof = slot+timedelta(seconds=asof_delta)
     delta = asof-datetime(1970,1,1,tzinfo=timezone.utc)
     stamp = (delta.days*86400+delta.seconds)*1000+delta.microseconds//1000
     raw = json.dumps([{"market":symbol,"level":0,"timestamp":stamp,
         "total_ask_size":3,"total_bid_size":4,"orderbook_units":[
-            {"ask_price":102,"bid_price":100,"ask_size":3,"bid_size":4}]}]).encode()
+            {"ask_price":ask,"bid_price":bid,"ask_size":3,"bid_size":4}]}]).encode()
     receipt = SourceReceipt(path="/v1/orderbook", params=(("markets",symbol),("level","0"),("count","30")),
         account_scope="public-upbit-orderbook", received_at=slot+timedelta(seconds=received_delta),
         server_time=slot+timedelta(seconds=received_delta), raw_body=raw, sha256=hashlib.sha256(raw).hexdigest())

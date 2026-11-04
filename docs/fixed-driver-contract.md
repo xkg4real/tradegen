@@ -35,7 +35,12 @@ decision times, and a durable write-once anchor per deployment slot. It must rej
 backfills, imported synthetic/replay data, and rewritten anchors after restart.
 A label, checksum, local registry, or freshly constructed receipt does not prove
 those facts. This module supplies **no production history verifier or durable
-history service**; those remain explicit deployment dependencies.
+history service**; those remain explicit deployment dependencies. A separate
+module ships an adapter for them: `execution_launch/live_history.py`
+(`LiveHistory.provider` / `LiveHistory.verifier` over a hash-chained journal of
+original receipts and per-slot anchors behind an independent `BaselineHead`). Its
+clock, quote and account inputs remain trusted deployment dependencies; for its
+other limits, see the [Windows integration plan](windows-first-trade-integration.md).
 
 Freshness checks require the already available quote to precede the sampling slot,
 and both quote and sample to remain within 10 seconds of the actual execution clock.

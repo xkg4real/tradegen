@@ -14,7 +14,11 @@ not make those complete launch paths. No new strategy passed a real prospective 
    values in a private file. The published
    [template](launch-profile.example.json) intentionally contains nulls. The existing principal,
    peak protection, prior-day realized-profit and first-day rules remain unchanged; equality
-   with a protection floor is not itself a breach. A profit target does not increase risk limits.
+   with a protection floor is not itself a breach. Below `drawdown_activation_equity` the protection
+   floor equals the peak, so the first fee or loss blocks new entries. A profit target does not
+   increase risk limits. Save the private profile as UTF-8 without a byte-order mark: the profile
+   reader decodes strict UTF-8. In Windows PowerShell 5.1 do not write it with `>` or `Out-File`,
+   which add a byte-order mark; pipe to `Set-Content -Encoding ascii <file>.json` instead.
 2. **Configure the selected environment securely.** Use the supported secure environment/account
    setup for credential names, venue host access and approved IP restrictions. Do not paste keys,
    passwords or account numbers into chat, Notion or GitHub. The development Cloud has no venue credential bindings or permitted venue hosts;
@@ -82,8 +86,15 @@ not make those complete launch paths. No new strategy passed a real prospective 
    to the process; restart requires reconciliation and fresh preparation. Final order checks
    still apply after activation. The development agent does not perform this owner action.
 
-The [Windows integration plan](windows-first-trade-integration.md) lists the remaining
-source adapters and coordinator implementation. This checklist is not a completed launcher.
+The [Windows integration plan](windows-first-trade-integration.md) describes the implemented
+adapters and what still blocks a first trade. The account interval producer is flat-only: a first
+fill would stop the account chain, so the coordinator refuses `controlled`. A gap over 30 s
+between account captures, or a missed 22:00 or midnight boundary, stops the account chain until
+the reviewed re-anchor. A missed strategy slot ends that deployment window, and a new
+window needs a new `review-approve`. The prospective study that captures one market and ranks its
+candidate programs is described in the [offline workflow](launch-workflow.md); its `select` command always
+reports `NO_QUALIFIED_MARKET`, and nothing trades until the owner signs `review-approve` on one of
+its review requests. This checklist is not a completed launcher.
 
 ## Safe offline status
 
@@ -97,8 +108,12 @@ python -m execution_launch.cli --profile <private-profile.json> --now <aware-ISO
 
 The current Cloud CLI accepts an explicit bounded regular file, refuses linked/private credential
 paths and emits redacted field-level blockers. No owner context is loaded, so a complete file
-alone still reports `SIGNED_CONTEXT_REQUIRED` and `execution_ready=false`. This release's
-no-follow file reader requires POSIX support; use the pure parser/preflight library in another
-reviewed integration rather than weakening the file boundary.
+alone still reports `SIGNED_CONTEXT_REQUIRED` and `execution_ready=false`. On POSIX the file
+reader is descriptor-relative and no-follow. On Windows `execution_launch/private_input.py`
+enforces the same boundary. It accepts only a plain, singly-linked regular file on a local drive
+letter, checks every path component for reparse points and cloud placeholders, refuses 8.3
+aliases and SUBST or network drives, and requires the opened handle to be the file that was
+checked. There is no override: if a file is refused for its location, move it to a plain local
+folder yourself; it is never read another way.
 
 This software is not legal, tax or investment advice and is not a licensed adviser.
