@@ -87,7 +87,11 @@ timestamp; the provider performs no second save/CAS. A new interval with an
 equal endpoint, or changed account evidence with the old interval, refuses.
 The provider does not cache account evidence or hide later source changes.
 Sources must retain the latest exact frame across process restarts; the store
-retains its digest, not the complete source frame.
+retains its digest, not the complete source frame. The shipped `UpbitIntervalSource`
+(`execution_launch/account_interval.py`) keeps its frame in memory only: after a
+restart it refuses until a fresh capture, and that capture passes the collector's
+30 s evidence-freshness check only if it observes within 30 s of the last committed
+interval end. Otherwise recovery is the reviewed re-anchor described below.
 
 If the reviewed risk policy enables recovery by 22:00 Seoul time, select the
 matching `BaselineConventions.recovery_cutoff_seconds=79200` before initializing
@@ -141,10 +145,11 @@ The shipped head is `execution_launch/baseline_head.py`:
 It keeps one record, `{"baseline_sequence":n,"head":"<digest>","schema_version":1}`,
 under `<head_root>/baseline-head/` with its own OS byte lock, fsync and atomic
 replace. The root is provisioned by the operator (an existing, link-free folder on
-a drive letter, outside OneDrive, that neither contains nor lies inside
-`TRADEGEN_HOME` or the checkout; `%LOCALAPPDATA%\TRADEGEN-head` is recommended)
-and is re-checked on every operation; the code never creates it or changes its
-permissions. `compare_and_set(old, new)` returns True only after the store
+a drive letter that neither contains nor lies inside `TRADEGEN_HOME` or the
+checkout; `%LOCALAPPDATA%\TRADEGEN-head`, which is `$env:LOCALAPPDATA\TRADEGEN-head`
+in PowerShell, is recommended) and those checks run on every operation; the code
+never creates it or changes its permissions. Keeping the root outside OneDrive is
+the operator's duty: the code does not detect OneDrive. `compare_and_set(old, new)` returns True only after the store
 durably holds `new` as the committed direct successor of `old` with the next
 sequence and the record is fsynced and replaced; it returns False when the head
 has moved, and raises a fixed `HEAD_*` code otherwise. The record holds no
@@ -160,9 +165,11 @@ Honest limits. A rollback of either root alone, a crash between the two replaces
 a mutated or truncated record, a hard link or junction, a second process and a
 reset-valued successor all refuse. A coherent rollback of both roots (one backup
 restored over both) is not detected by the files themselves: no frame is retained
-durably in this phase, so it is refused only when it is old, by the 30 s rules
-(`advance_baseline` maximum interval, `risk_baseline` freshness) and by the fixed
-driver's 30 s account-anchor rule; a coherent rollback younger than 30 s followed
+durably in this phase, so it is refused only when it is old, by the collector's
+30 s evidence-freshness check on the exported `risk_baseline`
+(`execution_accounts/provider.py`; the reducer's own bound is the configured
+`max_interval_seconds`, not a 30 s rule) and by the fixed driver's 30 s
+account-anchor rule; a coherent rollback younger than 30 s followed
 by a fresh honest interval is indistinguishable from an ordinary tick. Code running
 as the same Windows user can rewrite both roots; that boundary is unchanged.
 

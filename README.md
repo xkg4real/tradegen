@@ -48,7 +48,9 @@ inside Korean law.
   [continuous account bridge](docs/account-baseline-integration.md) reconciles
   exact baselines and persists checkpoints against a separately trusted head.
   Real source/history adapters, independent strategy evidence, secure environment
-  configuration and effective owner approvals still need deployment setup.
+  configuration and effective owner approvals still need deployment setup; the
+  [Windows integration plan](docs/windows-first-trade-integration.md) describes the
+  implemented adapters and what still blocks a first trade.
   The [deployment manifest](docs/deployment-readiness.md) compares the existing
   dependency-inclusive approval hash without issuing an approval.
 - **Strategy research (2026-10-31).** A frozen exploratory study evaluated

@@ -180,7 +180,8 @@ folder)
   - `LIMIT_DOWN_CARRY_COST_MULTIPLIER = 2.0` is declared locally, and a test asserts it equals the orders constant.
 - **Bars.** `History` holds closes only, so unsigned `core/oddsdata/bars.py` loads daily (open, close) bars:
   - KRX from KIS daily rows;
-  - Upbit KRW-* and Binance *USDT from `data.crypto` Candles;
+  - Upbit KRW-* from `data.crypto` Candles; OKX BTC-USDT daily candles (bar 1Dutc) from `data/crypto/okx_public.py`
+    (amended 2026-11-03; was Binance *USDT);
   - US from yfinance.
 
   Each series retains its own market date: KRX for KIS, New York for US bars, Yahoo's own date for KRW=X, and UTC
