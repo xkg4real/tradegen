@@ -5,10 +5,10 @@ from: claude
 task: first-trade-foundation
 cycle: 2026-11-03
 done_ids: cloud-compat-1, cloud-compat-2, cloud-compat-3, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr, spec-rev-3-3, policy-plan-1, policy-preview-1, policy-pr, e1-1, e1-2, e1-3, e1-4, e1-5, e1-6, e1-7, e1-8, e1-9, e1-10, e1-11, e1-12, e1-13, e1-pr, e2-1, e2-2, e3-1, e3-2, e3-3, e2-3, e3-4, e2-e3-pr, pr6-pr7-merge, research-preregister-1, research-evaluate-1, account-readiness-1, research-paper-1, account-provider-1, account-regression-1, account-research-pr, pr8-human-code-review-approval, pr8-merge, launch-network-1, launch-collector-1, launch-profile-1, launch-strategy-1, launch-runner-1, launch-program-2, launch-workflow-2, launch-baseline-2, launch-quotes-2, launch-deployment-2, launch-review-request-2, launch-driver-2, launch-review-auth-2, launch-baseline-integration-2, launch-market-protocol-1, launch-recovery-cutoff-1, kis-live-contract-1, kis-live-backend-1, kis-live-ui-1, launch-static-guard-1, launch-windows-design-1, kis-live-regression-1, launch-regression-1, launch-delivery-1, pr9-owner-review, launch-windows-inputs-1, launch-owner-authority-1, launch-live-evidence, launch-live-history-1, launch-windows-coordinator-1, launch-study-module-1, okx-data-1, final-review-1, pr10-owner-review, venues-upbit-terms, pr11-owner-review
-next_ids: e1-14-owner-setup, launch-prospective-study
-updated_at: 2026-11-05T15:33:00+09:00
+next_ids: rules-review-1122, e1-14-owner-setup, launch-prospective-study
+updated_at: 2026-11-05T21:36:45+09:00
 stale_after_hours: 3
-waiting_on: owner risk decision and a signed code change for STUCK_AT_START (floor equals cash), Upbit book stamp lag measured on the owner PC before freeze, prospective evidence
+waiting_on: owner decisions for the new funding stages (loss floor, keep or shorten the study/select/review gates, held-coin tracking), owner risk decision and a signed code change for STUCK_AT_START (floor equals cash), Upbit book stamp lag measured on the owner PC before freeze, prospective evidence
 work_branch: main
 work_commit: 06d06740cb1d275cd981e5750a212725ac21efbc
 uncommitted_changes: none
@@ -24,6 +24,8 @@ session: Claude Code desktop (TRADEGEN, Windows)
 # 인수인계: Windows 첫 거래 어댑터, 전향 연구 모듈, OKX 시세 전환
 
 ## 0. 사용자에게 전달할 최신 상태
+
+2026-11-05 저녁 추가(목표 변경): 소유자가 TRADEGEN의 기본 목표를 QUANTGEN 자금 마련으로 확정했고, 어길 수 없는 명령으로 정했습니다. 단계별 목표가 있고 금액은 비공개 가이드에만 둡니다. 1단계는 약 7~7.5배, 2026-11-20까지(늦어도 11-25), 2단계는 약 10배, 11-26부터 12-31까지, 3단계는 5~5.5배, 2027-01-01부터 두 달이며, 각 단계는 달성 후 인출이 전제입니다. 개발 우선순위는 이 목표에 맞춥니다. 실제 확률 표시(우위가 없으면 최대 시작÷목표: 약 1/7, 1/10, 1/5, 세 단계 연속 약 0.24~0.29%), 서명으로만 바뀌는 안전장치, 에이전트가 arm·주문·키 입력을 하지 않는 규칙은 그대로입니다. 지금 설계로는 11-25 전 실주문이 불가능하고, 정책상 drawdown 활성화 금액 미만에서는 하한이 최고점과 같아 1·2단계 내내 `STUCK_AT_START`입니다. 소유자 결정 세 가지(손실 하한, 7일 연구·select·review 유지 여부, 보유 코인 추적 (a)/(b))가 먼저이고, 그 뒤 초기 자본과 한도를 다시 서명해야 합니다. 법규 표 재검토(25개 행 11-22, 22개 행 11-23)는 시한이 있어 next_ids 맨 앞(`rules-review-1122`)에 넣었습니다. 기존 법규 검토는 이전 소액 규모 기준이라 새 규모에서도 다시 확인해야 합니다.
 
 2026-11-05 오후 추가(서명 완료): 소유자가 `TRADEGEN_PR9`를 `06d0674`로 맞춘 뒤 서명 두 건을 마쳤습니다(포크 세션이 전달). owner log #6 `code_approved` `5acd2bcc...`(06:21:46Z, 74개 파일)와 #7 venues `approve` `5d966ef1...`(06:23:21Z)이며, 두 해시 모두 깨끗한 아카이브에서 따로 계산한 값과 같습니다. 마지막 Step C는 `OK`, owner log head #7, rules `74894f05`·instruments `50fa819f`·venues `5d966ef1` 효력 중, calendar 미서명(암호화폐만), exit 0입니다. 이 가이드의 서명 단계는 모두 끝났습니다. 이제 Upbit 계획은 비용 계산을 통과하지만, 서명 하한이 현금과 같아 다음 거부는 `STUCK_AT_START`이고(6절 5번), 세션은 아직 준비할 수 없습니다. 이를 풀려면 소유자의 위험 결정과 서명 코드 변경이 필요합니다. 서명 중 겪은 두 함정(여러 줄을 한 번에 붙여넣어 확인 코드 입력에 `cd`가 들어가 "nothing was signed"가 난 것, 이미 전환한 폴더에서 Step D의 재정렬 블록을 다시 실행한 것)은 비공개 가이드에 한 줄씩 넣었습니다.
 
