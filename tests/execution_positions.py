@@ -1,7 +1,7 @@
 """Live positions (E1 Task 8; contract section 12; E17): three venue snapshots -> model.Positions, fail closed.
 
-Pure: no network, no clock, no file. Every snapshot is built in memory with `EF.snap`, its holdings, cash and prices
-always given in full, at the prices the venue parsers derive from the contract 3.2 fixtures (spec 6).
+Pure: no network, no clock, no file. Every snapshot is built in memory with `EF.snap`; holdings, cash and prices
+are explicit. Most marks follow contract 3.2 fixtures; the USDC mark is independent synthetic test input.
 """
 from __future__ import annotations
 
@@ -16,13 +16,14 @@ from tests import execution_fixtures as EF
 
 # Spec 6 prices from the 3.2 fixtures: KIS 005930 at prpr 61000; KIS AAPL at now_pric2 210 times frst_bltn_exrt
 # 1390.50, and USD cash at 1390.50; Upbit BTC at its KRW-BTC ticker 100,000,000; OKX BTC at OKX BTC-USDT 70000 times
-# Upbit KRW-USDT 1400; OKX USDT and USDC at Upbit KRW-USDT 1400. The 3 USDC on OKX are added here (the fixtures hold
-# none) so the test sees USDC counted.
+# Upbit KRW-USDT 1400; OKX USDT at Upbit KRW-USDT 1400. USDC holdings and a distinct synthetic USDC mark are
+# supplied explicitly to test this pure valuation function; the live OKX reader supplies no USDC mark.
 USD_KRW = 1390.5
 USDT_KRW = 1400.0
+USDC_KRW = 1375.0
 KIS_KRW = 20000.0 + 5.0 * USD_KRW + 1.0 * 61000.0 + 1.0 * (210.0 * USD_KRW)       # 379,957.5
 UPBIT_KRW = 20000.0 + 0.0001 * 100000000.0                                          # 30,000
-OKX_KRW = 10.0 * USDT_KRW + 3.0 * USDT_KRW + 0.0001 * (70000.0 * USDT_KRW)         # 28,000
+OKX_KRW = 10.0 * USDT_KRW + 3.0 * USDC_KRW + 0.0001 * (70000.0 * USDT_KRW)
 
 
 def _kis(**changes) -> S.Snapshot:
@@ -44,7 +45,7 @@ def _okx(**changes) -> S.Snapshot:
     fields = {"holdings": {"USDT": S.Holding(units=10.0), "USDC": S.Holding(units=3.0),
                            "BTC": S.Holding(units=0.0001)},
               "cash": {},
-              "prices_krw": {"USDT": USDT_KRW, "USDC": USDT_KRW, "BTC": 70000.0 * USDT_KRW}}
+              "prices_krw": {"USDT": USDT_KRW, "USDC": USDC_KRW, "BTC": 70000.0 * USDT_KRW}}
     return EF.snap("okx", **(fields | changes))
 
 
@@ -106,7 +107,8 @@ def test_held_krw_per_venue_includes_okx_usdt_and_usdc_and_nothing_is_reserved()
         assert isinstance(exposure, model.Exposure), exposure
         assert _close(exposure.held_krw, want), (venue, exposure.held_krw)
         assert dict(exposure.reservations) == {} and dict(exposure.promised_sell_units) == {}, exposure
-    assert _close(live.exposure["okx"].held_krw - 0.0001 * 70000.0 * USDT_KRW, 13.0 * USDT_KRW)
+    assert _close(live.exposure["okx"].held_krw - 0.0001 * 70000.0 * USDT_KRW,
+                  10.0 * USDT_KRW + 3.0 * USDC_KRW)
     assert dict(live.shorts) == {}, live.shorts
 
 
@@ -159,7 +161,7 @@ def test_an_unreadable_or_offset_less_time_gives_none():
 
 
 def test_an_unpriced_holding_or_currency_gives_none():
-    eth = dict(_okx().holdings, ETH=S.Holding(units=0.01))                 # OKX prices BTC, USDT and USDC only
+    eth = dict(_okx().holdings, ETH=S.Holding(units=0.01))                 # This fixture supplies no ETH mark.
     for case in (_three(kis=_kis(prices_krw=_drop(_kis().prices_krw, "AAPL"))),
                  _three(kis=_kis(prices_krw=_drop(_kis().prices_krw, "USD"))),
                  _three(upbit=_upbit(prices_krw={"USDT": USDT_KRW})), _three(okx=_okx(holdings=eth)),

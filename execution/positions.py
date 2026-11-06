@@ -5,8 +5,9 @@ Pure: no clock (the caller passes `now`), no file, no network. Fail closed: one 
 unpriced venue (a price of 0 or below is no price), a holding below 0 units, a venue worth less than nothing, or a
 total that is not a finite number gives None for the whole set, never partial positions. Every price is the
 snapshot's own `prices_krw`, set by its venue parser (spec 6): KIS domestic at `prpr`, KIS overseas at `now_pric2`
-times the inquire-present-balance rate, Upbit at its ticker, OKX BTC at OKX BTC-USDT times Upbit KRW-USDT, OKX USDT
-and USDC at Upbit KRW-USDT.
+times the inquire-present-balance rate, Upbit at its ticker, OKX BTC at OKX BTC-USDT times Upbit KRW-USDT, and OKX
+USDT at Upbit KRW-USDT. The current OKX reader has no independent USDC mark: retained USDC holdings refuse live
+valuation rather than inheriting USDT's price.
 """
 from __future__ import annotations
 

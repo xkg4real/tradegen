@@ -253,11 +253,16 @@ def test_kis_reader_requires_fresh_sealed_signed_context_before_any_inquiry():
 
 
 def test_okx_reader_requires_explicit_quote_and_keeps_e1_readonly_self_check():
-    with F.temp_home() as home, EF.fake_keys(), EF.serve(EF.okx_routes()) as calls:
+    routes = EF.okx_routes()
+    details = routes[EF.OKX_ROUTES["balance"]]["data"][0]["details"]
+    details.append(dict(details[0], ccy="USDC", cashBal="3", frozenBal="0"))
+    with F.temp_home() as home, EF.fake_keys(), EF.serve(routes) as calls:
         reader = E1InquiryReader(venue="okx", state_directory=home)
         assert _call(reader, venue="okx").reasons == ("OKX_QUOTE_REQUIRED",) and not calls
         result = _call(replace(reader, okx_usdt_krw=1400.0), venue="okx")
         assert result.inquiry_connected and all(call["method"] == "GET" for call in calls)
+        assert dict(result.counts)["holdings"] == 3
+        assert result.account_evidence_ready is False and result.execution_ready is False
         assert not list(home.iterdir())
 
 
