@@ -1,0 +1,386 @@
+{
+  "label": "live48-20261106",
+  "source_commit": "eed84bc1b519ffc8a482c8a1848507432f8d5532",
+  "exit_code": 0,
+  "seconds": 896.548,
+  "total": 2515,
+  "counts": {
+    "PASS": 2380,
+    "FAIL": 0,
+    "NOT_RUN": 135
+  },
+  "keyless": true,
+  "isolated_home": true,
+  "real_homes_unchanged": true,
+  "failures": [],
+  "validation_date": "2026-11-06",
+  "base_commit": "21259f8d8ab76ea35c46a61df582fe5d792e916f",
+  "base_total": 2354,
+  "base_counts": {
+    "PASS": 2219,
+    "FAIL": 0,
+    "NOT_RUN": 135
+  },
+  "new_cases": 161,
+  "new_cases_all_pass": true,
+  "new_case_ids": [
+    "compliance/compliance_signer/test_unimported_owner_commands_and_their_dependencies_are_signed",
+    "execution/execution_okx/test_usdc_holdings_are_retained_but_refuse_valuation_without_an_independent_mark",
+    "execution/execution_okx/test_zero_usdc_balances_do_not_create_an_unpriced_exposure",
+    "execution_accounts/accounts_continuous/test_bracketed_boundary_reconstructs_price_instead_of_backdating_later_ticker",
+    "execution_accounts/accounts_continuous/test_candidate_capture_does_not_export_temporary_midnight_baseline",
+    "execution_accounts/accounts_continuous/test_candidate_without_independent_verifier_or_with_boolean_proof_refuses",
+    "execution_accounts/accounts_continuous/test_chronological_peak_drop_recovery_remains_visible_and_cannot_advance_live_head",
+    "execution_accounts/accounts_continuous/test_default_flat_producer_still_refuses_held_inventory",
+    "execution_accounts/accounts_continuous/test_disconnect_is_sticky_and_new_recorder_does_not_adopt_old_epoch",
+    "execution_accounts/accounts_continuous/test_ending_at_2200_captures_actual_recovery_value_from_path",
+    "execution_accounts/accounts_continuous/test_endpoint_mark_contradiction_refuses_even_with_permissive_test_verifier",
+    "execution_accounts/accounts_continuous/test_exact_decimal_context_is_independent_of_ambient_rounding",
+    "execution_accounts/accounts_continuous/test_fill_fee_and_roundtrip_valley_are_not_erased_by_flat_endpoint",
+    "execution_accounts/accounts_continuous/test_first_buy_uses_fee_and_last_known_mark_and_reconciles_positions",
+    "execution_accounts/accounts_continuous/test_half_open_interval_refuses_event_exactly_at_end",
+    "execution_accounts/accounts_continuous/test_held_path_records_hidden_drawdown_and_peak_despite_equal_endpoints",
+    "execution_accounts/accounts_continuous/test_integrated_source_archives_and_redelivers_then_invalidates_failed_prefetch",
+    "execution_accounts/accounts_continuous/test_late_boundary_is_never_relabelled",
+    "execution_accounts/accounts_continuous/test_midnight_path_rolls_day_counters_without_resetting_high_watermark",
+    "execution_accounts/accounts_continuous/test_missing_fill_is_refused_even_when_candidate_hash_is_valid",
+    "execution_accounts/accounts_continuous/test_path_refuses_sequence_gap_future_time_and_long_duration",
+    "execution_accounts/accounts_continuous/test_private_archive_is_idempotent_and_tampered_record_refuses",
+    "execution_accounts/accounts_continuous/test_private_archive_refuses_outside_root_and_file_links",
+    "execution_accounts/accounts_continuous/test_recorder_duplicates_are_idempotent_and_changed_duplicate_breaks_epoch",
+    "execution_accounts/accounts_continuous/test_recorder_gap_is_sticky_and_cannot_be_healed_by_later_rows",
+    "execution_accounts/accounts_continuous/test_recorder_seal_checks_watermark_and_cannot_append_after_seal",
+    "execution_accounts/accounts_continuous/test_source_never_publishes_or_archives_unverified_evidence",
+    "execution_accounts/accounts_continuous/test_verifier_exceptions_are_redacted_and_never_fall_back_to_flat",
+    "execution_accounts/accounts_continuous/test_verifier_receipt_cannot_be_reused_for_another_path_or_capture",
+    "execution_control/control_continuous_guard/test_captured_account_cannot_change_cash_history_during_boundary_reconstruction",
+    "execution_control/control_continuous_guard/test_captured_snapshot_cannot_be_newer_than_its_coverage_verification",
+    "execution_control/control_continuous_guard/test_changed_owner_head_code_or_effective_limit_requires_real_timeline",
+    "execution_control/control_continuous_guard/test_checkpoint_cannot_clear_halt_or_floor_without_digest_change",
+    "execution_control/control_continuous_guard/test_coverage_request_and_account_capture_are_rebound_before_reduction",
+    "execution_control/control_continuous_guard/test_current_controller_floor_is_not_replaced_by_lower_configured_floor",
+    "execution_control/control_continuous_guard/test_d12_floor_ratchet_survives_activation_threshold_inside_interval",
+    "execution_control/control_continuous_guard/test_duplicate_with_changed_proof_claim_refuses_even_when_path_is_unchanged",
+    "execution_control/control_continuous_guard/test_epoch_change_and_cross_interval_sequence_gap_require_reviewed_restart",
+    "execution_control/control_continuous_guard/test_equal_equity_cannot_replace_authenticated_holding_with_half_cash_and_hide_loss",
+    "execution_control/control_continuous_guard/test_exact_duplicate_plan_is_idempotent_but_does_not_refresh_evidence",
+    "execution_control/control_continuous_guard/test_explicit_anchor_refuses_missing_halt_and_daily_stop_history",
+    "execution_control/control_continuous_guard/test_fake_aggregate_extrema_are_rejected_by_raw_event_replay",
+    "execution_control/control_continuous_guard/test_floor_breach_survives_midnight_with_high_watermark_and_floor",
+    "execution_control/control_continuous_guard/test_guard_is_independent_of_ambient_decimal_precision",
+    "execution_control/control_continuous_guard/test_late_capture_cannot_hide_longer_gap_behind_a_fresh_endpoint",
+    "execution_control/control_continuous_guard/test_new_profile_policy_is_not_applied_silently_to_old_guard_epoch",
+    "execution_control/control_continuous_guard/test_old_day_daily_limit_breach_is_recorded_before_midnight_reset",
+    "execution_control/control_continuous_guard/test_owner_claim_must_exist_before_interval_and_cover_source_verification",
+    "execution_control/control_continuous_guard/test_peak_drop_recovery_latches_permanent_halt_despite_clean_endpoint_summary",
+    "execution_control/control_continuous_guard/test_prior_halt_persists_across_next_interval_without_duplicate_halt_record",
+    "execution_control/control_continuous_guard/test_receipt_time_cannot_move_backwards_across_intervals",
+    "execution_control/control_continuous_guard/test_recovery_before_cutoff_can_recover_without_erasing_daily_max_loss",
+    "execution_control/control_continuous_guard/test_recovery_cutoff_uses_exact_boundary_equity_and_stops_failed_recovery",
+    "execution_control/control_continuous_guard/test_reviewed_anchor_profit_arithmetic_uses_fixed_exact_context",
+    "execution_control/control_continuous_guard/test_same_owner_head_does_not_hide_a_scheduled_midnight_limit_change",
+    "execution_control/control_continuous_guard/test_same_timestamp_events_preserve_authenticated_sequence_order",
+    "execution_control/control_guards/test_renewal_effect_closure_rejects_source_io_clock_aliases_and_import_time_effects",
+    "execution_control/control_guards/test_renewal_import_ports_are_exact_and_do_not_allow_source_or_neighbor_access",
+    "execution_control/control_guards/test_renewal_validation_has_only_reviewed_pure_calls_and_import_surfaces",
+    "execution_control/control_session/test_preparation_cannot_cross_seoul_midnight_during_simulation",
+    "execution_control/control_session/test_preparation_checks_time_after_acquiring_the_journal_lock",
+    "execution_control/control_session/test_preparation_rechecks_simulation_duration_expiry_rules_and_clock_rollback",
+    "execution_control/control_session/test_preparation_rechecks_time_after_final_content_and_journal_snapshot_work",
+    "execution_control/control_session/test_preparation_reloads_owner_authority_after_simulation_before_issuing",
+    "execution_control/control_session/test_preparation_requires_explicit_clock_and_current_input_and_account_times",
+    "execution_control/control_session/test_slow_final_authority_load_cannot_restamp_account_freshness",
+    "execution_control/control_session/test_success_records_actual_completion_time_without_extending_expiry",
+    "execution_launch/launch_deployment/test_owner_command_sources_are_scanned_and_links_refuse_before_hashing",
+    "execution_launch/launch_guards/test_continuous_archive_writes_are_exact_and_cannot_migrate_into_pure_modules",
+    "execution_launch/launch_instrument_refresh/test_actual_e1_fake_transport_uses_two_pinned_gets_and_only_chance_authenticates",
+    "execution_launch/launch_instrument_refresh/test_controller_checks_observed_maximum_before_any_account_or_order_work_on_both_sides",
+    "execution_launch/launch_instrument_refresh/test_fixed_terms_helper_rejects_paths_queries_other_markets_before_transport",
+    "execution_launch/launch_instrument_refresh/test_freshness_boundary_future_and_authority_expiry_preserve_refusal",
+    "execution_launch/launch_instrument_refresh/test_initial_issued_terms_enforce_maximum_and_reject_unissued_timestamp",
+    "execution_launch/launch_instrument_refresh/test_maximum_notional_of_refreshed_terms_is_enforced_without_rounding",
+    "execution_launch/launch_instrument_refresh/test_missing_credential_names_refuse_before_fixed_helper_or_fallback",
+    "execution_launch/launch_instrument_refresh/test_mutated_prior_chain_cannot_smuggle_an_unrelated_prepared_rules_digest",
+    "execution_launch/launch_instrument_refresh/test_native_instrument_quote_currency_and_levels_are_not_assumed",
+    "execution_launch/launch_instrument_refresh/test_new_chain_does_not_extend_owner_session_expiry_or_accept_fabricated_preparation",
+    "execution_launch/launch_instrument_refresh/test_pure_decoding_serialized_copy_and_fabricated_renewal_are_not_issued",
+    "execution_launch/launch_instrument_refresh/test_raw_payload_clock_error_and_provider_exception_are_redacted",
+    "execution_launch/launch_instrument_refresh/test_receipt_envelope_hash_request_order_and_query_are_checked",
+    "execution_launch/launch_instrument_refresh/test_relabelled_timestamp_and_mutated_receipt_cannot_renew",
+    "execution_launch/launch_instrument_refresh/test_replay_fork_and_nonmonotonic_server_observation_refuse",
+    "execution_launch/launch_instrument_refresh/test_restart_source_registration_rejects_saved_snapshot_until_new_read",
+    "execution_launch/launch_instrument_refresh/test_runner_accepts_issued_renewal_only_and_keeps_runtime_mutation_guard",
+    "execution_launch/launch_instrument_refresh/test_same_terms_refresh_is_new_observation_and_preserves_contract_and_policy",
+    "execution_launch/launch_instrument_refresh/test_scope_identity_source_and_economic_changes_never_become_a_renewal",
+    "execution_launch/launch_instrument_refresh/test_simultaneous_renewers_cannot_fork_one_contract_head",
+    "execution_launch/launch_instrument_refresh/test_stopped_runner_can_refresh_for_protective_exit_without_restarting_entries",
+    "execution_launch/launch_instrument_refresh/test_terms_parser_rejects_halted_missing_asymmetric_and_changed_maximum",
+    "execution_launch/launch_owner_ops/test_account_setup_bad_digest_stale_anchor_and_root_mismatch_write_nothing",
+    "execution_launch/launch_owner_ops/test_account_setup_binds_reviewed_digest_in_two_roots_and_never_reinitializes",
+    "execution_launch/launch_owner_ops/test_bootstrap_prepares_real_process_session_without_start_or_activation",
+    "execution_launch/launch_owner_ops/test_busy_unit_disarm_is_bounded_pending_and_console_reports_unfinished_close",
+    "execution_launch/launch_owner_ops/test_cli_unknown_or_missing_commands_refuse_without_effects_or_echoes",
+    "execution_launch/launch_owner_ops/test_console_unknown_and_oversized_commands_are_redacted_and_close_runtime",
+    "execution_launch/launch_owner_ops/test_current_shipped_coordinator_still_refuses_controlled_without_coverage_proof",
+    "execution_launch/launch_owner_ops/test_disarm_clock_rollback_or_journal_failure_never_claims_owner_disarm",
+    "execution_launch/launch_owner_ops/test_disarm_records_local_kill_without_claiming_venue_cancel_or_fill",
+    "execution_launch/launch_owner_ops/test_disarm_with_broken_account_still_kills_durably_and_reports_owner_record_missing",
+    "execution_launch/launch_owner_ops/test_failed_term_refresh_blocks_slots_but_keeps_account_monitoring_and_disarm",
+    "execution_launch/launch_owner_ops/test_history_setup_refuses_started_window_without_initializing_head",
+    "execution_launch/launch_owner_ops/test_interrupted_account_setup_never_adopts_the_orphaned_checkpoint",
+    "execution_launch/launch_owner_ops/test_issued_term_refresh_preserves_prepared_identity_and_updates_runtime_snapshots",
+    "execution_launch/launch_owner_ops/test_partial_independent_head_directory_is_not_adopted_as_empty_setup",
+    "execution_launch/launch_owner_ops/test_prepare_carries_verified_review_expiries_through_callbacks_and_final_owner_load",
+    "execution_launch/launch_owner_ops/test_prepare_compares_both_account_and_input_age_to_actual_clock_before_simulation",
+    "execution_launch/launch_owner_ops/test_prepare_never_issues_after_append_or_transaction_exit_expires_account_or_review",
+    "execution_launch/launch_owner_ops/test_prepare_rechecks_current_implementation_review_and_stop_after_simulation",
+    "execution_launch/launch_owner_ops/test_read_window_rejects_duplicate_keys_and_naive_times_without_echoes",
+    "execution_launch/launch_owner_ops/test_runtime_worker_runs_once_and_closes_with_bounded_lifecycle",
+    "execution_launch/launch_owner_ops/test_unsigned_driver_export_precedes_review_and_reuses_exact_history_identity",
+    "execution_launch/launch_owner_ops/test_uppercase_provider_exception_text_is_not_an_authorized_diagnostic",
+    "execution_launch/launch_owner_rehearsal/test_authority_check_crossing_fence_refuses_before_read_and_latches",
+    "execution_launch/launch_owner_rehearsal/test_both_terms_gets_are_individually_guarded_before_credentials",
+    "execution_launch/launch_owner_rehearsal/test_changed_signed_audit_refuses_before_any_account_or_public_request",
+    "execution_launch/launch_owner_rehearsal/test_current_authority_is_loaded_once_per_request_and_slow_collections_still_refuse",
+    "execution_launch/launch_owner_rehearsal/test_fence_expiry_is_checked_before_each_read_and_latches_the_runtime",
+    "execution_launch/launch_owner_rehearsal/test_fixed_standalone_composition_bootstraps_actual_flat_collector_with_no_order_transport",
+    "execution_launch/launch_owner_rehearsal/test_held_inventory_remains_a_flat_evidence_refusal_without_head_advancement",
+    "execution_launch/launch_owner_rehearsal/test_help_and_invalid_cli_never_load_config_or_source",
+    "execution_launch/launch_owner_rehearsal/test_missing_independent_head_or_stale_baseline_is_never_seeded_or_repaired",
+    "execution_launch/launch_owner_rehearsal/test_no_positive_authority_cache_accepts_a_changed_review_on_next_read",
+    "execution_launch/launch_owner_rehearsal/test_source_document_symlink_and_float_money_are_not_accepted",
+    "execution_launch/launch_owner_rehearsal/test_transport_guard_rechecks_fence_after_headers_and_response",
+    "execution_launch/launch_owner_rehearsal/test_transport_guards_nest_restore_and_refuse_before_headers_without_private_text",
+    "execution_launch/launch_owner_rehearsal/test_transport_retry_reauthenticates_current_owner_before_second_key_access",
+    "execution_launch/launch_owner_rehearsal/test_transport_retry_wait_expiring_fence_prevents_second_header_and_send",
+    "execution_launch/launch_owner_rehearsal/test_unreviewed_source_document_change_refuses_before_any_request",
+    "execution_launch/launch_owner_rehearsal/test_unsigned_complete_flags_and_unknown_live_options_are_not_configuration",
+    "execution_launch/launch_review_auth/test_authenticated_body_is_fresh_verified_detached_and_not_a_mutable_document_alias",
+    "execution_launch/launch_review_auth/test_bundle_completion_rejects_rollback_stale_observation_expiry_and_seoul_midnight",
+    "execution_launch/launch_review_auth/test_bundle_never_caches_current_owner_or_leaks_its_mutable_signed_body",
+    "execution_launch/launch_review_auth/test_bundle_rejects_a_valid_signature_with_a_different_source_binding",
+    "execution_launch/launch_review_auth/test_bundle_still_rejects_unissued_result_and_unregistered_driver_or_history",
+    "execution_launch/launch_review_auth/test_bundle_uses_one_fresh_observation_for_audit_source_and_actual_driver",
+    "execution_launch/launch_review_request/test_schema2_family_commitment_is_unsigned_but_covers_every_member_and_candidate_result",
+    "execution_launch/launch_study_review/test_authority_expiry_current_key_code_and_seal_are_authenticated",
+    "execution_launch/launch_study_review/test_bad_signature_refuses_entire_selection_instead_of_dropping_a_row",
+    "execution_launch/launch_study_review/test_cli_invalid_time_and_private_path_fail_before_owner_loading",
+    "execution_launch/launch_study_review/test_cli_uses_real_clock_boundary_and_explicit_review_files_only",
+    "execution_launch/launch_study_review/test_clock_rollback_or_unsigned_document_refuses",
+    "execution_launch/launch_study_review/test_current_profile_must_be_fresh_and_preserve_frozen_contract",
+    "execution_launch/launch_study_review/test_each_review_refreshes_authority_and_mid_selection_change_refuses",
+    "execution_launch/launch_study_review/test_failed_candidate_raw_bytes_are_also_in_every_signed_family_commitment",
+    "execution_launch/launch_study_review/test_legacy_candidate_only_signature_never_upgrades_into_a_family_review",
+    "execution_launch/launch_study_review/test_missing_capture_extra_capture_and_imported_metrics_refuse",
+    "execution_launch/launch_study_review/test_missing_review_cannot_cherry_pick_a_lower_ranked_candidate",
+    "execution_launch/launch_study_review/test_module_has_no_write_network_sign_or_arm_path",
+    "execution_launch/launch_study_review/test_mutating_winner_to_cash_and_omitting_its_review_cannot_select_another_candidate",
+    "execution_launch/launch_study_review/test_numerically_failed_complete_family_stays_unqualified_without_owner_access",
+    "execution_launch/launch_study_review/test_schema2_standalone_signer_matches_runtime_signing_bytes",
+    "execution_launch/launch_study_review/test_signed_but_inconsistent_metric_summary_is_not_accepted",
+    "execution_launch/launch_study_review/test_signed_complete_family_selects_the_frozen_winner_without_execution_authority",
+    "execution_launch/launch_study_review/test_signed_other_candidate_and_changed_evaluation_time_cannot_replay",
+    "execution_launch/launch_study_review/test_source_program_or_statistic_mutation_never_qualifies",
+    "execution_launch/launch_study_review/test_study_request_generation_commits_every_evaluated_candidate_including_failure",
+    "execution_launch/owner_guards/test_owner_and_execution_helpers_cannot_hide_transitive_narrative_imports",
+    "execution_launch/owner_guards/test_owner_commands_are_in_runtime_and_acting_graphs",
+    "execution_launch/owner_guards/test_owner_commands_cannot_turn_narrative_context_into_an_action_input"
+  ],
+  "new_cases_by_suite": {
+    "compliance": 1,
+    "execution": 2,
+    "execution_accounts": 26,
+    "execution_control": 38,
+    "execution_launch": 94
+  },
+  "inherited_case_ids_retained": true,
+  "inherited_case_statuses_unchanged": true,
+  "missing_inherited_case_ids": [],
+  "changed_inherited_case_statuses": [],
+  "suite_counts": {
+    "cockpit": {
+      "PASS": 47
+    },
+    "engine": {
+      "PASS": 92
+    },
+    "ui": {
+      "PASS": 4
+    },
+    "quant": {
+      "PASS": 53
+    },
+    "ficc": {
+      "PASS": 56
+    },
+    "expansion": {
+      "PASS": 20
+    },
+    "macro": {
+      "PASS": 419,
+      "NOT_RUN": 121
+    },
+    "paper": {
+      "PASS": 21
+    },
+    "grokteam": {
+      "PASS": 17
+    },
+    "compliance": {
+      "PASS": 347,
+      "NOT_RUN": 1
+    },
+    "odds": {
+      "PASS": 287
+    },
+    "execution": {
+      "PASS": 233
+    },
+    "execution_control": {
+      "PASS": 187
+    },
+    "execution_accounts": {
+      "PASS": 137
+    },
+    "strategy_research": {
+      "PASS": 35
+    },
+    "execution_launch": {
+      "PASS": 378,
+      "NOT_RUN": 13
+    },
+    "kis_live": {
+      "PASS": 47
+    }
+  },
+  "base_suite_counts": {
+    "cockpit": {
+      "PASS": 47
+    },
+    "engine": {
+      "PASS": 92
+    },
+    "ui": {
+      "PASS": 4
+    },
+    "quant": {
+      "PASS": 53
+    },
+    "ficc": {
+      "PASS": 56
+    },
+    "expansion": {
+      "PASS": 20
+    },
+    "macro": {
+      "PASS": 419,
+      "NOT_RUN": 121
+    },
+    "paper": {
+      "PASS": 21
+    },
+    "grokteam": {
+      "PASS": 17
+    },
+    "compliance": {
+      "PASS": 346,
+      "NOT_RUN": 1
+    },
+    "odds": {
+      "PASS": 287
+    },
+    "execution": {
+      "PASS": 231
+    },
+    "execution_control": {
+      "PASS": 149
+    },
+    "execution_accounts": {
+      "PASS": 111
+    },
+    "strategy_research": {
+      "PASS": 35
+    },
+    "execution_launch": {
+      "PASS": 284,
+      "NOT_RUN": 13
+    },
+    "kis_live": {
+      "PASS": 47
+    }
+  },
+  "not_run_modules": {
+    "macro/macro_m0_instruments": 1,
+    "macro/macro_m0_rules": 1,
+    "macro/macro_m1_calendars": 5,
+    "macro/macro_m1_fixtures": 2,
+    "macro/macro_m1_pit": 7,
+    "macro/macro_m2_costed": 6,
+    "macro/macro_m2_risk": 15,
+    "macro/macro_m3_estimators": 8,
+    "macro/macro_m4_sleeves": 7,
+    "macro/macro_m5_books": 7,
+    "macro/macro_m5_fills_events": 5,
+    "macro/macro_m5_integration": 1,
+    "macro/macro_m6_context": 2,
+    "macro/macro_m7_cardp": 12,
+    "macro/macro_m7_cards": 9,
+    "macro/macro_m7_integration": 7,
+    "macro/macro_m7_ledger": 4,
+    "macro/macro_m7_stats": 3,
+    "macro/macro_m8_forward": 6,
+    "macro/macro_m8_pipeline": 1,
+    "macro/macro_m9_lab": 4,
+    "macro/macro_m9_scenarios": 4,
+    "macro/macro_tf_gov": 2,
+    "macro/macro_tf_screens": 2,
+    "compliance/compliance_signer": 1,
+    "execution_launch/launch_workflow": 1,
+    "execution_launch/launch_private_input": 12
+  },
+  "inherited_not_run_modules_unchanged": true,
+  "frozen_research_unchanged": true,
+  "actual_venue_calls": false,
+  "actual_signing": false,
+  "actual_arming": false,
+  "actual_orders": false,
+  "qualified_strategy": false,
+  "controlled_mode_available": false,
+  "production_held_coverage_available": false,
+  "production_guard_commit_available": false,
+  "standalone_current_planner_available": false,
+  "actual_windows_validation": false,
+  "protected_floor_relaxed": false,
+  "file_sha256": {
+    "tools/signer/sign.py": "a5a7cc359ddc053f617cb4b31c7e15d7fcf452166d3612b7900bae9cb141615e",
+    "core/compliance/kr_rules.yaml": "f06f4728f60578131898918bd9e24a1bdf12a549d5f816e3e1c88c2ac4dd020e"
+  },
+  "file_hashes_are_owner_code_approval": false,
+  "acceptance_results_sha256": "903fdb8ec28ed2821c58a17e4a1ec015dd529ead171e6e8ea13240f651b25495",
+  "measured_report_artifact": "live48-20261106-run.json",
+  "full_log_artifact": "live48-20261106-full.log",
+  "prior_attempts": [
+    {
+      "source_commit": "e24b956",
+      "status": "interrupted_environment_setup_failure",
+      "artifacts": [
+        "live48-20261106-environment-attempt-full.log",
+        "live48-20261106-environment-attempt-partial-record.json"
+      ]
+    },
+    {
+      "source_commit": "e24b956",
+      "status": "completed_failed_run",
+      "total": 2499,
+      "counts": {
+        "PASS": 2357,
+        "FAIL": 7,
+        "NOT_RUN": 135
+      },
+      "artifacts": [
+        "live48-20261106-e24b956-full.log",
+        "live48-20261106-e24b956-partial-record.json"
+      ]
+    }
+  ]
+}

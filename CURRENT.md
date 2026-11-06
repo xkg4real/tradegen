@@ -1,18 +1,19 @@
 ---
-status: taken
-reason: owner_requested_48h_completion
+status: returned
+reason: tested_development_batch_ready_for_owner_review
 from: gpt
 task: first-trade-foundation
 cycle: 2026-11-03
-done_ids: cloud-compat-1, cloud-compat-2, cloud-compat-3, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr, spec-rev-3-3, policy-plan-1, policy-preview-1, policy-pr, e1-1, e1-2, e1-3, e1-4, e1-5, e1-6, e1-7, e1-8, e1-9, e1-10, e1-11, e1-12, e1-13, e1-pr, e2-1, e2-2, e3-1, e3-2, e3-3, e2-3, e3-4, e2-e3-pr, pr6-pr7-merge, research-preregister-1, research-evaluate-1, account-readiness-1, research-paper-1, account-provider-1, account-regression-1, account-research-pr, pr8-human-code-review-approval, pr8-merge, launch-network-1, launch-collector-1, launch-profile-1, launch-strategy-1, launch-runner-1, launch-program-2, launch-workflow-2, launch-baseline-2, launch-quotes-2, launch-deployment-2, launch-review-request-2, launch-driver-2, launch-review-auth-2, launch-baseline-integration-2, launch-market-protocol-1, launch-recovery-cutoff-1, kis-live-contract-1, kis-live-backend-1, kis-live-ui-1, launch-static-guard-1, launch-windows-design-1, kis-live-regression-1, launch-regression-1, launch-delivery-1, pr9-owner-review, launch-windows-inputs-1, launch-owner-authority-1, launch-live-evidence, launch-live-history-1, launch-windows-coordinator-1, launch-study-module-1, okx-data-1, final-review-1, pr10-owner-review, venues-upbit-terms, pr11-owner-review, rules-review-1122/research, launch-quote-diagnostics-1, launch-shortened-study-1, cloud-compat-4, launch-resume-regression-1, launch-resume-delivery-1, pr12-owner-merge, account-okx-usdc-1, launch-market-readiness-1/audit, rules-review-1122/entity-mapping
-next_ids: rules-review-1122, launch-held-positions-1, launch-instrument-refresh-1, launch-controlled-coordinator-1, e1-14-owner-setup, launch-prospective-study
-updated_at: 2026-11-06T21:02:09+09:00
+done_ids: cloud-compat-1, cloud-compat-2, cloud-compat-3, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr, spec-rev-3-3, policy-plan-1, policy-preview-1, policy-pr, e1-1, e1-2, e1-3, e1-4, e1-5, e1-6, e1-7, e1-8, e1-9, e1-10, e1-11, e1-12, e1-13, e1-pr, e2-1, e2-2, e3-1, e3-2, e3-3, e2-3, e3-4, e2-e3-pr, pr6-pr7-merge, research-preregister-1, research-evaluate-1, account-readiness-1, research-paper-1, account-provider-1, account-regression-1, account-research-pr, pr8-human-code-review-approval, pr8-merge, launch-network-1, launch-collector-1, launch-profile-1, launch-strategy-1, launch-runner-1, launch-program-2, launch-workflow-2, launch-baseline-2, launch-quotes-2, launch-deployment-2, launch-review-request-2, launch-driver-2, launch-review-auth-2, launch-baseline-integration-2, launch-market-protocol-1, launch-recovery-cutoff-1, kis-live-contract-1, kis-live-backend-1, kis-live-ui-1, launch-static-guard-1, launch-windows-design-1, kis-live-regression-1, launch-regression-1, launch-delivery-1, pr9-owner-review, launch-windows-inputs-1, launch-owner-authority-1, launch-live-evidence, launch-live-history-1, launch-windows-coordinator-1, launch-study-module-1, okx-data-1, final-review-1, pr10-owner-review, venues-upbit-terms, pr11-owner-review, rules-review-1122/research, launch-quote-diagnostics-1, launch-shortened-study-1, cloud-compat-4, launch-resume-regression-1, launch-resume-delivery-1, pr12-owner-merge, account-okx-usdc-1, launch-market-readiness-1/audit, rules-review-1122/entity-mapping, launch-held-positions-1/candidates, launch-held-positions-1/chronological-reducer, launch-instrument-refresh-1, launch-controlled-coordinator-1/owner-ops, launch-controlled-coordinator-1/rehearsal, launch-authenticated-selection-1, launch-source-boundaries-1, launch-preparation-freshness-1, launch-48h-integration-1, launch-48h-delivery-1
+next_ids: rules-review-1122, launch-held-positions-1/production-authority, launch-continuous-guard-commit-1, launch-planner-provider-1, launch-controlled-coordinator-1, launch-private-capture-setup-1, e1-14-owner-setup, launch-prospective-study, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1, pr13-owner-merge
+updated_at: 2026-11-06T21:32:44+09:00
 stale_after_hours: 3
-waiting_on: owner code/rules electronic signatures; rule renewal evidence and remaining live integration
+waiting_on: PR13 owner merge review; remaining runtime integration and genuine source/Windows/research evidence
 work_branch: gpt/live-readiness-48h
-work_commit: eed84bc1b519ffc8a482c8a1848507432f8d5532
-uncommitted_changes: execution ledger update only; runtime and tests frozen for final regression
-pr: https://github.com/xkg4real/tradegen/pull/13 (draft; PR12 merged)
+work_commit: 295501284f8b597bf8d1bc7256afcaec290b725d
+runtime_tested_commit: eed84bc1b519ffc8a482c8a1848507432f8d5532
+uncommitted_changes: none
+pr: https://github.com/xkg4real/tradegen/pull/13 (ready; unmerged)
 usage_weekly_pct: unknown
 usage_source: unavailable
 handoff_threshold_pct: 95
@@ -21,182 +22,150 @@ usage_resets_at: unknown
 session: Cloud Codex development; owner Windows deployment
 ---
 
-# 인수인계: 11월 법규 재검토와 단축 연구 준비
+# 인수인계: PR13 검증 완료와 실거래 준비 후속
 
 ## 0. 사용자에게 전달할 최신 상태
 
-최신 후속 개발은 PR13의 eed84bc입니다. 리허설·조건 갱신·검토 선택·시간순 후보 위험 검사와 통합 수정본을 push했고, 고정 소스 전체 검사가 진행 중입니다. 아래 PR12의 성공 결과와 PR13의 과거7실패 결과는 서로 다른 실행입니다. 최종 전체 성공은 아직 기록하지 않았습니다.
+이번 개발 묶음을 PR13으로 게시했습니다. head는 295501284f8b597bf8d1bc7256afcaec290b725d, 상태는 검토 가능·미병합입니다.
+PR12는 소유자의 직접 승인으로 21259f8에 병합했습니다. PR12 승인은 PR13의 병합 승인이나 앱 전자서명이 아닙니다.
 
-소유자가 11월 6일 최신 GitHub와 지정 Notion 두 페이지를 읽고 이어가도록 지시했습니다.
-main은 21259f8이며 PR9/10/11/12는 병합됐습니다. 11월 5일 코드·표 서명과 Step C OK 기록은
-이전 인수인계 및 Notion의 소유자 보고입니다. 비공개 owner log를 새로 읽거나 검증하지 않았습니다.
+전체 소프트웨어 검사: 2515개 중 2380 PASS / 0 FAIL / 135 NOT_RUN, 896.548초.
+기존 2354개 ID와 상태를 전부 보존했고 신규 161개는 모두 통과했습니다.
+검증한 runtime/test는 eed84bc이며 그 뒤 커밋은 QA·문서뿐입니다.
 
-Notion의 빨간/파란 답변으로 세 결정은 해결돼 있습니다: 기존 손실하한 유지,
-보유 코인 연속 가격 기록, 새 연구 단계 단축 승인. 손실하한 완화나 수수료 예외는 없습니다.
-48시간은 개발자가 택한 새 pilot 초안이며 소유자가 직접 정한 기간이나 충분한 검정력이 아닙니다.
-7일은 기존 계획의 설정이고 코드의 고정 최소기간이 아니라는 점을 소스에서 확인했습니다.
+소유자의 48시간 개발 목표는 2026-11-06 18:24:35 KST부터 2026-11-08 18:24:35 KST까지입니다.
+모든 실거래 작업을 완료했다고 보고하지 않습니다. 보유 구간의 진짜 완전성 인증·영속 위험 반영,
+실제 플래너·controlled 실행, 실제 Windows/계좌 관측, 새로운 연구의 실제 통과와 서명이 남아 있습니다.
+새 48시간 관측이 준비 이후 시작하면 같은 개발 마감 안에 끝날 수 없으며, 수익이나 첫 주문 날짜도 확정하지 않습니다.
 
-47개 법규 행에 출처·미확인 사항을 기록했고 13행의 설명/출처/정책 구분을 정정했습니다.
-2029년 가상자산 과세 유예는 11월5일의 추진안으로 확인돼 2027년 현행 일정 감시를 유지합니다.
-11월22일/23일 재검토 기한은 갱신하지 않았습니다. 완전한 법률 적격 확인과 날짜 연장은 남았습니다.
+지정한 Notion 두 페이지에 이번 결과와 소유자 순서를 반영했습니다.
+이 세션은 실제 API·계좌·키·owner log·전자서명·활성화·주문을 사용하지 않았습니다.
+11월 5일의 기존 서명 완료는 이전 인수인계와 Notion의 소유자 보고이며, 새로 읽거나 검증한 로그가 아닙니다.
 
-공개 호가 시각 진단, 새 48시간 연구 초안 도구, Linux 배포 소스 링크 검사를 구현했습니다.
-source d5bac0a에서 전체 회귀를 완료했고 기록 커밋43666b4를 push했습니다. PR12는 소유자 채팅 승인 후 11월 6일 18:19 KST에 21259f8로 병합됐습니다.
-전체2219PASS/0FAIL/135NOT_RUN, 신규27개전부PASS. 지정 Notion 두 페이지에도 최신 상태를 반영했습니다.
-실계좌/실API/키/전자서명/arm/주문/전향 실자료 수집은 수행하지 않았습니다.
+## 1. 이미 확정된 결정
 
-## 1. 확정한 운영 결정
+- 운영 환경은 Windows PC, 현재 Cloud는 개발·가짜 데이터 검증 환경입니다.
+- 원금·최고점 하한, 전날 실현 순손익에 따른 일일 한도와 22시 회복 조건을 유지합니다.
+- 보유 코인은 연속 가격·체결 기록으로 추적합니다. 표본이나 heartbeat를 완전성 증명으로 취급하지 않습니다.
+- 새로운 연구 단계 단축은 승인됐습니다. 현재 도구의 48시간은 개발자가 택한 pilot이며 통계 검정력이나 통과 보장이 아닙니다.
+- 세 결정에 대해 다시 질문하지 않습니다. 새 소유자 서명·계좌 증거·수치 PASS를 이미 받은 것으로 가정하지 않습니다.
+- 금액과 개인 경로는 비공개 가이드에만 두며 공개 저장소에는 추가하지 않습니다.
 
-- Windows PC가 운영 환경입니다. 현재 Cloud는 소유자가 요청한 개발·가짜 데이터 검증용입니다.
-- 손실하한은 원금·최고점 규칙 그대로, 전날 실현 순손익·일일한도·22시 회복 조건도 그대로입니다.
-- 목표는 QUANTGEN 자금 마련: 약7–7.5배(11월20일, 늦어도25일), 약10배(11월26일–12월31일),
-  약5–5.5배(2027년1–2월), 단계별 인출. 금액은 비공개 문서에만 둡니다.
-- 보유 코인은 연속 가격 기록으로 추적하는 방향이 선택됐습니다. 실제 완전구간 adapter는 미완료입니다.
-- 새로운 연구 단축이 승인됐습니다. 수치 PASS·출처 검토·전자서명·세션 조건을 충족했다고 가정하지 않습니다.
+## 2. 직접 읽어야 할 근거
 
-## 2. 근거
+- archive/20261106T1445-first-trade-foundation.md: Claude e1ebd6f 인수인계 원문 사본.
+- archive/20261106T2102-live-readiness-checkpoint.md: 이번 개발의 이전 체크포인트와 실패·수정 경과.
+- Notion: TRADEGEN : 업무 기록 및 남은 일 (1105), TRADEGEN: 승인 전 최종 정리.
+  최신 색상 답변과 11월 5일 완료 기록을 오래된 본문의 미완료 표기보다 우선합니다.
+- docs/superpowers/plans/2026-11-06-live-readiness-48h.md 및 같은 폴더의 live-readiness-execution-ledger.md.
+- docs/remaining-market-readiness-2026-11-06.md: M1–M12의 기능·미완료 조건.
+- docs/owner-runtime-operations.md, standalone-owner-rehearsal.md, instrument-term-renewal.md,
+  authenticated-study-selection.md, continuous-price-candidates.md, continuous-guard-commit-contract.md.
+- qa/live48_20261106_validation.json 및 context/live-readiness-20261106/validation.json.
+- research_notes/Korean resident trading venue legality/review_2026-11-06.md, review_closeout_2026-11-06.md.
 
-- 이전 원문: archive/20261106T1445-first-trade-foundation.md (e1ebd6f의 CURRENT 사본).
-- 소유자가 지정한 Notion: TRADEGEN : 업무 기록 및 남은 일 (1105), TRADEGEN: 승인 전 최종 정리.
-  최신 색상 답변과 1105 서명 완료표가 오래된 본문의 ‘결정 대기/서명 전’ 문구보다 우선합니다.
-- 소스 계획: docs/superpowers/plans/2026-11-06-resume-readiness.md.
-- 법규: research_notes/Korean resident trading venue legality/review_2026-11-06.md.
-- docs/quote-timing-diagnostics.md, docs/research/2026-11-06-shortened-prospective-protocol.md.
-- 기존 docs/windows-first-trade-integration.md, account-baseline-integration.md,
-  launch-workflow.md, market-selection-protocol.md, strategy-review-signing.md.
+## 3. 구현한 범위와 한계
 
-## 3. 구현과 판단
+| 구현 | 결과 | 남은 경계 |
+| --- | --- | --- |
+| 연속 후보 기록·archive | 순서·누락·재연결·체결·수수료와 경계 시각 검사, archive는 launch 계층에 분리 | 진짜 구간 완전성 발행자 없음; 실 baseline 발행 계속 거부 |
+| 시간순 위험 reducer | 현금·보유량·FIFO를 각각 대조하고 중간 peak/손실/자정/22시 상태 보존 | 순수 계획만 생성, 영속 controller/baseline/head 거래는 설계 문서만 있음 |
+| Upbit 조건 갱신 | 정확한 GET 두 개, 실제 발행 관측과 동일 계약 갱신, 최초·갱신 매수/매도 최대한도 검사 | 실제 계좌 관측 미수행, KIS/OKX 조건 미지원 |
+| 소유자 운영 도구 | 준비·독립 head·manifest·상태·중지·해제·종료, 실제 프로세스 객체 유지 | controlled 거부 유지; 실제 사용자 서명이나 활성화 없음 |
+| 독립 리허설 | 서명된 audit 원문과 실제 driver를 검증하고 읽기 전용 E1/DryRun 구성 | flat-only; fixed current planner가 없어 standalone prepare는 명시 거부 |
+| 연구 검토·선택 | schema2가 탈락 후보까지 전체 원본·결과에 연결, 후보 누락/변조/기존 서명 승격 거부 | 실제 자료·수치 통과·소유자 검토를 만들어 주지 않음 |
+| 준비 신선도 | 실제 clock/positions_asof, 계산·잠금·승인 확인·내용 hash·저장 뒤까지 재검사 | 늦은 저장의 audit 행은 남지만 발급 registry나 반환 session은 없음 |
+| 서명·정적 경계 | owner 명령도 코드/배포/acting 경계에 포함, 두 순수 갱신 경로만 정확히 허용 | 45 callable/16 초기화 표면의 보조 검사이며 임의 Python 전체 안전성 증명은 아님 |
+| OKX·법규 | 근거 없는 USDC=USDT 평가 제거, Korbit→DigitalX 명칭 대응 확인 | 독립 USDC 가격 없으면 전체평가 거부; 법규 기한은 연장하지 않음 |
 
-- 법규 행의 match/requires/treatment/caps/acknowledgements/auto-off/review_by는 모두 유지했습니다.
-  바뀐 rules hash는 78659392f8cb3b3af8b334a44af656e29fb5b21f9ad358d7686fb2797dac2257입니다.
-  설명 정정도 표 바이트 변경이므로 병합 후 owner의 rules 표 승인이 필요합니다.
-- quotes.E1UpbitQuoteSource.read_receipt는 원본 receipt와 요청 시간을 반환하는 진단 경로입니다.
-  read는 기존 parse_orderbook을 그대로 거쳐 미래/오래된 호가를 계속 거부합니다.
-- quote_diagnostics는 기본 오프라인; 명시 capture만 기존 공개 GET을 호출합니다. 표본은 실제 시계
-  오차 추정이 아니고, timestamp→수신 지연과 시계 차이의 합입니다. 시간 거부 때 깊이 구조 전체가
-  검증됐다고 표시하지 않습니다. 실행 준비/시계동기화/승인 플래그는 false입니다.
-- prepare_shortened_study는 기존 미실행 draft를 새 ID·미래시각·48시간·576수익구간/577관측으로
-  만듭니다. 전체 후보/비용/roundtrips/통계조건 보존, 원본 frozen 연구 불변, 기본 출력 금액 없음.
-  실제 profile/base draft와 사전공개·전체 시행 이력 검토는 별도입니다.
-- Linux inherited failure: rglob가 symlink directory를 건너뛰어 링크검사가 누락됐습니다.
-  deployment는 entry를 검사한 뒤 내려가며 Windows reparse 및 파일 hardlink 거부를 유지합니다.
-- 동률 자체는 위험위반이 아닙니다. 평가액=하한이면 현재 odds stake는0이고, 양의 주문은 수수료/스프레드로
-  하한 아래가 될 수 있습니다. 기준1, 매수0.5, 가정 수수료0.0005면 같은 가격 평가에서도0.99975입니다.
-- 목표 확률은 미측정입니다. 이전 ‘사실상0’ 표현은 근거 있는 측정이 아닙니다. 시작/목표 비율은
-  비음수 supermartingale·외부투입 없음 등 조건부 수학상한일 뿐이며 우위 미입증이 그 가정을 증명하지 않습니다.
+독립 검토는 전체 후보 선택 편향, 현금/보유량 대체로 중간 손실 숨기기, 최초·출구 주문 한도,
+준비 중/저장 후 승인 만료, JSON callback 재바인딩 우회를 재현했고 수정 후 재검사했습니다.
+모든 사례는 가짜 자료와 임시 상태를 사용했습니다.
 
-## 4. 검증 완료
+## 4. 최종 검증
 
-- 법규표 suite70/70 PASS; 47행 전체 비교로 제한/기한 불변 확인.
-- 신규 진단18/18, 신규 연구도구7/7, 배포10/10 PASS. 별도 source/학술조건/법규 검토 완료.
-- 최초 통합 launch:281 PASS/1 FAIL/13 NOT_RUN. 실패는 위 상속 Linux 링크검사이며 수정 후 배포10/10 PASS.
-- d5bac0a 전체 회귀 완료:2354개 중2219PASS/0FAIL/135NOT_RUN,587.208초. 신규27PASS,기존2327 ID전부보존.
-  135NR은매크로참조자료121+Windowsprivate input13+Windowsconsole1입니다. Windows실행성공으로세지않습니다.
-  19KEYLESS/임시상태/가짜HTTP/실제home메타데이터불변/frozen연구불변. 문서갱신후관련검사149PASS/0FAIL/9기존NR.
-- Claude Windows의2202PASS/2FAIL/123NR은 과거 baseline이며 새 결과가 아닙니다.
+- 전체: 2380 PASS / 0 FAIL / 135 NOT_RUN, 총2515, 신규161 전부PASS.
+- 기준21259f8의 기존2354 ID와 상태를 모두 보존했습니다. 누락·상태 변경 없음.
+- NOT_RUN: 기존 매크로 참조자료121, Windows private-input12, workflow1, console1.
+  Windows에서 성공했다고 세지 않습니다.
+- 19 KEYLESS 이름 모두 '<unset>', 임시 상태와 가짜 transport만 사용했습니다.
+- 실제 홈 메타데이터 불변, 보호된 frozen 연구와 QUANTGEN 불변.
+- README와 acceptance QA는 CRLF, 새 검증 JSON과 장부는 LF를 유지했습니다.
+- 실제 전략 통과·실계좌 연결·전자서명·활성화·주문은 이 결과에 포함되지 않습니다.
 
-## 5. 현재 지점과 실패 기록
+## 5. 실패 이력과 현재 작업 상태
 
-작업트리 /workspace/tradegen-resume-1106, gpt/rules-review-1122.
-소스/QA/문서 push완료, 작업트리clean. 로컬 tradegen-session의 resume-20261106-full.log,
-resume-20261106-run.json에 실제전체결과가있습니다. 공개qa/resume_20261106_validation.json과
-qa/acceptance_results.json, docs/superpowers/plans/2026-11-06-resume-execution-ledger.md에 결과를남겼습니다.
-context/november-readiness-20261106/의검증사본이이번세션사본입니다. 기존11월2일context는과거기록입니다.
-사용량은 unknown/unavailable이며 Claude의95/97%를 재사용하지 않습니다.
+최초 전체 시도는 외부 스킬 경로 누락과 localhost fixture 권한 때문에 중단했고 기록을 보존했습니다.
+NEXTGEN_SKILLS_ROOT는 설치된 외부 스킬 저장소를 명시해야 합니다. 이번 Cloud의 경로는
+/workspace/.cloud-setup/dependencies/claude-trading-skills-cb0f3aadffed6d1089db4b224162c964368baa46 입니다.
+로컬 HTTP fixture용 권한과 실제 금융 API 호출 허용을 혼동하지 않습니다.
 
-## 6. 남은 개발과 실제 운영
+e24b956 전체 실행은 2357PASS/7FAIL/135NR이었습니다. 코드 서명 목록, 계층 경계,
+새 정확한 GET 기대값과 평가 registry 격리 문제를 고쳐 eed84bc 전체 실행을 통과했습니다.
+실패를 지우거나 runtime cap을 늘리지 않았습니다.
 
-1. PR12는 소유자의 직접 채팅 승인 후 21259f8로 병합됐습니다. 검증 head43666b4와 병합 tree가 동일합니다. 실제 code/rules 전자서명은 아직 확인되지 않았습니다.
-2. rules-review-1122: 재검토 기록의 미확인 근거(법인/서비스명 매핑, 정확한 트래블룰/감독규정,
-   12월 외환시행규정, 개별명단/제품/교육·계좌조건, 세법통과)를 해결하고 행별기한갱신안→owner승인.
-   25행11월22일,22행11월23일; Upbit 신규진입11월23일부터기한초과거부.
-3. continuous held-position interval: 현재 flat-only가 첫체결 후멈춤. 분봉/endpoint를 완전한최고·최저증거로
-   승격하지말고 fill·전가격기록·기준시각·누락을포함한신뢰계약구현. 선택질문은이미해결됨.
-4. fresh instrument rules: 5분만료. asof만바꾸지말고profile/session/rules/strategy binding전체갱신설계.
-5. controlled coordinator와 owner setup/prepare/disarm/manifest 명령. 실제활성화·서명은owner만.
-6. owner PC에서새호가시간진단,프로필·현재상품조건확보,새48h초안고정·공개·capture·select·검토.
-   select CLI의trusted review미연결과 NO_QUALIFIED_MARKET은여전히유효. 통과전략없음.
-7. 기존하한유지하에서STUCK_AT_START 및수수료headroom제약은해결되지않음. 허가를꾸며내거나하한완화하지말것.
-   인출은재앵커검토필요;손실/최고점기록초기화금지. OKX/KIS누락terms도자동채우지말것.
+작업트리: /workspace/tradegen-live-1106, branch gpt/live-readiness-48h.
+별도 수정 worktree는 /workspace/tradegen-boundary-fix와 /workspace/tradegen-preparation-fix입니다.
+모든 의미 있는 변경은 최종 브랜치에 통합됐습니다. 이전 분리 브랜치를 다시 cherry-pick하지 않습니다.
+Cloud scratch의 live48-20261106-full.log/run.json 및 e24b956/environment-attempt 사본을 보존했습니다.
+현재 소스 작업트리는 clean이며 전체 검사는 끝났습니다. 실행 중인 실거래/관측 작업은 없습니다.
+사용량 조회 수단이 없어 unknown/unavailable입니다. 95% 도달이나 다른 에이전트의 수치를 추정하지 않습니다.
 
-## 7. 제한
+## 6. 다음 개발 과업
 
-handoff/AGENTS.md5절. 실제키/owner log내용/.env값/서명/arm/주문/실거래소API 금지,
-실제home변경금지,QUANTGEN/frozen연구불변,CRLF유지,명시파일stage,PR별owner병합승인.
-일반공식법령/약관웹문서조사는시장데이터API호출이아닙니다.
+1. rules-review-1122: FIU 원본·시행본·개별 상품/계좌 적격 등 미확인 근거를 완료합니다.
+   11월22일25행/23일22행 기한 유지. 이번 조사로 일괄 연장하지 않습니다.
+2. 진짜 held coverage 계약: 가격·사적 체결/수수료의 완전 순서, 동일시각 순서, gap과 최종 watermark를 증명할 실제 출처가 필요합니다.
+   공개 구성 가능한 proof 객체나 로컬 hash를 issuer로 승격하지 않습니다.
+3. 영속 guard transaction: controller의 pending/halt를 먼저 기록하고 baseline·guard·독립 head의 순차 CAS와 crash 복구를 구현합니다.
+   현재 provider는 baseline을 먼저 commit하므로 그대로 재사용하지 않습니다.
+   Controller.observe가 journal lock 안에서 provider를 부르므로 중첩 잠금 순서부터 검토합니다.
+4. fixed current planner: 실제 선택한 plan/stake/target/FX/model/horizon과 최소250 실제 일봉,
+   원본 출처, 비교 실행/seed 및 검증한 전략과의 대응이 필요합니다. 기존 capture를 일봉으로 재명명하거나 다른 전략을 임의 생성하지 않습니다.
+5. 신선한 capture/setup 연결과 controlled coordinator: 정확한 준비 객체·재조정·취소·보호 종료·영구중지·재시작을 실제 계약으로 연결합니다.
+6. Windows 실행/시각/재시작과 현재 계좌·상품 조건을 실제 환경에서 확인합니다.
+7. 최종 capture 소스로 새 사전등록/공개 후 진짜 미래 관측과 전체 후보 평가를 수행합니다.
+   누락 슬롯·실패 시행을 숨기지 않고 실제 수치 통과 후 검토·서명을 받습니다.
+8. KIS/OKX 완전 수집·settlement/세금/수수료/FX/달력/terminal cancel 검증과 비교 가능한 시장 연구는 별도 미완료입니다.
+   KIS Live 화면이나 E1 조회·E3 codec만으로 자동매매 완료라고 표시하지 않습니다.
 
-## 8. 소유자 절차
+위2–5는 아직 남은 개발입니다. 실제 출처/소유자 증거가 필요한 부분과 독립 구현 가능한 부분을 구분해 계속합니다.
+동률 자체는 위험위반이 아닙니다. 그러나 기존 하한과 수수료/출구 비용을 동시에 만족하는 여유가 없으면
+현재 sizing이 STUCK_AT_START를 반환합니다. 하한 완화·수수료 예외·장부 기준 변경은 승인되지 않았습니다.
 
-PR12 검토·병합 승인·병합은 완료했습니다. 다음은 같은 Windows환경에서 소유자가 code-approve 및 approve --kind rules를 수행하는 단계입니다.
-새코드가 quotes.py와배포manifest경로를바꾸므로기존code/review해시를새버전승인으로재사용불가.
-이후본인PC에서시각진단/현재조건/프로필/새사전등록을진행합니다. 단축도구의성공은전략PASS가아닙니다.
-실계좌증거/위험여유/운영모드미완료가남아있어아직실주문가능하다고안내하지않습니다.
+## 7. 소유자가 할 순서
+
+1. PR13 head 295501284f8b597bf8d1bc7256afcaec290b725d를 검토하고 이 PR의 병합을 승인합니다.
+   저장소 규칙은 '병합은 사용자가 PR마다 직접 승인합니다'입니다.
+2. 병합 후 기존 Windows checkout·가상환경·공개키·키·소유자 로그를 유지해 반영합니다.
+3. 바뀐 독립 signer를 검증한 뒤 본인이 code-approve와 변경된 rules 표의 approve --kind rules를 수행합니다.
+   공개 signer 파일 hash: a5a7cc359ddc053f617cb4b31c7e15d7fcf452166d3612b7900bae9cb141615e.
+   rules 파일 hash: f06f4728f60578131898918bd9e24a1bdf12a549d5f816e3e1c88c2ac4dd020e.
+   이 hash나 Git commit은 Windows 설치의 코드 승인 hash 또는 실제 전자서명이 아닙니다.
+4. rules --check로 현재 효력과 실제 프로필을 확인합니다. 기존 한도를 초기화하지 않습니다.
+   새롭거나 느슨한 한도의 다음 서울 날짜 적용 규칙을 유지합니다.
+5. 위6절의 개발·실제 관측·검증 이후에 해당 source/implementation review와 실제 세션 승인을 진행합니다.
+   현재 PR을 병합/서명했다고 바로 실거래가 시작되는 것은 아닙니다.
+
+## 8. 유지할 제한
+
+실제 API·키·비밀번호·서명 암호·실 owner log 접근, 실제 홈 쓰기, 서명·활성화·주문을 하지 않습니다.
+Cloud 개발 검사는 가짜 transport와 임시 상태만 사용합니다. QUANTGEN과 frozen 연구를 수정하지 않습니다.
+공개 저장소에는 금액·개인 경로·계좌 식별자·비공개 자료를 올리지 않습니다.
+실제 확률은 미측정이며 거부된 실행에 확률0이나 보장 수익을 표시하지 않습니다.
 
 ## 9. 다음 에이전트가 이어받을 지시
 
-이문서→LEDGER→소스계획/법규47행메모/PR12→실제코드를읽으세요. 결정3가지를다시묻지말고
-최신주석을기존본문의대기문구보다우선합니다. 끝난ID를반복하지말고새검증기록과미해결목록을확인합니다.
-PR12는 해당 PR에 대한 소유자 승인으로 병합 완료했습니다. 채팅 승인을 앱 전자서명으로 취급하지 마세요. 소유자가 후속 작업에 48시간 목표 마감을 지정했으며 남은 개발을 계속하도록 지시했습니다.
+먼저 AGENTS.md, 이 문서, LEDGER.md와 context/live-readiness-20261106/를 읽고 원문 근거를 확인합니다.
+PR13이 미병합이고 owner 승인이 없으면 병합하지 않습니다. 새 승인 도착 시 현재 PR head와 승인 대상을 다시 대조합니다.
+추가 개발은 최종 work_commit에서 새 분리 브랜치로 이어갑니다. 완료 ID를 반복하지 않고 미완료 항목에 새 ID를 붙입니다.
+소유자의 기존 하한 유지·연속 기록·연구 단축 결정은 이미 해결됐습니다.
+실계좌·서명·검증 통과가 없는 상태를 완료로 간주하지 말고, 독립 구현 가능한 남은 과업은 진행합니다.
+다음 검사는 변경에 맞춰 수행하며 이미 통과한 전체 검사를 이유 없이 반복하지 않습니다.
 
-## 10. 비공개 자료
+## 10. 전달 및 기록
 
-Notion금액·Windows계정경로·개인정보와실제로그원문은공개repo에추가하지않았습니다.
-Cloud의scratch에는가짜검사로그와공식웹자료조사메모만있습니다. 실제자격증명은없고조회하지않았습니다.
-법률·세무·투자조언이아니며작성자는면허있는자문가가아닙니다.
-
-## 11. PR12 병합 확인
-
-- 승인 근거: 이 대화에서 소유자가 PR12 결과 보고에 직접 “승인합니다.”라고 답했습니다.
-- 승인 범위: PR12 head43666b4의 GitHub 병합. 앱 전자서명·활성화·주문 승인을 생성한 것으로 기록하지 않습니다.
-- GitHub merged=true, merge_commit=21259f8d8ab76ea35c46a61df582fe5d792e916f.
-- 승인 head와 병합 tree는 모두24550874656906eec51bb56d6530d57395d8c168로 동일합니다.
-- 기존 전체2219PASS/0FAIL/135NR 검증을 참조하며, 소스 변경이 없어 전체 검사를 반복하지 않았습니다.
-- 지정 Notion 두 페이지에 병합 완료를 반영했습니다. 실제 전자서명은 소유자 절차로 남습니다.
-
-## 12. 후속 작업 시작
-
-소유자가 남은 모든 작업에 48시간 목표 마감을 지정했습니다. 이 실행 기록의 시작은 2026-11-06T18:24:35+09:00이며 목표는 2026-11-08T18:24:35+09:00입니다.
-새 작업트리는 /workspace/tradegen-live-1106, 브랜치는 gpt/live-readiness-48h, 기준은 병합 main21259f8입니다.
-보유 연속증거·상품 조건 갱신·운영 명령·신뢰 검토 연결·시장별 미완료 항목을 병렬로 점검하고 구현합니다.
-실제 관측 시간, 전략 통과, 본인 전자서명, 손실 하한 안에서의 실행 가능성은 코드 작성과 구분합니다.
-기존 실API/키/실홈/서명/활성화/주문 제한은 유지하며 가짜 데이터 경로로 검증합니다.
-
-## 13. 48시간 작업 중간 저장
-
-2026-11-06T18:47:48+09:00에 c72c9b8을 gpt/live-readiness-48h로 push했습니다.
-- OKX의 USDC=USDT 가격복제를 제거하고, 독립가격이 없는 USDC는 보유량을 보존한 채 전체평가를 거부합니다. E1+계좌준비검사250PASS/0FAIL, 신규2개.
-- 국내거래소 Korbit→DigitalX 명칭대응을 공식회사연혁과DAXA자료로 해결했습니다. 법규표70PASS, 기한·제한·known_changes불변.
-- 시장별기능/미완료근거와48시간개발계획을 공개문서에 기록했습니다.
-- 보유연속증거/신선조건갱신/운영명령/검토선택 연결은 아직작업중이며 별도검토·통합검사전입니다. 전체회귀완료로취급하지않습니다.
-
-## 14. 구현 체크포인트 250face — 통합 회귀 전
-
-2026-11-06T19:26:15+09:00에 PR13 draft로 다음 소스 단위를 push했습니다. 전체 테스트 완료나 실거래 준비 완료가 아닙니다.
-- 보유 연속 후보 증거: 26신규+19기존=45PASS. 실제 발행은 고정거부.100→110→105→115 같은 중간하한위반이 종료값으로숨겨질수있어 E2영속연결 필요.
-- 조건갱신:21신규개별검사통과, 최초관측·양방향max·재사용·정지후보호작업검사. 병행기존회귀92PASS/3FAIL:호출호환성1건수정후PASS,2서명세션검사는소스고정재검증필요.
-- 소유자준비/운영명령:19신규PASS;프로세스내실객체유지,대기중disarm/종료미완료명시. 기존coordinator34PASS/1FAIL후해당케이스개별PASS,전체재검증필요.
-- 서명검토선택:20신규PASS. 독립검토의P1후전체후보raw/result 묶음을schema2서명에연결.탈락후보변조·기존v1자동승격거부. 관련검사35PASS,signer43PASS/1WindowsNR;최종독립재검토중.
-- owner 명령을 코드서명·배포검사·acting graph에추가했고조건GET2개만정확히허용했습니다.광범위실API예외없음.
-- standalone readonly rehearsal와순수시간순위험reducer는별도작성중입니다.현재controlled실행은계속거부합니다.
-- 사용량측정수단없음,전체회귀전.실API/키/실홈/서명/활성화/주문없음.
-
-## 15. 고정 소스 e24b956 전체 검사와 수정 진행
-
-2026-11-06T20:26:00+09:00 체크포인트입니다. PR13은 draft이며 병합하지 않았습니다.
-- e24b956까지 standalone 읽기 전용 리허설과 순수 시간순 위험 검사를 추가했습니다. 실제 controlled 경로와 보유 구간 발행은 계속 거부합니다.
-- 환경 설정 누락으로 중단된 최초 검사 기록을 보존했습니다. 외부 스킬 경로와 localhost fixture 권한을 바로잡은 전체 검사는 2499개 중2357PASS/7FAIL/135NOT_RUN입니다. 실패를 통과로 세지 않았습니다.
-- 7실패: 코드 서명 파일 목록 기대값1, 계층별 import/effect 경계2, 새로 허용한 정확한 GET과 기존 부정검사 충돌1, 새 리허설 fixture의 평가 registry 누적3. 기존2354개 ID를 지우지 않습니다.
-- 수정: 위험 reducer와 후보 archive를 launch 통합 계층으로 이동; 계좌 패키지의 순수성 유지; E2에는 두 검증 helper의 정확한 file/symbol 및 전이 effect 경계만 검토; 실제 runtime registry cap 유지하고 테스트 격리.
-- 독립 검토에서 계산 지연 후 과거 시각으로 세션을 준비할 수 있는 결함을 추가 발견했습니다. 실제 완료 시각/승인/계좌/상품 조건을 재검사하도록 별도 작업트리에서 수정 중입니다.
-- 작업트리: /workspace/tradegen-live-1106(main development), /workspace/tradegen-boundary-fix(boundary integration), /workspace/tradegen-preparation-fix(preparation freshness). 아직 후속 수정본의 전체 통과 결과는 없습니다.
-- 실제 API/키/owner log/실홈/서명/활성화/주문은 사용하지 않았습니다. 사용량은 unknown/unavailable입니다.
-
-## 16. 최종 통합 소스 eed84bc — 전체 재검사 중
-
-- 모든 runtime/test 수정을 eed84bc1b519ffc8a482c8a1848507432f8d5532로 고정해 push했습니다. 이전7실패는 개별 검증에서 수정됐으며 최종 전체 재실행이 진행 중입니다.
-- 시간순 reducer는 execution_launch/continuous_guard.py로 이동했고 후보 archive 저장도 execution_launch/continuous_archive.py로 분리했습니다. E2·계좌의 기존 광범위 접근 금지는 유지했습니다.
-- 갱신 검증은 정확한 두 호출 경로와45개 callable/16개 초기화 표면을 제한합니다. 독립 검토가 찾아낸 JSON callback 재바인딩 우회도 부정검사와 함께 수정했습니다. 전체 Python 안전성 증명으로 설명하지 않습니다.
-- 세션 준비는 실제 clock/positions_asof를 요구하며 계산·잠금·승인 재검사·내용 hash·저장 뒤까지 신선도와 검토 만료를 확인합니다. 저장이 늦으면 audit 행은 남으나 실제 발급 registry나 반환 session은 만들지 않습니다.
-- 관련 개별 결과는88개,경계8개+마지막3개,준비75개+후속3개+저장후3개,리허설17개입니다. 서로 겹치므로 합산한 테스트 수로 표시하지 않습니다.
-- 실제 보유 구간 완전성 발행자, 영속 guard 통합, fixed planner 및 controlled launcher는 여전히 미완료입니다. 기존 원금·최고점 하한과 실제 전략 검증 조건은 유지합니다.
-- 공개 signer 파일 SHA256은 a5a7cc359ddc053f617cb4b31c7e15d7fcf452166d3612b7900bae9cb141615e입니다. Windows 설치의 code-approval hash가 아니며 실제 서명을 대신하지 않습니다.
+PR13과 source 브랜치를 push했고 지정 Notion 두 페이지를 갱신했습니다.
+이 CURRENT의 직접 전달 사본은 TRADEGEN_HANDOFF_2026-11-06_KST.md입니다.
+이 반환은 주간 사용량95%를 관측했다는 뜻이 아닙니다. 사용량은 계속 unknown/unavailable입니다.
+법률·세무·투자 조언이 아니며 작성자는 면허를 가진 자문가가 아닙니다.
