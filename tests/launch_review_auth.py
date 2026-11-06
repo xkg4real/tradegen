@@ -1,6 +1,6 @@
 """Detached review authentication with invented data and disposable synthetic keys."""
 from copy import deepcopy
-from dataclasses import asdict, replace
+from dataclasses import asdict, fields, replace
 from datetime import timedelta
 from decimal import Decimal
 from functools import lru_cache
@@ -14,11 +14,11 @@ from execution_launch.driver import DeploymentWindow, describe_fixed_driver, mak
 from execution_launch.profile import profile_contract_digest
 from execution_launch.program import ProgramSpec, parameters_json, program_digest
 from execution_launch.review_auth import (REVIEW_DOMAIN, ReviewAuthenticationError, ReviewAuthority,
-    ReviewVerifiers, parse_review_document, review_body, review_signing_bytes,
+    ReviewBundle, ReviewVerifiers, parse_review_document, review_body, review_signing_bytes,
     verify_implementation_review, verify_source_review)
 from execution_launch.review_request import build_review_request
-from execution_launch.runner import ImplementationBinding, StrategyDriver
-from execution_launch.strategy import ReviewBinding, assess_strategy, evidence_digest
+from execution_launch.runner import EvidencePackage, ImplementationBinding, RunnerError, StrategyDriver
+from execution_launch.strategy import ReviewBinding, StrategyEvidenceError, assess_strategy, evidence_digest
 from tests.launch_profile import context, fixture_profile
 from tests.launch_strategy import START, fixture_capture
 
@@ -203,3 +203,110 @@ def test_callback_wrapper_refreshes_owner_authority_on_every_verification():
     assert verifiers.source(source_binding()).reviewed_at==now
     refused(lambda:verifiers.implementation(implementation_binding(),review_fixture()[6]),'REVIEW_OWNER_CONTEXT_INVALID')
     assert observed==[now,now]
+
+
+def test_authenticated_body_is_fresh_verified_detached_and_not_a_mutable_document_alias():
+    now=review_fixture()[4];observed=[]
+    def current(at):
+        observed.append(at)
+        return authority() if len(observed)<=2 else authority(context=replace(authority().context))
+    verifiers=ReviewVerifiers(document(),clock=lambda:now,authority_provider=current,
+        approved_history_provider=invented_provider,approved_history_verifier=invented_verifier)
+    first=verifiers.authenticated_body()
+    first['audit_sha256']='f'*64
+    second=verifiers.authenticated_body()
+    assert second['audit_sha256']==review_fixture()[-1]['audit_sha256']
+    refused(verifiers.authenticated_body,'REVIEW_OWNER_CONTEXT_INVALID')
+    assert observed==[now,now,now]
+
+
+def bundle_verifiers(*, raw=None, clock=None, provider=None, history_verifier=invented_verifier):
+    return ReviewVerifiers(document() if raw is None else raw,
+        clock=clock or (lambda:review_fixture()[4]), authority_provider=provider or authority,
+        approved_history_provider=invented_provider, approved_history_verifier=history_verifier)
+
+
+def bundle(verifiers, *, evidence=None, driver=None):
+    _,profile,protocol,result,_,_,actual,_,_=review_fixture()
+    return verifiers.assess_bundle(profile,
+        EvidencePackage(protocol=protocol,result=result) if evidence is None else evidence,
+        actual if driver is None else driver)
+
+
+def test_bundle_uses_one_fresh_observation_for_audit_source_and_actual_driver():
+    now=review_fixture()[4];observed=[];current=[now]
+    def load(at):
+        observed.append(at)
+        value=authority(at)
+        current[0]+=timedelta(seconds=1.5)
+        return value
+    result=bundle(bundle_verifiers(clock=lambda:current[0],provider=load))
+    assert type(result) is ReviewBundle and result.assessment.research_review_ready
+    assert result.binding==implementation_binding() and result.verified_at==now+timedelta(seconds=1.5)
+    assert result.body['audit_sha256']==review_fixture()[-1]['audit_sha256'] and observed==[now]
+    assert {field.name for field in fields(result)}=={'body','assessment','binding','verified_at'}
+    assert not result.assessment.execution_ready
+
+
+def test_bundle_never_caches_current_owner_or_leaks_its_mutable_signed_body():
+    now=review_fixture()[4];observed=[]
+    def current(at):
+        observed.append(at)
+        return authority(at) if len(observed)<=2 else authority(at,
+            context=context(at,owner=authority(at).context.owner,code_signed=False))
+    verifiers=bundle_verifiers(provider=current)
+    first=bundle(verifiers)
+    first.body['audit_sha256']='f'*64
+    first.body['request']['bindings']['evidence_digest']='e'*64
+    second=bundle(verifiers)
+    assert second.body==review_fixture()[-1]
+    refused(lambda:bundle(verifiers),'REVIEW_OWNER_APPROVAL_REQUIRED')
+    assert observed==[now,now,now]
+
+
+def test_bundle_completion_rejects_rollback_stale_observation_expiry_and_seoul_midnight():
+    now=review_fixture()[4]
+    cases=[(now,now-timedelta(microseconds=1),document(),'REVIEW_CLOCK_ROLLBACK'),
+           (now,now+timedelta(seconds=31),document(),'REVIEW_OWNER_AUTHORITY_STALE'),
+           (now+timedelta(hours=1,seconds=-1),now+timedelta(hours=1,seconds=1),
+            document(),'REVIEW_EXPIRED_OR_FUTURE')]
+    body=deepcopy(review_fixture()[-1])
+    body['expires_at']=(now+timedelta(hours=23)).isoformat(timespec='microseconds')
+    midnight=now.replace(hour=15,minute=0,second=0,microsecond=0)
+    cases.append((midnight-timedelta(seconds=1),midnight+timedelta(seconds=1),
+                  document(body),'REVIEW_OWNER_APPROVAL_REQUIRED'))
+    for start,finished,raw,code in cases:
+        stamps=iter((start,finished));observed=[]
+        def load(at):
+            observed.append(at)
+            return authority(at)
+        refused(lambda:bundle(bundle_verifiers(raw=raw,clock=lambda:next(stamps),provider=load)),code)
+        assert observed==[start]
+
+
+def test_bundle_still_rejects_unissued_result_and_unregistered_driver_or_history():
+    _,_,protocol,result,_,_,driver,_,_=review_fixture()
+    try:
+        bundle(bundle_verifiers(),evidence=EvidencePackage(protocol=protocol,result=replace(result)))
+    except StrategyEvidenceError as exc:
+        assert str(exc)=='STRATEGY_RESULT_NOT_ISSUED_OR_MUTATED'
+    else:
+        raise AssertionError('a copied result must not become computed evidence')
+    for verifiers,actual in ((bundle_verifiers(),replace(driver)),
+                             (bundle_verifiers(history_verifier=lambda *_:True),driver)):
+        try:
+            bundle(verifiers,driver=actual)
+        except RunnerError as exc:
+            assert str(exc)=='RUNNER_IMPLEMENTATION_REVIEW_FAILED'
+        else:
+            raise AssertionError('the bundle must preserve actual driver/history verification')
+
+
+def test_bundle_rejects_a_valid_signature_with_a_different_source_binding():
+    body=deepcopy(review_fixture()[-1])
+    request=body['request']
+    request['bindings']['inputs_digest']='f'*64
+    values={key:value for key,value in request.items() if key!='request_sha256'}
+    request['request_sha256']=hashlib.sha256(json.dumps(values,sort_keys=True,
+        separators=(',',':'),ensure_ascii=True).encode('ascii')).hexdigest()
+    refused(lambda:bundle(bundle_verifiers(raw=document(body))),'REVIEW_EVIDENCE_NOT_QUALIFIED')

@@ -592,7 +592,8 @@ class Controller:
                 raise ValueError('exact venue cap exceeded')
 
     def _authorize(self, tx, obj, rules, session_id, now, orders, killed, halted, exclude=None):
-        validate_order(obj, rules)
+        from execution_launch.instrument_refresh import validate_observed_order
+        validate_observed_order(obj, rules, now=now)
         if not timedelta(0) <= now-rules.asof <= timedelta(minutes=5):
             raise ValueError('instrument rules stale')
         obs = self._account(now, tx.events, obj)

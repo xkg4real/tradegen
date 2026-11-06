@@ -45,6 +45,8 @@ _TOP = frozenset({"schema_version", "artifact_kind", "requested_at", "capture_st
     "evaluator_revision", "source_kind_claim", "bindings", "computed_summary", "profile_blockers",
     "assessment_reasons", "required_checks", "reviewer_id", "review_public_key", "review_signature",
     "deployment_code_hash", "authority", "request_sha256"})
+_FAMILY = frozenset({"plan_digest", "members", "family_sha256"})
+_MEMBER = frozenset({"study_id", "capture_sha256", "evidence_digest"})
 
 
 class ReviewRequestError(ValueError):
@@ -89,9 +91,57 @@ def _canonical(value):
         raise ReviewRequestError("REVIEW_REQUEST_JSON_INVALID") from None
 
 
+def _validate_family(value):
+    _require(type(value) is dict and set(value) == _FAMILY and _hash(value["plan_digest"]),
+             "REVIEW_FAMILY_SCHEMA_INVALID")
+    members = value["members"]
+    _require(type(members) is list and 1 <= len(members) <= 128
+             and all(type(row) is dict and set(row) == _MEMBER and _identifier(row["study_id"])
+                     and _hash(row["capture_sha256"]) and _hash(row["evidence_digest"]) for row in members),
+             "REVIEW_FAMILY_SCHEMA_INVALID")
+    ids = [row["study_id"] for row in members]
+    _require(ids == sorted(set(ids)), "REVIEW_FAMILY_SCHEMA_INVALID")
+    body = {"plan_digest": value["plan_digest"], "members": members}
+    _require(_hash(value["family_sha256"]) and value["family_sha256"]
+             == hashlib.sha256(_canonical(body).encode("ascii")).hexdigest(), "REVIEW_FAMILY_DIGEST_MISMATCH")
+
+
+def build_family_commitment(*, plan_digest, capture_digests, result_digests):
+    """Bind the entire evaluated family, including failures; this is not authentication.
+
+    The study workflow computes these hashes from every raw capture and issued
+    evaluation. A detached owner signature over a schema-2 request authenticates
+    that reviewed family; the selector must recompute it before choosing a row.
+    """
+    _require(type(capture_digests) is dict and type(result_digests) is dict
+             and set(capture_digests) == set(result_digests)
+             and all(_identifier(name) for name in capture_digests), "REVIEW_FAMILY_SCHEMA_INVALID")
+    body = {"plan_digest": plan_digest, "members": [{"study_id": name,
+        "capture_sha256": capture_digests[name], "evidence_digest": result_digests[name]}
+        for name in sorted(capture_digests)]}
+    value = body | {"family_sha256": hashlib.sha256(_canonical(body).encode("ascii")).hexdigest()}
+    _validate_family(value)
+    return value
+
+
+def bind_review_family(request, commitment):
+    """Create a new unsigned schema-2 request; never upgrade an existing signature."""
+    _validate(request)
+    _require(request["schema_version"] == 1, "REVIEW_FAMILY_ALREADY_BOUND")
+    _validate_family(commitment)
+    body = {name: value for name, value in request.items() if name != "request_sha256"}
+    body.update(schema_version=2, family_commitment=json.loads(_canonical(commitment)))
+    result = body | {"request_sha256": hashlib.sha256(_canonical(body).encode("ascii")).hexdigest()}
+    _validate(result)
+    return result
+
+
 def _validate(request):
-    _require(type(request) is dict and set(request) == _TOP, "REVIEW_REQUEST_SCHEMA_INVALID")
-    _require(type(request["schema_version"]) is int and request["schema_version"] == 1
+    _require(type(request) is dict and type(request.get("schema_version")) is int
+             and request["schema_version"] in (1, 2), "REVIEW_REQUEST_SCHEMA_INVALID")
+    expected = _TOP if request["schema_version"] == 1 else _TOP | {"family_commitment"}
+    _require(set(request) == expected, "REVIEW_REQUEST_SCHEMA_INVALID")
+    _require(type(request["schema_version"]) is int and request["schema_version"] in (1, 2)
              and request["artifact_kind"] == "unsigned_strategy_review_request",
              "REVIEW_REQUEST_SCHEMA_INVALID")
     stamps = {name: _time(request[name]) for name in
@@ -106,6 +156,12 @@ def _validate(request):
     bindings = request["bindings"]
     _require(type(bindings) is dict and set(bindings) == _BINDINGS and all(_hash(v) for v in bindings.values()),
              "REVIEW_REQUEST_BINDING_INVALID")
+    if request["schema_version"] == 2:
+        family = request["family_commitment"]
+        _validate_family(family)
+        member = next((row for row in family["members"] if row["study_id"] == request["study_id"]), None)
+        _require(member is not None and member["evidence_digest"] == bindings["evidence_digest"],
+                 "REVIEW_FAMILY_CANDIDATE_MISMATCH")
     summary = request["computed_summary"]
     _require(type(summary) is dict and set(summary) == {"mathematical_criteria_met", "metrics"}
              and type(summary["mathematical_criteria_met"]) is bool,

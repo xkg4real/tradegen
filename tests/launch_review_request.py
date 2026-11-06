@@ -13,6 +13,7 @@ from execution_launch.profile import profile_contract_digest
 from execution_launch.program import ProgramSpec, parameters_json, program_digest
 from execution_launch.review_request import (
     MAX_REQUEST_BYTES, ReviewRequestError, build_review_request, parse_review_request, review_request_json,
+    build_family_commitment, bind_review_family,
 )
 from execution_launch.strategy import StrategyEvidenceError, assess_strategy
 from tests.launch_profile import fixture_profile
@@ -156,3 +157,25 @@ def test_request_preparation_reads_no_owner_state_key_environment_or_network():
                        "socket.create_connection", "socket.socket"):
             stack.enter_context(patch(target, side_effect=AssertionError("unexpected side effect")))
         assert not request()["authority"]["execution_ready"]
+
+
+def test_schema2_family_commitment_is_unsigned_but_covers_every_member_and_candidate_result():
+    one = request()
+    identifier = one["study_id"]
+    family = build_family_commitment(plan_digest="a"*64,
+        capture_digests={identifier:"b"*64, "other-failed-study":"c"*64},
+        result_digests={identifier:one["bindings"]["evidence_digest"], "other-failed-study":"d"*64})
+    bound = bind_review_family(one, family)
+    assert one["schema_version"] == 1 and "family_commitment" not in one
+    assert bound["schema_version"] == 2 and bound["family_commitment"] == family
+    assert parse_review_request(review_request_json(bound)) == bound
+    assert not any(bound["authority"].values())
+    refused(lambda:bind_review_family(bound,family), "REVIEW_FAMILY_ALREADY_BOUND")
+    for mutate in (lambda f:f["members"].append(deepcopy(f["members"][0])),
+                   lambda f:f["members"][0].update(capture_sha256="not-a-digest"),
+                   lambda f:f.update(family_sha256="f"*64)):
+        altered=deepcopy(bound);mutate(altered["family_commitment"])
+        refused(lambda:parse_review_request(rehash(altered)))
+    wrong=build_family_commitment(plan_digest="a"*64,capture_digests={identifier:"b"*64},
+                                  result_digests={identifier:"f"*64})
+    refused(lambda:bind_review_family(one,wrong), "REVIEW_FAMILY_CANDIDATE_MISMATCH")

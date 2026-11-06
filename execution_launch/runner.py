@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import base64
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from decimal import Decimal
 import hashlib
@@ -29,6 +29,8 @@ from execution_control.session import PreparedSession, prepare_session
 from execution_launch.profile import (LaunchProfile, preflight_profile, profile_digest,
     profile_contract_digest, rule_terms_digest, risk_policy)
 from execution_launch.strategy import assess_strategy
+from execution_launch.instrument_refresh import (validate_renewal, rules_binding_matches,
+                                                  validate_observed_order)
 
 _ACTIVE = frozenset({'RESERVED', 'UNKNOWN', 'ACKNOWLEDGED', 'PARTIAL', 'CANCEL_REQUESTED'})
 _HASH = re.compile(r'[0-9a-f]{64}')
@@ -182,16 +184,19 @@ class LaunchSession:
 
 def prepare_launch_session(*, profile, evidence, driver, implementation_verifier,
                            journal, selected_plan, inputs, positions, now,
-                           selection_seed_hex, expires_at=None) -> LaunchSession:
+                           selection_seed_hex, clock, positions_asof, expires_at=None) -> LaunchSession:
     """Prepare fresh odds with a derived label BEFORE the owner signs its ID.
 
     This writes only the existing preparation event. It does not sign, arm, fetch
     account data or send an order. The owner must subsequently use the returned
     actual PreparedSession object, not reconstruct a serialized copy.
     """
-    _instant(now)
-    _require(preflight_profile(profile, now=now).profile_complete, 'RUNNER_PROFILE_INCOMPLETE')
-    assessment, binding = _assess(profile, evidence, driver, implementation_verifier, now)
+    _instant(now); _instant(positions_asof)
+    _require(callable(clock), "RUNNER_PREPARATION_CLOCK_REQUIRED")
+    started = clock()
+    _instant(started)
+    _require(preflight_profile(profile, now=started).profile_complete, 'RUNNER_PROFILE_INCOMPLETE')
+    assessment, binding = _assess(profile, evidence, driver, implementation_verifier, started)
     _require(assessment.research_review_ready, 'RUNNER_STRATEGY_NOT_QUALIFIED')
     symbol = (profile.symbol.split('-')[1] if profile.venue == 'upbit' else
               profile.symbol.split('-')[0] if profile.venue == 'okx' else profile.symbol)
@@ -199,10 +204,34 @@ def prepare_launch_session(*, profile, evidence, driver, implementation_verifier
              'RUNNER_SELECTED_PLAN_SCOPE_MISMATCH')
     _require(0 < selected_plan.stake_krw <= profile.policy.initial_equity,
              'RUNNER_SELECTED_STAKE_EXCEEDS_RESEARCH_CAPITAL')
+    def completion_check(stamp):
+        _require(preflight_profile(profile, now=stamp).profile_complete, 'RUNNER_PROFILE_INCOMPLETE')
+        receipts = []
+
+        def source_receipt(review_binding):
+            receipt = evidence.review_verifier(review_binding)
+            receipts.append(receipt)
+            return receipt
+
+        def implementation_receipt(review_binding, actual_driver):
+            receipt = implementation_verifier(review_binding, actual_driver)
+            receipts.append(receipt)
+            return receipt
+
+        # _assess validates BOTH exact receipt types, bindings, callback and
+        # dates before their deadlines are retained. No parser-only timestamp
+        # or callback boolean can extend the final commit window.
+        current, current_binding = _assess(profile, replace(evidence, review_verifier=source_receipt),
+                                          driver, implementation_receipt, stamp)
+        _require(current.research_review_ready and current_binding == binding and len(receipts) == 2,
+                 'RUNNER_PREPARATION_REVIEW_CHANGED')
+        return min(receipt.expires_at for receipt in receipts)
+
     prepared = prepare_session(journal=journal, session_id=_label(binding), selected_plan=selected_plan,
         inputs=inputs, positions=positions, policy=risk_policy(profile), instrument_rules=profile.instrument_rules,
         now=now, selection_seed_hex=selection_seed_hex, account_scope=profile.account_scope,
-        market=profile.market, quote_currency=profile.quote_currency, expires_at=expires_at)
+        market=profile.market, quote_currency=profile.quote_currency, expires_at=expires_at,
+        clock=clock, positions_asof=positions_asof, completion_check=completion_check)
     return LaunchSession(prepared=prepared, profile_digest=profile_digest(profile), binding=binding)
 
 
@@ -254,6 +283,33 @@ class Runner:
             _require(not root.is_relative_to(Path.home() / '.tradegen') and state_root().absolute() == root
                      and c.journal._base == root, 'RUNNER_REHEARSAL_STATE_MISMATCH')
 
+    def refresh_instrument_rules(self, renewal, *, now):
+        """Apply an issued same-contract snapshot without changing owner authority.
+
+        Coordinator callers serialize this with account/quote work. This lock
+        also refuses concurrent ticks; the original prepared object is retained.
+        """
+        _instant(now)
+        _require(self._lock.acquire(blocking=False), 'RUNNER_CONCURRENT_TICK_REFUSED')
+        try:
+            # Stop latches entries; same-contract renewal remains necessary for exits.
+            _require(self._last_now is None or now >= self._last_now, 'RUNNER_CLOCK_ROLLBACK')
+            _require(profile_digest(self.profile) == self._profile_digest, 'RUNNER_PROFILE_MUTATED')
+            current = validate_renewal(renewal, previous_profile=self.profile, now=now)
+            launch = self.launch_session
+            if launch is not None:
+                _require(type(launch) is LaunchSession
+                         and launch.profile_digest == self._profile_digest,
+                         'RUNNER_SESSION_BINDING_MISMATCH')
+                _require(rules_binding_matches(launch.prepared.rules_digest, current.instrument_rules,
+                         account_scope=current.account_scope, now=now), 'RUNNER_SESSION_BINDING_MISMATCH')
+                launch = replace(launch, profile_digest=profile_digest(current))
+            self.profile, self._profile_digest, self.launch_session = current, profile_digest(current), launch
+            self._last_now = now
+            return current
+        finally:
+            self._lock.release()
+
     @property
     def stopped(self):
         return self._stopped
@@ -280,7 +336,7 @@ class Runner:
                  and account.risk.external_flows_known is True, 'RUNNER_ACCOUNT_INCOMPLETE_OR_MISMATCHED')
         return quote, account
 
-    def _order(self, signal, account):
+    def _order(self, signal, account, now=None):
         _require(type(signal) is Signal and _SIGNAL.fullmatch(signal.signal_id) is not None
                  and signal.action in ('entry', 'exit', 'hold'), 'RUNNER_SIGNAL_INVALID')
         if signal.action == 'hold':
@@ -295,7 +351,9 @@ class Runner:
             venue=self.profile.venue, market=self.profile.market, symbol=self.profile.symbol, side=side,
             quantity=signal.quantity, limit_price=signal.limit_price, quote_krw=rate,
             time_in_force=self.profile.time_in_force)
-        validate_order(order, self.profile.instrument_rules)
+        # Private construction callers may use the supplied observation instant.
+        # Dispatch always rechecks the actual current time at the controller boundary.
+        validate_observed_order(order, self.profile.instrument_rules, now=account.asof if now is None else now)
         return order
 
     def _session(self, binding, now):
@@ -306,7 +364,8 @@ class Runner:
         _require(launch.profile_digest == profile_digest(self.profile) and launch.binding == binding
                  and p.session_id.rpartition('-')[0] == _label(binding)
                  and p.policy_digest == digest(risk_policy(self.profile))
-                 and p.rules_digest == rules_digest(self.profile.instrument_rules)
+                 and rules_binding_matches(p.rules_digest, self.profile.instrument_rules,
+                                           account_scope=self.profile.account_scope, now=now)
                  and (p.venue, p.account_scope, p.market, p.quote_currency) ==
                      (self.profile.venue, self.profile.account_scope, self.profile.market, self.profile.quote_currency)
                  and p.prepared_at <= now < p.expires_at
@@ -360,7 +419,7 @@ class Runner:
                                           self.implementation_verifier, now)
             signal = self.driver.callback(DecisionInput(now=now, profile=self.profile, quote=quote, account=account),
                                           self.driver.parameters_json)
-            order = self._order(signal, account)
+            order = self._order(signal, account, now)
             if order is None:
                 return TickResult(mode=self.mode, status='hold', reasons=assessment.reasons,
                     reconciled_orders=reconciled, protective_action_needed=risk.protective_action_needed)
@@ -434,7 +493,7 @@ class Runner:
         with self._protective_action(now):
             _require(type(signal) is Signal and signal.action == 'exit', 'RUNNER_EXIT_REQUIRED')
             _, account = self._observations(now)
-            order = self._order(signal, account)
+            order = self._order(signal, account, now)
             existing = next((s for s in self.controller.states() if s.client_id == order.client_id), None)
             if existing is not None:
                 _require(existing.order_digest == order_digest(order), 'RUNNER_DECISION_CHANGED')

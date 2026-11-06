@@ -4,6 +4,7 @@ covers the exact query sent. The wallet status stays on the allowlist but nothin
 from __future__ import annotations
 
 import math
+import re
 from datetime import datetime
 
 from core.compliance import model
@@ -14,8 +15,27 @@ ENDPOINTS = frozenset({
     ("GET", "/v1/accounts"), ("GET", "/v1/orders/open"), ("GET", "/v1/orders/closed"), ("GET", "/v1/withdraws"),
     ("GET", "/v1/withdraws/coin_addresses"), ("GET", "/v1/deposits"), ("GET", "/v1/api_keys"),
     ("GET", "/v1/status/wallet"), ("GET", "/v1/ticker"), ("GET", "/v1/order"), ("GET", "/v1/orderbook"),
+    ("GET", "/v1/orders/chance"), ("GET", "/v1/orderbook/instruments"),
 })
-PUBLIC = frozenset({"/v1/ticker", "/v1/orderbook"})
+PUBLIC = frozenset({"/v1/ticker", "/v1/orderbook", "/v1/orderbook/instruments"})
+
+
+TERMS_CHANCE_PATH = "/v1/orders/chance"
+TERMS_INSTRUMENTS_PATH = "/v1/orderbook/instruments"
+
+
+def current_terms(symbol):
+    """Read this exact KRW pair's order constraints and current tick, GET only.
+
+    Account inquiry remains authenticated; the instrument policy is public.
+    Parameter, method and path cannot be supplied by the caller.
+    """
+    if (type(symbol) is not str or re.fullmatch(r"KRW-[A-Z][A-Z0-9]{0,11}", symbol) is None
+            or symbol == "KRW-KRW"):
+        raise InquiryRefused("upbit: invalid terms symbol")
+    chance = request("upbit", "GET", "/v1/orders/chance", (("market", symbol),))
+    instruments = request("upbit", "GET", "/v1/orderbook/instruments", (("markets", symbol),))
+    return chance, instruments
 
 _ACCOUNTS = "/v1/accounts"
 _OPEN = "/v1/orders/open"

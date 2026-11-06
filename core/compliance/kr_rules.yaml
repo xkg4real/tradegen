@@ -415,10 +415,13 @@ rows:
       - "https://www.smarttoday.co.kr/ko-kr/articles/110976"
       - "https://www.fsc.go.kr/no010101/87177"
       - "https://casenote.kr/법령/가상자산_이용자_보호_등에_관한_법률/제10조"
+      - "https://digitalx.miraeasset.com/company/"
+      - "https://www.kdaxa.org/community/notice.php?boardid=notice&category=&idx=86&mode=view&offset=&sk=&sw="
     research:
       - "reports/Korean resident trading venue legality.md#compliance-matrix row 10"
       - "reports/Korean resident trading venue legality.md#L143"
       - "research_notes/Korean resident trading venue legality/crypto_domestic_and_overseas.md#L5"
+      - "research_notes/Korean resident trading venue legality/review_closeout_2026-11-06.md#korbit-digitalx-mapping"
     matrix_rows: [10]
     confidence: high
     effective_from: "2026-06-24"

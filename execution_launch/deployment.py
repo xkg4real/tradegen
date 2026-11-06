@@ -200,7 +200,7 @@ def _source_tree(repo_root):
     for relative, recursive in (("core/compliance", False), ("core/odds", False), ("execution", False),
                                 ("execution_control", True), ("execution_orders", True),
                                 ("execution_accounts", True), ("execution_network", True),
-                                ("execution_launch", True)):
+                                ("execution_launch", True), ("tools/owner", True)):
         base = root / relative
         _require(all(not _linked(p) for p in (base, *base.parents)), "DEPLOYMENT_LINKED_SOURCE_REFUSED")
         todo.extend(_source_paths(base, recursive=recursive))

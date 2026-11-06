@@ -67,6 +67,13 @@ the actual prepared session and must satisfy E2's freshness checks.
 
 `prepare_launch_session(...)` recomputes these bindings, verifies qualification,
 selected-plan scope and capital, then invokes existing fresh-odds preparation.
+Its explicit `clock` must be the actual runtime clock, and `positions_asof` must
+come from the reconciled account observation. The existing 30-second input/account
+bound, same Seoul date, current owner/code/rules and verified review expiries must
+still hold after simulation, journal-lock acquisition and final validation.
+Successful issuance records its completion time without extending the requested
+expiry; a stale result is not a prepared session. Historical odds simulation
+remains an injected-data calculation with no implicit wall clock.
 It writes the existing preparation event and never signs or arms a session. Its
 derived label is `L` plus the first 31 URL-safe base64 characters of the binding's
 SHA-256 hash: 186 retained bits (approximately 93-bit generic birthday collision

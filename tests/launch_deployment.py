@@ -195,6 +195,25 @@ def test_regular_nested_sources_remain_scanned_and_nested_hardlinks_refuse():
             refused(lambda: D.export_manifest(repo_root=root), "DEPLOYMENT_LINKED_SOURCE_REFUSED")
 
 
+def test_owner_command_sources_are_scanned_and_links_refuse_before_hashing():
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        package = root / "tools" / "owner" / "nested"
+        package.mkdir(parents=True)
+        source = package / "prepare.py"
+        source.write_text("VALUE=1\n", encoding="utf-8")
+        with patch.object(D, "_ROOT", root), patch.object(owner, "_repo_imports", return_value=[]) as imports:
+            assert D._source_tree(root) == root
+            assert imports.call_count == 1 and imports.call_args.args == (root, source)
+        outside = root / "outside"; outside.mkdir()
+        (outside / "hidden.py").write_text("VALUE=2\n", encoding="utf-8")
+        F.directory_link(package / "linked-directory", outside)
+        with patch.object(D, "_ROOT", root), \
+                patch.object(owner, "_repo_imports", side_effect=AssertionError("must not inspect source AST")), \
+                patch.object(owner, "code_files", side_effect=AssertionError("must not hash source")):
+            refused(lambda: D.export_manifest(repo_root=root), "DEPLOYMENT_LINKED_SOURCE_REFUSED")
+
+
 def test_cli_compares_bounded_explicit_files_and_redacts_paths_and_rejected_arguments():
     with tempfile.TemporaryDirectory() as directory:
         left, right = Path(directory)/"left.json", Path(directory)/"right.json"

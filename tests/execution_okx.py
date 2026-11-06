@@ -11,7 +11,7 @@ import hmac
 import json
 from urllib.parse import parse_qsl, urlsplit
 
-from execution import keys, okx_inquiry, transport
+from execution import keys, okx_inquiry, positions, transport
 from execution.snapshot import Holding, Move, Order
 from tests import execution_fixtures as EF
 
@@ -197,7 +197,7 @@ def test_the_full_fixture_gives_every_field():
     assert snap.server_utc == "2026-10-24T00:00:00Z" and snap.clock_offset_s == 0.0
     assert dict(snap.holdings) == {"USDT": Holding(units=10.0, locked=0.0), "BTC": Holding(units=0.0001, locked=0.0)}
     assert dict(snap.cash) == {} and snap.deposit_krw is None    # coins, USDT included, are holdings (E16)
-    assert dict(snap.prices_krw) == {"USDT": 1400.0, "USDC": 1400.0, "BTC": 70000.0 * 1400.0}
+    assert dict(snap.prices_krw) == {"USDT": 1400.0, "BTC": 70000.0 * 1400.0}
     assert snap.open_orders == (Order(id="o1", symbol="BTC", side="sell", units=0.0001, price=60000.0),
                                 Order(id="a1", symbol="BTC", side="buy", units=0.0001, price=60000.0),
                                 Order(id="a2", symbol="BTC", side="buy", units=0.0001, price=None))   # px "": None
@@ -227,7 +227,43 @@ def test_prices_come_from_the_upbit_usdt_price():
     routes = EF.okx_routes()
     routes[EF.OKX_ROUTES["ticker"]]["data"][0]["last"] = "65000.5"
     snap, _calls = _run(routes, usdt_krw=1350.0)
-    assert dict(snap.prices_krw) == {"USDT": 1350.0, "USDC": 1350.0, "BTC": 65000.5 * 1350.0}
+    assert dict(snap.prices_krw) == {"USDT": 1350.0, "BTC": 65000.5 * 1350.0}
+
+
+def test_usdc_holdings_are_retained_but_refuse_valuation_without_an_independent_mark():
+    for location in ("trading", "funding", "both"):
+        routes = EF.okx_routes()
+        if location in ("trading", "both"):
+            details = routes[EF.OKX_ROUTES["balance"]]["data"][0]["details"]
+            details.append(dict(details[0], ccy="USDC", cashBal="3", frozenBal="1"))
+        if location in ("funding", "both"):
+            routes[EF.OKX_ROUTES["asset_balances"]]["data"].append(
+                {"ccy": "USDC", "bal": "2", "frozenBal": "0.5", "availBal": "1.5"})
+        snap, calls = _run(routes)
+        expected = {"trading": Holding(units=3.0, locked=1.0),
+                    "funding": Holding(units=2.0, locked=0.5),
+                    "both": Holding(units=5.0, locked=1.5)}[location]
+        assert snap.ok and snap.holdings["USDC"] == expected
+        assert "USDC" not in snap.prices_krw
+        assert positions.venue_value_krw(snap) is None
+        assert positions.live_positions({"kis": EF.snap("kis"), "upbit": EF.snap("upbit"),
+                                         "okx": snap}, EF.NOW) is None
+        assert all(call["method"] == "GET" for call in calls)
+
+
+def test_zero_usdc_balances_do_not_create_an_unpriced_exposure():
+    routes = EF.okx_routes()
+    details = routes[EF.OKX_ROUTES["balance"]]["data"][0]["details"]
+    details.append(dict(details[0], ccy="USDC", cashBal="0", frozenBal="0"))
+    routes[EF.OKX_ROUTES["asset_balances"]]["data"].append(
+        {"ccy": "USDC", "bal": "0", "frozenBal": "0", "availBal": "0"})
+    snap, _calls = _run(routes)
+    assert snap.ok and "USDC" not in snap.holdings and "USDC" not in snap.prices_krw
+    expected = 10.0 * 1400.0 + 0.0001 * 70000.0 * 1400.0
+    assert positions.venue_value_krw(snap) == expected
+    live = positions.live_positions({"kis": EF.snap("kis"), "upbit": EF.snap("upbit"),
+                                     "okx": snap}, EF.NOW)
+    assert live is not None and live.equity_krw == expected
 
 
 def test_events_from_a_position_an_order_or_a_fill():

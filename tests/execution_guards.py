@@ -757,8 +757,8 @@ UPBIT_FILE = "execution/upbit_inquiry.py"  # the one file that may name the Upbi
 POLL = "execution/poll.py"                 # the one importer of the transport module (for transport._clock)
 KIS_ORDER_WORDS = ("order-cash", "order-credit", "order-rvsecncl", "order-resv", "daytime-order", "/trading/order",
                    "/trading/daytime")                       # raw, lower-cased, in kis_inquiry.py
-UPBIT_EXACT = frozenset({"/v1/order", "/v1/orderbook", "/v1/orders/open", "/v1/orders/closed", "/v1/withdraws", "/v1/withdraws/coin_addresses"})
-UPBIT_TOKEN = re.compile(r"(?i)/v1/(?:order|withdraw)[A-Za-z0-9_/\-]*")
+UPBIT_EXACT = frozenset({"/v1/order", "/v1/orderbook", "/v1/orders/open", "/v1/orders/closed", "/v1/withdraws", "/v1/withdraws/coin_addresses", "/v1/orders/chance", "/v1/orderbook/instruments"})
+UPBIT_TOKEN = re.compile(r"(?i)/v1/(?:order|withdraw)[A-Za-z0-9_/\-]*(?:[?#][^\s'\"`)]*)?")
 KIS_TOKEN = re.compile(r"/uapi/[^\s'\"]*")
 KIS_GET_PATHS = frozenset({                # the nine GET paths of contract section 7, written out here (never read
     "/uapi/domestic-stock/v1/trading/inquire-balance",          # from kis_inquiry.ENDPOINTS)
@@ -777,7 +777,7 @@ TR_SHAPE = re.compile(r"(?i)(?<![A-Za-z0-9])[A-Z]{4}[0-9]{4}[A-Z](?![A-Za-z0-9])
 ORDER_TR = re.compile(r"(?i)[A-Z]{4}[0-9]{4}U")
 OKX_ORDER_PATH = "/api/v5/trade/order"     # the GET also serves the order POST: never a string constant (spec 5)
 TRANSPORT_NAMES = frozenset({"request", "require_keys", "Answer", "InquiryRefused", "InquiryError", "AuthError",
-                             "KeyMissing", "inquiry_clock"})  # public standalone inquiry clock, no implicit time
+                             "KeyMissing", "inquiry_clock", "inquiry_guard"})  # public standalone inquiry clock, no implicit time
 CREDENTIAL_NAMES = ("KIS_APP_KEY", "KIS_APP_SECRET", "UPBIT_ACCESS_KEY", "UPBIT_SECRET_KEY", "OKX_API_KEY",
                     "OKX_API_SECRET", "OKX_API_PASSPHRASE")
 SEND_SOURCE = ("def _send(method, url, *, headers, params, json_body, timeout):\n"     # ast.unparse of the whole
@@ -791,7 +791,8 @@ SEND_SOURCE = ("def _send(method, url, *, headers, params, json_body, timeout):\
 TRANSPORT_ONLY = frozenset({"requests", "HOSTS", "CREDENTIALS", "_send", "_rules", "_query", "_upbit_jwt",
                             "_okx_timestamp", "_okx_sign", "_kis_token", "_read_token", "_write_token",
                             "_check_answer", "_next_issue_at", "_okx_offset_s", "_bad_tokens", "_headers",
-                            "_TokenRejected", "_now", "_context_clock", "_INQUIRY_CLOCK"})
+                            "_TokenRejected", "_now", "_context_clock", "_INQUIRY_CLOCK",
+                            "_INQUIRY_GUARDS", "_check_inquiry_guard"})
 # attributes no module but transport.py reads or writes (poll.py's one `transport._clock = ...` aside): the two
 # send-time seams, the modules a getattr chain would reach, and request (so it is always called by its own name)
 SEAM_ATTRS = frozenset({"_clock", "_sleep", "transport", "keys", "request"})
@@ -814,8 +815,8 @@ SEND_TEMPLATE = ("import requests\n\n"                # contract section 6's _se
 
 
 def _upbit_token_hits(rel: str, src: str) -> list[str]:
-    """Raw text: every Upbit order or withdrawal path token is one of six exact inquiry paths, in upbit_inquiry.py."""
-    return [f"{rel}: {m.group(0)!r}: only the six exact Upbit inquiry paths, only in {UPBIT_FILE}"
+    """Raw text: every Upbit order or withdrawal path token is one of eight exact inquiry paths, in upbit_inquiry.py."""
+    return [f"{rel}: {m.group(0)!r}: only the eight exact Upbit inquiry paths, only in {UPBIT_FILE}"
             for m in UPBIT_TOKEN.finditer(src) if rel != UPBIT_FILE or m.group(0) not in UPBIT_EXACT]
 
 
@@ -1016,7 +1017,7 @@ def test_allowlists_are_pinned():
     upbit = frozenset({("GET", "/v1/accounts"), ("GET", "/v1/order"), ("GET", "/v1/orders/open"), ("GET", "/v1/orders/closed"),
                        ("GET", "/v1/withdraws"), ("GET", "/v1/withdraws/coin_addresses"), ("GET", "/v1/deposits"),
                        ("GET", "/v1/api_keys"), ("GET", "/v1/status/wallet"), ("GET", "/v1/ticker"),
-                       ("GET", "/v1/orderbook")})
+                       ("GET", "/v1/orderbook"), ("GET", "/v1/orders/chance"), ("GET", "/v1/orderbook/instruments")})
     okx = frozenset({("GET", "/api/v5/account/config"), ("GET", "/api/v5/account/balance"),
                      ("GET", "/api/v5/account/positions"), ("GET", "/api/v5/asset/balances"),
                      ("GET", "/api/v5/asset/asset-valuation"), ("GET", "/api/v5/finance/savings/balance"),
@@ -1033,7 +1034,8 @@ def test_allowlists_are_pinned():
     assert kis_inquiry.TR_IDS == kis_tr_ids, sorted(kis_inquiry.TR_IDS ^ kis_tr_ids)
     assert kis_inquiry.PUBLIC == frozenset() and kis_inquiry.ACCOUNT_NAMES == ("KIS_ACCOUNT_8", "KIS_ACCOUNT_PD")
     assert upbit_inquiry.ENDPOINTS == upbit, sorted(upbit_inquiry.ENDPOINTS ^ upbit)
-    assert upbit_inquiry.PUBLIC == frozenset({"/v1/ticker", "/v1/orderbook"})
+    assert upbit_inquiry.PUBLIC == frozenset({"/v1/ticker", "/v1/orderbook", "/v1/orderbook/instruments"})
+    assert "/v1/orders/chance" not in upbit_inquiry.PUBLIC
     assert okx_inquiry.ENDPOINTS == okx, sorted(okx_inquiry.ENDPOINTS ^ okx)
     assert okx_inquiry.PUBLIC == frozenset({"/api/v5/public/time", "/api/v5/market/ticker"})
     assert okx_inquiry.ALGO_TYPES == ("conditional", "oco", "trigger", "move_order_stop", "iceberg", "twap", "chase")
@@ -1091,12 +1093,12 @@ def test_kis_strings_are_exact():
 def test_upbit_strings_are_exact():
     """Contract 0.5 and spec 8 "Upbit exception": every Upbit order or withdrawal path token in execution/ is one of
     /v1/order, /v1/orderbook, /v1/orders/open, /v1/orders/closed, /v1/withdraws and /v1/withdraws/coin_addresses,
-    in upbit_inquiry.py only; the separate endpoint pin permits only GET for these paths."""
+    plus the two fixed terms inquiry paths, in upbit_inquiry.py only; the separate endpoint pin permits only GET for these paths."""
     for path in sorted(UPBIT_EXACT):
         assert not _upbit_token_hits(UPBIT_FILE, f'P = "{path}"\n'), path
     for path in ("/v1/withdraws/coin", "/v1/withdraws/krw", "/v1/withdraws/chance", "/v1/orders", "/v1/order/new",
-                 "/v1/orders/uuids", "/v1/orders/chance", "/v1/orders/cancel_and_new", "/V1/ORDERS/OPEN",
-                 "/v1/orders/open/x", "/v1/orderbook/instruments", "/v1/orderbook/new", "/v1/orderbooks"):
+                 "/v1/orders/uuids", "/v1/orders/chance/new", "/v1/orders/chance?market=KRW-BTC", "/v1/orders/cancel_and_new", "/V1/ORDERS/OPEN",
+                 "/v1/orders/open/x", "/v1/orderbook/instruments/new", "/v1/orderbook/instruments?markets=KRW-BTC", "/v1/orderbook/new", "/v1/orderbooks"):
         assert _upbit_token_hits(UPBIT_FILE, f'P = "{path}"\n'), path
     assert _upbit_token_hits(X, 'P = "/v1/orders/open"\n') and _upbit_token_hits(TRANSPORT, "# /v1/withdraws\n")
     assert not _upbit_token_hits(X, 'A = "/v1/accounts"\nD = "/v1/deposits"\nO = "/api/v5/trade/orders-pending"\n'

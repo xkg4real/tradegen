@@ -16,7 +16,8 @@ from pathlib import Path
 
 TESTS = Path(__file__).resolve().parent
 MODULES = ("control_guards", "control_model", "control_store", "control_risk", "control_session",
-           "control_controller", "orders_codecs", "orders_transport", "orders_lifecycle")
+           "control_controller", "orders_codecs", "orders_transport", "orders_lifecycle",
+           "control_continuous_guard")
 _REAL = (Path.home() / ".tradegen" / "execution-control",
          Path.home() / ".tradegen" / "execution_orders",
          Path.home() / ".tradegen" / "execution-baseline",          # CheckpointStore

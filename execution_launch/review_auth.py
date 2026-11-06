@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import base64
 import binascii
-from dataclasses import fields
+from dataclasses import dataclass, fields, replace
 from datetime import datetime, timedelta, timezone
 import hashlib
 import json
@@ -19,8 +19,8 @@ from execution_control.capability import digest
 from execution_control.owner_authority import MAX_AUTHORITY_AGE_SECONDS, ReviewAuthority
 from execution_launch.driver import FACTORY_ID, FixedDriverError, describe_fixed_driver, fixed_history_dependencies
 from execution_launch.review_request import parse_review_request, review_request_json, ReviewRequestError
-from execution_launch.runner import ImplementationBinding, ImplementationReceipt
-from execution_launch.strategy import ReviewBinding, ReviewReceipt, evidence_digest
+from execution_launch.runner import EvidencePackage, ImplementationBinding, ImplementationReceipt, _assess
+from execution_launch.strategy import ReviewBinding, ReviewReceipt, StrategyAssessment, evidence_digest
 
 REVIEW_DOMAIN = b"tradegen-strategy-review/1\n"
 MAX_DOCUMENT_BYTES = 98304
@@ -191,6 +191,11 @@ def _source_binding(body):
 
 def verify_source_review(binding, document, *, authority, now):
     body = _authenticate(document, authority, now)
+    return _source_receipt(binding, body)
+
+
+def _source_receipt(binding, body):
+    """For an authenticated body inside the current verification call only."""
     _need(type(binding) is ReviewBinding and evidence_digest(binding) == evidence_digest(_source_binding(body)),
           "REVIEW_SOURCE_BINDING_MISMATCH")
     return ReviewReceipt(binding_digest=evidence_digest(binding), reviewer_id=body["reviewer_id"],
@@ -201,6 +206,12 @@ def verify_source_review(binding, document, *, authority, now):
 def verify_implementation_review(binding, driver, document, *, authority, now,
                                  approved_history_provider, approved_history_verifier):
     body = _authenticate(document, authority, now)
+    return _implementation_receipt(binding, driver, body,
+        approved_history_provider=approved_history_provider, approved_history_verifier=approved_history_verifier)
+
+
+def _implementation_receipt(binding, driver, body, *, approved_history_provider, approved_history_verifier):
+    """Validate exact driver/history bindings without reloading the same authority."""
     values = body["request"]["bindings"]
     expected = ImplementationBinding(**{name: values[name] for name in
         ("program_digest", "protocol_digest", "evidence_digest", "profile_contract_digest", "rule_terms_digest")})
@@ -218,6 +229,19 @@ def verify_implementation_review(binding, driver, document, *, authority, now,
           "REVIEW_FIXED_DRIVER_MISMATCH")
     return ImplementationReceipt(binding_digest=digest(binding), callback=driver.callback,
         audit_sha256=body["audit_sha256"], reviewed_at=_time(body["issued_at"]), expires_at=_time(body["expires_at"]))
+
+
+@dataclass(frozen=True, kw_only=True)
+class ReviewBundle:
+    """One completed read-side assessment, not reusable authority or a capability.
+
+    The body is a detached copy. No verifier callback or owner authority escapes
+    the call; the next request must obtain a new bundle from current authority.
+    """
+    body: dict
+    assessment: StrategyAssessment
+    binding: ImplementationBinding
+    verified_at: datetime
 
 
 class ReviewVerifiers:
@@ -241,6 +265,51 @@ class ReviewVerifiers:
     def source(self, binding):
         now = self._clock()
         return verify_source_review(binding, self._document, authority=self._authority_provider(now), now=now)
+
+    def authenticated_body(self):
+        """A detached parsed body after fresh signature/current-owner verification.
+
+        Intended for reviewed composition to bind an audit file's exact bytes to
+        the already stored review document without re-reading a mutable path.
+        The signed audit hash does not certify an arbitrary audit parser or its
+        claims; the deployment still owns those checks. This grants no session.
+        """
+        now = self._clock()
+        return _authenticate(self._document, self._authority_provider(now), now)
+
+    def assess_bundle(self, profile, evidence, driver):
+        """Authenticate audit, source and implementation with one fresh observation.
+
+        The existing assessment still checks the actual issued numerical result,
+        every deployment binding and the exact registered driver/history pair.
+        Only this call shares an authority snapshot. Its private callbacks are
+        neither returned nor cached, and the snapshot's original timestamp is
+        checked again at completion, including expiry and the Seoul date.
+        """
+        _need(type(evidence) is EvidencePackage, "REVIEW_COMPUTED_EVIDENCE_REQUIRED")
+        document = self._document
+        now = self._clock()
+        _stamp(now)
+        authority = self._authority_provider(now)
+        body = _authenticate(document, authority, now)
+
+        def source(binding):
+            return _source_receipt(binding, body)
+
+        def implementation(binding, actual_driver):
+            return _implementation_receipt(binding, actual_driver, body,
+                approved_history_provider=self._history_provider, approved_history_verifier=self._history_verifier)
+
+        assessment, binding = _assess(profile, replace(evidence, review_verifier=source), driver,
+                                      implementation, now)
+        _need(assessment.research_review_ready, "REVIEW_EVIDENCE_NOT_QUALIFIED")
+        finished = self._clock()
+        _stamp(finished)
+        _need(finished >= now, "REVIEW_CLOCK_ROLLBACK")
+        # This second check is purely local: no provider call, no timestamp
+        # refresh, and no cached approval spanning two requests.
+        detached = _authenticate(document, authority, finished)
+        return ReviewBundle(body=detached, assessment=assessment, binding=binding, verified_at=finished)
 
     def implementation(self, binding, driver):
         now = self._clock()

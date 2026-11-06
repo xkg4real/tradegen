@@ -48,7 +48,7 @@ from execution_launch.private_input import _REFUSED_ATTRIBUTES
 from execution_launch.profile import (LaunchProfile, ProfileError, parse_profile_json, preflight_profile,
                                       profile_contract_digest, rule_terms_digest)
 from execution_launch.program import ProgramSpec, parameters_json, parse_program, program_digest
-from execution_launch.review_request import build_review_request
+from execution_launch.review_request import build_review_request, build_family_commitment, bind_review_family
 from execution_launch.strategy import (ForwardProtocol, Registration, StrategyEvidenceError, ValidationResult,
                                        _HASH, _ID, _date, _instant, _json, _object, _plain, assess_strategy,
                                        evaluate_capture_json, evidence_digest, parse_protocol, register_protocol)
@@ -585,24 +585,31 @@ class _Sink:
 
 
 def _select(plan, profile, captures, now):
-    results, evaluation = {}, {}
+    results, evaluation, capture_digests = {}, {}, {}
     for candidate in plan.candidates:
         identifier = candidate.protocol.study_id
         try:
             raw = _read_file(str(Path(captures) / (identifier + ".capture.json")), MAX_CAPTURE_BYTES)
             results[identifier] = evaluate_capture_json(candidate.protocol, raw, profile.instrument_rules, now=now)
+            capture_digests[identifier] = hashlib.sha256(raw).hexdigest()
             evaluation[identifier] = "EVALUATED"
         except (WorkflowError, StrategyEvidenceError) as exc:
             evaluation[identifier] = _reason(exc)
     selection = rank_market_evidence(plan, results, profile=profile, now=now, review_verifier=None)
     artifact, requests = _fixed_file(PROGRAM_SOURCE), []
+    # A review binds failures too: partial families cannot emit selectable review requests.
+    if len(results) != len(plan.candidates):
+        return selection, evaluation, requests
+    family = build_family_commitment(plan_digest=validate_study_plan(plan), capture_digests=capture_digests,
+                                     result_digests={key: evidence_digest(value) for key, value in results.items()})
     for candidate, row in zip(plan.candidates, selection.rows):
         if row.reasons == ("STRATEGY_TRUSTED_REVIEW_REQUIRED",):      # math met; the review is the owner's step
             variant = replace(profile, strategy_id=candidate.program.strategy_id,
                               strategy_code_sha256=program_digest(candidate.program, artifact))
-            requests.append(build_review_request(variant, candidate.protocol, results[row.study_id], now=now,
-                                                 program_artifact=artifact,
-                                                 parameters_json=parameters_json(candidate.program)))
+            request = build_review_request(variant, candidate.protocol, results[row.study_id], now=now,
+                                           program_artifact=artifact,
+                                           parameters_json=parameters_json(candidate.program))
+            requests.append(bind_review_family(request, family))
     return selection, evaluation, requests
 
 

@@ -62,7 +62,8 @@ def self_check(config: Mapping) -> frozenset[str]:
 def snapshot(now: datetime, usdt_krw: float | None) -> Snapshot:
     """The OKX snapshot of the poll at `now` (C11); `usdt_krw` is Upbit's KRW-USDT price of this poll, or None. A
     venue error gives a failed snapshot whose text holds names, paths and codes only (E37, E38); a refused write, the
-    suite's refusing stub and a programming error propagate."""
+    suite's refusing stub and a programming error propagate. USDC has no independently sourced mark in this
+    reader: retain its holdings unpriced, so whole-account valuation refuses rather than assuming a USDT peg."""
     utc, path, answers, server_utc, offset = model.iso_utc(now), _TIME, {}, None, None
     try:
         require_keys("okx")                                 # no call at all while the keys are missing (E32)
@@ -147,7 +148,7 @@ def snapshot(now: datetime, usdt_krw: float | None) -> Snapshot:
         path = _TICKER
         last, prices = _num(_one(answers[path].body, "data"), "last"), {}
         if usdt_krw is not None and math.isfinite(usdt_krw) and usdt_krw > 0:   # other coins stay unpriced (E17)
-            prices = {"USDT": usdt_krw, "USDC": usdt_krw, "BTC": last * usdt_krw}
+            prices = {"USDT": usdt_krw, "BTC": last * usdt_krw}
         return Snapshot(venue="okx", utc=utc, server_utc=server_utc, clock_offset_s=offset, ok=True,
                         holdings={c: Holding(units=u, locked=locked[c]) for c, u in units.items() if u > 0},
                         open_orders=tuple(orders), fills=tuple(fills), deposits=deposits, withdrawals=withdrawals,

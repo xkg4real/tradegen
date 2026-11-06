@@ -241,7 +241,8 @@ def _signed_lifecycle(case):
         journal = Journal()
         prepared = prepare_session(journal=journal, session_id="lifecycle", selected_plan=selected, inputs=inputs,
             positions=observation.positions, policy=policy, instrument_rules=instrument_rules, now=now,
-            selection_seed_hex=seed, account_scope=SCOPE, market=order.market, quote_currency=_quote(order))
+            selection_seed_hex=seed, account_scope=SCOPE, market=order.market, quote_currency=_quote(order),
+            clock=lambda: now, positions_asof=observation.asof)
         assert prepared.seed_hex != seed
         F.sign(key, "session_armed", {"session_id": prepared.session_id}, M.iso_utc(now))
         if order.venue == "okx":
