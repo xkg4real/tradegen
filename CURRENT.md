@@ -4,14 +4,14 @@ reason: owner_requested_48h_completion
 from: gpt
 task: first-trade-foundation
 cycle: 2026-11-03
-done_ids: cloud-compat-1, cloud-compat-2, cloud-compat-3, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr, spec-rev-3-3, policy-plan-1, policy-preview-1, policy-pr, e1-1, e1-2, e1-3, e1-4, e1-5, e1-6, e1-7, e1-8, e1-9, e1-10, e1-11, e1-12, e1-13, e1-pr, e2-1, e2-2, e3-1, e3-2, e3-3, e2-3, e3-4, e2-e3-pr, pr6-pr7-merge, research-preregister-1, research-evaluate-1, account-readiness-1, research-paper-1, account-provider-1, account-regression-1, account-research-pr, pr8-human-code-review-approval, pr8-merge, launch-network-1, launch-collector-1, launch-profile-1, launch-strategy-1, launch-runner-1, launch-program-2, launch-workflow-2, launch-baseline-2, launch-quotes-2, launch-deployment-2, launch-review-request-2, launch-driver-2, launch-review-auth-2, launch-baseline-integration-2, launch-market-protocol-1, launch-recovery-cutoff-1, kis-live-contract-1, kis-live-backend-1, kis-live-ui-1, launch-static-guard-1, launch-windows-design-1, kis-live-regression-1, launch-regression-1, launch-delivery-1, pr9-owner-review, launch-windows-inputs-1, launch-owner-authority-1, launch-live-evidence, launch-live-history-1, launch-windows-coordinator-1, launch-study-module-1, okx-data-1, final-review-1, pr10-owner-review, venues-upbit-terms, pr11-owner-review, rules-review-1122/research, launch-quote-diagnostics-1, launch-shortened-study-1, cloud-compat-4, launch-resume-regression-1, launch-resume-delivery-1, pr12-owner-merge
+done_ids: cloud-compat-1, cloud-compat-2, cloud-compat-3, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr, spec-rev-3-3, policy-plan-1, policy-preview-1, policy-pr, e1-1, e1-2, e1-3, e1-4, e1-5, e1-6, e1-7, e1-8, e1-9, e1-10, e1-11, e1-12, e1-13, e1-pr, e2-1, e2-2, e3-1, e3-2, e3-3, e2-3, e3-4, e2-e3-pr, pr6-pr7-merge, research-preregister-1, research-evaluate-1, account-readiness-1, research-paper-1, account-provider-1, account-regression-1, account-research-pr, pr8-human-code-review-approval, pr8-merge, launch-network-1, launch-collector-1, launch-profile-1, launch-strategy-1, launch-runner-1, launch-program-2, launch-workflow-2, launch-baseline-2, launch-quotes-2, launch-deployment-2, launch-review-request-2, launch-driver-2, launch-review-auth-2, launch-baseline-integration-2, launch-market-protocol-1, launch-recovery-cutoff-1, kis-live-contract-1, kis-live-backend-1, kis-live-ui-1, launch-static-guard-1, launch-windows-design-1, kis-live-regression-1, launch-regression-1, launch-delivery-1, pr9-owner-review, launch-windows-inputs-1, launch-owner-authority-1, launch-live-evidence, launch-live-history-1, launch-windows-coordinator-1, launch-study-module-1, okx-data-1, final-review-1, pr10-owner-review, venues-upbit-terms, pr11-owner-review, rules-review-1122/research, launch-quote-diagnostics-1, launch-shortened-study-1, cloud-compat-4, launch-resume-regression-1, launch-resume-delivery-1, pr12-owner-merge, account-okx-usdc-1, launch-market-readiness-1/audit, rules-review-1122/entity-mapping
 next_ids: rules-review-1122, launch-held-positions-1, launch-instrument-refresh-1, launch-controlled-coordinator-1, e1-14-owner-setup, launch-prospective-study
-updated_at: 2026-11-06T18:24:35+09:00
+updated_at: 2026-11-06T18:47:48+09:00
 stale_after_hours: 3
 waiting_on: owner code/rules electronic signatures; rule renewal evidence and remaining live integration
 work_branch: gpt/live-readiness-48h
-work_commit: 21259f8d8ab76ea35c46a61df582fe5d792e916f
-uncommitted_changes: none
+work_commit: c72c9b8fb071c047e793c6057029f91ec5e734ed
+uncommitted_changes: held evidence, terms renewal, owner workflow, authenticated selection and integration in progress
 pr: https://github.com/xkg4real/tradegen/pull/12 (merged 21259f8d8ab76ea35c46a61df582fe5d792e916f)
 usage_weekly_pct: unknown
 usage_source: unavailable
@@ -158,3 +158,11 @@ Cloud의scratch에는가짜검사로그와공식웹자료조사메모만있습�
 보유 연속증거·상품 조건 갱신·운영 명령·신뢰 검토 연결·시장별 미완료 항목을 병렬로 점검하고 구현합니다.
 실제 관측 시간, 전략 통과, 본인 전자서명, 손실 하한 안에서의 실행 가능성은 코드 작성과 구분합니다.
 기존 실API/키/실홈/서명/활성화/주문 제한은 유지하며 가짜 데이터 경로로 검증합니다.
+
+## 13. 48시간 작업 중간 저장
+
+2026-11-06T18:47:48+09:00에 c72c9b8을 gpt/live-readiness-48h로 push했습니다.
+- OKX의 USDC=USDT 가격복제를 제거하고, 독립가격이 없는 USDC는 보유량을 보존한 채 전체평가를 거부합니다. E1+계좌준비검사250PASS/0FAIL, 신규2개.
+- 국내거래소 Korbit→DigitalX 명칭대응을 공식회사연혁과DAXA자료로 해결했습니다. 법규표70PASS, 기한·제한·known_changes불변.
+- 시장별기능/미완료근거와48시간개발계획을 공개문서에 기록했습니다.
+- 보유연속증거/신선조건갱신/운영명령/검토선택 연결은 아직작업중이며 별도검토·통합검사전입니다. 전체회귀완료로취급하지않습니다.

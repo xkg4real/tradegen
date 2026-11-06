@@ -122,3 +122,6 @@ Claude와 GPT가 끝낸 작업을 한 줄씩 쌓는 기록입니다. 같은 작�
 | launch-resume-regression-1 | 2026-11-06T15:37:30+09:00 | 2026-11-03 | gpt | 전체회귀·27신규검사·QA/README/검증기록 | README.md, qa, resume-execution-ledger | 43666b4 | 2219PASS/0FAIL/135NR;문서149PASS/0FAIL/9NR;기존ID/홈/frozen불변 |
 | launch-resume-delivery-1 | 2026-11-06T15:37:30+09:00 | 2026-11-03 | gpt | PR12 검토가능·Notion두페이지·Claude인수인계반환 | PR12, Notion, handoff CURRENT/context | 43666b4 | PR12 head43666b4 ready/unmerged;sourcepush;결정대기문구정정;실서명/주문없음 |
 | pr12-owner-merge | 2026-11-06T18:23:54+09:00 | 2026-11-03 | gpt | 소유자 직접 승인으로 PR12 병합; Notion·인수인계 갱신 | GitHub PR12, CURRENT/context, Notion | 21259f8 | merged=true; head43666b4와 tree동일; 실제전자서명/활성화/주문없음 |
+| account-okx-usdc-1 | 2026-11-06T18:47:48+09:00 | 2026-11-03 | gpt | 근거없는 USDC=USDT 평가제거; 보유량유지·평가거부 | okx_inquiry, positions, E1/readiness tests | c72c9b8 | 250PASS/0FAIL/0NR;19KEYLESS;신규2기존ID유지 |
+| launch-market-readiness-1/audit | 2026-11-06T18:47:48+09:00 | 2026-11-03 | gpt | 시장별기능·실거래잔여조건·48h의존성기록 | remaining-market-readiness, 48h plan | c72c9b8 | 실코드대조;허위시세/금액/서명/통과없음 |
+| rules-review-1122/entity-mapping | 2026-11-06T18:47:48+09:00 | 2026-11-03 | gpt | Korbit-DigitalX 명칭대응추가확인; 기한미연장 | kr_rules, review_closeout | c72c9b8 | 표70PASS;47행제한/기한불변 |
