@@ -6,12 +6,12 @@ task: first-trade-foundation
 cycle: 2026-11-03
 done_ids: cloud-compat-1, cloud-compat-2, cloud-compat-3, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr, spec-rev-3-3, policy-plan-1, policy-preview-1, policy-pr, e1-1, e1-2, e1-3, e1-4, e1-5, e1-6, e1-7, e1-8, e1-9, e1-10, e1-11, e1-12, e1-13, e1-pr, e2-1, e2-2, e3-1, e3-2, e3-3, e2-3, e3-4, e2-e3-pr, pr6-pr7-merge, research-preregister-1, research-evaluate-1, account-readiness-1, research-paper-1, account-provider-1, account-regression-1, account-research-pr, pr8-human-code-review-approval, pr8-merge, launch-network-1, launch-collector-1, launch-profile-1, launch-strategy-1, launch-runner-1, launch-program-2, launch-workflow-2, launch-baseline-2, launch-quotes-2, launch-deployment-2, launch-review-request-2, launch-driver-2, launch-review-auth-2, launch-baseline-integration-2, launch-market-protocol-1, launch-recovery-cutoff-1, kis-live-contract-1, kis-live-backend-1, kis-live-ui-1, launch-static-guard-1, launch-windows-design-1, kis-live-regression-1, launch-regression-1, launch-delivery-1, pr9-owner-review, launch-windows-inputs-1, launch-owner-authority-1, launch-live-evidence, launch-live-history-1, launch-windows-coordinator-1, launch-study-module-1, okx-data-1, final-review-1, pr10-owner-review, venues-upbit-terms, pr11-owner-review, rules-review-1122/research, launch-quote-diagnostics-1, launch-shortened-study-1, cloud-compat-4, launch-resume-regression-1, launch-resume-delivery-1, pr12-owner-merge, account-okx-usdc-1, launch-market-readiness-1/audit, rules-review-1122/entity-mapping
 next_ids: rules-review-1122, launch-held-positions-1, launch-instrument-refresh-1, launch-controlled-coordinator-1, e1-14-owner-setup, launch-prospective-study
-updated_at: 2026-11-06T19:26:15+09:00
+updated_at: 2026-11-06T20:26:00+09:00
 stale_after_hours: 3
 waiting_on: owner code/rules electronic signatures; rule renewal evidence and remaining live integration
 work_branch: gpt/live-readiness-48h
-work_commit: 250faceeeddfaa9168cd9a9f3ea6a84882ecaae5
-uncommitted_changes: standalone readonly rehearsal, pure chronological guard, test isolation; full regression pending
+work_commit: e24b95687d4f083b49f1b044073792d468ccb741
+uncommitted_changes: integration fixes in isolated worktrees; fixture isolation and docs in main worktree; final regression pending
 pr: https://github.com/xkg4real/tradegen/pull/13 (draft; PR12 merged)
 usage_weekly_pct: unknown
 usage_source: unavailable
@@ -177,3 +177,14 @@ Cloud의scratch에는가짜검사로그와공식웹자료조사메모만있습�
 - owner 명령을 코드서명·배포검사·acting graph에추가했고조건GET2개만정확히허용했습니다.광범위실API예외없음.
 - standalone readonly rehearsal와순수시간순위험reducer는별도작성중입니다.현재controlled실행은계속거부합니다.
 - 사용량측정수단없음,전체회귀전.실API/키/실홈/서명/활성화/주문없음.
+
+## 15. 고정 소스 e24b956 전체 검사와 수정 진행
+
+2026-11-06T20:26:00+09:00 체크포인트입니다. PR13은 draft이며 병합하지 않았습니다.
+- e24b956까지 standalone 읽기 전용 리허설과 순수 시간순 위험 검사를 추가했습니다. 실제 controlled 경로와 보유 구간 발행은 계속 거부합니다.
+- 환경 설정 누락으로 중단된 최초 검사 기록을 보존했습니다. 외부 스킬 경로와 localhost fixture 권한을 바로잡은 전체 검사는 2499개 중2357PASS/7FAIL/135NOT_RUN입니다. 실패를 통과로 세지 않았습니다.
+- 7실패: 코드 서명 파일 목록 기대값1, 계층별 import/effect 경계2, 새로 허용한 정확한 GET과 기존 부정검사 충돌1, 새 리허설 fixture의 평가 registry 누적3. 기존2354개 ID를 지우지 않습니다.
+- 수정: 위험 reducer와 후보 archive를 launch 통합 계층으로 이동; 계좌 패키지의 순수성 유지; E2에는 두 검증 helper의 정확한 file/symbol 및 전이 effect 경계만 검토; 실제 runtime registry cap 유지하고 테스트 격리.
+- 독립 검토에서 계산 지연 후 과거 시각으로 세션을 준비할 수 있는 결함을 추가 발견했습니다. 실제 완료 시각/승인/계좌/상품 조건을 재검사하도록 별도 작업트리에서 수정 중입니다.
+- 작업트리: /workspace/tradegen-live-1106(main development), /workspace/tradegen-boundary-fix(boundary integration), /workspace/tradegen-preparation-fix(preparation freshness). 아직 후속 수정본의 전체 통과 결과는 없습니다.
+- 실제 API/키/owner log/실홈/서명/활성화/주문은 사용하지 않았습니다. 사용량은 unknown/unavailable입니다.

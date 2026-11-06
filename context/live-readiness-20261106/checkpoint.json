@@ -1,9 +1,9 @@
 {
   "status": "taken",
-  "updated_at": "2026-11-06T19:26:15+09:00",
+  "updated_at": "2026-11-06T20:26:00+09:00",
   "base_commit": "21259f8d8ab76ea35c46a61df582fe5d792e916f",
   "work_branch": "gpt/live-readiness-48h",
-  "work_commit": "250faceeeddfaa9168cd9a9f3ea6a84882ecaae5",
+  "work_commit": "e24b95687d4f083b49f1b044073792d468ccb741",
   "pr": "https://github.com/xkg4real/tradegen/pull/13",
   "pr_draft": true,
   "full_regression_complete": false,
@@ -14,14 +14,18 @@
   "usage_weekly_pct": null,
   "usage_source": "unavailable",
   "remaining_in_progress": [
-    "standalone_readonly_rehearsal",
-    "pure_chronological_risk_guard",
+    "boundary_integration_fixes",
     "test_registry_isolation",
+    "preparation_current_time_revalidation",
     "independent_rereview",
-    "frozen_source_regression"
+    "final_frozen_source_regression"
   ],
-  "known_rerun_cases": [
-    "control_session/test_owner_arm_is_required_after_preparation",
-    "control_session/test_real_fresh_odds_preparation_and_signed_arm_bind_content"
-  ]
+  "known_rerun_cases": [],
+  "last_full_attempt": {
+    "source": "e24b956",
+    "total": 2499,
+    "PASS": 2357,
+    "FAIL": 7,
+    "NOT_RUN": 135
+  }
 }
