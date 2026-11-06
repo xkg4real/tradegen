@@ -1,18 +1,18 @@
 ---
-status: taken
-reason: owner_requested_resume
+status: returned
+reason: completed_readiness_batch
 from: gpt
 task: first-trade-foundation
 cycle: 2026-11-03
-done_ids: cloud-compat-1, cloud-compat-2, cloud-compat-3, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr, spec-rev-3-3, policy-plan-1, policy-preview-1, policy-pr, e1-1, e1-2, e1-3, e1-4, e1-5, e1-6, e1-7, e1-8, e1-9, e1-10, e1-11, e1-12, e1-13, e1-pr, e2-1, e2-2, e3-1, e3-2, e3-3, e2-3, e3-4, e2-e3-pr, pr6-pr7-merge, research-preregister-1, research-evaluate-1, account-readiness-1, research-paper-1, account-provider-1, account-regression-1, account-research-pr, pr8-human-code-review-approval, pr8-merge, launch-network-1, launch-collector-1, launch-profile-1, launch-strategy-1, launch-runner-1, launch-program-2, launch-workflow-2, launch-baseline-2, launch-quotes-2, launch-deployment-2, launch-review-request-2, launch-driver-2, launch-review-auth-2, launch-baseline-integration-2, launch-market-protocol-1, launch-recovery-cutoff-1, kis-live-contract-1, kis-live-backend-1, kis-live-ui-1, launch-static-guard-1, launch-windows-design-1, kis-live-regression-1, launch-regression-1, launch-delivery-1, pr9-owner-review, launch-windows-inputs-1, launch-owner-authority-1, launch-live-evidence, launch-live-history-1, launch-windows-coordinator-1, launch-study-module-1, okx-data-1, final-review-1, pr10-owner-review, venues-upbit-terms, pr11-owner-review, rules-review-1122/research, launch-quote-diagnostics-1, launch-shortened-study-1, cloud-compat-4
-next_ids: launch-resume-regression-1, launch-resume-delivery-1, rules-review-1122, launch-held-positions-1, launch-instrument-refresh-1, launch-controlled-coordinator-1, e1-14-owner-setup, launch-prospective-study
-updated_at: 2026-11-06T15:21:53+09:00
+done_ids: cloud-compat-1, cloud-compat-2, cloud-compat-3, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr, spec-rev-3-3, policy-plan-1, policy-preview-1, policy-pr, e1-1, e1-2, e1-3, e1-4, e1-5, e1-6, e1-7, e1-8, e1-9, e1-10, e1-11, e1-12, e1-13, e1-pr, e2-1, e2-2, e3-1, e3-2, e3-3, e2-3, e3-4, e2-e3-pr, pr6-pr7-merge, research-preregister-1, research-evaluate-1, account-readiness-1, research-paper-1, account-provider-1, account-regression-1, account-research-pr, pr8-human-code-review-approval, pr8-merge, launch-network-1, launch-collector-1, launch-profile-1, launch-strategy-1, launch-runner-1, launch-program-2, launch-workflow-2, launch-baseline-2, launch-quotes-2, launch-deployment-2, launch-review-request-2, launch-driver-2, launch-review-auth-2, launch-baseline-integration-2, launch-market-protocol-1, launch-recovery-cutoff-1, kis-live-contract-1, kis-live-backend-1, kis-live-ui-1, launch-static-guard-1, launch-windows-design-1, kis-live-regression-1, launch-regression-1, launch-delivery-1, pr9-owner-review, launch-windows-inputs-1, launch-owner-authority-1, launch-live-evidence, launch-live-history-1, launch-windows-coordinator-1, launch-study-module-1, okx-data-1, final-review-1, pr10-owner-review, venues-upbit-terms, pr11-owner-review, rules-review-1122/research, launch-quote-diagnostics-1, launch-shortened-study-1, cloud-compat-4, launch-resume-regression-1, launch-resume-delivery-1
+next_ids: rules-review-1122, launch-held-positions-1, launch-instrument-refresh-1, launch-controlled-coordinator-1, e1-14-owner-setup, launch-prospective-study
+updated_at: 2026-11-06T15:37:30+09:00
 stale_after_hours: 3
-waiting_on: full regression; PR12 review and actual owner evidence later; the three owner choices are resolved
+waiting_on: PR12 owner review and signatures; rule renewal evidence and remaining live integration
 work_branch: gpt/rules-review-1122
-work_commit: d5bac0aa6058965c588d77d0f9770ca349e38131
-uncommitted_changes: none; full regression may write QA
-pr: https://github.com/xkg4real/tradegen/pull/12 (draft, unmerged)
+work_commit: 43666b4aa4cd8a28bc3eac6edf5286342a04a8d8
+uncommitted_changes: none
+pr: https://github.com/xkg4real/tradegen/pull/12 (ready for review, unmerged)
 usage_weekly_pct: unknown
 usage_source: unavailable
 handoff_threshold_pct: 95
@@ -39,7 +39,8 @@ Notion의 빨간/파란 답변으로 세 결정은 해결돼 있습니다: 기�
 11월22일/23일 재검토 기한은 갱신하지 않았습니다. 완전한 법률 적격 확인과 날짜 연장은 남았습니다.
 
 공개 호가 시각 진단, 새 48시간 연구 초안 도구, Linux 배포 소스 링크 검사를 구현했습니다.
-source d5bac0a를 push했고 PR12는 초안입니다. 전체 회귀는 진행 중이며 결과를 아직 확정하지 않습니다.
+source d5bac0a에서 전체 회귀를 완료했고 기록 커밋43666b4를 push했습니다. PR12는 검토 가능·미병합입니다.
+전체2219PASS/0FAIL/135NOT_RUN, 신규27개전부PASS. 지정 Notion 두 페이지에도 최신 상태를 반영했습니다.
 실계좌/실API/키/전자서명/arm/주문/전향 실자료 수집은 수행하지 않았습니다.
 
 ## 1. 확정한 운영 결정
@@ -87,20 +88,23 @@ source d5bac0a를 push했고 PR12는 초안입니다. 전체 회귀는 진행 �
 - 법규표 suite70/70 PASS; 47행 전체 비교로 제한/기한 불변 확인.
 - 신규 진단18/18, 신규 연구도구7/7, 배포10/10 PASS. 별도 source/학술조건/법규 검토 완료.
 - 최초 통합 launch:281 PASS/1 FAIL/13 NOT_RUN. 실패는 위 상속 Linux 링크검사이며 수정 후 배포10/10 PASS.
-- d5bac0a 전체 회귀 진행 중: 19 KEYLESS, 임시 상태, 가짜 HTTP, source freeze.
-  전용 Windows metadata 검사 등 NOT_RUN은 실제 실행 성공과 구분합니다.
+- d5bac0a 전체 회귀 완료:2354개 중2219PASS/0FAIL/135NOT_RUN,587.208초. 신규27PASS,기존2327 ID전부보존.
+  135NR은매크로참조자료121+Windowsprivate input13+Windowsconsole1입니다. Windows실행성공으로세지않습니다.
+  19KEYLESS/임시상태/가짜HTTP/실제home메타데이터불변/frozen연구불변. 문서갱신후관련검사149PASS/0FAIL/9기존NR.
 - Claude Windows의2202PASS/2FAIL/123NR은 과거 baseline이며 새 결과가 아닙니다.
 
 ## 5. 현재 지점과 실패 기록
 
 작업트리 /workspace/tradegen-resume-1106, gpt/rules-review-1122.
-소스/집중 검사는 push 완료. 전체 실행 로그와 wrapper는 로컬 tradegen-session의
-resume-20261106-full.log, run-resume-full.py. 완료/실패는 로그와 run.json으로 확인합니다.
+소스/QA/문서 push완료, 작업트리clean. 로컬 tradegen-session의 resume-20261106-full.log,
+resume-20261106-run.json에 실제전체결과가있습니다. 공개qa/resume_20261106_validation.json과
+qa/acceptance_results.json, docs/superpowers/plans/2026-11-06-resume-execution-ledger.md에 결과를남겼습니다.
+context/november-readiness-20261106/의검증사본이이번세션사본입니다. 기존11월2일context는과거기록입니다.
 사용량은 unknown/unavailable이며 Claude의95/97%를 재사용하지 않습니다.
 
 ## 6. 남은 개발과 실제 운영
 
-1. 현재 전체 회귀를 완주하고 QA/README/실행장부를 측정값으로 갱신, PR12 검토가능 전환.
+1. PR12는전체회귀·QA·README·실행장부·Notion갱신을완료해검토가능상태입니다. 병합은해당PR의owner승인이필요합니다.
 2. rules-review-1122: 재검토 기록의 미확인 근거(법인/서비스명 매핑, 정확한 트래블룰/감독규정,
    12월 외환시행규정, 개별명단/제품/교육·계좌조건, 세법통과)를 해결하고 행별기한갱신안→owner승인.
    25행11월22일,22행11월23일; Upbit 신규진입11월23일부터기한초과거부.
@@ -129,8 +133,8 @@ handoff/AGENTS.md5절. 실제키/owner log내용/.env값/서명/arm/주문/실�
 ## 9. 다음 에이전트가 이어받을 지시
 
 이문서→LEDGER→소스계획/법규47행메모/PR12→실제코드를읽으세요. 결정3가지를다시묻지말고
-최신주석을기존본문의대기문구보다우선합니다. 끝난ID를반복하지말고full회귀완료여부부터확인합니다.
-현재PR12는초안·미병합입니다. 이전PR의승인을재사용하지마세요. 첫거래기반의나머지개발은계속허용돼있습니다.
+최신주석을기존본문의대기문구보다우선합니다. 끝난ID를반복하지말고새검증기록과미해결목록을확인합니다.
+현재PR12는검토가능·미병합입니다. 이전PR의승인을재사용하지마세요. 첫거래기반의나머지개발은계속허용돼있습니다.
 
 ## 10. 비공개 자료
 

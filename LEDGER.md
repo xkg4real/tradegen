@@ -119,3 +119,5 @@ Claude와 GPT가 끝낸 작업을 한 줄씩 쌓는 기록입니다. 같은 작�
 | launch-quote-diagnostics-1 | 2026-11-06T15:21:53+09:00 | 2026-11-03 | gpt | 공개호가 시간진단·raw receipt 경로, 기존입장거부 유지 | quotes.py, quote_diagnostics.py, docs/tests | d5bac0a | 신규18PASS; 실제API/시계보정/승인없음 |
 | launch-shortened-study-1 | 2026-11-06T15:21:53+09:00 | 2026-11-03 | gpt | 새48h연구초안 도구·전체후보/검정조건보존 | prepare_shortened_study.py, docs/tests | d5bac0a | 신규7PASS; 독립검토; 실제수집/PASS없음 |
 | cloud-compat-4 | 2026-11-06T15:21:53+09:00 | 2026-11-03 | gpt | Linux rglob의linked-directory누락수정 | deployment.py, launch_deployment.py | d5bac0a | 배포10PASS; 상속통합실패수정; 2신규회귀 |
+| launch-resume-regression-1 | 2026-11-06T15:37:30+09:00 | 2026-11-03 | gpt | 전체회귀·27신규검사·QA/README/검증기록 | README.md, qa, resume-execution-ledger | 43666b4 | 2219PASS/0FAIL/135NR;문서149PASS/0FAIL/9NR;기존ID/홈/frozen불변 |
+| launch-resume-delivery-1 | 2026-11-06T15:37:30+09:00 | 2026-11-03 | gpt | PR12 검토가능·Notion두페이지·Claude인수인계반환 | PR12, Notion, handoff CURRENT/context | 43666b4 | PR12 head43666b4 ready/unmerged;sourcepush;결정대기문구정정;실서명/주문없음 |

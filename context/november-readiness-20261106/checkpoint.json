@@ -1,0 +1,29 @@
+{
+  "status": "returned",
+  "updated_at": "2026-11-06T15:37:30+09:00",
+  "source_commit": "d5bac0aa6058965c588d77d0f9770ca349e38131",
+  "delivery_commit": "43666b4aa4cd8a28bc3eac6edf5286342a04a8d8",
+  "pr": "https://github.com/xkg4real/tradegen/pull/12",
+  "pr_draft": false,
+  "merged": false,
+  "rule_review_rows": 47,
+  "rule_deadlines_renewed": false,
+  "owner_decisions": {
+    "loss_floor": "preserve",
+    "held_coins": "continuous_price_records",
+    "research_shortening": "approved_new_protocol_only"
+  },
+  "all_new_tests_pass": 27,
+  "full_counts": {
+    "PASS": 2219,
+    "FAIL": 0,
+    "NOT_RUN": 135
+  },
+  "notion_updates_complete": true,
+  "usage_weekly_pct": null,
+  "usage_source": "unavailable",
+  "actual_signing": false,
+  "actual_arming": false,
+  "actual_orders": false,
+  "qualified_strategy": false
+}
