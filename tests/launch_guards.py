@@ -33,6 +33,7 @@ ENDPOINT = re.compile(r"(?i)/(?:v1|uapi|api/v5)/")
 HEAD = "execution_launch/baseline_head.py"
 HISTORY = "execution_launch/live_history.py"
 STUDY = "execution_launch/study.py"
+CONTINUOUS_ARCHIVE = "execution_launch/continuous_archive.py"
 PINNED_WRITES: dict[str, tuple[str, ...]] = {
     HEAD: (
         'checked_target(self._dir, "baseline head directory", within=self._root).mkdir(mode=0o700, exist_ok=True)',
@@ -54,6 +55,13 @@ PINNED_WRITES: dict[str, tuple[str, ...]] = {
         'os.open(checked_target(directory / name, "study output file", within=directory), '
         'os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_APPEND | _FLAGS, 0o600)',
         'os.fdopen(descriptor, "ab")',
+    ),
+    CONTINUOUS_ARCHIVE: (
+        'checked_target(root / "execution-price-paths", "continuous archive", within=root).mkdir('
+        'mode=0o700, parents=True, exist_ok=True)',
+        'os.open(checked_target(directory / (candidate_sha + ".json"), "continuous candidate", within=directory), '
+        'os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0), 0o600)',
+        'os.fdopen(descriptor, "wb")',
     ),
 }
 # The head's initialization is an explicit reviewed operator step: no runtime module may reference it.
@@ -482,6 +490,43 @@ def test_launch_write_ban_covers_every_shape_and_pins_writers_by_file_and_exact_
     assert not problems(workflow, "execution_launch/workflow.py")
     helper = workflow + "\n\ndef _helper(path, flags):\n    return os.open(path, flags)\n"
     assert "write outside pinned writer" in problems(helper, "execution_launch/workflow.py")
+
+
+def test_continuous_archive_writes_are_exact_and_cannot_migrate_into_pure_modules():
+    source = (ROOT / CONTINUOUS_ARCHIVE).read_text(encoding="utf-8")
+    assert not problems(source, CONTINUOUS_ARCHIVE), problems(source, CONTINUOUS_ARCHIVE)
+    calls = {ast.dump(node) for node in ast.walk(ast.parse(source)) if isinstance(node, ast.Call)}
+    assert _PINNED_WRITE_TREES[CONTINUOUS_ARCHIVE] <= calls, "a pinned candidate write shape is unused"
+    write = "write outside pinned writer"
+    for shape in PINNED_WRITES[CONTINUOUS_ARCHIVE]:
+        assert not problems(shape, CONTINUOUS_ARCHIVE), shape
+        for relative in ("", "execution_launch/account_interval.py", "execution_launch/continuous_guard.py",
+                         "execution_launch/nested/continuous_archive.py", "execution_network/continuous_archive.py",
+                         "execution_accounts/continuous.py"):
+            assert write in problems(shape, relative), (shape, relative)
+    mutations = (
+        PINNED_WRITES[CONTINUOUS_ARCHIVE][0].replace("within=root", "within=other_root"),
+        PINNED_WRITES[CONTINUOUS_ARCHIVE][0].replace("0o700", "0o777"),
+        PINNED_WRITES[CONTINUOUS_ARCHIVE][0].replace("execution-price-paths", "other-directory"),
+        PINNED_WRITES[CONTINUOUS_ARCHIVE][1].replace("within=directory", "within=other_directory"),
+        PINNED_WRITES[CONTINUOUS_ARCHIVE][1].replace("os.O_EXCL", "os.O_TRUNC"),
+        PINNED_WRITES[CONTINUOUS_ARCHIVE][1].replace("candidate_sha", "untrusted_name"),
+        PINNED_WRITES[CONTINUOUS_ARCHIVE][1].replace("0o600", "0o666"),
+        PINNED_WRITES[CONTINUOUS_ARCHIVE][2].replace('"wb"', '"ab"'),
+        'os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)',
+        'path.unlink()', 'path.write_bytes(payload)', 'os.replace(source, destination)',
+    )
+    for mutation in mutations:
+        assert write in problems(mutation, CONTINUOUS_ARCHIVE), mutation
+    for extra in ("import requests", "owner.load_context(now)", "os.environ['UPBIT_SECRET_KEY']",
+                  "head.compare_and_set(old, new)"):
+        assert problems(extra, CONTINUOUS_ARCHIVE), extra
+    account_source = (ROOT / "execution_accounts/continuous.py").read_text(encoding="utf-8")
+    from tests.accounts_guards import problems as account_problems
+    assert not account_problems(account_source, "continuous.py")
+    assert not problems(account_source, "execution_accounts/continuous.py")
+    assert not problems((ROOT / "execution_launch/continuous_guard.py").read_text(encoding="utf-8"),
+                        "execution_launch/continuous_guard.py")
 
 
 def test_trusted_head_is_advanced_only_by_pinned_callers():

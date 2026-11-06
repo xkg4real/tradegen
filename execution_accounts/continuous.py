@@ -12,22 +12,17 @@ and the absence of omitted account changes. A digest only binds its conclusion
 to this precise candidate and account capture. A payload's ``complete`` flag
 or an arbitrary truthy return value is never accepted as that conclusion.
 
-No network, credential, owner state, signing or order operation occurs here.
+No network, file write, credential, owner state, signing or order operation occurs here.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal, DecimalException, Inexact, localcontext
-import json
-import os
-from pathlib import Path
 import re
-import stat
 from threading import Lock
 
-from core.isolation import checked_target, state_root
-from execution_accounts.model import canonical, content_digest
+from execution_accounts.model import content_digest
 from execution_control.risk import Fill, account_fills
 
 _ID = re.compile(r"[A-Za-z0-9_.:/-]{1,128}")
@@ -39,7 +34,6 @@ MAX_SYMBOLS = 64
 MAX_INTERVAL_FILLS = 128
 MAX_HISTORY_FILLS = 20000
 MAX_DURATION = timedelta(seconds=30)
-MAX_ARCHIVE_BYTES = 32 * 1024 * 1024
 COVERAGE_CONTRACT = "complete-ordered-account-marks-and-fills-v1"
 
 
@@ -289,70 +283,20 @@ def verify_coverage(path, *, account_capture_sha256, verifier, now):
     path = validate_path(path)
     _hash(account_capture_sha256); _instant(now)
     _require(callable(verifier), "CONTINUOUS_COVERAGE_VERIFIER_REQUIRED")
-    request = CoverageRequest(path_sha256=content_digest(path), account_capture_sha256=account_capture_sha256,
+    coverage_request = CoverageRequest(path_sha256=content_digest(path), account_capture_sha256=account_capture_sha256,
         account_scope=path.account_scope, stream_epoch=path.stream_epoch, start=path.start, end=path.end,
         first_sequence=path.first_sequence, watermark_sequence=path.watermark_sequence)
     try:
-        receipt = verifier(request, path)
+        receipt = verifier(coverage_request, path)
     except Exception:
         raise ContinuousEvidenceError("CONTINUOUS_COVERAGE_VERIFICATION_FAILED") from None
     _require(type(receipt) is VerifiedCoverage, "CONTINUOUS_VERIFIED_COVERAGE_REQUIRED")
     _hash(receipt.authority_sha256); _hash(receipt.source_proof_sha256); _instant(receipt.verified_at)
-    _require(receipt.request_sha256 == content_digest(request) and receipt.contract == COVERAGE_CONTRACT,
+    _require(receipt.request_sha256 == content_digest(coverage_request) and receipt.contract == COVERAGE_CONTRACT,
              "CONTINUOUS_COVERAGE_BINDING_MISMATCH")
     _require(path.watermark_received_at <= receipt.verified_at <= now
              and now-path.end <= MAX_DURATION, "CONTINUOUS_COVERAGE_STALE_OR_FUTURE")
     return receipt
-
-
-def archive_candidate(path, *, root: Path):
-    """Create one immutable private candidate record before publishing its frame.
-
-    This is a local audit copy, not source authentication or a trusted restart
-    anchor. Partial/tampered existing records refuse; no append, repair or
-    resume operation exists. A crash leaves an unusable record for review.
-    """
-    try:
-        path = validate_path(path)
-        _require(isinstance(root, Path) and root.is_absolute() and root == state_root().absolute(),
-                 "CONTINUOUS_ARCHIVE_ROOT_MISMATCH")
-        candidate_sha = content_digest(path)
-        try:
-            checked_target(root, "continuous root")
-            directory = checked_target(root / "execution-price-paths", "continuous archive", within=root)
-            directory.mkdir(parents=True, exist_ok=True)
-            target = checked_target(directory / (candidate_sha + ".json"), "continuous candidate", within=directory)
-        except (OSError, ValueError, RuntimeError):
-            raise ContinuousEvidenceError("CONTINUOUS_ARCHIVE_PATH_REFUSED") from None
-        payload = (json.dumps(canonical(path), ensure_ascii=True, sort_keys=True, separators=(",", ":")) + "\n").encode()
-        _require(len(payload) <= MAX_ARCHIVE_BYTES, "CONTINUOUS_ARCHIVE_SIZE_REFUSED")
-        try:
-            descriptor = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0), 0o600)
-        except FileExistsError:
-            descriptor = os.open(target, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
-            with os.fdopen(descriptor, "rb") as fh:
-                info = os.fstat(fh.fileno())
-                _require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1
-                         and info.st_size <= MAX_ARCHIVE_BYTES, "CONTINUOUS_ARCHIVE_PATH_REFUSED")
-                _require(fh.read(MAX_ARCHIVE_BYTES+1) == payload, "CONTINUOUS_ARCHIVE_CHANGED")
-            return candidate_sha
-        with os.fdopen(descriptor, "wb") as fh:
-            info = os.fstat(fh.fileno())
-            _require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1, "CONTINUOUS_ARCHIVE_PATH_REFUSED")
-            fh.write(payload)
-            fh.flush()
-            os.fsync(fh.fileno())
-        if os.name != "nt":
-            descriptor = os.open(directory, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
-            try:
-                os.fsync(descriptor)
-            finally:
-                os.close(descriptor)
-        return candidate_sha
-    except ContinuousEvidenceError:
-        raise
-    except (OSError, ValueError, TypeError, RuntimeError):
-        raise ContinuousEvidenceError("CONTINUOUS_ARCHIVE_REFUSED") from None
 
 
 def value_path(path, *, opening_cash_krw, opening_units, historical_fills, interval_fills,

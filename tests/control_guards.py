@@ -17,6 +17,13 @@ TRANSPORT = "execution_orders/transport.py"
 CONTROLLER = "execution_control/controller.py"
 STORE = "execution_control/store.py"
 CAPABILITY = "execution_control/capability.py"
+# Reviewed pure process-memory validation ports, not a launch/accounts import
+# allowance. Their reachable decoder/validator and import surfaces are pinned
+# separately by renewal_boundaries; the E1 source itself remains inaccessible.
+RENEWAL_IMPORTS = {
+    CONTROLLER: frozenset({"validate_observed_order"}),
+    "execution_control/session.py": frozenset({"rules_binding_matches", "validate_observed_order"}),
+}
 STD = frozenset({"__future__", "base64", "collections.abc", "contextlib", "dataclasses", "datetime", "decimal",
                  "fcntl", "fractions", "hashlib", "hmac", "json", "math", "msvcrt", "os", "pathlib", "re",
                  "secrets", "threading", "types", "typing", "uuid", "weakref", "zoneinfo"})
@@ -52,6 +59,14 @@ def _checked(node):
     return isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "checked_target"
 
 
+def _renewal_import(rel, node):
+    expected = RENEWAL_IMPORTS.get(rel)
+    return (isinstance(node, ast.ImportFrom) and node.level == 0
+            and node.module == "execution_launch.instrument_refresh" and expected is not None
+            and len(node.names) == len(expected) and {alias.name for alias in node.names} == expected
+            and all(alias.asname is None for alias in node.names))
+
+
 def _imports_allowed(rel, module):
     if module == "collections":
         return rel == "execution_control/dry_run.py"
@@ -85,7 +100,8 @@ def _problems(rel, source):
                     hits.append("unapproved routing import")
         elif isinstance(node, ast.ImportFrom):
             module = node.module or ""
-            if node.level or not _imports_allowed(rel, module) or any(a.name == "*" for a in node.names):
+            if (node.level or not (_imports_allowed(rel, module) or _renewal_import(rel, node))
+                    or any(a.name == "*" for a in node.names)):
                 hits.append("unapproved from import")
             if module == "functools" and (rel != CONTROLLER or len(node.names) != 1
                     or node.names[0].name != "wraps" or node.names[0].asname is not None):
@@ -155,6 +171,35 @@ def test_runtime_sources_obey_control_and_transport_boundaries():
     hits = [(p.relative_to(ROOT).as_posix(), why) for p in files
             for why in _problems(p.relative_to(ROOT).as_posix(), p.read_text(encoding="utf-8"))]
     assert not hits, hits
+
+
+def test_renewal_import_ports_are_exact_and_do_not_allow_source_or_neighbor_access():
+    module = "execution_launch.instrument_refresh"
+    for relative, names in RENEWAL_IMPORTS.items():
+        statement = f"from {module} import " + ", ".join(sorted(names))
+        assert not _problems(relative, statement)
+        for candidate in ("execution_control/probe.py", "execution_control/nested/controller.py",
+                          "execution_orders/probe.py"):
+            assert _problems(candidate, statement), candidate
+        for source in (f"import {module}", f"import {module} as renewal",
+                       f"from {module} import *", statement + ", renew_profile",
+                       f"from {module} import validate_observed_order as validate_observed_order",
+                       statement.replace(module, "execution_launch.unreviewed"),
+                       "from execution_accounts.instrument_terms import E1UpbitTermsSource",
+                       "from execution_accounts.instrument_terms import validate_issued_observation"):
+            assert _problems(relative, source), (relative, source)
+    assert _problems("execution_control/session.py",
+                     f"from {module} import validate_observed_order")
+
+
+def test_renewal_validation_has_only_reviewed_pure_calls_and_import_surfaces():
+    from tests.renewal_boundaries import source_map, problems
+    assert not problems(source_map(ROOT))
+
+
+def test_renewal_effect_closure_rejects_source_io_clock_aliases_and_import_time_effects():
+    from tests.renewal_boundaries import check_negative_controls
+    check_negative_controls(ROOT)
 
 
 def test_guard_negative_controls_for_routes_effects_and_credentials():

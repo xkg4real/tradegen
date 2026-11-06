@@ -21,6 +21,7 @@ TRANSPORT_IMPORTS = {
     "upbit_collector.py": frozenset({"inquiry_clock", "request"}),
     "quotes.py": frozenset({"Answer", "inquiry_clock", "request"}),
     "readiness.py": frozenset({"inquiry_clock"}),
+    "instrument_terms.py": frozenset({"Answer", "inquiry_clock"}),
 }
 
 CHECKPOINT_WRITES = (
@@ -131,9 +132,10 @@ def test_e1_transport_imports_and_request_aliases_are_pinned():
         'r = request\nr("upbit", "GET", "/v1/accounts", params)',
         'r = transport.request\nr("upbit", "GET", "/v1/accounts", params)',
     )
-    for relative in READ_ROUTES:
+    for relative in TRANSPORT_IMPORTS:
         for source in bad:
             assert problems(source, relative), (relative, source)
+    assert problems("from execution.transport import request", "instrument_terms.py")
 
 
 def test_account_endpoint_literals_are_file_exact():

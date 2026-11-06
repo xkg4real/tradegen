@@ -1,4 +1,4 @@
-"""Pure chronological risk-reduction plans; never a live authorization or commit.
+"""Pure launch-level chronological risk plans; never a live authorization or commit.
 
 This module replays raw path events and FIFO inputs rather than trusting a public
 preview's point array. Digests and claim consistency are checked, but the caller

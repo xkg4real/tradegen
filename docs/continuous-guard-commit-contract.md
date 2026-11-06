@@ -1,6 +1,6 @@
 # Chronological held-position guard: reducer and commit contract
 
-`execution_control.continuous_guard` implements a **pure reduction plan**.
+`execution_launch.continuous_guard` implements a **pure reduction plan**.
 It does not authenticate a live source or owner, write a journal, update a
 baseline, arm a session, or place an order. `GuardPlan.execution_ready` is always
 false. The existing continuous candidate source retains its unconditional
@@ -160,7 +160,7 @@ idempotently. It must preserve permanent halts. A reviewed re-anchor cannot
 silently erase a floor breach, lower the ratcheted floor or hide an old-day
 daily stop. This unit provides neither automatic recovery nor a reset command.
 
-The candidate archive from `execution_accounts.continuous` stores only the path.
+The candidate archive from `execution_launch.continuous_archive` stores only the path.
 A future durable guard package must additionally retain the original account
 receipts/manifest, authenticated coverage receipt, owner/control evidence and
 plan/commit bindings in private storage. Candidate JSON alone is insufficient

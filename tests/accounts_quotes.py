@@ -226,10 +226,13 @@ def test_runner_bridge_preserves_source_timestamp_and_refuses_future_stale_or_ch
 
 
 def test_only_exact_get_orderbook_route_is_allowed_before_keys_or_send():
+    # The separate exact instruments GET is now approved for term renewal; its
+    # neighboring routes and every write method remain outside the E1 contract.
     with patch.object(keys, "read", side_effect=AssertionError("credential read forbidden")) as key_read, \
             patch.object(transport, "_send", side_effect=AssertionError("send forbidden")) as send:
         for method, path in (("POST", "/v1/orderbook"), ("DELETE", "/v1/orderbook"),
-                             ("GET", "/v1/orderbooks"), ("GET", "/v1/orderbook/instruments"),
+                             ("GET", "/v1/orderbooks"), ("GET", "/v1/orderbook/instruments/new"),
+                             ("POST", "/v1/orderbook/instruments"), ("DELETE", "/v1/orderbook/instruments"),
                              ("GET", "/v1/orderbook/new"), ("GET", "/v1/orderbook/")):
             try:
                 transport.request("upbit", method, path, PARAMS)

@@ -34,7 +34,8 @@ from execution_accounts.baseline import BaselineError, BaselineInterval, Baselin
 from execution_accounts.baseline_bridge import BaselineFrame, advance_account_baseline
 from execution_accounts.collector import CoverageEvidence, OpeningAnchor, SourceReceipt, TradeFeeEvidence, instant
 from execution_accounts.model import AccountEvidence, RiskBaseline, content_digest
-from execution_accounts.continuous import (ContinuousEvidenceError, ContinuousPath, PathValuation, VerifiedCoverage, archive_candidate, value_path, verify_coverage)
+from execution_accounts.continuous import (ContinuousEvidenceError, ContinuousPath, PathValuation, VerifiedCoverage, value_path, verify_coverage)
+from execution_launch.continuous_archive import archive_candidate
 from execution_control.risk import account_fills
 from execution_accounts.provider import EvidenceError, _fresh, build_observation
 from execution_accounts.upbit_collector import CollectionResult, collect_upbit

@@ -13,7 +13,7 @@ from execution_accounts.model import (
     AccountEvidence, AccountRestrictions, BrokerOrder, CashAmount, CashBalance, EvidencePage,
     FxRate, Position, RiskBaseline, content_digest,
 )
-from execution_control.continuous_guard import (
+from execution_launch.continuous_guard import (
     AccountCaptureInputs, GuardAnchor, OwnerContextClaim, ValuationInputs,
     plan_continuous_guard, reviewed_guard_anchor,
 )
@@ -394,7 +394,7 @@ def test_captured_account_cannot_change_cash_history_during_boundary_reconstruct
 
 
 def test_reviewed_anchor_profit_arithmetic_uses_fixed_exact_context():
-    from execution_control import continuous_guard as guard
+    from execution_launch import continuous_guard as guard
     state, pol, context = seed()
     baseline = initialize_baseline(state.baseline.conventions, BaselineAnchor(account_scope=SCOPE,
         baseline=RiskBaseline(day_start_equity=D("100"), prior_high_watermark=D("100"),

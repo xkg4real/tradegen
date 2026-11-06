@@ -38,11 +38,14 @@ supplied by this change, and no real market API was called during development.
   peak followed by a loss cannot disappear from the evidence merely because
   the endpoint recovered. Realized profit in each point is the lifetime FIFO
   total, not only that day's result.
-- `archive_candidate`: writes an immutable, private, content-addressed JSON
-  record beneath the explicit configured state root in `execution-price-paths/`.
-  Link targets, different existing bytes and partial records refuse. The archive
-  is an audit copy of the candidate, not source authentication, a retained
-  verifier receipt, or a restart/re-anchor authority.
+
+`archive_candidate` in `execution_launch.continuous_archive` writes an immutable,
+private, content-addressed JSON record beneath the explicit configured state root
+in `execution-price-paths/`. Link targets, different existing bytes and partial
+records refuse. The archive is an audit copy of the candidate, not source
+authentication, a retained verifier receipt, or a restart/re-anchor authority.
+File writes remain in this explicitly checked launch integration; the account
+recorder and valuation module perform no filesystem writes.
 
 The bounds are 30 seconds, 64 symbols, 20,000 events, 128 interval fills and
 20,000 prior fills. Bound violations refuse without truncation. FIFO prefix

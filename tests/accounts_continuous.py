@@ -13,7 +13,7 @@ import weakref
 
 from execution_accounts.continuous import (
     COVERAGE_CONTRACT, ContinuousEvidenceError, ContinuousPath, ContinuousPriceRecorder,
-    EquityEvent, PriceMark, VerifiedCoverage, archive_candidate, validate_path, value_path, verify_coverage,
+    EquityEvent, PriceMark, VerifiedCoverage, validate_path, value_path, verify_coverage,
 )
 from execution_accounts.baseline_bridge import ContinuousAccountProvider, advance_account_baseline
 from execution_accounts.model import content_digest
@@ -22,6 +22,7 @@ from execution_launch.account_interval import (
     ContinuousUpbitCandidateSource, ContinuousCapture, preview_continuous_upbit_interval, upbit_interval_frame,
 )
 from execution_launch import account_interval as AI
+from execution_launch.continuous_archive import archive_candidate
 from tests import compliance_fixtures as F
 from tests.launch_account_interval import (
     ANCHOR, BUY, COVERAGE, FakeClock, FakeUpbit, SCOPE, at, order, series,
