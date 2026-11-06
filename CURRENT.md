@@ -1,18 +1,18 @@
 ---
 status: returned
-reason: completed_readiness_batch
+reason: owner_approved_pr12_merge
 from: gpt
 task: first-trade-foundation
 cycle: 2026-11-03
-done_ids: cloud-compat-1, cloud-compat-2, cloud-compat-3, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr, spec-rev-3-3, policy-plan-1, policy-preview-1, policy-pr, e1-1, e1-2, e1-3, e1-4, e1-5, e1-6, e1-7, e1-8, e1-9, e1-10, e1-11, e1-12, e1-13, e1-pr, e2-1, e2-2, e3-1, e3-2, e3-3, e2-3, e3-4, e2-e3-pr, pr6-pr7-merge, research-preregister-1, research-evaluate-1, account-readiness-1, research-paper-1, account-provider-1, account-regression-1, account-research-pr, pr8-human-code-review-approval, pr8-merge, launch-network-1, launch-collector-1, launch-profile-1, launch-strategy-1, launch-runner-1, launch-program-2, launch-workflow-2, launch-baseline-2, launch-quotes-2, launch-deployment-2, launch-review-request-2, launch-driver-2, launch-review-auth-2, launch-baseline-integration-2, launch-market-protocol-1, launch-recovery-cutoff-1, kis-live-contract-1, kis-live-backend-1, kis-live-ui-1, launch-static-guard-1, launch-windows-design-1, kis-live-regression-1, launch-regression-1, launch-delivery-1, pr9-owner-review, launch-windows-inputs-1, launch-owner-authority-1, launch-live-evidence, launch-live-history-1, launch-windows-coordinator-1, launch-study-module-1, okx-data-1, final-review-1, pr10-owner-review, venues-upbit-terms, pr11-owner-review, rules-review-1122/research, launch-quote-diagnostics-1, launch-shortened-study-1, cloud-compat-4, launch-resume-regression-1, launch-resume-delivery-1
+done_ids: cloud-compat-1, cloud-compat-2, cloud-compat-3, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr, spec-rev-3-3, policy-plan-1, policy-preview-1, policy-pr, e1-1, e1-2, e1-3, e1-4, e1-5, e1-6, e1-7, e1-8, e1-9, e1-10, e1-11, e1-12, e1-13, e1-pr, e2-1, e2-2, e3-1, e3-2, e3-3, e2-3, e3-4, e2-e3-pr, pr6-pr7-merge, research-preregister-1, research-evaluate-1, account-readiness-1, research-paper-1, account-provider-1, account-regression-1, account-research-pr, pr8-human-code-review-approval, pr8-merge, launch-network-1, launch-collector-1, launch-profile-1, launch-strategy-1, launch-runner-1, launch-program-2, launch-workflow-2, launch-baseline-2, launch-quotes-2, launch-deployment-2, launch-review-request-2, launch-driver-2, launch-review-auth-2, launch-baseline-integration-2, launch-market-protocol-1, launch-recovery-cutoff-1, kis-live-contract-1, kis-live-backend-1, kis-live-ui-1, launch-static-guard-1, launch-windows-design-1, kis-live-regression-1, launch-regression-1, launch-delivery-1, pr9-owner-review, launch-windows-inputs-1, launch-owner-authority-1, launch-live-evidence, launch-live-history-1, launch-windows-coordinator-1, launch-study-module-1, okx-data-1, final-review-1, pr10-owner-review, venues-upbit-terms, pr11-owner-review, rules-review-1122/research, launch-quote-diagnostics-1, launch-shortened-study-1, cloud-compat-4, launch-resume-regression-1, launch-resume-delivery-1, pr12-owner-merge
 next_ids: rules-review-1122, launch-held-positions-1, launch-instrument-refresh-1, launch-controlled-coordinator-1, e1-14-owner-setup, launch-prospective-study
-updated_at: 2026-11-06T15:37:30+09:00
+updated_at: 2026-11-06T18:23:54+09:00
 stale_after_hours: 3
-waiting_on: PR12 owner review and signatures; rule renewal evidence and remaining live integration
+waiting_on: owner code/rules electronic signatures; rule renewal evidence and remaining live integration
 work_branch: gpt/rules-review-1122
 work_commit: 43666b4aa4cd8a28bc3eac6edf5286342a04a8d8
 uncommitted_changes: none
-pr: https://github.com/xkg4real/tradegen/pull/12 (ready for review, unmerged)
+pr: https://github.com/xkg4real/tradegen/pull/12 (merged 21259f8d8ab76ea35c46a61df582fe5d792e916f)
 usage_weekly_pct: unknown
 usage_source: unavailable
 handoff_threshold_pct: 95
@@ -26,7 +26,7 @@ session: Cloud Codex development; owner Windows deployment
 ## 0. 사용자에게 전달할 최신 상태
 
 소유자가 11월 6일 최신 GitHub와 지정 Notion 두 페이지를 읽고 이어가도록 지시했습니다.
-main은 06d0674이며 PR9/10/11은 병합됐습니다. 11월 5일 코드·표 서명과 Step C OK 기록은
+main은 21259f8이며 PR9/10/11/12는 병합됐습니다. 11월 5일 코드·표 서명과 Step C OK 기록은
 이전 인수인계 및 Notion의 소유자 보고입니다. 비공개 owner log를 새로 읽거나 검증하지 않았습니다.
 
 Notion의 빨간/파란 답변으로 세 결정은 해결돼 있습니다: 기존 손실하한 유지,
@@ -39,7 +39,7 @@ Notion의 빨간/파란 답변으로 세 결정은 해결돼 있습니다: 기�
 11월22일/23일 재검토 기한은 갱신하지 않았습니다. 완전한 법률 적격 확인과 날짜 연장은 남았습니다.
 
 공개 호가 시각 진단, 새 48시간 연구 초안 도구, Linux 배포 소스 링크 검사를 구현했습니다.
-source d5bac0a에서 전체 회귀를 완료했고 기록 커밋43666b4를 push했습니다. PR12는 검토 가능·미병합입니다.
+source d5bac0a에서 전체 회귀를 완료했고 기록 커밋43666b4를 push했습니다. PR12는 소유자 채팅 승인 후 11월 6일 18:19 KST에 21259f8로 병합됐습니다.
 전체2219PASS/0FAIL/135NOT_RUN, 신규27개전부PASS. 지정 Notion 두 페이지에도 최신 상태를 반영했습니다.
 실계좌/실API/키/전자서명/arm/주문/전향 실자료 수집은 수행하지 않았습니다.
 
@@ -104,7 +104,7 @@ context/november-readiness-20261106/의검증사본이이번세션사본입니�
 
 ## 6. 남은 개발과 실제 운영
 
-1. PR12는전체회귀·QA·README·실행장부·Notion갱신을완료해검토가능상태입니다. 병합은해당PR의owner승인이필요합니다.
+1. PR12는 소유자의 직접 채팅 승인 후 21259f8로 병합됐습니다. 검증 head43666b4와 병합 tree가 동일합니다. 실제 code/rules 전자서명은 아직 확인되지 않았습니다.
 2. rules-review-1122: 재검토 기록의 미확인 근거(법인/서비스명 매핑, 정확한 트래블룰/감독규정,
    12월 외환시행규정, 개별명단/제품/교육·계좌조건, 세법통과)를 해결하고 행별기한갱신안→owner승인.
    25행11월22일,22행11월23일; Upbit 신규진입11월23일부터기한초과거부.
@@ -125,7 +125,7 @@ handoff/AGENTS.md5절. 실제키/owner log내용/.env값/서명/arm/주문/실�
 
 ## 8. 소유자 절차
 
-완성된 PR12 검토→PR별병합승인→같은Windows환경에서code-approve 및approve --kind rules.
+PR12 검토·병합 승인·병합은 완료했습니다. 다음은 같은 Windows환경에서 소유자가 code-approve 및 approve --kind rules를 수행하는 단계입니다.
 새코드가 quotes.py와배포manifest경로를바꾸므로기존code/review해시를새버전승인으로재사용불가.
 이후본인PC에서시각진단/현재조건/프로필/새사전등록을진행합니다. 단축도구의성공은전략PASS가아닙니다.
 실계좌증거/위험여유/운영모드미완료가남아있어아직실주문가능하다고안내하지않습니다.
@@ -134,10 +134,19 @@ handoff/AGENTS.md5절. 실제키/owner log내용/.env값/서명/arm/주문/실�
 
 이문서→LEDGER→소스계획/법규47행메모/PR12→실제코드를읽으세요. 결정3가지를다시묻지말고
 최신주석을기존본문의대기문구보다우선합니다. 끝난ID를반복하지말고새검증기록과미해결목록을확인합니다.
-현재PR12는검토가능·미병합입니다. 이전PR의승인을재사용하지마세요. 첫거래기반의나머지개발은계속허용돼있습니다.
+PR12는 해당 PR에 대한 소유자 승인으로 병합 완료했습니다. 채팅 승인을 앱 전자서명으로 취급하지 마세요. 소유자가 후속 작업에 48시간 목표 마감을 지정했으며 남은 개발을 계속하도록 지시했습니다.
 
 ## 10. 비공개 자료
 
 Notion금액·Windows계정경로·개인정보와실제로그원문은공개repo에추가하지않았습니다.
 Cloud의scratch에는가짜검사로그와공식웹자료조사메모만있습니다. 실제자격증명은없고조회하지않았습니다.
 법률·세무·투자조언이아니며작성자는면허있는자문가가아닙니다.
+
+## 11. PR12 병합 확인
+
+- 승인 근거: 이 대화에서 소유자가 PR12 결과 보고에 직접 “승인합니다.”라고 답했습니다.
+- 승인 범위: PR12 head43666b4의 GitHub 병합. 앱 전자서명·활성화·주문 승인을 생성한 것으로 기록하지 않습니다.
+- GitHub merged=true, merge_commit=21259f8d8ab76ea35c46a61df582fe5d792e916f.
+- 승인 head와 병합 tree는 모두24550874656906eec51bb56d6530d57395d8c168로 동일합니다.
+- 기존 전체2219PASS/0FAIL/135NR 검증을 참조하며, 소스 변경이 없어 전체 검사를 반복하지 않았습니다.
+- 지정 Notion 두 페이지에 병합 완료를 반영했습니다. 실제 전자서명은 소유자 절차로 남습니다.

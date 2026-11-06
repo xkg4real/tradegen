@@ -121,3 +121,4 @@ Claude와 GPT가 끝낸 작업을 한 줄씩 쌓는 기록입니다. 같은 작�
 | cloud-compat-4 | 2026-11-06T15:21:53+09:00 | 2026-11-03 | gpt | Linux rglob의linked-directory누락수정 | deployment.py, launch_deployment.py | d5bac0a | 배포10PASS; 상속통합실패수정; 2신규회귀 |
 | launch-resume-regression-1 | 2026-11-06T15:37:30+09:00 | 2026-11-03 | gpt | 전체회귀·27신규검사·QA/README/검증기록 | README.md, qa, resume-execution-ledger | 43666b4 | 2219PASS/0FAIL/135NR;문서149PASS/0FAIL/9NR;기존ID/홈/frozen불변 |
 | launch-resume-delivery-1 | 2026-11-06T15:37:30+09:00 | 2026-11-03 | gpt | PR12 검토가능·Notion두페이지·Claude인수인계반환 | PR12, Notion, handoff CURRENT/context | 43666b4 | PR12 head43666b4 ready/unmerged;sourcepush;결정대기문구정정;실서명/주문없음 |
+| pr12-owner-merge | 2026-11-06T18:23:54+09:00 | 2026-11-03 | gpt | 소유자 직접 승인으로 PR12 병합; Notion·인수인계 갱신 | GitHub PR12, CURRENT/context, Notion | 21259f8 | merged=true; head43666b4와 tree동일; 실제전자서명/활성화/주문없음 |

@@ -1,11 +1,11 @@
 {
   "status": "returned",
-  "updated_at": "2026-11-06T15:37:30+09:00",
+  "updated_at": "2026-11-06T18:23:54+09:00",
   "source_commit": "d5bac0aa6058965c588d77d0f9770ca349e38131",
   "delivery_commit": "43666b4aa4cd8a28bc3eac6edf5286342a04a8d8",
   "pr": "https://github.com/xkg4real/tradegen/pull/12",
   "pr_draft": false,
-  "merged": false,
+  "merged": true,
   "rule_review_rows": 47,
   "rule_deadlines_renewed": false,
   "owner_decisions": {
@@ -25,5 +25,8 @@
   "actual_signing": false,
   "actual_arming": false,
   "actual_orders": false,
-  "qualified_strategy": false
+  "qualified_strategy": false,
+  "merge_commit": "21259f8d8ab76ea35c46a61df582fe5d792e916f",
+  "merge_approved_in_current_chat": true,
+  "merge_tree_matches_validated_head": true
 }

@@ -1,0 +1,14 @@
+{
+  "recorded_at": "2026-11-06T18:23:54+09:00",
+  "pr": 12,
+  "approved_head": "43666b4aa4cd8a28bc3eac6edf5286342a04a8d8",
+  "approval_source": "direct owner message in current chat",
+  "scope": "GitHub PR12 merge only",
+  "merged": true,
+  "merged_at": "2026-11-06T18:19:34+09:00",
+  "merge_commit": "21259f8d8ab76ea35c46a61df582fe5d792e916f",
+  "tree": "24550874656906eec51bb56d6530d57395d8c168",
+  "electronic_signatures_created": false,
+  "arming_performed": false,
+  "orders_submitted": false
+}
