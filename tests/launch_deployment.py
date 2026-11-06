@@ -165,6 +165,36 @@ def test_export_rejects_other_checkout_and_linked_source_before_closure_read():
                         "DEPLOYMENT_CURRENT_CHECKOUT_REQUIRED")
 
 
+def test_directory_links_are_refused_before_any_source_import_walk():
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        package = root / "execution_launch"; package.mkdir()
+        nested = package / "nested"; nested.mkdir()
+        source = nested / "regular.py"; source.write_text("VALUE=1\n", encoding="utf-8")
+        outside = root / "not-in-source-closure"; outside.mkdir()
+        (outside / "secret.py").write_text("VALUE=2\n", encoding="utf-8")
+        F.directory_link(nested / "linked-directory", outside)
+        with patch.object(D, "_ROOT", root), \
+                patch.object(owner, "_repo_imports", side_effect=AssertionError("must not inspect source AST")), \
+                patch.object(owner, "code_files", side_effect=AssertionError("must not hash source")):
+            refused(lambda: D.export_manifest(repo_root=root), "DEPLOYMENT_LINKED_SOURCE_REFUSED")
+
+
+def test_regular_nested_sources_remain_scanned_and_nested_hardlinks_refuse():
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        nested = root / "execution_launch" / "one" / "two"; nested.mkdir(parents=True)
+        source = nested / "source.py"; source.write_text("VALUE=1\n", encoding="utf-8")
+        with patch.object(D, "_ROOT", root), patch.object(owner, "_repo_imports", return_value=[]) as imports:
+            assert D._source_tree(root) == root
+            assert imports.call_count == 1 and imports.call_args.args == (root, source)
+        os.link(source, nested / "hardlinked.py")
+        with patch.object(D, "_ROOT", root), \
+                patch.object(owner, "_repo_imports", side_effect=AssertionError("must not inspect source AST")), \
+                patch.object(owner, "code_files", side_effect=AssertionError("must not hash source")):
+            refused(lambda: D.export_manifest(repo_root=root), "DEPLOYMENT_LINKED_SOURCE_REFUSED")
+
+
 def test_cli_compares_bounded_explicit_files_and_redacts_paths_and_rejected_arguments():
     with tempfile.TemporaryDirectory() as directory:
         left, right = Path(directory)/"left.json", Path(directory)/"right.json"

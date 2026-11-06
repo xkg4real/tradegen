@@ -155,6 +155,32 @@ def _linked(path):
     return stat.S_ISLNK(info.st_mode) or bool(getattr(info, "st_file_attributes", 0) & stat.FILE_ATTRIBUTE_REPARSE_POINT)
 
 
+def _source_paths(base, *, recursive):
+    """Inspect directory entries before walking: rglob skips POSIX directory links.
+
+    Path.walk lists those links among filenames without following them. Check
+    both lists so a symlink or Windows reparse point cannot vanish from the
+    metadata scan merely because no Python child was enumerated beneath it.
+    Nonexistent package roots retain the existing empty-glob behavior.
+    """
+    if not recursive:
+        yield from base.glob("*.py")
+        return
+    if not base.is_dir():
+        return
+
+    def unavailable(_error):
+        raise DeploymentError("DEPLOYMENT_SOURCE_SCAN_REFUSED")
+
+    count = 0
+    for directory, directories, files in base.walk(on_error=unavailable, follow_symlinks=False):
+        count += 1
+        _require(count <= 2048, "DEPLOYMENT_SOURCE_SCAN_BOUND")
+        for name in directories + files:
+            _require(not _linked(directory / name), "DEPLOYMENT_LINKED_SOURCE_REFUSED")
+        yield from (directory / name for name in files if name.endswith(".py"))
+
+
 def _source_tree(repo_root):
     """Inspect metadata before the trusted D14 closure reader opens source files.
 
@@ -177,7 +203,7 @@ def _source_tree(repo_root):
                                 ("execution_launch", True)):
         base = root / relative
         _require(all(not _linked(p) for p in (base, *base.parents)), "DEPLOYMENT_LINKED_SOURCE_REFUSED")
-        todo.extend(base.rglob("*.py") if recursive else base.glob("*.py"))
+        todo.extend(_source_paths(base, recursive=recursive))
     seen, size = set(), 0
     while todo:
         target = todo.pop()

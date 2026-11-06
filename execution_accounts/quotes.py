@@ -20,6 +20,7 @@ from execution_network.route import ManagedRoute, managed_route
 _SYMBOL = re.compile(r"KRW-[A-Z][A-Z0-9]{0,11}")
 _EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
 _PUBLIC_SCOPE = "public-upbit-orderbook"
+ORDERBOOK_PATH = "/v1/orderbook"
 _MAX_BYTES = 131072
 _MAX_AGE = timedelta(seconds=10)
 
@@ -107,6 +108,18 @@ class OrderbookQuote:
             return (self.bid + self.ask) / 2
 
 
+@dataclass(frozen=True, kw_only=True)
+class OrderbookRead:
+    """An unadmitted response and its local request envelope, for diagnostics.
+
+    This is not an OrderbookQuote: the body, book time and freshness have not
+    been admitted. Consumers must still call parse_orderbook before using it.
+    """
+    requested_at: datetime
+    checked_at: datetime
+    receipt: SourceReceipt = field(repr=False)
+
+
 def parse_orderbook(receipt: SourceReceipt, *, symbol: str, now: datetime) -> OrderbookQuote:
     """Validate exact bytes, selected market, native depth, clocks and spread.
 
@@ -181,7 +194,12 @@ class E1UpbitQuoteSource:
         _require(callable(self.clock), "QUOTE_CLOCK_REQUIRED")
         _require(self.route is None or type(self.route) is ManagedRoute, "QUOTE_ROUTE_INVALID")
 
-    def read(self) -> OrderbookQuote:
+    def read_receipt(self) -> OrderbookRead:
+        """Read the same fixed public GET without admitting a trading quote.
+
+        This narrow seam lets owner diagnostics retain a future/stale book's
+        original timestamp. It never relabels or repairs the response.
+        """
         _symbol(self.symbol)
         _require(callable(self.clock), "QUOTE_CLOCK_REQUIRED")
         params = _params(self.symbol)
@@ -202,7 +220,11 @@ class E1UpbitQuoteSource:
         receipt = SourceReceipt(path="/v1/orderbook", params=params, account_scope=_PUBLIC_SCOPE,
             received_at=received, server_time=answer.server_utc,
             raw_body=answer.raw_body, sha256=answer.sha256)
-        return parse_orderbook(receipt, symbol=self.symbol, now=after)
+        return OrderbookRead(requested_at=before, checked_at=after, receipt=receipt)
+
+    def read(self) -> OrderbookQuote:
+        reading = self.read_receipt()
+        return parse_orderbook(reading.receipt, symbol=self.symbol, now=reading.checked_at)
 
 
 def to_runner_quote(book: OrderbookQuote, *, now: datetime):
