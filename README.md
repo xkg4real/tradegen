@@ -5,15 +5,18 @@ of all 959 files. QUANTGEN stays pure quant research that goes no further than
 paper trading. TRADEGEN is where trading for the owner's own account is designed,
 inside Korean law.
 
-- **Status (2026-10-31): E1–E3 library implementation.** Read-only inquiry,
+- **Status (2026-11-06): offline launch integration.** E1 read-only inquiry,
   durable execution control, realized-profit accounting and cash limit-order
   adapters for KIS, Upbit and OKX are implemented. Orders require a fresh bound
   odds preparation, owner-signed session, compliance checks and explicit account
-  and credential providers. An explicit synchronous launch runner now supports
-  observation, isolated rehearsal and separately gated controlled integration;
-  it has no default live configuration. The [execution runbook](docs/execution-runbook.md) records
-  supported paths, offline checks and remaining owner setup. No live order was
-  placed during development; the new policy strategy remains UNVALIDATED.
+  and credential providers. The synchronous runner has separately gated control
+  interfaces; the shipped coordinator still refuses `controlled`. The owner can
+  compose the fixed [read-only rehearsal](docs/standalone-owner-rehearsal.md) only
+  with genuine reviewed evidence. Held-position source completeness, durable guard
+  integration and a current planner remain incomplete. The
+  [execution runbook](docs/execution-runbook.md) records the supported paths.
+  No live order was placed during development; the new policy strategy remains
+  UNVALIDATED. Passing offline acceptance does not establish first-trade readiness.
   Everything below the separator is inherited QUANTGEN documentation; its
   read-only statements describe those research packages.
 - **Read-only account inquiry (E1).** `python -m execution.poll` reads balances,
@@ -53,6 +56,14 @@ inside Korean law.
   implemented adapters and what still blocks a first trade.
   The [deployment manifest](docs/deployment-readiness.md) compares the existing
   dependency-inclusive approval hash without issuing an approval.
+  The November 6 integration adds [owner preparation/lifecycle tools](docs/owner-runtime-operations.md),
+  [fresh instrument renewal](docs/instrument-term-renewal.md),
+  [whole-family authenticated selection](docs/authenticated-study-selection.md),
+  [continuous price candidates](docs/continuous-price-candidates.md) and a
+  [chronological guard plan](docs/continuous-guard-commit-contract.md). Candidate
+  paths and pure guard plans cannot advance live held-position state. Preparation
+  rechecks actual freshness through persistence; a late audit row grants no session.
+  The unchanged protected floor can still leave no opening fee/loss headroom.
 - **Strategy research (2026-10-31).** A frozen exploratory study evaluated
   **21,408 configurations** from eight economic families across eight assets.
   Six were selected on validation data; **zero passed** the specified joint
@@ -897,23 +908,32 @@ exit code; the exit code is 0 only when nothing failed. The summary line reads
 | macro | `tests/macro_acceptance.py` over `tests/macro_*.py` | The v2 build, below | 419 PASS / 121 NOT_RUN |
 | paper | `tests/paper_live_acceptance.py` | The paper_live harness after the 2026-10-18/19 fixes, offline: costs from QUANTGEN's table and KRX ETF tick floor, LSE refused rather than proxied, the per-account cost gate in `Engine._open`, the 5-minute C3 account retired, no resume from another config's state, frozen price snapshots (exact round trip, sha refusal), post-session prices by window dates, session hours from `core.markets` across clock changes and holidays, only complete pulls frozen, the same-day replay's archived code, the power line, one ledger trial per configuration, the pre-registered gate and fidelity tests, the Strategy Lab ledger, concurrent ledger appends, the refused late freeze and the report outcomes block | 21 PASS |
 | grokteam | `grokteam/selfcheck.py` | The GROKTEAM BOOK desk (Kalshi KXBTCD paper benchmark of the Grok trading-team guide), offline: the Kalshi fee and payoff with the fee inside the stake, SIZE (half Kelly, 6% cap, $50 floor), the GARCH-t digital, no look-ahead in hourly bars or quotes, the 30-minute quote lookback, the stationarity warning not skipping, each account's entry rule, the cluster t and the one-sided skill p, the verdict precedence, the TRADEGEN copy permanently blinded (no event decided after the freeze is listed, fetched or replayed at any date; no re-freeze), Python patch updates not voiding the freeze, the sha-checked cache and the new ledger family | 17 PASS |
-| compliance | `tests/compliance_acceptance.py` over `tests/compliance_*.py` | The compliance gate, offline: the strict YAML loader (duplicate keys, anchors, native dates, 256 KB cap), the rules table, instrument map and venue file with the 38-row coverage and the monthly review cadence, the derived classes, the `decide()` kernel (conduct and hard-coded floor, fail-closed inputs, exits that stay open under D11, the OKX grey row with its cap, acknowledgement and 2026-12-03 auto-off at the Asia/Seoul boundary, D15 refusals and D16 refusals that only live deposit evidence lifts), permits and plan screening, purity, the Ed25519 owner log (chain, anchors, key rotation, system halts), D12 tighten-now/loosen-tomorrow, the approved-version store and signed code hash, `load_context`, the `--check` exit codes 0-4 and the alert template, the owner-kept signer's refusals and key file, and the isolation residual (links, junctions, hard links, final-target checks) | 346 PASS / 1 NOT_RUN |
+| compliance | `tests/compliance_acceptance.py` over `tests/compliance_*.py` | The compliance gate, offline: the strict YAML loader (duplicate keys, anchors, native dates, 256 KB cap), the rules table, instrument map and venue file with the 38-row coverage and the monthly review cadence, the derived classes, the `decide()` kernel (conduct and hard-coded floor, fail-closed inputs, exits that stay open under D11, the OKX grey row with its cap, acknowledgement and 2026-12-03 auto-off at the Asia/Seoul boundary, D15 refusals and D16 refusals that only live deposit evidence lifts), permits and plan screening, purity, the Ed25519 owner log (chain, anchors, key rotation, system halts), D12 tighten-now/loosen-tomorrow, the approved-version store and signed code hash, `load_context`, the `--check` exit codes 0-4 and the alert template, the owner-kept signer's refusals and key file, and the isolation residual (links, junctions, hard links, final-target checks) | 347 PASS / 1 NOT_RUN |
 | odds | `tests/odds_acceptance.py` over `tests/odds_*.py` | The odds engine, offline with every price feed faked: the single-leg plan whitelist and the named refusals in their fixed order, the cost ledger with the per-fill tick floor (the KRX stock sell tax inside it), floor-protected and stop-based stakes with lot rounding, the no-edge two-point bootstrap and GARCH-t with their pilot checks and corruption tests, the path engine (open and close checks, limit-down locks, the daily loss, rule dates, delisting stress, the OKX cap per entry), the ceiling, the KRX structural maximum and exact bold play, the HIDDEN_EDGE and CEILING_BREACH bug checks, the S_C3 replay against its pinned card with lower-bound Kelly, the report's sentence catalogue, outward number formats and language guard, the unsigned bar loader and its checked cache, the signed calendar, one seed per comparison, the CLI, and the odds guards (the import allowlist, no clock and no file I/O in the signed core) | 287 PASS |
-| execution | `tests/execution_acceptance.py` over `tests/execution_*.py` | E1 read-only account inquiry, offline: the frozen allowlists and refusals before any key is read, Upbit JWT and OKX signing, the shared KIS token cache, KIS read only under signed code, the OKX read-only self-check, snapshots and fail-closed positions, D16 deposit evidence (written on change and daily) with next-Seoul-day lifting and 7-day expiry, every poll check, alert text without balances or addresses, the poller CLI, and the guards (file-exact KIS and Upbit exceptions) | 231 PASS |
-| execution_control | `tests/control_acceptance.py` over `tests/control_*.py` and `tests/orders_*.py` | E2/E3 offline: exact durable reservations, FIFO realized accounting, equity policy, fresh bound odds and owner sessions, one-use capabilities, unknown-outcome retention, authenticated cash limit-order codecs and four mocked venue lifecycles and changing-FX regression | 149 PASS |
-| execution_accounts | `tests/accounts_acceptance.py` | Exact account cash/FIFO/history/FX evidence, conservative refusal cases, read-only readiness, explicit mocked E1 connection and signed/runtime guards | 111 PASS |
+| execution | `tests/execution_acceptance.py` over `tests/execution_*.py` | E1 read-only account inquiry, offline: the frozen allowlists and refusals before any key is read, Upbit JWT and OKX signing, the shared KIS token cache, KIS read only under signed code, the OKX read-only self-check, snapshots and fail-closed positions including unpriced USDC refusal, D16 deposit evidence (written on change and daily) with next-Seoul-day lifting and 7-day expiry, every poll check, alert text without balances or addresses, the poller CLI, and the guards (file-exact KIS and Upbit exceptions) | 233 PASS |
+| execution_control | `tests/control_acceptance.py` over `tests/control_*.py` and `tests/orders_*.py` | E2/E3 offline: exact durable reservations, FIFO realized accounting, equity policy, fresh bound odds and owner sessions through persistence, exact renewal-validation boundaries, one-use capabilities, unknown-outcome retention, authenticated cash limit-order codecs and four mocked venue lifecycles and changing-FX regression | 187 PASS |
+| execution_accounts | `tests/accounts_acceptance.py` | Exact account cash/FIFO/history/FX evidence, continuous path recording and verified valuation candidates, conservative refusal cases, read-only readiness, explicit mocked E1 connection and signed/runtime guards | 137 PASS |
 | strategy_research | `tests/research_acceptance.py` | Frozen data/source integrity, causal costed execution, validation-only selection, block bootstrap and multiplicity checks | 35 PASS |
-| execution_launch | `tests/launch_acceptance.py` | Private launch profile, explicit network routing, account collection and baseline continuity, causal paper workflow, fixed driver/review authentication, deployment comparison and guarded runner, the Windows private-input reader and baseline head, live history, the Windows owner-authority lookup, account intervals, the slot coordinator, prospective study, quote timing diagnostics and shortened-study draft preparation | 284 PASS / 13 NOT_RUN |
+| execution_launch | `tests/launch_acceptance.py` | Private launch profile, explicit network routing, account collection and baseline continuity, causal paper workflow, fixed driver/review authentication, deployment comparison and guarded runner, the Windows private-input reader and baseline head, live history, the Windows owner-authority lookup, account intervals, the slot coordinator, prospective study and whole-family authenticated selection, quote timing diagnostics, shortened-study drafts, instrument renewal, owner lifecycle/read-only rehearsal, continuous candidate archives and chronological guard plans | 378 PASS / 13 NOT_RUN |
 | kis_live | `tests/kis_live_acceptance.py` | Workbook-backed public channels, fake approval/WebSocket frames, exact indicators, time/coverage limits, lifecycle and Flet display guards | 47 PASS |
-| **Total** | `tests/run_all.py` | | 2219/2354 passed, 0 failed, 135 not run (2026-11-06, Linux Cloud, source d5bac0a) |
+| **Total** | `tests/run_all.py` | | 2380/2515 passed, 0 failed, 135 not run (2026-11-06, Linux Cloud, source eed84bc) |
 
-The 2026-11-06 counts were measured in Linux Cloud with all 19 KEYLESS
-variables, isolated test state and fake venue transports. All 27 new tests pass.
-The 135 NOT_RUN cases are 121 inherited macro reference-data cases, 13 Windows
-private-input metadata cases and one Windows console API case; they are not
-counted as successful Windows validation. The inherited Linux linked-directory
-scan failure was corrected before this full run. Actual-home metadata and frozen
-research files were unchanged. See the [execution record](docs/superpowers/plans/2026-11-06-resume-execution-ledger.md).
+The 2026-11-06 full run completed in 896.548 seconds with all 19 KEYLESS
+variables, isolated test state and fake venue transports. All 2354 inherited
+case IDs and statuses are unchanged from merged PR12; all 161 new cases pass.
+The 135 NOT_RUN cases remain 121 macro reference-data cases, 12 Windows
+private-input cases, one Windows workflow case and one Windows console API case.
+They are not successful Windows validation. Actual-home metadata and protected
+frozen research files were unchanged. The interrupted environment attempt and
+subsequent seven-failure integration run remain recorded alongside their fixes.
+See the [execution record](docs/superpowers/plans/2026-11-06-live-readiness-execution-ledger.md)
+and [measured validation summary](qa/live48_20261106_validation.json).
+
+Production held-position coverage/commit, controlled coordination, the standalone
+current planner, real account/source evidence, actual Windows checks and owner
+signatures remain incomplete. The protected floor is unchanged, and a new
+48-hour prospective study still needs its actual observation period after freeze.
+No real connection, signature, activation, order or qualified strategy is claimed.
 
 The owner can prepare a [new 48-hour study draft](docs/research/2026-11-06-shortened-prospective-protocol.md)
 and run [public quote timing diagnostics](docs/quote-timing-diagnostics.md) after
