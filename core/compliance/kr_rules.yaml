@@ -8,6 +8,9 @@
 # each row names that source.
 # "2027-02-18" is the travel-rule date the FSC gives only as "about" (six months after promulgation, FSC
 # 2026-08-11); confirm it against the official gazette before relying on it.
+# 2026-11-06 source audit: see research_notes/Korean resident trading venue legality/review_2026-11-06.md.
+# This partial correction does not renew review_by dates or constitute owner approval.
+# The 2026-11-05 proposal to defer crypto taxation is not an enacted change; retain the 2027-01-01 watch date.
 schema: tradegen.kr_rules/4
 scope: "Korean-resident individual, own funds only"
 known_changes: ["2026-12-03", "2027-01-01", "2027-02-18"]
@@ -125,7 +128,7 @@ rows:
     review_by: "2026-11-23"
     reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix rows 25 and 32; lines 98, 133 and 135; domestic notes line 140"}]
 
-  # effective_from: FSC via KDI EIEC and MTN 2026-07-16
+  # effective_from: MTN 2026-07-16; KDI 284654 republishes the separate 2026-07-24 notice
   - id: KR-KIS-SINGLE-ETP
     kind: venue
     match: {venue: [kis], class: [etp_single_stock], action: [buy], financing: [cash]}
@@ -140,6 +143,8 @@ rows:
       - "https://news.mtn.co.kr/news-detail/2026071616232262750"
       - "https://economist.co.kr/article/view/ecn202608120061"
       - "https://fsc.go.kr/eng/pr010101/87405"
+      - "https://www.fsc.go.kr/po010106/87403"
+      - "https://www.fsc.go.kr/po010106/87512"
     research:
       - "reports/Korean resident trading venue legality.md#compliance-matrix row 26"
       - "reports/Korean resident trading venue legality.md#L133"
@@ -156,9 +161,10 @@ rows:
     kind: venue
     match: {venue: [kis], class: [etp_crypto_futures_1x], action: [buy, sell], financing: [cash]}
     treatment: allow
-    reason: "The FSC treats overseas bitcoin-futures ETFs as permissible (2024-01-12, restated 2024-01-15); whether KIS lists BITO is unverified"
+    reason: "The FSC explicitly said overseas bitcoin-futures ETFs continue trading in its 2024-01-15 statement (81466); whether KIS currently lists BITO is unverified"
     basis: [legal]
     sources:
+      - "https://www.fsc.go.kr/no010101/81466"
       - "https://www.fsc.go.kr/no010101/81456"
       - "https://fsc.go.kr/no010102/81467"
       - "https://edaily.co.kr/News/Read?mediaCodeNo=257&newsId=01590806638757720"
@@ -265,10 +271,12 @@ rows:
     match: {venue: [kis], asset: [krx_share], action: [sell_short], financing: [cash]}
     treatment: gated
     requires: {owner: [short_course_30m, short_mock_1h], live: [broker_approval, collateral_105pct]}
-    reason: "Retail short selling resumed on 2025-03-31 with 105% collateral and broker approval; the 30-minute course and 1h of mock trading are the 2021 rules, unverified for 2025-26; refused until live broker evidence exists (D16)"
+    reason: "Retail short selling resumed on 2025-03-31; the current KIFIN course targets new investors and recognizes earlier completion. The legacy short_course_30m flag does not prove current or grandfathered broker eligibility, which remains unverified; live broker approval and collateral evidence are still mandatory (D16)"
     basis: [legal, policy]
     policy_ref: D16
     sources:
+      - "https://secure.kifin.or.kr/common/edu/6/detail.do"
+      - "https://www.kifin.or.kr/groupEdu/intro07.do"
       - "https://www.fsc.go.kr/no010101/84216"
       - "https://www.khan.co.kr/article/202105021409001"
       - "https://www.inews24.com/view/1362874"
@@ -311,12 +319,13 @@ rows:
     requires: {owner: [us_option_course_1h, us_option_mock_3h, broker_eligibility], live: []}
     ack: per_session
     warning: >-
-      You can lose the whole premium. A commission of US$0.99 to 5.90 a contract is 3 to 20% of a USD 30 account on
-      each side. Korean brokers offer these long only, after a 1-hour course and 3 hours of mock trading. TRADEGEN's
-      odds engine shows no odds for option legs.
-    reason: "Long-only US equity options through a Korean broker are legal after at least 1h of course and 3h of mock trading (from 2025-12-15); KIS's own long-only offer is unverified"
+      You can lose the whole premium and per-contract fees can consume a large share of a small position.
+      Course and mock-trading hours depend on broker-assessed age, suitability and experience; the minimum
+      flags alone do not establish eligibility or KIS product support. TRADEGEN shows no odds for option legs.
+    reason: "Some Korean brokers offer long-only US equity options. KIS overseas-derivative education starts at 1h/3h but can require 3h/5h or 10h/10h by investor category; broker_eligibility must cover the applicable requirements. KIS product support remains unverified"
     basis: [legal]
     sources:
+      - "https://securities.koreainvestment.com/main/customer/notice/Notice.jsp?cmd=TF04ga000002&num=45732"
       - "https://www.samsungpop.com/ux/kor/customer/notice/notice/noticeViewContent.do?MenuSeqNo=20804"
       - "https://m.kbsec.com/go.able?linkcd=s060300010000&seq=10007347&idt=20240805"
       - "https://www.wolyo.co.kr/news/articleView.html?idxno=316719"
@@ -422,12 +431,13 @@ rows:
     kind: venue
     match: {venue: [gopax], action: [any]}
     treatment: out_of_scope
-    reason: "Gopax's VASP renewal was reported pending in 2026, which conflicts with one note listing it as registered; not configured"
+    reason: "The FIU registration list dated 2026-10-30, republished by DAXA, includes Gopax; TRADEGEN still has no configured Gopax adapter and excludes it as policy, not as a finding of non-registration"
     basis: [policy]
     sources:
       - "https://www.heraldk.com/article/2025101618140727930"
       - "https://dealsite.co.kr/articles/163871"
       - "https://news.bizwatch.co.kr/article/mobile/2025/09/10/0017"
+      - "https://www.kdaxa.org/community/notice.php?boardid=notice&category=&idx=86&mode=view&offset=&sk=&sw="
     research:
       - "research_notes/Korean resident trading venue legality/crypto_domestic_and_overseas.md#L30"
       - "research_notes/Korean resident trading venue legality/crypto_domestic_and_overseas.md#L45"
@@ -522,9 +532,10 @@ rows:
       get no Korean user protection, and withdrawals can be frozen. Upbit may stop transfers to OKX without notice. New
       rules start on 2026-12-03 and about 2027-02-18. TRADEGEN turns OKX off on 2026-12-03 and caps everything you hold
       on OKX at {cap} of your equity.
-    reason: "Operator unregistered with the FIU; no user penalty found; the FIU contests transfers to it; OKX restricts only derivatives and P2P for South Korea; the end date about 2027-02-18 is approximate"
+    reason: "Operator unregistered with the FIU; no user penalty found; the FIU contests transfers to it; OKX specifically restricts derivatives and P2P for South Korea; the end date about 2027-02-18 is approximate"
     basis: [legal]
     sources:
+      - "https://www.fsc.go.kr/no010101/88039"
       - "https://www.fsc.go.kr/no010101/87177"
       - "https://www.okx.com/help/risk-compliance-disclosure"
       - "https://finance.biggo.com/news/84ec048d-c755-4cb1-9e6a-0d38fddb7920"
@@ -752,8 +763,8 @@ rows:
     kind: venue
     match: {venue: [polymarket, kalshi, limitless, myriad, opinion, predictfun, robinhood, cryptocom, predictit], action: [any]}
     treatment: hard_block
-    reason: "Staking on an event outcome is gambling under Criminal Act Art. 246, and police referred 18 Polymarket users to prosecutors in 2026; Kalshi's terms exclude members where trading is unlawful, and FSCMA Enforcement Decree Art. 184(1) may also apply; Kalshi perps, Robinhood, Crypto.com and PredictIt serve US customers only"
-    basis: [legal, platform]
+    reason: "TRADEGEN blocks the listed prediction venues and all event contracts as policy. Criminal Act Art. 246 prohibits legally qualifying gambling with statutory exceptions; this research does not classify every listed product. Kalshi requires applicable-law compliance; platform availability is not Korean legal permission. Reported enforcement and individual product eligibility still need primary-source review."
+    basis: [legal, platform, policy]
     sources:
       - "https://www.newsis.com/view/NISX20260818_0003752716"
       - "https://www.kwnews.co.kr/article/20260917501775"
@@ -779,11 +790,12 @@ rows:
     reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix rows 1-6; lines 92, 123, 125 and 127; prediction-market verification lines 8-20"}]
 
   # effective_from: Supreme Court 2022도6462, 2022-11-30
+
   - id: KR-SPORTSBOOK
     kind: venue
     match: {venue: [sportsbook], action: [any]}
     treatment: hard_block
-    reason: "Betting on a foreign sports site from Korea is punishable under the National Sports Promotion Act Art. 48(3), up to 5 years or KRW 50M (Supreme Court 2022도6462)"
+    reason: "Betting from Korea through prohibited similar sports-betting activities on foreign sites is punishable under National Sports Promotion Act Art. 26(1) and Art. 48 item 3; Supreme Court 2022도6462 confirms the foreign location of the operator does not remove that offense."
     basis: [legal]
     sources:
       - "https://law.go.kr/LSW/precInfoP.do?mode=0&precSeq=232585"
@@ -801,6 +813,7 @@ rows:
     reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 7; lines 93 and 129; prediction-market verification line 12"}]
 
   # effective_from: Ilgan NTN 2024-02-27
+
   - id: KR-IBKR
     kind: venue
     match: {venue: [ibkr], action: [any]}
@@ -869,10 +882,11 @@ rows:
     kind: venue
     match: {venue: [betman, lotto, speedon], action: [any]}
     treatment: out_of_scope
-    reason: "Betman, Lotto and Speed-On are legal but capped and negative-EV by design, not trading; owner policy D10 keeps them out of scope, and sports bets stay blocked by the hard-coded floor whatever this row says"
+    reason: "Designated domestic lottery, sports-ticket and racing services have provider, age and purchase-limit conditions. Owner policy D10 excludes these non-trading products; full current eligibility and individual expected values were not revalidated, and the sports hard floor remains in force."
     basis: [policy]
     policy_ref: D10
     sources:
+      - "https://www.sportstoto.co.kr/faq.php?main=2"
       - "https://news.tf.co.kr/read/toto/2184980.htm"
       - "https://sports.khan.co.kr/article/202302201513003"
       - "https://v.daum.net/v/20260206134735534"
@@ -890,13 +904,15 @@ rows:
     reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix rows 8 and 9; lines 104 and 129; prediction-market verification lines 18-19; spec D10"}]
 
   # effective_from: Supreme Court 2002도2518, decided 2004-04-23 (feasibility verification line 16)
+
   - id: KR-CONDUCT-EVENT
     kind: conduct
     match: {venue: [any], asset: [event_contract]}
     treatment: hard_block
-    reason: "Staking on an event outcome is gambling under Criminal Act Art. 246, which Art. 3 applies to Korean nationals abroad, whatever the venue"
-    basis: [legal]
+    reason: "TRADEGEN blocks event contracts everywhere as policy. Criminal Act Art. 246 prohibits legally qualifying gambling with statutory exceptions; Art. 3 applies to Korean nationals abroad. Supreme Court 2002도2518 concerns foreign casinos, not a classification of every event contract."
+    basis: [legal, policy]
     sources:
+      - "https://law.go.kr/LSW/precInfoP.do?precSeq=133579"
       - "https://www.law.go.kr/lsLinkProc.do?lsClsCd=L&lsNm=%ED%98%95%EB%B2%95&joNo=024600000&mode=11"
       - "https://www.law.go.kr/lsLinkProc.do?lsClsCd=L&lsNm=%ED%98%95%EB%B2%95&joNo=000300000&mode=11"
       - "https://casenote.kr/대법원/2002도2518"
@@ -913,12 +929,13 @@ rows:
     reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix rows 1-6; lines 58, 92, 123 and 125"}]
 
   # effective_from: Supreme Court 2022도6462, 2022-11-30
+
   - id: KR-CONDUCT-SPORTS
     kind: conduct
     match: {venue: [any], asset: [sports_bet]}
     treatment: hard_block
-    reason: "Sports-result betting outside the designated issuer is punishable under the National Sports Promotion Act Art. 26(1) and 48(3); no venue is exempted, because the hard-coded floor blocks sports bets everywhere"
-    basis: [legal]
+    reason: "Sports betting through prohibited similar activities outside the designated issuer framework is punishable under National Sports Promotion Act Art. 26(1) and Art. 48 item 3. TRADEGEN additionally blocks all sports bets as policy, including licensed providers."
+    basis: [legal, policy]
     sources:
       - "https://law.go.kr/LSW/precInfoP.do?mode=0&precSeq=232585"
       - "https://www.law.go.kr/lsLinkProc.do?lsClsCd=L&lsNm=%EA%B5%AD%EB%AF%BC%EC%B2%B4%EC%9C%A1%EC%A7%84%ED%9D%A5%EB%B2%95&joNo=004800000&mode=11"
@@ -934,6 +951,7 @@ rows:
     reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix rows 3 and 7; lines 59, 93 and 129"}]
 
   # effective_from: Gizmodo 2026-05-30
+
   - id: KR-CONDUCT-ROUTE
     kind: conduct
     match: {venue: [any], when: [route_not_direct]}
@@ -983,11 +1001,12 @@ rows:
     kind: conduct
     match: {venue: [any], tag: [copy_lead, copy_follow]}
     treatment: hard_block
-    reason: "Leading or following copy-trading is trading for others (Supreme Court 2024도10710); TRADEGEN is single-user, own funds only"
-    basis: [legal]
+    reason: "TRADEGEN excludes both copy leaders and followers as single-user, own-funds policy; Supreme Court 2024도10710 distinguishes ordinary own-account users from repeated paid services for others and does not categorically make every follower a VASP"
+    basis: [legal, policy]
     sources:
       - "https://www.segye.com/newsView/20241229510093"
       - "https://www.scourt.go.kr/sjudge/1746602881255_162801.pdf"
+      - "https://law.go.kr/LSW/precInfoP.do?precSeq=600579"
     research:
       - "reports/Korean resident trading venue legality.md#compliance-matrix row 20"
       - "reports/Korean resident trading venue legality.md#L95"
@@ -1024,9 +1043,10 @@ rows:
     kind: conduct
     match: {venue: [any], when: [publishes_signal]}
     treatment: hard_block
-    reason: "TRADEGEN publishes no signals: automated price-moving posts fall under the Virtual Asset User Protection Act Art. 10, sports signals under the National Sports Promotion Act Art. 26(2), and sharing signals may need advisory registration, which was not researched"
+    reason: "TRADEGEN publishes no signals as policy. Manipulative or deceptive conduct may breach Virtual Asset User Protection Act Art. 10; National Sports Promotion Act Art. 26(2) prohibits information and promotion for prohibited similar activities, not all general analysis. Advisory-registration requirements remain unverified."
     basis: [legal, policy]
     sources:
+      - "https://www.law.go.kr/lsLinkCommonInfo.do?lsJoLnkSeq=1033395363"
       - "https://casenote.kr/법령/가상자산_이용자_보호_등에_관한_법률/제10조"
       - "https://www.fsc.go.kr/no010101/82682"
       - "https://www.law.go.kr/법령/국민체육진흥법/제26조"
@@ -1044,6 +1064,7 @@ rows:
     affected_by: ["2026-12-03"]
 
   # effective_from: FSC press release 2026-06-24
+
   - id: KR-CONDUCT-PROMOTE
     kind: conduct
     match: {venue: [any], tag: [unregistered_vasp_referral]}
