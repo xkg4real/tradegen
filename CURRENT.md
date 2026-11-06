@@ -6,13 +6,13 @@ task: first-trade-foundation
 cycle: 2026-11-03
 done_ids: cloud-compat-1, cloud-compat-2, cloud-compat-3, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr, spec-rev-3-3, policy-plan-1, policy-preview-1, policy-pr, e1-1, e1-2, e1-3, e1-4, e1-5, e1-6, e1-7, e1-8, e1-9, e1-10, e1-11, e1-12, e1-13, e1-pr, e2-1, e2-2, e3-1, e3-2, e3-3, e2-3, e3-4, e2-e3-pr, pr6-pr7-merge, research-preregister-1, research-evaluate-1, account-readiness-1, research-paper-1, account-provider-1, account-regression-1, account-research-pr, pr8-human-code-review-approval, pr8-merge, launch-network-1, launch-collector-1, launch-profile-1, launch-strategy-1, launch-runner-1, launch-program-2, launch-workflow-2, launch-baseline-2, launch-quotes-2, launch-deployment-2, launch-review-request-2, launch-driver-2, launch-review-auth-2, launch-baseline-integration-2, launch-market-protocol-1, launch-recovery-cutoff-1, kis-live-contract-1, kis-live-backend-1, kis-live-ui-1, launch-static-guard-1, launch-windows-design-1, kis-live-regression-1, launch-regression-1, launch-delivery-1, pr9-owner-review, launch-windows-inputs-1, launch-owner-authority-1, launch-live-evidence, launch-live-history-1, launch-windows-coordinator-1, launch-study-module-1, okx-data-1, final-review-1, pr10-owner-review, venues-upbit-terms, pr11-owner-review, rules-review-1122/research, launch-quote-diagnostics-1, launch-shortened-study-1, cloud-compat-4, launch-resume-regression-1, launch-resume-delivery-1, pr12-owner-merge, account-okx-usdc-1, launch-market-readiness-1/audit, rules-review-1122/entity-mapping
 next_ids: rules-review-1122, launch-held-positions-1, launch-instrument-refresh-1, launch-controlled-coordinator-1, e1-14-owner-setup, launch-prospective-study
-updated_at: 2026-11-06T18:47:48+09:00
+updated_at: 2026-11-06T19:26:15+09:00
 stale_after_hours: 3
 waiting_on: owner code/rules electronic signatures; rule renewal evidence and remaining live integration
 work_branch: gpt/live-readiness-48h
-work_commit: c72c9b8fb071c047e793c6057029f91ec5e734ed
-uncommitted_changes: held evidence, terms renewal, owner workflow, authenticated selection and integration in progress
-pr: https://github.com/xkg4real/tradegen/pull/12 (merged 21259f8d8ab76ea35c46a61df582fe5d792e916f)
+work_commit: 250faceeeddfaa9168cd9a9f3ea6a84882ecaae5
+uncommitted_changes: standalone readonly rehearsal, pure chronological guard, test isolation; full regression pending
+pr: https://github.com/xkg4real/tradegen/pull/13 (draft; PR12 merged)
 usage_weekly_pct: unknown
 usage_source: unavailable
 handoff_threshold_pct: 95
@@ -166,3 +166,14 @@ Cloud의scratch에는가짜검사로그와공식웹자료조사메모만있습�
 - 국내거래소 Korbit→DigitalX 명칭대응을 공식회사연혁과DAXA자료로 해결했습니다. 법규표70PASS, 기한·제한·known_changes불변.
 - 시장별기능/미완료근거와48시간개발계획을 공개문서에 기록했습니다.
 - 보유연속증거/신선조건갱신/운영명령/검토선택 연결은 아직작업중이며 별도검토·통합검사전입니다. 전체회귀완료로취급하지않습니다.
+
+## 14. 구현 체크포인트 250face — 통합 회귀 전
+
+2026-11-06T19:26:15+09:00에 PR13 draft로 다음 소스 단위를 push했습니다. 전체 테스트 완료나 실거래 준비 완료가 아닙니다.
+- 보유 연속 후보 증거: 26신규+19기존=45PASS. 실제 발행은 고정거부.100→110→105→115 같은 중간하한위반이 종료값으로숨겨질수있어 E2영속연결 필요.
+- 조건갱신:21신규개별검사통과, 최초관측·양방향max·재사용·정지후보호작업검사. 병행기존회귀92PASS/3FAIL:호출호환성1건수정후PASS,2서명세션검사는소스고정재검증필요.
+- 소유자준비/운영명령:19신규PASS;프로세스내실객체유지,대기중disarm/종료미완료명시. 기존coordinator34PASS/1FAIL후해당케이스개별PASS,전체재검증필요.
+- 서명검토선택:20신규PASS. 독립검토의P1후전체후보raw/result 묶음을schema2서명에연결.탈락후보변조·기존v1자동승격거부. 관련검사35PASS,signer43PASS/1WindowsNR;최종독립재검토중.
+- owner 명령을 코드서명·배포검사·acting graph에추가했고조건GET2개만정확히허용했습니다.광범위실API예외없음.
+- standalone readonly rehearsal와순수시간순위험reducer는별도작성중입니다.현재controlled실행은계속거부합니다.
+- 사용량측정수단없음,전체회귀전.실API/키/실홈/서명/활성화/주문없음.
