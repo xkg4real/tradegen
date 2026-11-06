@@ -18,6 +18,7 @@ from execution_accounts.upbit_collector import E1UpbitSource
 from execution_control.capability import digest
 from execution_control.dry_run import DryRunAdapter
 from execution_control.store import GENESIS
+from execution_launch import strategy as evaluator
 from execution_launch.baseline_head import BaselineHead, CheckpointChain
 from execution_launch.coordinator import history_head_name
 from execution_launch.driver import DeploymentWindow
@@ -25,7 +26,7 @@ from execution_launch.live_history import HistoryChain
 from tests.launch_account_interval import ANCHOR, CONVENTIONS, COVERAGE, FEES, FakeUpbit, at, seed
 from tests.launch_baseline_head import head_root
 from tests.launch_coordinator import FakeTime, reviewed, memoized_pure_loads
-from tests.launch_review_auth import document
+from tests.launch_review_auth import document, review_fixture
 from tests.launch_windows_owner_authority import signed_home
 from tools.owner import rehearsal as R
 
@@ -68,11 +69,32 @@ def write_audit(folder, state, window):
 
 
 @contextmanager
+def isolated_evaluations():
+    """Give this fixture its own genuine evaluator records and restore its caller.
+
+    Shared acceptance fixtures may retain issued results. Keep those exact
+    objects, retain the production issuance cap inside this fixture, and avoid
+    leaving a newly cached shared review fixture backed by removed records.
+    """
+    previous = dict(evaluator._EVALUATED)
+    shared_review_was_cached = review_fixture.cache_info().currsize > 0
+    evaluator._EVALUATED.clear()
+    try:
+        yield
+    finally:
+        if not shared_review_was_cached:
+            review_fixture.cache_clear()
+        evaluator._EVALUATED.clear()
+        evaluator._EVALUATED.update(previous)
+
+
+@contextmanager
 def fixture(*, baseline_age_seconds=20):
     t0 = at(26, 20)
     # The full acceptance wrapper removes all key names. These are synthetic
     # presence markers only; keys.read below remains a hard refusal.
-    with patch.dict(os.environ, {"UPBIT_ACCESS_KEY": "<unset>", "UPBIT_SECRET_KEY": "<unset>"}), \
+    with isolated_evaluations(), \
+            patch.dict(os.environ, {"UPBIT_ACCESS_KEY": "<unset>", "UPBIT_SECRET_KEY": "<unset>"}), \
             memoized_pure_loads(), signed_home() as home, head_root() as heads, tempfile.TemporaryDirectory() as path:
         folder = Path(path).resolve()
         window = DeploymentWindow(deployment_id="owner-rehearsal", start=t0+timedelta(seconds=60),

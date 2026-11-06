@@ -115,6 +115,26 @@ path in this audit that does so. Target-hit probability remains unmeasured.
 
 ## Finite completion checklist
 
+### Current PR #13 implementation status
+
+The capability table above describes merged PR #12. PR #13 adds the following
+reviewable implementation; its measured regression is recorded in
+[the execution ledger](superpowers/plans/2026-11-06-live-readiness-execution-ledger.md).
+This status does not mark any owner observation or live prerequisite complete.
+
+| Checklist item | Implemented in PR #13 | Still required |
+| --- | --- | --- |
+| M1 | Continuous candidate recorder and a pure chronological guard that reconciles exact cash, inventory and FIFO history, retaining intermediate breaches. | Genuine source completeness, authenticated owner/control continuity, durable cross-store commit and live account publication. The candidate source still refuses live issuance. |
+| M2 | Fixed Upbit current-term reads and issued same-contract renewal through profile/session/dispatch. | Actual account-specific observations and timing on Windows; KIS/OKX terms remain unsupported. |
+| M3 | Owner setup/export/lifecycle operations and a standalone, signed-review-bound read-only account rehearsal. | A fixed current-planner provider, controlled execution integration and durable recovery; standalone `prepare` currently refuses without its provider. |
+| M4 | Fresh authenticated selection binding the entire evaluated family, including failed candidates. | Genuine capture, qualifying results and actual owner/source/implementation reviews. |
+| M5 | New fixture coverage and independent security review; final Linux results are in the execution ledger. | Required Windows checks and measured timing/recovery; merge and deployment remain separate owner steps. |
+
+M6–M12 retain the completion conditions below. In particular, KIS/OKX inquiry
+and order codecs do not supply complete live account collectors or a validated
+cross-market strategy. No automatic-trading completion percentage is inferred
+from the number of implemented helpers or passing fixture cases.
+
 These items define evidence needed for completion; a row is not complete merely
 because a document or parser exists. Parallel agents may close implementation
 items in this branch, but genuine external evidence and owner actions remain

@@ -106,9 +106,11 @@ already composed local process. Available commands are:
 | `disarm` | Stops slots immediately and records a durable Controller kill for the actual prepared session. Reports owner-log system-disarm separately. |
 | `close` | Stops slots and ends the schedule; reports whether the worker has actually finished. |
 
-Commands that require a live process are an API/console integration, not standalone
-commands that deserialize a session from disk. The standalone CLI currently
-provides setup and manifest export only. Owner arming remains in the existing
+Commands that require a live process retain their actual in-memory objects;
+they do not deserialize a session from disk. The `tools.owner.launch` CLI
+provides setup and manifest export. The separate
+[standalone rehearsal](standalone-owner-rehearsal.md) runs the fixed read-only
+account composition with DryRun execution. Owner arming remains in the existing
 separate authority flow. An injected planner, actual signed evidence and a
 reviewed source composition remain necessary; absent inputs are never assumed.
 
