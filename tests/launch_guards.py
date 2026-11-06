@@ -58,6 +58,11 @@ PINNED_WRITES: dict[str, tuple[str, ...]] = {
 }
 # The head's initialization is an explicit reviewed operator step: no runtime module may reference it.
 OPERATOR_ONLY = frozenset({"initialize_reviewed_head"})
+OWNER_SETUP = "tools/owner/launch.py"
+OWNER_SETUP_CALLS = {
+    "setup_account": "head.initialize_reviewed_head(reviewed_head)",
+    "setup_history": "head.initialize_reviewed_head(GENESIS)",
+}
 _PINNED_WRITE_TREES = {relative: frozenset(ast.dump(ast.parse(shape, mode="eval").body) for shape in shapes)
                        for relative, shapes in PINNED_WRITES.items()}
 WRITE_FLAGS = frozenset({"O_CREAT", "O_WRONLY", "O_RDWR", "O_APPEND", "O_TRUNC"})
@@ -518,7 +523,19 @@ def test_head_authority_writes_are_exact_and_operator_steps_have_no_runtime_call
     referencing = set()
     for path in runtime_py():
         tree = ast.parse(path.read_text(encoding="utf-8"))
-        if any(_reached(n) & OPERATOR_ONLY for n in ast.walk(tree)):
+        relative = path.relative_to(ROOT).as_posix()
+        allowed = set()
+        if relative == OWNER_SETUP:
+            # Only these two explicit, reviewed operator operations initialize
+            # heads. The normal coordinator/account/runtime path cannot do so.
+            definitions = {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
+            for function, shape in OWNER_SETUP_CALLS.items():
+                expected = ast.dump(ast.parse(shape, mode="eval").body)
+                matches = [n for n in ast.walk(definitions[function])
+                           if isinstance(n, ast.Call) and ast.dump(n) == expected]
+                assert len(matches) == 1, (relative, function)
+                allowed.update(id(n) for n in ast.walk(matches[0]))
+        if any(id(n) not in allowed and _reached(n) & OPERATOR_ONLY for n in ast.walk(tree)):
             referencing.add(path.relative_to(ROOT).as_posix())
     assert not referencing, referencing
 

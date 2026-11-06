@@ -654,6 +654,32 @@ def test_check_data_refuses_bad_events():
 # --------------------------------------------------------------------------- #
 # Code hash and store layout agree with owner.py
 # --------------------------------------------------------------------------- #
+def test_unimported_owner_commands_and_their_dependencies_are_signed():
+    """An explicit operator command is acting code even without a runtime import."""
+    root = Path(os.environ["TRADEGEN_HOME"]) / "owner-command-closure"
+    command = root / "tools" / "owner" / "nested" / "prepare.py"
+    command.parent.mkdir(parents=True)
+    helper = root / "private_parser.py"
+    helper.write_text("VALUE = 1\n", encoding="utf-8")
+    command.write_text("def prepare():\n    import private_parser\n    return private_parser.VALUE\n",
+                       encoding="utf-8")
+    for relative in ("tools/__init__.py", "tools/owner/__init__.py",
+                     "tools/owner/nested/__init__.py"):
+        (root / relative).write_text("", encoding="utf-8")
+    first = owner.code_files(root)
+    assert first == signer.code_files(root)
+    names = {name for name, _ in first}
+    assert {"tools/owner/nested/prepare.py", "private_parser.py", "tools/__init__.py",
+            "tools/owner/__init__.py", "tools/owner/nested/__init__.py"} <= names
+    helper.write_text("VALUE = 2\n", encoding="utf-8")
+    second = owner.code_files(root)
+    assert second != first and second == signer.code_files(root)
+    command.write_text("def prepare():\n    return 3\n", encoding="utf-8")
+    third = owner.code_files(root)
+    assert third != second and third == signer.code_files(root)
+    assert "private_parser.py" not in {name for name, _ in third}
+
+
 def test_code_files_match_owner():
     mine = signer.code_files(ROOT)
     theirs = [tuple(f) for f in owner.code_files(ROOT)]
@@ -663,7 +689,7 @@ def test_code_files_match_owner():
     assert {"core/__init__.py", "core/isolation.py", "core/compliance/__init__.py"} <= paths, paths
     assert {f"core/compliance/{p.name}" for p in (ROOT / "core" / "compliance").glob("*.py")} <= paths, paths
     assert {f"execution/{p.name}" for p in (ROOT / "execution").glob("*.py")} <= paths, paths      # E1 spec 8
-    assert {p.relative_to(ROOT).as_posix() for package in ("execution_control", "execution_orders", "execution_accounts", "execution_network", "execution_launch")
+    assert {p.relative_to(ROOT).as_posix() for package in ("execution_control", "execution_orders", "execution_accounts", "execution_network", "execution_launch", "tools/owner")
             for p in (ROOT / package).rglob("*.py")} <= paths, paths                            # E2/E3
     assert not any(p.startswith(("core/quant/", "core/calendars/", "core/engine/")) for p in paths), paths
     assert "config.py" not in paths and not any(p.startswith("data/") for p in paths), paths

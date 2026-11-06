@@ -25,14 +25,17 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 from datetime import datetime, time, timedelta
-from decimal import Decimal, DecimalException
+from decimal import Decimal, DecimalException, Inexact, localcontext
 from threading import Lock
+from pathlib import Path
 
 from core.compliance.model import KST
 from execution_accounts.baseline import BaselineError, BaselineInterval, BaselineState, _required_cutoff, risk_baseline
-from execution_accounts.baseline_bridge import BaselineFrame
+from execution_accounts.baseline_bridge import BaselineFrame, advance_account_baseline
 from execution_accounts.collector import CoverageEvidence, OpeningAnchor, SourceReceipt, TradeFeeEvidence, instant
-from execution_accounts.model import RiskBaseline, content_digest
+from execution_accounts.model import AccountEvidence, RiskBaseline, content_digest
+from execution_accounts.continuous import (ContinuousEvidenceError, ContinuousPath, PathValuation, VerifiedCoverage, archive_candidate, value_path, verify_coverage)
+from execution_control.risk import account_fills
 from execution_accounts.provider import EvidenceError, _fresh, build_observation
 from execution_accounts.upbit_collector import CollectionResult, collect_upbit
 
@@ -195,3 +198,220 @@ class UpbitIntervalSource:
             raise
         except (ValueError, TypeError, AttributeError):
             raise AccountIntervalError("ACCOUNT_INTERVAL_EVIDENCE_REFUSED") from None
+
+
+@dataclass(frozen=True, kw_only=True)
+class ContinuousCapture:
+    """Source view without the collector's temporary risk-baseline self-check."""
+    accounts: tuple[AccountEvidence, ...]
+    receipts: tuple[SourceReceipt, ...]
+    manifest_sha256: str
+    observed_at: datetime
+
+
+@dataclass(frozen=True, kw_only=True)
+class ContinuousIntervalPreview:
+    """Verified source-path mathematics, deliberately NOT a BaselineFrame.
+
+    Current owner limits, chronological D12 floor ratchets and durable E2 halt
+    integration are still required before any account baseline may advance.
+    Consequently ContinuousAccountProvider rejects this type.
+    """
+    interval: BaselineInterval
+    accounts: tuple[AccountEvidence, ...]
+    path: ContinuousPath
+    coverage: VerifiedCoverage
+    valuation: PathValuation
+
+    @property
+    def execution_ready(self):
+        return False
+
+
+@dataclass(frozen=True, kw_only=True)
+class StagedContinuousCandidate:
+    preview: ContinuousIntervalPreview
+    path_sha256: str
+    manifest_sha256: str
+    observed_at: datetime
+
+
+def preview_continuous_upbit_interval(previous: BaselineState, collection: CollectionResult,
+                                    path: ContinuousPath, *, coverage_verifier, now: datetime) -> ContinuousIntervalPreview:
+    """Exact arithmetic wrapper for the independently authenticated held path."""
+    try:
+        with localcontext() as numeric:
+            numeric.prec = 512
+            numeric.traps[Inexact] = True
+            return _preview_continuous_upbit_interval(previous, collection, path,
+                                                    coverage_verifier=coverage_verifier, now=now)
+    except (AccountIntervalError, ContinuousEvidenceError, EvidenceError, BaselineError):
+        raise
+    except (ValueError, TypeError, AttributeError, KeyError, DecimalException, OverflowError):
+        raise AccountIntervalError("ACCOUNT_INTERVAL_CONTINUOUS_EVIDENCE_REFUSED") from None
+
+
+def _preview_continuous_upbit_interval(previous: BaselineState, collection: CollectionResult,
+                                    path: ContinuousPath, *, coverage_verifier, now: datetime) -> ContinuousIntervalPreview:
+    """A held-position candidate after independently authenticated complete-path evidence.
+
+    The original fenced capture reconciles cash, positions, history and fees.
+    A reviewed verifier must additionally authenticate every ordered valuation
+    change through the half-open endpoint. No production Upbit coverage verifier
+    is shipped. Raw snapshots, a heartbeat, or a boolean cannot use this path.
+    The baseline reducer and bridge recheck the derived extrema and counters.
+    """
+    try:
+        _require(type(previous) is BaselineState and type(collection) is CollectionResult,
+                 "ACCOUNT_INTERVAL_INPUT_REQUIRED")
+        bundle, receipts = collection.bundle, collection.receipts
+        _require(len(bundle.accounts) == 1 and bool(receipts)
+                 and bundle.accounts[0].venue == "upbit" and bundle.accounts[0].execution_quote == "KRW"
+                 and bundle.accounts[0].account_scope == previous.account_scope
+                 and all(page.source_sha256 == collection.manifest_sha256 for page in bundle.accounts[0].pages)
+                 and bundle.risk_baseline.first_trading_day == previous.first_trading_day,
+                 "ACCOUNT_INTERVAL_COLLECTION_BINDING_INVALID")
+        account = bundle.accounts[0]
+        first, observed = receipts[0].received_at, account.observed_at
+        _require(previous.asof < first <= observed <= now, "ACCOUNT_INTERVAL_CAPTURE_NOT_AFTER_PREVIOUS")
+        _fresh(previous.asof, observed)
+        boundary, _ = _pending_boundary(previous)
+        end = min(observed, boundary)
+        _require(observed < boundary or first <= boundary, "ACCOUNT_INTERVAL_BOUNDARY_MISSED")
+        _require(type(path) is ContinuousPath and path.account_scope == previous.account_scope
+                 and path.previous_state_digest == previous.state_digest
+                 and path.start == previous.asof and path.end == end,
+                 "ACCOUNT_INTERVAL_PRICE_PATH_BINDING_INVALID")
+        observation = build_observation(bundle, now=observed)
+        fills = observation.fills
+        _require(all(fill.executed_at < end for fill in fills), "ACCOUNT_INTERVAL_FILL_AFTER_BOUNDARY")
+        historical = tuple(fill for fill in fills if fill.executed_at < previous.asof)
+        inside = tuple(fill for fill in fills if previous.asof <= fill.executed_at < end)
+        prior = account_fills(historical)
+        _require(prior.ok and prior.duplicate_count == 0, "ACCOUNT_INTERVAL_PRIOR_HISTORY_REFUSED")
+        _require(len(account.opening_cash) == 1 and account.opening_cash[0].currency == "KRW",
+                 "ACCOUNT_INTERVAL_KRW_ANCHOR_REQUIRED")
+        cash = account.opening_cash[0].amount
+        cash += sum((amount for venue, scope, amount in prior.cash_deltas_by_account_krw
+                     if venue == "upbit" and scope == previous.account_scope), _ZERO)
+        seen_flows = {}
+        for page in account.pages:
+            if page.kind == "flows":
+                for flow in page.rows:
+                    if flow.flow_id in seen_flows:
+                        _require(seen_flows[flow.flow_id] == flow, "ACCOUNT_INTERVAL_FLOW_CONTRADICTION")
+                        continue
+                    seen_flows[flow.flow_id] = flow
+                    _require(flow.effective_at < previous.asof,
+                             "ACCOUNT_INTERVAL_EXTERNAL_FLOW_UNSUPPORTED")
+                    _require(flow.currency == "KRW" and flow.kind in ("deposit", "withdrawal"),
+                             "ACCOUNT_INTERVAL_EXTERNAL_FLOW_UNSUPPORTED")
+                    cash += flow.amount if flow.kind == "deposit" else -flow.amount
+        units = tuple((row[3], row[4]) for row in prior.inventory if row[4] != 0)
+        valuation = value_path(path, opening_cash_krw=cash, opening_units=units, historical_fills=historical,
+            interval_fills=inside, previous_equity_krw=previous.equity_krw,
+            previous_realized_net_krw=previous.realized_net_total_krw)
+        _require(len(account.balances) == 1 and account.balances[0].currency == "KRW"
+                 and valuation.closing_cash_krw == account.balances[0].total,
+                 "ACCOUNT_INTERVAL_CLOSING_CASH_MISMATCH")
+        closing_units = tuple(sorted((position.symbol, position.units) for position in account.positions))
+        _require(valuation.closing_units == closing_units, "ACCOUNT_INTERVAL_CLOSING_HOLDINGS_MISMATCH")
+        marks = {mark.symbol: mark for mark in valuation.closing_marks}
+        if end == observed:
+            _require(all(position.price == marks[position.symbol].price for position in account.positions)
+                     and valuation.equity_krw == observation.risk.equity,
+                     "ACCOUNT_INTERVAL_CLOSING_MARK_MISMATCH")
+            accounts = (account,)
+        else:
+            # The fenced capture brackets the boundary and has no account changes.
+            # Prices are reconstructed from the verified path at the boundary,
+            # never copied backwards from a later ticker snapshot.
+            endpoint = _stamped(account, end)
+            endpoint = replace(endpoint, positions=tuple(replace(position, price=marks[position.symbol].price,
+                asof=end) for position in endpoint.positions))
+            accounts = (endpoint,)
+        proof = verify_coverage(path, account_capture_sha256=content_digest((collection.manifest_sha256,
+                                collection.bundle.accounts, accounts)), verifier=coverage_verifier, now=now)
+        _require(proof.verified_at >= observed, "ACCOUNT_INTERVAL_COVERAGE_BEFORE_CAPTURE")
+        interval = BaselineInterval(account_scope=previous.account_scope, sequence=previous.sequence+1,
+            previous_state_digest=previous.state_digest, start=previous.asof, end=end,
+            equity_krw=valuation.equity_krw, minimum_equity_krw=valuation.minimum_equity_krw,
+            maximum_equity_krw=valuation.maximum_equity_krw, realized_net_total_krw=valuation.realized_net_total_krw,
+            gross_external_inflows_krw=_ZERO, gross_external_outflows_krw=_ZERO,
+            source_sha256=content_digest(accounts), coverage_sha256=content_digest((path, proof)))
+        # Includes midnight/cutoff, all FIFO counters and account-mark reconciliation.
+        advance_account_baseline(previous, interval, accounts, now=now)
+        return ContinuousIntervalPreview(interval=interval, accounts=accounts, path=path,
+                                         coverage=proof, valuation=valuation)
+    except (AccountIntervalError, ContinuousEvidenceError, EvidenceError, BaselineError):
+        raise
+    except (ValueError, TypeError, AttributeError, KeyError, IndexError, DecimalException, OverflowError):
+        raise AccountIntervalError("ACCOUNT_INTERVAL_CONTINUOUS_EVIDENCE_REFUSED") from None
+
+
+class ContinuousUpbitCandidateSource:
+    """Candidate capture only; cannot serve ContinuousAccountProvider or live trading.
+
+    ``path_source(previous, capture, end)`` must return a candidate from an
+    already-running continuous recorder. ``coverage_verifier(request, path)``
+    independently authenticates the source contract. Both are trusted reviewed
+    code dependencies; neither is loaded from a user JSON field. A class check
+    alone must never enable controlled execution. The shipped production source
+    remains flat-only until a venue completeness adapter has been established.
+    """
+    def __init__(self, *, path_source, coverage_verifier, archive_root: Path):
+        _require(callable(path_source) and callable(coverage_verifier),
+                 "ACCOUNT_INTERVAL_CONTINUOUS_INTEGRATIONS_REQUIRED")
+        self._lock, self._staged = Lock(), None
+        self._path_source, self._coverage_verifier = path_source, coverage_verifier
+        _require(isinstance(archive_root, Path) and archive_root.is_absolute(),
+                 "ACCOUNT_INTERVAL_CONTINUOUS_ARCHIVE_REQUIRED")
+        self._archive_root = archive_root
+
+    def collect(self, collector_source, *, previous: BaselineState, anchor: OpeningAnchor,
+                coverage: CoverageEvidence, clock, trade_fees: tuple[TradeFeeEvidence, ...] = ()) -> StagedContinuousCandidate:
+        with self._lock:
+            self._staged = None
+        try:
+            _require(type(previous) is BaselineState and callable(clock) and type(trade_fees) is tuple,
+                     "ACCOUNT_INTERVAL_INPUT_REQUIRED")
+            _require(getattr(collector_source, "account_scope", None) == previous.account_scope,
+                     "ACCOUNT_INTERVAL_SCOPE_MISMATCH")
+            exported = risk_baseline(previous, now=previous.asof, expected_head=previous.state_digest)
+            started = instant(clock())
+            boundary, midnight = _pending_boundary(previous)
+            _require(started <= boundary, "ACCOUNT_INTERVAL_BOUNDARY_MISSED")
+            in_window = boundary-started <= timedelta(seconds=BOUNDARY_LEAD_SECONDS)
+            # Collector self-check only; no opening baseline is published. The
+            # bridge subsequently derives the true midnight opening from the path.
+            baseline = _opening_collection_baseline(previous, boundary) if in_window and midnight else exported
+            collection = collect_upbit(collector_source, anchor=anchor, coverage=coverage, risk_baseline=baseline,
+                                       clock=clock, trade_fees=trade_fees)
+            observed = collection.bundle.accounts[0].observed_at
+            end = min(observed, boundary)
+            capture = ContinuousCapture(accounts=collection.bundle.accounts, receipts=collection.receipts,
+                                        manifest_sha256=collection.manifest_sha256, observed_at=observed)
+            path = self._path_source(previous, capture, end)
+            now = instant(clock())
+            preview = preview_continuous_upbit_interval(previous, collection, path,
+                                                    coverage_verifier=self._coverage_verifier, now=now)
+            _require(not in_window or preview.interval.end == boundary, "ACCOUNT_INTERVAL_BOUNDARY_NOT_BRACKETED")
+            candidate_sha = archive_candidate(path, root=self._archive_root)
+            staged = StagedContinuousCandidate(preview=preview, path_sha256=candidate_sha,
+                                               manifest_sha256=collection.manifest_sha256, observed_at=now)
+        except (AccountIntervalError, ContinuousEvidenceError, EvidenceError, BaselineError):
+            raise
+        except Exception:
+            raise AccountIntervalError("ACCOUNT_INTERVAL_CONTINUOUS_COLLECTION_FAILED") from None
+        with self._lock:
+            self._staged = staged
+        return staged
+
+    def latest(self):
+        """The last audit candidate, never an account-provider frame."""
+        with self._lock:
+            _require(self._staged is not None, "ACCOUNT_INTERVAL_PREFETCH_REQUIRED")
+            return self._staged
+
+    def __call__(self, previous, now):
+        raise AccountIntervalError("CONTINUOUS_LIVE_RISK_INTEGRATION_REQUIRED")

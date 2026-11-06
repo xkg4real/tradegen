@@ -601,7 +601,7 @@ def store_calendar(src_dir: Path, anchor: tuple[int, str]) -> str:
 
 # --------------------------------------------------------------------------- #
 # The D14 code hash: a copy of owner.code_files (P6). core/compliance, core/odds and execution .py files,
-# recursive execution_control/, execution_orders/, execution_accounts/, execution_network/ and execution_launch/ files, every in-repo file they import at any depth
+# recursive execution_control/, execution_orders/, execution_accounts/, execution_network/, execution_launch/ and tools/owner/ files, every in-repo file they import at any depth
 # (function bodies included), every ancestor package __init__.py, and the
 # RECORD files of the cryptography and PyYAML installs. An `if` body that never runs at import is skipped (see
 # _skipped); every other body is scanned.
@@ -720,7 +720,7 @@ def code_files(repo_root: Path) -> list[tuple[str, str]]:
     root = Path(repo_root)
     todo = [p for base in (root / "core" / "compliance", root / "core" / "odds", root / "execution")
             for p in sorted(base.glob("*.py"))]
-    todo.extend(p for base in (root / "execution_control", root / "execution_orders", root / "execution_accounts", root / "execution_network", root / "execution_launch")
+    todo.extend(p for base in (root / "execution_control", root / "execution_orders", root / "execution_accounts", root / "execution_network", root / "execution_launch", root / "tools" / "owner")
                 for p in sorted(base.rglob("*.py")))
     seen: set[Path] = set()
     while todo:
@@ -1079,6 +1079,8 @@ _rr_AUTH_FLAGS = frozenset({'source_authenticated', 'implementation_authenticate
 _rr_CHECKS = ('original_source_identity_and_records', 'publication_before_capture', 'independent_capture_window', 'complete_candidate_and_retry_family', 'causal_decisions_match_frozen_program', 'fixed_runtime_driver_matches_reviewed_program', 'deployment_source_and_dependency_closure', 'capital_fees_rules_and_account_risk_applicability', 'effective_owner_limits_and_actual_session')
 _rr_METRICS = frozenset({'observations', 'completed_roundtrips', 'total_return', 'max_drawdown', 'double_cost_total_return', 'extra_delay_total_return', 'family_adjusted_p'})
 _rr_TOP = frozenset({'schema_version', 'artifact_kind', 'requested_at', 'capture_start', 'capture_end', 'evaluated_at', 'review_deadline', 'study_id', 'strategy_id', 'capture_source_id', 'evaluator_revision', 'source_kind_claim', 'bindings', 'computed_summary', 'profile_blockers', 'assessment_reasons', 'required_checks', 'reviewer_id', 'review_public_key', 'review_signature', 'deployment_code_hash', 'authority', 'request_sha256'})
+_rr_FAMILY = frozenset({'plan_digest', 'members', 'family_sha256'})
+_rr_MEMBER = frozenset({'study_id', 'capture_sha256', 'evidence_digest'})
 
 class _rr_ReviewRequestError(ValueError):
     """Fixed diagnostics with no supplied value or provider text."""
@@ -1115,9 +1117,44 @@ def _rr_canonical(value):
     except (ValueError, TypeError, RecursionError, OverflowError):
         raise _rr_ReviewRequestError('REVIEW_REQUEST_JSON_INVALID') from None
 
+def _rr_validate_family(value):
+    _rr_require(type(value) is dict and set(value) == _rr_FAMILY and _rr_hash(value['plan_digest']), 'REVIEW_FAMILY_SCHEMA_INVALID')
+    members = value['members']
+    _rr_require(type(members) is list and 1 <= len(members) <= 128 and all((type(row) is dict and set(row) == _rr_MEMBER and _rr_identifier(row['study_id']) and _rr_hash(row['capture_sha256']) and _rr_hash(row['evidence_digest']) for row in members)), 'REVIEW_FAMILY_SCHEMA_INVALID')
+    ids = [row['study_id'] for row in members]
+    _rr_require(ids == sorted(set(ids)), 'REVIEW_FAMILY_SCHEMA_INVALID')
+    body = {'plan_digest': value['plan_digest'], 'members': members}
+    _rr_require(_rr_hash(value['family_sha256']) and value['family_sha256'] == hashlib.sha256(_rr_canonical(body).encode('ascii')).hexdigest(), 'REVIEW_FAMILY_DIGEST_MISMATCH')
+
+def _rr_build_family_commitment(*, plan_digest, capture_digests, result_digests):
+    """Bind the entire evaluated family, including failures; this is not authentication.
+
+    The study workflow computes these hashes from every raw capture and issued
+    evaluation. A detached owner signature over a schema-2 request authenticates
+    that reviewed family; the selector must recompute it before choosing a row.
+    """
+    _rr_require(type(capture_digests) is dict and type(result_digests) is dict and (set(capture_digests) == set(result_digests)) and all((_rr_identifier(name) for name in capture_digests)), 'REVIEW_FAMILY_SCHEMA_INVALID')
+    body = {'plan_digest': plan_digest, 'members': [{'study_id': name, 'capture_sha256': capture_digests[name], 'evidence_digest': result_digests[name]} for name in sorted(capture_digests)]}
+    value = body | {'family_sha256': hashlib.sha256(_rr_canonical(body).encode('ascii')).hexdigest()}
+    _rr_validate_family(value)
+    return value
+
+def _rr_bind_review_family(request, commitment):
+    """Create a new unsigned schema-2 request; never upgrade an existing signature."""
+    _rr_validate(request)
+    _rr_require(request['schema_version'] == 1, 'REVIEW_FAMILY_ALREADY_BOUND')
+    _rr_validate_family(commitment)
+    body = {name: value for name, value in request.items() if name != 'request_sha256'}
+    body.update(schema_version=2, family_commitment=json.loads(_rr_canonical(commitment)))
+    result = body | {'request_sha256': hashlib.sha256(_rr_canonical(body).encode('ascii')).hexdigest()}
+    _rr_validate(result)
+    return result
+
 def _rr_validate(request):
-    _rr_require(type(request) is dict and set(request) == _rr_TOP, 'REVIEW_REQUEST_SCHEMA_INVALID')
-    _rr_require(type(request['schema_version']) is int and request['schema_version'] == 1 and (request['artifact_kind'] == 'unsigned_strategy_review_request'), 'REVIEW_REQUEST_SCHEMA_INVALID')
+    _rr_require(type(request) is dict and type(request.get('schema_version')) is int and (request['schema_version'] in (1, 2)), 'REVIEW_REQUEST_SCHEMA_INVALID')
+    expected = _rr_TOP if request['schema_version'] == 1 else _rr_TOP | {'family_commitment'}
+    _rr_require(set(request) == expected, 'REVIEW_REQUEST_SCHEMA_INVALID')
+    _rr_require(type(request['schema_version']) is int and request['schema_version'] in (1, 2) and (request['artifact_kind'] == 'unsigned_strategy_review_request'), 'REVIEW_REQUEST_SCHEMA_INVALID')
     stamps = {name: _rr_time(request[name]) for name in ('requested_at', 'capture_start', 'capture_end', 'evaluated_at', 'review_deadline')}
     _rr_require(stamps['capture_start'] < stamps['capture_end'] <= stamps['evaluated_at'] <= stamps['requested_at'] and stamps['review_deadline'] > stamps['capture_end'], 'REVIEW_REQUEST_CHRONOLOGY_INVALID')
     for name in ('study_id', 'strategy_id', 'capture_source_id', 'evaluator_revision'):
@@ -1125,6 +1162,11 @@ def _rr_validate(request):
     _rr_require(type(request['source_kind_claim']) is str and request['source_kind_claim'] in _rr_KINDS, 'REVIEW_SOURCE_KIND_INVALID')
     bindings = request['bindings']
     _rr_require(type(bindings) is dict and set(bindings) == _rr_BINDINGS and all((_rr_hash(v) for v in bindings.values())), 'REVIEW_REQUEST_BINDING_INVALID')
+    if request['schema_version'] == 2:
+        family = request['family_commitment']
+        _rr_validate_family(family)
+        member = next((row for row in family['members'] if row['study_id'] == request['study_id']), None)
+        _rr_require(member is not None and member['evidence_digest'] == bindings['evidence_digest'], 'REVIEW_FAMILY_CANDIDATE_MISMATCH')
     summary = request['computed_summary']
     _rr_require(type(summary) is dict and set(summary) == {'mathematical_criteria_met', 'metrics'} and (type(summary['mathematical_criteria_met']) is bool), 'REVIEW_REQUEST_SUMMARY_INVALID')
     metrics = summary['metrics']

@@ -118,8 +118,11 @@ def verify_session(prepared, *, session_id: str, policy, instrument_rules, ctx, 
         symbol, quote = order.symbol.split("-")
     else:
         symbol, quote = order.symbol, "KRW" if order.market == "krx" else "USD"
+    from execution_launch.instrument_refresh import rules_binding_matches, validate_observed_order
+    validate_observed_order(order, instrument_rules, now=now)
     if (prepared.session_id != session_id or prepared.policy_digest != digest(policy)
-            or prepared.rules_digest != rules_digest(instrument_rules)
+            or not rules_binding_matches(prepared.rules_digest, instrument_rules,
+                                         account_scope=order.account_scope, now=now)
             or not prepared.prepared_at <= now < prepared.expires_at
             or prepared.prepared_at.astimezone(model.KST).date() != now.astimezone(model.KST).date()
             or prepared.code_hash != ctx.code_hash or prepared.state_hash != ctx.active.state_hash

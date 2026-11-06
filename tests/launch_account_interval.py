@@ -528,7 +528,7 @@ def test_refusals_are_fixed_codes_without_private_values():
 
 
 def test_opening_collection_baseline_never_leaves_the_module_and_is_discarded_before_export():
-    """Ruling R6: the midnight collector baseline is built by one private helper, called once from ``collect``,
+    """Ruling R6: the midnight collector baseline is built by one private helper, called once by each of the two ``collect`` methods,
     is unreachable once ``collect`` returns, and the bridge exports the reducer's own baseline afterwards."""
     tree = ast.parse(Path(AI.__file__).read_text(encoding="utf-8"))
     functions = [node for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)]
@@ -538,8 +538,11 @@ def test_opening_collection_baseline_never_leaves_the_module_and_is_discarded_be
     helper = builders[0].name
     callers = [function.name for function in functions if function is not builders[0]
                and any(isinstance(node, ast.Name) and node.id == helper for node in ast.walk(function))]
-    assert callers == ["collect"]
-    assert sum(isinstance(node, ast.Name) and node.id == helper for node in ast.walk(tree)) == 1
+    assert callers == ["collect", "collect"]
+    owners = [node.name for node in ast.walk(tree) if isinstance(node, ast.ClassDef)
+              and any(isinstance(child, ast.Name) and child.id == helper for child in ast.walk(node))]
+    assert owners == ["UpbitIntervalSource", "ContinuousUpbitCandidateSource"]
+    assert sum(isinstance(node, ast.Name) and node.id == helper for node in ast.walk(tree)) == 2
     assert {field.name for field in fields(StagedInterval)} == {"frame", "receipts", "manifest_sha256", "observed_at"}
     with midnight_series() as env:
         handed, real = [], AI.collect_upbit

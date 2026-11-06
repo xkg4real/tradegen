@@ -242,6 +242,17 @@ class ReviewVerifiers:
         now = self._clock()
         return verify_source_review(binding, self._document, authority=self._authority_provider(now), now=now)
 
+    def authenticated_body(self):
+        """A detached parsed body after fresh signature/current-owner verification.
+
+        Intended for reviewed composition to bind an audit file's exact bytes to
+        the already stored review document without re-reading a mutable path.
+        The signed audit hash does not certify an arbitrary audit parser or its
+        claims; the deployment still owns those checks. This grants no session.
+        """
+        now = self._clock()
+        return _authenticate(self._document, self._authority_provider(now), now)
+
     def implementation(self, binding, driver):
         now = self._clock()
         return verify_implementation_review(binding, driver, self._document,

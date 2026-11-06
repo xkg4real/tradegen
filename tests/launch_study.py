@@ -607,7 +607,7 @@ def test_cli_outputs_are_new_redacted_files_only():
         assert report["evaluation"] == {study_id(A): "EVALUATED", study_id(B): "EVALUATED",
                                         study_id(C): "WORKFLOW_FILE_UNAVAILABLE_OR_REFUSED"}
         requests = report["review_requests"]
-        assert [request["study_id"] for request in requests] == [study_id(A), study_id(B)]
+        assert requests == []  # A missing family member cannot be omitted from signed selection evidence.
         assert all(request["artifact_kind"] == "unsigned_strategy_review_request"
                    and request["authority"]["execution_ready"] is False for request in requests)
         assert '"' + PRINCIPAL + '"' not in raw and SCOPE not in raw and str(root) not in raw

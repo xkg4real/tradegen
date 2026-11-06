@@ -203,3 +203,18 @@ def test_callback_wrapper_refreshes_owner_authority_on_every_verification():
     assert verifiers.source(source_binding()).reviewed_at==now
     refused(lambda:verifiers.implementation(implementation_binding(),review_fixture()[6]),'REVIEW_OWNER_CONTEXT_INVALID')
     assert observed==[now,now]
+
+
+def test_authenticated_body_is_fresh_verified_detached_and_not_a_mutable_document_alias():
+    now=review_fixture()[4];observed=[]
+    def current(at):
+        observed.append(at)
+        return authority() if len(observed)<=2 else authority(context=replace(authority().context))
+    verifiers=ReviewVerifiers(document(),clock=lambda:now,authority_provider=current,
+        approved_history_provider=invented_provider,approved_history_verifier=invented_verifier)
+    first=verifiers.authenticated_body()
+    first['audit_sha256']='f'*64
+    second=verifiers.authenticated_body()
+    assert second['audit_sha256']==review_fixture()[-1]['audit_sha256']
+    refused(verifiers.authenticated_body,'REVIEW_OWNER_CONTEXT_INVALID')
+    assert observed==[now,now,now]

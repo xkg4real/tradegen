@@ -58,6 +58,7 @@ from execution_launch.baseline_head import BaselineHead
 from execution_launch.driver import (DeploymentWindow, FixedDriverError, FixedDriverIdentity, describe_fixed_driver,
                                      make_fixed_driver)
 from execution_launch.live_history import HistoryChain, LiveHistory
+from execution_launch.instrument_refresh import renew_profile
 from execution_launch.paper_capture import sample_prefetched_book
 from execution_launch.profile import LaunchProfile, parse_profile_json, risk_policy
 from execution_launch.program import ProgramSpec, parse_program
@@ -76,6 +77,7 @@ MONITOR_UNIT_SECONDS = 5                 # calibration floor: one monitor unit (
 # ponytail: STARTUP_BUDGET is the knob; 15 s is about twice a measured startup unit with one transport retry (an
 # 11-read capture of 2.2-3.3 s, a 2.2 s retry, load_context 1.4 s, the commit). Raise it for a slower link.
 STARTUP_BUDGET = timedelta(seconds=15)   # the least time between run() and the first slot's prefetch
+TERMS_REFRESH_AGE = timedelta(minutes=4)  # reobserve before the existing five-minute expiry
 MAX_WAIT_SECONDS = 1.0                   # re-read the wall clock at least once a second (Windows suspend)
 _CODE = re.compile(r"[A-Z][A-Z0-9_]{0,95}")
 _RANK = {"boundary": 0, "slot": 1, "monitor": 2}
@@ -216,6 +218,8 @@ class CoordinatorStatus:
     published_units: int = 0            # units whose frame reached the provider
     account_source: str = ""            # the last account step's failure code; "" after a success
     account_asof: datetime | None = None
+    instrument_source: str = ""        # current-term renewal failure, independently visible
+    instrument_asof: datetime | None = None
     new_entry_blocked: bool = True
     risk_reasons: tuple[str, ...] = ()
     recovery_status: str | None = None
@@ -226,6 +230,17 @@ class CoordinatorStatus:
     data_gap_at: datetime | None = None
     orders: tuple[OrderState, ...] = ()
     reasons: tuple[str, ...] = ()       # the last slot tick's reasons, or the last refused slot or control step
+
+
+@dataclass(frozen=True, kw_only=True)
+class DisarmResult:
+    local_strategy_stopped: bool = True
+    session_prepared: bool
+    journal_kill_written: bool
+    owner_disarm_recorded: bool
+    venue_orders_cancelled: bool = False
+    positions_liquidated: bool = False
+    pending: bool = False
 
 
 class _TickBoard:
@@ -258,7 +273,8 @@ class Coordinator:
                  implementation_verifier: Callable, adapters: Mapping[str, object], account_source: Callable,
                  trusted_head: object, quote_source: object, window: DeploymentWindow, bar_seconds: int,
                  monitor_until: datetime, clock: Callable[[], datetime], account_prefetch: Callable | None = None,
-                 history: object | None = None, monitor_seconds: int = 10, prefetch_lead_seconds: int = 3,
+                 history: object | None = None, terms_source: object | None = None,
+                 monitor_seconds: int = 10, prefetch_lead_seconds: int = 3,
                  boundary_lead_seconds: int = 1,     # calibration (R19): under the shortest capture's 1.8 s (9
                                                      # requests, 0.2 s pace each), leaving ~1 s for the first reply
                  wait: Callable[[threading.Event, float], bool] = threading.Event.wait) -> None:
@@ -269,7 +285,8 @@ class Coordinator:
                  and all(callable(f) for f in (clock, wait, account_source, implementation_verifier))
                  and (account_prefetch is None or callable(account_prefetch))
                  and callable(getattr(quote_source, "read", None)) and callable(getattr(trusted_head, "read", None))
-                 and (history is None or callable(getattr(history, "record_slot", None))),
+                 and (history is None or callable(getattr(history, "record_slot", None)))
+                 and (terms_source is None or callable(getattr(terms_source, "read", None))),
                  "COORDINATOR_INTEGRATIONS_REQUIRED")
         knobs = {"monitor_seconds": monitor_seconds, "prefetch_lead_seconds": prefetch_lead_seconds,
                  "boundary_lead_seconds": boundary_lead_seconds}
@@ -321,12 +338,15 @@ class Coordinator:
         self._implementation_verifier, self._head = implementation_verifier, trusted_head
         self._account_source, self._account_prefetch = account_source, account_prefetch
         self._quote_source, self._history, self._window = quote_source, history, window
+        self._terms_source, self._terms_blocked = terms_source, False
+        self._pending_terms = None
         self._bar_seconds, self._monitor_until, self._cutoff = bar_seconds, monitor_until, cutoff
         self._clock, self._wait, self._knobs = clock, wait, knobs
         self._work, self._status_lock = threading.Lock(), threading.Lock()
         self._stopping, self._closing, self._finished = threading.Event(), threading.Event(), threading.Event()
         self._started, self._ready, self._phase = False, False, "new"
         self._last_time, self._observation, self._launch, self._published = None, None, None, 0
+        self._latest_frame = None
         self._status = CoordinatorStatus()
 
     # -- status ------------------------------------------------------------------------------------------------
@@ -404,6 +424,7 @@ class Coordinator:
         self._update(published_units=self._published)
         observation = self._provider(now)
         self._observation = observation
+        self._latest_frame = frame
         self._update(account_source="", account_asof=observation.asof)
         return observation
 
@@ -415,6 +436,39 @@ class Coordinator:
                 return
             self._wait(self._stopping, min(remaining, MAX_WAIT_SECONDS))
 
+    def _refresh_terms(self):
+        """Called under the work lock, before account/quote timing for a unit."""
+        _require(self._terms_source is not None, "COORDINATOR_TERMS_SOURCE_REQUIRED")
+        try:
+            if self._pending_terms is None:
+                observation = self._terms_source.read()
+                now = self._time()             # actual receipt completes before the clock is chosen
+                self._pending_terms = renew_profile(self._profile, observation, now=now)
+            else:
+                now = self._time()             # retry the issued object; never fork from the old snapshot
+            renewal = self._pending_terms
+            self._runner.refresh_instrument_rules(renewal, now=now)
+            self._profile = renewal.profile
+            self._pending_terms = None
+            self._launch = self._runner.launch_session  # same actual PreparedSession, updated wrapper only
+            self._terms_blocked = False
+            self._update(instrument_source="", instrument_asof=self._profile.instrument_rules.asof)
+            return self._profile.instrument_rules.asof
+        except Exception as exc:
+            self._terms_blocked = True
+            code = _code(exc, "COORDINATOR_TERMS_SOURCE_FAILED")
+            self._update(instrument_source=code, new_entry_blocked=True)
+            raise CoordinatorError(code) from None
+
+    def _maybe_refresh_terms(self):
+        if self._terms_source is None:
+            return
+        rules = self._profile.instrument_rules
+        now = self._now()
+        if (self._terms_blocked or rules is None or rules.asof > now
+                or now - rules.asof >= TERMS_REFRESH_AGE):
+            self._refresh_terms()
+
     # -- units -------------------------------------------------------------------------------------------------
 
     def _monitor(self, kind) -> None:
@@ -422,6 +476,10 @@ class Coordinator:
         with self._work:
             stage = "account"
             try:
+                try:
+                    self._maybe_refresh_terms()
+                except CoordinatorError:
+                    pass  # risk monitoring/reconciliation continue; strategy slots remain blocked
                 previous = self._load_previous()
                 self._prefetch(previous)
                 if self._closing.is_set():
@@ -433,7 +491,7 @@ class Coordinator:
                 risk = self._controller.observe(now=now)
                 self._ready = True
                 reconcile_orders(self._runner, now)
-                self._update(new_entry_blocked=risk.new_entry_blocked, risk_reasons=risk.reasons,
+                self._update(new_entry_blocked=risk.new_entry_blocked or self._terms_blocked, risk_reasons=risk.reasons,
                              recovery_status=risk.recovery_status, recovery_deadline=risk.recovery_deadline,
                              orders=self._controller.states())
             except Exception as exc:
@@ -449,6 +507,7 @@ class Coordinator:
             stage = "gate"                                  # the gate is no account step: `reasons` only
             try:
                 _require(self._ready, "COORDINATOR_STARTUP_RECONCILE_REQUIRED")
+                _require(not self._terms_blocked, "COORDINATOR_CURRENT_TERMS_REQUIRED")
                 stage = "account"
                 previous = self._load_previous()
                 stage = "quote"
@@ -581,11 +640,79 @@ class Coordinator:
             started = self._started
         return True if not started else self._finished.wait(timeout)
 
+    def refresh_instrument_rules(self) -> datetime:
+        """Explicit same-contract renewal; no arming, session lifetime or economic change."""
+        with self._work:
+            # Explicit protective exits remain available even after close. Renewal never
+            # clears either latch or restarts the schedule.
+            return self._refresh_terms()
+
+    def bootstrap(self) -> CoordinatorStatus:
+        """Perform one serialized account/risk/reconciliation unit before owner preparation.
+
+        This does not start the schedule, prepare a session or activate anything. A failed
+        account capture remains visible in status; callers must inspect the result.
+        """
+        with self._status_lock:
+            _require(not self._started, "COORDINATOR_ALREADY_RUN")
+        _require(not self._closing.is_set() and not self._stopping.is_set(), "COORDINATOR_STOPPED")
+        self._monitor("bootstrap")
+        return self.status()
+
+    def disarm(self, *, timeout: float = 1.0) -> DisarmResult:
+        """Stop slots now; acquire the unit lock boundedly before a durable local kill.
+
+        A busy unit returns pending=True and makes no claim that a kill or owner
+        system-disarm was recorded. Retry after the unit ends. No network read is
+        started here: the last genuine published frame keeps its original times,
+        and Controller.kill falls back to a journal-only kill if it is stale.
+        Venue cancellation/liquidation is never implied. Journal/owner file writes
+        retain their existing OS-lock/durability boundary once the unit lock is held.
+        """
+        _require(type(timeout) in (int, float) and 0 <= timeout <= 5, "COORDINATOR_DISARM_TIMEOUT_INVALID")
+        self.stop()
+        if not self._work.acquire(timeout=timeout):
+            self._update(new_entry_blocked=True, reasons=("COORDINATOR_DISARM_PENDING",))
+            return DisarmResult(session_prepared=self._launch is not None, journal_kill_written=False,
+                                owner_disarm_recorded=False, pending=True)
+        try:
+            launch = self._launch
+            if launch is None:
+                self._update(new_entry_blocked=True)
+                return DisarmResult(session_prepared=False, journal_kill_written=False,
+                                    owner_disarm_recorded=False)
+            clock_valid = True
+            try:
+                now = self._time()
+            except Exception:
+                clock_valid = False
+                now = self._last_time
+                if now is None:
+                    from datetime import timezone
+                    now = datetime(1970, 1, 1, tzinfo=timezone.utc)
+            if clock_valid and self._latest_frame is not None:
+                self._board.publish(self._latest_frame, None)
+            owner_recorded = self._controller.kill(launch.prepared.session_id,
+                reason="owner_requested", now=now)
+            self._update(new_entry_blocked=True, orders=self._controller.states(),
+                reasons=("COORDINATOR_OWNER_DISARM_RECORDED" if owner_recorded
+                         else "COORDINATOR_DISARM_JOURNAL_ONLY",))
+            return DisarmResult(session_prepared=True, journal_kill_written=True,
+                                owner_disarm_recorded=owner_recorded)
+        except Exception as exc:
+            self._update(new_entry_blocked=True, reasons=("COORDINATOR_DISARM_RECORD_REFUSED",))
+            raise CoordinatorError(_code(exc, "COORDINATOR_DISARM_RECORD_REFUSED")) from None
+        finally:
+            self._board.clear()
+            self._update(in_flight="")
+            self._work.release()
+
     def prepare(self, *, selected_plan, inputs, selection_seed_hex: str, expires_at: datetime | None = None):
         """prepare_launch_session over the last unit's observation; the actual PreparedSession is kept here and
         served to the Controller by identity. Nothing is signed or armed."""
         with self._work:
             _require(not self._stopping.is_set(), "COORDINATOR_STOPPED")
+            _require(not self._terms_blocked, "COORDINATOR_CURRENT_TERMS_REQUIRED")
             observation, now = self._observation, getattr(inputs, "now", None)
             _require(observation is not None and _aware(now) and observation.asof <= now <= self._now()
                      and now - observation.asof <= ACCOUNT_AGE, "COORDINATOR_PREPARATION_ACCOUNT_NOT_CURRENT")
@@ -639,15 +766,50 @@ def compose(*, profile_path: str, program_path: str, protocol_path: str, capture
     result = evaluate_capture_json(protocol, read_file(capture_path, MAX_CAPTURE_BYTES), profile.instrument_rules,
                                    now=evaluated_at)
     document = read_file(review_path, MAX_DOCUMENT_BYTES)
-    root = state_root().absolute()
-    head = BaselineHead(root=head_root, name=history_head_name(window), chain=HistoryChain(root=root, window=window))
-    history = LiveHistory(program, protocol, profile, window=window, root=root, clock=clock, trusted_head=head)
-    driver = make_fixed_driver(program, protocol, profile, window=window, history_provider=history.provider,
-                               history_verifier=history.verifier, program_artifact=artifact("program.py"))
-    identity = history.bind(driver)
+    prepared = _compose_driver(profile=profile, program=program, protocol=protocol, window=window,
+                               clock=clock, head_root=head_root)
+    history, driver, identity = prepared.history, prepared.driver, prepared.identity
     authority = CurrentOwnerAuthority(clock=clock)
     verifiers = ReviewVerifiers(document, clock=clock, authority_provider=authority,
                                 approved_history_provider=history.provider, approved_history_verifier=history.verifier)
     evidence = EvidencePackage(protocol=protocol, result=result, review_verifier=verifiers.source)
     return Composition(profile=profile, program=program, protocol=protocol, window=window, driver=driver,
                        identity=identity, history=history, authority=authority, verifiers=verifiers, evidence=evidence)
+
+
+@dataclass(frozen=True, kw_only=True)
+class DriverComposition:
+    """Actual fixed driver and history wiring before a detached review is signed."""
+    profile: LaunchProfile
+    program: ProgramSpec
+    protocol: ForwardProtocol
+    window: DeploymentWindow
+    driver: StrategyDriver
+    identity: FixedDriverIdentity
+    history: LiveHistory
+
+
+def _compose_driver(*, profile, program, protocol, window, clock, head_root) -> DriverComposition:
+    root = state_root().absolute()
+    head = BaselineHead(root=head_root, name=history_head_name(window), chain=HistoryChain(root=root, window=window))
+    history = LiveHistory(program, protocol, profile, window=window, root=root, clock=clock, trusted_head=head)
+    driver = make_fixed_driver(program, protocol, profile, window=window, history_provider=history.provider,
+                               history_verifier=history.verifier, program_artifact=artifact("program.py"))
+    identity = history.bind(driver)
+    return DriverComposition(profile=profile, program=program, protocol=protocol, window=window,
+                             driver=driver, identity=identity, history=history)
+
+
+def compose_driver(*, profile_path: str, program_path: str, protocol_path: str,
+                   window: DeploymentWindow, clock: Callable[[], datetime], head_root) -> DriverComposition:
+    """Exportable actual driver identity without requiring a review that signs that identity.
+
+    The operator must first initialize this window's independent history head to GENESIS.
+    This binds (or verifies an existing binding of) the history journal and constructs no
+    authority/review verifier. It does not claim source authentication or owner approval.
+    """
+    profile = parse_profile_json(read_file(profile_path, MAX_CONFIG_BYTES))
+    program = parse_program(read_file(program_path, MAX_CONFIG_BYTES))
+    protocol = parse_protocol(read_file(protocol_path, MAX_CONFIG_BYTES))
+    return _compose_driver(profile=profile, program=program, protocol=protocol, window=window,
+                           clock=clock, head_root=head_root)
