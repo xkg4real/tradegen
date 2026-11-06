@@ -1,24 +1,24 @@
 ---
-status: handoff
+status: taken
 reason: usage_limit_weekly
-from: claude
+from: gpt
 task: first-trade-foundation
 cycle: 2026-11-03
 done_ids: cloud-compat-1, cloud-compat-2, cloud-compat-3, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr, spec-rev-3-3, policy-plan-1, policy-preview-1, policy-pr, e1-1, e1-2, e1-3, e1-4, e1-5, e1-6, e1-7, e1-8, e1-9, e1-10, e1-11, e1-12, e1-13, e1-pr, e2-1, e2-2, e3-1, e3-2, e3-3, e2-3, e3-4, e2-e3-pr, pr6-pr7-merge, research-preregister-1, research-evaluate-1, account-readiness-1, research-paper-1, account-provider-1, account-regression-1, account-research-pr, pr8-human-code-review-approval, pr8-merge, launch-network-1, launch-collector-1, launch-profile-1, launch-strategy-1, launch-runner-1, launch-program-2, launch-workflow-2, launch-baseline-2, launch-quotes-2, launch-deployment-2, launch-review-request-2, launch-driver-2, launch-review-auth-2, launch-baseline-integration-2, launch-market-protocol-1, launch-recovery-cutoff-1, kis-live-contract-1, kis-live-backend-1, kis-live-ui-1, launch-static-guard-1, launch-windows-design-1, kis-live-regression-1, launch-regression-1, launch-delivery-1, pr9-owner-review, launch-windows-inputs-1, launch-owner-authority-1, launch-live-evidence, launch-live-history-1, launch-windows-coordinator-1, launch-study-module-1, okx-data-1, final-review-1, pr10-owner-review, venues-upbit-terms, pr11-owner-review
 next_ids: rules-review-1122, e1-14-owner-setup, launch-prospective-study
-updated_at: 2026-11-05T21:36:45+09:00
+updated_at: 2026-11-06T14:45:57+09:00
 stale_after_hours: 3
 waiting_on: owner decisions for the new funding stages (loss floor, keep or shorten the study/select/review gates, held-coin tracking), owner risk decision and a signed code change for STUCK_AT_START (floor equals cash), Upbit book stamp lag measured on the owner PC before freeze, prospective evidence
 work_branch: main
 work_commit: 06d06740cb1d275cd981e5750a212725ac21efbc
 uncommitted_changes: none
 pr: https://github.com/xkg4real/tradegen/pull/11 (merged by the owner 2026-11-05 03:29 KST as 06d0674, tree identical to 6e3adb5; PR 10 merged 02:24 KST as a5edaf4)
-usage_weekly_pct: 95
-usage_source: Claude Code desktop usage card (Weekly, all models)
+usage_weekly_pct: unknown
+usage_source: unavailable
 handoff_threshold_pct: 95
 usage_5h_pct: unknown
-usage_resets_at: 2026-11-10T16:59:59+09:00
-session: Claude Code desktop (TRADEGEN, Windows)
+usage_resets_at: unknown
+session: Cloud Codex development; owner Windows deployment unchanged
 ---
 
 # 인수인계: Windows 첫 거래 어댑터, 전향 연구 모듈, OKX 시세 전환
