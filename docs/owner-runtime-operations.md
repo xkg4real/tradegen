@@ -158,7 +158,12 @@ and the reconciled account observation must remain within the existing 30-second
 freshness bound through simulation, journal-lock acquisition and the final owner
 and review checks. A calculation that crosses that bound, the Seoul date, the
 session expiry, the five-minute instrument-rule age or a verified review expiry
-refuses before a `session_prepared` event or process-issued session is created.
+refuses to issue a process-authorized session. Failures detected before persistence
+append no preparation event. Time and verified review expiry are checked again
+after append/fsync and transaction exit: if persistence itself finishes too late,
+the durable `session_prepared` row remains as an inert audit event, but its object
+is neither registered nor returned. The row is not deleted, rewritten or treated
+as a recoverable session; reconstructing it still fails the issued-object check.
 The owner context is reloaded inside the acquired journal transaction; a changed
 owner head, signing key, code approval, limits, approved tables or armed session
 requires a new preparation. A stop/close request also prevents issuance.

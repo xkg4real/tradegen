@@ -94,6 +94,23 @@ must construct its reviewed source and read fresh evidence before entering order
 control; omitting that source does not constitute an authenticated restart. No background worker or API
 call is started by importing or constructing any of these objects.
 
+The controller imports only `validate_observed_order`; session verification
+imports that function and `rules_binding_matches`. These exact file/symbol
+ports permit pure validation of the already issued in-memory evidence. Module
+imports, aliases, extra symbols and imports by neighboring control files remain
+forbidden; they do not expose the E1 reader to a control caller.
+
+The supplemental boundary tests pin the reviewed decoder/validator call graph,
+including receipt JSON hooks, profile/model checks and constructors. They also
+pin the initialization surfaces of the newly reached mixed account/E1/route
+modules and package initializers, reject registry/object mutation and trusted
+callable rebinding, and exercise injected I/O, clock and alias failures without
+executing them. This is a bounded AST review, not a proof against hostile Python.
+Existing E2/compliance/isolation/snapshot dependencies remain the prior trusted
+base; signed deployment hashes and the behavioral mutation/replay/max/expiry
+checks remain mandatory. Changed pins require a new review of the affected
+surface, not automatic regeneration.
+
 ## Validation and limits
 
 `tests/launch_instrument_refresh.py` uses invented data and a fake E1 transport.

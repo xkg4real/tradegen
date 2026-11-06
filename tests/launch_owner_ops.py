@@ -475,3 +475,47 @@ def test_prepare_carries_verified_review_expiries_through_callbacks_and_final_ow
                 with c._journal.transaction() as tx:
                     assert not any(row['kind'] == 'session_prepared' for row in tx.events)
                 assert not env.adapter.requests
+
+
+def test_prepare_never_issues_after_append_or_transaction_exit_expires_account_or_review():
+    from contextlib import contextmanager
+    from datetime import datetime
+    from execution_control import session as S
+    from execution_control.store import Transaction
+    for deadline_kind in ('account', 'review'):
+        for delayed_phase in ('append', 'exit'):
+            with fixture() as env:
+                if deadline_kind == 'review':
+                    original = env.review
+                    expires = env.fake.now+timedelta(seconds=5)
+                    env.review = lambda *args: replace(original(*args), expires_at=expires)
+                c = build(env)
+                c.bootstrap()
+                plan, inputs, seed = selected(env.fake.now)
+                before, real_append, real_transaction = dict(S._PREPARED), Transaction.append, c._journal.transaction
+                delay = timedelta(seconds=31 if deadline_kind == 'account' else 6)
+                def append(tx, kind, data, *, now):
+                    row = real_append(tx, kind, data, now=now)
+                    if kind == 'session_prepared': env.fake.now += delay
+                    return row
+                @contextmanager
+                def transaction():
+                    with real_transaction() as tx:
+                        yield tx
+                    env.fake.now += delay
+                seam = (patch.object(Transaction, 'append', append) if delayed_phase == 'append'
+                        else patch.object(c._journal, 'transaction', transaction))
+                code = ('SESSION_PREPARATION_INPUTS_STALE_OR_FUTURE' if deadline_kind == 'account'
+                        else 'SESSION_PREPARATION_REVIEW_EXPIRED')
+                with seam:
+                    refused(lambda: c.prepare(selected_plan=plan, inputs=inputs, selection_seed_hex=seed), code)
+                assert c._launch is None and S._PREPARED == before and not env.adapter.requests
+                rows = c._journal.snapshot()
+                saved = [row for row in rows if row['kind'] == 'session_prepared']
+                assert len(saved) == 1  # the already persisted evidence is retained, never rolled back
+                body = dict(saved[0]['data'])
+                for name in ('prepared_at', 'expires_at'): body[name] = datetime.fromisoformat(body[name])
+                reconstructed = S.PreparedSession(**body)
+                refused(lambda: S.verify_session(reconstructed, session_id=reconstructed.session_id,
+                    policy=env.policy, instrument_rules=env.rules, ctx=None, now=env.fake.now,
+                    order=env.order, events=rows), 'session preparation not issued in this process')

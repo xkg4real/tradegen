@@ -181,7 +181,9 @@ def problems(sources):
             if any(isinstance(n, (ast.Import, ast.ImportFrom)) for n in nodes):
                 hits.append(relative + ":" + name + ": helper import")
             parents = {id(child): parent for parent in nodes for child in ast.iter_child_nodes(parent)}
-            trusted_names = {target for target in permitted if target.isidentifier()} | {
+            # JSON hooks are invoked by the decoder, so their names do not
+            # appear as ast.Call targets in this function's body.
+            trusted_names = {target for target in permitted if target.isidentifier()} | set(_JSON_HOOKS.values()) | {
                 "hashlib", "json", "re", "timezone", "datetime", "Decimal", "Fraction"}
             for node in nodes:
                 if isinstance(node, (ast.Global, ast.Nonlocal)):
@@ -277,6 +279,19 @@ def check_negative_controls(root):
         changed[relative] = _inject(original[relative], name, statement)
         assert problems(changed), (relative, name, statement)
 
+    # A fixed hook spelling is insufficient if that local name can be rebound
+    # to an existing, otherwise unreachable helper with an effectful body.
+    for hook in ("_object", "_constant"):
+        relative = "execution_accounts/collector.py"
+        tree = ast.parse(original[relative])
+        definitions = _definitions(tree)
+        definitions["SourceReceipt.decode"].body[:0] = ast.parse(hook + " = number").body
+        definitions["number"].body[:0] = ast.parse(
+            "from execution.upbit_inquiry import current_terms\ncurrent_terms('KRW-BTC')").body
+        changed = dict(original)
+        changed[relative] = ast.unparse(tree)
+        assert relative + ":SourceReceipt.decode: trusted callable rebinding" in problems(changed), hook
+
     for relative, statement in (
         ("execution_accounts/instrument_terms.py", "BOOT = current_terms('KRW-BTC')"),
         ("execution_launch/instrument_refresh.py", "validate_order = current_terms"),
@@ -289,4 +304,3 @@ def check_negative_controls(root):
         changed = dict(original)
         changed[relative] += "\n" + statement + "\n"
         assert problems(changed), (relative, statement)
-

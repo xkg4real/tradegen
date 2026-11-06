@@ -69,6 +69,8 @@ def prepare_session(*, journal, session_id: str, selected_plan, inputs, position
     clock. The pure odds simulator retains its existing injected-time contract.
     No registry entry or preparation event is issued until simulation and lock
     acquisition finish with current account, inputs, rules and owner authority.
+    Time and verified review expiry are checked again after persistence. If disk
+    completion was too late, its durable audit row stays but no session is issued.
     ``completion_check`` adds the launcher's current review checks and returns
     their earliest verified expiry. That deadline is checked after final owner
     loading. It cannot replace this module's checks or grant authority with a
@@ -179,6 +181,12 @@ def prepare_session(*, journal, session_id: str, selected_plan, inputs, position
         _require(review_deadline is None or append_at < review_deadline,
                  "SESSION_PREPARATION_REVIEW_EXPIRED")
         tx.append("session_prepared", payload, now=committed_at)
+    # fsync/unlock/transaction exit can also take time. A completed durable row
+    # remains an inert audit event if this last check fails; never rewrite it or
+    # register/return its object. verify_session still requires issued identity.
+    issued_at = current_time()
+    _require(review_deadline is None or issued_at < review_deadline,
+             "SESSION_PREPARATION_REVIEW_EXPIRED")
     _PREPARED[id(prepared)] = (prepared, prepared.record_digest)
     return prepared
 
