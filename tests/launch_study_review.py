@@ -11,7 +11,7 @@ from contextlib import redirect_stdout
 from copy import deepcopy
 from dataclasses import asdict, replace
 from datetime import timedelta
-from functools import lru_cache
+from functools import lru_cache, wraps
 import hashlib
 from io import StringIO
 import json
@@ -23,7 +23,7 @@ from unittest.mock import patch
 
 from core.compliance import model as M
 from execution_control.owner_authority import ReviewAuthority
-from execution_launch import study as S, study_review as R
+from execution_launch import strategy as evaluator, study as S, study_review as R
 from execution_launch.driver import DeploymentWindow, describe_fixed_driver, make_fixed_driver
 from execution_launch.paper_capture import capture_json
 from execution_launch.profile import profile_body
@@ -37,6 +37,27 @@ from tests.launch_study import A, B, Driver, PRINCIPAL, SCOPE, plan, profile, pr
 
 def no_history(*_):
     raise AssertionError("review selection cannot load live history")
+
+
+def isolated_evaluations(function):
+    """Bound genuine evaluator capabilities to one test, including its cache.
+
+    Other acceptance fixtures keep issued results for their own lifetime. Save
+    and restore those exact records; each case here still obeys the production
+    issuance cap and must create every result through the actual evaluator.
+    """
+    @wraps(function)
+    def inner():
+        previous = dict(evaluator._EVALUATED)
+        evaluator._EVALUATED.clear()
+        fixture.cache_clear()
+        try:
+            return function()
+        finally:
+            fixture.cache_clear()
+            evaluator._EVALUATED.clear()
+            evaluator._EVALUATED.update(previous)
+    return inner
 
 
 @lru_cache(maxsize=1)
@@ -117,6 +138,7 @@ def refused(call, code=None):
     raise AssertionError("expected authenticated selection refusal")
 
 
+@isolated_evaluations
 def test_signed_complete_family_selects_the_frozen_winner_without_execution_authority():
     result = select()
     assert result.selection.status == "SELECTED"
@@ -128,6 +150,7 @@ def test_signed_complete_family_selects_the_frozen_winner_without_execution_auth
     assert all(row.evaluated_at == fixture().env.now for row in result.selection.rows)
 
 
+@isolated_evaluations
 def test_missing_capture_extra_capture_and_imported_metrics_refuse():
     f = fixture()
     first = next(iter(f.captures))
@@ -137,6 +160,7 @@ def test_missing_capture_extra_capture_and_imported_metrics_refuse():
         refused(lambda captures=captures: select(captures=captures), "STUDY_REVIEW_CAPTURE_FAMILY_INCOMPLETE")
 
 
+@isolated_evaluations
 def test_missing_review_cannot_cherry_pick_a_lower_ranked_candidate():
     f = fixture()
     first = next(iter(f.documents))
@@ -146,6 +170,7 @@ def test_missing_review_cannot_cherry_pick_a_lower_ranked_candidate():
             "STUDY_REVIEW_DOCUMENT_FAMILY_INVALID")
 
 
+@isolated_evaluations
 def test_bad_signature_refuses_entire_selection_instead_of_dropping_a_row():
     f = fixture()
     first = next(iter(f.documents))
@@ -154,6 +179,7 @@ def test_bad_signature_refuses_entire_selection_instead_of_dropping_a_row():
     refused(lambda: select(reviews=f.documents | {first: json.dumps(bad)}), "REVIEW_SIGNATURE_UNVERIFIED")
 
 
+@isolated_evaluations
 def test_signed_other_candidate_and_changed_evaluation_time_cannot_replay():
     f = fixture()
     a, b = list(f.documents)[:2]
@@ -165,6 +191,7 @@ def test_signed_other_candidate_and_changed_evaluation_time_cannot_replay():
             "STUDY_REVIEW_EVALUATION_IN_FUTURE")
 
 
+@isolated_evaluations
 def test_source_program_or_statistic_mutation_never_qualifies():
     f = fixture()
     first = next(iter(f.documents))
@@ -180,6 +207,7 @@ def test_source_program_or_statistic_mutation_never_qualifies():
         refused(select, "STUDY_CAPTURE_SOURCE_CHANGED")
 
 
+@isolated_evaluations
 def test_signed_but_inconsistent_metric_summary_is_not_accepted():
     f = fixture()
     first = next(iter(f.documents))
@@ -193,6 +221,7 @@ def test_signed_but_inconsistent_metric_summary_is_not_accepted():
             "STUDY_REVIEW_COMPUTED_SUMMARY_MISMATCH")
 
 
+@isolated_evaluations
 def test_mutating_winner_to_cash_and_omitting_its_review_cannot_select_another_candidate():
     f = fixture()
     winner = select().selection.selected_study_id
@@ -204,6 +233,7 @@ def test_mutating_winner_to_cash_and_omitting_its_review_cannot_select_another_c
     refused(lambda: select(captures=changed, reviews=remaining), "STUDY_REVIEW_SIGNED_FAMILY_MISMATCH")
 
 
+@isolated_evaluations
 def test_failed_candidate_raw_bytes_are_also_in_every_signed_family_commitment():
     f = fixture()
     failed = [key for key in f.captures if key not in f.documents]
@@ -214,6 +244,7 @@ def test_failed_candidate_raw_bytes_are_also_in_every_signed_family_commitment()
     refused(lambda: select(captures=changed), "STUDY_REVIEW_SIGNED_FAMILY_MISMATCH")
 
 
+@isolated_evaluations
 def test_legacy_candidate_only_signature_never_upgrades_into_a_family_review():
     f = fixture()
     first = next(iter(f.documents))
@@ -228,6 +259,7 @@ def test_legacy_candidate_only_signature_never_upgrades_into_a_family_review():
             "STUDY_REVIEW_SIGNED_FAMILY_REQUIRED")
 
 
+@isolated_evaluations
 def test_schema2_standalone_signer_matches_runtime_signing_bytes():
     from tests.compliance_signer import signer
     for body in fixture().bodies.values():
@@ -235,6 +267,7 @@ def test_schema2_standalone_signer_matches_runtime_signing_bytes():
         assert signer._rr_parse_review_request(json.dumps(body["request"])) == body["request"]
 
 
+@isolated_evaluations
 def test_study_request_generation_commits_every_evaluated_candidate_including_failure():
     f = fixture()
     with tempfile.TemporaryDirectory(prefix="full_review_family_") as directory:
@@ -249,6 +282,7 @@ def test_study_request_generation_commits_every_evaluated_candidate_including_fa
             assert {row["study_id"] for row in request["family_commitment"]["members"]} == set(f.captures)
 
 
+@isolated_evaluations
 def test_current_profile_must_be_fresh_and_preserve_frozen_contract():
     f = fixture()
     stale = replace(f.profile, instrument_rules=replace(f.profile.instrument_rules,
@@ -260,6 +294,7 @@ def test_current_profile_must_be_fresh_and_preserve_frozen_contract():
     assert select(profile=renewed).selection.status == "SELECTED"
 
 
+@isolated_evaluations
 def test_authority_expiry_current_key_code_and_seal_are_authenticated():
     f = fixture()
     refused(lambda: select(authority_provider=lambda at: authority(at,
@@ -279,6 +314,7 @@ def test_authority_expiry_current_key_code_and_seal_are_authenticated():
     refused(lambda: select(profile=fresh, clock=lambda: late), "REVIEW_EXPIRED_OR_FUTURE")
 
 
+@isolated_evaluations
 def test_each_review_refreshes_authority_and_mid_selection_change_refuses():
     calls = []
     def changed(at):
@@ -295,6 +331,7 @@ def test_each_review_refreshes_authority_and_mid_selection_change_refuses():
     assert len(calls) == 2 * len(fixture().documents)
 
 
+@isolated_evaluations
 def test_clock_rollback_or_unsigned_document_refuses():
     f = fixture()
     stamps = iter((f.now, f.now - timedelta(seconds=1)))
@@ -304,6 +341,7 @@ def test_clock_rollback_or_unsigned_document_refuses():
     refused(lambda: select(reviews=f.documents | {first: unsigned}), "REVIEW_ENVELOPE_INVALID")
 
 
+@isolated_evaluations
 def test_numerically_failed_complete_family_stays_unqualified_without_owner_access():
     p = plan()
     outcome = Driver(p).run()
@@ -323,6 +361,7 @@ def invoke(argv):
     return exitcode, json.loads(stream.getvalue()), stream.getvalue()
 
 
+@isolated_evaluations
 def test_cli_uses_real_clock_boundary_and_explicit_review_files_only():
     f = fixture()
     with tempfile.TemporaryDirectory(prefix="study_review_") as temporary:
@@ -359,6 +398,7 @@ def test_cli_uses_real_clock_boundary_and_explicit_review_files_only():
         assert code == 2 and result["reasons"] == ["STUDY_REVIEW_DUPLICATE_DOCUMENT"]
 
 
+@isolated_evaluations
 def test_cli_invalid_time_and_private_path_fail_before_owner_loading():
     args = ["select-reviewed", "--plan", "/missing/plan.json", "--profile", "/missing/profile.json",
             "--captures", "/missing", "--evaluated-at", "2031-01-01"]
@@ -372,6 +412,7 @@ def test_cli_invalid_time_and_private_path_fail_before_owner_loading():
         assert ".tradegen" not in raw and "/missing" not in raw
 
 
+@isolated_evaluations
 def test_module_has_no_write_network_sign_or_arm_path():
     source = Path(R.__file__).read_text(encoding="utf-8")
     tree = ast.parse(source)

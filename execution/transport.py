@@ -128,20 +128,27 @@ def request(venue: str, method: str, path: str, params: Sequence[tuple[str, str]
         raise InquiryRefused("okx: the PC clock offset from OKX time is unknown or above 25 s; OKX requests not sent")
     url = HOSTS[venue] + path + ("?" + query if query else "")
     for attempt in (1, 2):
+        _check_inquiry_guard("before_headers")
         headers, json_body, token = _headers(venue, method, path, query, tr_id, path in public)
+        _check_inquiry_guard("before_send")
         try:
             status, answer_headers, content = _send(method, url, headers=headers, params=None, json_body=json_body,
                                                     timeout=TIMEOUT_S)
         except (ValueError, OSError) as exc:
             _sleep(PACE_S)
+            _check_inquiry_guard("after_wait")
             if attempt == 1 and method == "GET" and isinstance(exc, requests.exceptions.ConnectionError):
                 _sleep(RETRY_AFTER_S)
+                _check_inquiry_guard("after_wait")
                 continue
             raise InquiryError(f"{venue} {path}: {type(exc).__name__}") from None
         received_utc = _now()
+        _check_inquiry_guard("after_response")
         _sleep(PACE_S)
+        _check_inquiry_guard("after_wait")
         if attempt == 1 and method == "GET" and (status == 429 or status >= 500):
             _sleep(RETRY_AFTER_S)
+            _check_inquiry_guard("after_wait")
             continue
         break
     try:
@@ -172,6 +179,36 @@ def _send(method, url, *, headers, params, json_body, timeout):
 
 
 _sleep = time.sleep                   # seam: pacing and retry wait through it; it reads no clock
+
+
+_INQUIRY_GUARDS: ContextVar[tuple[Callable[[str], None], ...]] = ContextVar("tradegen_inquiry_guards", default=())
+
+
+@contextmanager
+def inquiry_guard(guard: Callable[[str], None]):
+    """Add a caller-owned refusal guard around read-only E1 operations.
+
+    Nested guards add constraints and never replace outer guards. Each attempt
+    checks before credentials/headers and again before sending, then after the
+    response and every pacing/retry wait. A refused guard is not retried and its
+    private exception text never escapes. The fixed endpoint/route/auth checks
+    remain mandatory. This hook grants no request or order permission.
+    """
+    if not callable(guard):
+        raise InquiryRefused("E1_GUARD_REQUIRED")
+    token = _INQUIRY_GUARDS.set(_INQUIRY_GUARDS.get() + (guard,))
+    try:
+        yield
+    finally:
+        _INQUIRY_GUARDS.reset(token)
+
+
+def _check_inquiry_guard(stage: str):
+    for guard in _INQUIRY_GUARDS.get():
+        try:
+            guard(stage)
+        except Exception:
+            raise InquiryRefused("E1_GUARD_REFUSED") from None
 
 
 _INQUIRY_CLOCK: ContextVar[Callable[[], datetime] | None] = ContextVar("tradegen_inquiry_clock", default=None)

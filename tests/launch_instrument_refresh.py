@@ -6,6 +6,7 @@ from decimal import Decimal
 from email.utils import format_datetime
 import hashlib
 import json
+import os
 from unittest.mock import patch
 
 from execution import transport, upbit_inquiry
@@ -22,7 +23,8 @@ NOW = datetime(2026, 10, 23, 1, tzinfo=timezone.utc)
 
 @contextmanager
 def registries():
-    with patch.object(T, "_ISSUED", {}), patch.object(T, "_OBSERVED_RULES", {}), \
+    with patch.dict(os.environ, {"UPBIT_ACCESS_KEY": "<unset>", "UPBIT_SECRET_KEY": "<unset>"}), \
+         patch.object(T, "_ISSUED", {}), patch.object(T, "_OBSERVED_RULES", {}), \
          patch.object(T, "_AUTHORITIES", set()), patch.object(R, "_ISSUED", {}), \
          patch.object(R, "_HEADS", {}), patch.object(R, "_BOUND", {}), patch.object(R, "_USED", set()):
         yield
@@ -404,3 +406,13 @@ def test_restart_source_registration_rejects_saved_snapshot_until_new_read():
         with patch.object(T, "current_terms", return_value=(answer(c, NOW), answer(i, NOW))):
             current = source.read()
         assert T.observation_for_rules(current.rules, account_scope=p.account_scope, now=NOW).rules == current.rules
+
+
+def test_missing_credential_names_refuse_before_fixed_helper_or_fallback():
+    with registries(), patch.object(upbit_inquiry, "request", side_effect=AssertionError("no request")) as call:
+        source = T.E1UpbitTermsSource(authority=authority(), clock=lambda: NOW)
+        for name in ("UPBIT_ACCESS_KEY", "UPBIT_SECRET_KEY"):
+            with patch.dict(os.environ):
+                os.environ.pop(name)
+                refused(source.read, "TERMS_ENV_CREDENTIAL_NAMES_REQUIRED")
+        assert not call.called

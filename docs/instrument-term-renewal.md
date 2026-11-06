@@ -20,7 +20,10 @@ Checked against official documentation on 2026-11-06, without calling an API:
 The signed E1 allowlist adds exactly those two GETs. `execution/upbit_inquiry.py`
 retains their literal paths and constructs the exact single-market query. No
 arbitrary URL, method, query or order request enters this source. Existing timeout,
-retry, rate pacing and managed-route behavior are inherited from E1.
+retry, rate pacing and managed-route behavior are inherited from E1. Before each
+source read, both Upbit credential variable names must exist in the process
+environment; their values are read only by E1. A missing name refuses instead
+of selecting E1's legacy `.env` fallback and changing the reviewed account binding.
 
 ## Reviewed authority and receipts
 

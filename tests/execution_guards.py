@@ -777,7 +777,7 @@ TR_SHAPE = re.compile(r"(?i)(?<![A-Za-z0-9])[A-Z]{4}[0-9]{4}[A-Z](?![A-Za-z0-9])
 ORDER_TR = re.compile(r"(?i)[A-Z]{4}[0-9]{4}U")
 OKX_ORDER_PATH = "/api/v5/trade/order"     # the GET also serves the order POST: never a string constant (spec 5)
 TRANSPORT_NAMES = frozenset({"request", "require_keys", "Answer", "InquiryRefused", "InquiryError", "AuthError",
-                             "KeyMissing", "inquiry_clock"})  # public standalone inquiry clock, no implicit time
+                             "KeyMissing", "inquiry_clock", "inquiry_guard"})  # public standalone inquiry clock, no implicit time
 CREDENTIAL_NAMES = ("KIS_APP_KEY", "KIS_APP_SECRET", "UPBIT_ACCESS_KEY", "UPBIT_SECRET_KEY", "OKX_API_KEY",
                     "OKX_API_SECRET", "OKX_API_PASSPHRASE")
 SEND_SOURCE = ("def _send(method, url, *, headers, params, json_body, timeout):\n"     # ast.unparse of the whole
@@ -791,7 +791,8 @@ SEND_SOURCE = ("def _send(method, url, *, headers, params, json_body, timeout):\
 TRANSPORT_ONLY = frozenset({"requests", "HOSTS", "CREDENTIALS", "_send", "_rules", "_query", "_upbit_jwt",
                             "_okx_timestamp", "_okx_sign", "_kis_token", "_read_token", "_write_token",
                             "_check_answer", "_next_issue_at", "_okx_offset_s", "_bad_tokens", "_headers",
-                            "_TokenRejected", "_now", "_context_clock", "_INQUIRY_CLOCK"})
+                            "_TokenRejected", "_now", "_context_clock", "_INQUIRY_CLOCK",
+                            "_INQUIRY_GUARDS", "_check_inquiry_guard"})
 # attributes no module but transport.py reads or writes (poll.py's one `transport._clock = ...` aside): the two
 # send-time seams, the modules a getattr chain would reach, and request (so it is always called by its own name)
 SEAM_ATTRS = frozenset({"_clock", "_sleep", "transport", "keys", "request"})

@@ -13,6 +13,7 @@ from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 import hashlib
 import json
+import os
 import re
 from typing import Callable
 from threading import RLock
@@ -261,6 +262,10 @@ class E1UpbitTermsSource:
         authority_digest(self.authority)
         _require(callable(self.clock), "TERMS_CLOCK_REQUIRED")
         _require(len(_ISSUED) < _MAX_ISSUED, "TERMS_PROCESS_CAPACITY_REACHED")
+        # Names only: E1 reads values; a removed environment binding must not
+        # select the legacy .env fallback and silently change account identity.
+        _require(all(name in os.environ for name in ("UPBIT_ACCESS_KEY", "UPBIT_SECRET_KEY")),
+                 "TERMS_ENV_CREDENTIAL_NAMES_REQUIRED")
         symbol = self.authority.symbol
         before = _time(self.clock())
         _require(self.authority.valid_from <= before < self.authority.valid_until,
