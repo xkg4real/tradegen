@@ -150,3 +150,34 @@ Stopping strategy slots keeps same-contract term renewal available for protectiv
 operations while monitoring continues; it never clears the stopped latch.
 
 This software is not legal, tax or investment advice and is not a licensed adviser.
+
+### Preparation freshness and required planner evidence
+
+Preparation uses the coordinator's actual configured clock. Both the input time
+and the reconciled account observation must remain within the existing 30-second
+freshness bound through simulation, journal-lock acquisition and the final owner
+and review checks. A calculation that crosses that bound, the Seoul date, the
+session expiry, the five-minute instrument-rule age or a verified review expiry
+refuses before a `session_prepared` event or process-issued session is created.
+The owner context is reloaded inside the acquired journal transaction; a changed
+owner head, signing key, code approval, limits, approved tables or armed session
+requires a new preparation. A stop/close request also prevents issuance.
+
+A successful session records its actual completion time. Its requested expiry is
+not extended to compensate for slow work. Lower-level preparation APIs now require
+an explicit `clock` and `positions_asof`; historical tests supply an explicit
+virtual clock. The pure odds simulation API still consumes its supplied historical
+inputs and does not read a wall clock. Supplying a frozen test clock is not an
+operational integration.
+
+The standalone rehearsal still has no fixed current-planner provider. Its existing
+research capture and fixed strategy do not specify an odds plan's selected stake,
+target, FX conversion, horizon, model, bracket and sizing rules. A genuine provider
+also needs at least 250 final actual daily bars (the last crypto bar within three
+days), original source evidence, a persisted comparison run and its genuine
+selection result/seed. Those artifacts must be reviewed and bound to the selected
+strategy; using the research capture as daily bars or inventing a buy-and-hold
+plan would change what was tested. Preparation must run the existing fresh odds
+simulation with current reconciled positions and unchanged qualification gates.
+Until that concrete input path exists, `OWNER_CURRENT_PREPARATION_INPUTS_REQUIRED`
+remains the truthful standalone response.

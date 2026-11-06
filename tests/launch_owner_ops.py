@@ -399,3 +399,79 @@ def test_uppercase_provider_exception_text_is_not_an_authorized_diagnostic():
         O.serve(runtime, stream=StringIO("prepare\nclose\n"), emit=output.append)
         assert output[0]["reasons"] == ["OWNER_OPERATION_REFUSED"]
         assert "PRIVATE_ACCOUNT_ABC" not in repr(output)
+
+
+def test_prepare_compares_both_account_and_input_age_to_actual_clock_before_simulation():
+    from execution_control import session as S
+    with fixture() as env:
+        c = build(env)
+        c.bootstrap()
+        plan, inputs, seed = selected(env.fake.now)
+        env.fake.now += timedelta(seconds=31)
+        with patch.object(S.simulate, 'simulate', side_effect=AssertionError('stale account reached simulation')):
+            refused(lambda: c.prepare(selected_plan=plan, inputs=inputs, selection_seed_hex=seed),
+                    'COORDINATOR_PREPARATION_ACCOUNT_NOT_CURRENT')
+        assert c._launch is None and not env.adapter.requests
+
+
+def test_prepare_rechecks_current_implementation_review_and_stop_after_simulation():
+    from execution_control import session as S
+    for failure in ('review_expired', 'stop'):
+        with fixture() as env:
+            original = env.review
+            if failure == 'review_expired':
+                def review(binding, driver):
+                    return replace(original(binding, driver), expires_at=env.t0+timedelta(seconds=1))
+                env.review = review
+            c = build(env)
+            c.bootstrap()
+            plan, inputs, seed = selected(env.fake.now)
+            real, before = S.simulate.simulate, dict(S._PREPARED)
+            def simulate(*a, **kw):
+                report = real(*a, **kw)
+                env.fake.now += timedelta(seconds=2)
+                if failure == 'stop': c.stop()
+                return report
+            code = ('RUNNER_IMPLEMENTATION_REVIEW_UNVERIFIED' if failure == 'review_expired'
+                    else 'SESSION_PREPARATION_CLOCK_REFUSED')
+            with patch.object(S.simulate, 'simulate', side_effect=simulate):
+                refused(lambda: c.prepare(selected_plan=plan, inputs=inputs, selection_seed_hex=seed), code)
+            assert c._launch is None and S._PREPARED == before and not env.adapter.requests
+            with c._journal.transaction() as tx:
+                assert not any(row['kind'] == 'session_prepared' for row in tx.events)
+
+
+def test_prepare_carries_verified_review_expiries_through_callbacks_and_final_owner_load():
+    from core.compliance import owner
+    from execution_control import session as S
+    for review_kind in ('source', 'implementation'):
+        for delayed in ('callback', 'final_owner'):
+            with fixture() as env:
+                counts = []
+                deadline = env.fake.now+timedelta(seconds=5)
+                original = env.evidence.review_verifier if review_kind == 'source' else env.review
+                def review(*args):
+                    receipt = replace(original(*args), expires_at=deadline)
+                    counts.append(True)
+                    if delayed == 'callback' and len(counts) == 2:
+                        env.fake.now += timedelta(seconds=6)
+                    return receipt
+                if review_kind == 'source': env.evidence = replace(env.evidence, review_verifier=review)
+                else: env.review = review
+                c = build(env)
+                c.bootstrap()
+                plan, inputs, seed = selected(env.fake.now)
+                real_context, loads, before = owner.load_context, [], dict(S._PREPARED)
+                def context(*args, **kwargs):
+                    result = real_context(*args, **kwargs)
+                    loads.append(True)
+                    if delayed == 'final_owner' and len(loads) == 2:
+                        env.fake.now += timedelta(seconds=6)
+                    return result
+                with patch.object(owner, 'load_context', side_effect=context):
+                    refused(lambda: c.prepare(selected_plan=plan, inputs=inputs, selection_seed_hex=seed),
+                            'SESSION_PREPARATION_REVIEW_EXPIRED')
+                assert len(counts) == 2 and c._launch is None and S._PREPARED == before
+                with c._journal.transaction() as tx:
+                    assert not any(row['kind'] == 'session_prepared' for row in tx.events)
+                assert not env.adapter.requests

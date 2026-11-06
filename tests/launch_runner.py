@@ -86,7 +86,7 @@ def runner_fixture(*, arm=True, prepare=True, mode='rehearsal', results=()):
             env.launch = prepare_launch_session(profile=env.profile, evidence=env.evidence,
                 driver=env.driver, implementation_verifier=env.review, journal=env.journal,
                 selected_plan=plan, inputs=inputs, positions=env.observation.positions,
-                now=env.now, selection_seed_hex=seed)
+                now=env.now, selection_seed_hex=seed, clock=lambda: env.now, positions_asof=env.observation.asof)
             env.prepared = env.launch.prepared
             env.session_id = env.prepared.session_id
             if arm:

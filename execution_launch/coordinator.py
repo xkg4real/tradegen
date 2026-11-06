@@ -713,14 +713,21 @@ class Coordinator:
         with self._work:
             _require(not self._stopping.is_set(), "COORDINATOR_STOPPED")
             _require(not self._terms_blocked, "COORDINATOR_CURRENT_TERMS_REQUIRED")
-            observation, now = self._observation, getattr(inputs, "now", None)
-            _require(observation is not None and _aware(now) and observation.asof <= now <= self._now()
-                     and now - observation.asof <= ACCOUNT_AGE, "COORDINATOR_PREPARATION_ACCOUNT_NOT_CURRENT")
+            def preparation_clock():
+                _require(not self._stopping.is_set() and not self._closing.is_set(), "COORDINATOR_STOPPED")
+                _require(not self._terms_blocked, "COORDINATOR_CURRENT_TERMS_REQUIRED")
+                return self._now()
+
+            observation, now, actual = self._observation, getattr(inputs, "now", None), preparation_clock()
+            _require(observation is not None and _aware(now) and observation.asof <= now <= actual
+                     and actual - now <= ACCOUNT_AGE and actual - observation.asof <= ACCOUNT_AGE,
+                     "COORDINATOR_PREPARATION_ACCOUNT_NOT_CURRENT")
             try:
                 launch = prepare_launch_session(profile=self._profile, evidence=self._evidence, driver=self._driver,
                     implementation_verifier=self._implementation_verifier, journal=self._journal,
                     selected_plan=selected_plan, inputs=inputs, positions=observation.positions, now=now,
-                    selection_seed_hex=selection_seed_hex, expires_at=expires_at)
+                    selection_seed_hex=selection_seed_hex, expires_at=expires_at,
+                    clock=preparation_clock, positions_asof=observation.asof)
             except Exception as exc:
                 raise CoordinatorError(_code(exc, "COORDINATOR_DEPENDENCY_REFUSED")) from None
             self._launch = launch

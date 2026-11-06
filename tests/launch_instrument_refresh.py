@@ -298,7 +298,8 @@ def test_new_chain_does_not_extend_owner_session_expiry_or_accept_fabricated_pre
         plan, inputs, seed = selected(env.now)
         env.prepared = prepare_session(journal=env.journal, session_id="fixture", selected_plan=plan,
             inputs=inputs, positions=env.observation.positions, policy=env.policy, instrument_rules=env.rules,
-            now=env.now, selection_seed_hex=seed, account_scope="fixture-account", market="spot", quote_currency="KRW")
+            now=env.now, selection_seed_hex=seed, account_scope="fixture-account", market="spot", quote_currency="KRW",
+            clock=lambda: env.now, positions_asof=env.observation.asof)
         env.session_id = env.prepared.session_id
         CF.sign(env.key, "session_armed", {"session_id": env.session_id}, M.iso_utc(env.now))
         original = env.prepared

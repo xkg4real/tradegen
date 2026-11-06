@@ -100,9 +100,15 @@ supports known zero external flows, not a guessed deposit/withdrawal adjustment.
    `EvidencePackage(protocol=..., result=..., review_verifier=...)`. Call
    `prepare_launch_session(profile=..., evidence=..., driver=...,
    implementation_verifier=verifiers.implementation, journal=..., selected_plan=...,
-   inputs=..., positions=..., now=..., selection_seed_hex=..., expires_at=...)`
-   with real current reconciled inputs and the original selection seed. Preparation
-   writes its existing journal event; it does not sign or arm.
+   inputs=..., positions=..., positions_asof=observation.asof, clock=clock,
+   now=inputs.now, selection_seed_hex=..., expires_at=...)`
+   with the actual runtime clock, current reconciled inputs and the original
+   selection seed. Both input and account timestamps must remain within 30 seconds
+   through simulation and journal-lock acquisition. Final owner, code, rule and
+   authenticated-review checks run before the preparation record is written;
+   verified review deadlines remain binding through the last check. A slow or
+   stale preparation refuses without extending timestamps or expiry. Preparation
+   does not sign or arm; see [the current freshness contract](owner-runtime-operations.md#preparation-freshness-and-required-planner-evidence).
 6. **Retain the actual session while the owner reviews it.** Show the returned
    `launch.prepared.session_id` and bound inputs. Only the owner performs the
    corresponding activation. Keep a process-local lookup returning that exact

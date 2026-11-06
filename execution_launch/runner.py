@@ -184,16 +184,19 @@ class LaunchSession:
 
 def prepare_launch_session(*, profile, evidence, driver, implementation_verifier,
                            journal, selected_plan, inputs, positions, now,
-                           selection_seed_hex, expires_at=None) -> LaunchSession:
+                           selection_seed_hex, clock, positions_asof, expires_at=None) -> LaunchSession:
     """Prepare fresh odds with a derived label BEFORE the owner signs its ID.
 
     This writes only the existing preparation event. It does not sign, arm, fetch
     account data or send an order. The owner must subsequently use the returned
     actual PreparedSession object, not reconstruct a serialized copy.
     """
-    _instant(now)
-    _require(preflight_profile(profile, now=now).profile_complete, 'RUNNER_PROFILE_INCOMPLETE')
-    assessment, binding = _assess(profile, evidence, driver, implementation_verifier, now)
+    _instant(now); _instant(positions_asof)
+    _require(callable(clock), "RUNNER_PREPARATION_CLOCK_REQUIRED")
+    started = clock()
+    _instant(started)
+    _require(preflight_profile(profile, now=started).profile_complete, 'RUNNER_PROFILE_INCOMPLETE')
+    assessment, binding = _assess(profile, evidence, driver, implementation_verifier, started)
     _require(assessment.research_review_ready, 'RUNNER_STRATEGY_NOT_QUALIFIED')
     symbol = (profile.symbol.split('-')[1] if profile.venue == 'upbit' else
               profile.symbol.split('-')[0] if profile.venue == 'okx' else profile.symbol)
@@ -201,10 +204,34 @@ def prepare_launch_session(*, profile, evidence, driver, implementation_verifier
              'RUNNER_SELECTED_PLAN_SCOPE_MISMATCH')
     _require(0 < selected_plan.stake_krw <= profile.policy.initial_equity,
              'RUNNER_SELECTED_STAKE_EXCEEDS_RESEARCH_CAPITAL')
+    def completion_check(stamp):
+        _require(preflight_profile(profile, now=stamp).profile_complete, 'RUNNER_PROFILE_INCOMPLETE')
+        receipts = []
+
+        def source_receipt(review_binding):
+            receipt = evidence.review_verifier(review_binding)
+            receipts.append(receipt)
+            return receipt
+
+        def implementation_receipt(review_binding, actual_driver):
+            receipt = implementation_verifier(review_binding, actual_driver)
+            receipts.append(receipt)
+            return receipt
+
+        # _assess validates BOTH exact receipt types, bindings, callback and
+        # dates before their deadlines are retained. No parser-only timestamp
+        # or callback boolean can extend the final commit window.
+        current, current_binding = _assess(profile, replace(evidence, review_verifier=source_receipt),
+                                          driver, implementation_receipt, stamp)
+        _require(current.research_review_ready and current_binding == binding and len(receipts) == 2,
+                 'RUNNER_PREPARATION_REVIEW_CHANGED')
+        return min(receipt.expires_at for receipt in receipts)
+
     prepared = prepare_session(journal=journal, session_id=_label(binding), selected_plan=selected_plan,
         inputs=inputs, positions=positions, policy=risk_policy(profile), instrument_rules=profile.instrument_rules,
         now=now, selection_seed_hex=selection_seed_hex, account_scope=profile.account_scope,
-        market=profile.market, quote_currency=profile.quote_currency, expires_at=expires_at)
+        market=profile.market, quote_currency=profile.quote_currency, expires_at=expires_at,
+        clock=clock, positions_asof=positions_asof, completion_check=completion_check)
     return LaunchSession(prepared=prepared, profile_digest=profile_digest(profile), binding=binding)
 
 
