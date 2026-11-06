@@ -6,12 +6,12 @@ task: first-trade-foundation
 cycle: 2026-11-03
 done_ids: cloud-compat-1, cloud-compat-2, cloud-compat-3, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr, spec-rev-3-3, policy-plan-1, policy-preview-1, policy-pr, e1-1, e1-2, e1-3, e1-4, e1-5, e1-6, e1-7, e1-8, e1-9, e1-10, e1-11, e1-12, e1-13, e1-pr, e2-1, e2-2, e3-1, e3-2, e3-3, e2-3, e3-4, e2-e3-pr, pr6-pr7-merge, research-preregister-1, research-evaluate-1, account-readiness-1, research-paper-1, account-provider-1, account-regression-1, account-research-pr, pr8-human-code-review-approval, pr8-merge, launch-network-1, launch-collector-1, launch-profile-1, launch-strategy-1, launch-runner-1, launch-program-2, launch-workflow-2, launch-baseline-2, launch-quotes-2, launch-deployment-2, launch-review-request-2, launch-driver-2, launch-review-auth-2, launch-baseline-integration-2, launch-market-protocol-1, launch-recovery-cutoff-1, kis-live-contract-1, kis-live-backend-1, kis-live-ui-1, launch-static-guard-1, launch-windows-design-1, kis-live-regression-1, launch-regression-1, launch-delivery-1, pr9-owner-review, launch-windows-inputs-1, launch-owner-authority-1, launch-live-evidence, launch-live-history-1, launch-windows-coordinator-1, launch-study-module-1, okx-data-1, final-review-1, pr10-owner-review, venues-upbit-terms, pr11-owner-review, rules-review-1122/research, launch-quote-diagnostics-1, launch-shortened-study-1, cloud-compat-4, launch-resume-regression-1, launch-resume-delivery-1, pr12-owner-merge, account-okx-usdc-1, launch-market-readiness-1/audit, rules-review-1122/entity-mapping
 next_ids: rules-review-1122, launch-held-positions-1, launch-instrument-refresh-1, launch-controlled-coordinator-1, e1-14-owner-setup, launch-prospective-study
-updated_at: 2026-11-06T20:26:00+09:00
+updated_at: 2026-11-06T21:02:09+09:00
 stale_after_hours: 3
 waiting_on: owner code/rules electronic signatures; rule renewal evidence and remaining live integration
 work_branch: gpt/live-readiness-48h
-work_commit: e24b95687d4f083b49f1b044073792d468ccb741
-uncommitted_changes: integration fixes in isolated worktrees; fixture isolation and docs in main worktree; final regression pending
+work_commit: eed84bc1b519ffc8a482c8a1848507432f8d5532
+uncommitted_changes: execution ledger update only; runtime and tests frozen for final regression
 pr: https://github.com/xkg4real/tradegen/pull/13 (draft; PR12 merged)
 usage_weekly_pct: unknown
 usage_source: unavailable
@@ -24,6 +24,8 @@ session: Cloud Codex development; owner Windows deployment
 # 인수인계: 11월 법규 재검토와 단축 연구 준비
 
 ## 0. 사용자에게 전달할 최신 상태
+
+최신 후속 개발은 PR13의 eed84bc입니다. 리허설·조건 갱신·검토 선택·시간순 후보 위험 검사와 통합 수정본을 push했고, 고정 소스 전체 검사가 진행 중입니다. 아래 PR12의 성공 결과와 PR13의 과거7실패 결과는 서로 다른 실행입니다. 최종 전체 성공은 아직 기록하지 않았습니다.
 
 소유자가 11월 6일 최신 GitHub와 지정 Notion 두 페이지를 읽고 이어가도록 지시했습니다.
 main은 21259f8이며 PR9/10/11/12는 병합됐습니다. 11월 5일 코드·표 서명과 Step C OK 기록은
@@ -188,3 +190,13 @@ Cloud의scratch에는가짜검사로그와공식웹자료조사메모만있습�
 - 독립 검토에서 계산 지연 후 과거 시각으로 세션을 준비할 수 있는 결함을 추가 발견했습니다. 실제 완료 시각/승인/계좌/상품 조건을 재검사하도록 별도 작업트리에서 수정 중입니다.
 - 작업트리: /workspace/tradegen-live-1106(main development), /workspace/tradegen-boundary-fix(boundary integration), /workspace/tradegen-preparation-fix(preparation freshness). 아직 후속 수정본의 전체 통과 결과는 없습니다.
 - 실제 API/키/owner log/실홈/서명/활성화/주문은 사용하지 않았습니다. 사용량은 unknown/unavailable입니다.
+
+## 16. 최종 통합 소스 eed84bc — 전체 재검사 중
+
+- 모든 runtime/test 수정을 eed84bc1b519ffc8a482c8a1848507432f8d5532로 고정해 push했습니다. 이전7실패는 개별 검증에서 수정됐으며 최종 전체 재실행이 진행 중입니다.
+- 시간순 reducer는 execution_launch/continuous_guard.py로 이동했고 후보 archive 저장도 execution_launch/continuous_archive.py로 분리했습니다. E2·계좌의 기존 광범위 접근 금지는 유지했습니다.
+- 갱신 검증은 정확한 두 호출 경로와45개 callable/16개 초기화 표면을 제한합니다. 독립 검토가 찾아낸 JSON callback 재바인딩 우회도 부정검사와 함께 수정했습니다. 전체 Python 안전성 증명으로 설명하지 않습니다.
+- 세션 준비는 실제 clock/positions_asof를 요구하며 계산·잠금·승인 재검사·내용 hash·저장 뒤까지 신선도와 검토 만료를 확인합니다. 저장이 늦으면 audit 행은 남으나 실제 발급 registry나 반환 session은 만들지 않습니다.
+- 관련 개별 결과는88개,경계8개+마지막3개,준비75개+후속3개+저장후3개,리허설17개입니다. 서로 겹치므로 합산한 테스트 수로 표시하지 않습니다.
+- 실제 보유 구간 완전성 발행자, 영속 guard 통합, fixed planner 및 controlled launcher는 여전히 미완료입니다. 기존 원금·최고점 하한과 실제 전략 검증 조건은 유지합니다.
+- 공개 signer 파일 SHA256은 a5a7cc359ddc053f617cb4b31c7e15d7fcf452166d3612b7900bae9cb141615e입니다. Windows 설치의 code-approval hash가 아니며 실제 서명을 대신하지 않습니다.
