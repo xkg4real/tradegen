@@ -150,6 +150,11 @@ platforms refuse rather than weaken the boundary.
 
 ## Prospective study
 
+The owner approved shortening a new study on November 5. The existing protocol
+already accepts explicit durations: see the [new 48-hour draft workflow](research/2026-11-06-shortened-prospective-protocol.md).
+It preserves the candidate family and numerical/review filters. The original
+seven-day duration below is historical planning context, not a hardcoded minimum.
+
 `execution_launch.study` runs the prospective single-market study: a frozen
 candidate family, a scheduled public-orderbook capture and the frozen selection
 rule from the [market selection protocol](market-selection-protocol.md). It has
