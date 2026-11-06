@@ -1,0 +1,119 @@
+{
+  "label": "resume-20261106",
+  "source_commit": "d5bac0aa6058965c588d77d0f9770ca349e38131",
+  "exit_code": 0,
+  "seconds": 587.208,
+  "total": 2354,
+  "counts": {
+    "PASS": 2219,
+    "FAIL": 0,
+    "NOT_RUN": 135
+  },
+  "keyless": true,
+  "isolated_home": true,
+  "real_homes_unchanged": true,
+  "failures": [],
+  "base_commit": "06d06740cb1d275cd981e5750a212725ac21efbc",
+  "new_cases": 27,
+  "new_cases_all_pass": true,
+  "inherited_case_ids_retained": true,
+  "suite_counts": {
+    "cockpit": {
+      "PASS": 47
+    },
+    "engine": {
+      "PASS": 92
+    },
+    "ui": {
+      "PASS": 4
+    },
+    "quant": {
+      "PASS": 53
+    },
+    "ficc": {
+      "PASS": 56
+    },
+    "expansion": {
+      "PASS": 20
+    },
+    "macro": {
+      "PASS": 419,
+      "NOT_RUN": 121
+    },
+    "paper": {
+      "PASS": 21
+    },
+    "grokteam": {
+      "PASS": 17
+    },
+    "compliance": {
+      "PASS": 346,
+      "NOT_RUN": 1
+    },
+    "odds": {
+      "PASS": 287
+    },
+    "execution": {
+      "PASS": 231
+    },
+    "execution_control": {
+      "PASS": 149
+    },
+    "execution_accounts": {
+      "PASS": 111
+    },
+    "strategy_research": {
+      "PASS": 35
+    },
+    "execution_launch": {
+      "PASS": 284,
+      "NOT_RUN": 13
+    },
+    "kis_live": {
+      "PASS": 47
+    }
+  },
+  "not_run_modules": {
+    "macro/macro_m0_instruments": 1,
+    "macro/macro_m0_rules": 1,
+    "macro/macro_m1_calendars": 5,
+    "macro/macro_m1_fixtures": 2,
+    "macro/macro_m1_pit": 7,
+    "macro/macro_m2_costed": 6,
+    "macro/macro_m2_risk": 15,
+    "macro/macro_m3_estimators": 8,
+    "macro/macro_m4_sleeves": 7,
+    "macro/macro_m5_books": 7,
+    "macro/macro_m5_fills_events": 5,
+    "macro/macro_m5_integration": 1,
+    "macro/macro_m6_context": 2,
+    "macro/macro_m7_cardp": 12,
+    "macro/macro_m7_cards": 9,
+    "macro/macro_m7_integration": 7,
+    "macro/macro_m7_ledger": 4,
+    "macro/macro_m7_stats": 3,
+    "macro/macro_m8_forward": 6,
+    "macro/macro_m8_pipeline": 1,
+    "macro/macro_m9_lab": 4,
+    "macro/macro_m9_scenarios": 4,
+    "macro/macro_tf_gov": 2,
+    "macro/macro_tf_screens": 2,
+    "compliance/compliance_signer": 1,
+    "execution_launch/launch_workflow": 1,
+    "execution_launch/launch_private_input": 12
+  },
+  "frozen_research_unchanged": true,
+  "actual_venue_calls": false,
+  "actual_signing": false,
+  "actual_arming": false,
+  "actual_orders": false,
+  "qualified_strategy": false,
+  "rules_review_rows": 47,
+  "rules_explanatory_rows_changed": 13,
+  "rules_deadlines_renewed": false,
+  "post_documentation_checks": {
+    "PASS": 149,
+    "FAIL": 0,
+    "NOT_RUN": 9
+  }
+}
