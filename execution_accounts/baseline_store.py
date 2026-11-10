@@ -54,12 +54,15 @@ class CheckpointStore:
     create private state. load requires an existing lock and checkpoint. The
     existing path-isolation contract is reused; hostile arbitrary-code processes
     with access to both storage and the trusted head remain outside that boundary.
+    A subclass may change only the directory and the record codec (_restore/_encode).
     """
+    _DIRECTORY = "execution-baseline"
+
     def __init__(self, *, root: Path):
         try:
             _require(isinstance(root, Path) and root.is_absolute(), "BASELINE_STORE_EXPLICIT_ROOT_REQUIRED")
             self._base = root.absolute()
-            self._root = self._base / "execution-baseline"
+            self._root = self._base / self._DIRECTORY
             self._paths()
         except CheckpointError:
             raise
@@ -118,16 +121,23 @@ class CheckpointStore:
                      "BASELINE_STORE_FILE_REFUSED")
             raw = handle.read(_MAX_BYTES+1)
         _require(len(raw) <= _MAX_BYTES, "BASELINE_STORE_FILE_REFUSED")
-        return restore_state(raw, expected_head=expected_head)
+        return self._restore(raw, expected_head)
 
     def load(self, *, expected_head: str) -> BaselineState:
         with self._locked():
             return self._load(expected_head)
 
-    def _write(self, state):
-        # Validate before opening a temp file. No caller-controlled filename exists.
+    def _restore(self, raw, expected_head):
+        return restore_state(raw, expected_head=expected_head)
+
+    def _encode(self, state):
         raw = state_json(state).encode("utf-8")
         restore_state(raw, expected_head=state.state_digest)
+        return raw
+
+    def _write(self, state):
+        # Validate before opening a temp file. No caller-controlled filename exists.
+        raw = self._encode(state)
         _require(len(raw) <= _MAX_BYTES, "BASELINE_STORE_FILE_REFUSED")
         target = checked_target(self._root / "checkpoint.tmp", "baseline temporary file", within=self._root)
         descriptor = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0), 0o600)

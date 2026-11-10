@@ -24,7 +24,7 @@ SCHEMA = 1
 GENESIS = "0" * 64
 EVENT_KINDS = frozenset({"session_prepared", "reserved", "dispatching", "acknowledged", "rejected", "unknown",
                        "expired", "cancelled_local", "cancel_requested", "reconciled", "fill", "risk_snapshot",
-                       "kill", "halt"})
+                       "kill", "halt", "continuous_guard_prepare", "continuous_guard_complete"})
 MAX_ROW_BYTES = 262_144
 MAX_JOURNAL_BYTES = 67_108_864
 MAX_EVENTS = 100_000
@@ -34,6 +34,12 @@ _HASH = re.compile(r"[0-9a-f]{64}")
 _STAMP = re.compile(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{6}Z")
 _PROCESS_LOCK = threading.Lock()
 _THREAD = threading.local()
+
+
+def guard_pending(events) -> bool:
+    """True while the last continuous guard row is a prepare; a pending guard transaction blocks new entries."""
+    kinds = [row["kind"] for row in events if row["kind"].startswith("continuous_guard_")]
+    return bool(kinds) and kinds[-1] == "continuous_guard_prepare"
 
 
 class JournalError(RuntimeError):

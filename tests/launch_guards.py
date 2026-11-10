@@ -84,8 +84,10 @@ WRITER_MODULES = ("shutil", "tempfile", "logging")                              
 OS_MODULES = frozenset({"os", "io", "_io", "nt", "posix", "builtins"})               # where a from-import finds a writer
 MODE_AT_ONE = ("io", "_io", "builtins", "codecs", "gzip", "bz2", "lzma")              # their open/FileIO take (file, mode)
 WRITE_MODE = re.compile(r"[wax+]")
-# The trusted baseline head is advanced only by the account provider and the live-history journal.
-CAS_CALLERS = frozenset({"execution_accounts/baseline_bridge.py", "execution_launch/live_history.py"})
+# The trusted baseline head is advanced only by the account provider, the live-history journal and the continuous
+# guard commit coordinator (after its durable prepare record and halt latch).
+CAS_CALLERS = frozenset({"execution_accounts/baseline_bridge.py", "execution_launch/live_history.py",
+                         "execution_launch/continuous_guard_commit.py"})
 
 
 def _call_name(node):
