@@ -7,9 +7,11 @@ false. The existing continuous candidate source retains its unconditional
 `CONTINUOUS_LIVE_RISK_INTEGRATION_REQUIRED` refusal.
 
 This document separates the implemented mathematics from the persistence and
-authority contract that a later production adapter must satisfy. No production
-adapter, source-completeness verifier or new controller journal kind is supplied
-by this unit.
+authority contract that a later production adapter must satisfy.
+`execution_launch.continuous_guard_commit` now supplies the local durable
+transaction (two new controller journal kinds, a guard checkpoint store behind a
+separately retained head, and a restart classifier); see "Implemented commit
+unit" below. No production adapter or source-completeness verifier is supplied.
 
 ## Implemented inputs and reduction
 
@@ -117,7 +119,9 @@ endpoint would discard precisely the history this guard preserves.
 
 ## Required durable ordering
 
-The following is a design contract, **not an implemented transaction**:
+`continuous_guard_commit.commit_continuous_guard` implements this ordering as a
+local library transaction. Package authentication (step 1) and publishing to the
+controller (step 5) are still not implemented; it is not a production adapter:
 
 1. Authenticate and freeze one evidence package and owner/control context. Under
    the reviewed lock/CAS protocol, verify expected guard, baseline and controller
@@ -158,7 +162,63 @@ while treating the halt as absent.
 Recovery must replay the same authenticated package and required effects
 idempotently. It must preserve permanent halts. A reviewed re-anchor cannot
 silently erase a floor breach, lower the ratcheted floor or hide an old-day
-daily stop. This unit provides neither automatic recovery nor a reset command.
+daily stop. Neither unit provides automatic recovery or a reset command; the
+commit unit only resumes a pending transaction when the same package is re-run.
+
+## Implemented commit unit
+
+`execution_launch.continuous_guard_commit` (synthetic tests in
+`tests/control_continuous_guard_commit.py`):
+
+- Journal kinds `continuous_guard_prepare` and `continuous_guard_complete`.
+  Existing kinds and their validation are unchanged.
+- `GuardCheckpointStore` keeps the guard checkpoint below
+  `TRADEGEN_HOME/execution-guard`. It uses the baseline store's path, lock,
+  temporary-file, fsync and replace rules. Only the record codec and the transition
+  rules are its own: no peak or floor rollback and no cleared halt. `GuardChain`
+  places that store behind its own `BaselineHead` record, which advances only by
+  compare-and-set.
+- `commit_continuous_guard` holds the control journal transaction throughout.
+  Inside it, the function:
+  1. classifies the durable state;
+  2. recomputes the plan from the package;
+  3. requires the caller's expected guard, baseline and controller heads;
+  4. appends the prepare record at the current receipt time. The record binds the
+     evidence (input) digest, owner digest, controller head, path digest and
+     bounds, old/new guard and baseline digests, the transaction id, whether a halt
+     is required, and the plan's required records with `source_at` and
+     `policy_day`;
+  5. appends the existing `halt` kind, if the proposed checkpoint is permanently
+     halted and no halt row exists;
+  6. commits the baseline and advances its head by compare-and-set;
+  7. commits the guard and advances its head by compare-and-set;
+  8. appends the completion record;
+  9. returns a receipt only after both heads are re-read.
+
+  A guard state that would omit an existing local halt is refused. The halt is
+  never cleared or duplicated.
+- `classify_restart` is a pure function implementing the table above. Every
+  pending, divergent or refused result, and any local halt, reports
+  `new_entries_blocked=True`.
+- Re-running the same package after a crash at any step converges without
+  duplicate prepare, halt or completion rows. A store replaced before its head
+  advanced is finished only for the exact successor bound by the prepare record. A
+  different package under a pending prepare refuses.
+- Lock order is the same as `Controller.observe`: journal, then head, then
+  checkpoint store. The journal is never entered again.
+
+Still required:
+
+- A production adapter: authenticated source, owner and controller context, a
+  trusted clock, and publication of the account observation.
+- A venue completeness authority for the coverage receipt.
+- An authenticated owner-head timeline; only the unchanged case is supported.
+- Controller support for the new kinds. `execution_control.controller._fold`
+  currently refuses any journal containing them. That fails closed, but it also
+  blocks cancellation and reconciliation until defined.
+- An owner-log `system_halt` append, plus controller-consumed records for old-day
+  daily stops and historical points.
+- The private package archive and the reviewed re-anchor procedure.
 
 The candidate archive from `execution_launch.continuous_archive` stores only the path.
 A future durable guard package must additionally retain the original account
@@ -175,8 +235,18 @@ daily-limit breaches before midnight, exact 22:00 recovery, changed owner epochs
 or effective limits, source/endpoint and cash/inventory/FIFO component binding,
 raw event replay, stream/receipt continuity, duplicate input handling and ambient
 Decimal precision. These tests validate arithmetic and
-refusal contracts. They do not validate an actual venue completeness authority,
-owner signature, live Windows timing or a multi-store commit implementation.
+refusal contracts. Commit tests use temporary roots only. They cover:
+
+- durable ordering;
+- a crash after each step, followed by idempotent replay;
+- divergence;
+- compare-and-set refusal;
+- halt preservation;
+- mismatched packages and unknown heads;
+- refusal of a re-entrant journal.
+
+None of these tests validate an actual venue completeness authority, owner
+signature, live Windows timing or a production adapter.
 
 This is an engineering record, not legal, tax or investment advice. The author
 is not a licensed adviser.

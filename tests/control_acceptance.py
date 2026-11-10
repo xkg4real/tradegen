@@ -17,10 +17,11 @@ from pathlib import Path
 TESTS = Path(__file__).resolve().parent
 MODULES = ("control_guards", "control_model", "control_store", "control_risk", "control_session",
            "control_controller", "orders_codecs", "orders_transport", "orders_lifecycle",
-           "control_continuous_guard")
+           "control_continuous_guard", "control_continuous_guard_commit")
 _REAL = (Path.home() / ".tradegen" / "execution-control",
          Path.home() / ".tradegen" / "execution_orders",
          Path.home() / ".tradegen" / "execution-baseline",          # CheckpointStore
+         Path.home() / ".tradegen" / "execution-guard",             # GuardCheckpointStore
          Path.home() / ".tradegen" / "execution-history",           # LiveHistory journal (first-trade history row)
          # The baseline head's operator-provisioned root (first-trade head row): a local, non-synced folder.
          *((Path(os.environ["LOCALAPPDATA"]) / "TRADEGEN-head",) if os.environ.get("LOCALAPPDATA") else ()))

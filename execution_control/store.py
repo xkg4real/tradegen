@@ -24,7 +24,7 @@ SCHEMA = 1
 GENESIS = "0" * 64
 EVENT_KINDS = frozenset({"session_prepared", "reserved", "dispatching", "acknowledged", "rejected", "unknown",
                        "expired", "cancelled_local", "cancel_requested", "reconciled", "fill", "risk_snapshot",
-                       "kill", "halt"})
+                       "kill", "halt", "continuous_guard_prepare", "continuous_guard_complete"})
 MAX_ROW_BYTES = 262_144
 MAX_JOURNAL_BYTES = 67_108_864
 MAX_EVENTS = 100_000
