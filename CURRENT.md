@@ -4,16 +4,16 @@ reason: tested_development_batch_ready_for_owner_review
 from: claude
 task: first-trade-foundation
 cycle: 2026-11-10
-done_ids: cloud-compat-1, cloud-compat-2, cloud-compat-3, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr, spec-rev-3-3, policy-plan-1, policy-preview-1, policy-pr, e1-1, e1-2, e1-3, e1-4, e1-5, e1-6, e1-7, e1-8, e1-9, e1-10, e1-11, e1-12, e1-13, e1-pr, e2-1, e2-2, e3-1, e3-2, e3-3, e2-3, e3-4, e2-e3-pr, pr6-pr7-merge, research-preregister-1, research-evaluate-1, account-readiness-1, research-paper-1, account-provider-1, account-regression-1, account-research-pr, pr8-human-code-review-approval, pr8-merge, launch-network-1, launch-collector-1, launch-profile-1, launch-strategy-1, launch-runner-1, launch-program-2, launch-workflow-2, launch-baseline-2, launch-quotes-2, launch-deployment-2, launch-review-request-2, launch-driver-2, launch-review-auth-2, launch-baseline-integration-2, launch-market-protocol-1, launch-recovery-cutoff-1, kis-live-contract-1, kis-live-backend-1, kis-live-ui-1, launch-static-guard-1, launch-windows-design-1, kis-live-regression-1, launch-regression-1, launch-delivery-1, pr9-owner-review, launch-windows-inputs-1, launch-owner-authority-1, launch-live-evidence, launch-live-history-1, launch-windows-coordinator-1, launch-study-module-1, okx-data-1, final-review-1, pr10-owner-review, venues-upbit-terms, pr11-owner-review, rules-review-1122/research, launch-quote-diagnostics-1, launch-shortened-study-1, cloud-compat-4, launch-resume-regression-1, launch-resume-delivery-1, pr12-owner-merge, account-okx-usdc-1, launch-market-readiness-1/audit, rules-review-1122/entity-mapping, launch-held-positions-1/candidates, launch-held-positions-1/chronological-reducer, launch-instrument-refresh-1, launch-controlled-coordinator-1/owner-ops, launch-controlled-coordinator-1/rehearsal, launch-authenticated-selection-1, launch-source-boundaries-1, launch-preparation-freshness-1, launch-48h-integration-1, launch-48h-delivery-1, pr13-owner-merge, launch-study-review-windows-1, rules-review-1122/table-1110, launch-continuous-guard-commit-1
-next_ids: rules-review-1122, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, launch-private-capture-setup-1, e1-14-owner-setup, launch-prospective-study, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1, tests-hermetic-runs-1, pr14-owner-merge, pr15-owner-merge, pr16-owner-merge
-updated_at: 2026-11-10T21:30:13+09:00
+done_ids: cloud-compat-1, cloud-compat-2, cloud-compat-3, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr, spec-rev-3-3, policy-plan-1, policy-preview-1, policy-pr, e1-1, e1-2, e1-3, e1-4, e1-5, e1-6, e1-7, e1-8, e1-9, e1-10, e1-11, e1-12, e1-13, e1-pr, e2-1, e2-2, e3-1, e3-2, e3-3, e2-3, e3-4, e2-e3-pr, pr6-pr7-merge, research-preregister-1, research-evaluate-1, account-readiness-1, research-paper-1, account-provider-1, account-regression-1, account-research-pr, pr8-human-code-review-approval, pr8-merge, launch-network-1, launch-collector-1, launch-profile-1, launch-strategy-1, launch-runner-1, launch-program-2, launch-workflow-2, launch-baseline-2, launch-quotes-2, launch-deployment-2, launch-review-request-2, launch-driver-2, launch-review-auth-2, launch-baseline-integration-2, launch-market-protocol-1, launch-recovery-cutoff-1, kis-live-contract-1, kis-live-backend-1, kis-live-ui-1, launch-static-guard-1, launch-windows-design-1, kis-live-regression-1, launch-regression-1, launch-delivery-1, pr9-owner-review, launch-windows-inputs-1, launch-owner-authority-1, launch-live-evidence, launch-live-history-1, launch-windows-coordinator-1, launch-study-module-1, okx-data-1, final-review-1, pr10-owner-review, venues-upbit-terms, pr11-owner-review, rules-review-1122/research, launch-quote-diagnostics-1, launch-shortened-study-1, cloud-compat-4, launch-resume-regression-1, launch-resume-delivery-1, pr12-owner-merge, account-okx-usdc-1, launch-market-readiness-1/audit, rules-review-1122/entity-mapping, launch-held-positions-1/candidates, launch-held-positions-1/chronological-reducer, launch-instrument-refresh-1, launch-controlled-coordinator-1/owner-ops, launch-controlled-coordinator-1/rehearsal, launch-authenticated-selection-1, launch-source-boundaries-1, launch-preparation-freshness-1, launch-48h-integration-1, launch-48h-delivery-1, pr13-owner-merge, launch-study-review-windows-1, rules-review-1122/table-1110, launch-continuous-guard-commit-1, tests-hermetic-runs-1
+next_ids: rules-review-1122, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, launch-private-capture-setup-1, e1-14-owner-setup, launch-prospective-study, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1, tests-keyless-krx-1, pr14-owner-merge, pr15-owner-merge, pr16-owner-merge, pr17-owner-merge
+updated_at: 2026-11-10T22:37:53+09:00
 stale_after_hours: 3
-waiting_on: owner merge of PR14, PR15, PR16; code-approve after PR16; approve --kind rules after PR15 before 2026-11-22
+waiting_on: owner merge of PR14, PR15, PR16, PR17; code-approve after PR16; approve --kind rules after PR15 before 2026-11-22
 work_branch: claude/continuous-guard-commit
 work_commit: 1a5972844aa93a7aed4219b491b2701e2123886f
 runtime_tested_commit: 1a5972844aa93a7aed4219b491b2701e2123886f
 uncommitted_changes: none
-pr: https://github.com/xkg4real/tradegen/pull/14 (open), https://github.com/xkg4real/tradegen/pull/15 (open), https://github.com/xkg4real/tradegen/pull/16 (open)
+pr: https://github.com/xkg4real/tradegen/pull/14 (open), https://github.com/xkg4real/tradegen/pull/15 (open), https://github.com/xkg4real/tradegen/pull/16 (open), https://github.com/xkg4real/tradegen/pull/17 (open)
 usage_weekly_pct: 19
 usage_source: claude-code get_usage (Weekly, all models)
 handoff_threshold_pct: 95
@@ -22,15 +22,16 @@ usage_resets_at: 2026-11-17T17:00:00+09:00
 session: Claude Code desktop on the owner's Windows PC; separate scratch clone, TRADEGEN_PR9 venv read-only
 ---
 
-# 인수인계: PR13 병합 이후 세 PR(#14·#15·#16) 게시
+# 인수인계: PR13 병합 이후 네 PR(#14·#15·#16·#17) 게시
 
 ## 0. 사용자에게 전달할 최신 상태
 
-소유자가 PR13을 main 6032aee로 병합했습니다. 그 위에서 세 PR을 열었고, 셋 다 검토 가능·미병합입니다.
+소유자가 PR13을 main 6032aee로 병합했습니다. 그 위에서 네 PR을 열었고, 넷 다 검토 가능·미병합입니다.
 
 - PR14 (claude/windows-study-review-lf, ce613a4): Windows에서만 실패하던 launch_study_review 테스트 2개 수정. 테스트 파일만 바뀌어 서명할 것 없음.
 - PR15 (claude/rules-review-1110, c63850a): kr_rules.yaml 47행 전체를 2026-11-10에 다시 검토. 차단·허용 판정은 한 행도 바뀌지 않음. review_by를 25행 2026-12-02, 22행 2026-12-11로 갱신. 병합 후 소유자가 approve --kind rules를 2026-11-22 전에 해야 함.
 - PR16 (claude/continuous-guard-commit, 1a59728): 영속 guard transaction(launch-continuous-guard-commit-1)을 로컬 라이브러리로 구현. 실거래 경로에는 아직 연결하지 않음. 병합 후 code-approve 필요.
+- PR17 (claude/hermetic-skill-runs, 3f66274): cockpit 스킬 실행 테스트 4개가 실제 ~/.tradegen/runs 대신 테스트마다 새 임시 폴더를 쓰게 함. 테스트 파일만 바뀌어 서명할 것 없음. TRADEGEN_RUNS_DIR 없이 전체 실행해도 실제 ~/.tradegen 전체가 전후 동일(2389 / 4 / 123, 총 2516).
 
 Windows 전체 검사(키 없음, 네트워크 없음, 임시 상태): PR16 브랜치 2529개 중 2402 PASS / 4 FAIL / 123 NOT_RUN.
 main 6032aee는 2515개 중 2388 / 4 / 123. 차이 14개는 PR16의 새 테스트이고, 실패 4개는 양쪽이 같습니다(아래 4절).
@@ -77,7 +78,7 @@ PR16은 다섯 방향(충돌 복구, 동시성, 안전 잠금, 기존 코드 동
 ## 5. 실패 이력과 현재 작업 상태
 
 - 첫 수정 뒤 재검토에서 halt 흡수 경로가 나와 classify_restart 규칙을 추가했습니다. prepare_session의 이른 journal 읽기가 기존 시계 재검사 테스트 한 단계를 무력화해 원래 위치의 단일 읽기로 되돌렸습니다.
-- 기존 skills 테스트가 TRADEGEN_RUNS_DIR 없이 실행되면 실제 ~/.tradegen/runs 아래에 실행 기록 폴더를 만듭니다. 이번 세션의 초기 전체 실행이 폴더를 남겼고 지우지 않았습니다. 이후 실행은 TRADEGEN_RUNS_DIR를 임시 폴더로 지정했습니다. tests-hermetic-runs-1로 남깁니다.
+- 기존 skills 테스트가 TRADEGEN_RUNS_DIR 없이 실행되면 실제 ~/.tradegen/runs 아래에 실행 기록 폴더를 만듭니다. 이번 세션의 초기 전체 실행이 폴더를 남겼고 지우지 않았습니다. 이후 실행은 TRADEGEN_RUNS_DIR를 임시 폴더로 지정했습니다. PR17(tests-hermetic-runs-1)이 원인을 고쳤습니다. 이미 생긴 폴더는 그대로이며 삭제는 소유자가 정합니다.
 - 작업 clone은 세션 scratch에 있고 세 브랜치 모두 push 완료. 미커밋 변경 없음, 실행 중인 관측·거래 작업 없음.
 - 사용량: 주간 19% (2026-11-17 17:00 KST 재충전). 95% 기준에 닿아서 반환하는 것이 아닙니다.
 
@@ -88,7 +89,7 @@ PR16은 다섯 방향(충돌 복구, 동시성, 안전 잠금, 기존 코드 동
 3. launch-continuous-guard-adapter-1: PR16 단위를 실제 package 출처·owner/controller 문맥·신뢰 시계와 연결하고, shared baseline head의 모든 전진을 control journal로 보내는 writer를 만듭니다. owner-log system_halt append와 옛 일일 정지 소비자도 여기에 속합니다.
 4. launch-planner-provider-1, launch-controlled-coordinator-1, launch-private-capture-setup-1: 이전 문서 6절 4·5항 그대로.
 5. e1-14-owner-setup, launch-prospective-study, KIS/OKX 수집기, launch-multi-market-validation-1: 실제 Windows·계좌·미래 관측이 필요합니다.
-6. tests-hermetic-runs-1: 테스트가 실제 ~/.tradegen/runs에 쓰지 않도록 고칩니다. 이미 생긴 폴더 삭제는 소유자에게 먼저 묻습니다.
+6. tests-keyless-krx-1: cockpit/test_21은 KIS·OpenDART 키가 환경에 있으면 실제 서비스를 부르고, 캐시가 만료되면 실제 ~/.tradegen/kis_token.json·dart_corp_codes.json을 다시 씁니다. 첫 커밋부터 있던 동작이고 tests/macro_acceptance.py에 의도로 적혀 있어, 키 없이 돌게 바꾸려면 소유자 확인이 필요합니다. 지금까지 이 PC의 실행은 모두 키 없이 했습니다.
 
 현재 하한(원금·최고점) 규칙에서는 초기 구간 sizing이 STUCK_AT_START를 반환합니다. 하한 완화·수수료 예외는 승인되지 않았고 소유자 결정 사항입니다.
 
@@ -97,7 +98,8 @@ PR16은 다섯 방향(충돌 복구, 동시성, 안전 잠금, 기존 코드 동
 1. PR14를 검토하고 병합합니다. 서명할 것 없음.
 2. PR15를 검토하고 병합한 뒤 Windows에서 approve --kind rules를 직접 실행합니다. 2026-11-22이 지나면 25행이 새 노출을 거부합니다.
 3. PR16을 검토하고 병합한 뒤 code-approve를 직접 실행합니다. 서명 전에는 이전 코드 지문이 유지되어 새 코드가 거부됩니다. tests/launch_guards.py의 CAS_CALLERS 허용 목록 확장 한 줄을 특히 확인해 주세요.
-4. rules --check로 현재 효력을 확인합니다. 병합·서명만으로 실거래가 시작되지는 않습니다.
+4. PR17을 검토하고 병합합니다. 서명할 것 없음.
+5. rules --check로 현재 효력을 확인합니다. 병합·서명만으로 실거래가 시작되지는 않습니다.
 
 ## 8. 유지할 제한
 
