@@ -5,8 +5,8 @@ guard, and brackets the suite with T-HERM-01 (every network touchpoint raises wh
 and T-HERM-02 (the shipped read-only trees and TRADEGEN's `~/.tradegen` are byte-identical before and after).
 
 The guard is armed around every macro test and restored in `finally`, not left in place for the whole
-process: `engine/test_82` serves a loopback HTTP server through `data.net.session` and `cockpit/test_21`
-reaches KIS when keys are present, so a process-wide patch at import would change inherited results.
+process: `engine/test_82` serves a loopback HTTP server through `data.net.session`, so a process-wide
+patch at import would change inherited results.
 """
 from __future__ import annotations
 

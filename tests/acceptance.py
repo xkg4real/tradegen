@@ -17,8 +17,10 @@ default and `main.py` contains an em dash.
 """
 from __future__ import annotations
 
+import functools
 import os
 import re
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -328,12 +330,17 @@ def test_20_runner_survives_a_missing_interpreter():
 
 
 def test_21_krx_gateway_degrades_with_a_reason():
-    """No provider configured must yield an actionable reason, never a blank."""
+    """No provider configured must yield an actionable reason, never a blank.
+
+    The keys are blanked while the gateway is built, so on a PC that has KIS or OpenDART keys the suite does not
+    call those services or rewrite ~/.tradegen/kis_token.json and dart_corp_codes.json."""
+    from unittest import mock
     from data.krx import KRXGateway
-    gateway = KRXGateway()
+    with mock.patch.dict(os.environ, dict.fromkeys(("KIS_APP_KEY", "KIS_APP_SECRET", "OPENDART_API_KEY"), "")):
+        gateway = KRXGateway()
+    assert not gateway.kis.ready and not gateway.dart.ready, "a blank key must leave the provider unconfigured"
     for answer in (gateway.daily("005930"), gateway.filings("005930")):
-        if not answer.ok:
-            assert answer.reason.strip(), "a failed answer must explain itself"
+        assert not answer.ok and answer.reason.strip(), "a failed answer must explain itself"
 
 
 def test_22_krx_status_is_reported_per_provider():
@@ -974,6 +981,32 @@ def test_46_a_failed_step_is_summarised_by_its_diagnosis_not_its_traceback():
     assert not any("^^^" in line or line.startswith('File "') for line in plain.lines)
 
 
+def test_47_skill_runs_land_in_a_fresh_scratch_folder():
+    """Tests 19, 20, 26 and 29 really run skills, and each run makes a folder under `config.runs_dir()`.
+    Before `_scratch_runs` those folders landed in the owner's ~/.tradegen/runs on every suite run."""
+    import config
+    runs = config.runs_dir()
+    assert runs.is_dir() and not any(runs.iterdir()), f"{runs} is not a fresh, empty folder"
+    assert runs.resolve().is_relative_to(Path(tempfile.gettempdir()).resolve()), f"{runs} is not a temporary folder"
+
+
+def _scratch_runs(fn):
+    """`fn` with TRADEGEN_RUNS_DIR on a new temporary folder, restored and removed afterwards."""
+    @functools.wraps(fn)
+    def run():
+        saved = os.environ.get("TRADEGEN_RUNS_DIR")
+        with tempfile.TemporaryDirectory(prefix="tradegen-runs-", ignore_cleanup_errors=True) as scratch:
+            os.environ["TRADEGEN_RUNS_DIR"] = scratch
+            try:
+                return fn()
+            finally:
+                if saved is None:
+                    os.environ.pop("TRADEGEN_RUNS_DIR", None)
+                else:
+                    os.environ["TRADEGEN_RUNS_DIR"] = saved
+    return run
+
+
 def tests():
-    return sorted((n, v) for n, v in globals().items()
+    return sorted((n, _scratch_runs(v)) for n, v in globals().items()
                   if n.startswith("test_") and callable(v))
