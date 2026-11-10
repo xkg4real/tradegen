@@ -245,8 +245,11 @@ def test_check_code_2_overdue():
         out = rules.check(today)
     assert out["code"] == 2, out["lines"]
     ids = {r.id for r in rules.parse_rules(fx.shipped_bytes("rules")).rows}
-    assert {i["row"] for i in out["overdue"]} == ids, out["overdue"]          # every row's review date passed
-    assert all(i["field"] == "review_by" and i["days_late"] >= 1 for i in out["overdue"]), out["overdue"]
+    late = [i for i in out["overdue"] if i["field"] == "review_by"]
+    assert {i["row"] for i in late} == ids, out["overdue"]                     # every row's review date passed
+    assert all(i["days_late"] >= 1 for i in out["overdue"]), out["overdue"]
+    # the latest review_by may fall after a row's auto_off date (2026-11-10 re-review), which is overdue too
+    assert all(i["field"] in ("review_by", "auto_off") for i in out["overdue"]), out["overdue"]
     assert any(line.startswith("overdue: ") for line in out["lines"]), out["lines"]
 
 

@@ -504,6 +504,14 @@ def _t8_with_rows(state: model.ApprovedState, changes: dict) -> model.ApprovedSt
     return dataclasses.replace(state, rules=dataclasses.replace(state.rules, rows=rows))
 
 
+def _t8_seed_dates() -> model.ApprovedState:
+    """The shipped table with the review_by dates of its 2026-10-23 review, which the date tests below were written
+    against, so a later re-review of the shipped rows does not move them."""
+    return _t8_with_rows(F.approved(), {"KR-DOMESTIC-SPOT": {"review_by": _T8_DAY(2026, 11, 22)},
+                                        "KR-OKX-SPOT": {"review_by": _T8_DAY(2026, 11, 22)},
+                                        "KR-KIS-KRX-SHARE": {"review_by": _T8_DAY(2026, 11, 23)}})
+
+
 def _t8_with_instruments(state: model.ApprovedState, *extra: rules.Instrument) -> model.ApprovedState:
     entries = {**state.instruments.entries, **{(i.section, i.symbol): i for i in extra}}
     return dataclasses.replace(state, instruments=dataclasses.replace(state.instruments, entries=entries))
@@ -623,9 +631,9 @@ def test_gated_option_needs_owner_flags_then_the_session_ack():
 def test_okx_auto_off_at_the_asia_seoul_boundary():
     # Spec 8.7: ctx.date is the Asia/Seoul date of the decision moment, so 23:59:59 KST on 12-02 decides on 12-02
     # and 00:00:00 KST on 12-03 on 12-03. The gate sees only the date; load_context's conversion of a moment into it
-    # is Task 13's test_decision_date_is_the_asia_seoul_date_of_now. The shipped KR-OKX-SPOT is due 2026-11-22 and
-    # already stale on 12-02, so the boundary is tested on a re-reviewed row: a review on 2026-11-15 may move
-    # review_by to 2026-12-02 (P15: within 31 days, before the 2026-12-03 affected_by date).
+    # is Task 13's test_decision_date_is_the_asia_seoul_date_of_now. The boundary is tested on a modelled re-review so
+    # a later review of the shipped row cannot move it: a review on 2026-11-15 may move review_by to 2026-12-02 (P15:
+    # within 31 days, before the 2026-12-03 affected_by date). The shipped row, re-reviewed 2026-11-10, is due 12-02.
     row = _t8_row("KR-OKX-SPOT")
     review = dataclasses.replace(row.reviews[-1], date=_T8_DAY(2026, 11, 15))
     state = _t8_with_rows(F.approved(), {"KR-OKX-SPOT": {"review_by": _T8_DAY(2026, 12, 2),
@@ -638,9 +646,9 @@ def test_okx_auto_off_at_the_asia_seoul_boundary():
     off = gate.decide(_t8_okx_buy(), F.ctx(active=state, date=after, owner=_t8_okx_owner()))
     assert off.verdict == model.BLOCK and off.reasons == ("stale: review by 2026-12-02 passed (KR-OKX-SPOT)",
                                                           "auto_off 2026-12-03: KR-OKX-SPOT"), off.reasons
-    shipped = gate.decide(_t8_okx_buy(), F.ctx(date=before, owner=_t8_okx_owner()))
-    assert shipped.verdict == model.BLOCK and \
-        shipped.reasons == ("stale: review by 2026-11-22 passed (KR-OKX-SPOT)",), shipped.reasons
+    for day, want in ((before, ok), (after, off)):
+        shipped = gate.decide(_t8_okx_buy(), F.ctx(date=day, owner=_t8_okx_owner()))
+        assert (shipped.verdict, shipped.reasons) == (want.verdict, want.reasons), (day, shipped.reasons)
 
 
 def test_rows_are_in_force_from_effective_from_until_effective_until():
@@ -664,7 +672,7 @@ def test_okx_sell_for_usdt_is_an_exit_after_auto_off():
               owner=_t8_okx_owner())
     sell = gate.decide(_t8_okx_buy(action="sell"), c)
     assert sell.verdict == model.ALLOW_EXIT and sell.kind == "close_long" and sell.reasons == (), sell.reasons
-    assert "stale: review by 2026-11-22 passed (KR-OKX-SPOT)" in sell.warnings
+    assert f"stale: review by {_t8_row('KR-OKX-SPOT').review_by} passed (KR-OKX-SPOT)" in sell.warnings
     assert gate.render_warning(_t8_row("KR-OKX-SPOT"), {"cap": "10%"}) in sell.warnings
     buy = gate.decide(_t8_okx_buy(), c)                                  # USDT -> BTC is a BTC buy: new exposure
     assert buy.verdict == model.BLOCK and buy.kind == "new_exposure"
@@ -679,7 +687,8 @@ def test_withdrawal_to_upbit_ignores_stale_rows_and_unsigned_code():
     c = F.ctx(date=on, code_signed=False, holdings={("okx", "BTC"): 0.01}, owner=_t8_owner())
     d = gate.decide(_t7_withdraw(), c)
     assert d.verdict == model.ALLOW_EXIT and d.kind == "withdraw" and d.reasons == (), d.reasons
-    assert d.warnings == ("stale: review by 2026-11-22 passed (KR-OKX-WITHDRAW)",), d.warnings
+    assert d.warnings == (f"stale: review by {_t8_row('KR-OKX-WITHDRAW').review_by} passed (KR-OKX-WITHDRAW)",), \
+        d.warnings
     buy = gate.decide(F.intent(), F.ctx(date=on, code_signed=False))
     assert buy.verdict == model.BLOCK and "unsigned code" in buy.reasons     # the same context refuses a buy
 
@@ -890,14 +899,16 @@ def test_new_exposure_needs_a_stake_and_its_grey_venue_exposure():
 
 
 def test_stale_row_blocks_new_exposure_but_not_exits():
-    assert gate.decide(F.intent(), F.ctx(date=_T8_DAY(2026, 11, 22))).verdict == model.ALLOW
-    late = gate.decide(F.intent(), F.ctx(date=_T8_DAY(2026, 11, 23)))
+    seed = _t8_seed_dates()
+    assert gate.decide(F.intent(), F.ctx(active=seed, date=_T8_DAY(2026, 11, 22))).verdict == model.ALLOW
+    late = gate.decide(F.intent(), F.ctx(active=seed, date=_T8_DAY(2026, 11, 23)))
     assert late.verdict == model.BLOCK and \
         late.reasons == ("stale: review by 2026-11-22 passed (KR-DOMESTIC-SPOT)",), late.reasons
-    assert gate.decide(_t7_kis("005930"), F.ctx(date=_T8_DAY(2026, 11, 23))).verdict == model.ALLOW
-    kis = gate.decide(_t7_kis("005930"), F.ctx(date=_T8_DAY(2026, 11, 24)))
+    assert gate.decide(_t7_kis("005930"), F.ctx(active=seed, date=_T8_DAY(2026, 11, 23))).verdict == model.ALLOW
+    kis = gate.decide(_t7_kis("005930"), F.ctx(active=seed, date=_T8_DAY(2026, 11, 24)))
     assert kis.reasons == ("stale: review by 2026-11-23 passed (KR-KIS-KRX-SHARE)",), kis.reasons
-    sell = gate.decide(F.intent(action="sell"), F.ctx(date=_T8_DAY(2026, 11, 23), holdings={("upbit", "BTC"): 1.0}))
+    sell = gate.decide(F.intent(action="sell"), F.ctx(active=seed, date=_T8_DAY(2026, 11, 23),
+                                                      holdings={("upbit", "BTC"): 1.0}))
     assert sell.verdict == model.ALLOW_EXIT and sell.reasons == ()
     assert sell.warnings == ("stale: review by 2026-11-22 passed (KR-DOMESTIC-SPOT)",), sell.warnings
 
@@ -1262,10 +1273,10 @@ def test_newer_state_accepted_older_refused():
 
 
 def test_screen_flags_rule_dates_inside_the_horizon():
-    day = _T8_DAY
+    day, seed = _T8_DAY, _t8_seed_dates()
 
     def at(venue, symbol, start, horizon_days, stake=50_000.0):     # screened on its own start date
-        return gate.screen(_t9_plan(venue, symbol, start, horizon_days), F.ctx(date=start), stake)
+        return gate.screen(_t9_plan(venue, symbol, start, horizon_days), F.ctx(active=seed, date=start), stake)
 
     okx = at("okx", "BTC", day(2026, 11, 1), 40)
     assert okx.flags == ((day(2026, 11, 22), "review_by", "KR-OKX-SPOT"),
@@ -1316,7 +1327,7 @@ def test_screen_verdicts():
     assert not nope.allowed and "malformed: symbol" in nope.decision.reasons
     stake = gate.screen(_t9_plan("kis", "005930", start, 5), c, math.nan)
     assert not stake.allowed and "malformed: notional_krw" in stake.decision.reasons
-    long = gate.screen(_t9_plan("kis", "005930", start, 40), c, 40_000.0)              # [10-23, 12-02)
+    long = gate.screen(_t9_plan("kis", "005930", start, 40), F.ctx(active=_t8_seed_dates()), 40_000.0)  # [10-23, 12-02)
     assert long.flags == ((_T8_DAY(2026, 11, 23), "review_by", "KR-KIS-KRX-SHARE"),), long.flags
     for no_state, why in ((F.ctx(active=model.ApprovedState.invalid("rules: unapproved")), "state: rules: unapproved"),
                           (F.ctx(owner=model.OwnerState.broken("bad signature on entry 4")),
@@ -1324,7 +1335,7 @@ def test_screen_verdicts():
         s = gate.screen(_t9_plan("kis", "005930", start, 40), no_state, 40_000.0)
         assert not s.allowed and s.decision.reasons == (why,), s.decision.reasons
         assert s.decision.kind == "new_exposure" and s.flags == () and s.exit_date is None
-    okx_plan = _t9_plan("okx", "BTC", _T8_DAY(2026, 11, 1), 40)                        # holds 11-22 and 12-03
+    okx_plan = _t9_plan("okx", "BTC", _T8_DAY(2026, 11, 1), 40)                        # holds 12-02 and 12-03
     hand = model.Context(**{**{f.name: getattr(c, f.name) for f in dataclasses.fields(model.Context)},
                             "date": _T8_DAY(2026, 11, 1)})
     for unsealed in (None, hand):
