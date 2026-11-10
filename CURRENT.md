@@ -1,171 +1,116 @@
 ---
 status: returned
 reason: tested_development_batch_ready_for_owner_review
-from: gpt
+from: claude
 task: first-trade-foundation
-cycle: 2026-11-03
-done_ids: cloud-compat-1, cloud-compat-2, cloud-compat-3, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr, spec-rev-3-3, policy-plan-1, policy-preview-1, policy-pr, e1-1, e1-2, e1-3, e1-4, e1-5, e1-6, e1-7, e1-8, e1-9, e1-10, e1-11, e1-12, e1-13, e1-pr, e2-1, e2-2, e3-1, e3-2, e3-3, e2-3, e3-4, e2-e3-pr, pr6-pr7-merge, research-preregister-1, research-evaluate-1, account-readiness-1, research-paper-1, account-provider-1, account-regression-1, account-research-pr, pr8-human-code-review-approval, pr8-merge, launch-network-1, launch-collector-1, launch-profile-1, launch-strategy-1, launch-runner-1, launch-program-2, launch-workflow-2, launch-baseline-2, launch-quotes-2, launch-deployment-2, launch-review-request-2, launch-driver-2, launch-review-auth-2, launch-baseline-integration-2, launch-market-protocol-1, launch-recovery-cutoff-1, kis-live-contract-1, kis-live-backend-1, kis-live-ui-1, launch-static-guard-1, launch-windows-design-1, kis-live-regression-1, launch-regression-1, launch-delivery-1, pr9-owner-review, launch-windows-inputs-1, launch-owner-authority-1, launch-live-evidence, launch-live-history-1, launch-windows-coordinator-1, launch-study-module-1, okx-data-1, final-review-1, pr10-owner-review, venues-upbit-terms, pr11-owner-review, rules-review-1122/research, launch-quote-diagnostics-1, launch-shortened-study-1, cloud-compat-4, launch-resume-regression-1, launch-resume-delivery-1, pr12-owner-merge, account-okx-usdc-1, launch-market-readiness-1/audit, rules-review-1122/entity-mapping, launch-held-positions-1/candidates, launch-held-positions-1/chronological-reducer, launch-instrument-refresh-1, launch-controlled-coordinator-1/owner-ops, launch-controlled-coordinator-1/rehearsal, launch-authenticated-selection-1, launch-source-boundaries-1, launch-preparation-freshness-1, launch-48h-integration-1, launch-48h-delivery-1
-next_ids: rules-review-1122, launch-held-positions-1/production-authority, launch-continuous-guard-commit-1, launch-planner-provider-1, launch-controlled-coordinator-1, launch-private-capture-setup-1, e1-14-owner-setup, launch-prospective-study, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1, pr13-owner-merge
-updated_at: 2026-11-06T21:32:44+09:00
+cycle: 2026-11-10
+done_ids: cloud-compat-1, cloud-compat-2, cloud-compat-3, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr, spec-rev-3-3, policy-plan-1, policy-preview-1, policy-pr, e1-1, e1-2, e1-3, e1-4, e1-5, e1-6, e1-7, e1-8, e1-9, e1-10, e1-11, e1-12, e1-13, e1-pr, e2-1, e2-2, e3-1, e3-2, e3-3, e2-3, e3-4, e2-e3-pr, pr6-pr7-merge, research-preregister-1, research-evaluate-1, account-readiness-1, research-paper-1, account-provider-1, account-regression-1, account-research-pr, pr8-human-code-review-approval, pr8-merge, launch-network-1, launch-collector-1, launch-profile-1, launch-strategy-1, launch-runner-1, launch-program-2, launch-workflow-2, launch-baseline-2, launch-quotes-2, launch-deployment-2, launch-review-request-2, launch-driver-2, launch-review-auth-2, launch-baseline-integration-2, launch-market-protocol-1, launch-recovery-cutoff-1, kis-live-contract-1, kis-live-backend-1, kis-live-ui-1, launch-static-guard-1, launch-windows-design-1, kis-live-regression-1, launch-regression-1, launch-delivery-1, pr9-owner-review, launch-windows-inputs-1, launch-owner-authority-1, launch-live-evidence, launch-live-history-1, launch-windows-coordinator-1, launch-study-module-1, okx-data-1, final-review-1, pr10-owner-review, venues-upbit-terms, pr11-owner-review, rules-review-1122/research, launch-quote-diagnostics-1, launch-shortened-study-1, cloud-compat-4, launch-resume-regression-1, launch-resume-delivery-1, pr12-owner-merge, account-okx-usdc-1, launch-market-readiness-1/audit, rules-review-1122/entity-mapping, launch-held-positions-1/candidates, launch-held-positions-1/chronological-reducer, launch-instrument-refresh-1, launch-controlled-coordinator-1/owner-ops, launch-controlled-coordinator-1/rehearsal, launch-authenticated-selection-1, launch-source-boundaries-1, launch-preparation-freshness-1, launch-48h-integration-1, launch-48h-delivery-1, pr13-owner-merge, launch-study-review-windows-1, rules-review-1122/table-1110, launch-continuous-guard-commit-1
+next_ids: rules-review-1122, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, launch-private-capture-setup-1, e1-14-owner-setup, launch-prospective-study, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1, tests-hermetic-runs-1, pr14-owner-merge, pr15-owner-merge, pr16-owner-merge
+updated_at: 2026-11-10T21:30:13+09:00
 stale_after_hours: 3
-waiting_on: PR13 owner merge review; remaining runtime integration and genuine source/Windows/research evidence
-work_branch: gpt/live-readiness-48h
-work_commit: 295501284f8b597bf8d1bc7256afcaec290b725d
-runtime_tested_commit: eed84bc1b519ffc8a482c8a1848507432f8d5532
+waiting_on: owner merge of PR14, PR15, PR16; code-approve after PR16; approve --kind rules after PR15 before 2026-11-22
+work_branch: claude/continuous-guard-commit
+work_commit: 1a5972844aa93a7aed4219b491b2701e2123886f
+runtime_tested_commit: 1a5972844aa93a7aed4219b491b2701e2123886f
 uncommitted_changes: none
-pr: https://github.com/xkg4real/tradegen/pull/13 (ready; unmerged)
-usage_weekly_pct: unknown
-usage_source: unavailable
+pr: https://github.com/xkg4real/tradegen/pull/14 (open), https://github.com/xkg4real/tradegen/pull/15 (open), https://github.com/xkg4real/tradegen/pull/16 (open)
+usage_weekly_pct: 19
+usage_source: claude-code get_usage (Weekly, all models)
 handoff_threshold_pct: 95
 usage_5h_pct: unknown
-usage_resets_at: unknown
-session: Cloud Codex development; owner Windows deployment
+usage_resets_at: 2026-11-17T17:00:00+09:00
+session: Claude Code desktop on the owner's Windows PC; separate scratch clone, TRADEGEN_PR9 venv read-only
 ---
 
-# 인수인계: PR13 검증 완료와 실거래 준비 후속
+# 인수인계: PR13 병합 이후 세 PR(#14·#15·#16) 게시
 
 ## 0. 사용자에게 전달할 최신 상태
 
-이번 개발 묶음을 PR13으로 게시했습니다. head는 295501284f8b597bf8d1bc7256afcaec290b725d, 상태는 검토 가능·미병합입니다.
-PR12는 소유자의 직접 승인으로 21259f8에 병합했습니다. PR12 승인은 PR13의 병합 승인이나 앱 전자서명이 아닙니다.
+소유자가 PR13을 main 6032aee로 병합했습니다. 그 위에서 세 PR을 열었고, 셋 다 검토 가능·미병합입니다.
 
-전체 소프트웨어 검사: 2515개 중 2380 PASS / 0 FAIL / 135 NOT_RUN, 896.548초.
-기존 2354개 ID와 상태를 전부 보존했고 신규 161개는 모두 통과했습니다.
-검증한 runtime/test는 eed84bc이며 그 뒤 커밋은 QA·문서뿐입니다.
+- PR14 (claude/windows-study-review-lf, ce613a4): Windows에서만 실패하던 launch_study_review 테스트 2개 수정. 테스트 파일만 바뀌어 서명할 것 없음.
+- PR15 (claude/rules-review-1110, c63850a): kr_rules.yaml 47행 전체를 2026-11-10에 다시 검토. 차단·허용 판정은 한 행도 바뀌지 않음. review_by를 25행 2026-12-02, 22행 2026-12-11로 갱신. 병합 후 소유자가 approve --kind rules를 2026-11-22 전에 해야 함.
+- PR16 (claude/continuous-guard-commit, 1a59728): 영속 guard transaction(launch-continuous-guard-commit-1)을 로컬 라이브러리로 구현. 실거래 경로에는 아직 연결하지 않음. 병합 후 code-approve 필요.
 
-소유자의 48시간 개발 목표는 2026-11-06 18:24:35 KST부터 2026-11-08 18:24:35 KST까지입니다.
-모든 실거래 작업을 완료했다고 보고하지 않습니다. 보유 구간의 진짜 완전성 인증·영속 위험 반영,
-실제 플래너·controlled 실행, 실제 Windows/계좌 관측, 새로운 연구의 실제 통과와 서명이 남아 있습니다.
-새 48시간 관측이 준비 이후 시작하면 같은 개발 마감 안에 끝날 수 없으며, 수익이나 첫 주문 날짜도 확정하지 않습니다.
-
-지정한 Notion 두 페이지에 이번 결과와 소유자 순서를 반영했습니다.
-이 세션은 실제 API·계좌·키·owner log·전자서명·활성화·주문을 사용하지 않았습니다.
-11월 5일의 기존 서명 완료는 이전 인수인계와 Notion의 소유자 보고이며, 새로 읽거나 검증한 로그가 아닙니다.
+Windows 전체 검사(키 없음, 네트워크 없음, 임시 상태): PR16 브랜치 2529개 중 2402 PASS / 4 FAIL / 123 NOT_RUN.
+main 6032aee는 2515개 중 2388 / 4 / 123. 차이 14개는 PR16의 새 테스트이고, 실패 4개는 양쪽이 같습니다(아래 4절).
+실거래 시작일이나 수익을 확정하지 않습니다. 실제 API·계좌·키·owner log·서명·활성화·주문은 쓰지 않았습니다.
 
 ## 1. 이미 확정된 결정
 
-- 운영 환경은 Windows PC, 현재 Cloud는 개발·가짜 데이터 검증 환경입니다.
-- 원금·최고점 하한, 전날 실현 순손익에 따른 일일 한도와 22시 회복 조건을 유지합니다.
-- 보유 코인은 연속 가격·체결 기록으로 추적합니다. 표본이나 heartbeat를 완전성 증명으로 취급하지 않습니다.
-- 새로운 연구 단계 단축은 승인됐습니다. 현재 도구의 48시간은 개발자가 택한 pilot이며 통계 검정력이나 통과 보장이 아닙니다.
-- 세 결정에 대해 다시 질문하지 않습니다. 새 소유자 서명·계좌 증거·수치 PASS를 이미 받은 것으로 가정하지 않습니다.
-- 금액과 개인 경로는 비공개 가이드에만 두며 공개 저장소에는 추가하지 않습니다.
+- 이전 인수인계(handoff 브랜치 c56bace의 GPT 문서) 1절의 결정을 그대로 유지합니다.
+- 소유자가 2026-11-05에 자금 목표를 새로 정했습니다. 금액과 날짜는 비공개 가이드에만 둡니다.
+  TRADEGEN은 QUANTGEN 자금 계획에 반드시 포함됩니다. 제외하자고 권하지 않고, 실제 확률은 계속 그대로 보여 줍니다.
+- 병합은 소유자가 PR마다 GitHub에서 직접 합니다. 에이전트는 병합하지 않습니다.
 
 ## 2. 직접 읽어야 할 근거
 
-- archive/20261106T1445-first-trade-foundation.md: Claude e1ebd6f 인수인계 원문 사본.
-- archive/20261106T2102-live-readiness-checkpoint.md: 이번 개발의 이전 체크포인트와 실패·수정 경과.
-- Notion: TRADEGEN : 업무 기록 및 남은 일 (1105), TRADEGEN: 승인 전 최종 정리.
-  최신 색상 답변과 11월 5일 완료 기록을 오래된 본문의 미완료 표기보다 우선합니다.
-- docs/superpowers/plans/2026-11-06-live-readiness-48h.md 및 같은 폴더의 live-readiness-execution-ledger.md.
-- docs/remaining-market-readiness-2026-11-06.md: M1–M12의 기능·미완료 조건.
-- docs/owner-runtime-operations.md, standalone-owner-rehearsal.md, instrument-term-renewal.md,
-  authenticated-study-selection.md, continuous-price-candidates.md, continuous-guard-commit-contract.md.
-- qa/live48_20261106_validation.json 및 context/live-readiness-20261106/validation.json.
-- research_notes/Korean resident trading venue legality/review_2026-11-06.md, review_closeout_2026-11-06.md.
+- 이전 CURRENT.md: handoff 브랜치 c56bace (GPT, 2026-11-06). 이번 문서가 그 내용을 대체하지만 6절 과업 목록은 이어받았습니다.
+- PR14·PR15·PR16 본문: 변경 내용, 검토 방법, 반박된 지적, 소유자 후속 단계가 모두 적혀 있습니다.
+- docs/continuous-guard-commit-contract.md (PR16 브랜치): 구현된 범위, 재시작 분류표, 아직 필요한 것.
+- research_notes/Korean resident trading venue legality/review_2026-11-10.md (PR15 브랜치): 행별 검토 결과, 새 출처, 미확인 항목.
+- Notion 1107 업무 기록 페이지 두 곳: 이번에 끝난 항목에 취소선과 PR 번호를 달았습니다.
 
 ## 3. 구현한 범위와 한계
 
 | 구현 | 결과 | 남은 경계 |
 | --- | --- | --- |
-| 연속 후보 기록·archive | 순서·누락·재연결·체결·수수료와 경계 시각 검사, archive는 launch 계층에 분리 | 진짜 구간 완전성 발행자 없음; 실 baseline 발행 계속 거부 |
-| 시간순 위험 reducer | 현금·보유량·FIFO를 각각 대조하고 중간 peak/손실/자정/22시 상태 보존 | 순수 계획만 생성, 영속 controller/baseline/head 거래는 설계 문서만 있음 |
-| Upbit 조건 갱신 | 정확한 GET 두 개, 실제 발행 관측과 동일 계약 갱신, 최초·갱신 매수/매도 최대한도 검사 | 실제 계좌 관측 미수행, KIS/OKX 조건 미지원 |
-| 소유자 운영 도구 | 준비·독립 head·manifest·상태·중지·해제·종료, 실제 프로세스 객체 유지 | controlled 거부 유지; 실제 사용자 서명이나 활성화 없음 |
-| 독립 리허설 | 서명된 audit 원문과 실제 driver를 검증하고 읽기 전용 E1/DryRun 구성 | flat-only; fixed current planner가 없어 standalone prepare는 명시 거부 |
-| 연구 검토·선택 | schema2가 탈락 후보까지 전체 원본·결과에 연결, 후보 누락/변조/기존 서명 승격 거부 | 실제 자료·수치 통과·소유자 검토를 만들어 주지 않음 |
-| 준비 신선도 | 실제 clock/positions_asof, 계산·잠금·승인 확인·내용 hash·저장 뒤까지 재검사 | 늦은 저장의 audit 행은 남지만 발급 registry나 반환 session은 없음 |
-| 서명·정적 경계 | owner 명령도 코드/배포/acting 경계에 포함, 두 순수 갱신 경로만 정확히 허용 | 45 callable/16 초기화 표면의 보조 검사이며 임의 Python 전체 안전성 증명은 아님 |
-| OKX·법규 | 근거 없는 USDC=USDT 평가 제거, Korbit→DigitalX 명칭 대응 확인 | 독립 USDC 가격 없으면 전체평가 거부; 법규 기한은 연장하지 않음 |
+| guard transaction (PR16) | journal lock 아래에서 prepare → 필요 시 halt → baseline 저장+CAS → guard 저장+CAS → complete. 단계 사이에서 멈춘 뒤 같은 package로 다시 실행하면 중복 행 없이 끝남 | 실제 package 출처·owner/controller 문맥·신뢰 시계·계좌 관측 발행을 묶는 production adapter 없음 |
+| 재시작 분류 | classify_restart가 FRESH·PENDING_*·DIVERGENCE·CONSISTENT·REFUSED를 판정. 대기·불일치·거부·halt 상태는 모두 new_entries_blocked | 저장 중 찢어진 파일이나 journal 행은 고치지 않고 거부한 뒤 검토로 넘김 |
+| controller 연동 | 두 journal 종류를 fold. prepare만 있고 complete가 없는 동안 새 매수만 거부. kill·halt·observe·cancel·reconcile·감소 매도는 계속 동작. prepare_session도 거부 | ContinuousAccountProvider는 아직 journal lock 없이 baseline head를 올림 |
+| 규칙표 재검토 (PR15) | 47행 모두 출처 재확인, 9행 문구 수정, KR-CONDUCT-OTHERS basis에 policy 추가, review_by 갱신 | FIU 원본 첨부(XLSX/HWPX)는 열지 않음. 개별 상품·계좌 적격 확인은 여전히 미확인 |
+| Windows 테스트 (PR14) | 캡처 파일을 서명한 LF 바이트 그대로 씀 | 운영 코드는 이미 바이너리로 써서 변경 없음 |
 
-독립 검토는 전체 후보 선택 편향, 현금/보유량 대체로 중간 손실 숨기기, 최초·출구 주문 한도,
-준비 중/저장 후 승인 만료, JSON callback 재바인딩 우회를 재현했고 수정 후 재검사했습니다.
-모든 사례는 가짜 자료와 임시 상태를 사용했습니다.
+PR16은 다섯 방향(충돌 복구, 동시성, 안전 잠금, 기존 코드 동작, 테스트)으로 검토한 뒤 지적마다 두 명이 반박을 시도했습니다.
+확인된 지적을 고친 뒤 같은 방식으로 다시 검토했고, 그때 찾은 새 경로(대기 중 거래에 수동 halt가 흡수되는 문제)도 고쳤습니다.
+마지막 재검토는 확인된 지적 0건이었습니다. 새 검사 18곳을 하나씩 제거해 보면 각각 테스트가 최소 하나 실패합니다.
 
 ## 4. 최종 검증
 
-- 전체: 2380 PASS / 0 FAIL / 135 NOT_RUN, 총2515, 신규161 전부PASS.
-- 기준21259f8의 기존2354 ID와 상태를 모두 보존했습니다. 누락·상태 변경 없음.
-- NOT_RUN: 기존 매크로 참조자료121, Windows private-input12, workflow1, console1.
-  Windows에서 성공했다고 세지 않습니다.
-- 19 KEYLESS 이름 모두 '<unset>', 임시 상태와 가짜 transport만 사용했습니다.
-- 실제 홈 메타데이터 불변, 보호된 frozen 연구와 QUANTGEN 불변.
-- README와 acceptance QA는 CRLF, 새 검증 JSON과 장부는 LF를 유지했습니다.
+- tests.control_continuous_guard_commit: 14/14.
+- 전체(PR16 브랜치 1a59728): 2402 PASS / 4 FAIL / 123 NOT_RUN, 총 2529.
+- main 6032aee와 PR15 브랜치: 2388 / 4 / 123, 총 2515. 실패 목록은 세 브랜치가 같습니다.
+- 실패 4개: 저장소 자체 .venv 위치를 요구하는 검사 2개(이 PC는 TRADEGEN_PR9 venv 사용), PR14가 고치는 launch_study_review 2개.
+- KEYLESS, 가짜 transport, 임시 TRADEGEN_HOME만 사용. CRLF 저장소 규칙 확인: git diff --stat과 --ignore-cr-at-eol 결과 동일.
 - 실제 전략 통과·실계좌 연결·전자서명·활성화·주문은 이 결과에 포함되지 않습니다.
 
 ## 5. 실패 이력과 현재 작업 상태
 
-최초 전체 시도는 외부 스킬 경로 누락과 localhost fixture 권한 때문에 중단했고 기록을 보존했습니다.
-NEXTGEN_SKILLS_ROOT는 설치된 외부 스킬 저장소를 명시해야 합니다. 이번 Cloud의 경로는
-/workspace/.cloud-setup/dependencies/claude-trading-skills-cb0f3aadffed6d1089db4b224162c964368baa46 입니다.
-로컬 HTTP fixture용 권한과 실제 금융 API 호출 허용을 혼동하지 않습니다.
-
-e24b956 전체 실행은 2357PASS/7FAIL/135NR이었습니다. 코드 서명 목록, 계층 경계,
-새 정확한 GET 기대값과 평가 registry 격리 문제를 고쳐 eed84bc 전체 실행을 통과했습니다.
-실패를 지우거나 runtime cap을 늘리지 않았습니다.
-
-작업트리: /workspace/tradegen-live-1106, branch gpt/live-readiness-48h.
-별도 수정 worktree는 /workspace/tradegen-boundary-fix와 /workspace/tradegen-preparation-fix입니다.
-모든 의미 있는 변경은 최종 브랜치에 통합됐습니다. 이전 분리 브랜치를 다시 cherry-pick하지 않습니다.
-Cloud scratch의 live48-20261106-full.log/run.json 및 e24b956/environment-attempt 사본을 보존했습니다.
-현재 소스 작업트리는 clean이며 전체 검사는 끝났습니다. 실행 중인 실거래/관측 작업은 없습니다.
-사용량 조회 수단이 없어 unknown/unavailable입니다. 95% 도달이나 다른 에이전트의 수치를 추정하지 않습니다.
+- 첫 수정 뒤 재검토에서 halt 흡수 경로가 나와 classify_restart 규칙을 추가했습니다. prepare_session의 이른 journal 읽기가 기존 시계 재검사 테스트 한 단계를 무력화해 원래 위치의 단일 읽기로 되돌렸습니다.
+- 기존 skills 테스트가 TRADEGEN_RUNS_DIR 없이 실행되면 실제 ~/.tradegen/runs 아래에 실행 기록 폴더를 만듭니다. 이번 세션의 초기 전체 실행이 폴더를 남겼고 지우지 않았습니다. 이후 실행은 TRADEGEN_RUNS_DIR를 임시 폴더로 지정했습니다. tests-hermetic-runs-1로 남깁니다.
+- 작업 clone은 세션 scratch에 있고 세 브랜치 모두 push 완료. 미커밋 변경 없음, 실행 중인 관측·거래 작업 없음.
+- 사용량: 주간 19% (2026-11-17 17:00 KST 재충전). 95% 기준에 닿아서 반환하는 것이 아닙니다.
 
 ## 6. 다음 개발 과업
 
-1. rules-review-1122: FIU 원본·시행본·개별 상품/계좌 적격 등 미확인 근거를 완료합니다.
-   11월22일25행/23일22행 기한 유지. 이번 조사로 일괄 연장하지 않습니다.
-2. 진짜 held coverage 계약: 가격·사적 체결/수수료의 완전 순서, 동일시각 순서, gap과 최종 watermark를 증명할 실제 출처가 필요합니다.
-   공개 구성 가능한 proof 객체나 로컬 hash를 issuer로 승격하지 않습니다.
-3. 영속 guard transaction: controller의 pending/halt를 먼저 기록하고 baseline·guard·독립 head의 순차 CAS와 crash 복구를 구현합니다.
-   현재 provider는 baseline을 먼저 commit하므로 그대로 재사용하지 않습니다.
-   Controller.observe가 journal lock 안에서 provider를 부르므로 중첩 잠금 순서부터 검토합니다.
-4. fixed current planner: 실제 선택한 plan/stake/target/FX/model/horizon과 최소250 실제 일봉,
-   원본 출처, 비교 실행/seed 및 검증한 전략과의 대응이 필요합니다. 기존 capture를 일봉으로 재명명하거나 다른 전략을 임의 생성하지 않습니다.
-5. 신선한 capture/setup 연결과 controlled coordinator: 정확한 준비 객체·재조정·취소·보호 종료·영구중지·재시작을 실제 계약으로 연결합니다.
-6. Windows 실행/시각/재시작과 현재 계좌·상품 조건을 실제 환경에서 확인합니다.
-7. 최종 capture 소스로 새 사전등록/공개 후 진짜 미래 관측과 전체 후보 평가를 수행합니다.
-   누락 슬롯·실패 시행을 숨기지 않고 실제 수치 통과 후 검토·서명을 받습니다.
-8. KIS/OKX 완전 수집·settlement/세금/수수료/FX/달력/terminal cancel 검증과 비교 가능한 시장 연구는 별도 미완료입니다.
-   KIS Live 화면이나 E1 조회·E3 codec만으로 자동매매 완료라고 표시하지 않습니다.
+1. rules-review-1122: PR15 병합과 소유자 approve --kind rules(2026-11-22 전). FIU 원본 첨부와 개별 상품·계좌 적격 확인은 남아 있습니다.
+2. launch-held-positions-1/production-authority: 가격·사적 체결/수수료의 완전한 순서와 gap을 증명할 실제 출처. 로컬 hash를 발행자로 승격하지 않습니다.
+3. launch-continuous-guard-adapter-1: PR16 단위를 실제 package 출처·owner/controller 문맥·신뢰 시계와 연결하고, shared baseline head의 모든 전진을 control journal로 보내는 writer를 만듭니다. owner-log system_halt append와 옛 일일 정지 소비자도 여기에 속합니다.
+4. launch-planner-provider-1, launch-controlled-coordinator-1, launch-private-capture-setup-1: 이전 문서 6절 4·5항 그대로.
+5. e1-14-owner-setup, launch-prospective-study, KIS/OKX 수집기, launch-multi-market-validation-1: 실제 Windows·계좌·미래 관측이 필요합니다.
+6. tests-hermetic-runs-1: 테스트가 실제 ~/.tradegen/runs에 쓰지 않도록 고칩니다. 이미 생긴 폴더 삭제는 소유자에게 먼저 묻습니다.
 
-위2–5는 아직 남은 개발입니다. 실제 출처/소유자 증거가 필요한 부분과 독립 구현 가능한 부분을 구분해 계속합니다.
-동률 자체는 위험위반이 아닙니다. 그러나 기존 하한과 수수료/출구 비용을 동시에 만족하는 여유가 없으면
-현재 sizing이 STUCK_AT_START를 반환합니다. 하한 완화·수수료 예외·장부 기준 변경은 승인되지 않았습니다.
+현재 하한(원금·최고점) 규칙에서는 초기 구간 sizing이 STUCK_AT_START를 반환합니다. 하한 완화·수수료 예외는 승인되지 않았고 소유자 결정 사항입니다.
 
 ## 7. 소유자가 할 순서
 
-1. PR13 head 295501284f8b597bf8d1bc7256afcaec290b725d를 검토하고 이 PR의 병합을 승인합니다.
-   저장소 규칙은 '병합은 사용자가 PR마다 직접 승인합니다'입니다.
-2. 병합 후 기존 Windows checkout·가상환경·공개키·키·소유자 로그를 유지해 반영합니다.
-3. 바뀐 독립 signer를 검증한 뒤 본인이 code-approve와 변경된 rules 표의 approve --kind rules를 수행합니다.
-   공개 signer 파일 hash: a5a7cc359ddc053f617cb4b31c7e15d7fcf452166d3612b7900bae9cb141615e.
-   rules 파일 hash: f06f4728f60578131898918bd9e24a1bdf12a549d5f816e3e1c88c2ac4dd020e.
-   이 hash나 Git commit은 Windows 설치의 코드 승인 hash 또는 실제 전자서명이 아닙니다.
-4. rules --check로 현재 효력과 실제 프로필을 확인합니다. 기존 한도를 초기화하지 않습니다.
-   새롭거나 느슨한 한도의 다음 서울 날짜 적용 규칙을 유지합니다.
-5. 위6절의 개발·실제 관측·검증 이후에 해당 source/implementation review와 실제 세션 승인을 진행합니다.
-   현재 PR을 병합/서명했다고 바로 실거래가 시작되는 것은 아닙니다.
+1. PR14를 검토하고 병합합니다. 서명할 것 없음.
+2. PR15를 검토하고 병합한 뒤 Windows에서 approve --kind rules를 직접 실행합니다. 2026-11-22이 지나면 25행이 새 노출을 거부합니다.
+3. PR16을 검토하고 병합한 뒤 code-approve를 직접 실행합니다. 서명 전에는 이전 코드 지문이 유지되어 새 코드가 거부됩니다. tests/launch_guards.py의 CAS_CALLERS 허용 목록 확장 한 줄을 특히 확인해 주세요.
+4. rules --check로 현재 효력을 확인합니다. 병합·서명만으로 실거래가 시작되지는 않습니다.
 
 ## 8. 유지할 제한
 
-실제 API·키·비밀번호·서명 암호·실 owner log 접근, 실제 홈 쓰기, 서명·활성화·주문을 하지 않습니다.
-Cloud 개발 검사는 가짜 transport와 임시 상태만 사용합니다. QUANTGEN과 frozen 연구를 수정하지 않습니다.
-공개 저장소에는 금액·개인 경로·계좌 식별자·비공개 자료를 올리지 않습니다.
-실제 확률은 미측정이며 거부된 실행에 확률0이나 보장 수익을 표시하지 않습니다.
+이전 문서 8절과 같습니다. 실제 API·키·비밀번호·서명 암호·실 owner log 접근, 실제 홈 쓰기, 서명·활성화·주문을 하지 않습니다.
+공개 저장소에는 금액·개인 경로·계좌 식별자·비공개 자료를 올리지 않습니다. QUANTGEN과 frozen 연구를 수정하지 않습니다.
 
 ## 9. 다음 에이전트가 이어받을 지시
 
-먼저 AGENTS.md, 이 문서, LEDGER.md와 context/live-readiness-20261106/를 읽고 원문 근거를 확인합니다.
-PR13이 미병합이고 owner 승인이 없으면 병합하지 않습니다. 새 승인 도착 시 현재 PR head와 승인 대상을 다시 대조합니다.
-추가 개발은 최종 work_commit에서 새 분리 브랜치로 이어갑니다. 완료 ID를 반복하지 않고 미완료 항목에 새 ID를 붙입니다.
-소유자의 기존 하한 유지·연속 기록·연구 단축 결정은 이미 해결됐습니다.
-실계좌·서명·검증 통과가 없는 상태를 완료로 간주하지 말고, 독립 구현 가능한 남은 과업은 진행합니다.
-다음 검사는 변경에 맞춰 수행하며 이미 통과한 전체 검사를 이유 없이 반복하지 않습니다.
+AGENTS.md, 이 문서, LEDGER.md, 세 PR 본문을 먼저 읽습니다. 미병합 PR을 병합하지 않습니다.
+새 개발은 병합된 main에서 새 브랜치로 시작합니다. PR16이 아직 미병합이면 그 브랜치 위에 쌓지 말고 의존 여부를 먼저 확인합니다.
+전체 검사는 TRADEGEN_RUNS_DIR를 임시 폴더로 지정하고 실행합니다.
 
 ## 10. 전달 및 기록
 
-PR13과 source 브랜치를 push했고 지정 Notion 두 페이지를 갱신했습니다.
-이 CURRENT의 직접 전달 사본은 TRADEGEN_HANDOFF_2026-11-06_KST.md입니다.
-이 반환은 주간 사용량95%를 관측했다는 뜻이 아닙니다. 사용량은 계속 unknown/unavailable입니다.
+세 브랜치를 push하고 PR을 열었으며 Notion 1107 기록에 취소선을 달았습니다.
 법률·세무·투자 조언이 아니며 작성자는 면허를 가진 자문가가 아닙니다.
