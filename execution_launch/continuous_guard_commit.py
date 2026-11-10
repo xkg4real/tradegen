@@ -4,17 +4,20 @@
 docs/continuous-guard-commit-contract.md: verify the caller's expected guard, baseline and controller heads;
 append ``continuous_guard_prepare`` at the current receipt time; persist the local ``halt`` latch; commit the
 baseline and advance its separately retained head by compare-and-set; commit the guard checkpoint and advance its
-head; append ``continuous_guard_complete``. A crash or refusal at any step leaves a pending transaction that
+head; append ``continuous_guard_complete``. A crash or refusal between steps leaves a pending transaction that
 ``classify_restart`` reports with new entries blocked; re-running the same package converges without duplicate
-rows. The package is still unauthenticated evidence (no venue completeness authority, owner signature or source
+rows. A crash inside a store write (a leftover temporary file) or inside a journal append (a torn row) is not
+repaired: the store or journal refuses and the state stays blocked until a person reviews it. The package is still unauthenticated evidence (no venue completeness authority, owner signature or source
 verifier exists here), ``GuardPlan.execution_ready`` stays false, nothing is published to the controller, and the
 continuous candidate source keeps its refusal. Nothing here fetches, signs, arms or orders.
 
 Lock order, the same as ``Controller.observe``: the control journal transaction is taken first and held for the
 whole commit; inside it each trusted head takes its own lock and, during compare-and-set, the checkpoint store
 lock. No store or head lock is ever held while the journal lock is requested, and the journal is never entered
-again (its nested transaction refusal stands). The controller's ``_fold`` does not know the two new kinds, so a
-journal holding them is refused by the controller until a production adapter defines how it folds them.
+again (its nested transaction refusal stands). The controller folds the two kinds as inert rows and refuses new
+entries while a prepare is open; kill, halt, cancel, reconcile and reducing exits keep working. Inside an open
+transaction ``classify_restart`` accepts only its completion and, when the prepare requires a halt, a halt row;
+any other row, including a halt the prepare does not require, is refused and keeps entries blocked until review.
 """
 from __future__ import annotations
 
@@ -190,8 +193,11 @@ def classify_restart(events, *, guard_head, baseline_head, expected_guard_head: 
         control = GENESIS
         for row in events:
             kind, data = row["kind"], row["data"]
-            if open_tx is not None and kind not in ("halt", COMPLETE):
-                return RestartState(status=REFUSED, reason="GUARD_RESTART_FOREIGN_ROW_IN_TRANSACTION")
+            # Inside an open transaction only its own halt (when the prepare requires one) and completion belong.
+            if open_tx is not None and (kind not in ("halt", COMPLETE)
+                                        or (kind == "halt" and not open_tx["halt_required"])):
+                return RestartState(status=REFUSED, reason="GUARD_RESTART_FOREIGN_ROW_IN_TRANSACTION",
+                                    permanently_halted=halted or kind == "halt")
             if kind == "halt":
                 halted = True
             elif kind == PREPARE:
@@ -211,7 +217,9 @@ def classify_restart(events, *, guard_head, baseline_head, expected_guard_head: 
         return RestartState(status=REFUSED, reason="GUARD_RESTART_JOURNAL_INVALID", permanently_halted=halted)
     expected = (expected_guard_head, expected_baseline_head)
     if open_tx is None and (last is None or expected != (last["old_guard_sha256"], last["old_baseline_sha256"])):
-        if (guard_head, baseline_head) == expected and control == expected_control_head:
+        # After a completed transaction the next one must start from exactly its successors.
+        chained = last is None or expected == (last["new_guard_sha256"], last["new_baseline_sha256"])
+        if chained and (guard_head, baseline_head) == expected and control == expected_control_head:
             return RestartState(status=FRESH, reason="", permanently_halted=halted)
         return RestartState(status=REFUSED, reason="GUARD_RESTART_HEAD_UNKNOWN", permanently_halted=halted)
     tx = open_tx or last
@@ -274,10 +282,19 @@ def _previous_guard(store, old, new):
     return state
 
 
+def _held(store, digest, code):
+    """The store must hold what its head names; a rolled-back store never yields a receipt."""
+    try:
+        store.load(expected_head=digest)
+    except ValueError:
+        raise ContinuousGuardError(code + "_STORE_MISMATCH") from None
+
+
 def _advance(store, head, old, state, new, code):
     """Store commit (skipped when this exact successor is already stored) then head compare-and-set."""
     current = _read(head)
     if current == new:
+        _held(store, new, code)
         return
     _need(current == old, code + "_HEAD_CONFLICT")
     try:
@@ -353,6 +370,9 @@ def commit_continuous_guard(package: dict, *, now: datetime, expected_guard_head
             _advance(guard_store, guard_head, expected_guard_head, new_guard, new_guard.state_sha256,
                      "GUARD_CHECKPOINT")
             tx.append(COMPLETE, {"transaction_id": transaction_id}, now=now)
+        else:
+            _held(baseline_store, new_baseline.state_digest, "GUARD_BASELINE")
+            _held(guard_store, new_guard.state_sha256, "GUARD_CHECKPOINT")
         _need(_read(baseline_head) == new_baseline.state_digest and _read(guard_head) == new_guard.state_sha256,
               "GUARD_COMMIT_HEADS_DISAGREE")
         rows = tx.events

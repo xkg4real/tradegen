@@ -200,10 +200,30 @@ commit unit only resumes a pending transaction when the same package is re-run.
 - `classify_restart` is a pure function implementing the table above. Every
   pending, divergent or refused result, and any local halt, reports
   `new_entries_blocked=True`.
-- Re-running the same package after a crash at any step converges without
+- Re-running the same package after a crash between steps converges without
   duplicate prepare, halt or completion rows. A store replaced before its head
   advanced is finished only for the exact successor bound by the prepare record. A
-  different package under a pending prepare refuses.
+  different package under a pending prepare refuses. A crash inside a store write
+  (a leftover `checkpoint.tmp`) or inside a journal append (a torn row) is not
+  repaired: the store or journal refuses, the state stays blocked, and a person
+  must review it.
+- A replay never returns a receipt unless each store holds the digest its head
+  names. A store rolled back under an advanced head refuses with
+  `*_STORE_MISMATCH`.
+- After a completed transaction, the next one must start from that
+  transaction's successors. Any other expected pair is refused as an unknown
+  head.
+- The controller folds the two kinds as inert rows. While a prepare has no
+  completion, `Controller` refuses new entries (`local no-entry latch active`)
+  and `prepare_session` refuses (`SESSION_PREPARATION_GUARD_PENDING`). Kill,
+  halt, observe, cancel, reconcile and reducing exits keep working. Any such row
+  written inside the open transaction makes `classify_restart` refuse it
+  (`GUARD_RESTART_FOREIGN_ROW_IN_TRANSACTION`). The one exception is a halt
+  row when the prepare record itself requires a halt. A halt written into a
+  transaction whose guard is not halted is refused, so the resumed transaction
+  can never complete with a guard that omits it. A pending transaction must be
+  resumed before any other control journal write. If it is not, entries stay
+  blocked until a person reviews the journal.
 - Lock order is the same as `Controller.observe`: journal, then head, then
   checkpoint store. The journal is never entered again.
 
@@ -213,9 +233,9 @@ Still required:
   trusted clock, and publication of the account observation.
 - A venue completeness authority for the coverage receipt.
 - An authenticated owner-head timeline; only the unchanged case is supported.
-- Controller support for the new kinds. `execution_control.controller._fold`
-  currently refuses any journal containing them. That fails closed, but it also
-  blocks cancellation and reconciliation until defined.
+- A writer that serializes every advance of the shared baseline head through
+  the control journal. `ContinuousAccountProvider` still advances it without
+  the journal lock.
 - An owner-log `system_halt` append, plus controller-consumed records for old-day
   daily stops and historical points.
 - The private package archive and the reviewed re-anchor procedure.
@@ -237,12 +257,16 @@ raw event replay, stream/receipt continuity, duplicate input handling and ambien
 Decimal precision. These tests validate arithmetic and
 refusal contracts. Commit tests use temporary roots only. They cover:
 
-- durable ordering;
+- durable ordering, the prepare time and its required records;
 - a crash after each step, followed by idempotent replay;
-- divergence;
+- a store rolled back under an advanced head;
+- divergence, completion conflicts, missing halts and orphan completions;
 - compare-and-set refusal;
-- halt preservation;
-- mismatched packages and unknown heads;
+- halt preservation and the store's other transition rules;
+- stale evidence and clock rollback;
+- the guard record codec;
+- mismatched packages, unknown and unchained heads;
+- controller folding: a pending prepare blocks entries and session preparation;
 - refusal of a re-entrant journal.
 
 None of these tests validate an actual venue completeness authority, owner

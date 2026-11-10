@@ -2,17 +2,20 @@
 from contextlib import contextmanager
 from dataclasses import fields, replace
 from datetime import timedelta
+from decimal import Decimal
+import json
 from types import SimpleNamespace
 from unittest.mock import patch
 
 from execution_accounts.baseline_store import CheckpointStore
+from execution_accounts.model import canonical
 from execution_control import store as control_store
 from execution_control.controller import _fold
-from execution_control.store import GENESIS, Journal, JournalError, Transaction
+from execution_control.store import GENESIS, Journal, JournalError, Transaction, guard_pending
 from execution_launch.baseline_head import BaselineHead, CheckpointChain
-from execution_launch.continuous_guard import GuardCheckpoint, _checkpoint, plan_continuous_guard
+from execution_launch.continuous_guard import _FRESH, GuardCheckpoint, _checkpoint, plan_continuous_guard
 from execution_launch.continuous_guard_commit import (
-    COMPLETE, CONSISTENT, DIVERGENCE, FRESH, PENDING_CROSS_STORE, PENDING_FINALIZATION,
+    _PREPARE_KEYS, COMPLETE, CONSISTENT, DIVERGENCE, FRESH, PENDING_CROSS_STORE, PENDING_FINALIZATION,
     PENDING_GUARD_BEFORE_BASELINE, PREPARE, REFUSED, GuardChain, GuardCheckpointStore, classify_restart,
     commit_continuous_guard,
 )
@@ -103,8 +106,9 @@ def test_happy_path_orders_prepare_halt_baseline_guard_then_completion():
             package = build(s.state, s.policy, s.context, prices)
             order = []
             guard, baseline = Head(s.ghead, log=order, name="guard_cas"), Head(s.bhead, log=order, name="baseline_cas")
+            received = package["now"]+timedelta(seconds=10)         # receipt time, later than the evidence time
             with crash_on_append(None, order):
-                receipt = commit(s, package, guard=guard, baseline=baseline)
+                receipt = commit(s, package, guard=guard, baseline=baseline, now=received)
             assert order == [PREPARE] + ["halt"]*halted + ["baseline_cas", "guard_cas", COMPLETE], order
             assert all(guard.held + baseline.held)                  # journal lock outermost at every head call
             assert receipt.guard_head == s.ghead.read() and receipt.baseline_head == s.bhead.read()
@@ -115,16 +119,15 @@ def test_happy_path_orders_prepare_halt_baseline_guard_then_completion():
             assert state.transaction_id == receipt.transaction_id
             prepare = rows(s)[0]["data"]
             assert prepare["halt_required"] is halted and prepare["control_head_sha256"] == GENESIS
-            assert rows(s)[0]["utc"] == control_store._utc(package["now"])
+            assert rows(s)[0]["utc"] == control_store._utc(received) != control_store._utc(package["now"])
+            plan = plan_continuous_guard(s.state, **package)
+            assert prepare["required_records"] == [canonical(record) for record in plan.required_records]
+            assert any(r["kind"] == "permanent_floor_halt" for r in prepare["required_records"]) is halted
             again = commit(s, package, now=package["now"]+timedelta(minutes=1))
             assert again.replayed and again.transaction_id == receipt.transaction_id
             assert kinds(s) == [PREPARE] + ["halt"]*halted + [COMPLETE]
-            try:
-                _fold(rows(s))
-            except ValueError:
-                pass                                                # the controller fails closed on the new kinds
-            else:
-                raise AssertionError("controller folded a continuous guard row")
+            _fold(rows(s))                                          # the controller folds guard rows as inert
+            assert not guard_pending(rows(s)) and guard_pending(rows(s)[:1])
 
 
 def test_crash_after_each_step_is_classified_then_completed_by_idempotent_replay():
@@ -205,10 +208,150 @@ def test_existing_halt_is_preserved_never_duplicated_and_never_cleared():
         first = s.gstore.load(expected_head=receipt.guard_head)
         follow = build(first, s.policy, replace(s.context, observed_at=first.baseline.asof), ("116",))
         second = plan_continuous_guard(first, **follow).proposed_checkpoint
-        cleared = _checkpoint(**{f.name: getattr(second, f.name) for f in fields(GuardCheckpoint)
-                                 if f.name != "state_sha256"} | {"permanently_halted": False})
-        refused(lambda: s.gstore.commit(cleared, expected_previous_head=first.state_sha256),
+        def variant(base, **changes):
+            return _checkpoint(**{f.name: getattr(base, f.name) for f in fields(GuardCheckpoint)
+                                  if f.name != "state_sha256"} | changes)
+        for changes, code in (({"permanently_halted": False}, "GUARD_STORE_LATCH_ROLLBACK"),
+                              ({"owner_head_sha256": "a"*64}, "GUARD_STORE_AUTHORITY_CHANGED"),
+                              ({"previous_guard_sha256": "b"*64}, "GUARD_STORE_TRANSITION_REFUSED")):
+            refused(lambda: s.gstore.commit(variant(second, **changes), expected_previous_head=first.state_sha256),
+                    code)
+        s.gstore.commit(second, expected_previous_head=first.state_sha256)      # the floor ratchets to the new peak
+        third = plan_continuous_guard(second, **build(second, s.policy,
+            replace(s.context, observed_at=second.baseline.asof), ("117",))).proposed_checkpoint
+        lowered = variant(third, applied_floor_krw=second.applied_floor_krw-3)  # valid record, below the ratchet
+        assert third.baseline.approved_effective_floor <= lowered.applied_floor_krw < second.applied_floor_krw
+        refused(lambda: s.gstore.commit(lowered, expected_previous_head=second.state_sha256),
                 "GUARD_STORE_LATCH_ROLLBACK")
+        assert s.gstore.commit(third, expected_previous_head=second.state_sha256).new_head == third.state_sha256
+
+
+def test_a_store_rolled_back_under_an_advanced_head_never_yields_a_receipt():
+    for name, code in (("gstore", "GUARD_CHECKPOINT"), ("bstore", "GUARD_BASELINE")):
+        for pending in (True, False):
+            with stack() as s:
+                package = build(s.state, s.policy, s.context)
+                path = getattr(s, name)._root / "checkpoint.json"
+                old = path.read_bytes()
+                if pending:                                           # both heads advanced, completion missing
+                    try:
+                        with crash_on_append(COMPLETE):
+                            commit(s, package)
+                    except Crash:
+                        pass
+                else:
+                    commit(s, package)
+                written = kinds(s)
+                path.write_bytes(old)
+                refused(lambda: commit(s, package, now=package["now"]+timedelta(minutes=1)), code + "_STORE_MISMATCH")
+                assert kinds(s) == written, (name, pending)
+
+
+def test_stale_evidence_and_clock_rollback_refuse_before_any_write():
+    with stack() as s:
+        package = build(s.state, s.policy, s.context)
+        refused(lambda: commit(s, package, now=package["now"]+_FRESH+timedelta(microseconds=1)),
+                "GUARD_COMMIT_EVIDENCE_STALE")
+        refused(lambda: commit(s, package, now=package["now"]-timedelta(microseconds=1)),
+                "GUARD_COMMIT_CLOCK_ROLLBACK")
+        assert kinds(s) == []
+        with s.journal.transaction() as tx:
+            tx.append("kill", {"session_id": "other", "reason": "owner_requested"},
+                      now=package["now"]+timedelta(seconds=5))
+        refused(lambda: commit(s, package, control=rows(s)[-1]["row_sha256"]), "GUARD_JOURNAL_CLOCK_ROLLBACK")
+        assert kinds(s) == ["kill"] and s.ghead.read() == s.state.state_sha256
+
+
+def test_classifier_refuses_missing_halts_conflicts_lone_completions_and_unchained_heads():
+    with stack() as s:
+        receipt = commit(s, build(s.state, s.policy, s.context))
+        old, new = (s.state.state_sha256, s.state.baseline.state_digest), (receipt.guard_head, receipt.baseline_head)
+        done, head = rows(s), rows(s)[-1]["row_sha256"]
+
+        def at(events, heads, expected=old, control=GENESIS):
+            return classify_restart(events, guard_head=heads[0], baseline_head=heads[1],
+                expected_guard_head=expected[0], expected_baseline_head=expected[1], expected_control_head=control)
+        cases = [(at([r for r in done if r["kind"] != "halt"], new), "GUARD_RESTART_EFFECT_MISSING"),
+                 (at(done[-1:], old, control=head), "GUARD_RESTART_JOURNAL_INVALID"),
+                 (at(done, new, expected=(new[0], "e"*64), control=head), "GUARD_RESTART_HEAD_UNKNOWN"),
+                 (at(done, (new[0], "e"*64), expected=(new[0], "e"*64), control=head), "GUARD_RESTART_HEAD_UNKNOWN")]
+        cases += [(at(done, heads), "GUARD_RESTART_COMPLETION_CONFLICT")
+                  for heads in ((old[0], new[1]), (new[0], old[1]), old)]
+        for state, reason in cases:
+            assert (state.status, state.reason) == (REFUSED, reason) and state.new_entries_blocked, (state, reason)
+        assert at(done, new, expected=new, control=head).status == FRESH       # the next transaction chains on
+
+
+def test_guard_store_refuses_edited_and_duplicate_key_records():
+    with stack() as s:
+        path = s.gstore._root / "checkpoint.json"
+        raw = path.read_bytes()
+        body = json.loads(raw)
+        edited = json.dumps(body | {"applied_floor_krw": "50"}, sort_keys=True, separators=(",", ":")).encode()
+        duplicate = raw[:-1] + b',"anchor_sha256":' + json.dumps(body["anchor_sha256"]).encode() + b"}"
+        for bad in (edited, duplicate):
+            path.write_bytes(bad)
+            refused(lambda: s.gstore.load(expected_head=s.state.state_sha256), "GUARD_STORE_CHECKPOINT_INVALID")
+        path.write_bytes(raw)
+        assert s.gstore.load(expected_head=s.state.state_sha256).state_sha256 == s.state.state_sha256
+
+
+def test_controller_folds_guard_rows_and_a_pending_prepare_blocks_only_new_entries():
+    from execution_control.session import prepare_session
+    from tests.control_controller import reserve, send, snapshot
+    from tests.control_session import _preparation_args, signed_control
+    prepare = {key: "a"*64 for key in _PREPARE_KEYS} | {"path_start": "x", "path_end": "x", "halt_required": False,
+                                                        "required_records": []}
+
+    def append(env, kind, data):
+        with env.journal.transaction() as tx:
+            tx.append(kind, data, now=env.now)
+
+    def last_kind(env):
+        with env.journal.transaction() as tx:
+            return tx.events[-1]["kind"], guard_pending(tx.events)
+    with signed_control() as env:
+        append(env, PREPARE, prepare)
+        refused(lambda: reserve(env), "local no-entry latch active")
+        append(env, COMPLETE, {"transaction_id": "a"*64})
+        assert reserve(env).status == "RESERVED"                       # reserved before the next prepare
+        append(env, PREPARE, prepare)
+        refused(lambda: send(env), "local no-entry latch active")       # an earlier buy is not sent while pending
+        assert not env.adapter.requests and env.controller.states()[0].status == "RESERVED"
+        append(env, COMPLETE, {"transaction_id": "a"*64})
+        assert send(env).status == "ACKNOWLEDGED"
+    with signed_control() as env:                                       # exits and latches while pending
+        append(env, PREPARE, prepare)
+        env.controller.observe(now=env.now)
+        snapshot(env, positions=replace(env.observation.positions, holdings={("upbit", "BTC"): 0.001}),
+                 holdings={("upbit", "fixture-account", "spot", "KRW-BTC"): Decimal("0.001")})
+        sell = replace(env.order, side="sell", client_id="reducing-exit")
+        assert reserve(env, sell).status == "RESERVED"
+        assert env.controller.dispatch(sell.client_id, now=env.now).status == "ACKNOWLEDGED"
+        env.controller.kill(env.session_id, reason="owner_requested", now=env.now)
+        assert last_kind(env) == ("kill", True)
+        env.controller.halt(floor=Decimal("100"), now=env.now)
+        assert last_kind(env) == ("halt", True)
+    with signed_control(prepare=False, arm=False) as env:
+        append(env, PREPARE, prepare)
+        refused(lambda: prepare_session(**_preparation_args(env)), "SESSION_PREPARATION_GUARD_PENDING")
+        with env.journal.transaction() as tx:
+            assert [row["kind"] for row in tx.events] == [PREPARE]
+
+
+def test_a_halt_written_into_a_pending_non_halting_transaction_blocks_its_completion():
+    with stack() as s:
+        package = build(s.state, s.policy, s.context, ("101",))         # this guard does not halt
+        refused(lambda: commit(s, package, baseline=Head(s.bhead, crash=True)), "GUARD_BASELINE_HEAD_UPDATE_FAILED")
+        with s.journal.transaction() as tx:                              # the row Controller.halt writes
+            tx.append("halt", {"floor": "100"}, now=package["now"])
+        state = classify(s)
+        assert (state.status, state.reason) == (REFUSED, "GUARD_RESTART_FOREIGN_ROW_IN_TRANSACTION")
+        assert state.new_entries_blocked and state.permanently_halted
+        refused(lambda: commit(s, package, now=package["now"]+timedelta(minutes=1)),
+                "GUARD_RESTART_FOREIGN_ROW_IN_TRANSACTION")
+        assert kinds(s) == [PREPARE, "halt"]
+        assert s.ghead.read() == s.state.state_sha256 and s.bhead.read() == s.state.baseline.state_digest
 
 
 def test_different_package_under_pending_prepare_refuses():
@@ -242,7 +385,7 @@ def test_unknown_unreadable_or_mismatched_heads_refuse_before_any_write():
         orphan = [row for row in rows(s) if row["kind"] != PREPARE]
         assert classify_restart(orphan, guard_head=receipt.guard_head, baseline_head=receipt.baseline_head,
             expected_guard_head=s.state.state_sha256, expected_baseline_head=s.state.baseline.state_digest,
-            expected_control_head=GENESIS).status == REFUSED
+            expected_control_head=GENESIS).reason == "GUARD_RESTART_JOURNAL_INVALID"
 
 
 def test_commit_never_reenters_the_control_journal():

@@ -20,6 +20,7 @@ from execution_control import risk
 from execution_control.capability import _issue, digest, plain
 from execution_control.model import Order, InstrumentRules, order_body, order_digest, validate_order
 from execution_control.session import PreparedSession, verify_session
+from execution_control.store import guard_pending
 from execution_orders.model import AdapterResult, request_digest, validate_request
 
 _ACTIVE = frozenset({'RESERVED', 'DISPATCHING', 'ACKNOWLEDGED', 'UNKNOWN', 'PARTIAL', 'CANCEL_REQUESTED'})
@@ -158,6 +159,13 @@ def _event_data(kind, data):
         'expired': pair, 'cancelled_local': pair, 'cancel_requested': pair,
         'reconciled': pair | {'status', 'filled_quantity', 'venue_order_id', 'metadata'},
         'fill': pair | {'fill_key', 'fill_digest', 'fill'},
+        # Guard rows are validated by continuous_guard_commit.classify_restart; here they are inert, and an open
+        # prepare blocks new entries in _authorize.
+        'continuous_guard_prepare': {'transaction_id', 'input_sha256', 'owner_sha256', 'control_head_sha256',
+                                     'path_sha256', 'old_guard_sha256', 'new_guard_sha256', 'old_baseline_sha256',
+                                     'new_baseline_sha256', 'path_start', 'path_end', 'halt_required',
+                                     'required_records'},
+        'continuous_guard_complete': {'transaction_id'},
     }
     if type(data) is not dict or kind not in shapes or set(data) != shapes[kind]:
         raise ValueError('invalid lifecycle event fields')
@@ -221,7 +229,7 @@ def _fold(events):
                 stopped_days.add(data['day'])
             risk_history.append(data)
             continue
-        elif kind == 'session_prepared':
+        elif kind in ('session_prepared', 'continuous_guard_prepare', 'continuous_guard_complete'):
             continue
         elif kind in _ORDER_EVENTS:
             key = data.get('client_id')
@@ -603,7 +611,7 @@ class Controller:
         positions = self._positions(obs, orders, exclude)
         ctx = owner.load_context(now, positions, session_id=session_id)
         if obj.side == 'buy':
-            if halted or session_id in killed:
+            if halted or session_id in killed or guard_pending(tx.events):
                 raise ValueError('local no-entry latch active')
             if any(r['status'] in ('DISPATCHING','UNKNOWN','CANCEL_REQUESTED') or r['cancel_pending']
                    for r in orders.values()):

@@ -36,6 +36,12 @@ _PROCESS_LOCK = threading.Lock()
 _THREAD = threading.local()
 
 
+def guard_pending(events) -> bool:
+    """True while the last continuous guard row is a prepare; a pending guard transaction blocks new entries."""
+    kinds = [row["kind"] for row in events if row["kind"].startswith("continuous_guard_")]
+    return bool(kinds) and kinds[-1] == "continuous_guard_prepare"
+
+
 class JournalError(RuntimeError):
     """A sanitized structural, path or durability refusal; damaged files remain."""
 

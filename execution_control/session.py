@@ -10,6 +10,7 @@ from core.compliance import model, owner
 from core.odds import models, plan as odds_plan, simulate
 from execution_control.capability import digest, plain
 from execution_control.model import rules_digest
+from execution_control.store import guard_pending
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -161,7 +162,10 @@ def prepare_session(*, journal, session_id: str, selected_plan, inputs, position
                  "SESSION_PREPARATION_CONTENT_CHANGED")
         # Copying a long journal and hashing input history are part of the work,
         # not free time after authorization. Finish them before the final clock.
-        prepared_ids = {row["data"].get("session_id") for row in tx.events if row["kind"] == "session_prepared"}
+        events = tx.events
+        # A row inside a pending guard transaction would leave it unresumable; resume the guard first.
+        _require(not guard_pending(events), "SESSION_PREPARATION_GUARD_PENDING")
+        prepared_ids = {row["data"].get("session_id") for row in events if row["kind"] == "session_prepared"}
         committed_at = current_time()
         _require(review_deadline is None or committed_at < review_deadline,
                  "SESSION_PREPARATION_REVIEW_EXPIRED")
