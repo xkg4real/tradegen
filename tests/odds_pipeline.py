@@ -76,6 +76,16 @@ def _strip(rep) -> tuple:
                  for col in rep.columns)
 
 
+def _seed_ctx(**overrides):
+    """OF.odds_ctx on the shipped table with KR-DOMESTIC-SPOT and KR-OKX-SPOT due 2026-11-22, the review_by of its
+    2026-10-23 review that the rule-date tests below were written against, so a later re-review does not move them."""
+    state = F.approved(venues=OF.ODDS_VENUES)
+    rows = tuple(dataclasses.replace(r, review_by=dt.date(2026, 11, 22))
+                 if r.id in ("KR-DOMESTIC-SPOT", "KR-OKX-SPOT") else r for r in state.rules.rows)
+    return OF.odds_ctx(**{"active": dataclasses.replace(state, rules=dataclasses.replace(state.rules, rows=rows)),
+                          **overrides})
+
+
 def test_partial_chunk_is_refused_at_the_real_chunk():
     """Spec 8.o 8, Q10, Q45: at the real CHUNK of 200,000 a path count that is not a positive multiple of it is
     PARTIAL_CHUNK in precheck, before the product checks, and simulate refuses it without reading its inputs."""
@@ -140,7 +150,7 @@ def test_every_refusal_in_q24_order():
         ("STUCK_AT_START", "", None, lambda: OF.pipeline(ctx=OF.odds_ctx(owner=OF.owner_with(
             limits={"total_loss_floor_krw": 41_000.0, "daily_loss_krw": 5_000.0})))),
         ("SCREEN_BLOCKED", "row", None, lambda: OF.pipeline(                 # review_by 2026-11-22 has passed
-            OF.plan(start=later), OF.odds_ctx(date=later), OF.fresh_series(end="2026-11-22"))),
+            OF.plan(start=later), _seed_ctx(date=later), OF.fresh_series(end="2026-11-22"))),
     ]
     with OF.chunk(), OF.spy(gate, "screen") as screens:
         for code, sub, detail, thunk in cases:
@@ -328,8 +338,8 @@ def test_rule_dates_come_from_the_screening_flags():
     stop from the earliest flag of any field, and the forced exit comes from the earliest auto_off or
     effective_until, so a bracket leg never re-enters after it."""
     with OF.chunk(), OF.members("bootstrap"), OF.spy(simulate, "run_column") as runs:
-        long_ = OF.pipeline(OF.plan(horizon_days=60))
-        short = OF.pipeline(OF.plan())
+        long_ = OF.pipeline(OF.plan(horizon_days=60), _seed_ctx())
+        short = OF.pipeline(OF.plan(), _seed_ctx())
     dates = [(run[0][0].stop_entries_from, run[0][0].force_exit_from) for run in runs]
     assert dates == [(dt.date(2026, 11, 22), None)] * 4 + [(None, None)] * 4, dates     # 4 columns a plan
     rule = [(f.level, f.key, dict(f.slots)) for f in long_.flags if f.code == "RULE_CHANGE_IN_HORIZON"]
@@ -358,8 +368,8 @@ def test_an_okx_horizon_across_auto_off_is_forced_out():
     rule.auto."""
     series_obj = _okx_series()
     with OF.chunk(), OF.members("bootstrap"), OF.spy(simulate, "run_column") as runs:
-        long_ = OF.pipeline(OF.plan(leg=OKX, horizon_days=60), series_obj=series_obj)
-        short = OF.pipeline(OF.plan(leg=OKX, horizon_days=41), series_obj=series_obj)
+        long_ = OF.pipeline(OF.plan(leg=OKX, horizon_days=60), _seed_ctx(), series_obj=series_obj)
+        short = OF.pipeline(OF.plan(leg=OKX, horizon_days=41), _seed_ctx(), series_obj=series_obj)
     long_spec, short_spec = runs[0][0][0], runs[4][0][0]        # Task 14: 4 columns a plan
     assert (long_spec.stop_entries_from, long_spec.force_exit_from) == (dt.date(2026, 11, 22), dt.date(2026, 12, 3))
     assert (short_spec.stop_entries_from, short_spec.force_exit_from) == (dt.date(2026, 11, 22), None)

@@ -6,10 +6,12 @@
 # neither does a statute's in-force date (a statute article's page counts as undated; a court decision's page counts
 # by its decision date). A row whose sources carry no such date uses the research date 2026-10-23. The comment above
 # each row names that source.
-# "2027-02-18" is the travel-rule date the FSC gives only as "about" (six months after promulgation, FSC
-# 2026-08-11); confirm it against the official gazette before relying on it.
+# "2027-02-18" is the travel-rule date: the addendum of Decree 36592 (promulgated 2026-08-18) starts the Art. 10-10
+# change on the day six months have passed, read as 2027-02-19; the table keeps the day before as a margin.
 # 2026-11-06 source audit: see research_notes/Korean resident trading venue legality/review_2026-11-06.md.
 # This partial correction does not renew review_by dates or constitute owner approval.
+# 2026-11-10 re-review: see research_notes/Korean resident trading venue legality/review_2026-11-10.md.
+# Its renewed review_by dates take effect only after the owner signs these bytes.
 # The 2026-11-05 proposal to defer crypto taxation is not an enacted change; retain the 2027-01-01 watch date.
 schema: tradegen.kr_rules/4
 scope: "Korean-resident individual, own funds only"
@@ -33,8 +35,8 @@ rows:
     matrix_rows: [21]
     confidence: high
     effective_from: "2015-05-19"
-    review_by: "2026-11-23"
-    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 21; lines 99 and 137"}]
+    review_by: "2026-12-11"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 21; lines 99 and 137"}, {date: "2026-11-10", by: claude-research, checked: "Re-verified ±30% band (KIS guide, 2015 KRX change) and 2026 sell tax 0.20% via STT decree Art.5 (eff 2026-01-02)"}]
 
   # effective_from: eToday 2015-05-19 (domestic verification line 14)
   - id: KR-KIS-KONEX
@@ -53,8 +55,8 @@ rows:
     matrix_rows: [21]
     confidence: high
     effective_from: "2015-05-19"
-    review_by: "2026-11-23"
-    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 21; line 137"}]
+    review_by: "2026-12-11"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 21; line 137"}, {date: "2026-11-10", by: claude-research, checked: "Re-verified KONEX ±15% (KIS guide), 0.10% STT (decree Art.5), deposit abolished 2022-05-30 (FSC 77723)"}]
 
   # effective_from: eToday 2015-05-19 (domestic verification line 14)
   - id: KR-KIS-ETP-1X
@@ -77,8 +79,8 @@ rows:
     matrix_rows: [21, 31]
     confidence: high
     effective_from: "2015-05-19"
-    review_by: "2026-11-23"
-    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix rows 21 and 31; line 99; overseas notes section 1"}]
+    review_by: "2026-12-11"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix rows 21 and 31; line 99; overseas notes section 1"}, {date: "2026-11-10", by: claude-research, checked: "Re-verified FSCMA decree Art.184 (eff 2026-10-13) broker routing + BOK FX exemption; no new 1x ETF block found"}]
 
   # effective_from: Kakao Pay Securities notice 2026-05-08
   - id: KR-KIS-ETP-INVERSE
@@ -98,8 +100,8 @@ rows:
     matrix_rows: [22, 33]
     confidence: low
     effective_from: "2026-05-08"
-    review_by: "2026-11-23"
-    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix rows 22 and 33; domestic notes line 76; overseas verification line 39"}]
+    review_by: "2026-12-11"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix rows 22 and 33; domestic notes line 76; overseas verification line 39"}, {date: "2026-11-10", by: claude-research, checked: "Re-verified -1x index inverse exempt: KakaoPay overseas notice; Samsung/Kiwoom domestic pages; KIS-specific still open"}]
 
   # effective_from: BizWatch 2025-11-17
   - id: KR-KIS-ETP-LEV
@@ -125,8 +127,8 @@ rows:
     matrix_rows: [25, 32]
     confidence: high
     effective_from: "2025-11-17"
-    review_by: "2026-11-23"
-    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix rows 25 and 32; lines 98, 133 and 135; domestic notes line 140"}]
+    review_by: "2026-12-11"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix rows 25 and 32; lines 98, 133 and 135; domestic notes line 140"}, {date: "2026-11-10", by: claude-research, checked: "Re-verified 10M deposit (domestic; overseas first buy since 05-22) and 1h course; brokers tier 0/10M/15M"}]
 
   # effective_from: MTN 2026-07-16; KDI 284654 republishes the separate 2026-07-24 notice
   - id: KR-KIS-SINGLE-ETP
@@ -153,8 +155,8 @@ rows:
     matrix_rows: [26]
     confidence: high
     effective_from: "2026-07-16"
-    review_by: "2026-11-23"
-    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 26; lines 98, 133 and 135; domestic verification line 20"}]
+    review_by: "2026-12-11"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 26; lines 98, 133 and 135; domestic verification line 20"}, {date: "2026-11-10", by: claude-research, checked: "Re-verified 30M cash (FSC 87403/87405), 3h course + 5d×1h mock (FSC 87512); 20-unit lot not yet in force"}]
 
   # effective_from: FSC press reference 81456, 2024-01-12
   - id: KR-KIS-CRYPTO-FUT-ETF
@@ -175,8 +177,8 @@ rows:
     matrix_rows: []
     confidence: low
     effective_from: "2024-01-12"
-    review_by: "2026-11-22"
-    reviews: [{date: "2026-10-23", by: claude-research, checked: "crypto wallets notes key question 4; KIS audit KQ5"}]
+    review_by: "2026-12-02"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "crypto wallets notes key question 4; KIS audit KQ5"}, {date: "2026-11-10", by: claude-research, checked: "Re-verified FSC 81466 futures-ETF line live; no 2026 restriction found; KIS BITO listing still unverified"}]
     affected_by: ["2026-12-03"]
 
   # effective_from: FSC press reference 81456, 2024-01-12
@@ -184,7 +186,7 @@ rows:
     kind: venue
     match: {venue: [kis], class: [etp_crypto_spot], action: [buy]}
     treatment: hard_block
-    reason: "The FSC said on 2024-01-12 that brokering overseas spot crypto ETFs may breach the FSCMA, and the FSS halted GDLC and EZPZ in November 2025; selling a held position stays open (D11)"
+    reason: "The FSC said on 2024-01-12 that brokering overseas spot crypto ETFs may breach the FSCMA, and the FSS recommended halting GDLC in November 2025; selling a held position stays open (D11)"
     basis: [legal]
     sources:
       - "https://www.fsc.go.kr/no010101/81456"
@@ -197,8 +199,8 @@ rows:
     matrix_rows: []
     confidence: low
     effective_from: "2024-01-12"
-    review_by: "2026-11-22"
-    reviews: [{date: "2026-10-23", by: claude-research, checked: "crypto wallets notes key question 4; KIS audit KQ5; expansion report line 64"}]
+    review_by: "2026-12-02"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "crypto wallets notes key question 4; KIS audit KQ5; expansion report line 64"}, {date: "2026-11-10", by: claude-research, checked: "FSC 81456/81467 stance unchanged; spot-ETF bills still in subcommittee; FSS GDLC halt was a recommendation"}]
     affected_by: ["2026-12-03"]
 
   # effective_from: FSC 2019-05-30 (the 2019 derivatives-market plan; domestic verification line 21)
@@ -221,8 +223,8 @@ rows:
     matrix_rows: [27]
     confidence: high
     effective_from: "2019-05-30"
-    review_by: "2026-11-23"
-    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 27; lines 98 and 133"}]
+    review_by: "2026-12-11"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 27; lines 98 and 133"}, {date: "2026-11-10", by: claude-research, checked: "Re-verified 10M/20M floors, 1h course/3h mock min (FSC 73717, paxnet, KIS guide); KIS tiers up to 50M/10h"}]
 
   # effective_from: Asia Economy 2026-08-19
   - id: KR-KIS-ELW
@@ -241,20 +243,21 @@ rows:
     matrix_rows: [28]
     confidence: medium
     effective_from: "2026-08-19"
-    review_by: "2026-11-23"
-    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 28; lines 98 and 133"}]
+    review_by: "2026-12-11"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 28; lines 98 and 133"}, {date: "2026-11-10", by: claude-research, checked: "Re-verified ELW 15M new-client deposit + online course via KIS TRUE ELW and KIS ELW guide pages"}]
 
   # effective_from: Metro Seoul 2015-04-01
   - id: KR-KIS-CREDIT
     kind: venue
     match: {venue: [kis], action: [any], financing: [credit, margin]}
     treatment: out_of_scope
-    reason: "Credit buying is legal after broker screening (about 2.2x at the 45% deposit floor), but owner policy D15 refuses all credit"
+    reason: "Credit buying is legal after broker screening (KIS raised its deposit ratio from 45% to 50% on 2026-11-09, about 2x), but owner policy D15 refuses all credit"
     basis: [policy]
     policy_ref: D15
     sources:
       - "https://biz.sbs.co.kr/amp/article/20000336506"
       - "https://www.metroseoul.co.kr/article/2015040100149"
+      - "https://securities.koreainvestment.com/main/customer/tradetransfer/_static/TF04dc010000.jsp"
     research:
       - "reports/Korean resident trading venue legality.md#compliance-matrix row 23"
       - "reports/Korean resident trading venue legality.md#L102"
@@ -262,8 +265,8 @@ rows:
     matrix_rows: [23]
     confidence: medium
     effective_from: "2015-04-01"
-    review_by: "2026-11-23"
-    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 23; lines 102 and 137; spec D15"}]
+    review_by: "2026-12-11"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 23; lines 102 and 137; spec D15"}, {date: "2026-11-10", by: claude-research, checked: "KIS credit guide now 50% deposit (~2x, from 11-09; was 45%); D15 refusal unchanged; SBS 09-23 KOFIA plan"}]
 
   # effective_from: Kyunghyang 2021-05-02
   - id: KR-KIS-SHORT
@@ -287,8 +290,8 @@ rows:
     matrix_rows: [24]
     confidence: low
     effective_from: "2021-05-02"
-    review_by: "2026-11-23"
-    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 24; line 137; domestic notes line 36; domestic verification line 18"}]
+    review_by: "2026-12-11"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 24; line 137; domestic notes line 36; domestic verification line 18"}, {date: "2026-11-10", by: claude-research, checked: "KIFIN New 1h course (no retake), FSC 84216 3/31 resumption + 105%; no change found; D16 live evidence still needed"}]
 
   # effective_from: Ilgan NTN 2024-02-27
   - id: KR-KIS-US-SHARE
@@ -308,8 +311,8 @@ rows:
     matrix_rows: [31]
     confidence: high
     effective_from: "2024-02-27"
-    review_by: "2026-11-23"
-    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 31; lines 99 and 139; overseas notes section 1"}]
+    review_by: "2026-12-11"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 31; lines 99 and 139; overseas notes section 1"}, {date: "2026-11-10", by: claude-research, checked: "Decree Art.184(1) (in force 2026-10-13) + BOK exemption list re-read; still broker-routed; no relaxation found"}]
 
   # effective_from: Samsung Securities notice, service opened 2024-04-15
   - id: KR-KIS-US-OPTION
@@ -322,13 +325,14 @@ rows:
       You can lose the whole premium and per-contract fees can consume a large share of a small position.
       Course and mock-trading hours depend on broker-assessed age, suitability and experience; the minimum
       flags alone do not establish eligibility or KIS product support. TRADEGEN shows no odds for option legs.
-    reason: "Some Korean brokers offer long-only US equity options. KIS overseas-derivative education starts at 1h/3h but can require 3h/5h or 10h/10h by investor category; broker_eligibility must cover the applicable requirements. KIS product support remains unverified"
+    reason: "Some Korean brokers offer long-only US equity options. KIS overseas-derivative education starts at 1h/3h but can require 3h/5h or 10h/10h by investor category; broker_eligibility must cover the applicable requirements. KIS lists US single-stock options; the owner's tier and approval remain unverified"
     basis: [legal]
     sources:
       - "https://securities.koreainvestment.com/main/customer/notice/Notice.jsp?cmd=TF04ga000002&num=45732"
       - "https://www.samsungpop.com/ux/kor/customer/notice/notice/noticeViewContent.do?MenuSeqNo=20804"
       - "https://m.kbsec.com/go.able?linkcd=s060300010000&seq=10007347&idt=20240805"
       - "https://www.wolyo.co.kr/news/articleView.html?idxno=316719"
+      - "https://securities.koreainvestment.com/main/bond/foreign/_static/TF03df110100.jsp"
     research:
       - "reports/Korean resident trading venue legality.md#compliance-matrix row 34"
       - "reports/Korean resident trading venue legality.md#L101"
@@ -337,19 +341,20 @@ rows:
     matrix_rows: [34]
     confidence: low
     effective_from: "2024-04-15"
-    review_by: "2026-11-23"
-    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 34; lines 101 and 139; overseas notes section 3"}]
+    review_by: "2026-12-11"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 34; lines 101 and 139; overseas notes section 3"}, {date: "2026-11-10", by: claude-research, checked: "KIS TF03df110100 lists US single-stock options (OPRA); KIS 45732 tiers live; owner tier/approval unverified"}]
 
   # effective_from: Samsung Securities notice, service opened 2024-04-15
   - id: KR-KIS-US-OPTION-WRITE
     kind: venue
     match: {venue: [kis], class: [option], action: [write]}
     treatment: hard_block
-    reason: "Writing options is recourse leverage (losses can exceed the account), and Korean brokers offer US options long only"
+    reason: "Writing options is recourse leverage (losses can exceed the account); some Korean brokers allow US options long only while others offer multi-leg strategies, and TRADEGEN refuses any writing"
     basis: [policy, platform]
     sources:
       - "https://www.samsungpop.com/ux/kor/customer/notice/notice/noticeViewContent.do?MenuSeqNo=20804"
       - "https://m.kbsec.com/go.able?linkcd=s060300010000&seq=10007347&idt=20240805"
+      - "https://www.financemagnates.com/forex/devexperts-powers-first-us-options-platform-for-korean-retail-market/"
     research:
       - "reports/Korean resident trading venue legality.md#compliance-matrix row 34"
       - "reports/Korean resident trading venue legality.md#L97"
@@ -357,8 +362,8 @@ rows:
     matrix_rows: [34]
     confidence: medium
     effective_from: "2024-04-15"
-    review_by: "2026-11-23"
-    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 34; line 97; overseas notes line 73"}]
+    review_by: "2026-12-11"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 34; line 97; overseas notes line 73"}, {date: "2026-11-10", by: claude-research, checked: "Samsung long-only re-read; Eugene Options Hub multi-leg (short legs) found, so long-only not universal; block kept"}]
 
   # effective_from: Newsis and Edaily 2017-12-06
   - id: KR-KIS-CRYPTO-DERIV
@@ -377,8 +382,8 @@ rows:
     matrix_rows: []
     confidence: high
     effective_from: "2017-12-06"
-    review_by: "2026-11-22"
-    reviews: [{date: "2026-10-23", by: claude-research, checked: "crypto wallets notes key question 4; KIS audit lines 128-129"}]
+    review_by: "2026-12-02"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "crypto wallets notes key question 4; KIS audit lines 128-129"}, {date: "2026-11-10", by: claude-research, checked: "KIS 45495 quote-only re-read; 2017 FSC stance unchanged; no crypto-derivative permission found to 11-10"}]
     affected_by: ["2026-12-03"]
 
   # effective_from: FSC 2023-07-19 (CFD professional-investor rule)
@@ -400,8 +405,8 @@ rows:
     matrix_rows: [29, 30, 35]
     confidence: high
     effective_from: "2023-07-19"
-    review_by: "2026-11-23"
-    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix rows 29, 30 and 35; lines 97 and 133"}]
+    review_by: "2026-12-11"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix rows 29, 30 and 35; lines 97 and 133"}, {date: "2026-11-10", by: claude-research, checked: "FSC 80432 CFD pro-only + 40% margin, Art.166-2, Kiwoom FX 10x re-read; no 2026 change found"}]
 
   # effective_from: FSC press release 2026-06-24
   - id: KR-DOMESTIC-SPOT
@@ -417,6 +422,7 @@ rows:
       - "https://casenote.kr/법령/가상자산_이용자_보호_등에_관한_법률/제10조"
       - "https://digitalx.miraeasset.com/company/"
       - "https://www.kdaxa.org/community/notice.php?boardid=notice&category=&idx=86&mode=view&offset=&sk=&sw="
+      - "https://www.kofiu.go.kr/kor/notification/notice_view.do?ntcnYardOrdrNo=194&seCd=0007"
     research:
       - "reports/Korean resident trading venue legality.md#compliance-matrix row 10"
       - "reports/Korean resident trading venue legality.md#L143"
@@ -425,8 +431,8 @@ rows:
     matrix_rows: [10]
     confidence: high
     effective_from: "2026-06-24"
-    review_by: "2026-11-22"
-    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 10; lines 99 and 143; crypto notes section 1"}]
+    review_by: "2026-12-02"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 10; lines 99 and 143; crypto notes section 1"}, {date: "2026-11-10", by: claude-research, checked: "FIU original notice 2026-10-30 body read: Upbit, DigitalX, Coinone, Bithumb registered; Upbit min KRW 5,000"}]
     affected_by: ["2026-12-03"]
 
   # effective_from: BizWatch 2025-09-10
@@ -434,13 +440,15 @@ rows:
     kind: venue
     match: {venue: [gopax], action: [any]}
     treatment: out_of_scope
-    reason: "The FIU registration list dated 2026-10-30, republished by DAXA, includes Gopax; TRADEGEN still has no configured Gopax adapter and excludes it as policy, not as a finding of non-registration"
+    reason: "The FIU registration list dated 2026-10-30 includes Gopax; press reports say Gopax suspended withdrawals and trading on 2026-11-06; TRADEGEN has no configured Gopax adapter and excludes it as policy, not as a finding of non-registration"
     basis: [policy]
     sources:
       - "https://www.heraldk.com/article/2025101618140727930"
       - "https://dealsite.co.kr/articles/163871"
       - "https://news.bizwatch.co.kr/article/mobile/2025/09/10/0017"
       - "https://www.kdaxa.org/community/notice.php?boardid=notice&category=&idx=86&mode=view&offset=&sk=&sw="
+      - "https://www.kofiu.go.kr/kor/notification/notice_view.do?ntcnYardOrdrNo=194&seCd=0007"
+      - "https://khan.co.kr/article/202611061858001"
     research:
       - "research_notes/Korean resident trading venue legality/crypto_domestic_and_overseas.md#L30"
       - "research_notes/Korean resident trading venue legality/crypto_domestic_and_overseas.md#L45"
@@ -449,8 +457,8 @@ rows:
     matrix_rows: []
     confidence: low
     effective_from: "2025-09-10"
-    review_by: "2026-11-22"
-    reviews: [{date: "2026-10-23", by: claude-research, checked: "crypto notes lines 30 and 45; crypto verification line 34; crypto wallets notes line 18"}]
+    review_by: "2026-12-02"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "crypto notes lines 30 and 45; crypto verification line 34; crypto wallets notes line 18"}, {date: "2026-11-10", by: claude-research, checked: "FIU 10-30 notice lists Gopax; press: withdrawals and trading halted 2026-11-06, no resumption date; exclusion kept"}]
     affected_by: ["2026-12-03"]
 
   # effective_from: FSC 2025-09-05
@@ -470,8 +478,8 @@ rows:
     matrix_rows: [11]
     confidence: high
     effective_from: "2025-09-05"
-    review_by: "2026-11-22"
-    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 11; lines 102 and 143; spec D15"}]
+    review_by: "2026-12-02"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 11; lines 102 and 143; spec D15"}, {date: "2026-11-10", by: claude-research, checked: "FSC 85247 DAXA self-regulation (2025-09-05) re-read; no amendment found; D15 refusal unchanged"}]
     affected_by: ["2026-12-03"]
 
   # effective_from: Financial News 2026-07-22
@@ -479,11 +487,12 @@ rows:
     kind: venue
     match: {venue: [upbit, bithumb, coinone, korbit], class: [crypto_perp_or_future], action: [any]}
     treatment: hard_block
-    reason: "Registered Korean exchanges offer no crypto futures, margin or perps, and no legal framework exists yet (the Digital Asset Basic Act is pending)"
+    reason: "Registered Korean exchanges offer no crypto futures or perps and no legal framework exists yet (the Digital Asset Basic Act is pending); collateralised coin lending exists under the FSC/DAXA guideline and is refused by KR-DOMESTIC-LENDING"
     basis: [platform, policy]
     sources:
       - "https://www.newspim.com/news/view/20260923000764"
       - "https://www.fnnews.com/news/202607220842073088"
+      - "https://www.fsc.go.kr/no010101/87947"
     research:
       - "reports/Korean resident trading venue legality.md#compliance-matrix row 12"
       - "reports/Korean resident trading venue legality.md#L143"
@@ -491,8 +500,8 @@ rows:
     matrix_rows: [12]
     confidence: high
     effective_from: "2026-07-22"
-    review_by: "2026-11-22"
-    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 12; line 143; crypto notes line 11"}]
+    review_by: "2026-12-02"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 12; line 143; crypto notes line 11"}, {date: "2026-11-10", by: claude-research, checked: "FSC 87947 (10-16): perps not permitted; DABA bill unsubmitted (11-04); coin lending exists (FSC 85247); reason fixed"}]
     affected_by: ["2026-12-03"]
 
   # effective_from: FSC press release 2026-06-24
@@ -518,8 +527,8 @@ rows:
     confidence: low
     effective_from: "2026-06-24"
     effective_until: "2027-02-18"
-    review_by: "2026-11-22"
-    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 19; lines 149 and 154-156; crypto notes lines 113-130; crypto verification lines 27-28"}]
+    review_by: "2026-12-02"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 19; lines 149 and 154-156; crypto notes lines 113-130; crypto verification lines 27-28"}, {date: "2026-11-10", by: claude-research, checked: "Decree 36592 addendum read: 1M threshold dropped 6 months after 2026-08-18 (2027-02-19); 02-18 kept; FX Act 12-03"}]
     affected_by: ["2026-12-03", "2027-02-18"]
 
   # effective_from: ZDNet Korea 2026-01-15
@@ -556,8 +565,8 @@ rows:
     confidence: low
     effective_from: "2026-01-15"
     effective_until: "2027-02-18"
-    review_by: "2026-11-22"
-    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix rows 13-15 and 19; lines 145 and 149; crypto notes section 3; crypto wallets notes line 79"}]
+    review_by: "2026-12-02"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix rows 13-15 and 19; lines 145 and 149; crypto notes section 3; crypto wallets notes line 79"}, {date: "2026-11-10", by: claude-research, checked: "OKX disclosure (8 Jul 2026) lists KR deriv/P2P; OKX absent from FIU 28-registered, 44-referred, 27-blocked lists"}]
     affected_by: ["2026-12-03", "2027-02-18"]
 
   # effective_from: FSC press release 2026-06-24
@@ -582,8 +591,8 @@ rows:
     matrix_rows: [14, 19]
     confidence: medium
     effective_from: "2026-06-24"
-    review_by: "2026-11-22"
-    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix rows 14 and 19; lines 145 and 149; crypto verification line 33"}]
+    review_by: "2026-12-02"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix rows 14 and 19; lines 145 and 149; crypto verification line 33"}, {date: "2026-11-10", by: claude-research, checked: "OKX disclosure, FSC 87177/87499, FX Act draft decree; Bithumb stay holds, next hearing 2027-01-28 (MTN 10-22)"}]
     affected_by: ["2026-12-03", "2027-02-18"]
 
   # effective_from: BigGo Finance 2026-07-26
@@ -603,8 +612,8 @@ rows:
     matrix_rows: [14]
     confidence: high
     effective_from: "2026-07-26"
-    review_by: "2026-11-22"
-    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 14; lines 94 and 145; crypto verification line 41"}]
+    review_by: "2026-12-02"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 14; lines 94 and 145; crypto verification line 41"}, {date: "2026-11-10", by: claude-research, checked: "OKX disclosure (Last Updated 8 Jul 2026) still lists South Korea for derivatives; FSC 2026-10-16 perp notice"}]
     affected_by: ["2026-12-03"]
 
   # effective_from: BigGo Finance 2026-07-26
@@ -624,8 +633,8 @@ rows:
     matrix_rows: [14]
     confidence: high
     effective_from: "2026-07-26"
-    review_by: "2026-11-22"
-    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 14; line 145; crypto verification line 41"}]
+    review_by: "2026-12-02"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 14; line 145; crypto verification line 41"}, {date: "2026-11-10", by: claude-research, checked: "OKX disclosure (Last Updated 8 Jul 2026) still lists South Korea for P2P services; biggo source silent on P2P"}]
     affected_by: ["2026-12-03"]
 
   # effective_from: Herald 2026-04-29
@@ -647,8 +656,8 @@ rows:
     matrix_rows: [13]
     confidence: low
     effective_from: "2026-04-29"
-    review_by: "2026-11-22"
-    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 13; lines 103 and 145; spec D10"}]
+    review_by: "2026-12-02"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 13; lines 103 and 145; spec D10"}, {date: "2026-11-10", by: claude-research, checked: "FSC 87177: Binance/Bybit/Bitget absent from FIU 28-registered list; not on 44-referred or 27-blocked lists"}]
     affected_by: ["2026-12-03"]
 
   # effective_from: KCSC block announced 2026-10-13 (Blockhead URL date)
@@ -670,8 +679,8 @@ rows:
     matrix_rows: [15]
     confidence: high
     effective_from: "2026-10-13"
-    review_by: "2026-11-22"
-    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 15; lines 94 and 145; crypto notes line 149; crypto verification line 25"}]
+    review_by: "2026-12-02"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 15; lines 94 and 145; crypto notes line 149; crypto verification line 25"}, {date: "2026-11-10", by: claude-research, checked: "FSC 87916 PDF attachment 2 names all 27 blocked sites; all 10 matched venues listed; 3 news sources live"}]
     affected_by: ["2026-12-03"]
 
   # effective_from: FSC press release 2025-03-26
@@ -679,11 +688,12 @@ rows:
     kind: venue
     match: {venue: [bitmart], action: [any]}
     treatment: hard_block
-    reason: "BitMart's app was among the 17 blocked on Google Play at the FIU's request in March 2025; Korean reports of the 2026-10-13 website block do not name it"
+    reason: "BitMart is on the FSC list of 27 unregistered exchange websites blocked on 2026-10-13 (attachment 2), and its app was among the 17 blocked on Google Play at the FIU's request in March 2025"
     basis: [legal]
     sources:
       - "https://www.fsc.go.kr/no010101/84237"
       - "https://www.mt.co.kr/stock/2025/03/26/2025032616073587057"
+      - "https://www.fsc.go.kr/comm/getFile?srvcId=BBSTY1&upperNo=87916&fileTy=ATTACH&fileNo=2"
     research:
       - "reports/Korean resident trading venue legality.md#compliance-matrix row 15"
       - "reports/Korean resident trading venue legality.md#L145"
@@ -691,8 +701,8 @@ rows:
     matrix_rows: [15]
     confidence: medium
     effective_from: "2025-03-26"
-    review_by: "2026-11-22"
-    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 15; line 145; crypto wallets notes line 77"}]
+    review_by: "2026-12-02"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 15; line 145; crypto wallets notes line 77"}, {date: "2026-11-10", by: claude-research, checked: "FSC 87916 attachment 2 #15 lists BitMart (2026-10-13 block); 2025-03-26 PDF #22; BitMart closes 2027-01-31"}]
     affected_by: ["2026-12-03"]
 
   # effective_from: Hyperliquid terms, last updated 2026-06-15
@@ -714,8 +724,8 @@ rows:
     matrix_rows: [16]
     confidence: low
     effective_from: "2026-06-15"
-    review_by: "2026-11-22"
-    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 16; lines 82, 103 and 147; spec D10"}]
+    review_by: "2026-12-02"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 16; lines 82, 103 and 147; spec D10"}, {date: "2026-11-10", by: claude-research, checked: "2026-11-10: margin tiers 40x live; terms JS-only, 3rd party: KR not named; HIP-4 outcome mkts; FSC 10-16 perp warning"}]
     affected_by: ["2026-12-03"]
 
   # effective_from: pump.fun terms, updated 2026-10-17
@@ -736,8 +746,8 @@ rows:
     matrix_rows: [17, 18]
     confidence: medium
     effective_from: "2026-10-17"
-    review_by: "2026-11-22"
-    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix rows 17 and 18; lines 83, 103 and 147; crypto verification lines 29-30"}]
+    review_by: "2026-12-02"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix rows 17 and 18; lines 83, 103 and 147; crypto verification lines 29-30"}, {date: "2026-11-10", by: claude-research, checked: "2026-11-10: pump.fun terms 403; search index + 3rd party: age of majority, KR not named (11-06 audit read 11-04 terms)"}]
     affected_by: ["2026-12-03"]
 
   # effective_from: Newsis 2026-08-18
@@ -745,7 +755,7 @@ rows:
     kind: venue
     match: {venue: [drift], action: [any]}
     treatment: out_of_scope
-    reason: "Drift BET outcome markets are illegal in substance and hard-blocked by KR-CONDUCT-EVENT; Drift perps were not researched; owner policy D10 keeps Drift out of scope"
+    reason: "Drift rebranded as Velocity DEX in 2026; outcome markets such as Drift BET are illegal in substance and hard-blocked by KR-CONDUCT-EVENT; its perps were not researched; owner policy D10 keeps Drift out of scope"
     basis: [policy]
     policy_ref: D10
     sources:
@@ -757,8 +767,8 @@ rows:
     matrix_rows: [5]
     confidence: low
     effective_from: "2026-08-18"
-    review_by: "2026-11-22"
-    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 5; lines 92 and 123; spec D10"}]
+    review_by: "2026-12-02"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 5; lines 92 and 123; spec D10"}, {date: "2026-11-10", by: claude-research, checked: "2026-11-10: Drift is now Velocity DEX (rebrand 2026-07, beta 09-21); BET not evidenced; Newsis live; velocity alias deferred"}]
     affected_by: ["2026-12-03"]
 
   # effective_from: Kalshi Member Agreement S3 copy, last modified 2025-10-10
@@ -789,8 +799,8 @@ rows:
     matrix_rows: [1, 2, 3, 4, 5, 6]
     confidence: medium
     effective_from: "2025-10-10"
-    review_by: "2026-11-23"
-    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix rows 1-6; lines 92, 123, 125 and 127; prediction-market verification lines 8-20"}]
+    review_by: "2026-12-11"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix rows 1-6; lines 92, 123, 125 and 127; prediction-market verification lines 8-20"}, {date: "2026-11-10", by: claude-research, checked: "2026-11-10: Art.246, Decree 184, Polymarket geoblock, Kalshi v1.6, Kalshi perps US-only, Newsis/KW live; no indictment"}]
 
   # effective_from: Supreme Court 2022도6462, 2022-11-30
 
@@ -812,8 +822,8 @@ rows:
     matrix_rows: [7]
     confidence: high
     effective_from: "2022-11-30"
-    review_by: "2026-11-23"
-    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 7; lines 93 and 129; prediction-market verification line 12"}]
+    review_by: "2026-12-11"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 7; lines 93 and 129; prediction-market verification line 12"}, {date: "2026-11-10", by: claude-research, checked: "2026-11-10: 2022do6462, NSPA Art.48 item3 (5y/KRW50m), Criminal Act Art.3 live on law.go.kr; no amendment found"}]
 
   # effective_from: Ilgan NTN 2024-02-27
 
@@ -835,8 +845,8 @@ rows:
     matrix_rows: [36]
     confidence: medium
     effective_from: "2024-02-27"
-    review_by: "2026-11-23"
-    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 36; lines 97 and 139; overseas notes section 4"}]
+    review_by: "2026-12-11"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 36; lines 97 and 139; overseas notes section 4"}, {date: "2026-11-10", by: claude-research, checked: "2026-11-10: FX Act Art.32 (KRW100m) via lsLinkProc; Decree 184 (2026-10-13); IBKR page 403; DAOL route is a KR broker"}]
 
   # effective_from: Ilgan NTN 2024-02-27
   - id: KR-RETAIL-APPS
@@ -857,8 +867,8 @@ rows:
     matrix_rows: [37]
     confidence: medium
     effective_from: "2024-02-27"
-    review_by: "2026-11-23"
-    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 37; lines 94, 97 and 139; overseas notes section 4"}]
+    review_by: "2026-12-11"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 37; lines 94, 97 and 139; overseas notes section 4"}, {date: "2026-11-10", by: claude-research, checked: "2026-11-10: moomoo list omits KR; BOK Q7 broker routing; Intn live; Webull-Meritz launch unconfirmed; eToro KR unknown"}]
 
   # effective_from: FSC 2023-07-19
   - id: KR-OFFSHORE-FX-CFD
@@ -877,8 +887,8 @@ rows:
     matrix_rows: [38]
     confidence: low
     effective_from: "2023-07-19"
-    review_by: "2026-11-23"
-    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 38; lines 61, 97 and 133"}]
+    review_by: "2026-12-11"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 38; lines 61, 97 and 133"}, {date: "2026-11-10", by: claude-research, checked: "2026-11-10: FSCMA 166-2 (2026-10-02 ver.), FSC 2023-07-19 CFD rules, KOFIA FX-margin page live; no 2026 change found"}]
 
   # effective_from: Sports Kyunghyang 2021-07-13 (Speed-On)
   - id: KR-LOTTERY-RACING
@@ -903,8 +913,8 @@ rows:
     matrix_rows: [8, 9]
     confidence: high
     effective_from: "2021-07-13"
-    review_by: "2026-11-23"
-    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix rows 8 and 9; lines 104 and 129; prediction-market verification lines 18-19; spec D10"}]
+    review_by: "2026-12-11"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix rows 8 and 9; lines 104 and 129; prediction-market verification lines 18-19; spec D10"}, {date: "2026-11-10", by: claude-research, checked: "2026-11-10: Sports Toto FAQ (KRW100k/round, minors barred), Lotto 19+ and KRW5k online cap live; Speed-On page empty"}]
 
   # effective_from: Supreme Court 2002도2518, decided 2004-04-23 (feasibility verification line 16)
 
@@ -928,8 +938,8 @@ rows:
     matrix_rows: [1, 2, 3, 4, 5, 6]
     confidence: high
     effective_from: "2004-04-23"
-    review_by: "2026-11-23"
-    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix rows 1-6; lines 58, 92, 123 and 125"}]
+    review_by: "2026-12-11"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix rows 1-6; lines 58, 92, 123 and 125"}, {date: "2026-11-10", by: claude-research, checked: "2026-11-10: Crim. Act Art.246/3 (in force 2026-10-02), 2002do2518, 08-18 Polymarket block, 18 users referred; no change"}]
 
   # effective_from: Supreme Court 2022도6462, 2022-11-30
 
@@ -950,8 +960,8 @@ rows:
     matrix_rows: [3, 7]
     confidence: high
     effective_from: "2022-11-30"
-    review_by: "2026-11-23"
-    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix rows 3 and 7; lines 59, 93 and 129"}]
+    review_by: "2026-12-11"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix rows 3 and 7; lines 59, 93 and 129"}, {date: "2026-11-10", by: claude-research, checked: "2026-11-10: 2022do6462; NSPA Art.26 (in force 2026-09-03) and Art.48 item 3 (Act 21742) live; neither amended"}]
 
   # effective_from: Gizmodo 2026-05-30
 
@@ -974,8 +984,8 @@ rows:
     matrix_rows: [15, 16]
     confidence: medium
     effective_from: "2026-05-30"
-    review_by: "2026-11-22"
-    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix rows 15 and 16; lines 79, 94, 125 and 147; prediction-market verification line 17"}]
+    review_by: "2026-12-02"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix rows 15 and 16; lines 79, 94, 125 and 147; prediction-market verification line 17"}, {date: "2026-11-10", by: claude-research, checked: "2026-11-10: Polymarket geoblock (KR frontend close-only), VPN crackdown report; Hyperliquid terms JS-only; no VPN law"}]
     affected_by: ["2026-12-03"]
 
   # effective_from: Supreme Court 2024도10710, decided 2024-12-12 (judgment PDF; crypto verification line 24)
@@ -983,11 +993,13 @@ rows:
     kind: conduct
     match: {venue: [any], when: [on_behalf_not_self]}
     treatment: hard_block
-    reason: "Trading or transferring crypto for others for a fee makes a person an unregistered VASP (Supreme Court 2024도10710); orders copied to followers are not trading for oneself"
-    basis: [legal]
+    reason: "Repeatedly trading or transferring crypto for unspecified customers for compensation is in principle an unregistered VASP business under a multi-factor test (Supreme Court 2024도10710, 2024도12420); TRADEGEN treats orders copied to followers as trading for others"
+    basis: [legal, policy]
     sources:
       - "https://www.segye.com/newsView/20241229510093"
       - "https://www.scourt.go.kr/sjudge/1746602881255_162801.pdf"
+      - "https://law.go.kr/LSW/precInfoP.do?precSeq=600579"
+      - "https://www.law.go.kr/LSW/precInfoP.do?precSeq=609527"
     research:
       - "reports/Korean resident trading venue legality.md#compliance-matrix row 20"
       - "reports/Korean resident trading venue legality.md#L95"
@@ -995,8 +1007,8 @@ rows:
     matrix_rows: [20]
     confidence: high
     effective_from: "2024-12-12"
-    review_by: "2026-11-22"
-    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 20; lines 95 and 145; crypto verification line 38"}]
+    review_by: "2026-12-02"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 20; lines 95 and 145; crypto verification line 38"}, {date: "2026-11-10", by: claude-research, checked: "2024do10710 and 2024do12420 read on law.go.kr: multi-factor VASP test, fee alone not enough; reason reworded"}]
     affected_by: ["2026-12-03"]
 
   # effective_from: Supreme Court 2024도10710, decided 2024-12-12 (judgment PDF; crypto verification line 24)
@@ -1017,8 +1029,8 @@ rows:
     matrix_rows: [20]
     confidence: high
     effective_from: "2024-12-12"
-    review_by: "2026-11-22"
-    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 20; lines 77 and 95; crypto verification line 38"}]
+    review_by: "2026-12-02"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 20; lines 77 and 95; crypto verification line 38"}, {date: "2026-11-10", by: claude-research, checked: "2026-11-10: 2024do10710 (law.go.kr 600579) own-account vs paid-for-others test unchanged; copy block stays owner policy"}]
     affected_by: ["2026-12-03"]
 
   # effective_from: no dated source; research date 2026-10-23
@@ -1037,8 +1049,8 @@ rows:
     matrix_rows: []
     confidence: low
     effective_from: "2026-10-23"
-    review_by: "2026-11-22"
-    reviews: [{date: "2026-10-23", by: claude-research, checked: "crypto notes section 3, lines 112 and 145"}]
+    review_by: "2026-12-02"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "crypto notes section 3, lines 112 and 145"}, {date: "2026-11-10", by: claude-research, checked: "2026-11-10: 2024do12420 ties crypto remittance to FETA Art.8/27-2; Art.8-2 VA transfer registration from 2026-12-03"}]
     affected_by: ["2026-12-03"]
 
   # effective_from: FSC press release 82682, 2024-07-19 (crypto wallets notes line 293)
@@ -1062,8 +1074,8 @@ rows:
     matrix_rows: []
     confidence: medium
     effective_from: "2024-07-19"
-    review_by: "2026-11-22"
-    reviews: [{date: "2026-10-23", by: claude-research, checked: "report lines 76, 77, 93, 96 and 117"}]
+    review_by: "2026-12-02"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report lines 76, 77, 93, 96 and 117"}, {date: "2026-11-10", by: claude-research, checked: "2026-11-10: NSPA Art.26(2) (2026-09-03) and VAUPA Art.10 (2026-10-02) live; no crypto advisory law passed"}]
     affected_by: ["2026-12-03"]
 
   # effective_from: FSC press release 2026-06-24
@@ -1085,8 +1097,8 @@ rows:
     matrix_rows: [13]
     confidence: medium
     effective_from: "2026-06-24"
-    review_by: "2026-11-22"
-    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 13; lines 95 and 145; feasibility verification line 15"}]
+    review_by: "2026-12-02"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix row 13; lines 95 and 145; feasibility verification line 15"}, {date: "2026-11-10", by: claude-research, checked: "2026-11-10: FSC 2026-06-24 and 2026-10-30 releases both warn referrers may face criminal liability; no newer rule"}]
     affected_by: ["2026-12-03"]
 
   # effective_from: FSC press release 82682, 2024-07-19 (crypto wallets notes line 293)
@@ -1109,6 +1121,6 @@ rows:
     matrix_rows: [10, 16]
     confidence: high
     effective_from: "2024-07-19"
-    review_by: "2026-11-22"
-    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix rows 10 and 16; lines 65, 78 and 96; crypto notes section 2"}]
+    review_by: "2026-12-02"
+    reviews: [{date: "2026-10-23", by: claude-research, checked: "report matrix rows 10 and 16; lines 65, 78 and 96; crypto notes section 2"}, {date: "2026-11-10", by: claude-research, checked: "2026-11-10: VAUPA Art.10(1)-(6) current text (Act 21857, in force 2026-10-02), Art.19 penalties; 10(5) still VASP-only"}]
     affected_by: ["2026-12-03"]

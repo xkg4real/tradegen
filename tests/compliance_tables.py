@@ -1128,6 +1128,7 @@ _T5_SHIPPED = {"rules": _T5_REPO / "core" / "compliance" / "kr_rules.yaml",
 _T5_UNVERIFIED = "UNVERIFIED: owner to confirm before approval"
 _T5_RESEARCH_DIRS = ("reports", "research_notes", "QUANTGEN_techfund_research_bundle")
 _T5_REVIEW = _t5_date(2026, 10, 23)
+_T5_REREVIEW = _t5_date(2026, 11, 10)
 # spec 5.3, with the slash ids split into their rows
 _T5_SEED_IDS = frozenset({
     "KR-KIS-KRX-SHARE", "KR-KIS-KONEX", "KR-KIS-ETP-1X", "KR-KIS-ETP-INVERSE", "KR-KIS-ETP-LEV", "KR-KIS-SINGLE-ETP",
@@ -1153,7 +1154,7 @@ _T5_POLICY = {"D16": {"KR-KIS-ETP-LEV", "KR-KIS-SINGLE-ETP", "KR-KIS-KRX-DERIV",
               "D15": {"KR-KIS-CREDIT", "KR-DOMESTIC-LENDING"},
               "D10": {"KR-OFFSHORE-CEX", "KR-HYPERLIQUID", "KR-DEX", "KR-DRIFT", "KR-LOTTERY-RACING"},
               "D11": {"KR-OKX-WITHDRAW"}}
-# crypto, transfer and OKX rows: due 2026-11-22, before the 2026-12-03 FX Act change (spec 5.3 "Dates")
+# crypto, transfer and OKX rows: due before the 2026-12-03 FX Act change (spec 5.3 "Dates")
 _T5_CRYPTO_IDS = frozenset({
     "KR-KIS-CRYPTO-FUT-ETF", "KR-KIS-CRYPTO-SPOT-ETP", "KR-KIS-CRYPTO-DERIV", "KR-DOMESTIC-SPOT", "KR-GOPAX",
     "KR-DOMESTIC-LENDING", "KR-DOMESTIC-CRYPTO-DERIV", "KR-TRANSFER-OUT", "KR-OKX-SPOT", "KR-OKX-WITHDRAW",
@@ -1396,15 +1397,17 @@ def test_shipped_okx_warning_has_only_the_cap_slot():
 
 
 def test_shipped_review_cadence_and_dates():
-    """Pins the 2026-10-23 seed review. A monthly re-review changes these dates on purpose, here too."""
+    """Pins the 2026-10-23 seed review and the 2026-11-10 re-review. A monthly re-review changes these dates on
+    purpose, here too: within 31 days of the latest review, and before 2026-12-03 for the rows that change affects."""
     table, _, _ = _t5_shipped()
     for r in table.rows:
-        assert [(v.date, v.by) for v in r.reviews] == [(_T5_REVIEW, "claude-research")], r.id
+        assert [(v.date, v.by) for v in r.reviews] == [(_T5_REVIEW, "claude-research"),
+                                                       (_T5_REREVIEW, "claude-research")], r.id
         assert r.effective_from <= _T5_REVIEW, r.id          # every seed row is in force on its review date
         if r.id in _T5_CRYPTO_IDS:
-            assert r.review_by == _t5_date(2026, 11, 22) and _t5_date(2026, 12, 3) in r.affected_by, r.id
+            assert r.review_by == _t5_date(2026, 12, 2) and _t5_date(2026, 12, 3) in r.affected_by, r.id
         else:
-            assert r.review_by == _t5_date(2026, 11, 23) and r.affected_by == (), r.id
+            assert r.review_by == _t5_date(2026, 12, 11) and r.affected_by == (), r.id
     assert [r.id for r in table.rows if r.effective_until is not None] == ["KR-TRANSFER-OUT", "KR-OKX-SPOT"]
     for rid in ("KR-TRANSFER-OUT", "KR-OKX-SPOT"):
         row = _t5_row(table, rid)
