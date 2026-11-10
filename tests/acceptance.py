@@ -330,12 +330,17 @@ def test_20_runner_survives_a_missing_interpreter():
 
 
 def test_21_krx_gateway_degrades_with_a_reason():
-    """No provider configured must yield an actionable reason, never a blank."""
+    """No provider configured must yield an actionable reason, never a blank.
+
+    The keys are blanked while the gateway is built, so on a PC that has KIS or OpenDART keys the suite does not
+    call those services or rewrite ~/.tradegen/kis_token.json and dart_corp_codes.json."""
+    from unittest import mock
     from data.krx import KRXGateway
-    gateway = KRXGateway()
+    with mock.patch.dict(os.environ, dict.fromkeys(("KIS_APP_KEY", "KIS_APP_SECRET", "OPENDART_API_KEY"), "")):
+        gateway = KRXGateway()
+    assert not gateway.kis.ready and not gateway.dart.ready, "a blank key must leave the provider unconfigured"
     for answer in (gateway.daily("005930"), gateway.filings("005930")):
-        if not answer.ok:
-            assert answer.reason.strip(), "a failed answer must explain itself"
+        assert not answer.ok and answer.reason.strip(), "a failed answer must explain itself"
 
 
 def test_22_krx_status_is_reported_per_provider():
