@@ -273,7 +273,7 @@ def test_study_request_generation_commits_every_evaluated_candidate_including_fa
     with tempfile.TemporaryDirectory(prefix="full_review_family_") as directory:
         root = Path(os.path.realpath(directory))
         for identifier, raw in f.captures.items():
-            (root/(identifier+".capture.json")).write_text(raw, encoding="utf-8")
+            (root/(identifier+".capture.json")).write_text(raw, encoding="utf-8", newline="")   # LF bytes, as signed
         _, evaluation, requests = S._select(f.env.plan, f.profile, root, f.env.now)
         assert set(evaluation) == set(f.captures) and len(requests) == len(f.documents)
         for request in requests:
@@ -369,7 +369,7 @@ def test_cli_uses_real_clock_boundary_and_explicit_review_files_only():
         (root / "plan.json").write_text(S.study_plan_json(f.env.plan), encoding="utf-8")
         (root / "profile.json").write_text(json.dumps(profile_body(f.profile)), encoding="utf-8")
         for identifier, raw in f.captures.items():
-            (root / (identifier + ".capture.json")).write_text(raw, encoding="utf-8")
+            (root / (identifier + ".capture.json")).write_text(raw, encoding="utf-8", newline="")  # LF, as signed
         argv = ["select-reviewed", "--plan", str(root/"plan.json"), "--profile", str(root/"profile.json"),
                 "--captures", str(root), "--evaluated-at", f.env.now.isoformat()]
         for index, raw in enumerate(f.documents.values()):
