@@ -17,8 +17,10 @@ default and `main.py` contains an em dash.
 """
 from __future__ import annotations
 
+import functools
 import os
 import re
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -974,6 +976,32 @@ def test_46_a_failed_step_is_summarised_by_its_diagnosis_not_its_traceback():
     assert not any("^^^" in line or line.startswith('File "') for line in plain.lines)
 
 
+def test_47_skill_runs_land_in_a_fresh_scratch_folder():
+    """Tests 19, 20, 26 and 29 really run skills, and each run makes a folder under `config.runs_dir()`.
+    Before `_scratch_runs` those folders landed in the owner's ~/.tradegen/runs on every suite run."""
+    import config
+    runs = config.runs_dir()
+    assert runs.is_dir() and not any(runs.iterdir()), f"{runs} is not a fresh, empty folder"
+    assert runs.resolve().is_relative_to(Path(tempfile.gettempdir()).resolve()), f"{runs} is not a temporary folder"
+
+
+def _scratch_runs(fn):
+    """`fn` with TRADEGEN_RUNS_DIR on a new temporary folder, restored and removed afterwards."""
+    @functools.wraps(fn)
+    def run():
+        saved = os.environ.get("TRADEGEN_RUNS_DIR")
+        with tempfile.TemporaryDirectory(prefix="tradegen-runs-", ignore_cleanup_errors=True) as scratch:
+            os.environ["TRADEGEN_RUNS_DIR"] = scratch
+            try:
+                return fn()
+            finally:
+                if saved is None:
+                    os.environ.pop("TRADEGEN_RUNS_DIR", None)
+                else:
+                    os.environ["TRADEGEN_RUNS_DIR"] = saved
+    return run
+
+
 def tests():
-    return sorted((n, v) for n, v in globals().items()
+    return sorted((n, _scratch_runs(v)) for n, v in globals().items()
                   if n.startswith("test_") and callable(v))
