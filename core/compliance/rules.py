@@ -6,6 +6,7 @@ nothing itself (the only write is load_context's snapshot of a valid state); onl
 about a file is `Invalid`, never a guess."""
 from __future__ import annotations
 
+import base64
 import codecs
 import hashlib
 import json
@@ -13,10 +14,10 @@ import math
 import os
 import re
 import string
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import asdict, dataclass
-from datetime import date
-from decimal import Decimal
+from datetime import date, datetime, timedelta, timezone
+from decimal import Decimal, localcontext
 from pathlib import Path
 from types import MappingProxyType
 from typing import TYPE_CHECKING
@@ -1074,6 +1075,156 @@ def market_flags(body: bytes) -> dict[str, str]:
                 raise UniverseError("UNIVERSE_BODY_INVALID")
             flags[market] = flag_class(item)
     return flags
+
+
+_MARKET_ALL = ("/v1/market/all", (("is_details", "true"),))   # (path, params) of the one list read
+_CANDLES_PATH = "/v1/candles/days"
+_RECEIPT_KEYS = frozenset({"path", "params", "account_scope", "received_at", "server_time", "raw_body_b64",
+                           "sha256"})                          # live_history's plain receipt shape
+_STAMP = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{6}Z")   # execution_control.store
+_HEX64 = re.compile(r"[0-9a-f]{64}")
+_CANDLE_START = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T00:00:00")
+_FINAL_AFTER = timedelta(minutes=10)                           # built_at at or after D 00:10 UTC
+_IN_FORCE_AT = timedelta(minutes=40)                           # D 00:40 UTC, 09:40 KST
+
+
+def _typed(rule, day) -> None:
+    """A caller's mistake is a plain ValueError, never a refusal code: not a date, or not a UniverseRule the venue
+    parser would build (a rule built in code with median_days=0 would otherwise fail deep inside the median)."""
+    if type(rule) is not UniverseRule or type(day) is not date:
+        raise ValueError("universe: expected a UniverseRule and a date")
+    try:
+        _universe_rule(_rule_body(rule), "universe_rule", frozenset({"KRW"}))
+    except Invalid as exc:
+        raise ValueError(f"universe: {exc.reason}") from None
+
+
+def _midnight(day: date) -> datetime:
+    return datetime(day.year, day.month, day.day, tzinfo=timezone.utc)
+
+
+def _candle_request(market: str, to: date, count: int) -> tuple[str, tuple[tuple[str, str], ...]]:
+    return _CANDLES_PATH, (("market", market), ("to", f"{to.isoformat()}T00:00:00Z"), ("count", str(count)))
+
+
+def _candidates(rule: UniverseRule, flags: Mapping[str, str]) -> list[str]:
+    """The markets that need candle reads, sorted: unflagged and not excluded (universe spec section 5, step 2)."""
+    return [m for m in sorted(flags) if flags[m] == "unflagged" and m.removeprefix("KRW-") not in rule.exclude]
+
+
+def universe_requests(rule: UniverseRule, market_all_body: bytes,
+                      day: date) -> tuple[tuple[str, tuple[tuple[str, str], ...]], ...]:
+    """The exact (path, params) set the rule implies for this market/all body and candle day D, sorted: the list read,
+    then for each candidate an age read (`to` D - min_listing_days, count 1) and a value read (`to` D, count
+    median_days)."""
+    _typed(rule, day)
+    age_to = day - timedelta(days=rule.min_listing_days)
+    wanted = [_MARKET_ALL]
+    for market in _candidates(rule, market_flags(market_all_body)):
+        wanted += [_candle_request(market, age_to, 1), _candle_request(market, day, rule.median_days)]
+    return tuple(sorted(wanted))
+
+
+def _stamp(value) -> datetime:
+    if type(value) is not str or not _STAMP.fullmatch(value):
+        raise UniverseError("UNIVERSE_RECEIPT_INVALID")
+    try:
+        return datetime.fromisoformat(value)
+    except ValueError:
+        raise UniverseError("UNIVERSE_RECEIPT_INVALID") from None
+
+
+def _receipt(value) -> tuple[tuple, bytes, datetime]:
+    """One plain receipt -> ((path, params), body, server time), after its keys, shape, stamps and hash."""
+    if not isinstance(value, Mapping) or set(value) != _RECEIPT_KEYS:
+        raise UniverseError("UNIVERSE_RECEIPT_INVALID")
+    path, params, text, sha = value["path"], value["params"], value["raw_body_b64"], value["sha256"]
+    if (type(path) is not str or type(params) is not list
+            or any(type(p) is not list or len(p) != 2 or any(type(x) is not str for x in p) for p in params)
+            or value["account_scope"] != "public" or type(text) is not str
+            or type(sha) is not str or not _HEX64.fullmatch(sha)):
+        raise UniverseError("UNIVERSE_RECEIPT_INVALID")
+    _stamp(value["received_at"])
+    server = _stamp(value["server_time"])
+    try:
+        body = base64.b64decode(text, validate=True)
+    except ValueError:                                         # binascii.Error, and a non-ASCII text
+        raise UniverseError("UNIVERSE_RECEIPT_INVALID") from None
+    if base64.b64encode(body).decode("ascii") != text or hashlib.sha256(body).hexdigest() != sha:
+        raise UniverseError("UNIVERSE_RECEIPT_INVALID")
+    return (path, tuple((k, v) for k, v in params)), body, server
+
+
+def _candles(body: bytes, market: str, most: int, day: date) -> dict:
+    """A candles/days body -> {candle day: accumulated KRW trade value}. A candle dated D or later is not final."""
+    data = _strict_json(body, "UNIVERSE_BODY_INVALID")
+    if type(data) is not list or len(data) > most:
+        raise UniverseError("UNIVERSE_BODY_INVALID")
+    out: dict = {}
+    for item in data:
+        if type(item) is not dict or item.get("market") != market:
+            raise UniverseError("UNIVERSE_BODY_INVALID")
+        start, value = item.get("candle_date_time_utc"), item.get("candle_acc_trade_price")
+        if (type(start) is not str or not _CANDLE_START.fullmatch(start)
+                or type(value) not in (int, Decimal) or value < 0):
+            raise UniverseError("UNIVERSE_BODY_INVALID")
+        try:
+            when = date.fromisoformat(start[:10])
+        except ValueError:
+            raise UniverseError("UNIVERSE_BODY_INVALID") from None
+        if when >= day:
+            raise UniverseError("UNIVERSE_NOT_FINAL")
+        if when in out:
+            raise UniverseError("UNIVERSE_BODY_INVALID")
+        out[when] = value
+    return out
+
+
+def _median(values: list) -> Decimal:
+    ordered, mid = sorted(values), len(values) // 2
+    if len(ordered) % 2:
+        return Decimal(ordered[mid])
+    with localcontext(prec=60):                                # exact for any value Upbit reports
+        return (Decimal(ordered[mid - 1]) + Decimal(ordered[mid])) / 2
+
+
+def _eligible(rule: UniverseRule, receipts,
+              day: date) -> tuple[tuple[str, ...], tuple[tuple[str, Decimal], ...], datetime]:
+    """(listed, eligible, built_at) from plain receipts: every receipt and hash, the exact request set, finality, then
+    the age test and the median over calendar days D-median_days .. D-1, a day with no candle counting as zero."""
+    _typed(rule, day)
+    if not isinstance(receipts, Sequence) or isinstance(receipts, (str, bytes)):
+        raise UniverseError("UNIVERSE_RECEIPT_INVALID")
+    checked = [_receipt(value) for value in receipts]
+    menus = [(body, server) for key, body, server in checked if key == _MARKET_ALL]
+    if len(menus) != 1:
+        raise UniverseError("UNIVERSE_REQUEST_SET_MISMATCH")
+    menu, menu_time = menus[0]
+    if tuple(sorted(key for key, _, _ in checked)) != universe_requests(rule, menu, day):
+        raise UniverseError("UNIVERSE_REQUEST_SET_MISMATCH")
+    built_at = max(server for _, _, server in checked)
+    if menu_time < _midnight(day) or built_at < _midnight(day) + _FINAL_AFTER:
+        raise UniverseError("UNIVERSE_NOT_FINAL")
+    bodies = {key: body for key, body, _ in checked}
+    flags = market_flags(menu)
+    age_to = day - timedelta(days=rule.min_listing_days)
+    eligible = []
+    for market in _candidates(rule, flags):
+        aged = _candles(bodies[_candle_request(market, age_to, 1)], market, 1, day)
+        value = _candles(bodies[_candle_request(market, day, rule.median_days)], market, rule.median_days, day)
+        median = _median([value.get(day - timedelta(days=n), 0) for n in range(1, rule.median_days + 1)])
+        if any(when < age_to for when in aged) and median >= rule.min_median_value_krw:
+            eligible.append((market, median))
+    return tuple(sorted(flags)), tuple(eligible), built_at
+
+
+def universe_eligible(rule: UniverseRule, receipts: Sequence[Mapping],
+                      day: date) -> tuple[tuple[str, ...], tuple[tuple[str, Decimal], ...]]:
+    """(listed, eligible) for candle day D (universe spec section 5): listed is every KRW-<base> market of the list
+    read, eligible every candidate that is old enough with a median daily value of at least min_median_value_krw,
+    sorted by market with its median. Refusals are UniverseError codes; a caller's mistake is ValueError."""
+    listed, eligible, _ = _eligible(rule, receipts, day)
+    return listed, eligible
 
 
 # --------------------------------------------------------------------------- #
