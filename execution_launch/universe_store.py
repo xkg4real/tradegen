@@ -56,8 +56,9 @@ def write_snapshot(raw: bytes, day: date, sha256: str) -> Path:
                 handle.write(raw)
                 handle.flush()
                 os.fsync(handle.fileno())
-            # ponytail: Windows rename refuses an existing name; a POSIX rename would replace a file that appeared
-            # since the check above (the same content-addressed bytes). Use link plus unlink if POSIX ever matters.
+            # ponytail: Windows rename refuses an existing name; a POSIX rename would silently replace a snapshot that
+            # appeared since the check above (same name, so same bytes only when the caller passes verified builder
+            # output, as main does). os.link is no upgrade: core.isolation.scan_links refuses hard links in state_root.
             os.rename(checked_target(directory / name, "universe temporary file", within=directory),
                       checked_target(target, "universe snapshot", within=directory))
         except BaseException:

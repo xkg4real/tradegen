@@ -139,6 +139,8 @@ def test_daily_bars_pages_back_to_the_listing_and_returns_plain_final_bars():
 
 
 def test_daily_bars_window_ends_at_the_last_final_utc_day_and_starts_3650_days_before_the_seoul_date():
+    from core.oddsdata import bars as odds_bars              # load_leg's window length (U itself never imports it)
+    assert U.HISTORY_DAYS == odds_bars.HISTORY_DAYS
     late = datetime(2026, 11, 10, 16, 0, tzinfo=timezone.utc)   # 01:00 KST on 2026-11-11
     result, calls = bars(("KRW-ETH",), late, candle_server(date(2026, 11, 1)))
     assert [dict(parse_qsl(c["query"]))["to"] for c in calls] == ["2026-11-10T00:00:00Z"]
@@ -147,6 +149,9 @@ def test_daily_bars_window_ends_at_the_last_final_utc_day_and_starts_3650_days_b
     result, calls = bars(["KRW-BTC"], NOW, candle_server(date(2010, 1, 1)))
     assert len(calls) == 19 and dict(parse_qsl(calls[-1]["query"]))["count"] == "50"
     assert len(result["KRW-BTC"].bars) == 3650 and result["KRW-BTC"].bars[0][0] == "2016-11-13"
+    result, _calls = bars(["KRW-BTC"], late, candle_server(date(2010, 1, 1)))    # the Seoul date, not the UTC date
+    got = result["KRW-BTC"].bars
+    assert len(got) == 3649 and got[0][0] == "2016-11-13" and got[-1][0] == "2026-11-09"
 
 
 def test_daily_bars_drops_the_rows_the_odds_loader_drops():
@@ -252,7 +257,8 @@ def test_slot_source_failures_are_unavailable_reads_never_exceptions():
                  [ticker("KRW-BTC", 1) | {"trade_timestamp": "1"}], [{"market": "KRW-BTC"}], {"KRW-BTC": 1}, ["row"]):
         with F.serve({("GET", "/v1/ticker"): answered(json.dumps(rows).encode("utf-8"))}):
             assert unavailable(source.read_tickers(["KRW-BTC"])), rows
-    with F.serve({("GET", "/v1/ticker"): answered(json.dumps([ticker("KRW-BTC", 1)]).encode("utf-8"))}),             patch.object(U, "MAX_TICKER_BODY", 8):
+    with F.serve({("GET", "/v1/ticker"): answered(json.dumps([ticker("KRW-BTC", 1)]).encode("utf-8"))}), \
+            patch.object(U, "MAX_TICKER_BODY", 8):
         assert unavailable(source.read_tickers(["KRW-BTC"]))
     with F.serve({("GET", "/v1/market/all"): answered(MARKET_ALL_RAW)}), patch.object(U, "MAX_MARKET_ALL_BODY", 8):
         assert unavailable(source.read_flags())
