@@ -6,6 +6,7 @@ matching that digest does not authenticate a callback or its source.
 """
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from decimal import Decimal
 from fractions import Fraction
@@ -180,3 +181,68 @@ def target_fraction(spec: ProgramSpec, marks: tuple[Decimal, ...]) -> Decimal:
     fast = sum((Fraction(v) for v in marks[-spec.fast_window:]), Fraction(0))/spec.fast_window
     slow = sum((Fraction(v) for v in marks[-spec.slow_window:]), Fraction(0))/spec.slow_window
     return spec.exposure_fraction if fast > slow else Decimal(0)
+
+
+@dataclass(frozen=True)
+class ChooserState:
+    """The decided path so far (spec section 14): held is h (None is cash) and hold_count the number of
+    consecutive decisions for h. A window starts at ChooserState(held=None, hold_count=0)."""
+    held: str | None
+    hold_count: int
+
+
+@dataclass(frozen=True)
+class ChooserSlot:
+    """One recorded slot: the top-N of the snapshot in force, each market's flag class and the defined trade
+    prices only. An unavailable flag read gives empty flags and prices; an unavailable ticker read gives empty
+    prices and keeps the flags (spec section 14 drops prices, so rule 1 still applies)."""
+    top_n: tuple[str, ...]
+    flags: Mapping[str, str]
+    prices: Mapping[str, Decimal]
+
+
+def choose(spec: ProgramSpec, state: ChooserState, now_slot: ChooserSlot,
+           lag_slot: ChooserSlot | None) -> tuple[str | None, ChooserState]:
+    """One universe_top1_momentum decision by spec section 14 rules 1-8: (coin, or None for cash; new state).
+
+    lag_slot is the slot lookback_slots before now_slot, or None when there is none. r_X = price_X(now) /
+    price_X(lag) - 1 is defined only when both prices are. Only these recorded values and the decided path are
+    read, never fills or holdings. Exact fractions keep the result independent of the decimal context.
+    """
+    _validate(spec)
+    _require(spec.kind == _UNIVERSE, "PROGRAM_KIND_UNSUPPORTED")
+    slots = (now_slot,) if lag_slot is None else (now_slot, lag_slot)
+    _require(type(state) is ChooserState and (state.held is None or type(state.held) is str)
+             and type(state.hold_count) is int and state.hold_count >= 0
+             and all(type(slot) is ChooserSlot and type(slot.top_n) is tuple and isinstance(slot.flags, Mapping)
+                     and isinstance(slot.prices, Mapping) for slot in slots)
+             and len(now_slot.top_n) <= spec.max_candidates, "PROGRAM_CHOOSER_INPUT_INVALID")
+    for slot in slots:
+        for price in slot.prices.values():
+            _decimal(price, positive=True)
+
+    def ret(coin):
+        if lag_slot is None or coin not in now_slot.prices or coin not in lag_slot.prices:
+            return None
+        return Fraction(now_slot.prices[coin]) / Fraction(lag_slot.prices[coin]) - 1
+
+    h = state.held
+    targets = [(ret(coin), coin) for coin in now_slot.top_n
+               if now_slot.flags.get(coin) == "unflagged" and ret(coin) is not None]
+    best_r, best = min(targets, key=lambda item: (-item[0], item[1])) if targets else (None, None)
+    r_h = None if h is None else ret(h)
+    if h is not None and now_slot.flags.get(h) == "warning":
+        decision = None                                                      # rule 1
+    elif h is not None and r_h is None:
+        decision = h                                                         # rule 2
+    elif h is None:
+        decision = best if best is not None and best_r > 0 else None         # rules 3 and 4
+    elif state.hold_count < spec.min_hold_slots:
+        decision = h                                                         # rule 5
+    elif r_h <= 0 and (best is None or best_r <= 0):
+        decision = None                                                      # rule 6
+    elif best is not None and best != h and best_r > 0 and best_r - r_h > Fraction(spec.switch_margin):
+        decision = best                                                      # rule 7
+    else:
+        decision = h                                                         # rule 8
+    return decision, ChooserState(held=decision, hold_count=state.hold_count + 1 if decision == h else 1)

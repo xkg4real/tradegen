@@ -4,8 +4,8 @@ from decimal import Decimal, localcontext
 import hashlib
 import json
 
-from execution_launch.program import (ProgramError, ProgramSpec, parameters_json, parse_program,
-    program_digest, program_json, target_fraction)
+from execution_launch.program import (ChooserSlot, ChooserState, ProgramError, ProgramSpec, choose,
+    parameters_json, parse_program, program_digest, program_json, target_fraction)
 from execution_launch.strategy import _plain, evidence_digest
 
 D = Decimal
@@ -91,3 +91,101 @@ def test_rotation_parameters_are_validated_and_closed_to_the_other_kinds():
     rejected(lambda: parse_program(json.dumps(trend | {"lookback_slots": 3})), "PROGRAM_JSON_SCHEMA_INVALID")
     rejected(lambda: parse_program(json.dumps(trend | {k: v for k, v in body.items() if k not in trend})),
              "PROGRAM_UNIVERSE_PARAMETERS_INVALID")
+
+
+COINS = ("KRW-AAA", "KRW-BBB", "KRW-CCC")
+LAG = ChooserSlot(top_n=COINS, flags={coin: "unflagged" for coin in COINS}, prices={coin: D(100) for coin in COINS})
+CASH_STATE = ChooserState(held=None, hold_count=3)
+
+
+def at(prices, flags=None, top=COINS):
+    """Slot k: decimal-string prices, every top-N coin unflagged unless flags says otherwise."""
+    return ChooserSlot(top_n=top, flags={coin: "unflagged" for coin in top} if flags is None else flags,
+                       prices={coin: D(value) for coin, value in prices.items()})
+
+
+def held(coin, count=2):
+    return ChooserState(held=coin, hold_count=count)
+
+
+def decide(state, now, lag=LAG, **changes):
+    """rotation() has L=3, m=2, switch_margin=0.01, N=3; LAG prices every coin at 100."""
+    return choose(rotation(**changes), state, now, lag)
+
+
+def test_rule_1_a_warning_on_the_held_coin_decides_cash_even_inside_the_minimum_hold():
+    now = at({"KRW-AAA": "130", "KRW-BBB": "101"}, {"KRW-AAA": "warning", "KRW-BBB": "unflagged"})
+    assert decide(held("KRW-AAA", 1), now) == (None, ChooserState(held=None, hold_count=1))
+    unpriced = ChooserSlot(top_n=COINS, flags={"KRW-AAA": "warning"}, prices={})  # only the ticker read failed
+    assert decide(held("KRW-AAA", 1), unpriced) == (None, ChooserState(held=None, hold_count=1))
+
+
+def test_rule_2_a_held_coin_without_a_return_is_kept():
+    for now, lag in ((at({"KRW-BBB": "150"}), LAG),                         # no price for the held coin now
+                     (at({"KRW-AAA": "90", "KRW-BBB": "150"}), None),        # no slot L back yet
+                     (ChooserSlot(top_n=COINS, flags={}, prices={}), LAG)):  # flag read unavailable
+        assert decide(held("KRW-AAA"), now, lag) == ("KRW-AAA", ChooserState(held="KRW-AAA", hold_count=3))
+    assert decide(held("KRW-ZZZ"), at({"KRW-BBB": "150"}))[0] == "KRW-ZZZ"   # left the top-N, still no return
+
+
+def test_rule_3_best_is_the_largest_return_among_unflagged_top_n_coins_ties_by_symbol():
+    flags = {"KRW-AAA": "caution", "KRW-BBB": "unflagged", "KRW-CCC": "unflagged"}
+    now = at({"KRW-AAA": "200", "KRW-BBB": "110", "KRW-CCC": "110", "KRW-ZZZ": "300"}, flags)
+    assert decide(CASH_STATE, now)[0] == "KRW-BBB"  # AAA is caution, ZZZ is outside the top-N, BBB ties CCC
+    now = at({"KRW-AAA": "120", "KRW-CCC": "110"}, {**flags, "KRW-AAA": "unknown"})
+    assert decide(CASH_STATE, now)[0] == "KRW-CCC"  # unknown is not unflagged; BBB has no price
+
+
+def test_rule_4_from_cash_only_a_strictly_positive_best_is_bought():
+    assert decide(CASH_STATE, at({"KRW-BBB": "101"})) == ("KRW-BBB", ChooserState(held="KRW-BBB", hold_count=1))
+    assert decide(CASH_STATE, at({"KRW-BBB": "100", "KRW-CCC": "99"})) == (None, ChooserState(held=None, hold_count=4))
+    assert decide(CASH_STATE, at({"KRW-BBB": "150"}), None)[0] is None       # warm-up: no lag slot, no target
+    assert decide(ChooserState(held=None, hold_count=0), at({}))[0] is None  # window start with an empty read
+
+
+def test_rule_5_the_minimum_hold_counts_decisions_and_comes_before_rules_6_and_7():
+    now = at({"KRW-AAA": "90", "KRW-BBB": "150"})
+    assert decide(held("KRW-AAA", 1), now) == ("KRW-AAA", ChooserState(held="KRW-AAA", hold_count=2))
+    assert decide(held("KRW-AAA", 2), now) == ("KRW-BBB", ChooserState(held="KRW-BBB", hold_count=1))
+    assert decide(held("KRW-AAA", 1), now, min_hold_slots=1)[0] == "KRW-BBB"
+
+
+def test_rule_6_a_losing_hold_with_no_positive_target_goes_to_cash():
+    assert decide(held("KRW-AAA"), at({"KRW-AAA": "99", "KRW-BBB": "100"})) == (
+        None, ChooserState(held=None, hold_count=1))
+    flags = {"KRW-AAA": "unflagged", "KRW-BBB": "caution", "KRW-CCC": "warning"}
+    assert decide(held("KRW-AAA"), at({"KRW-AAA": "100", "KRW-BBB": "150", "KRW-CCC": "150"}, flags))[0] is None
+
+
+def test_rule_7_switches_only_when_the_best_beats_the_held_return_by_more_than_the_margin():
+    assert decide(held("KRW-AAA"), at({"KRW-AAA": "101", "KRW-BBB": "103"})) == (
+        "KRW-BBB", ChooserState(held="KRW-BBB", hold_count=1))
+    assert decide(held("KRW-AAA"), at({"KRW-AAA": "99", "KRW-BBB": "100.5"}))[0] == "KRW-BBB"
+
+
+def test_rule_8_otherwise_the_held_coin_is_kept_including_a_caution_coin():
+    assert decide(held("KRW-AAA"), at({"KRW-AAA": "101", "KRW-BBB": "102"})) == (
+        "KRW-AAA", ChooserState(held="KRW-AAA", hold_count=3))       # a gap of exactly the margin keeps h
+    flags = {"KRW-AAA": "caution", "KRW-BBB": "unflagged", "KRW-CCC": "unflagged"}
+    assert decide(held("KRW-AAA"), at({"KRW-AAA": "110", "KRW-BBB": "105"}, flags))[0] == "KRW-AAA"
+    assert decide(held("KRW-AAA"), at({"KRW-AAA": "110", "KRW-BBB": "102"}))[0] == "KRW-AAA"  # h is the best
+
+
+def test_a_switch_path_counts_decisions_and_ignores_the_decimal_context():
+    state, path = ChooserState(held=None, hold_count=0), []
+    for prices in ({"KRW-AAA": "101"}, {"KRW-AAA": "101", "KRW-BBB": "120"}, {"KRW-AAA": "101", "KRW-BBB": "120"}):
+        with localcontext() as numeric:
+            numeric.prec = 2
+            decision, state = decide(state, at(prices))
+        path.append((decision, state.hold_count))
+    assert path == [("KRW-AAA", 1), ("KRW-AAA", 2), ("KRW-BBB", 1)]
+
+
+def test_chooser_refuses_other_kinds_bad_state_bad_prices_and_a_wider_candidate_set():
+    rejected(lambda: choose(TREND, CASH_STATE, at({}), LAG), "PROGRAM_KIND_UNSUPPORTED")
+    for state in (ChooserState(held=None, hold_count=-1), ChooserState(held=5, hold_count=1), (None, 0)):
+        rejected(lambda state=state: decide(state, at({})), "PROGRAM_CHOOSER_INPUT_INVALID")
+    rejected(lambda: decide(CASH_STATE, at({}, top=COINS+("KRW-DDD",))), "PROGRAM_CHOOSER_INPUT_INVALID")
+    rejected(lambda: decide(CASH_STATE, at({"KRW-AAA": "0"})), "PROGRAM_AMOUNT_INVALID")
+    rejected(lambda: decide(CASH_STATE, ChooserSlot(top_n=COINS, flags={}, prices={"KRW-AAA": 101.0})),
+             "PROGRAM_DECIMAL_REQUIRED")
