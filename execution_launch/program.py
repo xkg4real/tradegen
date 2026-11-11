@@ -183,6 +183,10 @@ def target_fraction(spec: ProgramSpec, marks: tuple[Decimal, ...]) -> Decimal:
     return spec.exposure_fraction if fast > slow else Decimal(0)
 
 
+# core.compliance.rules.FLAG_CLASSES (pinned by a test; not imported here)
+_FLAG_CLASSES = frozenset({"unflagged", "warning", "caution", "unknown", "absent"})
+
+
 @dataclass(frozen=True)
 class ChooserState:
     """The decided path so far (spec section 14): held is h (None is cash) and hold_count the number of
@@ -216,6 +220,7 @@ def choose(spec: ProgramSpec, state: ChooserState, now_slot: ChooserSlot,
              and type(state.hold_count) is int and state.hold_count >= 0
              and all(type(slot) is ChooserSlot and type(slot.top_n) is tuple and isinstance(slot.flags, Mapping)
                      and isinstance(slot.prices, Mapping) for slot in slots)
+             and all(type(flag) is str and flag in _FLAG_CLASSES for slot in slots for flag in slot.flags.values())
              and len(now_slot.top_n) <= spec.max_candidates, "PROGRAM_CHOOSER_INPUT_INVALID")
     for slot in slots:
         for price in slot.prices.values():
