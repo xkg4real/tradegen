@@ -15,6 +15,8 @@ from datetime import date, datetime, timezone
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from decimal import Decimal
+
     from core.compliance.rules import InstrumentMap, RulesTable, VenueFacts
 
 ALLOW, ALLOW_EXIT, ACK_REQUIRED, BLOCK = "ALLOW", "ALLOW_EXIT", "ACK_REQUIRED", "BLOCK"
@@ -159,6 +161,20 @@ class OwnerState:
 class SessionState:
     session_id: str | None = None
     armed: bool = False
+
+
+@dataclass(frozen=True, kw_only=True)
+class Universe:
+    """One verified daily Upbit KRW universe snapshot (universe spec section 5), as rules.verify_universe_snapshot
+    returns it; `eligible` is sorted by market, each with its median daily KRW value."""
+    day: date                                         # candle day D (UTC)
+    rule_sha256: str                                  # universe_rule_sha256 of the signed rule
+    snapshot_sha256: str                              # the file's manifest sha256, also its file name
+    built_at: datetime                                # the latest receipt server time
+    valid_from: datetime                              # max(built_at, D 00:40 UTC)
+    valid_until: datetime                             # D+1 00:40 UTC (09:40 KST)
+    listed: tuple[str, ...]
+    eligible: tuple[tuple[str, Decimal], ...]
 
 
 @dataclass(frozen=True, kw_only=True)

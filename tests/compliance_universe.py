@@ -3,14 +3,19 @@ request set, finality from content, the medians, and the snapshot file with its 
 inline fixture; nothing reads the network, the clock or a file."""
 from __future__ import annotations
 
+import ast
 import base64
 import dataclasses
 import hashlib
+import inspect
 import json
+import os
+import textwrap
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
+from pathlib import Path
 
-from core.compliance import rules
+from core.compliance import model, rules
 
 CAUTIONS = ("PRICE_FLUCTUATIONS", "TRADING_VOLUME_SOARING", "DEPOSIT_AMOUNT_SOARING", "GLOBAL_PRICE_DIFFERENCES",
             "CONCENTRATION_OF_SMALL_ACCOUNTS")
@@ -334,3 +339,128 @@ def test_candle_bodies_are_checked():
                 b'"candle_acc_trade_price": NaN}]'):
         assert code(raw) == bad, raw
     assert rules.universe_eligible(RULE, receipts, D) == (LISTED, ELIGIBLE)    # the untouched receipts still pass
+
+
+# -- snapshot file, verification, in-force window, top N (spec section 5 "Format and verification", "In force") ----
+def _json(value) -> bytes:
+    """The snapshot file's JSON form: sorted keys, no spaces, ASCII."""
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("ascii")
+
+
+def _resealed(doc: dict) -> bytes:
+    """`doc` as a snapshot file with its manifest recomputed: a consistent edit of anything but the receipt hashes."""
+    body = {key: doc[key] for key in ("day", "rule", "receipts")}
+    return _json({**body, "manifest_sha256": hashlib.sha256(_json(body)).hexdigest()})
+
+
+def _verify_code(raw, rule_sha256=RULE_SHA) -> str:
+    return _code(lambda: rules.verify_universe_snapshot(raw, rule_sha256))
+
+
+def test_snapshot_round_trip_and_in_force_window():
+    utc = timezone.utc
+    raw, sha = rules.encode_universe_snapshot(RULE, D, _receipts())
+    doc = json.loads(raw)
+    assert type(raw) is bytes and _json(doc) == raw and _resealed(doc) == raw and doc["manifest_sha256"] == sha
+    assert doc["day"] == "2026-11-11" and doc["rule"] == {
+        "source": SOURCE, "quote": "KRW", "exclude": ["USDC", "USDT"], "min_listing_days": 5, "median_days": 4,
+        "min_median_value_krw": 100}
+    assert [_key(r) for r in doc["receipts"]] == sorted(_key(r) for r in _receipts())     # stored in request order
+    assert rules.encode_universe_snapshot(RULE, D, list(reversed(_receipts()))) == (raw, sha)   # input order is free
+    universe = rules.verify_universe_snapshot(raw, RULE_SHA)
+    assert universe == model.Universe(
+        day=D, rule_sha256=RULE_SHA, snapshot_sha256=sha, built_at=AT,
+        valid_from=datetime(2026, 11, 11, 0, 40, tzinfo=utc), valid_until=datetime(2026, 11, 12, 0, 40, tzinfo=utc),
+        listed=LISTED, eligible=ELIGIBLE), universe
+    assert universe.valid_from.astimezone(model.KST).isoformat() == "2026-11-11T09:40:00+09:00"
+    assert universe.valid_until.astimezone(model.KST).isoformat() == "2026-11-12T09:40:00+09:00"
+    late = _receipts()
+    j = _index(late, "KRW-SOL", VALUE_TO)
+    late[j] = _receipt(late[j]["path"], late[j]["params"], base64.b64decode(late[j]["raw_body_b64"]),
+                       datetime(2026, 11, 11, 1, 5, tzinfo=utc))             # one read finished at 10:05 KST
+    later = rules.verify_universe_snapshot(rules.encode_universe_snapshot(RULE, D, late)[0], RULE_SHA)
+    assert later.built_at == later.valid_from == datetime(2026, 11, 11, 1, 5, tzinfo=utc)
+    assert later.valid_until == universe.valid_until and later.eligible == ELIGIBLE
+    assert _code(lambda: rules.encode_universe_snapshot(RULE, D, _receipts()[:-1])) == "UNIVERSE_REQUEST_SET_MISMATCH"
+    early = _receipts(server=datetime(2026, 11, 11, 0, 9, tzinfo=utc))
+    assert _code(lambda: rules.encode_universe_snapshot(RULE, D, early)) == "UNIVERSE_NOT_FINAL"
+
+
+def test_a_tampered_snapshot_file_is_refused():
+    raw, sha = rules.encode_universe_snapshot(RULE, D, _receipts())
+    doc, manifest, mismatch = json.loads(raw), "UNIVERSE_MANIFEST_MISMATCH", "UNIVERSE_REQUEST_SET_MISMATCH"
+    rule_with_float = {**doc, "rule": {**doc["rule"], "min_listing_days": 5.0}}      # parses to a Decimal
+    for bad in (raw.replace(b'"median_days":4', b'"median_days":3'), raw + b"\n", b" " + raw, raw.decode("ascii"),
+                b"", b"{}", b"[]", b"null", json.dumps(doc, indent=1).encode("ascii"), _json({**doc, "extra": 1}),
+                _json({**doc, "manifest_sha256": "0" * 64}), _json({**doc, "manifest_sha256": sha.upper()}),
+                _resealed({**doc, "day": "2026-11-31"}), _resealed({**doc, "day": 20261111}),
+                _resealed(rule_with_float), raw.replace(b"{", b'{"day":"2026-11-11",', 1)):
+        assert _verify_code(bad) == manifest, bad[:60]
+    receipts = [dict(r) for r in doc["receipts"]]
+    m = next(k for k, r in enumerate(receipts) if r["path"] == "/v1/market/all")
+    receipts[m]["raw_body_b64"] = base64.b64encode(_body(MARKETS[1:])).decode("ascii")
+    assert _verify_code(_resealed({**doc, "receipts": receipts})) == "UNIVERSE_RECEIPT_INVALID"   # body, old hash
+    receipts[m]["sha256"] = hashlib.sha256(_body(MARKETS[1:])).hexdigest()
+    assert _verify_code(_resealed({**doc, "receipts": receipts})) == mismatch      # KRW-BTC's reads are left over
+    assert _verify_code(_resealed({**doc, "receipts": doc["receipts"][:-1]})) == mismatch          # one dropped
+    assert _verify_code(_resealed({**doc, "receipts": doc["receipts"] + doc["receipts"][:1]})) == mismatch  # added
+    assert _verify_code(_resealed({**doc, "day": "2026-11-12"})) == mismatch       # another day's request set
+    assert _verify_code(_resealed({**doc, "receipts": {}})) == "UNIVERSE_RECEIPT_INVALID"
+    other = dataclasses.replace(RULE, min_median_value_krw=1)
+    assert _verify_code(raw, rules.universe_rule_sha256(other)) == "UNIVERSE_RULE_MISMATCH"   # the signed rule moved
+    assert _verify_code(raw, RULE_SHA.upper()) == _verify_code(raw, None) == "UNIVERSE_RULE_MISMATCH"
+    looser = _resealed({**doc, "rule": {**doc["rule"], "min_median_value_krw": 1}})
+    assert _verify_code(looser) == "UNIVERSE_RULE_MISMATCH"                       # built under another rule
+    assert rules.verify_universe_snapshot(looser, rules.universe_rule_sha256(other)).eligible == (
+        ("KRW-BTC", Decimal(250)), ("KRW-ETH", Decimal("30.25")), ("KRW-SOL", Decimal("150.25")))
+    for rule in ({**doc["rule"], "quote": "USDT"}, {**doc["rule"], "median_days": 0}, {**doc["rule"], "extra": 1},
+                 {k: v for k, v in doc["rule"].items() if k != "source"}, {**doc["rule"], "exclude": ["USDT", "USDC"]},
+                 None, []):
+        assert _verify_code(_resealed({**doc, "rule": rule})) == "UNIVERSE_RULE_INVALID", rule
+
+
+def test_universe_is_a_frozen_record_with_the_contract_fields():
+    assert [f.name for f in dataclasses.fields(model.Universe)] == [
+        "day", "rule_sha256", "snapshot_sha256", "built_at", "valid_from", "valid_until", "listed", "eligible"]
+    assert [f.name for f in dataclasses.fields(rules.UniverseRule)] == [
+        "source", "quote", "exclude", "min_listing_days", "median_days", "min_median_value_krw"]
+    universe = rules.verify_universe_snapshot(rules.encode_universe_snapshot(RULE, D, _receipts())[0], RULE_SHA)
+    for record, name in ((universe, "day"), (RULE, "median_days")):
+        try:
+            setattr(record, name, None)
+        except dataclasses.FrozenInstanceError:
+            continue
+        raise AssertionError(f"{type(record).__name__} is not frozen")
+    assert hash(universe) == hash(dataclasses.replace(universe)) and hash(RULE) == hash(dataclasses.replace(RULE))
+
+
+def test_universe_top_n_takes_the_largest_medians():
+    universe = rules.verify_universe_snapshot(rules.encode_universe_snapshot(RULE, D, _receipts())[0], RULE_SHA)
+    assert rules.universe_top_n(universe, 1) == ("KRW-BTC",)
+    assert rules.universe_top_n(universe, 5) == ("KRW-BTC", "KRW-SOL")
+    tied = dataclasses.replace(universe, eligible=(("KRW-ADA", Decimal(7)), ("KRW-BTC", Decimal("9.0")),
+                                                   ("KRW-ETH", Decimal(9)), ("KRW-XRP", Decimal(8))))
+    assert rules.universe_top_n(tied, 3) == ("KRW-BTC", "KRW-ETH", "KRW-XRP")      # equal medians: market ascending
+    assert rules.universe_top_n(dataclasses.replace(universe, eligible=()), 3) == ()
+    for n in (0, -1, True, 1.0, "1", None):
+        _value_error(lambda: rules.universe_top_n(universe, n))
+
+
+def test_universe_code_writes_and_reads_no_file():
+    """Spec section 5: the universe code in core/compliance writes no files, and verification never loads a context."""
+    home = Path(os.environ["TRADEGEN_HOME"])                    # the compliance wrapper's temporary home
+    before = sorted(p.relative_to(home).as_posix() for p in home.rglob("*"))
+    raw, sha = rules.encode_universe_snapshot(RULE, D, _receipts())
+    assert rules.verify_universe_snapshot(raw, RULE_SHA).snapshot_sha256 == sha
+    assert sorted(p.relative_to(home).as_posix() for p in home.rglob("*")) == before
+    banned = {"open", "read_bytes", "read_text", "write_bytes", "write_text", "mkdir", "Path", "os", "environ",
+              "getenv", "state_root", "load_context", "now", "today", "time", "urlopen"}
+    for fn in (rules._rule_body, rules._universe_json, rules.universe_rule_sha256, rules._unique, rules._no_constant,
+               rules._strict_json, rules.flag_class, rules.market_flags, rules._typed, rules._midnight,
+               rules._candle_request, rules._candidates, rules.universe_requests, rules._stamp, rules._receipt,
+               rules._candles, rules._median, rules._eligible, rules.universe_eligible, rules.encode_universe_snapshot,
+               rules.verify_universe_snapshot, rules.universe_top_n, rules._universe_rule, rules._count):
+        tree = ast.parse(textwrap.dedent(inspect.getsource(fn)))
+        names = {n.id for n in ast.walk(tree) if isinstance(n, ast.Name)}
+        names |= {n.attr for n in ast.walk(tree) if isinstance(n, ast.Attribute)}
+        assert not names & banned, (fn.__name__, names & banned)

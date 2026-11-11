@@ -25,7 +25,7 @@ from typing import TYPE_CHECKING
 import yaml
 
 if TYPE_CHECKING:
-    from core.compliance.model import ApprovedState
+    from core.compliance.model import ApprovedState, Universe
 
 # --------------------------------------------------------------------------- #
 # Vocabulary (spec 5.1; contract 6.1). Every id an intent or a row names must be an exact member.
@@ -1226,6 +1226,60 @@ def universe_eligible(rule: UniverseRule, receipts: Sequence[Mapping],
     sorted by market with its median. Refusals are UniverseError codes; a caller's mistake is ValueError."""
     listed, eligible, _ = _eligible(rule, receipts, day)
     return listed, eligible
+
+
+_SNAPSHOT_KEYS = frozenset({"day", "rule", "receipts", "manifest_sha256"})
+
+
+def encode_universe_snapshot(rule: UniverseRule, day: date, receipts: Sequence[Mapping]) -> tuple[bytes, str]:
+    """The snapshot file bytes and their manifest sha256, which is also the file name (owner.universe_path). The file
+    is the universe JSON of {day, rule, receipts in request order, manifest_sha256}, and the manifest is the sha256 of
+    that JSON without manifest_sha256. Refuses the receipts universe_eligible refuses. Writes nothing:
+    execution_launch/universe_store.py writes the file."""
+    _eligible(rule, receipts, day)
+    plain = sorted(({key: value[key] for key in _RECEIPT_KEYS} for value in receipts),
+                   key=lambda receipt: (receipt["path"], receipt["params"]))
+    body = {"day": day.isoformat(), "rule": _rule_body(rule), "receipts": plain}
+    manifest = hashlib.sha256(_universe_json(body)).hexdigest()
+    return _universe_json({**body, "manifest_sha256": manifest}), manifest
+
+
+def verify_universe_snapshot(raw: bytes, rule_sha256: str) -> Universe:
+    """A snapshot file -> the Universe it proves (universe spec section 5), or UniverseError with the first refusal:
+    the file form and its manifest, the embedded rule in parsed form and its sha256 against the signed one, then
+    universe_eligible. Pure: it never loads a context, reads a clock or opens a file."""
+    from core.compliance.model import Universe                # lazy: no import cycle with model.py
+    doc = _strict_json(raw, "UNIVERSE_MANIFEST_MISMATCH")
+    try:
+        if type(doc) is not dict or set(doc) != _SNAPSHOT_KEYS or _universe_json(doc) != raw:
+            raise ValueError("not the snapshot's JSON form")
+        manifest = hashlib.sha256(_universe_json({key: doc[key] for key in ("day", "rule", "receipts")})).hexdigest()
+        if doc["manifest_sha256"] != manifest:
+            raise ValueError("the manifest does not match")
+        day = parse_date(doc["day"], "day")
+    except (TypeError, ValueError, Invalid):                   # TypeError: a JSON fraction became a Decimal
+        raise UniverseError("UNIVERSE_MANIFEST_MISMATCH") from None
+    try:
+        rule = _universe_rule(doc["rule"], "universe_rule", frozenset({"KRW"}))
+    except Invalid:
+        raise UniverseError("UNIVERSE_RULE_INVALID") from None
+    if _rule_body(rule) != doc["rule"]:
+        raise UniverseError("UNIVERSE_RULE_INVALID")           # not the parsed form (an unsorted exclude)
+    if universe_rule_sha256(rule) != rule_sha256:
+        raise UniverseError("UNIVERSE_RULE_MISMATCH")
+    listed, eligible, built_at = _eligible(rule, doc["receipts"], day)
+    opens = _midnight(day) + _IN_FORCE_AT
+    return Universe(day=day, rule_sha256=rule_sha256, snapshot_sha256=manifest, built_at=built_at,
+                    valid_from=max(built_at, opens), valid_until=opens + timedelta(days=1), listed=listed,
+                    eligible=eligible)
+
+
+def universe_top_n(universe: Universe, n: int) -> tuple[str, ...]:
+    """The n eligible markets with the largest median daily value, largest first; equal medians by market."""
+    if type(n) is not int or n < 1:
+        raise ValueError("universe_top_n: n must be an int >= 1")
+    ranked = sorted(universe.eligible, key=lambda pair: (-pair[1], pair[0]))
+    return tuple(market for market, _ in ranked[:n])
 
 
 # --------------------------------------------------------------------------- #
