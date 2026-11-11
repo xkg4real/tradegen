@@ -1622,3 +1622,145 @@ def test_shipped_venue_odds_values_are_the_sourced_ones():
               "it, so those legs are not tradable, and this file's sha256 changed, so it needs a new approval.")
     assert clause in flat and "ticks later" not in head and head.endswith(
         "\n# A venue with no deposit entry for a coin credits none, so a withdrawal there fails closed."), head
+
+
+# --------------------------------------------------------------------------- #
+# Upbit KRW universe PR 1, Task 1 (universe spec section 4): the optional universe_rule of the upbit venue, its
+# strict sub-parser, its sha256, and the research note that records its source URL.
+# --------------------------------------------------------------------------- #
+_U1_SOURCE = "https://docs.upbit.com/kr/reference/list-trading-pairs"
+_U1_NOTE = _T5_REPO / "research_notes" / "Korean resident trading venue legality" / "upbit_market_list.md"
+_U1_CAUTIONS = ("PRICE_FLUCTUATIONS", "TRADING_VOLUME_SOARING", "DEPOSIT_AMOUNT_SOARING", "GLOBAL_PRICE_DIFFERENCES",
+                "CONCENTRATION_OF_SMALL_ACCOUNTS")
+
+
+def _u1_rule_doc(**over) -> dict:
+    """The spec section 4 rule with its proposed defaults; an override of _DROP deletes the key."""
+    doc = {"source": _U1_SOURCE, "quote": "KRW", "exclude": ["USDT", "USDC"], "min_listing_days": 250,
+           "median_days": 30, "min_median_value_krw": 1000000000}
+    doc.update(over)
+    return {k: v for k, v in doc.items() if v is not _DROP}
+
+
+def _u1_venues(rule=None, **upbit) -> dict:
+    """_venues_doc() with `rule` as the upbit universe_rule (left out when None) and other upbit keys overridden."""
+    doc = _venues_doc()
+    if rule is not None:
+        doc["venues"]["upbit"]["universe_rule"] = rule
+    doc["venues"]["upbit"].update(upbit)
+    return doc
+
+
+def _u1_rule(doc=None) -> rules.UniverseRule:
+    return _facts(_u1_venues(_u1_rule_doc() if doc is None else doc)).venues["upbit"].universe_rule
+
+
+def test_universe_rule_parses_into_the_upbit_venue():
+    rule = _u1_rule()
+    assert rule == rules.UniverseRule(source=_U1_SOURCE, quote="KRW", exclude=("USDC", "USDT"), min_listing_days=250,
+                                      median_days=30, min_median_value_krw=1000000000), rule
+    assert type(rule.exclude) is tuple                                   # sorted and hashable
+    direct = rules.UniverseRule(source=_U1_SOURCE, quote="KRW", exclude=["USDT", "USDC"], min_listing_days=250,
+                                median_days=30, min_median_value_krw=1000000000)
+    assert direct == rule and direct.exclude == ("USDC", "USDT"), direct   # any input order: stored sorted
+    with_rule, without = _facts(_u1_venues(_u1_rule_doc())), _facts()
+    assert without.venues["upbit"].universe_rule is None                 # the key stays optional
+    assert all(v.universe_rule is None for v in with_rule.venues.values() if v.id != "upbit")
+    assert with_rule.venues["kis"] == without.venues["kis"] and with_rule.venues["okx"] == without.venues["okx"]
+    assert with_rule.venues["upbit"].markets == without.venues["upbit"].markets      # markets keeps today's pin
+    assert rules.Venue(id="x", sections=(), settlement=frozenset(), markets=frozenset()).universe_rule is None
+    assert "universe_rule" in rules._VENUE_OPTIONAL
+    try:
+        rule.median_days = 1
+    except AttributeError:                                               # dataclasses.FrozenInstanceError
+        pass
+    else:
+        raise AssertionError("UniverseRule is not frozen")
+
+
+def test_universe_rule_keeps_the_venue_parser_closed():
+    """Today's closed-key failure stays for every other key, and universe_rule is itself a closed mapping."""
+    where = "venues: upbit: universe_rule"
+    _refused(lambda: _facts(_u1_venues(universe_rules=_u1_rule_doc())),
+             "venues: upbit: unknown key(s) ['universe_rules']")
+    _refused(lambda: _facts(_u1_venues(_u1_rule_doc(extra=1))), f"{where}: unknown key(s) ['extra']")
+    _refused(lambda: _facts(_u1_venues(_u1_rule_doc(median_days=_DROP))), f"{where}: missing key(s) ['median_days']")
+    for bad in ([], "KRW", 1):
+        _refused(lambda: _facts(_u1_venues(bad)), f"{where}: expected a mapping")
+    nulled = _venues_doc()
+    nulled["venues"]["upbit"]["universe_rule"] = None
+    _refused(lambda: _facts(nulled), f"{where}: expected a mapping")
+    okx = _venues_doc()
+    okx["venues"]["okx"]["universe_rule"] = _u1_rule_doc()
+    _refused(lambda: _facts(okx), "venues: okx: universe_rule: only upbit carries a universe rule")
+    _need_model()
+    good_rules, good_map = _table(_row()), _dump(_map_doc())
+    for doc in (_u1_venues(_u1_rule_doc(extra=1)), nulled, okx):
+        state = rules.approved_state(good_rules, good_map, _dump(doc), seq=1)
+        assert state.valid is False and "universe_rule" in state.reason, state.reason
+    assert rules.approved_state(good_rules, good_map, _dump(_u1_venues(_u1_rule_doc())), seq=1).valid
+
+
+def test_universe_rule_values_are_checked():
+    where = "venues: upbit: universe_rule"
+
+    def bad(has: str, **over) -> None:
+        _refused(lambda: _u1_rule(_u1_rule_doc(**over)), f"{where}: {has}")
+
+    for source in (" ", None, 1):
+        bad("source: expected a non-empty string", source=source)
+    for quote in ("USDT", None, "krw"):
+        bad(f"quote: only KRW, a settlement asset of this venue, is supported; got {quote!r}", quote=quote)
+    usdt = _u1_venues(_u1_rule_doc(), settlement=["USDT"], markets=[["BTC", "USDT"]], default_quote="USDT")
+    _refused(lambda: _facts(usdt), f"{where}: quote: only KRW, a settlement asset of this venue, is supported; got 'KRW'")
+    for base in ("usdt", "KRW-USDT", "A" * 13, "1INCH", " USDT"):
+        bad(f"exclude: {base!r} is not a base symbol (A-Z, then at most 11 of A-Z or 0-9)", exclude=[base])
+    bad("exclude: '' is not a non-empty string", exclude=[""])
+    bad("exclude: 1 is not a non-empty string", exclude=[1])
+    bad("exclude: an item is repeated", exclude=["USDT", "USDT"])
+    bad("exclude: expected a list", exclude="USDT")
+    for key, most in (("min_listing_days", 3650), ("median_days", 200)):
+        for value in (0, -1, most + 1, True, 30.0, "30", None):
+            bad(f"{key}: expected an int in 1..{most}, got {value!r}", **{key: value})
+    for value in (0, -1, True, 1e9, "1000000000", None):
+        bad(f"min_median_value_krw: expected an int >= 1, got {value!r}", min_median_value_krw=value)
+    for empty in ([], None):
+        assert _u1_rule(_u1_rule_doc(exclude=empty)).exclude == ()
+    edge = _u1_rule(_u1_rule_doc(exclude=["B", "ABCDEFGHIJKL"], min_listing_days=3650, median_days=200,
+                                 min_median_value_krw=1))
+    assert (edge.exclude, edge.min_listing_days, edge.median_days, edge.min_median_value_krw) == (
+        ("ABCDEFGHIJKL", "B"), 3650, 200, 1), edge
+
+
+def test_universe_rule_sha256_is_the_rule_alone():
+    """Spec section 4: the sha256 of the parsed rule's JSON, so unrelated venues.yaml edits leave it alone."""
+    text = (b'{"exclude":["USDC","USDT"],"median_days":30,"min_listing_days":250,"min_median_value_krw":1000000000,'
+            b'"quote":"KRW","source":"https://docs.upbit.com/kr/reference/list-trading-pairs"}')
+    sha = rules.universe_rule_sha256(_u1_rule())
+    assert sha == hashlib.sha256(text).hexdigest(), sha
+    direct = rules.UniverseRule(source=_U1_SOURCE, quote="KRW", exclude=("USDT", "USDC"), min_listing_days=250,
+                                median_days=30, min_median_value_krw=1000000000)
+    assert rules.universe_rule_sha256(direct) == sha                   # a rule built in code hashes like the parsed one
+    kis = _u1_venues(_u1_rule_doc())
+    kis["venues"]["kis"]["source"] = "https://example.invalid/kis2"
+    for doc in (_u1_venues(_u1_rule_doc(exclude=["USDC", "USDT"])),                   # another order, the same set
+                _u1_venues(_u1_rule_doc(), source="https://example.invalid/upbit2"),    # the venue's own source
+                kis):                                                                  # another venue
+        assert rules.universe_rule_sha256(_facts(doc).venues["upbit"].universe_rule) == sha
+    for key, value in (("source", "https://example.invalid/rule"), ("exclude", ["USDT"]), ("min_listing_days", 251),
+                       ("median_days", 29), ("min_median_value_krw", 999999999)):
+        assert rules.universe_rule_sha256(_u1_rule(_u1_rule_doc(**{key: value}))) != sha, key
+
+
+def test_universe_rule_source_is_in_the_research():
+    """Spec section 4: the rule's source URL is in the research corpus before venues.yaml may cite it (the check of
+    test_shipped_urls_come_from_the_research), and the note records the flag fields the classes read."""
+    corpus = b"\n".join(p.read_bytes() for d in _T5_RESEARCH_DIRS for p in sorted((_T5_REPO / d).rglob("*.md")))
+    known = {u.rstrip(b".,;*") for u in _t5_re.findall(rb"https://[^\s)\]>\"'`|]+", corpus)}
+    assert _U1_SOURCE.encode("ascii") in known
+    raw = _U1_NOTE.read_bytes()
+    assert b"\r" not in raw and raw.endswith(b"\n"), "LF only, like the other research notes"
+    note = raw.decode("utf-8")
+    for needle in (_U1_SOURCE, "is_details=true", "`market_event.warning`", "10 calls per second",
+                   *(f"`{key}`" for key in _U1_CAUTIONS)):
+        assert needle in note, needle
