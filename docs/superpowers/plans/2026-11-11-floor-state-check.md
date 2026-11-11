@@ -68,7 +68,7 @@ Four readings of the spec that this plan fixes:
 - S6 reads the signed floor only. The floor and the daily limit are signed in one `limit_set` entry, and a first setting of either waits one Seoul date, so the two are unset together. S1 is not in the gate: when the log does not verify or is empty, S6 is not `equal`.
 - The spec's gate sentence names `none` for S3; its S3 row gives "none, or no journal" as go. A home that never ran has no journal, and that is the expected case at step 10, so the gate accepts `no_journal`.
 - The spec does not say when a journal is "absent". Here: the folder `execution-control` under the home does not exist. A folder that exists but cannot be read by `Journal.snapshot()` is `unreadable`.
-- The spec's gate sentence does not name S12; its S12 row gives `equal` as go. S12 is the one row whose miss nothing else catches and cannot be undone: a buy inside that session reads the earlier, higher floor and halts for good (spec 2.5). So with `--session` the gate also needs `S12` `equal`. Without `--session`, `S12` is `not_requested` and the gate is the gate of step 10.
+- The spec's gate sentence does not name S12; its S12 row gives `equal` as go, and no code checks it before the runner starts. Inside a session armed on or before the loosening's date, the signed floor is the earlier one, or unset. Its buys are refused (spec 2.5b), and when equity is below that earlier floor the first buy evaluation halts for good (spec 2.5a, 10.3). So with `--session` the gate also needs `S12` `equal`. Without `--session`, `S12` is `not_requested` and the gate is the gate of step 10.
 
 ---
 
@@ -413,6 +413,13 @@ def test_the_gate_passes_on_the_go_table_and_fails_on_each_single_miss():
         assert invoke(home, hroot, "--gate")[0] == 0, "S12 was not asked for"
         assert invoke(home, hroot, "--gate", "--session", "LATER8")[0] == 0, "S12 equal"
         assert invoke(home, hroot, "--gate", "--session", "ARMED7")[0] == 1, "S12 above"
+        assert invoke(home, hroot, "--gate", "--session", "OTHER")[0] == 1, "S12 not_armed"
+    with homes() as (home, hroot, key):
+        limits(key, C)                                                      # a first setting: counts from 24 October
+        F.sign(key, "session_armed", {"session_id": "ARMED7"}, "2026-10-23T04:00:00Z")
+        seed(home, hroot, anchor_state())
+        code, report, _ = invoke(home, hroot, "--gate", "--session", "ARMED7")
+        assert code == 1 and report["rows"]["S12"] == "unset", "S12 unset"
 
 
 def test_the_state_root_must_be_the_configured_home_and_nothing_is_read_otherwise():

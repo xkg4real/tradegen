@@ -325,6 +325,13 @@ def test_the_gate_passes_on_the_go_table_and_fails_on_each_single_miss():
         assert invoke(home, hroot, "--gate")[0] == 0, "S12 was not asked for"
         assert invoke(home, hroot, "--gate", "--session", "LATER8")[0] == 0, "S12 equal"
         assert invoke(home, hroot, "--gate", "--session", "ARMED7")[0] == 1, "S12 above"
+        assert invoke(home, hroot, "--gate", "--session", "OTHER")[0] == 1, "S12 not_armed"
+    with homes() as (home, hroot, key):
+        limits(key, C)                                                      # a first setting: counts from 24 October
+        F.sign(key, "session_armed", {"session_id": "ARMED7"}, "2026-10-23T04:00:00Z")
+        seed(home, hroot, anchor_state())
+        code, report, _ = invoke(home, hroot, "--gate", "--session", "ARMED7")
+        assert code == 1 and report["rows"]["S12"] == "unset", "S12 unset"
 
 
 def test_the_state_root_must_be_the_configured_home_and_nothing_is_read_otherwise():
