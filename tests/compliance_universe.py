@@ -235,6 +235,17 @@ def test_finality_comes_from_content():
         receipts[0] = _receipt("/v1/market/all", [("is_details", "true")], MENU, moment)
         return receipts
 
+    def with_value_read_at(moment: datetime) -> list:                          # one candle read stamped at `moment`
+        receipts = _receipts()
+        i = _index(receipts, "KRW-BTC", VALUE_TO)
+        receipts[i] = _receipt("/v1/candles/days", [("market", "KRW-BTC"), ("to", VALUE_TO), ("count", "4")],
+                               base64.b64decode(receipts[i]["raw_body_b64"]), moment)
+        return receipts
+
+    open_read = with_value_read_at(datetime(2026, 11, 10, 23, 59, 59, tzinfo=utc))   # the still-open D-1 candle
+    assert _code(lambda: rules.universe_eligible(RULE, open_read, D)) == "UNIVERSE_NOT_FINAL"
+    assert rules.universe_eligible(RULE, with_value_read_at(datetime(2026, 11, 11, tzinfo=utc)), D) == (
+        LISTED, ELIGIBLE)
     stale = with_menu_at(datetime(2026, 11, 10, 23, 59, 59, tzinfo=utc))      # the list read before D 00:00
     assert _code(lambda: rules.universe_eligible(RULE, stale, D)) == "UNIVERSE_NOT_FINAL"
     assert rules.universe_eligible(RULE, with_menu_at(datetime(2026, 11, 11, tzinfo=utc)), D) == (LISTED, ELIGIBLE)

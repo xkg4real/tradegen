@@ -1203,7 +1203,8 @@ def _eligible(rule: UniverseRule, receipts,
     if tuple(sorted(key for key, _, _ in checked)) != universe_requests(rule, menu, day):
         raise UniverseError("UNIVERSE_REQUEST_SET_MISMATCH")
     built_at = max(server for _, _, server in checked)
-    if menu_time < _midnight(day) or built_at < _midnight(day) + _FINAL_AFTER:
+    if (menu_time < _midnight(day) or built_at < _midnight(day) + _FINAL_AFTER
+            or min(server for _, _, server in checked) < _midnight(day)):    # a candle read before D 00:00 may be open
         raise UniverseError("UNIVERSE_NOT_FINAL")
     bodies = {key: body for key, body, _ in checked}
     flags = market_flags(menu)
