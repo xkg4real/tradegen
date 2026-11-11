@@ -156,8 +156,7 @@ def _authenticate(document, authority, now):
     try:
         intact = (type(context) is compliance.Context and compliance.is_sealed(context)
             and type(context.owner) is compliance.OwnerState and type(context.active) is compliance.ApprovedState
-            and context.ctx_hash == compliance.sha256_hex(compliance.canonical_json({f.name: getattr(context, f.name)
-                for f in fields(compliance.Context) if f.name != "ctx_hash"})))
+            and context.ctx_hash == compliance.context_hash(context))
     except (ValueError, TypeError, AttributeError, OverflowError, RecursionError):
         intact = False
     _need(intact, "REVIEW_OWNER_CONTEXT_INVALID")

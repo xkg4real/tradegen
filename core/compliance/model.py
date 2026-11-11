@@ -192,6 +192,7 @@ class Context:
     shorts: Mapping[tuple[str, str], float]
     exposure: Mapping[str, Exposure]
     live_evidence: frozenset = frozenset()            # E1: live D16 requirements in force (owner.evidence_in_force)
+    universe: Universe | None = None                  # upbit KRW universe spec 8: the snapshot in force, or None
     ctx_hash: str = ""                                # set by seal_context
 
 
@@ -243,13 +244,24 @@ def intent_hash(intent: Intent) -> str:
 _SEALED: weakref.WeakValueDictionary = weakref.WeakValueDictionary()     # id(ctx) -> ctx
 
 
+def context_hash(ctx) -> str:
+    """sha256 of every Context field but ctx_hash. `universe` counts only when set, so a context without one keeps
+    the hash it had before the field existed (upbit KRW universe spec 8); its Decimal medians hash as exact text."""
+    body = {f.name: getattr(ctx, f.name) for f in dataclasses.fields(Context)
+            if f.name not in ("ctx_hash", "universe")}
+    if ctx.universe is not None:
+        u = ctx.universe
+        body["universe"] = {**{f.name: getattr(u, f.name) for f in dataclasses.fields(u)},
+                            "eligible": [[market, str(median)] for market, median in u.eligible]}
+    return sha256_hex(canonical_json(body))
+
+
 def seal_context(**fields) -> Context:
-    """Build a Context, hash every field into ctx_hash and register the instance (P5). Discipline, not
+    """Build a Context, hash it into ctx_hash (context_hash) and register the instance (P5). Discipline, not
     security: owner.load_context and the test fixtures are its only callers."""
     fields.pop("ctx_hash", None)
     draft = Context(**fields)                         # defaults filled in; an unknown field is still a TypeError
-    body = {f.name: getattr(draft, f.name) for f in dataclasses.fields(Context) if f.name != "ctx_hash"}
-    ctx = Context(**body, ctx_hash=sha256_hex(canonical_json(body)))
+    ctx = dataclasses.replace(draft, ctx_hash=context_hash(draft))
     _SEALED[id(ctx)] = ctx
     return ctx
 
