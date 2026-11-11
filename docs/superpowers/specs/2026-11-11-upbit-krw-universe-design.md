@@ -25,8 +25,10 @@ This is software design, not legal, tax or investment advice. Neither the softwa
   with only a 주의 (`caution`) flag is kept as the strategy decides, but is not bought again while flagged. Any
   flagged coin is out of the new-buy candidates.
 
-Unchanged: the floor and total-loss rule (its own owner decision is still open), the derivatives and leverage bans,
-the rules table, fixed-symbol KRW-BTC profiles, and every other venue.
+Unchanged: the floor and total-loss rule, the derivatives and leverage bans, the rules table, fixed-symbol KRW-BTC
+profiles, and every other venue. The floor is changed separately by the [principal loss budget design](2026-11-11-principal-loss-budget-design.md)
+(approved 2026-11-11). Its code lands after this design's PR 5 (owner decision, 2026-11-11), and its section 12.5
+and decision PLB-O16 cover how the two meet.
 
 **Choices this revision makes inside those decisions** (the owner may overrule any of them):
 - The warning sale goes through the strategy: the decision made at the slot that first sees `warning` is cash, and
@@ -905,12 +907,19 @@ decisions and anchors are lists of (symbol, fraction or units), and the driver c
 
 - Without a real edge, no method that keeps the floor can beat (W0 - F) / (T - F), where W0 is the start, F the floor
   and T the target (the odds card's wording, `core/odds/report.py:231`).
-- Stage 1 does not keep the floor. A buy is sized as `exposure_fraction` of NAV, and the live floor reacts only after
+- Until the principal loss budget code is merged and signed, stage 1 does not keep the floor. A buy is sized as
+  `exposure_fraction` of NAV, and the live floor reacts only after
   equity is already below it (`execution_control/risk.py:283`), so one held coin can gap below F between slots. For
   stage 1 the general no-edge bound is W0 / T. Any chance above (W0 - F) / (T - F) comes only from breaking the floor.
+  With that code, below the activation equity every buy, universe buys included, must leave settled cash at or above
+  the floor C = W0 - LB, and the no-edge chance of reaching T is at most LB / (T - W0 + LB) (sections 2.2, 4.1, 4.2
+  and 7.1 of the principal loss budget design).
 - Widening the universe does not raise either ceiling. Under a deadline, higher volatility can raise the chance of
   reaching T in time, but never above the ceiling; expected end wealth stays at W0 less fees, so the chance of ending
   at or below F rises more. Each switch costs fees (the engine assumes 10 bp per side).
 - Only a real edge changes this, and only a qualified study can show one. This repo has no such evidence for altcoins
   or rotation yet.
-- Stage 1 does not resolve the open floor decision. While the floor equals the start equity, no coin can start.
+- Stage 1 does not change the floor. Until the [principal loss budget design](2026-11-11-principal-loss-budget-design.md) is in force (its code
+  merged, `code-approve`, then the `limit_set` that lowers the floor, in that order), the floor equals the start
+  equity and no coin can start. A lower floor signed on today's code leads to a permanent halt after the first buy's
+  fee (that design's 9.2).
