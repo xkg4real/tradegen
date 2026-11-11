@@ -203,3 +203,57 @@ def test_universe_module_imports_only_public_helpers_and_no_odds_loader_data_or_
                                                         "candle_params", "daily_candles", "market_all", "tickers")}
     assert {pair for pair in named if pair[0].split(".")[0] == "execution"} <= public, named
     assert not {m for m in plain if m.split(".")[0] == "execution"}, plain
+
+
+TRADE_MS = int(BUILT.timestamp()) * 1000
+
+
+def ticker(name, price):
+    """One ticker row."""
+    return {"market": name, "trade_price": price, "trade_timestamp": TRADE_MS, "timestamp": TRADE_MS}
+
+
+def answered(raw):
+    return lambda call: (200, {"Date": BUILT_HEADER}, raw)
+
+
+def unavailable(read):
+    mapping = read.flags if type(read) is U.FlagRead else read.prices
+    return read.ok is False and read.received_at is None and read.sha256 is None and dict(mapping) == {}
+
+
+def test_slot_source_reads_flags_and_prices_with_one_public_get_each():
+    ticker_raw = json.dumps([ticker("KRW-BTC", 101), ticker("KRW-ETH", 2.5)]).encode("utf-8")
+    source = U.UniverseSlotSource(clock=lambda: BUILT)
+    with F.serve({("GET", "/v1/market/all"): answered(MARKET_ALL_RAW),
+                  ("GET", "/v1/ticker"): answered(ticker_raw)}) as calls:
+        flags, prices = source.read_flags(), source.read_tickers(("KRW-BTC", "KRW-ETH"))
+    assert [c["url"] for c in calls] == ["https://api.upbit.com/v1/market/all?is_details=true",
+                                         "https://api.upbit.com/v1/ticker?markets=KRW-BTC,KRW-ETH"]
+    assert all("authorization" not in {k.lower() for k in c["headers"]} for c in calls)
+    assert flags.ok and flags.received_at == BUILT and flags.sha256 == hashlib.sha256(MARKET_ALL_RAW).hexdigest()
+    assert dict(flags.flags) == {"KRW-BTC": "unflagged", "KRW-ETH": "unflagged", "KRW-USDT": "unflagged",
+                                 "KRW-XYZ": "caution"}
+    assert prices.ok and prices.received_at == BUILT and prices.sha256 == hashlib.sha256(ticker_raw).hexdigest()
+    assert dict(prices.prices) == {"KRW-BTC": (Decimal(101), BUILT), "KRW-ETH": (Decimal("2.5"), BUILT)}
+
+
+def test_slot_source_failures_are_unavailable_reads_never_exceptions():
+    source = U.UniverseSlotSource(clock=lambda: BUILT)
+    error = lambda call: (500, {"Date": BUILT_HEADER}, b'{"error":{"name":"server_error"}}')
+    with F.serve({("GET", "/v1/market/all"): error, ("GET", "/v1/ticker"): error}) as calls:
+        assert unavailable(source.read_flags()) and unavailable(source.read_tickers(["KRW-BTC"]))
+    assert len(calls) == 4                                    # each GET once more after the 5xx, nothing else
+    with F.serve({("GET", "/v1/market/all"): answered(b'{"market": "KRW-BTC"}')}):
+        assert unavailable(source.read_flags())
+    for markets in ([], ["KRW-BTC", "KRW-BTC"], ["KRW-btc"], "KRW-BTC"):
+        assert unavailable(source.read_tickers(markets))      # refused before any send
+    for rows in ([ticker("KRW-ETH", 1)], [ticker("KRW-BTC", 1), ticker("KRW-BTC", 1)], [ticker("KRW-BTC", 0)],
+                 [ticker("KRW-BTC", 1) | {"trade_timestamp": "1"}], [{"market": "KRW-BTC"}], {"KRW-BTC": 1}, ["row"]):
+        with F.serve({("GET", "/v1/ticker"): answered(json.dumps(rows).encode("utf-8"))}):
+            assert unavailable(source.read_tickers(["KRW-BTC"])), rows
+    with F.serve({("GET", "/v1/ticker"): answered(json.dumps([ticker("KRW-BTC", 1)]).encode("utf-8"))}),             patch.object(U, "MAX_TICKER_BODY", 8):
+        assert unavailable(source.read_tickers(["KRW-BTC"]))
+    with F.serve({("GET", "/v1/market/all"): answered(MARKET_ALL_RAW)}), patch.object(U, "MAX_MARKET_ALL_BODY", 8):
+        assert unavailable(source.read_flags())
+    refused(lambda: U.UniverseSlotSource(clock=None), "UNIVERSE_CLOCK_REQUIRED")

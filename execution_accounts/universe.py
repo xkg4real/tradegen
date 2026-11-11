@@ -5,26 +5,30 @@ writes the snapshot file."""
 from __future__ import annotations
 
 import base64
-from collections.abc import Sequence
-from dataclasses import dataclass
+from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
+import json
 import math
+from types import MappingProxyType
 
 from core.compliance import rules
 from core.compliance.model import KST
 from execution.transport import Answer, inquiry_clock
 from execution.upbit_inquiry import (CANDLE_COUNT_MAX, CANDLES_DAYS_PATH, MARKET_ALL_PATH, candle_params,
-                                     daily_candles, market_all)
-from execution_accounts.collector import SourceReceipt
+                                     daily_candles, market_all, tickers)
+from execution_accounts.collector import SourceReceipt, number
 
 PUBLIC_SCOPE = "public"                    # the plain receipt's account_scope (index contract, PR 1)
 # ponytail: provisional body caps until the spec section 17 measurement sizes them from real answers
 MAX_MARKET_ALL_BODY = 1024 * 1024
 MAX_CANDLE_BODY = 256 * 1024
+MAX_TICKER_BODY = 1024 * 1024
 _MARKET_ALL_PARAMS = (("is_details", "true"),)
 HISTORY_DAYS = 3650                        # core/oddsdata/bars.py HISTORY_DAYS, written out: no core.oddsdata import
 _MAX_PAGES = HISTORY_DAYS // CANDLE_COUNT_MAX + 2
+_EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
 
 
 class UniverseReadError(ValueError):
@@ -181,3 +185,74 @@ def _price(value):
     except (OverflowError, ValueError):
         return None
     return result if math.isfinite(result) and result > 0 else None
+
+
+@dataclass(frozen=True)
+class FlagRead:
+    """One market/all?is_details=true read: every KRW market in it with its flag class, or ok=False and nothing."""
+    ok: bool
+    received_at: datetime | None
+    sha256: str | None
+    flags: Mapping[str, str]
+
+
+@dataclass(frozen=True)
+class TickerRead:
+    """One ticker read: each returned market's (trade price, trade time), or ok=False and nothing."""
+    ok: bool
+    received_at: datetime | None
+    sha256: str | None
+    prices: Mapping[str, tuple[Decimal, datetime]]
+
+
+_NO_FLAGS = FlagRead(ok=False, received_at=None, sha256=None, flags=MappingProxyType({}))
+_NO_TICKERS = TickerRead(ok=False, received_at=None, sha256=None, prices=MappingProxyType({}))
+
+
+@dataclass(frozen=True)
+class UniverseSlotSource:
+    """The keyless per-slot reads of spec section 7, steps 4 and 5. A failed read is an ok=False result, never an
+    exception, so the coordinator records it as unavailable and blocks buys only."""
+    clock: Callable = field(repr=False)
+
+    def __post_init__(self):
+        _require(callable(self.clock), "UNIVERSE_CLOCK_REQUIRED")
+
+    def read_flags(self) -> FlagRead:
+        """One market/all read under the clock: each KRW market's flag class (rules.market_flags)."""
+        try:
+            with inquiry_clock(self.clock):
+                answer = market_all()
+            _require(type(answer) is Answer and 0 < len(answer.raw_body) <= MAX_MARKET_ALL_BODY,
+                     "UNIVERSE_BODY_EMPTY_OR_OVERSIZED")
+            flags = MappingProxyType(dict(rules.market_flags(answer.raw_body)))
+        except Exception:
+            return _NO_FLAGS
+        return FlagRead(ok=True, received_at=answer.received_utc, sha256=answer.sha256, flags=flags)
+
+    def read_tickers(self, markets: Sequence[str]) -> TickerRead:
+        """One ticker read of `markets` (distinct KRW markets) under the clock: each returned market's trade price and
+        trade time."""
+        try:
+            with inquiry_clock(self.clock):
+                answer = tickers(markets)
+            _require(type(answer) is Answer and 0 < len(answer.raw_body) <= MAX_TICKER_BODY,
+                     "UNIVERSE_BODY_EMPTY_OR_OVERSIZED")
+            prices = MappingProxyType(_ticker_prices(answer.raw_body, markets))
+        except Exception:
+            return _NO_TICKERS
+        return TickerRead(ok=True, received_at=answer.received_utc, sha256=answer.sha256, prices=prices)
+
+
+def _ticker_prices(raw, markets):
+    """Each returned market's (trade price, trade time); a row that is not an object, names a market not requested
+    or twice, or has no positive price or integer trade_timestamp refuses the whole read."""
+    rows = json.loads(raw.decode("utf-8"), parse_float=Decimal)
+    _require(type(rows) is list, "UNIVERSE_TICKERS_INVALID")
+    wanted, prices = set(markets), {}
+    for row in rows:
+        _require(type(row) is dict and row.get("market") in wanted and row["market"] not in prices
+                 and type(row.get("trade_timestamp")) is int, "UNIVERSE_TICKERS_INVALID")
+        prices[row["market"]] = (number(row.get("trade_price"), positive=True, json_number=True),
+                                 _EPOCH + timedelta(milliseconds=row["trade_timestamp"]))
+    return prices
