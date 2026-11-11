@@ -241,9 +241,16 @@ def _validate_frame(callback, frame, observation):
     _require(type(observation) is DecisionInput and type(observation.quote) is Quote
              and type(observation.account) is AccountObservation, "FIXED_DRIVER_OBSERVATION_REQUIRED")
     _instant(observation.now)
-    _require(profile_digest(observation.profile) == callback.profile_sha,
-             "FIXED_DRIVER_PROFILE_CHANGED")
     identity, protocol, window = callback.identity, callback.protocol, callback.window
+    profile = observation.profile
+    # The runner swaps in each renewed profile; a same-terms renewal changes only
+    # instrument_rules.asof, which the contract digest leaves out.
+    _require(type(profile) is LaunchProfile
+             and (profile.venue, profile.market, profile.account_scope)
+             == (protocol.venue, protocol.market, callback.profile.account_scope),
+             "FIXED_DRIVER_SCOPE_MISMATCH")
+    _require(profile_contract_digest(profile) == identity.profile_contract_digest,
+             "FIXED_DRIVER_PROFILE_CHANGED")
     frame_sha = history_frame_digest(frame)
     _require(frame.deployment_window_digest == identity.deployment_window_digest
              and frame.source_kind == "prospective_paper_capture", "FIXED_DRIVER_HISTORY_SOURCE_INVALID")

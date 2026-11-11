@@ -14,7 +14,7 @@ from execution_control.risk import RiskObservation
 from execution_launch.driver import (AccountAnchor, DeploymentWindow, FixedDriverError,
     HistoryFrame, HistoryReceipt, describe_fixed_driver, fixed_history_dependencies,
     history_frame_digest, make_fixed_driver)
-from execution_launch.profile import profile_contract_digest
+from execution_launch.profile import profile_contract_digest, profile_digest
 from execution_launch.program import program_digest, target_fraction
 from execution_launch.runner import DecisionInput, Quote, StrategyDriver, program_digest as runner_digest
 from execution_launch.strategy import PaperDecision, _simulate, history_digest
@@ -271,3 +271,43 @@ def test_terminal_window_is_deployment_window_and_dust_is_not_reported_as_succes
     env = fixture(60, units=D("0.01"))
     # Current bid is 100; 20bps adverse slippage rounds down to 99 => 0.99 below minimum 1.
     reject(lambda:decide(env), "FIXED_DRIVER_TERMINAL_DUST_UNLIQUIDATED")
+
+
+def test_same_terms_renewal_moves_only_asof_and_the_fixed_driver_keeps_ticking():
+    env = fixture()
+    first = decide(env)
+    rules = env.profile.instrument_rules
+    # instrument_refresh.py:94 builds exactly this profile from identical terms and a newer asof.
+    renewed = replace(env.profile, instrument_rules=replace(rules, asof=env.frame.bars[-1].observed_at))
+    assert profile_digest(renewed) != profile_digest(env.profile)
+    assert profile_contract_digest(renewed) == profile_contract_digest(env.profile)
+    env.observation = replace(env.observation, profile=renewed)
+    assert decide(env) == first
+    expected = decide(fixture(5))
+    env.profile = renewed
+    next_frame(env, 5)
+    assert decide(env) == expected
+
+
+def test_changed_contract_terms_still_refuse_after_a_renewal():
+    for change in (
+        lambda p: replace(p, instrument_rules=replace(p.instrument_rules, tick_size=D("0.5"))),
+        lambda p: replace(p, instrument_rules=replace(p.instrument_rules, lot_size=D("0.02"))),
+        lambda p: replace(p, symbol="KRW-ETH", instrument_rules=replace(p.instrument_rules, symbol="KRW-ETH")),
+        lambda p: replace(p, policy=replace(p.policy, first_day_loss_budget=D("9"))),
+    ):
+        env = fixture()
+        changed = change(env.profile)
+        assert profile_contract_digest(changed) != profile_contract_digest(env.profile)
+        env.observation = replace(env.observation, profile=changed)
+        reject(lambda: decide(env), "FIXED_DRIVER_PROFILE_CHANGED")
+
+
+def test_another_venue_market_or_account_scope_refuses():
+    for change in (dict(venue="okx"), dict(market="krx"), dict(account_scope="other-scope")):
+        env = fixture()
+        env.observation = replace(env.observation, profile=replace(env.profile, **change))
+        reject(lambda: decide(env), "FIXED_DRIVER_SCOPE_MISMATCH")
+    env = fixture()
+    env.observation = replace(env.observation, profile=None)
+    reject(lambda: decide(env), "FIXED_DRIVER_SCOPE_MISMATCH")
