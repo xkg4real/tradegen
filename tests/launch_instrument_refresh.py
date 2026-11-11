@@ -417,3 +417,17 @@ def test_missing_credential_names_refuse_before_fixed_helper_or_fallback():
                 os.environ.pop(name)
                 refused(source.read, "TERMS_ENV_CREDENTIAL_NAMES_REQUIRED")
         assert not call.called
+
+
+def test_universe_profile_renews_across_a_tick_change_and_keeps_its_contract():
+    with registries():
+        rule = hashlib.sha256(b"fixture-universe-rule").hexdigest()
+        p = replace(profile(), universe_rule_sha256=rule)
+        stale = replace(p, instrument_rules=replace(p.instrument_rules, tick_size=D("5")))
+        o = observed()
+        r = R.renew_profile(stale, o, now=o.checked_at)
+        assert r.profile.instrument_rules.tick_size == D("1") and r.profile.universe_rule_sha256 == rule
+        assert profile_contract_digest(r.profile) == profile_contract_digest(stale)
+        assert R.validate_renewal(r, previous_profile=stale, now=o.checked_at) == r.profile
+        fee = replace(p, instrument_rules=replace(p.instrument_rules, fee_fraction=D("0.002")))
+        refused(lambda: R.renew_profile(fee, o, now=o.checked_at), "RENEWAL_ECONOMIC_OR_SOURCE_CHANGE")

@@ -171,12 +171,19 @@ def _json(raw):
 
 
 def _bound_profile(profile, protocol):
+    """A universe protocol binds the signed rule instead of a coin: the profile's symbol is its current trade coin
+    and the protocol's symbol is the KRW-BTC benchmark (spec sections 10 and 12)."""
     _require(profile.instrument_rules is not None, 'WORKFLOW_INSTRUMENT_RULES_REQUIRED')
-    _require((profile.venue, profile.market, profile.symbol, profile.quote_currency, profile.strategy_id)
-             == (protocol.venue, protocol.market, protocol.symbol, protocol.quote_currency, protocol.strategy_id)
+    universe = protocol.universe_rule_sha256 is not None
+    _require((profile.venue, profile.market, profile.quote_currency, profile.strategy_id,
+              profile.universe_rule_sha256)
+             == (protocol.venue, protocol.market, protocol.quote_currency, protocol.strategy_id,
+                 protocol.universe_rule_sha256)
+             and (universe or profile.symbol == protocol.symbol)
              and profile.strategy_code_sha256 == protocol.strategy_code_sha256
              and profile_contract_digest(profile) == protocol.profile_contract_digest
-             and rule_terms_digest(profile.instrument_rules) == protocol.rule_terms_digest
+             and rule_terms_digest(profile.instrument_rules, universe_rule_sha256=profile.universe_rule_sha256)
+             == protocol.rule_terms_digest
              and profile.policy.initial_equity == protocol.initial_cash_quote,
              'WORKFLOW_PROFILE_PROTOCOL_MISMATCH')
 
@@ -205,7 +212,8 @@ def evaluate_files(profile, protocol, capture_raw, *, now):
     result = evaluate_capture_json(protocol, json.dumps(body), profile.instrument_rules, now=now)
     assessment = assess_strategy(protocol, result,
         profile_contract_digest=profile_contract_digest(profile),
-        rule_terms_digest=rule_terms_digest(profile.instrument_rules),
+        rule_terms_digest=rule_terms_digest(profile.instrument_rules,
+                                            universe_rule_sha256=profile.universe_rule_sha256),
         strategy_code_sha256=profile.strategy_code_sha256, now=now)
     output = _base('evaluate')
     output.update(workflow_complete=True, source_kind=result.source_kind,

@@ -297,3 +297,18 @@ def test_universe_contract_and_rule_terms_follow_the_rule_not_the_trade_coin():
     assert profile_contract_digest(replace(universe, universe_rule_sha256="f"*64)) != profile_contract_digest(universe)
     fixed_moved = replace(fixed, symbol="KRW-ETH", instrument_rules=replace(fixed.instrument_rules, symbol="KRW-ETH"))
     assert profile_contract_digest(fixed_moved) != profile_contract_digest(fixed)
+
+
+def test_every_rule_terms_digest_call_passes_the_universe_selector():
+    import ast
+    root = Path(__file__).resolve().parents[1]
+    calls = []
+    for path in sorted((root/"execution_launch").rglob("*.py")) + sorted((root/"tools").rglob("*.py")):
+        for node in ast.walk(ast.parse(path.read_bytes())):
+            func = node.func if isinstance(node, ast.Call) else None
+            if (getattr(func, "id", None) or getattr(func, "attr", None)) in ("rule_terms_digest",
+                                                                       "economic_rules_digest"):
+                calls.append((path.relative_to(root).as_posix(), node.lineno,
+                              any(k.arg == "universe_rule_sha256" for k in node.keywords)))
+    assert len(calls) >= 12, calls  # the 12 calls at the spec section 10 sites; fewer means the scan collapsed
+    assert all(selected for _, _, selected in calls), [call for call in calls if not call[2]]

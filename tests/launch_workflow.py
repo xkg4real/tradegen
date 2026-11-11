@@ -321,3 +321,29 @@ def test_example_writer_never_overwrites_or_follows_private_or_linked_destinatio
             assert str(exc) == 'EXAMPLE_AWARE_TIME_REQUIRED'
         else:
             raise AssertionError('implicit local clock accepted')
+
+
+def test_universe_protocol_binds_the_rule_instead_of_the_trade_coin():
+    from execution_launch.profile import rule_terms_digest
+    from execution_launch.strategy import UNIVERSE_EVALUATOR_REVISION
+    profile, protocol, _, _ = fixture()
+    rule = hashlib.sha256(b'fixture-universe-rule').hexdigest()
+    universe = replace(profile, universe_rule_sha256=rule)
+    bound = replace(protocol, evaluator_revision=UNIVERSE_EVALUATOR_REVISION, universe_rule_sha256=rule,
+                    profile_contract_digest=profile_contract_digest(universe),
+                    rule_terms_digest=rule_terms_digest(universe.instrument_rules, universe_rule_sha256=rule))
+    moved = replace(universe, symbol='KRW-ETH',
+                    instrument_rules=replace(universe.instrument_rules, symbol='KRW-ETH', tick_size=D('5')))
+    for accepted in ((universe, bound), (moved, bound), (profile, protocol)):
+        W._bound_profile(*accepted)
+    fee = replace(moved, instrument_rules=replace(moved.instrument_rules, fee_fraction=D('0.0005')))
+    fixed_moved = replace(profile, symbol='KRW-ETH',
+                          instrument_rules=replace(profile.instrument_rules, symbol='KRW-ETH'))
+    for refused in ((replace(moved, universe_rule_sha256='f'*64), bound), (fee, bound),
+                    (universe, protocol), (profile, bound), (fixed_moved, protocol)):
+        try:
+            W._bound_profile(*refused)
+        except W.WorkflowError as exc:
+            assert str(exc) == 'WORKFLOW_PROFILE_PROTOCOL_MISMATCH'
+        else:
+            raise AssertionError('mismatched profile and protocol accepted')

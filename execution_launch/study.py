@@ -244,7 +244,8 @@ def build_study_plan(profile: LaunchProfile, programs: tuple[ProgramSpec, ...], 
     ids = tuple(p.strategy_id for p in programs)
     _require(len(set(ids)) == len(ids), "STUDY_PLAN_SCHEMA_INVALID")
     artifact, source = _fixed_file(PROGRAM_SOURCE), capture_source_artifact()
-    terms, candidates = rule_terms_digest(profile.instrument_rules), []
+    terms = rule_terms_digest(profile.instrument_rules, universe_rule_sha256=profile.universe_rule_sha256)
+    candidates = []
     for program in programs:
         code = program_digest(program, artifact)
         variant = replace(profile, strategy_id=program.strategy_id, strategy_code_sha256=code)
@@ -476,7 +477,8 @@ def rank_market_evidence(plan: StudyPlan, results: Mapping[str, ValidationResult
     _require(type(profile) is LaunchProfile and profile.instrument_rules is not None, "STUDY_PROFILE_INCOMPLETE")
     _instant(now)
     _require(set(results) <= {c.protocol.study_id for c in plan.candidates}, "STUDY_RESULT_NOT_IN_PLAN")
-    artifact, terms = _fixed_file(PROGRAM_SOURCE), rule_terms_digest(profile.instrument_rules)
+    artifact = _fixed_file(PROGRAM_SOURCE)
+    terms = rule_terms_digest(profile.instrument_rules, universe_rule_sha256=profile.universe_rule_sha256)
     rows = tuple(_row(c, results.get(c.protocol.study_id), profile, artifact, terms, now, review_verifier)
                  for c in plan.candidates)
     qualified = [row for row in rows if row.status == "QUALIFIED"]

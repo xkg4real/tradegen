@@ -72,7 +72,9 @@ def _renew_profile(profile, observation, *, now):
     _require(profile.account_scope == verified.authority.account_scope
              and profile.symbol == verified.rules.symbol,
              "RENEWAL_ACCOUNT_OR_SYMBOL_MISMATCH")
-    _require(rule_terms_digest(profile.instrument_rules) == rule_terms_digest(verified.rules),
+    # Both sides use the old profile's selector (spec section 10).
+    _require(rule_terms_digest(profile.instrument_rules, universe_rule_sha256=profile.universe_rule_sha256)
+             == rule_terms_digest(verified.rules, universe_rule_sha256=profile.universe_rule_sha256),
              "RENEWAL_ECONOMIC_OR_SOURCE_CHANGE")
     _require(verified.rules.asof > profile.instrument_rules.asof,
              "RENEWAL_OBSERVATION_NOT_NEWER")

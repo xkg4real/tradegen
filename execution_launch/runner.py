@@ -148,7 +148,8 @@ def _assess(profile, evidence, driver, implementation_verifier, now):
              'RUNNER_RESEARCH_CAPITAL_MISMATCH')
     assessment = assess_strategy(evidence.protocol, evidence.result,
         profile_contract_digest=profile_contract_digest(profile),
-        rule_terms_digest=rule_terms_digest(profile.instrument_rules),
+        rule_terms_digest=rule_terms_digest(profile.instrument_rules,
+                                            universe_rule_sha256=profile.universe_rule_sha256),
         strategy_code_sha256=code, now=now, review_verifier=evidence.review_verifier)
     _require(assessment.strategy_id == profile.strategy_id, 'RUNNER_STRATEGY_ID_MISMATCH')
     binding = ImplementationBinding(program_digest=code, protocol_digest=assessment.protocol_digest,
