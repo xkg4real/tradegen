@@ -306,3 +306,57 @@ def universe(rule=None, *, eligible=("KRW-XRP",), day=_date(2026, 10, 23)):
                            snapshot_sha256="e" * 64, built_at=start - _dt.timedelta(minutes=25), valid_from=start,
                            valid_until=start + _dt.timedelta(days=1), listed=tuple(sorted({*markets, "KRW-BTC"})),
                            eligible=tuple((m, _Decimal(2_000_000_000)) for m in markets))
+
+
+def universe_receipts(rule, day, *, markets=("KRW-BTC", "KRW-XRP"), value=2_000_000_000, served=None) -> list:
+    """Plain receipts (PR 1 contract: path, params, account_scope, received_at, server_time, raw_body_b64, sha256)
+    answering every request of rules.universe_requests(rule, <market/all body>, day): `markets` unflagged in
+    market/all, and each candle request answered with one daily candle per requested day before its `to`, each
+    trading `value` KRW. Every receipt is served at `served` (default day 00:15 UTC), which is then built_at."""
+    import base64
+    import hashlib
+    from core.compliance import rules as R
+    served = served or _dt.datetime(day.year, day.month, day.day, 0, 15, tzinfo=_dt.timezone.utc)
+    stamp = served.astimezone(_dt.timezone.utc).isoformat(timespec="microseconds").replace("+00:00", "Z")
+    caution = dict.fromkeys(("PRICE_FLUCTUATIONS", "TRADING_VOLUME_SOARING", "DEPOSIT_AMOUNT_SOARING",
+                             "GLOBAL_PRICE_DIFFERENCES", "CONCENTRATION_OF_SMALL_ACCOUNTS"), False)
+    listing = _json.dumps([{"market": m, "korean_name": m, "english_name": m,
+                            "market_event": {"warning": False, "caution": caution}} for m in markets]).encode()
+    out = []
+    for path, params in R.universe_requests(rule, listing, day):
+        query = dict(params)
+        if "market" in query:
+            to = _dt.datetime.fromisoformat(query["to"])
+            body = _json.dumps([_candle(query["market"], to - _dt.timedelta(days=i), value)
+                                for i in range(1, int(query["count"]) + 1)]).encode()
+        else:
+            body = listing
+        out.append({"path": path, "params": [list(p) for p in params], "account_scope": "public",
+                    "received_at": stamp, "server_time": stamp, "raw_body_b64": base64.b64encode(body).decode("ascii"),
+                    "sha256": hashlib.sha256(body).hexdigest()})
+    return out
+
+
+def _candle(market: str, at, value: int) -> dict:
+    """One Upbit daily candle (GET /v1/candles/days fields) opening at `at` (00:00 UTC) and trading `value` KRW.
+    `candle_acc_trade_price` stays the int `value`, so each median is that exact integer (PR 1 parses a JSON
+    fraction as a Decimal, so a float here would turn into Decimal("2000000000.0"))."""
+    return {"market": market, "candle_date_time_utc": at.strftime("%Y-%m-%dT%H:%M:%S"),
+            "candle_date_time_kst": (at + _dt.timedelta(hours=9)).strftime("%Y-%m-%dT%H:%M:%S"),
+            "opening_price": 1000.0, "high_price": 1000.0, "low_price": 1000.0, "trade_price": 1000.0,
+            "timestamp": int(at.timestamp() * 1000), "candle_acc_trade_price": value,
+            "candle_acc_trade_volume": value / 1000.0, "prev_closing_price": 1000.0, "change_price": 0.0,
+            "change_rate": 0.0}
+
+
+def universe_file(rule, day, **changes) -> Path:
+    """rules.encode_universe_snapshot over universe_receipts(rule, day, **changes), written to owner.universe_path.
+    The path must lie inside the temp dir, so the real ~/.tradegen is never written. Returns the path."""
+    from core.compliance import owner, rules as R
+    raw, sha = R.encode_universe_snapshot(rule, day, universe_receipts(rule, day, **changes))
+    path = owner.universe_path(day, sha)
+    if not path.resolve().is_relative_to(Path(tempfile.gettempdir()).resolve()):
+        raise AssertionError(f"universe_file: {path} is outside the temp dir")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(raw)
+    return path

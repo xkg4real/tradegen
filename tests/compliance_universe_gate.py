@@ -4,11 +4,16 @@ a held coin, for new exposure under the venue's signed universe_rule and for a r
 also needs ctx.universe built under that rule with the coin eligible."""
 from __future__ import annotations
 
+import builtins
 import dataclasses
+import datetime as _dt
 import types
+from decimal import Decimal
 
-from core.compliance import gate, model
+from core.compliance import gate, model, owner, rules
 from tests import compliance_fixtures as F
+
+D23, D24 = _dt.date(2026, 10, 23), _dt.date(2026, 10, 24)
 
 _SELL = {"action": "sell", "quantity": 10.0, "notional_krw": 10_000.0}
 
@@ -160,3 +165,145 @@ def test_screen_and_grey_rows_see_a_derived_eligible_coin():
     assert gate.grey_rows(leg, c) == ()
     assert gate.grey_rows(leg, F.ctx(active=_grey(ruled), universe=F.universe())) == ("KR-DOMESTIC-SPOT",)
     assert gate.grey_rows(leg, F.ctx(active=_grey(F.approved()))) == ()
+
+
+# --------------------------------------------------------------------------- #
+# Read-back (spec 5): load_context fills ctx.universe with the verified snapshot in force for the active rule
+# --------------------------------------------------------------------------- #
+def _utc(*parts) -> _dt.datetime:
+    return _dt.datetime(*parts, tzinfo=_dt.timezone.utc)
+
+
+def _signed_home(home):
+    """F.full_home with universe_rule in the approved venues; returns the test key."""
+    return F.full_home(home, venues_raw=F.universe_venues_raw())
+
+
+def _held_xrp() -> model.Positions:
+    return model.Positions(equity_krw=1_000_000.0, holdings={("upbit", "XRP"): 25.0})
+
+
+def test_load_context_reads_the_snapshot_in_force_and_drops_it_with_the_rule():
+    """Spec 5: the snapshot of candle day 2026-10-23, verified under the active rule, is ctx.universe at NOW
+    (2026-10-24 09:00 KST), and an XRP buy is ALLOW. Once the owner approves venues without universe_rule, the
+    universe is None, the buy is an unknown symbol, and a held XRP sell is still ALLOW_EXIT."""
+    with F.temp_home() as home, F.pubkey_at(home / "owner_pubkey.pem"):
+        key = _signed_home(home)
+        owner._UNIVERSE_VERIFIED.clear()
+        F.universe_file(F.universe_rule(), D23)
+        c = owner.load_context(F.NOW, _held_xrp())
+        assert c.owner.ok and c.active.valid and c.code_signed, (c.owner.reason, c.active.reason)
+        u = c.universe
+        assert u is not None and u.day == D23 and u.rule_sha256 == rules.universe_rule_sha256(F.universe_rule())
+        assert dict(u.eligible) == {"KRW-BTC": Decimal(2_000_000_000), "KRW-XRP": Decimal(2_000_000_000)}
+        assert (u.built_at, u.valid_from, u.valid_until) == (
+            _utc(2026, 10, 23, 0, 15), _utc(2026, 10, 23, 0, 40), _utc(2026, 10, 24, 0, 40))
+        assert c.ctx_hash == model.context_hash(c)
+        assert gate.decide(_xrp(), c).verdict == model.ALLOW
+        F.approve(home, key, "venues", F.shipped_bytes("venues"))          # the owner drops universe_rule
+        dropped = owner.load_context(F.NOW, _held_xrp())
+        assert dropped.active.valid and dropped.universe is None, dropped.active.reason
+        assert gate.decide(_xrp(), dropped).reasons == ("malformed: symbol",)
+        sell = gate.decide(_xrp(**_SELL), dropped)
+        assert (sell.verdict, sell.kind) == (model.ALLOW_EXIT, "close_long"), sell.reasons
+
+
+def test_the_snapshot_in_force_switches_at_0940_kst():
+    """Spec 5: candle day D's file is in force on [max(built_at, D 00:40 UTC), D+1 00:40 UTC), with D the UTC date of
+    now minus 40 minutes. Before 09:40 KST on 10-23 nothing holds, because day 10-22 has no file. 10-23's file holds
+    from 09:40 KST on 10-23 to 09:39:59 KST on 10-24. 10-24's file was built late, at 01:00 UTC, so it holds only
+    from its built_at."""
+    with F.temp_home() as home, F.pubkey_at(home / "owner_pubkey.pem"):
+        _signed_home(home)
+        owner._UNIVERSE_VERIFIED.clear()
+        F.universe_file(F.universe_rule(), D23)
+        F.universe_file(F.universe_rule(), D24, served=_utc(2026, 10, 24, 1, 0))
+        for at, day in ((_utc(2026, 10, 23, 0, 39, 59), None), (_utc(2026, 10, 23, 0, 40), D23),
+                        (_utc(2026, 10, 24, 0, 39, 59), D23), (_utc(2026, 10, 24, 0, 40), None),
+                        (_utc(2026, 10, 24, 0, 59, 59), None), (_utc(2026, 10, 24, 1, 0), D24)):
+            u = owner.load_context(at, F.HELD).universe
+            assert (None if u is None else u.day) == day, (at, u)
+
+
+def test_the_earliest_built_snapshot_wins_and_verification_is_cached():
+    """Spec 5: two verified files for one candle day (a manual rebuild). The earliest built is in force. Each file is
+    verified once per process, keyed by its sha256, however often load_context runs."""
+    with F.temp_home() as home, F.pubkey_at(home / "owner_pubkey.pem"):
+        _signed_home(home)
+        owner._UNIVERSE_VERIFIED.clear()
+        F.universe_file(F.universe_rule(), D23, served=_utc(2026, 10, 23, 0, 20), markets=("KRW-BTC",))
+        F.universe_file(F.universe_rule(), D23)                                       # served 00:15
+        calls, real = [], rules.verify_universe_snapshot
+        rules.verify_universe_snapshot = lambda raw, sha: calls.append(sha) or real(raw, sha)
+        try:
+            first = owner.load_context(F.NOW, F.HELD).universe
+            again = owner.load_context(F.NOW, F.HELD).universe
+        finally:
+            rules.verify_universe_snapshot = real
+        assert first is not None and first.built_at == _utc(2026, 10, 23, 0, 15), first
+        assert [m for m, _ in first.eligible] == ["KRW-BTC", "KRW-XRP"] and again == first
+        assert len(calls) == 2, calls
+
+
+def test_a_tampered_or_foreign_snapshot_is_not_in_force():
+    """Spec 5: a file whose receipts no longer match its request set and manifest, or a file built under another
+    rule, does not verify. ctx.universe is then None and an XRP buy is BLOCK "state: universe no_snapshot", while the
+    rest of the context stays intact."""
+    with F.temp_home() as home, F.pubkey_at(home / "owner_pubkey.pem"):
+        _signed_home(home)
+        owner._UNIVERSE_VERIFIED.clear()
+        path = F.universe_file(F.universe_rule(), D23)
+        raw = path.read_bytes()
+        assert b"KRW-XRP" in raw
+        path.write_bytes(raw.replace(b"KRW-XRP", b"KRW-XRQ"))
+        F.universe_file(dataclasses.replace(F.universe_rule(), min_median_value_krw=5), D23)
+        c = owner.load_context(F.NOW, F.HELD)
+        assert c.owner.ok and c.active.valid and c.universe is None, (c.owner.reason, c.active.reason)
+        assert gate.decide(_xrp(), c).reasons == ("state: universe no_snapshot",)
+
+
+def test_a_read_back_error_never_breaks_the_context_or_a_held_coin_exit():
+    """Spec 5 and 19: the read-back catches every exception. A TypeError raised inside it leaves ctx.universe None and
+    the rest of the context intact: a held XRP sell is ALLOW_EXIT and an XRP buy is BLOCK "state: universe
+    no_snapshot"."""
+    with F.temp_home() as home, F.pubkey_at(home / "owner_pubkey.pem"):
+        _signed_home(home)
+        owner._UNIVERSE_VERIFIED.clear()
+        F.universe_file(F.universe_rule(), D23)
+        real = owner.universe_dir
+
+        def broken(day):
+            raise TypeError("fixture read-back failure")
+
+        owner.universe_dir = broken
+        try:
+            c = owner.load_context(F.NOW, _held_xrp())
+        finally:
+            owner.universe_dir = real
+        assert c.owner.ok and c.active.valid and c.code_signed and c.universe is None, (c.owner.reason,
+                                                                                         c.active.reason)
+        sell = gate.decide(_xrp(**_SELL), c)
+        assert (sell.verdict, sell.kind) == (model.ALLOW_EXIT, "close_long"), sell.reasons
+        assert gate.decide(_xrp(), c).reasons == ("state: universe no_snapshot",)
+
+
+def test_the_read_back_recomputes_without_importing_execution():
+    """Spec 19: load_context recomputes the snapshot (rules.verify_universe_snapshot over the receipts, with the cache
+    cleared) and imports no execution* module on the way."""
+    with F.temp_home() as home, F.pubkey_at(home / "owner_pubkey.pem"):
+        _signed_home(home)
+        owner._UNIVERSE_VERIFIED.clear()
+        F.universe_file(F.universe_rule(), D23)
+        names, real = [], builtins.__import__
+
+        def spy(name, *args, **kwargs):
+            names.append(name)
+            return real(name, *args, **kwargs)
+
+        builtins.__import__ = spy
+        try:
+            c = owner.load_context(F.NOW, F.HELD)
+        finally:
+            builtins.__import__ = real
+        assert c.universe is not None and c.universe.day == D23
+        assert [n for n in names if n.split(".")[0].startswith("execution")] == [], names
