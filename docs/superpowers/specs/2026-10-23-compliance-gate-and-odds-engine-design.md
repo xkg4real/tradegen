@@ -289,6 +289,11 @@ An ETP that fits none of these makes the map INVALID.
   and carry source text. Each source must be non-empty text; the parser does not establish source quality. The
   shipped draft's sources are checked against the research corpus, and owner approval remains necessary. Missing
   odds terms can leave a valid venue unusable for an odds plan (Task 2 accepted source-schema limitation).
+- **Universe rule** (optional, `upbit` only; [Upbit KRW universe design](2026-11-11-upbit-krw-universe-design.md),
+  section 4): `universe_rule` with `source`, `quote` (KRW), `exclude`, `min_listing_days`, `median_days` and
+  `min_median_value_krw`. It admits Upbit KRW coins that no signed instrument map lists ("derived coins", 6.2 step 0)
+  for new exposure, through the daily snapshot in force. Its `rule_sha256` covers the parsed rule only, so other
+  edits to `venues.yaml` leave a snapshot valid.
 
 ### 5.2 Row schema and table rules
 
@@ -345,6 +350,11 @@ rows:
 - A superseded hash never counts again unless it is re-signed as a new entry. That stops a restored old file, from git,
   OneDrive or a worktree, from counting as approved.
 - A git commit is not approval.
+- **The Upbit KRW universe snapshot is runtime data admitted by the signed rule, not an approval.**
+  `owner.load_context` reads the snapshot in force at `now` for the active `universe_rule` (written once and content
+  addressed under `owner.universe_dir(day)`), verifies it with `rules.verify_universe_snapshot` and sets
+  `Context.universe`. Any failure gives `None`, which blocks derived-coin buys and nothing else
+  ([Upbit KRW universe design](2026-11-11-upbit-krw-universe-design.md), section 5).
 
 **Hard-coded floor** (defence in depth, whatever the table says):
 - **all intents, exits included:** the conduct classes and tags, and the `event_contract` and `sports_bet` assets;
@@ -456,7 +466,7 @@ The report's "Recommended actions" table sets each treatment, except where owner
 @dataclass(frozen=True, kw_only=True)
 class Intent:
     venue: str
-    symbol: str                      # every intent names a mapped symbol (coins too)
+    symbol: str                      # a mapped symbol, or a derived Upbit KRW coin (6.2 step 0)
     counter_symbol: str              # what is paid/received; must form a market listed in venues.yaml
     asset: str; multiple: float      # caller's view; must equal the map's (class is derived, never supplied)
     action: str                      # buy | sell | sell_short | buy_to_cover | write | transfer_out | lend | borrow | p2p_buy | p2p_sell
@@ -483,6 +493,8 @@ class Context:                       # built ONLY by owner.load_context(now); ev
     holdings: Mapping[tuple, float]  # (venue, symbol) -> units >= 0 (shorts listed separately, >= 0)
     exposure: Mapping[str, Exposure] # per venue: KRW value of EVERYTHING held there (settlement assets included) >= 0,
                                      # plus reservations {reservation_id: notional >= 0} and promised sell units
+    universe: Universe | None = None # the verified snapshot in force for the active upbit universe_rule (5.2), or
+                                     # None; hashed into ctx_hash only when set
 ```
 
 **Decision** has the verdicts ALLOW | ALLOW_EXIT | ACK_REQUIRED | BLOCK, and records:
@@ -500,12 +512,19 @@ class Context:                       # built ONLY by owner.load_context(now); ev
    - Every later step uses that one state.
    - For an exit, a symbol missing from the chosen map is looked up in earlier approved maps in the immutable store.
      If it is still unknown, the result is BLOCK "close manually in the broker app".
+   - **Derived coins** ([Upbit KRW universe design](2026-11-11-upbit-krw-universe-design.md), section 8): an
+     `upbit` symbol that no approved map lists, current or earlier, and whose `KRW-<symbol>` matches
+     `KRW-[A-Z][A-Z0-9]{0,11}`, resolves to a copy of the signed BTC entry under its own symbol. This happens for a
+     cash sell for KRW of a coin `holdings` holds (in the active state and the snapshot, whatever the venue facts
+     say), for new exposure on a venue whose approved facts carry `universe_rule`, and for an order already in the
+     execution journal. A transfer of a derived coin stays an unknown symbol.
 1. **Validate the intent.** Any of these gives `BLOCK ("malformed: <field>")`:
    - a non-finite value, a value of the wrong sign, or a wrong type;
    - an id that is not an exact vocabulary member;
-   - an unknown symbol;
+   - an unknown symbol (a derived coin is known only as step 0 says);
    - an asset or multiple that disagrees with the map;
-   - a (`symbol`, `counter_symbol`) pair that is not a listed market of the venue;
+   - a (`symbol`, `counter_symbol`) pair that is not a listed market of the venue (a derived coin lists only
+     (coin, KRW));
    - inconsistent transfer fields;
    - tags outside the vocabulary;
    - **a `sell` whose quantity exceeds the holdings minus units already promised to unexpired sell permits**
@@ -530,6 +549,11 @@ class Context:                       # built ONLY by owner.load_context(now); ev
    - a valid `ctx.active`;
    - a valid owner log;
    - `code_signed`.
+
+   A derived coin (step 0) also needs `universe_rule` in the venue's approved facts, a `Context.universe` built under
+   that rule, and the coin in its `eligible` set. Otherwise it is BLOCK "state: universe no_snapshot" or "state:
+   universe not_eligible". "state: universe no_rule" is defence in depth: step 0 already leaves a derived buy without
+   the rule an unknown symbol, so `decide` never reaches it. Exits (step 4) never need the snapshot.
 
    Then come the new-exposure part of the floor and the venue rows in force on `ctx.date` (Asia/Seoul):
    - **No matching row:** BLOCK. When several rows match, all apply, and the strictest wins.
