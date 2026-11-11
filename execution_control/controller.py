@@ -62,6 +62,9 @@ class OrderState:
     order_digest: str
     venue_order_id: str = ''
     filled_quantity: Decimal = Decimal(0)
+    side: str | None = None             # the journaled order's side
+    symbol: str | None = None           # the journaled order's venue symbol, e.g. 'KRW-BTC'
+    updated_at: datetime | None = None  # journal time of the order's last event
 
 
 def _exact(method):
@@ -248,11 +251,12 @@ def _fold(events):
                                    session_id=data['session_id'], status='RESERVED', filled=Decimal(0),
                                    venue_order_id='', metadata={}, fill_hashes={}, fill_quantities={}, cancel_pending=False,
                                    request_digest=data['request_digest'], trade_date=data.get('trade_date', ''),
-                                   permit_digest=data['permit_digest'])
+                                   permit_digest=data['permit_digest'], updated_at=now)
                 continue
             if key not in orders or data.get('order_digest') != orders[key]['digest']:
                 raise ValueError('unknown or changed order event')
             rec = orders[key]; state = rec['status']
+            rec['updated_at'] = now
             if kind == 'fill':
                 fill_key, fill_hash = data.get('fill_key'), data.get('fill_digest')
                 if state not in _ACTIVE or not rec['venue_order_id'] or type(fill_key) is not str:
@@ -325,7 +329,8 @@ def _fold(events):
 def _view(rec):
     state = 'UNKNOWN' if rec['status'] == 'DISPATCHING' else rec['status']
     return OrderState(client_id=rec['order'].client_id, status=state, order_digest=rec['digest'],
-                      venue_order_id=rec['venue_order_id'], filled_quantity=rec['filled'])
+                      venue_order_id=rec['venue_order_id'], filled_quantity=rec['filled'],
+                      side=rec['order'].side, symbol=rec['order'].symbol, updated_at=rec['updated_at'])
 
 
 class Controller:
@@ -851,6 +856,8 @@ class Controller:
     def kill(self,session_id,*,reason,now):
         if type(session_id) is not str or not session_id.strip():
             raise ValueError('session identity required')
+        if type(reason) is not str or not reason.strip():
+            raise ValueError('kill reason required')
         _instant(now)
         with self.journal.transaction() as tx:
             _,_,_,last=_fold(tx.events)
@@ -861,7 +868,8 @@ class Controller:
             except Exception:
                 pass
             stamp=now if clock_ok else last or datetime(1970,1,1,tzinfo=timezone.utc)
-            tx.append('kill',{'session_id':session_id,'reason':'owner_requested' if clock_ok else 'clock_ambiguous'},now=stamp)
+            # Spec section 7: the caller's reason (the coordinator passes owner_requested or market_vanished).
+            tx.append('kill',{'session_id':session_id,'reason':reason if clock_ok else 'clock_ambiguous'},now=stamp)
             if not clock_ok:
                 return False
             try:

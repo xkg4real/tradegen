@@ -681,3 +681,27 @@ def test_observe_returns_the_universe_of_the_context_it_loaded():
         snap = universe_snapshot(env.now)
         with universe_context(universe=snap):
             assert env.controller.observe(now=env.now).universe is snap
+
+
+def test_order_state_carries_side_symbol_and_last_event_time():
+    with signed_control() as env:
+        state = reserve(env)
+        assert (state.side, state.symbol, state.updated_at) == ('buy', 'KRW-BTC', env.now)
+        later = env.now + timedelta(seconds=5)
+        snapshot(env, asof=later, server_time=later, risk=replace(env.observation.risk, asof=later))
+        sent = env.controller.dispatch(env.order.client_id, now=later)
+        assert (sent.status, sent.side, sent.symbol, sent.updated_at) == ('ACKNOWLEDGED', 'buy', 'KRW-BTC', later)
+        assert env.controller.states() == (sent,)
+
+
+def test_kill_records_the_given_reason_or_clock_ambiguous():
+    with signed_control() as env:
+        assert env.controller.kill(env.session_id, reason='market_vanished', now=env.now) is True
+        snapshot(env, server_time=env.now + timedelta(seconds=61))
+        assert env.controller.kill('second', reason='market_vanished', now=env.now) is False
+        for bad in ('', '  ', None, 7):
+            refused(lambda: env.controller.kill('third', reason=bad, now=env.now))
+        with env.journal.transaction() as tx:
+            kills = [row['data'] for row in tx.events if row['kind'] == 'kill']
+        assert kills == [{'session_id': env.session_id, 'reason': 'market_vanished'},
+                         {'session_id': 'second', 'reason': 'clock_ambiguous'}]
