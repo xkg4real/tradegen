@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from typing import TYPE_CHECKING
 
-from core.compliance import model
+from core.compliance import gate, model
 
 if TYPE_CHECKING:
     from core.compliance import rules
@@ -203,13 +203,14 @@ def _usable(state) -> bool:
 
 
 def instrument(plan: Plan, ctx) -> tuple[rules.Venue | None, rules.Instrument | None]:
-    """The leg's venue facts and instrument from the APPROVED state in ctx.active (never a draft file); (None, None)
-    when that state is not usable."""
+    """The leg's venue facts and instrument from the APPROVED state in ctx.active (never a draft file), looked up as
+    gate.lookup looks up a buy, so a derived Upbit KRW coin counts under the signed universe_rule (upbit KRW
+    universe spec 8); (None, None) when that state is not usable."""
     state, leg = getattr(ctx, "active", None), _leg(plan)
     if not _usable(state) or leg is None or type(leg.venue) is not str:
         return None, None
     venue = state.venues.venues.get(leg.venue)
-    return venue, (state.instruments.lookup(venue.sections, leg.symbol) if venue is not None else None)
+    return venue, (gate.lookup(ctx, state, venue, leg.symbol, False) if venue is not None else None)
 
 
 def section(plan: Plan, ctx) -> str | None:
@@ -317,7 +318,7 @@ def _product(plan, ctx) -> tuple[str, str] | None:
             return "multiple", f"multiple {inst.multiple}"
         if inst.tax_basis not in TAX_BASES_OK:
             return "tax", f"tax basis {inst.tax_basis}"
-        if not venue.is_market(inst, venue.quote_for(inst)):
+        if not gate.market_listed(ctx.active, venue, inst, venue.quote_for(inst)):
             return "symbol", f"{leg.venue} does not list {leg.symbol!r} with its approved quote"
     return None
 
