@@ -8,7 +8,7 @@
 
 **Tech Stack:** Python 3.13, standard library only, the repository's own modules. Tests are plain `assert` functions collected by `tests/launch_acceptance.py`.
 
-**Spec:** `docs/superpowers/specs/2026-11-11-principal-loss-budget-design.md`, sections 8.2 and 9.1 (rows S1 to S12, inputs, output, reads). Base: `origin/main` at `6d9bf56` (written at `59a4eb8`; universe PR #21 and docs PR #22 touch no file this plan reads or cites by line).
+**Spec:** `docs/superpowers/specs/2026-11-11-principal-loss-budget-design.md`, sections 8.2 and 9.1 (rows S1 to S12, inputs, output, reads). Base: `origin/main` at `249cc3d` (written at `59a4eb8`; universe PRs #21, #24 and #25 and docs PR #22 merged since. Every line this plan cites was checked again there: two had moved and are updated).
 
 ## Global Constraints
 
@@ -18,7 +18,7 @@
 - `--state-root` does not select a home. It must equal `core.isolation.state_root().absolute()`; otherwise refuse. A relative value never equals it.
 - Output: fixed codes only. Never print an exception message: the isolation and owner-log messages contain paths and log content. Ctrl-C during a read gets the fixed failure code too: a traceback names source paths.
 - Exit 0: every row read (with `--gate`: and every gate row is go). Exit 1: `--gate` and a gate row is not go. Exit 2: an argument was refused or some state could not be read. An empty argument list is refused: it reads nothing, so it must not exit 0. Only `--help` or `-h` alone prints the usage.
-- Tests call `main(argv)` in-process. No `subprocess`, no `sys.executable`, no `importlib.reload` (`tests/launch_guards.py:653-662`). Nothing touches state at module import. Every home and head root is temporary.
+- Tests call `main(argv)` in-process. No `subprocess`, no `sys.executable`, no `importlib.reload` (`tests/launch_guards.py:684-693`). Nothing touches state at module import. Every home and head root is temporary.
 - New files are LF, UTF-8, no BOM. `tests/launch_acceptance.py` is LF. Check `git diff --stat` equals `git diff --stat --ignore-cr-at-eol`.
 - Commit messages end with a `Co-Authored-By: Claude ... <noreply@anthropic.com>` trailer that names the model that wrote them.
 - README totals and `qa/acceptance_results.json` are not changed by this plan. A `tests/run_all.py` run rewrites `qa/acceptance_results.json`; restore it with `git checkout -- qa/acceptance_results.json` after every run.
@@ -29,7 +29,7 @@
 |---|---|
 | Create `tools/floor_state_check.py` | Arguments, the home rule, the three readers, the row table, the gate, `main`. |
 | Create `tests/launch_floor_state_check.py` | Fixtures for a temporary signed home, journal rows and an anchor; one test per behaviour. |
-| Modify `tests/launch_acceptance.py:15` | Add the test module's stem to `MODULES`. |
+| Modify `tests/launch_acceptance.py:16` | Add the test module's stem to `MODULES`. |
 
 ## Contract
 
@@ -76,7 +76,7 @@ Four readings of the spec that this plan fixes:
 
 **Files:**
 - Create: `tests/launch_floor_state_check.py`
-- Modify: `tests/launch_acceptance.py:15`
+- Modify: `tests/launch_acceptance.py:16`
 
 **Interfaces:**
 - Consumes: `tests.compliance_fixtures` (`temp_home`, `pubkey_at`, `owner_key`, `sign`), `tests.launch_baseline_head.head_root`, `execution_control.store.Journal`, `execution_accounts.baseline` (`BaselineAnchor`, `BaselineConventions`, `initialize_baseline`, `state_json`), `execution_accounts.baseline_store.CheckpointStore`, `execution_launch.baseline_head` (`BaselineHead`, `CheckpointChain`).
@@ -521,14 +521,13 @@ def test_the_script_is_outside_the_signed_code_closure():
 In `tests/launch_acceptance.py`, replace the last line of the `MODULES` tuple
 
 ```python
-           "launch_instrument_refresh", "launch_owner_ops", "owner_guards", "launch_owner_rehearsal")
+           "launch_universe_store")
 ```
 
 with
 
 ```python
-           "launch_instrument_refresh", "launch_owner_ops", "owner_guards", "launch_owner_rehearsal",
-           "launch_floor_state_check")
+           "launch_universe_store", "launch_floor_state_check")
 ```
 
 - [ ] **Step 3: Run it and see it fail**
