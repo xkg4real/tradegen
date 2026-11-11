@@ -79,6 +79,24 @@ def test_map_coins_keep_todays_path():
         assert usdt.verdict == model.ALLOW, usdt.reasons
 
 
+def test_a_history_map_coin_keeps_the_map_path_under_the_rule():
+    """Spec 8: a coin only an earlier map lists is not derived. Under universe_rule with a snapshot listing it as
+    eligible, its cash buy is still the map-path unknown symbol, and its held sell still exits through the history
+    map."""
+    old_map = F.shipped_bytes("instruments")
+    usdt = old_map[old_map.index(b"  USDT:\n"):old_map.index(b"  USDC:\n")]
+    ruled_venues = F.universe_venues_raw()
+    assert old_map.count(usdt) == ruled_venues.count(b"[[BTC, KRW], [USDT, KRW]]") == 1
+    state = F.approved(instruments=old_map.replace(usdt, b""), history=(old_map,),
+                       venues=ruled_venues.replace(b"[[BTC, KRW], [USDT, KRW]]", b"[[BTC, KRW]]"))
+    assert state.valid and state.history_maps and state.venues.venues["upbit"].universe_rule, state.reason
+    c = F.ctx(active=state, universe=F.universe(eligible=("KRW-USDT",)), holdings={("upbit", "USDT"): 100.0})
+    buy = gate.decide(F.intent(symbol="USDT", quantity=10.0), c)
+    assert buy.verdict == model.BLOCK and buy.reasons == ("malformed: symbol",), (buy.verdict, buy.reasons)
+    sell = gate.decide(F.intent(symbol="USDT", **_SELL), c)
+    assert sell.verdict == model.ALLOW_EXIT and sell.kind == "close_long" and sell.reasons == (), sell.reasons
+
+
 def test_derived_buys_need_the_rule_a_snapshot_in_force_and_eligibility():
     """Spec 8: new exposure on a derived coin needs universe_rule in the signed venue facts. Without it the symbol is
     unknown, as before. It also needs ctx.universe built under that rule (else "state: universe no_snapshot") and the

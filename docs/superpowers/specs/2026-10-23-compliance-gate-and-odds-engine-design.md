@@ -516,8 +516,10 @@ class Context:                       # built ONLY by owner.load_context(now); ev
      `upbit` symbol that no approved map lists, current or earlier, and whose `KRW-<symbol>` matches
      `KRW-[A-Z][A-Z0-9]{0,11}`, resolves to a copy of the signed BTC entry under its own symbol. This happens for a
      cash sell for KRW of a coin `holdings` holds (in the active state and the snapshot, whatever the venue facts
-     say), for new exposure on a venue whose approved facts carry `universe_rule`, and for an order already in the
-     execution journal. A transfer of a derived coin stays an unknown symbol.
+     say), and for new exposure on a venue whose approved facts carry `universe_rule`. Outside `decide`, the
+     controller also resolves one for an order already in the execution journal (`gate.lookup(..., recorded=True)`),
+     so a protective cancel is never refused; `permit` still decides a dispatched buy under steps 0 and 5. A transfer
+     of a derived coin stays an unknown symbol.
 1. **Validate the intent.** Any of these gives `BLOCK ("malformed: <field>")`:
    - a non-finite value, a value of the wrong sign, or a wrong type;
    - an id that is not an exact vocabulary member;

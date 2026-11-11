@@ -626,3 +626,50 @@ def test_cancel_of_a_recorded_derived_coin_buy_needs_no_rule_or_snapshot():
                                                  client_id=order.client_id))
         state=env.controller.cancel(order.client_id,now=env.now)
         assert env.adapter.requests[-1].operation=='cancel' and state.venue_order_id=='broker-xrp', state
+
+
+def test_dispatch_refuses_a_reserved_derived_buy_once_the_universe_is_gone():
+    """Upbit KRW universe spec 8: a KRW-XRP buy reserved while the universe was in force is decided again at
+    dispatch. The recorded order still resolves XRP through _intent, so only gate.permit can refuse it: with no
+    universe_rule signed (malformed symbol) and with the rule but no snapshot in force (no_snapshot). Session and
+    observed-order checks are no-ops here, so the refusal cannot come from them."""
+    import yaml
+    from execution_control.capability import plain
+    from execution_control.model import order_body, order_digest
+    from execution_orders.model import request_digest
+    from core.compliance import gate
+    from tests import odds_fixtures as OF
+    doc=yaml.safe_load(OF.ODDS_VENUES)
+    doc['venues']['upbit']['universe_rule']={'source':'https://docs.upbit.com/kr/reference/list-trading-pairs',
+        'quote':'KRW','exclude':['USDT','USDC'],'min_listing_days':250,'median_days':30,
+        'min_median_value_krw':1000000000}
+    for ruled,reasons in ((False,('malformed: symbol',)),(True,('state: universe no_snapshot',))):
+        with signed_control() as env:
+            if ruled:
+                F.approve(env.home,env.key,'venues',OF._dump(doc))
+            order=replace(env.order,client_id='xrp-order',symbol='KRW-XRP',quantity=D('10'),limit_price=D('1000'))
+            rules=replace(env.rules,symbol='KRW-XRP')
+            sha=order_digest(order)
+            sent=request_digest(env.adapter.prepare(order,rules))
+            with env.journal.transaction() as tx:
+                tx.append('reserved',{'client_id':order.client_id,'order_digest':sha,'order':order_body(order),
+                          'rules':plain(rules),'session_id':env.session_id,'request_digest':sent,
+                          'permit_digest':'d'*64,'trade_date':''},now=env.now)
+            ctx=owner.load_context(env.now,env.observation.positions)
+            assert ctx.universe is None and (ctx.active.venues.venues['upbit'].universe_rule is not None)==ruled
+            seen=[]
+            real=gate.permit
+            def spy(intent,context):
+                seen.append((intent,context))
+                return real(intent,context)
+            with patch('execution_launch.instrument_refresh.validate_observed_order',lambda *a,**k:None), \
+                 patch('execution_control.controller.verify_session',lambda *a,**k:None), \
+                 patch('execution_control.controller.gate.permit',spy):
+                try:
+                    env.controller.dispatch(order.client_id,now=env.now)
+                except ValueError as exc:
+                    assert str(exc)=='compliance gate refused order', (ruled,str(exc))
+                else:
+                    raise AssertionError('expected the gate to refuse the dispatch')
+            assert len(seen)==1 and seen[0][0].symbol=='XRP', (ruled,seen)
+            assert gate.decide(*seen[0]).reasons==reasons, (ruled,gate.decide(*seen[0]).reasons)
