@@ -9,7 +9,7 @@ none of these. Existing owner/session/compliance checks remain indispensable.
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass, fields, is_dataclass
+from dataclasses import dataclass, field, fields, is_dataclass
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from fractions import Fraction
@@ -25,6 +25,7 @@ from execution_launch.profile import rule_terms_digest as economic_rules_digest
 _HASH = re.compile(r"[0-9a-f]{64}")
 _ID = re.compile(r"[A-Za-z][A-Za-z0-9_.:-]{0,95}")
 EVALUATOR_REVISION = "forward-paper-v1"
+UNIVERSE_EVALUATOR_REVISION = "forward-universe-v1"  # spec section 14; carried only by a universe protocol
 _MAX_ROWS = 20000
 _MAX_CAPTURE_BYTES = 16 * 1024 * 1024
 _EVALUATED: dict[int, tuple[object, str]] = {}
@@ -64,7 +65,10 @@ def _amount(value, *, positive=False):
 
 def _plain(value):
     if is_dataclass(value) and not isinstance(value, type):
-        return {f.name: _plain(getattr(value, f.name)) for f in fields(value)}
+        # A field declared with metadata {"omit_none": True} is left out while it is None, so values without the
+        # newer optional fields keep today's encoding and digest byte for byte (spec section 10).
+        return {f.name: _plain(getattr(value, f.name)) for f in fields(value)
+                if not (f.metadata.get("omit_none") and getattr(value, f.name) is None)}
     if type(value) is Decimal:
         _amount(value)
         text = format(value, 'f')
@@ -89,9 +93,9 @@ def evidence_digest(value) -> str:
     return hashlib.sha256(raw.encode('ascii')).hexdigest()
 
 
-def _rule_terms(rules):
+def _rule_terms(rules, universe_rule_sha256):
     rules_digest(rules)  # Revalidate even deliberately mutated frozen inputs.
-    return economic_rules_digest(rules)
+    return economic_rules_digest(rules, universe_rule_sha256=universe_rule_sha256)
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -126,13 +130,18 @@ class ForwardProtocol:
     max_drawdown: Decimal
     review_max_age_seconds: int
     seed: int
+    # Universe protocol only (evaluator forward-universe-v1): the signed rule's sha256. Its symbol is then the
+    # KRW-BTC benchmark, never a trading pin (spec section 12). None is left out of every encoding.
+    universe_rule_sha256: str | None = field(default=None, metadata={"omit_none": True})
 
 
 def _protocol(protocol):
     _require(type(protocol) is ForwardProtocol and type(protocol.schema_version) is int
              and protocol.schema_version == 1, "STRATEGY_PROTOCOL_REQUIRED")
     _id(protocol.study_id); _id(protocol.strategy_id); _id(protocol.capture_source_id)
-    _require(protocol.evaluator_revision == EVALUATOR_REVISION, 'STRATEGY_EVALUATOR_UNSUPPORTED')
+    _require(protocol.evaluator_revision in (EVALUATOR_REVISION, UNIVERSE_EVALUATOR_REVISION)
+             and (protocol.universe_rule_sha256 is None) == (protocol.evaluator_revision == EVALUATOR_REVISION),
+             'STRATEGY_EVALUATOR_UNSUPPORTED')
     for name in ('strategy_code_sha256', 'capture_source_code_sha256', 'profile_contract_digest', 'rule_terms_digest'):
         _hash(getattr(protocol, name))
     for name in ('preregistered_at', 'capture_start', 'capture_end'):
@@ -143,6 +152,9 @@ def _protocol(protocol):
              and protocol.quote_currency == 'KRW' and type(protocol.symbol) is str
              and re.fullmatch(r'KRW-[A-Z0-9]{1,20}', protocol.symbol) is not None,
              'STRATEGY_EVALUATOR_SCOPE_UNSUPPORTED')
+    if protocol.universe_rule_sha256 is not None:
+        _hash(protocol.universe_rule_sha256)
+        _require(protocol.symbol == 'KRW-BTC', 'STRATEGY_EVALUATOR_SCOPE_UNSUPPORTED')
     for name in ('initial_cash_quote', 'fee_fraction', 'slippage_bps', 'alpha', 'max_drawdown'):
         _amount(getattr(protocol, name), positive=name in ('initial_cash_quote', 'alpha'))
     _require(protocol.fee_fraction <= Decimal('0.1') and protocol.slippage_bps <= 1000
@@ -285,7 +297,8 @@ def _validate_capture(protocol, bars, decisions, rules):
              "STRATEGY_CAPTURE_ROWS_INVALID")
     _require(type(decisions) is tuple and len(decisions) == len(bars)-1,
              "STRATEGY_DECISION_COVERAGE_INCOMPLETE")
-    _require(type(rules) is InstrumentRules and _rule_terms(rules) == protocol.rule_terms_digest,
+    _require(type(rules) is InstrumentRules
+             and _rule_terms(rules, protocol.universe_rule_sha256) == protocol.rule_terms_digest,
              "STRATEGY_RULES_MISMATCH")
     _require((rules.venue, rules.market, rules.symbol) == (protocol.venue, protocol.market, protocol.symbol)
              and protocol.fee_fraction >= rules.fee_fraction, "STRATEGY_RULES_MISMATCH")
@@ -416,6 +429,8 @@ def run_paper_validation(protocol, bars, decisions, rules, *, registry, source_k
     accepted by assessment. Replay the archived inputs with this evaluator.
     """
     sha = _protocol(protocol); _instant(now)
+    # This is the fixed-symbol evaluator; a forward-universe-v1 protocol is evaluated only by its own revision.
+    _require(protocol.evaluator_revision == EVALUATOR_REVISION, 'STRATEGY_EVALUATOR_UNSUPPORTED')
     registry_sha = validate_registry(registry)
     _require(any(r.study_id == protocol.study_id and r.protocol_digest == sha
                  and r.registered_at == protocol.preregistered_at for r in registry),
@@ -565,7 +580,11 @@ def _json(raw, maximum):
 
 
 def _object(value, cls):
-    _require(type(value) is dict and set(value) == {f.name for f in fields(cls)}, 'STRATEGY_JSON_SCHEMA_INVALID')
+    """Closed key set: every field, except that an {"omit_none": True} field may be absent (never null)."""
+    names = {f.name for f in fields(cls)}
+    optional = {f.name for f in fields(cls) if f.metadata.get("omit_none")}
+    _require(type(value) is dict and names - optional <= set(value) <= names
+             and all(value[name] is not None for name in optional & set(value)), 'STRATEGY_JSON_SCHEMA_INVALID')
     return dict(value)
 
 
