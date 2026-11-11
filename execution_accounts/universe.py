@@ -5,11 +5,17 @@ writes the snapshot file."""
 from __future__ import annotations
 
 import base64
-from datetime import date, datetime, timezone
+from collections.abc import Sequence
+from dataclasses import dataclass
+from datetime import date, datetime, timedelta, timezone
+from decimal import Decimal
+import math
 
 from core.compliance import rules
+from core.compliance.model import KST
 from execution.transport import Answer, inquiry_clock
-from execution.upbit_inquiry import CANDLES_DAYS_PATH, MARKET_ALL_PATH, candle_params, daily_candles, market_all
+from execution.upbit_inquiry import (CANDLE_COUNT_MAX, CANDLES_DAYS_PATH, MARKET_ALL_PATH, candle_params,
+                                     daily_candles, market_all)
 from execution_accounts.collector import SourceReceipt
 
 PUBLIC_SCOPE = "public"                    # the plain receipt's account_scope (index contract, PR 1)
@@ -17,6 +23,8 @@ PUBLIC_SCOPE = "public"                    # the plain receipt's account_scope (
 MAX_MARKET_ALL_BODY = 1024 * 1024
 MAX_CANDLE_BODY = 256 * 1024
 _MARKET_ALL_PARAMS = (("is_details", "true"),)
+HISTORY_DAYS = 3650                        # core/oddsdata/bars.py HISTORY_DAYS, written out: no core.oddsdata import
+_MAX_PAGES = HISTORY_DAYS // CANDLE_COUNT_MAX + 2
 
 
 class UniverseReadError(ValueError):
@@ -95,3 +103,81 @@ def build_universe_snapshot(rule: rules.UniverseRule, day: date, *, clock) -> tu
     universe = rules.verify_universe_snapshot(raw, rules.universe_rule_sha256(rule))
     _require(universe.snapshot_sha256 == sha256, "UNIVERSE_SNAPSHOT_MISMATCH")
     return raw, sha256
+
+
+@dataclass(frozen=True)
+class UniverseBars:
+    """One market's final daily bars, oldest first, as load_leg's upbit_daily rows: (UTC candle date ISO, open KRW,
+    close KRW), both prices finite and above 0, one per date; and the sha256 of every candle page read, in order."""
+    market: str
+    bars: tuple[tuple[str, float, float], ...]
+    receipt_sha256: tuple[str, ...]
+
+
+def daily_bars(markets: Sequence[str], *, now: datetime, clock) -> dict[str, UniverseBars]:
+    """Final daily bars of each market over [Seoul date of `now` - HISTORY_DAYS, UTC date of `now`): load_leg's
+    window for a plan starting on that Seoul date, where a bar dated d is final at 00:00 UTC of d + 1. Pages
+    daily_candles backwards under `clock`, CANDLE_COUNT_MAX rows at most a page, until a short page, a page with no
+    new date or the window start."""
+    _require(type(markets) in (list, tuple) and len(markets) > 0
+             and all(type(m) is str and rules.UNIVERSE_MARKET.fullmatch(m) is not None and m != "KRW-KRW"
+                     for m in markets)
+             and len(set(markets)) == len(markets)
+             and type(now) is datetime and now.utcoffset() is not None and callable(clock), "UNIVERSE_INPUT_INVALID")
+    start = now.astimezone(KST).date() - timedelta(days=HISTORY_DAYS)
+    end = now.astimezone(timezone.utc).date()
+    with inquiry_clock(clock):
+        return {market: _market_bars(market, start, end) for market in markets}
+
+
+def _market_bars(market, start, end):
+    seen, digests, before = {}, [], end
+    for _ in range(_MAX_PAGES):
+        count = min(CANDLE_COUNT_MAX, (before - start).days)
+        if count < 1:
+            break
+        to = datetime(before.year, before.month, before.day, tzinfo=timezone.utc)
+        params = candle_params(market, to, count)
+        receipt, page = _receipt(_inquire(daily_candles, market, to, count), CANDLES_DAYS_PATH, params,
+                                 MAX_CANDLE_BODY)
+        _require(type(page) is list, "UNIVERSE_CANDLES_INVALID")
+        digests.append(receipt.sha256)
+        fresh = []
+        for row in page:
+            _require(type(row) is dict and row.get("market") == market, "UNIVERSE_CANDLES_INVALID")
+            day, opening, closing = _candle(row)
+            if day is None or day in seen:
+                continue
+            seen[day] = (day, opening, closing) if opening and closing else None
+            fresh.append(day)
+        if not fresh or len(page) < count:
+            break
+        before = date.fromisoformat(min(fresh))
+    low, high = start.isoformat(), end.isoformat()
+    bars = tuple(seen[day] for day in sorted(seen) if seen[day] is not None and low <= day < high)
+    return UniverseBars(market=market, bars=bars, receipt_sha256=tuple(digests))
+
+
+def _candle(row):
+    """(date, open, close) of one candle row: the date None unless candle_date_time_utc starts with an ISO day, a
+    price None unless it is a finite JSON number above 0 (core/oddsdata/bars.py _make_part)."""
+    _require(type(row) is dict, "UNIVERSE_CANDLES_INVALID")
+    return _day(row.get("candle_date_time_utc")), _price(row.get("opening_price")), _price(row.get("trade_price"))
+
+
+def _day(stamp):
+    text = stamp[:10] if type(stamp) is str else ""
+    try:
+        return text if date.fromisoformat(text).isoformat() == text else None
+    except ValueError:
+        return None
+
+
+def _price(value):
+    if type(value) not in (int, Decimal):
+        return None
+    try:
+        result = float(value)
+    except (OverflowError, ValueError):
+        return None
+    return result if math.isfinite(result) and result > 0 else None

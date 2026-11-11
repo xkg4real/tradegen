@@ -2,13 +2,17 @@
 no venue call, key or file write."""
 from __future__ import annotations
 
+import ast
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
+import hashlib
 import json
+from pathlib import Path
 from unittest.mock import patch
 from urllib.parse import parse_qsl
 
 from core.compliance import rules
+from execution import transport
 from execution_accounts import universe as U
 from tests import execution_fixtures as F
 
@@ -109,3 +113,93 @@ def test_answers_without_server_time_or_over_the_body_cap_and_bad_inputs_are_ref
         args = {"rule": RULE, "day": DAY, "clock": lambda: BUILT} | changes
         refused(lambda: U.build_universe_snapshot(args["rule"], args["day"], clock=args["clock"]),
                 "UNIVERSE_INPUT_INVALID")
+
+
+NOW = datetime(2026, 11, 11, 1, 0, tzinfo=timezone.utc)       # 10:00 KST: bars through 2026-11-10 are final
+
+
+def bars(markets, now, server):
+    with F.serve({("GET", "/v1/candles/days"): server}) as calls:
+        result = U.daily_bars(markets, now=now, clock=lambda: now)
+    return result, calls
+
+
+def test_daily_bars_pages_back_to_the_listing_and_returns_plain_final_bars():
+    server = candle_server(date(2025, 8, 18))
+    result, calls = bars(["KRW-BTC"], NOW, server)
+    assert [tuple(parse_qsl(c["query"])) for c in calls] == [
+        (("market", "KRW-BTC"), ("to", "2026-11-11T00:00:00Z"), ("count", "200")),
+        (("market", "KRW-BTC"), ("to", "2026-04-25T00:00:00Z"), ("count", "200")),
+        (("market", "KRW-BTC"), ("to", "2025-10-07T00:00:00Z"), ("count", "200"))]
+    got = result["KRW-BTC"]
+    assert list(result) == ["KRW-BTC"] and got.market == "KRW-BTC" and len(got.bars) == 450
+    assert got.bars[0] == ("2025-08-18", 100.0, 101.0) and got.bars[-1] == ("2026-11-10", 100.0, 101.0)
+    assert all(type(d) is str and type(o) is float and type(c) is float for d, o, c in got.bars)
+    assert got.receipt_sha256 == tuple(hashlib.sha256(server(c)[2]).hexdigest() for c in calls)
+
+
+def test_daily_bars_window_ends_at_the_last_final_utc_day_and_starts_3650_days_before_the_seoul_date():
+    late = datetime(2026, 11, 10, 16, 0, tzinfo=timezone.utc)   # 01:00 KST on 2026-11-11
+    result, calls = bars(("KRW-ETH",), late, candle_server(date(2026, 11, 1)))
+    assert [dict(parse_qsl(c["query"]))["to"] for c in calls] == ["2026-11-10T00:00:00Z"]
+    assert [bar[0] for bar in result["KRW-ETH"].bars] == [
+        (date(2026, 11, 1) + timedelta(days=n)).isoformat() for n in range(9)]
+    result, calls = bars(["KRW-BTC"], NOW, candle_server(date(2010, 1, 1)))
+    assert len(calls) == 19 and dict(parse_qsl(calls[-1]["query"]))["count"] == "50"
+    assert len(result["KRW-BTC"].bars) == 3650 and result["KRW-BTC"].bars[0][0] == "2016-11-13"
+
+
+def test_daily_bars_drops_the_rows_the_odds_loader_drops():
+    rows = [candle("KRW-BTC", date(2026, 11, 11)),                       # not final at NOW: outside the window
+            candle("KRW-BTC", date(2026, 11, 10)),
+            candle("KRW-BTC", date(2026, 11, 10), opening=7),             # a repeated date: the first row wins
+            candle("KRW-BTC", date(2026, 11, 9), opening=0),              # a price not above 0
+            candle("KRW-BTC", date(2026, 11, 8), closing=-1),
+            candle("KRW-BTC", date(2026, 11, 7)) | {"candle_date_time_utc": "2026-11-31T00:00:00"},
+            candle("KRW-BTC", date(2026, 11, 6))]
+    raw = json.dumps(rows).encode("utf-8")
+    result, calls = bars(["KRW-BTC"], NOW, lambda call: (200, {"Date": BUILT_HEADER}, raw))
+    assert len(calls) == 1                                                # 7 rows < 200: a short page ends paging
+    assert result["KRW-BTC"].bars == (("2026-11-06", 100.0, 101.0), ("2026-11-10", 100.0, 101.0))
+
+
+def test_daily_bars_refuses_a_row_of_another_market():
+    raw = json.dumps([candle("KRW-ETH", date(2026, 11, 10))]).encode("utf-8")
+    page = lambda call: (200, {"Date": BUILT_HEADER}, raw)
+    with F.serve({("GET", "/v1/candles/days"): page}) as calls:
+        refused(lambda: U.daily_bars(["KRW-BTC"], now=NOW, clock=lambda: NOW), "UNIVERSE_CANDLES_INVALID")
+    assert len(calls) == 1                                                # no stray call after the refusal
+
+
+def test_daily_bars_refuses_malformed_pages_forged_receipts_and_bad_inputs():
+    for raw in (b'{"not": "a list"}', b"[1]"):
+        page = lambda call, raw=raw: (200, {"Date": BUILT_HEADER}, raw)
+        with F.serve({("GET", "/v1/candles/days"): page}):
+            refused(lambda: U.daily_bars(["KRW-BTC"], now=NOW, clock=lambda: NOW), "UNIVERSE_CANDLES_INVALID")
+    forged = transport.Answer(body=[], server_utc=NOW, received_utc=NOW, sha256="0" * 64, raw_body=b"[]")
+    with patch.object(U, "daily_candles", return_value=forged):
+        refused(lambda: U.daily_bars(["KRW-BTC"], now=NOW, clock=lambda: NOW), "UNIVERSE_RECEIPT_INVALID")
+    for call in (lambda: U.daily_bars([], now=NOW, clock=lambda: NOW),
+                 lambda: U.daily_bars(["KRW-BTC", "KRW-BTC"], now=NOW, clock=lambda: NOW),
+                 lambda: U.daily_bars(["KRW-KRW"], now=NOW, clock=lambda: NOW),
+                 lambda: U.daily_bars("KRW-BTC", now=NOW, clock=lambda: NOW),
+                 lambda: U.daily_bars(["KRW-BTC"], now=NOW.replace(tzinfo=None), clock=lambda: NOW),
+                 lambda: U.daily_bars(["KRW-BTC"], now=NOW, clock=None)):
+        refused(call, "UNIVERSE_INPUT_INVALID")
+
+
+def test_universe_module_imports_only_public_helpers_and_no_odds_loader_data_or_config():
+    """Spec 9: no core.oddsdata, data.* or config import. Spec 7: the source is keyless, so from the execution
+    package it takes only the transport's Answer and inquiry_clock and the public upbit_inquiry helpers, never the
+    keyed snapshot or current_terms."""
+    tree = ast.parse(Path(U.__file__).read_text(encoding="utf-8"))
+    plain = {alias.name for node in ast.walk(tree) if isinstance(node, ast.Import) for alias in node.names}
+    named = {(node.module or "", alias.name) for node in ast.walk(tree) if isinstance(node, ast.ImportFrom)
+             for alias in node.names}
+    modules = plain | {module for module, _name in named}
+    assert not {m for m in modules if m.split(".")[0] in ("data", "config") or m.startswith("core.oddsdata")}, modules
+    public = {("execution.transport", "Answer"), ("execution.transport", "inquiry_clock")} | {
+        ("execution.upbit_inquiry", name) for name in ("CANDLE_COUNT_MAX", "CANDLES_DAYS_PATH", "MARKET_ALL_PATH",
+                                                        "candle_params", "daily_candles", "market_all", "tickers")}
+    assert {pair for pair in named if pair[0].split(".")[0] == "execution"} <= public, named
+    assert not {m for m in plain if m.split(".")[0] == "execution"}, plain
