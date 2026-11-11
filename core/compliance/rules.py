@@ -1268,6 +1268,8 @@ def verify_universe_snapshot(raw: bytes, rule_sha256: str) -> Universe:
     if universe_rule_sha256(rule) != rule_sha256:
         raise UniverseError("UNIVERSE_RULE_MISMATCH")
     listed, eligible, built_at = _eligible(rule, doc["receipts"], day)
+    if doc["receipts"] != sorted(doc["receipts"], key=lambda receipt: (receipt["path"], receipt["params"])):
+        raise UniverseError("UNIVERSE_MANIFEST_MISMATCH")      # one receipt set, one file form, one content address
     opens = _midnight(day) + _IN_FORCE_AT
     return Universe(day=day, rule_sha256=rule_sha256, snapshot_sha256=manifest, built_at=built_at,
                     valid_from=max(built_at, opens), valid_until=opens + timedelta(days=1), listed=listed,

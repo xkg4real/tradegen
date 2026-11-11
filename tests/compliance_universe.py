@@ -396,6 +396,7 @@ def test_a_tampered_snapshot_file_is_refused():
                 _resealed({**doc, "day": "2026-11-31"}), _resealed({**doc, "day": 20261111}),
                 _resealed(rule_with_float), raw.replace(b"{", b'{"day":"2026-11-11",', 1)):
         assert _verify_code(bad) == manifest, bad[:60]
+    assert _verify_code(_resealed({**doc, "receipts": doc["receipts"][::-1]})) == manifest   # same set, out of order
     receipts = [dict(r) for r in doc["receipts"]]
     m = next(k for k, r in enumerate(receipts) if r["path"] == "/v1/market/all")
     receipts[m]["raw_body_b64"] = base64.b64encode(_body(MARKETS[1:])).decode("ascii")
