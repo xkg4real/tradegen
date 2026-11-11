@@ -10,6 +10,7 @@ import hashlib
 import hmac
 import json
 import re
+from datetime import timedelta, timezone
 from urllib.parse import urlsplit
 
 from execution import upbit_inquiry
@@ -242,3 +243,49 @@ def test_a_refused_send_propagates():
             raise AssertionError("a refused send became a snapshot")
     assert len(EF.STRAYS) == 1 and EF.STRAYS[0].endswith(PATH["accounts"]), EF.STRAYS   # the first signed call
     EF.STRAYS.clear()
+
+
+def _refused(call):
+    try:
+        call()
+    except upbit_inquiry.InquiryRefused:
+        return
+    raise AssertionError("a bad universe request was not refused")
+
+
+def test_public_universe_helpers_send_fixed_keyless_gets():
+    """Spec 5: market_all, daily_candles, orderbook_instruments and tickers are fixed public GETs with no
+    Authorization header; the suite removed every key name, so they need no key."""
+    routes = {("GET", "/v1/market/all"): [], ("GET", "/v1/candles/days"): [],
+              ("GET", "/v1/orderbook/instruments"): [], ("GET", "/v1/ticker"): []}
+    with EF.serve(routes) as calls:
+        answers = (upbit_inquiry.market_all(), upbit_inquiry.daily_candles("KRW-BTC", EF.NOW, 200),
+                   upbit_inquiry.orderbook_instruments(["KRW-BTC", "KRW-ETH"]),
+                   upbit_inquiry.tickers(("KRW-BTC", "KRW-ETH")))
+    assert [call["url"] for call in calls] == [
+        "https://api.upbit.com/v1/market/all?is_details=true",
+        "https://api.upbit.com/v1/candles/days?market=KRW-BTC&to=2026-10-24T00%3A00%3A00Z&count=200",
+        "https://api.upbit.com/v1/orderbook/instruments?markets=KRW-BTC,KRW-ETH",
+        "https://api.upbit.com/v1/ticker?markets=KRW-BTC,KRW-ETH"]
+    assert all(call["method"] == "GET" and "authorization" not in _headers(call) for call in calls)
+    assert all(answer.body == [] and answer.raw_body == b"[]" for answer in answers)
+    assert (upbit_inquiry.MARKET_ALL_PATH, upbit_inquiry.CANDLES_DAYS_PATH) == ("/v1/market/all", "/v1/candles/days")
+    seoul = EF.NOW.astimezone(timezone(timedelta(hours=9)))
+    assert upbit_inquiry.candle_params("KRW-BTC", seoul, 1) == (
+        ("market", "KRW-BTC"), ("to", "2026-10-24T00:00:00Z"), ("count", "1"))
+
+
+def test_public_universe_helpers_refuse_bad_input_before_any_send():
+    """Every market passes KRW-[A-Z][A-Z0-9]{0,11} (KRW-KRW refused), a list is a non-empty list or tuple of distinct
+    markets, `to` is aware and `count` is an int in 1..200; a refusal sends nothing (the suite's stub would)."""
+    for market in ("KRW-btc", "KRW-KRW", "BTC-ETH", "KRW-", "KRW-ABCDEFGHIJKLM", " KRW-BTC", 7, None):
+        _refused(lambda: upbit_inquiry.daily_candles(market, EF.NOW, 1))
+        _refused(lambda: upbit_inquiry.orderbook_instruments([market]))
+        _refused(lambda: upbit_inquiry.tickers([market]))
+    for markets in ([], (), "KRW-BTC", ["KRW-BTC", "KRW-BTC"], {"KRW-BTC"}, None):
+        _refused(lambda: upbit_inquiry.orderbook_instruments(markets))
+        _refused(lambda: upbit_inquiry.tickers(markets))
+    for to, count in ((EF.NOW.replace(tzinfo=None), 1), (EF.NOW.date(), 1), (EF.NOW, 0), (EF.NOW, 201),
+                      (EF.NOW, True), (EF.NOW, "1")):
+        _refused(lambda: upbit_inquiry.daily_candles("KRW-BTC", to, count))
+    assert not EF.STRAYS, EF.STRAYS

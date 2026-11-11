@@ -5,23 +5,29 @@ from __future__ import annotations
 
 import math
 import re
-from datetime import datetime
+from collections.abc import Sequence
+from datetime import datetime, timezone
 
 from core.compliance import model
 from execution.snapshot import Address, FieldError, Holding, Move, Order, Snapshot, failed
-from execution.transport import AuthError, InquiryError, InquiryRefused, KeyMissing, request
+from execution.transport import Answer, AuthError, InquiryError, InquiryRefused, KeyMissing, request
 
 ENDPOINTS = frozenset({
     ("GET", "/v1/accounts"), ("GET", "/v1/orders/open"), ("GET", "/v1/orders/closed"), ("GET", "/v1/withdraws"),
     ("GET", "/v1/withdraws/coin_addresses"), ("GET", "/v1/deposits"), ("GET", "/v1/api_keys"),
     ("GET", "/v1/status/wallet"), ("GET", "/v1/ticker"), ("GET", "/v1/order"), ("GET", "/v1/orderbook"),
-    ("GET", "/v1/orders/chance"), ("GET", "/v1/orderbook/instruments"),
+    ("GET", "/v1/orders/chance"), ("GET", "/v1/orderbook/instruments"), ("GET", "/v1/market/all"),
+    ("GET", "/v1/candles/days"),
 })
-PUBLIC = frozenset({"/v1/ticker", "/v1/orderbook", "/v1/orderbook/instruments"})
+PUBLIC = frozenset({"/v1/ticker", "/v1/orderbook", "/v1/orderbook/instruments", "/v1/market/all",
+                    "/v1/candles/days"})
 
 
 TERMS_CHANCE_PATH = "/v1/orders/chance"
 TERMS_INSTRUMENTS_PATH = "/v1/orderbook/instruments"
+MARKET_ALL_PATH = "/v1/market/all"
+CANDLES_DAYS_PATH = "/v1/candles/days"
+CANDLE_COUNT_MAX = 200                    # Upbit's largest daily-candle page
 
 
 def current_terms(symbol):
@@ -36,6 +42,54 @@ def current_terms(symbol):
     chance = request("upbit", "GET", "/v1/orders/chance", (("market", symbol),))
     instruments = request("upbit", "GET", "/v1/orderbook/instruments", (("markets", symbol),))
     return chance, instruments
+
+
+def _krw_market(market) -> str:
+    """One KRW market such as KRW-BTC; InquiryRefused for anything else, before any key is read or request sent."""
+    if (type(market) is not str or re.fullmatch(r"KRW-[A-Z][A-Z0-9]{0,11}", market) is None
+            or market == "KRW-KRW"):
+        raise InquiryRefused("upbit: invalid KRW market")
+    return market
+
+
+def _krw_markets(markets) -> str:
+    """A non-empty list or tuple of distinct KRW markets, joined as Upbit's `markets` parameter."""
+    if type(markets) not in (list, tuple) or not markets:
+        raise InquiryRefused("upbit: invalid KRW market list")
+    names = [_krw_market(m) for m in markets]
+    if len(set(names)) != len(names):
+        raise InquiryRefused("upbit: invalid KRW market list")
+    return ",".join(names)
+
+
+def market_all() -> Answer:
+    """Every Upbit market with its warning and caution flags (is_details=true), one public GET."""
+    return request("upbit", "GET", MARKET_ALL_PATH, (("is_details", "true"),))
+
+
+def candle_params(market: str, to: datetime, count: int) -> tuple[tuple[str, str], ...]:
+    """The fixed query of one daily-candle page: `count` (1 to 200) candles dated before `to` (exclusive), in UTC."""
+    if type(to) is not datetime or to.utcoffset() is None:
+        raise InquiryRefused("upbit: candle time must be aware")
+    if type(count) is not int or not 1 <= count <= CANDLE_COUNT_MAX:
+        raise InquiryRefused("upbit: invalid candle count")
+    return (("market", _krw_market(market)), ("to", to.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")),
+            ("count", str(count)))
+
+
+def daily_candles(market: str, to: datetime, count: int) -> Answer:
+    """One page of daily candles, one public GET; paging is the caller's."""
+    return request("upbit", "GET", CANDLES_DAYS_PATH, candle_params(market, to, count))
+
+
+def orderbook_instruments(markets: Sequence[str]) -> Answer:
+    """Tick size and book levels of the given KRW markets, one public GET."""
+    return request("upbit", "GET", TERMS_INSTRUMENTS_PATH, (("markets", _krw_markets(markets)),))
+
+
+def tickers(markets: Sequence[str]) -> Answer:
+    """The last trade of the given KRW markets, one public GET."""
+    return request("upbit", "GET", _TICKER, (("markets", _krw_markets(markets)),))
 
 _ACCOUNTS = "/v1/accounts"
 _OPEN = "/v1/orders/open"

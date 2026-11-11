@@ -22,7 +22,7 @@ INITIALIZERS = {
     "execution/__init__.py": "dbbe3001d9d0d1bf6393b4d823b997e9ae163f45f8eb26860474cd6ec902f380",
     "execution/keys.py": "4e5c674aad9265edb21eb1ac71c4795bb1ae7d89aa7fb880e86131bae44c644a",
     "execution/transport.py": "0aeec926859748a0321aa03da988ee69a8425f12a9dfe608d78990a1f0229104",
-    "execution/upbit_inquiry.py": "7244620f99bf1d7aa596c5155d887c94e8872dfb635273609f546653e6e4af24",
+    "execution/upbit_inquiry.py": "cdeb85aa8c1fbe5f63c5328716406cb298909fe82543207949106b6ecd5b7b10",
     "execution_accounts/__init__.py": "dbbe3001d9d0d1bf6393b4d823b997e9ae163f45f8eb26860474cd6ec902f380",
     "execution_accounts/collector.py": "7c2dd003297d051d3248b0c3ad30d105bf8e59037a4e2b2b347217d877b44d9d",
     "execution_accounts/instrument_terms.py": "7a87af0de172ba598c158ebf646be226c045bfed540a26671402af2198662dda",
