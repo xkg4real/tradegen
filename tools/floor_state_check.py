@@ -24,10 +24,11 @@ Rows (the go values are in the design, section 9.1):
   S10  anchor equity against W0              none | above | equal | below
   S11  anchor equity against highest floor   none | at_or_above | below
   S12  signed floor inside --session         not_requested | not_armed | unset | above | equal | below
-Any row can also read "unreadable".
+Every row except S1 and S9 can also read "unreadable".
 
-Exit 0: every row was read, and with --gate the go table holds. Exit 1: --gate and some row is not go.
-Exit 2: an argument was refused, or some state could not be read.
+Exit 0: every row was read, and with --gate every gate row is go: S2, S3, S4, S6, S7, S10, S11, and S12 when
+--session is given (S1, S5, S8 and S9 are shown, not gated). Exit 1: --gate and a gate row is not go.
+Exit 2: an argument was refused or missing, or some state could not be read.
 """
 from __future__ import annotations
 
@@ -57,7 +58,7 @@ _LABELS = {"S1": "owner log verifies", "S2": "halt in the owner log", "S3": "hal
            "S9_home": "home", "S9_journal": "control journal folder", "S10": "anchor equity against W0",
            "S11": "anchor equity against highest floor", "S12": "signed floor inside --session"}
 _GO = {"S2": ("none",), "S3": ("none", "no_journal"), "S4": ("none", "below"), "S6": ("equal",), "S7": ("equal",),
-       "S10": ("equal", "below"), "S11": ("at_or_above",)}
+       "S10": ("equal", "below"), "S11": ("at_or_above",), "S12": ("not_requested", "equal")}
 
 
 class Refused(ValueError):
@@ -202,7 +203,7 @@ def check(*, home: Path, head_root: str, principal: Decimal, floor: Decimal, act
 
 def main(argv=None, *, now: datetime | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
-    if tuple(argv) in ((), ("--help",), ("-h",)):
+    if tuple(argv) in (("--help",), ("-h",)):
         print(__doc__)
         return 0
     try:
@@ -214,7 +215,7 @@ def main(argv=None, *, now: datetime | None = None) -> int:
     except Refused as exc:
         print(json.dumps({"refused": str(exc)}))
         return 2
-    except Exception:                              # no message is printed: it could name a path or an amount
+    except (Exception, KeyboardInterrupt):         # Ctrl-C too. No message: it could name a path or an amount
         print(json.dumps({"refused": "STATE_CHECK_FAILED"}))
         return 2
     for key, label in _LABELS.items():

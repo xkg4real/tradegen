@@ -16,11 +16,11 @@
 - No file under `core/compliance`, `core/odds`, `execution`, `execution_control`, `execution_orders`, `execution_accounts`, `execution_network`, `execution_launch` or `tools/owner` is edited.
 - Reads only. Never call `load_context` (it writes a snapshot), `append_system_entry`, `Journal.transaction`, `seed`, `commit`, `initialize_reviewed_head` or `compare_and_set`. Never read or set `os.environ`. Never import `config` (it loads `.env`).
 - `--state-root` does not select a home. It must equal `core.isolation.state_root().absolute()`; otherwise refuse. A relative value never equals it.
-- Output: fixed codes only. Never print an exception message: the isolation and owner-log messages contain paths and log content.
-- Exit 0: every row read (with `--gate`: and the go table holds). Exit 1: `--gate` and a row is not go. Exit 2: an argument was refused or some state could not be read.
+- Output: fixed codes only. Never print an exception message: the isolation and owner-log messages contain paths and log content. Ctrl-C during a read gets the fixed failure code too: a traceback names source paths.
+- Exit 0: every row read (with `--gate`: and every gate row is go). Exit 1: `--gate` and a gate row is not go. Exit 2: an argument was refused or some state could not be read. An empty argument list is refused: it reads nothing, so it must not exit 0. Only `--help` or `-h` alone prints the usage.
 - Tests call `main(argv)` in-process. No `subprocess`, no `sys.executable`, no `importlib.reload` (`tests/launch_guards.py:653-662`). Nothing touches state at module import. Every home and head root is temporary.
 - New files are LF, UTF-8, no BOM. `tests/launch_acceptance.py` is LF. Check `git diff --stat` equals `git diff --stat --ignore-cr-at-eol`.
-- Commit messages end with `Co-Authored-By: Claude Fable 5.2 <noreply@anthropic.com>`.
+- Commit messages end with a `Co-Authored-By: Claude ... <noreply@anthropic.com>` trailer that names the model that wrote them.
 - README totals and `qa/acceptance_results.json` are not changed by this plan. A `tests/run_all.py` run rewrites `qa/acceptance_results.json`; restore it with `git checkout -- qa/acceptance_results.json` after every run.
 
 ## File Structure
@@ -59,16 +59,16 @@ python -m tools.floor_state_check --state-root ROOT --head-root HEAD_ROOT --prin
 | `S11` | anchor equity against the highest of its own floor, the last journaled floor and the signed floor | `none`, `at_or_above`, `below` |
 | `S12` | signed floor inside `--session` against `C` | `not_requested`, `not_armed`, `unset`, `above`, `equal`, `below` |
 
-Any row can read `unreadable`. Refusal codes: `STATE_CHECK_ARGUMENTS_INVALID`, `STATE_CHECK_STATE_ROOT_MISMATCH`, `STATE_CHECK_STATE_ROOT_REFUSED`, `STATE_CHECK_FAILED`.
+Every row except `S1`, `S9_home` and `S9_journal` can read `unreadable`; an owner log that cannot be read is `S1` `no`. Refusal codes: `STATE_CHECK_ARGUMENTS_INVALID`, `STATE_CHECK_STATE_ROOT_MISMATCH`, `STATE_CHECK_STATE_ROOT_REFUSED`, `STATE_CHECK_FAILED`.
 
-Gate (spec 9.1): go when `S2` is `none`, `S3` is `none` or `no_journal`, `S4` is `none` or `below`, `S6` and `S7` are `equal`, `S10` is `equal` or `below`, `S11` is `at_or_above`.
+Gate (spec 9.1): go when `S2` is `none`, `S3` is `none` or `no_journal`, `S4` is `none` or `below`, `S6` and `S7` are `equal`, `S10` is `equal` or `below`, `S11` is `at_or_above`, and `S12` is `not_requested` or `equal`.
 
-Three readings of the spec that this plan fixes:
+Four readings of the spec that this plan fixes:
 
 - S6 reads the signed floor only. The floor and the daily limit are signed in one `limit_set` entry, and a first setting of either waits one Seoul date, so the two are unset together. S1 is not in the gate: when the log does not verify or is empty, S6 is not `equal`.
-
 - The spec's gate sentence names `none` for S3; its S3 row gives "none, or no journal" as go. A home that never ran has no journal, and that is the expected case at step 10, so the gate accepts `no_journal`.
 - The spec does not say when a journal is "absent". Here: the folder `execution-control` under the home does not exist. A folder that exists but cannot be read by `Journal.snapshot()` is `unreadable`.
+- The spec's gate sentence does not name S12; its S12 row gives `equal` as go. S12 is the one row whose miss nothing else catches and cannot be undone: a buy inside that session reads the earlier, higher floor and halts for good (spec 2.5). So with `--session` the gate also needs `S12` `equal`. Without `--session`, `S12` is `not_requested` and the gate is the gate of step 10.
 
 ---
 
@@ -151,7 +151,11 @@ def invoke(home, hroot, *extra, now=NEXT_DAY, **changes):
     with redirect_stdout(output):
         code = S.main(argv(home, hroot, **changes) + list(extra), now=now)
     assert listing(home, hroot) == before, "the state check changed a file"
-    return code, json.loads(output.getvalue().splitlines()[-1]), output.getvalue()
+    lines = output.getvalue().splitlines()
+    report = json.loads(lines[-1])
+    assert [(line.split()[0], line.split()[-1]) for line in lines[:-1]] == [
+        (key, report["rows"][key]) for key in ALL_NONE], "the owner's table disagrees with the JSON line"
+    return code, report, output.getvalue()
 
 
 def limits(key, floor, utc=SIGNED):
@@ -194,7 +198,11 @@ def test_a_fresh_home_reads_none_in_every_row_and_nothing_is_created():
     with homes() as (home, hroot, _):
         code, report, text = invoke(home, hroot)
         assert code == 0 and report == {"gate": "not_requested", "rows": ALL_NONE}
-        assert len(text.splitlines()) == len(ALL_NONE) + 1, "one line per row, then the JSON line"
+        assert [line.split(None, 1)[1].rsplit(None, 1)[0] for line in text.splitlines()[:-1]] == [
+            "owner log verifies", "halt in the owner log", "halt in the control journal",
+            "highest recorded peak against A", "last journaled floor against C", "signed floor in force against C",
+            "anchor floor against C", "armed sessions", "home", "control journal folder", "anchor equity against W0",
+            "anchor equity against highest floor", "signed floor inside --session"], "the owner's labels"
         assert sorted(path.name for path in home.iterdir()) == ["owner_pubkey.pem"] and list(hroot.iterdir()) == []
 
 
@@ -218,6 +226,8 @@ def test_a_signed_floor_counts_from_the_next_seoul_date_and_is_compared_with_the
         assert rows["S1"] == "yes" and rows["S6"] == "equal"
         assert invoke(home, hroot, floor="79999")[1]["rows"]["S6"] == "above"
         assert invoke(home, hroot, floor="80001")[1]["rows"]["S6"] == "below"
+        early = datetime(2026, 10, 23, 15, 30, tzinfo=timezone.utc)        # 00:30 on 24 October in Seoul
+        assert invoke(home, hroot, now=early)[1]["rows"]["S6"] == "equal", "the Seoul date, not the UTC date"
 
 
 def test_an_owner_log_halt_and_an_armed_session_are_reported():
@@ -242,7 +252,7 @@ def test_the_floor_inside_a_session_armed_on_the_signing_date_is_the_earlier_one
 
 def test_journal_rows_give_the_halt_the_peak_and_the_last_floor():
     with homes() as (home, hroot, _):
-        journal(risk("100000", None))
+        journal(risk("100000", None), ("kill", {"session_id": "ARMED7", "reason": "operator"}))
         rows = invoke(home, hroot)[1]["rows"]
         assert (rows["S3"], rows["S4"], rows["S5"], rows["S9_journal"]) == ("none", "below", "none", "present")
         journal(risk("120000", "90000"), risk("120000", "80000"))
@@ -335,14 +345,14 @@ def test_a_candidate_anchor_is_read_in_place_of_the_store():
     state = anchor_state()
     with homes() as (home, hroot, key), tempfile.TemporaryDirectory() as folder:
         limits(key, C)
-        seed(home, hroot, anchor_state(floor="90000"))                     # the store disagrees with the candidate
+        seed(home, hroot, anchor_state(floor="100001", peak="150000", equity="75000"))  # differs in every row
         path = Path(os.path.realpath(folder)) / "anchor.json"
         path.write_text(state_json(state), encoding="ascii")
         code, report, text = invoke(home, hroot, "--candidate", str(path), "--candidate-head", state.state_digest)
         rows = report["rows"]
         assert code == 0 and (rows["S4"], rows["S7"], rows["S10"], rows["S11"]) == (
             "below", "equal", "equal", "at_or_above")
-        assert str(path) not in text and state.state_digest not in text
+        assert path.parent.name not in text and state.state_digest not in text
         code, report, _ = invoke(home, hroot, "--candidate", str(path), "--candidate-head", "d" * 64)
         assert code == 2 and report["rows"]["S7"] == "unreadable"
 
@@ -385,8 +395,24 @@ def test_the_gate_passes_on_the_go_table_and_fails_on_each_single_miss():
         assert invoke(home, hroot, "--gate")[0] == 1, "S2 present"
     with homes() as (home, hroot, key):
         limits(key, C)
+        assert invoke(home, hroot, "--gate")[0] == 1, "no anchor: S7, S10 and S11 read none"
         code, report, _ = invoke(home, hroot / "missing", "--gate")
         assert code == 2 and report["gate"] == "no_go", "unreadable is exit 2 even with --gate"
+    for signed, own, why in (("90000", C, "S6 above alone"), ("70000", C, "S6 below alone"),
+                             (C, "70000", "S7 below alone"), (C, None, "S7 null alone")):
+        with homes() as (home, hroot, key):
+            limits(key, signed)
+            seed(home, hroot, anchor_state(floor=own))
+            assert invoke(home, hroot, "--gate")[0] == 1, why
+    with homes() as (home, hroot, key):
+        limits(key, "90000", "2026-10-21T03:00:00Z")
+        limits(key, C)
+        F.sign(key, "session_armed", {"session_id": "ARMED7"}, "2026-10-23T04:00:00Z")
+        F.sign(key, "session_armed", {"session_id": "LATER8"}, "2026-10-24T01:00:00Z")
+        seed(home, hroot, anchor_state())
+        assert invoke(home, hroot, "--gate")[0] == 0, "S12 was not asked for"
+        assert invoke(home, hroot, "--gate", "--session", "LATER8")[0] == 0, "S12 equal"
+        assert invoke(home, hroot, "--gate", "--session", "ARMED7")[0] == 1, "S12 above"
 
 
 def test_the_state_root_must_be_the_configured_home_and_nothing_is_read_otherwise():
@@ -399,6 +425,10 @@ def test_the_state_root_must_be_the_configured_home_and_nothing_is_read_otherwis
             code, text = run(argv(home, hroot))
         assert code == 2 and json.loads(text) == {"refused": "STATE_CHECK_STATE_ROOT_REFUSED"}
         assert str(home) not in text
+        with patch.object(S, "state_root", lambda: Path.cwd() / "relative"), \
+                patch.object(owner, "_owner_now", side_effect=AssertionError("owner log read")):
+            code, text = run(argv("relative", hroot))
+        assert code == 2 and json.loads(text) == {"refused": "STATE_CHECK_STATE_ROOT_MISMATCH"}, "relative"
 
 
 def test_bad_arguments_get_one_fixed_code_and_read_nothing():
@@ -410,7 +440,8 @@ def test_bad_arguments_get_one_fixed_code_and_read_nothing():
                  argv(home, hroot, principal="100,000"), argv(home, hroot, floor=W0),
                  argv(home, hroot, activation="99999"), argv(home, hroot, floor="0"),
                  argv(home, hroot, **{"candidate": "x.json", "candidate-head": "not-a-digest"}),
-                 good + ["--gate", "--gate"], good + ["--session"], good + ["--session", ""], ["--floor"])
+                 good + ["--gate", "--gate"], good + ["--session"], good + ["--session", ""], ["--floor"], [],
+                 good + ["--session", "--gate"], argv(home, hroot, **{"candidate-head": "a" * 64}))
         for arguments in cases:
             with patch.object(owner, "_owner_now", side_effect=AssertionError("owner log read")):
                 code, text = run(arguments)
@@ -419,9 +450,13 @@ def test_bad_arguments_get_one_fixed_code_and_read_nothing():
 
 def test_an_unexpected_failure_prints_a_fixed_code_and_no_message():
     with homes() as (home, hroot, _):
-        with patch.object(owner, "_owner_now", side_effect=KeyError(str(home))):
-            code, text = run(argv(home, hroot))
-        assert code == 2 and json.loads(text) == {"refused": "STATE_CHECK_FAILED"} and str(home) not in text
+        for failure in (KeyError(str(home)), KeyboardInterrupt()):
+            try:
+                with patch.object(owner, "_owner_now", side_effect=failure):
+                    code, text = run(argv(home, hroot))
+            except KeyboardInterrupt:
+                raise AssertionError("Ctrl-C left main as a traceback") from None
+            assert code == 2 and json.loads(text) == {"refused": "STATE_CHECK_FAILED"} and str(home) not in text
 
 
 def test_the_output_holds_no_amount_path_digest_or_session_id():
@@ -446,7 +481,7 @@ def test_the_home_is_reported_as_default_or_custom():
 
 
 def test_help_prints_the_usage_and_reads_nothing():
-    for arguments in ([], ["--help"], ["-h"]):
+    for arguments in (["--help"], ["-h"]):
         with patch.object(S, "state_root", side_effect=AssertionError("home read")):
             code, text = run(arguments)
         assert code == 0 and "python -m tools.floor_state_check" in text
@@ -548,10 +583,11 @@ Rows (the go values are in the design, section 9.1):
   S10  anchor equity against W0              none | above | equal | below
   S11  anchor equity against highest floor   none | at_or_above | below
   S12  signed floor inside --session         not_requested | not_armed | unset | above | equal | below
-Any row can also read "unreadable".
+Every row except S1 and S9 can also read "unreadable".
 
-Exit 0: every row was read, and with --gate the go table holds. Exit 1: --gate and some row is not go.
-Exit 2: an argument was refused, or some state could not be read.
+Exit 0: every row was read, and with --gate every gate row is go: S2, S3, S4, S6, S7, S10, S11, and S12 when
+--session is given (S1, S5, S8 and S9 are shown, not gated). Exit 1: --gate and a gate row is not go.
+Exit 2: an argument was refused or missing, or some state could not be read.
 """
 from __future__ import annotations
 
@@ -581,7 +617,7 @@ _LABELS = {"S1": "owner log verifies", "S2": "halt in the owner log", "S3": "hal
            "S9_home": "home", "S9_journal": "control journal folder", "S10": "anchor equity against W0",
            "S11": "anchor equity against highest floor", "S12": "signed floor inside --session"}
 _GO = {"S2": ("none",), "S3": ("none", "no_journal"), "S4": ("none", "below"), "S6": ("equal",), "S7": ("equal",),
-       "S10": ("equal", "below"), "S11": ("at_or_above",)}
+       "S10": ("equal", "below"), "S11": ("at_or_above",), "S12": ("not_requested", "equal")}
 
 
 class Refused(ValueError):
@@ -726,7 +762,7 @@ def check(*, home: Path, head_root: str, principal: Decimal, floor: Decimal, act
 
 def main(argv=None, *, now: datetime | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
-    if tuple(argv) in ((), ("--help",), ("-h",)):
+    if tuple(argv) in (("--help",), ("-h",)):
         print(__doc__)
         return 0
     try:
@@ -738,7 +774,7 @@ def main(argv=None, *, now: datetime | None = None) -> int:
     except Refused as exc:
         print(json.dumps({"refused": str(exc)}))
         return 2
-    except Exception:                              # no message is printed: it could name a path or an amount
+    except (Exception, KeyboardInterrupt):         # Ctrl-C too. No message: it could name a path or an amount
         print(json.dumps({"refused": "STATE_CHECK_FAILED"}))
         return 2
     for key, label in _LABELS.items():
@@ -780,7 +816,7 @@ python -m tests.launch_acceptance
 python -m tests.compliance_acceptance test_code_files_is_the_import_closure
 ```
 
-Expected: no `FAIL` row in the launch suite; the closure test passes, which shows the code hash did not change.
+Expected: no `FAIL` row in the launch suite; the closure test passes, which shows the closure's file list did not change (the script is not in it). The test pins file names, not contents: that no closure file was edited is shown by the name list of Step 3. Together they show the code hash did not change.
 
 - [ ] **Step 2: The whole suite, once**
 
