@@ -1081,7 +1081,8 @@ def _universe_in_force(now: _dt.datetime, rule_sha256: str) -> model.Universe | 
                 except Exception:
                     _UNIVERSE_VERIFIED[key] = None
             universe = _UNIVERSE_VERIFIED[key]
-            if universe is not None and universe.day == day and universe.valid_from <= now < universe.valid_until:
+            if (universe is not None and universe.day == day and path.name == f"{universe.snapshot_sha256}.json"
+                    and universe.valid_from <= now < universe.valid_until):
                 found.append(universe)
         return min(found, key=lambda u: (u.built_at, u.snapshot_sha256)) if found else None
     except Exception:

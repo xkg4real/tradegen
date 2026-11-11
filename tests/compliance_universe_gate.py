@@ -307,3 +307,32 @@ def test_the_read_back_recomputes_without_importing_execution():
             builtins.__import__ = real
         assert c.universe is not None and c.universe.day == D23
         assert [n for n in names if n.split(".")[0].startswith("execution")] == [], names
+
+
+def test_a_renamed_universe_file_is_not_in_force():
+    """Spec 5: the store is content-addressed (owner.universe_path(D, sha256)). A valid D23 snapshot copied to another
+    64-hex name (the original removed) is not in force at a time its correctly named file would be."""
+    with F.temp_home() as home, F.pubkey_at(home / "owner_pubkey.pem"):
+        _signed_home(home)
+        owner._UNIVERSE_VERIFIED.clear()
+        path = F.universe_file(F.universe_rule(), D23)
+        assert owner.load_context(F.NOW, F.HELD).universe is not None
+        raw = path.read_bytes()
+        path.unlink()
+        (path.parent / ("0" * 64 + ".json")).write_bytes(raw)
+        owner._UNIVERSE_VERIFIED.clear()
+        assert owner.load_context(F.NOW, F.HELD).universe is None
+
+
+def test_a_universe_file_in_the_wrong_day_folder_is_not_in_force():
+    """Spec 5: a valid D23 file placed in the D24 folder (named by its own sha) is not in force at 10-24 01:00."""
+    with F.temp_home() as home, F.pubkey_at(home / "owner_pubkey.pem"):
+        _signed_home(home)
+        owner._UNIVERSE_VERIFIED.clear()
+        path = F.universe_file(F.universe_rule(), D23)
+        wrong = owner.universe_dir(D24)
+        wrong.mkdir(parents=True, exist_ok=True)
+        (wrong / path.name).write_bytes(path.read_bytes())
+        path.unlink()
+        owner._UNIVERSE_VERIFIED.clear()
+        assert owner.load_context(_utc(2026, 10, 24, 1, 0), F.HELD).universe is None
