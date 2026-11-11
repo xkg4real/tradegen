@@ -61,6 +61,26 @@ def test_flag_class_unknown_for_a_missing_or_malformed_field():
     assert rules.flag_class([]) == rules.flag_class("KRW-BTC") == "unknown"         # not a market object
 
 
+def test_flag_class_overlap_rulings_are_pinned():
+    # 1. a warning that is exactly true gives "warning" whatever the caution object looks like
+    for caution in (None, [], "x", 1, {}):
+        entry = {"market": "KRW-BTC", "market_event": {"warning": True, "caution": caution}}
+        assert rules.flag_class(entry) == "warning", caution
+    missing = {"market": "KRW-BTC", "market_event": {"warning": True}}
+    assert rules.flag_class(missing) == "warning"
+    # 2. a missing or non-boolean known key gives "unknown" even when another known key is true
+    for key in CAUTIONS:
+        other = next(k for k in CAUTIONS if k != key)
+        gone = _entry("KRW-BTC", **{other: True})
+        del gone["market_event"]["caution"][key]
+        assert rules.flag_class(gone) == "unknown", key
+        assert rules.flag_class(_entry("KRW-BTC", **{key: 1, other: True})) == "unknown", key
+    # 3. an unknown key is ignored unless exactly true
+    for value in ("yes", 1, None, "true", [True]):
+        assert rules.flag_class(_entry("KRW-BTC", NEW=value)) == "unflagged", value
+    assert rules.flag_class(_entry("KRW-BTC", NEW=True)) == "caution"
+
+
 def test_market_flags_reads_krw_markets_and_refuses_a_bad_body():
     assert issubclass(rules.UniverseError, ValueError)
     assert str(rules.UniverseError("UNIVERSE_BODY_INVALID")) == "UNIVERSE_BODY_INVALID"
