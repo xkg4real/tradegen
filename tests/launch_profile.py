@@ -2,6 +2,7 @@
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal, localcontext
+import hashlib
 import json
 from pathlib import Path
 
@@ -244,3 +245,55 @@ def test_prospective_contract_refreshes_only_timestamp_and_keeps_economic_terms_
     assert profile_contract_digest(changed)!=profile_contract_digest(profile)
     # A stable research identity never excuses an old runtime observation.
     assert 'INSTRUMENT_RULES_STALE_OR_FUTURE' in preflight_profile(profile,now=NOW+timedelta(days=3)).reasons
+
+
+RULE = hashlib.sha256(b"fixture-universe-rule").hexdigest()
+
+
+def test_fixed_profile_digests_are_byte_identical_to_the_pre_universe_encoding():
+    profile = fixture_profile()
+    assert profile.universe_rule_sha256 is None and "universe_rule_sha256" not in profile_body(profile)
+    assert profile_digest(profile) == "5aebfdf42857cc0a9ece19bbb988779535a7f0db63ee53ee890cfe249c5fdbd4"
+    assert profile_contract_digest(profile) == "96895573944a45434a4ca6383bfe51b39c05486bbfa6d0a54b66fff41f7b8b35"
+    assert rule_terms_digest(profile.instrument_rules) == (
+        "3786c81272167bb525374d9f049e4213acdadae88c04cfdf28e0f5bd5add7eeb")
+    assert (rule_terms_digest(profile.instrument_rules, universe_rule_sha256=None)
+            == rule_terms_digest(profile.instrument_rules))
+
+
+def test_universe_profile_round_trips_and_differs_from_the_fixed_form_on_the_same_rules():
+    fixed = fixture_profile()
+    universe = replace(fixed, universe_rule_sha256=RULE)
+    assert profile_body(universe)["universe_rule_sha256"] == RULE
+    assert parse_profile_json(json.dumps(profile_body(universe))) == universe
+    rules = fixed.instrument_rules
+    assert rule_terms_digest(rules, universe_rule_sha256=RULE) != rule_terms_digest(rules)
+    assert (rule_terms_digest(rules, universe_rule_sha256="f"*64)
+            != rule_terms_digest(rules, universe_rule_sha256=RULE))
+    assert profile_contract_digest(universe) != profile_contract_digest(fixed)
+    assert profile_digest(universe) != profile_digest(fixed)
+    for value in ("F"*64, "f"*63, 7):
+        rejected(lambda value=value: replace(fixed, universe_rule_sha256=value), "PROFILE_TEXT_INVALID")
+        rejected(lambda value=value: rule_terms_digest(rules, universe_rule_sha256=value), "PROFILE_TEXT_INVALID")
+    body = profile_body(fixed)
+    body["universe_rule_sha256"] = None
+    assert parse_profile_json(json.dumps(body)) == fixed  # an explicit null is the fixed form, like other fields
+
+
+def test_universe_contract_and_rule_terms_follow_the_rule_not_the_trade_coin():
+    fixed = fixture_profile()
+    universe = replace(fixed, universe_rule_sha256=RULE)
+    def terms(profile):
+        return rule_terms_digest(profile.instrument_rules, universe_rule_sha256=RULE)
+    moved = replace(universe, symbol="KRW-ETH", instrument_rules=replace(universe.instrument_rules,
+                    symbol="KRW-ETH", tick_size=D("5"), asof=NOW+timedelta(days=3)))
+    assert profile_contract_digest(moved) == profile_contract_digest(universe) and terms(moved) == terms(universe)
+    assert profile_digest(moved) != profile_digest(universe)
+    for field, value in (("lot_size", D("0.1")), ("min_quantity", D("0.1")), ("min_notional_krw", D("30")),
+                         ("fee_fraction", D("0.002")), ("source_digest", "d"*64)):
+        changed = replace(universe, instrument_rules=replace(universe.instrument_rules, **{field: value}))
+        assert profile_contract_digest(changed) != profile_contract_digest(universe), field
+        assert terms(changed) != terms(universe), field
+    assert profile_contract_digest(replace(universe, universe_rule_sha256="f"*64)) != profile_contract_digest(universe)
+    fixed_moved = replace(fixed, symbol="KRW-ETH", instrument_rules=replace(fixed.instrument_rules, symbol="KRW-ETH"))
+    assert profile_contract_digest(fixed_moved) != profile_contract_digest(fixed)
