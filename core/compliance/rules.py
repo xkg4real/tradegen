@@ -8,12 +8,13 @@ from __future__ import annotations
 
 import codecs
 import hashlib
+import json
 import math
 import os
 import re
 import string
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import date
 from pathlib import Path
 from types import MappingProxyType
@@ -304,6 +305,20 @@ class InstrumentMap:
 
 
 @dataclass(frozen=True, kw_only=True)
+class UniverseRule:
+    """The signed Upbit KRW eligibility rule (universe spec section 4); universe_rule_sha256() is its hash."""
+    source: str
+    quote: str                                           # "KRW": a settlement asset of the venue
+    exclude: tuple[str, ...]                             # base symbols, sorted
+    min_listing_days: int                                # 1 .. _MAX_LISTING_DAYS
+    median_days: int                                     # 1 .. _MAX_CANDLES (one candle read)
+    min_median_value_krw: int                            # >= 1
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "exclude", tuple(sorted(self.exclude)))   # one rule, one form, one sha256
+
+
+@dataclass(frozen=True, kw_only=True)
 class Venue:
     id: str
     sections: tuple[str, ...]
@@ -320,6 +335,7 @@ class Venue:
     tick_ladder: tuple[tuple[str, str, tuple[tuple[float, float], ...]], ...] = ()
     #               (cost book, effective_from "YYYY-MM-DD", ((price_from, tick), ...)) in the book's quote currency
     odds_sources: tuple[tuple[str, str], ...] = ()       # (odds key, its source) for each odds key present
+    universe_rule: UniverseRule | None = None            # upbit only (universe spec section 4); None when absent
 
     def is_market(self, inst: Instrument, counter: str) -> bool:
         """(inst, counter) is a listed market of this venue."""
@@ -696,7 +712,8 @@ def parse_instruments(raw: bytes) -> InstrumentMap:
 _VENUES_SCHEMA = "tradegen.venues/1"
 _VENUE_REQUIRED = frozenset({"sections", "settlement", "source"})
 _VENUE_OPTIONAL = frozenset({"markets", "quote_by_currency", "default_quote", "deposits",
-                             "lot", "min_order", "fee_extras", "tick_ladder"})      # the odds keys (odds plan Q17)
+                             "lot", "min_order", "fee_extras", "tick_ladder",       # the odds keys (odds plan Q17)
+                             "universe_rule"})                                      # universe spec section 4
 # The cost books a signed tick ladder may cover. KRX_ETF_line is not one: its ladder is core/quant/instruments.py's.
 _LADDER_BOOKS = frozenset({"KRX_stock_book", "US_shares_KIS", "crypto_venue"})
 
@@ -788,6 +805,39 @@ def _odds_ladder(value, where: str, sections: tuple[str, ...], instruments: Inst
     return tuple(sorted(out))
 
 
+_UNIVERSE_RULE_KEYS = frozenset({"source", "quote", "exclude", "min_listing_days", "median_days",
+                                 "min_median_value_krw"})
+_UNIVERSE_BASE = re.compile(r"[A-Z][A-Z0-9]{0,11}")      # the base of KRW-<base> (universe spec section 4)
+_MAX_LISTING_DAYS = 3650                                  # keeps the age read's `to` a real, sane date
+_MAX_CANDLES = 200                                        # one candles/days read returns at most 200 days
+
+
+def _count(value, where: str, most: int | None = None) -> int:
+    """A positive int (bool refused), at most `most` when given."""
+    if type(value) is not int or value < 1 or (most is not None and value > most):
+        raise Invalid(f"{where}: expected an int in 1..{most}, got {value!r}" if most is not None
+                      else f"{where}: expected an int >= 1, got {value!r}")
+    return value
+
+
+def _universe_rule(value, where: str, settlement) -> UniverseRule:
+    """The strict `universe_rule` sub-parser (universe spec section 4): known keys only, the KRW quote, base symbols
+    in `exclude` (UniverseRule stores them sorted), bounded positive integers."""
+    _keys(value, where, _UNIVERSE_RULE_KEYS)
+    quote = value["quote"]
+    if quote != "KRW" or quote not in settlement:
+        raise Invalid(f"{where}: quote: only KRW, a settlement asset of this venue, is supported; got {quote!r}")
+    exclude = _strs(value["exclude"], f"{where}: exclude", empty=True)
+    for base in exclude:
+        if not _UNIVERSE_BASE.fullmatch(base):
+            raise Invalid(f"{where}: exclude: {base!r} is not a base symbol (A-Z, then at most 11 of A-Z or 0-9)")
+    return UniverseRule(source=_text(value["source"], f"{where}: source"), quote=quote, exclude=exclude,
+                        min_listing_days=_count(value["min_listing_days"], f"{where}: min_listing_days",
+                                                _MAX_LISTING_DAYS),
+                        median_days=_count(value["median_days"], f"{where}: median_days", _MAX_CANDLES),
+                        min_median_value_krw=_count(value["min_median_value_krw"], f"{where}: min_median_value_krw"))
+
+
 def _venue(vid: str, entry, instruments: InstrumentMap) -> Venue:
     where = f"venues: {vid}"
     _keys(entry, where, _VENUE_REQUIRED, _VENUE_OPTIONAL)
@@ -851,9 +901,15 @@ def _venue(vid: str, entry, instruments: InstrumentMap) -> Venue:
         odds["fee_extras"] = _check_extras(entry["fee_extras"], f"{where}: fee_extras")
     if "tick_ladder" in entry:
         odds["tick_ladder"] = _odds_ladder(entry["tick_ladder"], f"{where}: tick_ladder", sections, instruments)
+    universe = None
+    if "universe_rule" in entry:
+        if vid != "upbit":
+            raise Invalid(f"{where}: universe_rule: only upbit carries a universe rule")
+        universe = _universe_rule(entry["universe_rule"], f"{where}: universe_rule", settlement)
     return Venue(id=vid, sections=sections, settlement=settlement, markets=frozenset(markets),
                  quote_by_currency=bool(by_currency), default_quote=default, deposits=frozenset(deposits),
-                 odds_sources=tuple(sorted((key, entry[key]["source"]) for key in odds)), **odds)
+                 odds_sources=tuple(sorted((key, entry[key]["source"]) for key in odds)), universe_rule=universe,
+                 **odds)
 
 
 def parse_venues(raw: bytes, instruments: InstrumentMap) -> VenueFacts:
@@ -928,6 +984,26 @@ def approved_state(rules_raw: bytes, instruments_raw: bytes, venues_raw: bytes, 
         return ApprovedState.invalid(exc.reason)
     except Exception as exc:                                  # never raises: an internal error is invalid too
         return ApprovedState.invalid(f"internal error {type(exc).__name__}")
+
+
+# --------------------------------------------------------------------------- #
+# Upbit KRW universe (universe spec sections 4 and 5): the rule hash, the flag classes, the request set, the medians
+# and the daily snapshot, all over plain data. Pure: no clock, no file, no network, no context.
+# --------------------------------------------------------------------------- #
+def _rule_body(rule: UniverseRule) -> dict:
+    """The rule's six fields as JSON data, `exclude` as a list."""
+    return {**asdict(rule), "exclude": list(rule.exclude)}
+
+
+def _universe_json(value) -> bytes:
+    """The one JSON form of the universe code: sorted keys, no spaces, ASCII, no NaN."""
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True,
+                      allow_nan=False).encode("ascii")
+
+
+def universe_rule_sha256(rule: UniverseRule) -> str:
+    """sha256 hex of the rule's own JSON (universe spec section 4), so unrelated venues.yaml edits leave it alone."""
+    return hashlib.sha256(_universe_json(_rule_body(rule))).hexdigest()
 
 
 # --------------------------------------------------------------------------- #
