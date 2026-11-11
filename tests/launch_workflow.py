@@ -339,8 +339,14 @@ def test_universe_protocol_binds_the_rule_instead_of_the_trade_coin():
     fee = replace(moved, instrument_rules=replace(moved.instrument_rules, fee_fraction=D('0.0005')))
     fixed_moved = replace(profile, symbol='KRW-ETH',
                           instrument_rules=replace(profile.instrument_rules, symbol='KRW-ETH'))
+    # Cross-form pairs whose digests match: only the universe_rule_sha256 element of the compared tuple refuses them.
+    fixed_terms = replace(bound, profile_contract_digest=profile_contract_digest(profile),
+                          rule_terms_digest=rule_terms_digest(profile.instrument_rules))
+    universe_terms = replace(protocol, profile_contract_digest=profile_contract_digest(universe),
+                             rule_terms_digest=rule_terms_digest(universe.instrument_rules, universe_rule_sha256=rule))
     for refused in ((replace(moved, universe_rule_sha256='f'*64), bound), (fee, bound),
-                    (universe, protocol), (profile, bound), (fixed_moved, protocol)):
+                    (universe, protocol), (profile, bound), (fixed_moved, protocol),
+                    (profile, fixed_terms), (universe, universe_terms)):
         try:
             W._bound_profile(*refused)
         except W.WorkflowError as exc:
