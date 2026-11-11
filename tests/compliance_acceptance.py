@@ -24,7 +24,7 @@ from tests.macro_acceptance import hermetic
 TESTS = Path(__file__).resolve().parent
 MODULES = ("compliance_guards", "compliance_isolation", "compliance_loader", "compliance_tables",
            "compliance_model", "compliance_gate", "compliance_owner", "compliance_store", "compliance_cli",
-           "compliance_signer")
+           "compliance_signer", "compliance_universe")
 _REAL_HOME = Path.home() / ".tradegen" / "compliance"      # fixed at import: a test's TRADEGEN_HOME never moves it
 
 

@@ -16,6 +16,7 @@ import string
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass
 from datetime import date
+from decimal import Decimal
 from pathlib import Path
 from types import MappingProxyType
 from typing import TYPE_CHECKING
@@ -1004,6 +1005,75 @@ def _universe_json(value) -> bytes:
 def universe_rule_sha256(rule: UniverseRule) -> str:
     """sha256 hex of the rule's own JSON (universe spec section 4), so unrelated venues.yaml edits leave it alone."""
     return hashlib.sha256(_universe_json(_rule_body(rule))).hexdigest()
+
+
+UNIVERSE_MARKET = re.compile(r"KRW-[A-Z][A-Z0-9]{0,11}")     # KRW quote, a base that passes _UNIVERSE_BASE
+FLAG_CLASSES = ("unflagged", "warning", "caution", "unknown", "absent")
+_CAUTION_KEYS = ("PRICE_FLUCTUATIONS", "TRADING_VOLUME_SOARING", "DEPOSIT_AMOUNT_SOARING", "GLOBAL_PRICE_DIFFERENCES",
+                 "CONCENTRATION_OF_SMALL_ACCOUNTS")          # market_event.caution's five known keys
+
+
+class UniverseError(ValueError):
+    """A universe refusal. str(exc) is the refusal code alone (UNIVERSE_RULE_INVALID, UNIVERSE_BODY_INVALID,
+    UNIVERSE_RECEIPT_INVALID, UNIVERSE_REQUEST_SET_MISMATCH, UNIVERSE_NOT_FINAL, UNIVERSE_MANIFEST_MISMATCH,
+    UNIVERSE_RULE_MISMATCH), never a value read from a body or a file."""
+
+
+def _unique(pairs) -> dict:
+    out = {}
+    for key, value in pairs:
+        if key in out:
+            raise ValueError("a repeated key")
+        out[key] = value
+    return out
+
+
+def _no_constant(name):
+    raise ValueError(f"{name} is not a JSON number")
+
+
+def _strict_json(raw, code: str):
+    """bytes -> JSON data with exact decimals (a JSON fraction is a Decimal), refusing a repeated key, NaN and
+    Infinity; any defect is UniverseError(code)."""
+    if type(raw) is not bytes:
+        raise UniverseError(code)
+    try:
+        return json.loads(raw.decode("utf-8"), parse_float=Decimal, parse_constant=_no_constant,
+                          object_pairs_hook=_unique)
+    except (ValueError, RecursionError):                     # UnicodeDecodeError and JSONDecodeError included
+        raise UniverseError(code) from None
+
+
+def flag_class(entry: Mapping | None) -> str:
+    """One market object of market/all?is_details=true -> its flag class (universe spec section 4); None (the market
+    is not in the read) is "absent". A true warning decides first; only "unflagged" may be bought."""
+    if entry is None:
+        return "absent"
+    event = entry.get("market_event") if isinstance(entry, Mapping) else None
+    if not isinstance(event, Mapping) or type(event.get("warning")) is not bool:
+        return "unknown"
+    if event["warning"]:
+        return "warning"
+    caution = event.get("caution")
+    if not isinstance(caution, Mapping) or any(type(caution.get(key)) is not bool for key in _CAUTION_KEYS):
+        return "unknown"
+    return "caution" if any(value is True for value in caution.values()) else "unflagged"
+
+
+def market_flags(body: bytes) -> dict[str, str]:
+    """Every market of a market/all?is_details=true body whose id matches UNIVERSE_MARKET, with its flag class;
+    UniverseError("UNIVERSE_BODY_INVALID") unless the body is a JSON list of objects naming no market twice."""
+    data = _strict_json(body, "UNIVERSE_BODY_INVALID")
+    if type(data) is not list or any(type(item) is not dict for item in data):
+        raise UniverseError("UNIVERSE_BODY_INVALID")
+    flags: dict[str, str] = {}
+    for item in data:
+        market = item.get("market")
+        if type(market) is str and UNIVERSE_MARKET.fullmatch(market):
+            if market in flags:
+                raise UniverseError("UNIVERSE_BODY_INVALID")
+            flags[market] = flag_class(item)
+    return flags
 
 
 # --------------------------------------------------------------------------- #
