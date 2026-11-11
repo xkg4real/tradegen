@@ -263,3 +263,46 @@ def full_home(home: Path, *, rules_raw: bytes | None = None, venues_raw: bytes |
     if cap is not None:
         sign(key, "cap_set", {"key": "okx_equity_share", "value": cap})
     return key
+
+
+# -- Upbit KRW universe (PR 3): the signed rule and a Universe for sealed contexts ------------------------------------
+from decimal import Decimal as _Decimal  # noqa: E402
+
+_UPBIT_MARKETS = b"    markets: [[BTC, KRW], [USDT, KRW]]   # KRW-quoted only (P22)\n"
+_UNIVERSE_RULE_YAML = (b"    universe_rule:\n"
+                       b'      source: "https://docs.upbit.com/kr/reference/list-trading-pairs"\n'
+                       b"      quote: KRW\n"
+                       b"      exclude: [USDT, USDC]\n"
+                       b"      min_listing_days: 250\n"
+                       b"      median_days: 30\n"
+                       b"      min_median_value_krw: 1000000000\n")
+
+
+def universe_venues_raw() -> bytes:
+    """The shipped venues.yaml with the spec section 4 universe_rule (its proposed defaults) in the upbit entry, as
+    the owner would sign it after code-approve."""
+    raw = shipped_bytes("venues")
+    if raw.count(_UPBIT_MARKETS) != 1:
+        raise AssertionError("universe_venues_raw: the upbit markets line moved")
+    return raw.replace(_UPBIT_MARKETS, _UPBIT_MARKETS + _UNIVERSE_RULE_YAML)
+
+
+def universe_rule():
+    """The UniverseRule that rules.parse_venues reads from universe_venues_raw()."""
+    state = approved(venues=universe_venues_raw())
+    if not state.valid:
+        raise AssertionError(f"universe_venues_raw: {state.reason}")
+    return state.venues.venues["upbit"].universe_rule
+
+
+def universe(rule=None, *, eligible=("KRW-XRP",), day=_date(2026, 10, 23)):
+    """A model.Universe of candle day `day` built under `rule` (universe_rule() by default): each `eligible` market
+    with a median of KRW 2,000,000,000, built at day 00:15 UTC and in force [day 00:40 UTC, day+1 00:40 UTC). Gate
+    tests seal it into ctx() as `universe=`; load_context tests write real files with universe_file() instead."""
+    from core.compliance import rules as R
+    start = _dt.datetime(day.year, day.month, day.day, 0, 40, tzinfo=_dt.timezone.utc)
+    markets = tuple(sorted(eligible))
+    return _model.Universe(day=day, rule_sha256=R.universe_rule_sha256(rule or universe_rule()),
+                           snapshot_sha256="e" * 64, built_at=start - _dt.timedelta(minutes=25), valid_from=start,
+                           valid_until=start + _dt.timedelta(days=1), listed=tuple(sorted({*markets, "KRW-BTC"})),
+                           eligible=tuple((m, _Decimal(2_000_000_000)) for m in markets))

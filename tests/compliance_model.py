@@ -7,6 +7,7 @@ from __future__ import annotations
 import dataclasses
 import math
 from datetime import date, datetime, timezone
+from decimal import Decimal
 
 from core.compliance import model
 from tests import compliance_fixtures as F
@@ -92,13 +93,34 @@ def test_seal_context_registers_and_hand_built_is_refused():
                "snapshot": model.ApprovedState.invalid("s"), "owner": model.OwnerState.broken("x"),
                "code_hash": "d" * 64, "code_signed": False, "session": model.SessionState(), "equity_krw": 2.0,
                "holdings": {("upbit", "BTC"): 1.0}, "shorts": {("kis", "005930"): 1.0},
-               "exposure": {"upbit": model.Exposure(held_krw=1.0)}, "live_evidence": frozenset({"deposit_krw_10m"})}
+               "exposure": {"upbit": model.Exposure(held_krw=1.0)}, "live_evidence": frozenset({"deposit_krw_10m"}),
+               "universe": F.universe()}
     assert set(changes) | {"ctx_hash"} == {f.name for f in dataclasses.fields(model.Context)}, \
         "a new Context field needs a case"
     for name, value in changes.items():                                # ctx_hash covers every field
         assert model.seal_context(**{**fields, name: value}).ctx_hash != sealed.ctx_hash, name
     _raises(TypeError, lambda: model.seal_context(**{**fields, "extra": 1}))
     _raises(ValueError, lambda: model.seal_context(**{**fields, "equity_krw": math.nan}))
+
+
+def test_context_universe_is_sealed_only_when_set():
+    """Upbit KRW universe spec 8: a context with no universe keeps the ctx_hash of the fields it had before the field
+    existed (fixed KRW-BTC digests stay byte-identical); one with a universe hashes it, each median as its exact
+    decimal text. context_hash is the rule seal_context applied."""
+    plain = F.ctx()
+    old = {f.name: getattr(plain, f.name) for f in dataclasses.fields(model.Context)
+           if f.name not in ("ctx_hash", "universe")}
+    assert plain.universe is None and plain.ctx_hash == model.sha256_hex(model.canonical_json(old))
+    u = F.universe()
+    held = F.ctx(universe=u)
+    body = {**old, "universe": {**{f.name: getattr(u, f.name) for f in dataclasses.fields(u)},
+                                "eligible": [["KRW-XRP", "2000000000"]]}}
+    assert held.universe is u and held.ctx_hash == model.sha256_hex(model.canonical_json(body)) != plain.ctx_hash
+    assert model.context_hash(held) == held.ctx_hash and model.context_hash(plain) == plain.ctx_hash
+    finer = F.ctx(universe=dataclasses.replace(u, eligible=(("KRW-XRP", Decimal("2000000000.5")),)))
+    assert finer.ctx_hash not in (held.ctx_hash, plain.ctx_hash)
+    rule = F.universe_rule()
+    assert (rule.quote, rule.exclude, rule.min_median_value_krw) == ("KRW", ("USDC", "USDT"), 1_000_000_000)
 
 
 def test_fixture_ctx_is_sealed_and_valid():
