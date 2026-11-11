@@ -6,7 +6,7 @@ task: first-trade-foundation
 cycle: 2026-11-11
 done_ids: cloud-compat-1, cloud-compat-2, cloud-compat-3, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr, spec-rev-3-3, policy-plan-1, policy-preview-1, policy-pr, e1-1, e1-2, e1-3, e1-4, e1-5, e1-6, e1-7, e1-8, e1-9, e1-10, e1-11, e1-12, e1-13, e1-pr, e2-1, e2-2, e3-1, e3-2, e3-3, e2-3, e3-4, e2-e3-pr, pr6-pr7-merge, research-preregister-1, research-evaluate-1, account-readiness-1, research-paper-1, account-provider-1, account-regression-1, account-research-pr, pr8-human-code-review-approval, pr8-merge, launch-network-1, launch-collector-1, launch-profile-1, launch-strategy-1, launch-runner-1, launch-program-2, launch-workflow-2, launch-baseline-2, launch-quotes-2, launch-deployment-2, launch-review-request-2, launch-driver-2, launch-review-auth-2, launch-baseline-integration-2, launch-market-protocol-1, launch-recovery-cutoff-1, kis-live-contract-1, kis-live-backend-1, kis-live-ui-1, launch-static-guard-1, launch-windows-design-1, kis-live-regression-1, launch-regression-1, launch-delivery-1, pr9-owner-review, launch-windows-inputs-1, launch-owner-authority-1, launch-live-evidence, launch-live-history-1, launch-windows-coordinator-1, launch-study-module-1, okx-data-1, final-review-1, pr10-owner-review, venues-upbit-terms, pr11-owner-review, rules-review-1122/research, launch-quote-diagnostics-1, launch-shortened-study-1, cloud-compat-4, launch-resume-regression-1, launch-resume-delivery-1, pr12-owner-merge, account-okx-usdc-1, launch-market-readiness-1/audit, rules-review-1122/entity-mapping, launch-held-positions-1/candidates, launch-held-positions-1/chronological-reducer, launch-instrument-refresh-1, launch-controlled-coordinator-1/owner-ops, launch-controlled-coordinator-1/rehearsal, launch-authenticated-selection-1, launch-source-boundaries-1, launch-preparation-freshness-1, launch-48h-integration-1, launch-48h-delivery-1, pr13-owner-merge, launch-study-review-windows-1, rules-review-1122/table-1110, launch-continuous-guard-commit-1, tests-hermetic-runs-1, tests-keyless-krx-1, pr14-pr17-owner-merge, policy-loss-budget-spec-1
 next_ids: pr18-owner-review, policy-loss-budget-state-check-1, policy-loss-budget-plan-1, rules-review-1122, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, launch-private-capture-setup-1, e1-14-owner-setup, launch-prospective-study, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1
-updated_at: 2026-11-11T20:57:51+09:00
+updated_at: 2026-11-11T20:58:32+09:00
 stale_after_hours: 3
 waiting_on: owner review and merge of PR18 (design spec); universe PR 0 to PR 5 before the loss-budget implementation plan; approve --kind rules before 2026-11-22 (PR15 merged); code-approve (PR16 merged)
 work_branch: claude/principal-loss-budget-spec
@@ -14,7 +14,7 @@ work_commit: 0f211a503494525e4370adf87e3a17fb5fb2fae6
 runtime_tested_commit: 2b3f98be38f37a7d15c46a9d198570f41bcf41fd
 uncommitted_changes: none
 pr: https://github.com/xkg4real/tradegen/pull/18 (open)
-usage_weekly_pct: 19
+usage_weekly_pct: 43
 usage_source: claude-code get_usage (Weekly, all models)
 handoff_threshold_pct: 95
 usage_5h_pct: unknown
@@ -89,6 +89,7 @@ session: Claude Code desktop on the owner's Windows PC; separate scratch clone, 
 - 앞서 소유자에게 "PR14~16은 아직 열려 있다"고 답했는데, 실제로는 PR17과 몇 분 차이로 모두 병합되어 있었습니다. 이번 보고에서 정정했습니다.
 - 유니버스 세션의 제안 가운데 두 가지는 그대로 받지 않았습니다. (1) "문서는 언제든 넣을 수 있다": docs/launch-profile.example.json에 새 키를 넣으면 지금 코드의 parser가 거부해 테스트가 깨지므로 문서는 구현 PR과 함께 갑니다. (2) "지분 <= 정산 현금으로 바꾸기": 준비 단계가 받는 Positions에 정산 현금이 없어 입력을 하나 더 넘겨야 하고 coordinator.py가 서명 범위 변경 파일에 추가됩니다. 둘 다 12.5절과 PLB-O16에 적었습니다.
 - 작업 clone은 세션 scratch에 있고 브랜치는 push 완료. 미커밋 변경 없음, 실행 중인 관측·거래 작업 없음.
+- 사용량: 주간 전체 43%, 주간 Fable 67% (2026-11-17 17:00 KST 재충전). 95% 기준에 닿아서 반환하는 것이 아닙니다.
 
 ## 6. 다음 개발 과업
 
