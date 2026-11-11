@@ -33,6 +33,7 @@ _VOCAB = (("venue", rules.VENUES), ("asset", rules.ASSETS), ("action", rules.ACT
 _DESTINATION = ("destination_venue", "destination_address", "destination_network", "destination_tag")
 _NO_COUNTER = frozenset({"transfer_out", "lend", "borrow"})            # P18: counter_symbol must be ""
 _SLACK = 1 + 1e-12                                                      # float slack on unit comparisons
+_DERIVED_VENUE, _DERIVED_QUOTE, _DERIVED_TEMPLATE = "upbit", "KRW", "BTC"    # upbit KRW universe spec 8, fixed in code
 
 
 def decide(intent, ctx) -> Decision:
@@ -76,6 +77,7 @@ def _decide(intent, ctx) -> Decision:
         reasons, warnings = reasons + list(more), warnings + list(warns)
     else:                                                                                     # steps 5-6
         pre, floor = _preconditions(ctx, state), _floor_new(intent, inst)
+        pre += _universe(ctx, state, venue, intent.symbol)            # a derived coin (upbit KRW universe spec 8)
         reasons += pre + floor
         if pre or floor:
             verdicts.append(BLOCK)
@@ -153,7 +155,9 @@ def _validate(intent, ctx, state) -> tuple[rules.Instrument | None, rules.Venue 
     # to the earlier maps (D15, spec 6.2 step 0). The manual advice follows the first test alone.
     exit_action = "action" not in bad and intent.action in _EXIT_KIND and (
         not transfer or _is(intent.destination_venue, rules.DOMESTIC_EXCHANGES))
-    inst = _lookup(state, venue, intent.symbol, exit_action and intent.financing == "cash")
+    inst = lookup(ctx, state, venue, intent.symbol, exit_action and intent.financing == "cash")
+    if inst is not None and intent.action not in ("buy", "sell") and _derived(state, venue, intent.symbol) is not None:
+        inst = None                                   # spec 8: a derived coin is bought, or sold for KRW; never moved
     if inst is None:
         manual = [_manual(intent)] if exit_action else []
         return None, venue, [f"malformed: {f}" for f in bad + ["symbol"]] + manual
@@ -168,7 +172,7 @@ def _validate(intent, ctx, state) -> tuple[rules.Instrument | None, rules.Venue 
         if retired and intent.action == "sell" and not venue.quote_by_currency:
             listed = intent.counter_symbol in venue.settlement
         else:
-            listed = venue.is_market(inst, intent.counter_symbol)
+            listed = market_listed(state, venue, inst, intent.counter_symbol)
         if not listed:
             bad.append("counter_symbol")                      # not a listed market of this venue
     manual = [_manual(intent)] if retired and "counter_symbol" in bad else []
@@ -464,9 +468,61 @@ def _lookup(state, venue, symbol, exits: bool):
     return None
 
 
+def lookup(ctx, state, venue, symbol, exits: bool, *, recorded: bool = False):
+    """The instrument a decision uses (upbit KRW universe spec 8): _lookup's signed entry; else the derived Upbit KRW
+    coin (_derived) for an order already in the journal (`recorded`, whatever its side and the snapshot state), for
+    an exit of a coin ctx.holdings holds (whatever the venue facts say), or for new exposure on a venue whose signed
+    facts carry universe_rule; else None. Whether new exposure on it may proceed is _universe's call (step 5)."""
+    inst = _lookup(state, venue, symbol, exits)
+    if inst is not None:
+        return inst
+    derived = _derived(state, venue, symbol)
+    if derived is None or recorded:
+        return derived
+    if exits:
+        held = ctx.holdings.get((venue.id, symbol), 0.0)
+        return derived if _number(held) and held > 0 else None
+    return derived if venue.universe_rule is not None else None
+
+
+def market_listed(state, venue, inst, counter) -> bool:
+    """venue.is_market; a derived coin (spec 8) is listed against the fixed KRW quote only."""
+    if _derived(state, venue, inst.symbol) is not None:
+        return counter == _DERIVED_QUOTE
+    return venue.is_market(inst, counter)
+
+
+def _derived(state, venue, symbol):
+    """An Upbit symbol that no approved map lists, current or earlier, whose KRW market matches rules.UNIVERSE_MARKET:
+    the signed BTC entry (crypto_coin x1, class coin, crypto_venue, KRW, crypto_22pct_from_2027) copied under that
+    symbol. None for anything else, a settlement asset included."""
+    if (venue is None or venue.id != _DERIVED_VENUE or type(symbol) is not str or symbol in venue.settlement
+            or rules.UNIVERSE_MARKET.fullmatch(f"{_DERIVED_QUOTE}-{symbol}") is None
+            or _lookup(state, venue, symbol, True) is not None):
+        return None
+    template = _lookup(state, venue, _DERIVED_TEMPLATE, True)
+    return None if template is None else dataclasses.replace(template, symbol=symbol)
+
+
+def _universe(ctx, state, venue, symbol) -> list[str]:
+    """Step 5 for a derived coin (spec 8): the venue's signed universe_rule, ctx.universe built under it, and the
+    coin in its eligible set; [] for a coin of a signed map."""
+    if _derived(state, venue, symbol) is None:
+        return []
+    rule = venue.universe_rule
+    if rule is None:
+        return ["state: universe no_rule"]
+    if ctx.universe is None or ctx.universe.rule_sha256 != rules.universe_rule_sha256(rule):
+        return ["state: universe no_snapshot"]
+    if f"{_DERIVED_QUOTE}-{symbol}" not in dict(ctx.universe.eligible):
+        return ["state: universe not_eligible"]
+    return []
+
+
 def _retired(state, venue, symbol) -> bool:
-    """The symbol is not in the map in force for the venue's sections (only an earlier map may know it)."""
-    return state.instruments.lookup(venue.sections, symbol) is None
+    """The symbol is not in the map in force for the venue's sections but an earlier approved map knows it. A derived
+    coin (spec 8) is in no map, so it is never retired."""
+    return state.instruments.lookup(venue.sections, symbol) is None and _lookup(state, venue, symbol, True) is not None
 
 
 def _manual(intent) -> str:
@@ -627,7 +683,7 @@ def _screen(plan, ctx, first_stake_krw) -> model.Screening:
     sealed = model.is_sealed(ctx)
     state = ctx.active if sealed and ctx.owner.ok and _usable(ctx.active) else None    # decide()'s state for a buy
     venue = state.venues.venues.get(venue_id) if state is not None and _is(venue_id, rules.VENUES) else None
-    inst = _lookup(state, venue, symbol, False) if venue is not None else None
+    inst = lookup(ctx, state, venue, symbol, False) if venue is not None else None
     # quantity is nominal: a buy's verdict depends on its notional, never on its units
     intent = Intent(venue=venue_id, symbol=symbol, counter_symbol=venue.quote_for(inst) if inst is not None else "",
                     asset=inst.asset if inst is not None else "", multiple=inst.multiple if inst is not None else 0.0,
@@ -674,7 +730,7 @@ def grey_rows(plan, ctx) -> tuple[str, ...]:
             return ()
         state = ctx.active
         venue = state.venues.venues.get(venue_id)
-        inst = _lookup(state, venue, symbol, False) if venue is not None else None
+        inst = lookup(ctx, state, venue, symbol, False) if venue is not None else None
         if inst is None:
             return ()
         intent = Intent(venue=venue_id, symbol=symbol, counter_symbol=venue.quote_for(inst), asset=inst.asset,

@@ -433,3 +433,30 @@ def test_simulate_is_pure_after_a_warm_up():
     assert first.refused is None and dict(first.provenance)["members"] == ("bootstrap", "garch_t")
     assert _strip(again) == _strip(first)
     assert report.render(again) == report.render(first)
+
+
+def _with_universe_rule(state):
+    """`state` with F.universe_rule() in its upbit venue facts, as a signed venues file with the rule carries it."""
+    upbit = dataclasses.replace(state.venues.venues["upbit"], universe_rule=F.universe_rule())
+    venues = dataclasses.replace(state.venues, venues={**state.venues.venues, "upbit": upbit})
+    return dataclasses.replace(state, venues=venues)
+
+
+def test_a_derived_upbit_coin_runs_under_the_rule_and_a_snapshot():
+    """Upbit KRW universe spec 8: plan.instrument and the market check look the leg up through gate.lookup. A KRW-XRP
+    leg runs when universe_rule is signed and XRP is eligible in ctx.universe (screen() ALLOW). Without a snapshot it
+    is SCREEN_BLOCKED "state: universe no_snapshot", and without the rule it stays an unknown symbol."""
+    ruled = _with_universe_rule(F.approved(venues=OF.ODDS_VENUES))
+    xrp = OF.plan(symbol="XRP")
+    series_obj = OF.fresh_series(symbol="KRW-XRP")
+    with OF.chunk(), OF.members("bootstrap"), OF.spy(gate, "screen") as screens:
+        ran = OF.pipeline(xrp, OF.odds_ctx(active=ruled, universe=F.universe()), series_obj)
+        blocked = OF.pipeline(xrp, OF.odds_ctx(active=ruled), series_obj)
+        unknown = OF.pipeline(xrp, OF.odds_ctx(universe=F.universe()), series_obj)
+    assert ran.refused is None and ran.columns, ran.refused
+    assert dict(ran.model_slots)["symbol"] == "XRP", ran.model_slots
+    first = screens[0][2]
+    assert first.allowed and first.decision.verdict == model.ALLOW, first.decision.reasons
+    ref = blocked.refused
+    assert (ref.code, ref.sub) == ("SCREEN_BLOCKED", "other") and "state: universe no_snapshot" in ref.detail, ref
+    assert (unknown.refused.code, unknown.refused.sub) == ("UNSUPPORTED_PRODUCT", "symbol"), unknown.refused

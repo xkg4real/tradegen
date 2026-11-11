@@ -1001,7 +1001,7 @@ def load_context(now: _dt.datetime, positions: model.Positions, *, session_id: s
     except OverflowError:
         raise ValueError(f"load_context: now is out of range, got {now!r}") from None
     try:
-        return _context(day, now_utc, positions, session_id)
+        return _context(day, now_utc, positions, session_id, now)
     except Exception as exc:
         why = f"load_context: internal error {type(exc).__name__}"
         return model.seal_context(date=day, active=model.ApprovedState.invalid(why), snapshot=None,
@@ -1010,7 +1010,7 @@ def load_context(now: _dt.datetime, positions: model.Positions, *, session_id: s
                                   exposure=_EMPTY)
 
 
-def _context(day: _dt.date, now_utc: str, positions, session_id) -> model.Context:
+def _context(day: _dt.date, now_utc: str, positions, session_id, now: _dt.datetime) -> model.Context:
     if session_id is not None and not (isinstance(session_id, str) and session_id):
         raise TypeError("session_id must be None or a non-empty string")
     owner, check = _owner_now(day, now_utc, session_id)
@@ -1040,7 +1040,53 @@ def _context(day: _dt.date, now_utc: str, positions, session_id) -> model.Contex
     return model.seal_context(
         date=day, active=active, snapshot=snapshot, owner=owner, code_hash=current, code_signed=signed,
         session=model.SessionState(session_id=session_id, armed=session_id in owner.armed_sessions),
-        equity_krw=equity, holdings=holdings, shorts=shorts, exposure=exposure, live_evidence=_live_evidence(day))
+        equity_krw=equity, holdings=holdings, shorts=shorts, exposure=exposure, live_evidence=_live_evidence(day),
+        universe=_universe_now(now, active))
+
+
+# Upbit KRW universe (spec 2026-11-11, section 5): the verified snapshot in force, read back into Context.universe.
+# ponytail: one entry per file and rule for the life of the process; a few files a day, so no eviction.
+_UNIVERSE_VERIFIED: dict = {}                    # (file sha256, rule sha256) -> Universe, or None for a refused file
+
+
+def _universe_now(now: _dt.datetime, active: model.ApprovedState) -> model.Universe | None:
+    """The snapshot in force at `now` for the universe_rule of the active upbit venue facts. None without a rule, for
+    an invalid state, or on any error, so the read-back never breaks the context and exits never depend on it."""
+    try:
+        venue = active.venues.venues.get("upbit") if active.valid else None
+        rule = getattr(venue, "universe_rule", None)
+        return None if rule is None else _universe_in_force(now, rules.universe_rule_sha256(rule))
+    except Exception:
+        return None
+
+
+def _universe_in_force(now: _dt.datetime, rule_sha256: str) -> model.Universe | None:
+    """The verified snapshot built under `rule_sha256` whose [valid_from, valid_until) holds `now`, read from the
+    files of candle day (now - rules._IN_FORCE_AT) in UTC. When several verify, the earliest built wins. One bad
+    file never hides a good one: an unreadable file is skipped and not cached (the next call reads it again), and a
+    file that fails verification for any reason is cached as None (verification is pure, so the answer cannot
+    change for the same bytes). Catches every exception and returns None."""
+    try:
+        day = (now.astimezone(_dt.timezone.utc) - rules._IN_FORCE_AT).date()
+        found = []
+        for path in sorted(universe_dir(day).glob("*.json")):
+            try:
+                raw = path.read_bytes()
+            except OSError:
+                continue
+            key = (sha256_hex(raw), rule_sha256)
+            if key not in _UNIVERSE_VERIFIED:
+                try:
+                    _UNIVERSE_VERIFIED[key] = rules.verify_universe_snapshot(raw, rule_sha256)
+                except Exception:
+                    _UNIVERSE_VERIFIED[key] = None
+            universe = _UNIVERSE_VERIFIED[key]
+            if (universe is not None and universe.day == day and path.name == f"{universe.snapshot_sha256}.json"
+                    and universe.valid_from <= now < universe.valid_until):
+                found.append(universe)
+        return min(found, key=lambda u: (u.built_at, u.snapshot_sha256)) if found else None
+    except Exception:
+        return None
 
 
 # --------------------------------------------------------------------------- #

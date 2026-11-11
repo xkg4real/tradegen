@@ -22,6 +22,7 @@ TRANSPORT_IMPORTS = {
     "quotes.py": frozenset({"Answer", "inquiry_clock", "request"}),
     "readiness.py": frozenset({"inquiry_clock"}),
     "instrument_terms.py": frozenset({"Answer", "inquiry_clock"}),
+    "universe.py": frozenset({"Answer", "inquiry_clock"}),
 }
 
 CHECKPOINT_WRITES = (

@@ -410,8 +410,7 @@ def preflight_profile(profile: LaunchProfile, *, now: datetime, context=None) ->
                       and type(context.owner) is compliance.OwnerState
                       and isinstance(context.owner.limits, Mapping)
                       and type(context.active) is compliance.ApprovedState
-                      and context.ctx_hash == compliance.sha256_hex(compliance.canonical_json({
-                          f.name: getattr(context, f.name) for f in fields(compliance.Context) if f.name != "ctx_hash"})))
+                      and context.ctx_hash == compliance.context_hash(context))
         except (TypeError, ValueError, AttributeError, ArithmeticError, RecursionError):
             intact = False
         if not intact:

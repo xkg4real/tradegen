@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Mapping
 from contextlib import ExitStack
-from dataclasses import dataclass, field, fields
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 import math
 import os
@@ -239,9 +239,7 @@ class E1InquiryReader:
             try:
                 intact = (model.is_sealed(self.kis_context) and self.kis_context.code_signed is True
                           and self.kis_context.date == now.astimezone(model.KST).date()
-                          and self.kis_context.ctx_hash == model.sha256_hex(model.canonical_json({
-                              item.name: getattr(self.kis_context, item.name)
-                              for item in fields(model.Context) if item.name != "ctx_hash"})))
+                          and self.kis_context.ctx_hash == model.context_hash(self.kis_context))
             except (ValueError, TypeError, AttributeError, ArithmeticError, RecursionError):
                 intact = False
             if not intact:
