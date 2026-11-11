@@ -374,10 +374,10 @@ def test_history_maps_serve_exits_only():
     offshore = gate.decide(withdraw(venue="upbit", destination_venue="okx"), c)   # no exit: no earlier map
     assert offshore.reasons == ("malformed: symbol",), offshore.reasons
     gone = F.ctx(active=lost, holdings=held, owner=owner, exposure=okx)
-    for i, manual in ((usdt_intent(action="sell"), "close manually in the broker app"),
-                      (withdraw(), "withdraw manually in the exchange app")):
-        d = gate.decide(i, gone)
-        assert d.verdict == model.BLOCK and {"malformed: symbol", manual} <= set(d.reasons), d.reasons
+    d = gate.decide(withdraw(), gone)
+    assert d.verdict == model.BLOCK and {"malformed: symbol", "withdraw manually in the exchange app"} <= set(d.reasons), d.reasons
+    d = gate.decide(usdt_intent(action="sell"), gone)    # spec 8: a held upbit KRW coin exits through the derived path, no map needed
+    assert d.verdict == model.ALLOW_EXIT and d.kind == "close_long" and d.reasons == (), d.reasons
     broken = F.ctx(owner=model.OwnerState.broken("bad signature on entry 4"), snapshot=kept, holdings=held)
     snap = gate.decide(usdt_intent(action="sell"), broken)               # D11: the snapshot keeps its earlier maps
     assert snap.verdict == model.ALLOW_EXIT and snap.kind == "close_long", snap.reasons
