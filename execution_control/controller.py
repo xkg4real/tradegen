@@ -510,13 +510,13 @@ class Controller:
             return tuple(order.symbol.split('-'))
         return order.symbol, 'KRW' if order.market == 'krx' else 'USD'
 
-    def _intent(self, order, ctx):
+    def _intent(self, order, ctx, *, recorded=False):
         symbol, quote = self._symbols(order)
         state = ctx.active if ctx.active.valid else ctx.snapshot
         if state is None or not state.valid:
             raise ValueError('approved instrument unavailable; manual handling required')
         venue = state.venues.venues.get(order.venue)
-        inst = gate._lookup(state, venue, symbol, order.side == 'sell') if venue else None
+        inst = gate.lookup(ctx, state, venue, symbol, order.side == 'sell', recorded=recorded) if venue else None
         if inst is None or inst.multiple != 1:
             raise ValueError('approved cash instrument unavailable')
         return compliance.Intent(venue=order.venue, symbol=symbol, counter_symbol=quote,
@@ -581,7 +581,7 @@ class Controller:
             return
         state=ctx.active
         venue=state.venues.venues.get(obj.venue) if state.valid else None
-        inst=gate._lookup(state,venue,self._symbols(obj)[0],False) if venue else None
+        inst=gate.lookup(ctx,state,venue,self._symbols(obj)[0],False) if venue else None
         if inst is None:
             return  # the real gate supplies the refusal
         for row in gate._in_force(state,intent,inst.cls,ctx.date):
@@ -638,7 +638,7 @@ class Controller:
             pending=self._pending_buy_krw(obj,obs,orders,exclude)
             if inventory+pending+obj.quantity*obj.limit_price*obj.quote_krw*(1+rules.fee_fraction)>Decimal(prepared.stake_krw):
                 raise ValueError('aggregate exposure exceeds prepared session capital')
-        intent = self._intent(obj, ctx)
+        intent = self._intent(obj, ctx, recorded=exclude is not None)    # dispatch: the order is in the journal
         self._exact_caps(obj,obs,orders,ctx,intent,exclude)
         issued = gate.permit(intent, ctx)
         if issued is None:
@@ -751,7 +751,7 @@ class Controller:
                     return _view(rec)
                 positions=self._positions(obs,orders)
                 ctx=owner.load_context(now,positions,session_id=rec['session_id'])
-                intent=self._intent(obj,ctx)
+                intent=self._intent(obj,ctx,recorded=True)
                 approved=ctx.active if ctx.owner.ok and ctx.active.valid else ctx.snapshot
                 if approved is None or not approved.valid or gate._conduct(intent,approved):
                     raise ValueError('known-order cancellation conduct check refused')

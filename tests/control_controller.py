@@ -599,3 +599,30 @@ def test_pending_foreign_cash_is_revalued_and_unrelated_scopes_cannot_fund_entri
         for changed in (replace(old,account_scope='another-account'),replace(old,symbol='BTC-USDC')):
             pending[old.client_id]['order']=changed
             refused(lambda:env.controller._capacity(order,rules,observation,pending))
+
+
+def test_cancel_of_a_recorded_derived_coin_buy_needs_no_rule_or_snapshot():
+    """Upbit KRW universe spec 8: a protective cancel of a journaled KRW-XRP buy builds its intent through _intent
+    with the derived coin resolved, although the signed venues carry no universe_rule and no snapshot is in force."""
+    from execution_control.capability import plain
+    from execution_control.model import order_body, order_digest
+    from execution_orders.model import request_digest
+    with signed_control() as env:
+        order=replace(env.order,client_id='xrp-order',symbol='KRW-XRP',quantity=D('10'),limit_price=D('1000'))
+        rules=replace(env.rules,symbol='KRW-XRP')
+        sha=order_digest(order)
+        sent=request_digest(env.adapter.prepare(order,rules))
+        with env.journal.transaction() as tx:
+            tx.append('reserved',{'client_id':order.client_id,'order_digest':sha,'order':order_body(order),
+                      'rules':plain(rules),'session_id':env.session_id,'request_digest':sent,
+                      'permit_digest':'d'*64,'trade_date':''},now=env.now)
+            tx.append('dispatching',{'client_id':order.client_id,'order_digest':sha,'request_digest':sent,
+                      'permit_digest':'d'*64},now=env.now)
+            tx.append('acknowledged',{'client_id':order.client_id,'order_digest':sha,
+                      'venue_order_id':'broker-xrp','metadata':[]},now=env.now)
+        ctx=owner.load_context(env.now,env.observation.positions)
+        assert ctx.universe is None and ctx.active.venues.venues['upbit'].universe_rule is None
+        env.adapter.results.append(AdapterResult(status='accepted',code='fixture',venue_order_id='broker-xrp',
+                                                 client_id=order.client_id))
+        state=env.controller.cancel(order.client_id,now=env.now)
+        assert env.adapter.requests[-1].operation=='cancel' and state.venue_order_id=='broker-xrp', state
