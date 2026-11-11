@@ -15,7 +15,7 @@
 - The script lives at `tools/floor_state_check.py`. Not under `tools/owner/`. Never create `tools/__init__.py`. No file in the signed closure may import the script. Any of these three would change the code hash and unsign the code.
 - No file under `core/compliance`, `core/odds`, `execution`, `execution_control`, `execution_orders`, `execution_accounts`, `execution_network`, `execution_launch` or `tools/owner` is edited.
 - Reads only. Never call `load_context` (it writes a snapshot), `append_system_entry`, `Journal.transaction`, `seed`, `commit`, `initialize_reviewed_head` or `compare_and_set`. Never read or set `os.environ`. Never import `config` (it loads `.env`).
-- `--state-root` does not select a home. It must equal `core.isolation.state_root().absolute()`; otherwise refuse.
+- `--state-root` does not select a home. It must equal `core.isolation.state_root().absolute()`; otherwise refuse. A relative value never equals it.
 - Output: fixed codes only. Never print an exception message: the isolation and owner-log messages contain paths and log content.
 - Exit 0: every row read (with `--gate`: and the go table holds). Exit 1: `--gate` and a row is not go. Exit 2: an argument was refused or some state could not be read.
 - Tests call `main(argv)` in-process. No `subprocess`, no `sys.executable`, no `importlib.reload` (`tests/launch_guards.py:653-662`). Nothing touches state at module import. Every home and head root is temporary.
@@ -51,7 +51,7 @@ python -m tools.floor_state_check --state-root ROOT --head-root HEAD_ROOT --prin
 | `S3` | `halt` row in the control journal | `none`, `present`, `no_journal` |
 | `S4` | highest of the journaled peak and the anchor peak, against `A` | `none`, `below`, `at_or_above` |
 | `S5` | last journaled effective floor against `C` | `none`, `above`, `equal`, `below` |
-| `S6` | signed floor in force today against `C` (`unset` when either limit is unset) | `unset`, `above`, `equal`, `below` |
+| `S6` | signed floor in force today against `C` | `unset`, `above`, `equal`, `below` |
 | `S7` | anchor floor against `C` | `none`, `null`, `above`, `equal`, `below` |
 | `S8` | armed sessions | `none`, `present` |
 | `S9_home`, `S9_journal` | default or custom home; control journal folder | `default`, `custom`; `absent`, `present` |
@@ -61,9 +61,11 @@ python -m tools.floor_state_check --state-root ROOT --head-root HEAD_ROOT --prin
 
 Any row can read `unreadable`. Refusal codes: `STATE_CHECK_ARGUMENTS_INVALID`, `STATE_CHECK_STATE_ROOT_MISMATCH`, `STATE_CHECK_STATE_ROOT_REFUSED`, `STATE_CHECK_FAILED`.
 
-Gate (spec 9.1): go when `S1` is `yes`, `S2` is `none`, `S3` is `none` or `no_journal`, `S4` is `none` or `below`, `S6` and `S7` are `equal`, `S10` is `equal` or `below`, `S11` is `at_or_above`.
+Gate (spec 9.1): go when `S2` is `none`, `S3` is `none` or `no_journal`, `S4` is `none` or `below`, `S6` and `S7` are `equal`, `S10` is `equal` or `below`, `S11` is `at_or_above`.
 
-Two readings of the spec that this plan fixes:
+Three readings of the spec that this plan fixes:
+
+- S6 reads the signed floor only. The floor and the daily limit are signed in one `limit_set` entry, and a first setting of either waits one Seoul date, so the two are unset together. S1 is not in the gate: when the log does not verify or is empty, S6 is not `equal`.
 
 - The spec's gate sentence names `none` for S3; its S3 row gives "none, or no journal" as go. A home that never ran has no journal, and that is the expected case at step 10, so the gate accepts `no_journal`.
 - The spec does not say when a journal is "absent". Here: the folder `execution-control` under the home does not exist. A folder that exists but cannot be read by `Journal.snapshot()` is `unreadable`.
@@ -198,11 +200,14 @@ def test_a_fresh_home_reads_none_in_every_row_and_nothing_is_created():
 
 def test_a_missing_owner_key_makes_the_owner_rows_unreadable_and_exits_2():
     with F.temp_home() as home, F.pubkey_at(home / "owner_pubkey.pem"), head_root() as hroot:
+        seed(home, hroot, anchor_state())
         code, report, _ = invoke(home, hroot, "--session", "ARMED7")
         rows = report["rows"]
         assert code == 2 and rows["S1"] == "no"
         assert [rows[key] for key in ("S2", "S6", "S8", "S12")] == ["unreadable"] * 4
-        assert rows["S3"] == "no_journal" and rows["S7"] == "none", "the other readers still report"
+        assert rows["S3"] == "no_journal" and rows["S7"] == "equal", "the other readers still report"
+        assert rows["S11"] == "unreadable", "the signed floor is one of the three it compares"
+        assert invoke(home, hroot)[1]["rows"]["S12"] == "not_requested"
 
 
 def test_a_signed_floor_counts_from_the_next_seoul_date_and_is_compared_with_the_budget_floor():
@@ -252,12 +257,14 @@ def test_journal_rows_give_the_halt_the_peak_and_the_last_floor():
 
 def test_a_partial_journal_or_a_malformed_row_is_unreadable_and_exits_2():
     with homes() as (home, hroot, _):
+        seed(home, hroot, anchor_state())
         journal(risk("100000", "80000"))
         (home / "execution-control" / "checkpoint.json").unlink()
         code, report, _ = invoke(home, hroot)
-        assert code == 2 and [report["rows"][key] for key in ("S3", "S4", "S5")] == ["unreadable"] * 3
-        assert report["rows"]["S9_journal"] == "present"
-    for data in ({}, risk("not a number", None)[1], risk("100000", 80000)[1]):
+        assert code == 2 and [report["rows"][key] for key in ("S3", "S4", "S5", "S11")] == ["unreadable"] * 4
+        assert report["rows"]["S9_journal"] == "present" and report["rows"]["S7"] == "equal"
+    for data in ({}, risk("not a number", None)[1], risk("100000", 80000)[1], risk("NaN", None)[1],
+                 risk("-1", None)[1], risk("100000", "Infinity")[1]):
         with homes() as (home, hroot, _):
             journal(("risk_snapshot", data))
             code, report, _ = invoke(home, hroot)
@@ -300,6 +307,14 @@ def test_anchor_equity_is_compared_with_the_highest_of_three_floors():
         limits(key, "100001")
         seed(home, hroot, anchor_state())
         assert invoke(home, hroot)[1]["rows"]["S11"] == "below", "the signed floor is the highest"
+    with homes() as (home, hroot, key):
+        limits(key, C)
+        seed(home, hroot, anchor_state(floor="100001"))
+        assert invoke(home, hroot)[1]["rows"]["S11"] == "below", "its own floor is the highest"
+    with homes() as (home, hroot, key):
+        limits(key, W0)
+        seed(home, hroot, anchor_state())
+        assert invoke(home, hroot)[1]["rows"]["S11"] == "at_or_above", "equity at the floor is not below it"
     with homes() as (home, hroot, _):
         seed(home, hroot, anchor_state(floor=None))
         assert invoke(home, hroot)[1]["rows"]["S11"] == "at_or_above", "no floor at all"
@@ -344,8 +359,20 @@ def test_the_gate_passes_on_the_go_table_and_fails_on_each_single_miss():
             code, report, _ = invoke(home, hroot, "--gate", **changes)
             assert code == 1 and report["gate"] == "no_go", why
         assert invoke(home, hroot, "--gate", now=SAME_DAY)[0] == 1, "S6 unset on the signing date"
+        journal(risk("100000", "80000"))
+        code, report, _ = invoke(home, hroot, "--gate")
+        assert code == 0 and report["rows"]["S3"] == "none", "a journal with no halt is go"
         journal(("halt", {"floor": "80000"}))
         assert invoke(home, hroot, "--gate")[0] == 1, "S3 present"
+    with homes() as (home, hroot, key):
+        limits(key, C)
+        seed(home, hroot, anchor_state(floor="90000"))
+        code, report, _ = invoke(home, hroot, "--gate")
+        assert code == 1 and report["rows"]["S6"] == "equal", "S7 above alone"
+    with homes() as (home, hroot, key):
+        limits(key, C)
+        seed(home, hroot, anchor_state(equity="90000"))
+        assert invoke(home, hroot, "--gate")[0] == 0, "equity below the principal is go"
     with homes() as (home, hroot, key):
         limits(key, C)
         seed(home, hroot, anchor_state(equity="75000"))
@@ -377,7 +404,8 @@ def test_the_state_root_must_be_the_configured_home_and_nothing_is_read_otherwis
 def test_bad_arguments_get_one_fixed_code_and_read_nothing():
     with homes() as (home, hroot, _):
         good = argv(home, hroot)
-        cases = (argv(home, hroot, activation=None), good + ["--bogus", "1"], good + ["--floor", C],
+        cases = (argv(home, hroot, activation=None), argv(home, hroot, **{"state-root": None}),
+                 argv(home, hroot, **{"head-root": None}), good + ["--bogus", "1"], good + ["--floor", C],
                  argv(home, hroot, candidate="x.json"), argv(home, hroot, principal="1e5"),
                  argv(home, hroot, principal="100,000"), argv(home, hroot, floor=W0),
                  argv(home, hroot, activation="99999"), argv(home, hroot, floor="0"),
@@ -552,8 +580,8 @@ _LABELS = {"S1": "owner log verifies", "S2": "halt in the owner log", "S3": "hal
            "S6": "signed floor in force against C", "S7": "anchor floor against C", "S8": "armed sessions",
            "S9_home": "home", "S9_journal": "control journal folder", "S10": "anchor equity against W0",
            "S11": "anchor equity against highest floor", "S12": "signed floor inside --session"}
-_GO = {"S1": ("yes",), "S2": ("none",), "S3": ("none", "no_journal"), "S4": ("none", "below"), "S6": ("equal",),
-       "S7": ("equal",), "S10": ("equal", "below"), "S11": ("at_or_above",)}
+_GO = {"S2": ("none",), "S3": ("none", "no_journal"), "S4": ("none", "below"), "S6": ("equal",), "S7": ("equal",),
+       "S10": ("equal", "below"), "S11": ("at_or_above",)}
 
 
 class Refused(ValueError):
@@ -596,7 +624,7 @@ def _home(explicit: str) -> Path:
         actual = state_root().absolute()
     except (RuntimeError, OSError):                # the message names paths: never print it
         raise Refused("STATE_CHECK_STATE_ROOT_REFUSED") from None
-    if not Path(explicit).is_absolute() or Path(explicit) != actual:
+    if Path(explicit) != actual:
         raise Refused("STATE_CHECK_STATE_ROOT_MISMATCH")
     return actual
 
@@ -614,7 +642,7 @@ def _owner_rows(now: datetime, floor: Decimal, session: str | None):
         return dict(S1="no", S2=UNREADABLE, S6=UNREADABLE, S8=UNREADABLE,
                     S12=UNREADABLE if session else "not_requested"), _BAD
     rows = dict(S1="yes" if check.entries else "empty", S2="present" if state.halted_floors else "none",
-                S6="unset" if "daily_loss_krw" not in state.limits else _signed(state, floor),
+                S6=_signed(state, floor),
                 S8="present" if state.armed_sessions else "none", S12="not_requested")
     if session:
         inside = owner._owner_now(day, stamp, session)[0]

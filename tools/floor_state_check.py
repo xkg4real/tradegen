@@ -56,8 +56,8 @@ _LABELS = {"S1": "owner log verifies", "S2": "halt in the owner log", "S3": "hal
            "S6": "signed floor in force against C", "S7": "anchor floor against C", "S8": "armed sessions",
            "S9_home": "home", "S9_journal": "control journal folder", "S10": "anchor equity against W0",
            "S11": "anchor equity against highest floor", "S12": "signed floor inside --session"}
-_GO = {"S1": ("yes",), "S2": ("none",), "S3": ("none", "no_journal"), "S4": ("none", "below"), "S6": ("equal",),
-       "S7": ("equal",), "S10": ("equal", "below"), "S11": ("at_or_above",)}
+_GO = {"S2": ("none",), "S3": ("none", "no_journal"), "S4": ("none", "below"), "S6": ("equal",), "S7": ("equal",),
+       "S10": ("equal", "below"), "S11": ("at_or_above",)}
 
 
 class Refused(ValueError):
@@ -100,7 +100,7 @@ def _home(explicit: str) -> Path:
         actual = state_root().absolute()
     except (RuntimeError, OSError):                # the message names paths: never print it
         raise Refused("STATE_CHECK_STATE_ROOT_REFUSED") from None
-    if not Path(explicit).is_absolute() or Path(explicit) != actual:
+    if Path(explicit) != actual:
         raise Refused("STATE_CHECK_STATE_ROOT_MISMATCH")
     return actual
 
@@ -118,7 +118,7 @@ def _owner_rows(now: datetime, floor: Decimal, session: str | None):
         return dict(S1="no", S2=UNREADABLE, S6=UNREADABLE, S8=UNREADABLE,
                     S12=UNREADABLE if session else "not_requested"), _BAD
     rows = dict(S1="yes" if check.entries else "empty", S2="present" if state.halted_floors else "none",
-                S6="unset" if "daily_loss_krw" not in state.limits else _signed(state, floor),
+                S6=_signed(state, floor),
                 S8="present" if state.armed_sessions else "none", S12="not_requested")
     if session:
         inside = owner._owner_now(day, stamp, session)[0]
