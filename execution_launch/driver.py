@@ -241,14 +241,21 @@ def _validate_frame(callback, frame, observation):
     _require(type(observation) is DecisionInput and type(observation.quote) is Quote
              and type(observation.account) is AccountObservation, "FIXED_DRIVER_OBSERVATION_REQUIRED")
     _instant(observation.now)
-    _require(profile_digest(observation.profile) == callback.profile_sha,
-             "FIXED_DRIVER_PROFILE_CHANGED")
     identity, protocol, window = callback.identity, callback.protocol, callback.window
+    profile = observation.profile
+    # The runner swaps in each renewed profile; a same-terms renewal changes only
+    # instrument_rules.asof, which the contract digest leaves out.
+    _require(type(profile) is LaunchProfile
+             and (profile.venue, profile.market, profile.account_scope)
+             == (protocol.venue, protocol.market, callback.profile.account_scope),
+             "FIXED_DRIVER_SCOPE_MISMATCH")
+    _require(profile_contract_digest(profile) == identity.profile_contract_digest,
+             "FIXED_DRIVER_PROFILE_CHANGED")
     frame_sha = history_frame_digest(frame)
     _require(frame.deployment_window_digest == identity.deployment_window_digest
              and frame.source_kind == "prospective_paper_capture", "FIXED_DRIVER_HISTORY_SOURCE_INVALID")
     step = timedelta(seconds=protocol.bar_seconds)
-    rules = callback.profile.instrument_rules
+    rules = profile.instrument_rules
     for index, row in enumerate(frame.bars):
         _require(type(row) is PaperBar, "FIXED_DRIVER_BAR_REQUIRED")
         _instant(row.observed_at); _instant(row.received_at); _sha(row.source_sha256)
@@ -377,15 +384,16 @@ class _FixedCallback:
                 _require(history_digest(frame.bars[:old[1]]) == old[2],
                          "FIXED_DRIVER_PREFIX_REWRITTEN")
             self.seen[slot] = (frame_sha, len(frame.bars), history_digest(frame.bars))
-            signal = _sized_signal(identity, frame, target, self.profile.instrument_rules, self.protocol)
+            profile = observation.profile
+            signal = _sized_signal(identity, frame, target, profile.instrument_rules, self.protocol)
             _require(not (slot == self.window.end and frame.anchor.units > 0 and signal.action == "hold"),
                      "FIXED_DRIVER_TERMINAL_DUST_UNLIQUIDATED")
             if signal.action != "hold":
-                validate_order(Order(client_id="fixedvalidation", account_scope=self.profile.account_scope,
-                    venue=self.profile.venue, market=self.profile.market, symbol=self.profile.symbol,
+                validate_order(Order(client_id="fixedvalidation", account_scope=profile.account_scope,
+                    venue=profile.venue, market=profile.market, symbol=profile.symbol,
                     side="buy" if signal.action == "entry" else "sell", quantity=signal.quantity,
-                    limit_price=signal.limit_price, quote_krw=Decimal(1), time_in_force=self.profile.time_in_force),
-                    self.profile.instrument_rules)
+                    limit_price=signal.limit_price, quote_krw=Decimal(1), time_in_force=profile.time_in_force),
+                    profile.instrument_rules)
             return signal
 
 
