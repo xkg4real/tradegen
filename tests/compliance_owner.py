@@ -991,3 +991,27 @@ def test_state_a_rearming_does_not_move_the_blocking_date():
                           ("session_armed", {"session_id": "S1"}, _state_kst(2026, 10, 24, 9)))
     assert _state_at(disarmed, _state_kst(2026, 10, 24, 12), session_id="S1").caps == {"okx_equity_share": 0.50}, \
         "a disarm clears the blocking date: S1 was armed again on the 24th, after the loosening took effect"
+
+
+# --------------------------------------------------------------------------- #
+# Upbit KRW universe PR 1, Task 5 (universe spec section 5 "Storage"): the snapshot paths under the state root
+# --------------------------------------------------------------------------- #
+from datetime import date as _u5_date  # noqa: E402
+
+from core import isolation as _u5_isolation  # noqa: E402
+
+
+def test_universe_paths_sit_under_the_state_root_and_create_nothing():
+    home = _home()
+    before = _listing(home)
+    day, sha = _u5_date(2026, 11, 11), "0123456789abcdef" * 4
+    assert _same(_u5_isolation.state_root(), home)
+    assert _same(owner.universe_dir(day), home / "universe" / "2026-11-11")
+    assert _same(owner.universe_path(day, sha), home / "universe" / "2026-11-11" / f"{sha}.json")
+    assert _same(owner.universe_path(day, sha).parents[2], owner.evidence_path().parents[1])   # the same root
+    for bad in ("2026-11-11", datetime(2026, 11, 11, tzinfo=timezone.utc), None, 20261111):
+        _raises(lambda: owner.universe_dir(bad), ValueError, "day must be a date")
+        _raises(lambda: owner.universe_path(bad, sha), ValueError, "day must be a date")
+    for bad in (sha.upper(), sha[:-1], sha + "0", "g" * 64, None, 1):
+        _raises(lambda: owner.universe_path(day, bad), ValueError, "sha256 must be 64 lower-case hex digits")
+    assert _listing(home) == before and not (home / "universe").exists(), "computing a path must create nothing"

@@ -1060,6 +1060,22 @@ def evidence_path() -> Path:
     return state_root() / "execution" / "evidence.jsonl"
 
 
+def universe_dir(day: date) -> Path:
+    """`<state root>/universe/<YYYY-MM-DD>`: the folder of candle day D's snapshot files (Upbit KRW universe spec
+    section 5 "Storage"). Creates nothing."""
+    if type(day) is not date:
+        raise ValueError("universe_dir: day must be a date")
+    return state_root() / "universe" / day.isoformat()
+
+
+def universe_path(day: date, sha256: str) -> Path:
+    """`<state root>/universe/<YYYY-MM-DD>/<sha256>.json`, under the same root as evidence_path(); the name is the
+    snapshot's manifest sha256, and only execution_launch/universe_store.py writes there. Creates nothing."""
+    if not _hex64(sha256):
+        raise ValueError("universe_path: sha256 must be 64 lower-case hex digits")
+    return universe_dir(day) / f"{sha256}.json"
+
+
 def _evidence_row(n: int, line, prev: str) -> dict:
     """Line `n` of evidence.jsonl checked against the row_sha256 of the line before it; ValueError naming the first
     defect by field name, never by value."""
