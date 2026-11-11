@@ -311,3 +311,24 @@ def test_another_venue_market_or_account_scope_refuses():
     env = fixture()
     env.observation = replace(env.observation, profile=None)
     reject(lambda: decide(env), "FIXED_DRIVER_SCOPE_MISMATCH")
+
+
+def test_bar_ticks_and_sizing_read_the_observed_profile_rules():
+    env = fixture()
+    pinned = profile_contract_digest(env.profile)
+    rules = env.profile.instrument_rules
+    # Hold the contract digest still so only the observed rules differ from the construction profile's.
+    with patch("execution_launch.driver.profile_contract_digest", lambda profile: pinned):
+        env.observation = replace(env.observation,
+            profile=replace(env.profile, instrument_rules=replace(rules, tick_size=D("3"))))
+        reject(lambda: decide(env), "FIXED_DRIVER_BAR_PRICE_INVALID")  # bid 100 is off a 3 KRW tick
+        env = fixture()
+        env.observation = replace(env.observation,
+            profile=replace(env.profile, instrument_rules=replace(rules, min_notional_krw=D("1000000"))))
+        assert decide(env).action == "hold"  # the slot-4 entry is below the observed minimum
+        env = fixture()
+        env.observation = replace(env.observation,
+            profile=replace(env.profile, instrument_rules=replace(rules, lot_size=D("0.0001"))))
+        signal = decide(env)  # validate_order must check this entry against the observed 0.0001 lot
+        assert signal.action == "entry"
+        assert (Fraction(signal.quantity)/Fraction(rules.lot_size)).denominator != 1
