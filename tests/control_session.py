@@ -1,7 +1,7 @@
 """Real fresh-odds preparation in test-signed temporary homes only."""
 from contextlib import contextmanager
 from dataclasses import replace
-from datetime import timedelta
+from datetime import datetime, time, timedelta, timezone
 from decimal import Decimal
 from types import SimpleNamespace
 
@@ -35,6 +35,33 @@ def selected(now):
     seed = models.market_seed(models.data_hashes(series, inputs.replay), inputs.calendar_sha256,
                               inputs.comparison_id, inputs.run_counter).hex()
     return plan, inputs, seed
+
+
+def universe_snapshot(now, *, eligible=(('KRW-BTC', D('900000000000')),), sha='5'*64, valid_until=None):
+    """A Universe as PR 3's load_context returns it: built for the UTC day before `now`, in force from that day's
+    00:40 UTC (09:40 KST) until the next day's 00:40 UTC, or until `valid_until`."""
+    day = now.astimezone(timezone.utc).date() - timedelta(days=1)
+    start = datetime.combine(day, time(0, 40), tzinfo=timezone.utc)
+    return M.Universe(day=day, rule_sha256='7'*64, snapshot_sha256=sha, built_at=start - timedelta(minutes=10),
+                      valid_from=start, valid_until=valid_until or start + timedelta(days=1),
+                      listed=tuple(sorted(market for market, _ in eligible)), eligible=tuple(sorted(eligible)))
+
+
+@contextmanager
+def universe_context(**changes):
+    """Patch owner.load_context to return the real sealed context re-sealed with `changes`; each value is either
+    the new field value or a function of the real context (for example universe=lambda ctx: env.universe)."""
+    from dataclasses import fields
+    from unittest.mock import patch
+    real = owner.load_context
+
+    def load(now, positions, **kwargs):
+        ctx = real(now, positions, **kwargs)
+        body = {f.name: getattr(ctx, f.name) for f in fields(M.Context) if f.name != 'ctx_hash'}
+        body.update({name: value(ctx) if callable(value) else value for name, value in changes.items()})
+        return M.seal_context(**body)
+    with patch.object(owner, 'load_context', load):
+        yield
 
 
 @contextmanager

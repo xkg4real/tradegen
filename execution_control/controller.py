@@ -438,7 +438,8 @@ class Controller:
             ctx = owner.load_context(now, self._positions(obs, orders))
             if halted:
                 obs = replace(obs, risk=replace(obs.risk, halted=True))
-            return self._snapshot_risk(tx, obs, now, orders, ctx)
+            # Runner and coordinator buy checks use the snapshot this observation saw (spec section 6).
+            return replace(self._snapshot_risk(tx, obs, now, orders, ctx), universe=ctx.universe)
 
     @_exact
     def approve_floor_relaxation(self, *, floor, now, session_id):

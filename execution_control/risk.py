@@ -12,7 +12,11 @@ from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta, timezone
 from decimal import Context, Decimal, DecimalException, Inexact, ROUND_DOWN, ROUND_HALF_EVEN, localcontext
 import re
+from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
+
+if TYPE_CHECKING:
+    from core.compliance.model import Universe
 
 _ZERO = Decimal(0)
 _ONE = Decimal(1)
@@ -99,6 +103,7 @@ class RiskResult:
     recovery_deadline: datetime | None = None
     recovery_floor: Decimal | None = None
     recovery_status: str | None = None
+    universe: Universe | None = None  # Controller.observe: ctx.universe of the context it loaded
 
 
 @dataclass(frozen=True, kw_only=True)

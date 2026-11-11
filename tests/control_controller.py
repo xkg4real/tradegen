@@ -9,7 +9,7 @@ from execution_control.controller import Controller, _fold
 from execution_control.risk import Fill, RecoveryCheckpoint, RecoveryCondition, RiskPolicy
 from execution_orders.model import AdapterResult
 from tests import compliance_fixtures as F
-from tests.control_session import signed_control, refused
+from tests.control_session import signed_control, refused, universe_context, universe_snapshot
 
 D=Decimal
 
@@ -673,3 +673,11 @@ def test_dispatch_refuses_a_reserved_derived_buy_once_the_universe_is_gone():
                     raise AssertionError('expected the gate to refuse the dispatch')
             assert len(seen)==1 and seen[0][0].symbol=='XRP', (ruled,seen)
             assert gate.decide(*seen[0]).reasons==reasons, (ruled,gate.decide(*seen[0]).reasons)
+
+
+def test_observe_returns_the_universe_of_the_context_it_loaded():
+    with signed_control() as env:
+        assert env.controller.observe(now=env.now).universe is None
+        snap = universe_snapshot(env.now)
+        with universe_context(universe=snap):
+            assert env.controller.observe(now=env.now).universe is snap
