@@ -2,7 +2,8 @@
 
 Date: 2026-11-11 (Asia/Seoul). Revision 3, after two adversarial reviews against the code (57 and 70 kept findings) and a citation
 check against the code (37 corrections).
-Status: design for owner review. This document does not authorize development by itself; the owner approves it first.
+Status: approved by the owner on 2026-11-11. Implementation follows the ten PR plans indexed in
+[2026-11-11-upbit-krw-universe-index.md](../plans/2026-11-11-upbit-krw-universe-index.md).
 Real account setup, signatures, session arming and live operation stay separate owner actions.
 
 Inputs: [compliance gate and odds design](2026-10-23-compliance-gate-and-odds-engine-design.md),
