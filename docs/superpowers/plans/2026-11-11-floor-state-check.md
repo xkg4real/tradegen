@@ -8,7 +8,7 @@
 
 **Tech Stack:** Python 3.13, standard library only, the repository's own modules. Tests are plain `assert` functions collected by `tests/launch_acceptance.py`.
 
-**Spec:** `docs/superpowers/specs/2026-11-11-principal-loss-budget-design.md`, sections 8.2 and 9.1 (rows S1 to S12, inputs, output, reads). Base: `origin/main` at `59a4eb8`.
+**Spec:** `docs/superpowers/specs/2026-11-11-principal-loss-budget-design.md`, sections 8.2 and 9.1 (rows S1 to S12, inputs, output, reads). Base: `origin/main` at `6d9bf56` (written at `59a4eb8`; universe PR #21 and docs PR #22 touch no file this plan reads or cites by line).
 
 ## Global Constraints
 
