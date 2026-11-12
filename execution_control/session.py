@@ -74,7 +74,6 @@ def _symbol_ok(prepared, order, symbol, ctx) -> bool:
             and order.symbol in {market for market, _ in universe.eligible})
 
 
-
 def prepare_session(*, journal, session_id: str, selected_plan, inputs, positions,
                     policy, instrument_rules, now: datetime, selection_seed_hex: str,
                     account_scope: str, market: str, quote_currency: str,

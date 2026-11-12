@@ -12,7 +12,7 @@ from unittest.mock import patch
 
 import yaml
 
-from core.compliance import model as M, rules
+from core.compliance import model as M, owner, rules
 from core.odds import plan as odds_plan
 from execution_control import session as S, universe_odds as U
 from execution_control.capability import digest, plain
@@ -251,7 +251,7 @@ def test_universe_session_binds_the_batch_and_verification_follows_the_snapshot(
         reserved = env.controller.reserve(env.order, env.rules, session_id=env.session_id, now=env.now)
         assert reserved.status == 'RESERVED'
         env.universe = replace(env.universe, snapshot_sha256='6'*64)
-        refused(lambda: verification(env))
+        _fixed_refusal(lambda: verification(env), 'session preparation stale or mismatched')
 
 
 def test_universe_session_refuses_unregistered_or_tampered_batches():
@@ -262,6 +262,9 @@ def test_universe_session_refuses_unregistered_or_tampered_batches():
             _fixed_refusal(lambda: prepare(env, candidate), 'SESSION_UNIVERSE_BATCH_UNREGISTERED')
         _fixed_refusal(lambda: prepare(env, result, journal=Journal(env.home / 'other-control')),
                        'SESSION_UNIVERSE_BATCH_UNREGISTERED')
+        with env.journal.transaction() as tx:                     # a second identical row: not exactly one
+            tx.append('universe_odds_batch', plain(result), now=env.now)
+        _fixed_refusal(lambda: prepare(env, result), 'SESSION_UNIVERSE_BATCH_UNREGISTERED')
         object.__setattr__(result, 'n', 2)
         _fixed_refusal(lambda: prepare(env, result), 'SESSION_UNIVERSE_BATCH_UNREGISTERED')
         assert S._PREPARED == before and prepared_rows(env) == []
@@ -292,7 +295,8 @@ def test_universe_session_refuses_a_failed_coin_or_another_template():
         _fixed_refusal(lambda: prepare(env, failed), 'SESSION_UNIVERSE_BATCH_FAILED')
         result = batch(env, n=1)
         plan = selected(env.now)[0]
-        for other in (replace(plan, stake_krw=41_000.0), replace(plan, leg=replace(plan.leg, symbol='ETH'))):
+        for other in (replace(plan, stake_krw=41_000.0), replace(plan, leg=replace(plan.leg, symbol='ETH')),
+                      replace(plan, leg=replace(plan.leg, venue='okx'))):                # KRW-BTC is a batch coin
             _fixed_refusal(lambda: prepare(env, result, selected_plan=other), 'SESSION_UNIVERSE_TEMPLATE_INVALID')
         refused(lambda: prepare(env, result, selection_seed_hex='0'*64))      # the selection-seed check stays
         assert prepared_rows(env) == []
@@ -345,3 +349,18 @@ def test_a_fixed_preparation_refuses_a_coin_only_the_universe_rule_resolves():
         fixed = prepare(env, None)
         assert (fixed.symbol, fixed.universe_batch_digest) == ('BTC', None)
         assert prepared_rows(env) == [plain(S._record(fixed))]          # the fixed row keeps its old key set
+
+
+def test_universe_session_trades_a_batch_coin_other_than_the_one_it_was_prepared_with():
+    """Rotation: under a signed universe_rule, both coins of an n=2 batch pass, the session is prepared for BTC and
+    its symbol check accepts an ETH buy. A coin eligible in the snapshot but outside the batch stays refused."""
+    from execution_control.session import _symbol_ok
+    eligible = ((BTC, D('900000000000')), (ETH, D('500000000000')), (XRP, D('100000000000')))
+    with ruled_env(eligible) as env:
+        result = batch(env, n=2)
+        assert [(coin.market, coin.passed) for coin in result.coins] == [(BTC, True), (ETH, True)]
+        prepared = prepare(env, result)
+        assert (prepared.symbol, prepared.universe_batch_digest) == ('BTC', result.batch_digest)
+        current = owner.load_context(env.now, env.observation.positions, session_id=prepared.session_id)
+        assert _symbol_ok(prepared, replace(env.order, symbol=ETH), 'ETH', current)
+        assert not _symbol_ok(prepared, replace(env.order, symbol=XRP), 'XRP', current)
