@@ -4,6 +4,10 @@ Status: owner decision, 2026-11-12. The outcome is **a signed 1-second allowance
 plus an owner clock rule**. The code change is not made here. It is a small code PR after universe PR 5 and before
 the single final code-approve. Line numbers below are on main `0757542`.
 
+Updated the same day with the owner's second run. The first version said run 1 came about 14 hours after the last
+sync. That was wrong: the Windows Time-Service log shows a sync at 09:02 KST, most likely minutes before run 1. The decision is
+unchanged.
+
 ## The rule in question
 
 `parse_orderbook` refuses a book whose stamp is later than the PC receipt time:
@@ -17,8 +21,11 @@ is backfilled (`execution_launch/study.py:15`, `:355-358`).
 
 ## Measurement
 
-The owner ran `tools/clock_check.py` (PR #26) once on their PC on 2026-11-12, about 14 hours after Windows last synced
-the clock. The run used 20 public KRW-BTC orderbook reads, 1 s apart:
+The owner ran `tools/clock_check.py` (PR #26) twice on their PC on 2026-11-12. Each run made 20 public KRW-BTC
+orderbook reads, 1 s apart. The Windows Time-Service log shows a sync at 09:02 KST (events 37 and 35). PR #26 merged
+at 09:03 KST, so run 1 most likely came within minutes of that sync. Run 2 came later that morning, before 09:49 KST.
+
+Run 1:
 
 ```
 CLOCK_CHECK symbol=KRW-BTC samples=20/20 admitted=18 reason=none
@@ -29,18 +36,29 @@ REFUSED QUOTE_BOOK_STALE_OR_FUTURE=2 QUOTE_RECEIPT_STALE_OR_FUTURE=0 QUOTE_SERVE
 W32TM status=unavailable
 ```
 
+Run 2:
+
+```
+CLOCK_CHECK symbol=KRW-BTC samples=20/20 admitted=19 reason=none
+LAG_MS min=-10 median=65 max=968
+DATE_MS min=19 median=349 max=945
+RTT_MS min=347 median=378 max=805
+REFUSED QUOTE_BOOK_STALE_OR_FUTURE=1 QUOTE_RECEIPT_STALE_OR_FUTURE=0 QUOTE_SERVER_CLOCK_MISMATCH=0
+W32TM status=unavailable
+```
+
 What it shows:
 
-- **The PC clock is behind Upbit by at least 3 ms.** For every read, lag = (PC minus Upbit offset) + (book staleness
-  + network delay). The second term is never negative, so the offset is at most `LAG_MS min`. That value is floored
-  to whole ms, so the true minimum lag was between -4 and -3 ms.
-- **2 of 20 reads (10%) were refused** for that reason alone.
-- **There is no sign of a large offset.** The HTTP Date header has one-second resolution. Its offsets spread almost
-  evenly over 24 to 926 ms, which fits an offset of tens of milliseconds at most.
+- **The PC clock is behind Upbit, even right after a sync.** For every read, lag = (PC minus Upbit offset) + (book
+  staleness + network delay). The second term is never negative, so the offset is at most `LAG_MS min`. That value
+  is floored to whole ms: the PC was at least 3 ms behind in run 1 and at least 9 ms behind in run 2.
+- **3 of 40 reads (7.5%) were refused** for that reason alone.
+- **There is no sign of a large offset.** The HTTP Date header has one-second resolution. In both runs its offsets
+  spread over about 20 to 950 ms, which fits an offset of tens of milliseconds at most.
 - **`W32TM status=unavailable` means the Windows time service was stopped,** not that `w32tm` is missing. A read-only
   check the same morning found the service `Stopped` with start type `Manual` (trigger start), and `w32tm` answered
-  0x80070426. The `SynchronizeTime` scheduled task last ran on 2026-11-11 at 19:08 KST with result 0. So Windows syncs
-  about once a day and keeps the service off in between.
+  0x80070426. The `SynchronizeTime` scheduled task last ran on 2026-11-11 at 19:08 KST with result 0, and the service
+  also synced at 09:02 KST on 2026-11-12. It is off between syncs.
 - RTT includes a new connection per request and local processing. It is not the network round trip.
 
 ## Why the strict rule cannot stand
@@ -49,12 +67,13 @@ A study reads one book per slot, and one refusal ends it. A 48-hour study at 300
 
 | Per-read refusal rate | Chance all 578 reads pass |
 |---|---|
-| 10% (as measured) | about 0 |
-| 1.2% (low end of the 95% interval for 2/20) | under 0.1% |
+| 7.5% (as measured, 3 of 40) | about 0 |
+| 1.6% (low end of the 95% interval for 3/40) | about 0.01% |
 | 0.1% | about 56% |
 
-Syncing alone does not fix this. NTP over the internet sets the clock to within tens of milliseconds, either side of
-zero. Here a clock only a few milliseconds behind already refused 10% of reads.
+Syncing alone does not fix this. Both runs most likely came within an hour of a sync and still had refused reads. NTP over the
+internet sets the clock to within tens of milliseconds, either side of zero, and a clock only a few milliseconds behind
+already refuses reads.
 
 ## Decision
 
@@ -65,8 +84,8 @@ zero. Here a clock only a few milliseconds behind already refused 10% of reads.
      (`quotes.py:136`) stay as they are.
    - Cost: with the PC up to 1 s behind, a book's age can be under-read by up to 1 s against the 10 s limit.
    - A PC clock that runs ahead is unaffected. So is the midnight Seoul-day check (`execution_accounts/provider.py:163-165`).
-   - Why 1 s: about 25 times the measured offset, enough margin for a missed daily sync. It is still small next to the
-     10 s freshness limit.
+   - Why 1 s: it is far above the measured offset (tens of milliseconds at most), with margin for a missed daily sync.
+     It is still small next to the 10 s freshness limit.
 2. **An owner clock rule.**
    - Keep the existing sync rule: sync at hh:mm:45, or mid-bar in a study, and never within 5 minutes of 22:00 or
      midnight.
@@ -93,7 +112,8 @@ zero. Here a clock only a few milliseconds behind already refused 10% of reads.
 
 ## Not measured
 
-- There was no run right after a manual sync, and no run 24 hours after one, so the drift rate is unknown.
+- There was no run 24 hours after a sync, so the drift rate is unknown. The two runs give only upper bounds on the
+  offset (-3 ms, then -9 ms), and upper bounds do not measure drift.
 - The pre-study check in the owner rule catches drift before it matters.
 - If a later run shows `LAG_MS min` below -500, sync more often. Do not raise the allowance without a new decision.
 
