@@ -2,7 +2,7 @@
 import ast
 from contextlib import contextmanager
 from dataclasses import replace
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 import hashlib
 import json
@@ -12,14 +12,15 @@ from unittest.mock import patch
 
 from core.compliance import model as M
 from core.odds import plan as odds_plan
-from execution_control import universe_odds as U
+from execution_control import session as S, universe_odds as U
 from execution_control.capability import digest, plain
 from execution_control.controller import _event_data, _fold
-from execution_control.store import MAX_ROW_BYTES
+from execution_control.session import prepare_session
+from execution_control.store import MAX_ROW_BYTES, Journal
 from execution_launch.continuous_guard_commit import _PREPARE_KEYS
 from tests import compliance_fixtures as F, odds_fixtures as OF
-from tests.control_session import (_fixed_refusal, refused, selected, signed_control, universe_context,
-                                   universe_snapshot)
+from tests.control_session import (_fixed_refusal, _preparation_args, refused, selected, signed_control,
+                                   universe_context, universe_snapshot, verification)
 
 D = Decimal
 ROOT = Path(__file__).resolve().parents[1]
@@ -53,6 +54,15 @@ def batch(env, n=1):
 def batch_rows(env):
     with env.journal.transaction() as tx:
         return [row['data'] for row in tx.events if row['kind'] == 'universe_odds_batch']
+
+
+def prepare(env, result, **overrides):
+    return prepare_session(**_preparation_args(env, universe_batch=result, **overrides))
+
+
+def prepared_rows(env):
+    with env.journal.transaction() as tx:
+        return [row['data'] for row in tx.events if row['kind'] == 'session_prepared']
 
 
 def test_batch_simulates_exactly_the_top_n_and_journals_one_closed_row():
@@ -190,3 +200,101 @@ def test_universe_odds_imports_only_odds_compliance_and_control():
             assert (name in std or name in ('core.odds', 'core.compliance', 'execution_control')
                     or name.startswith(('core.odds.', 'core.compliance.', 'execution_control.'))), name
     assert '/v1/' not in source and 'oddsdata' not in source
+
+
+def test_universe_session_binds_the_batch_and_verification_follows_the_snapshot():
+    with universe_env() as env:
+        result = batch(env)
+        prepared = prepare(env, result)
+        assert prepared.universe_batch_digest == result.batch_digest
+        record = {k: v for k, v in vars(prepared).items() if k != 'record_digest'}
+        assert prepared.session_id == 'freshness-' + digest({k: v for k, v in record.items() if k != 'session_id'})
+        assert prepared.record_digest == digest(record)
+        rows = prepared_rows(env)
+        assert rows == [plain(prepared)] and rows[0]['universe_batch_digest'] == result.batch_digest
+        env.prepared, env.session_id = prepared, prepared.session_id
+        F.sign(env.key, 'session_armed', {'session_id': env.session_id}, M.iso_utc(env.now))
+        verification(env)
+        reserved = env.controller.reserve(env.order, env.rules, session_id=env.session_id, now=env.now)
+        assert reserved.status == 'RESERVED'
+        env.universe = replace(env.universe, snapshot_sha256='6'*64)
+        refused(lambda: verification(env))
+
+
+def test_universe_session_refuses_unregistered_or_tampered_batches():
+    with universe_env() as env:
+        result = batch(env)
+        before = dict(S._PREPARED)
+        for candidate in (replace(result), plain(result)):
+            _fixed_refusal(lambda: prepare(env, candidate), 'SESSION_UNIVERSE_BATCH_UNREGISTERED')
+        _fixed_refusal(lambda: prepare(env, result, journal=Journal(env.home / 'other-control')),
+                       'SESSION_UNIVERSE_BATCH_UNREGISTERED')
+        object.__setattr__(result, 'n', 2)
+        _fixed_refusal(lambda: prepare(env, result), 'SESSION_UNIVERSE_BATCH_UNREGISTERED')
+        assert S._PREPARED == before and prepared_rows(env) == []
+
+
+def test_universe_session_refuses_a_stale_batch():
+    with universe_env() as env:
+        result = batch(env)
+        for changes in ({'code_hash': '0'*64},
+                        {'active': lambda ctx: replace(ctx.active, seq=ctx.active.seq + 1)},
+                        {'owner': lambda ctx: replace(ctx.owner, head=(ctx.owner.head[0] + 1, 'f'*64))},
+                        {'universe': lambda ctx: replace(ctx.universe, snapshot_sha256='6'*64)},
+                        {'universe': None}):
+            with universe_context(**changes):
+                _fixed_refusal(lambda: prepare(env, result), 'SESSION_UNIVERSE_BATCH_STALE')
+        env.now += timedelta(days=1)
+        env.observation = replace(env.observation, asof=env.now, server_time=env.now,
+                                  risk=replace(env.observation.risk, asof=env.now))
+        env.rules = replace(env.rules, asof=env.now)
+        _fixed_refusal(lambda: prepare(env, result), 'SESSION_UNIVERSE_BATCH_STALE')
+        assert prepared_rows(env) == []
+
+
+def test_universe_session_refuses_a_failed_coin_or_another_template():
+    with universe_env(((BTC, D('900000000000')), (ETH, D('500000000000')))) as env:
+        env.bars[ETH] = coin_bars(ETH, n=100)
+        failed = batch(env, n=2)
+        _fixed_refusal(lambda: prepare(env, failed), 'SESSION_UNIVERSE_BATCH_FAILED')
+        result = batch(env, n=1)
+        plan = selected(env.now)[0]
+        for other in (replace(plan, stake_krw=41_000.0), replace(plan, leg=replace(plan.leg, symbol='ETH'))):
+            _fixed_refusal(lambda: prepare(env, result, selected_plan=other), 'SESSION_UNIVERSE_TEMPLATE_INVALID')
+        refused(lambda: prepare(env, result, selection_seed_hex='0'*64))      # the selection-seed check stays
+        assert prepared_rows(env) == []
+
+
+def test_universe_session_caps_expiry_at_snapshot_end_and_seoul_midnight():
+    with universe_env() as env:
+        result = batch(env)
+        # env.now is 09:00 KST; a UTC snapshot end must not turn the KST expiry into a UTC one.
+        env.universe = replace(env.universe, valid_until=(env.now + timedelta(minutes=10)).astimezone(timezone.utc))
+        capped = prepare(env, result)
+        assert capped.expires_at == env.now + timedelta(minutes=9)
+        assert capped.expires_at.utcoffset() == env.now.utcoffset() == timedelta(hours=9)
+        env.universe = replace(env.universe, valid_until=env.now + timedelta(days=2))
+        late = prepare(env, result, session_id='late', expires_at=env.now + timedelta(hours=23))
+        assert late.expires_at == datetime(2026, 10, 25, tzinfo=M.KST) - timedelta(seconds=60)
+        env.universe = replace(env.universe, valid_until=env.now + timedelta(seconds=30))
+        _fixed_refusal(lambda: prepare(env, result, session_id='gone'), 'SESSION_PREPARATION_EXPIRED')
+
+
+def test_universe_session_symbol_needs_a_batch_coin_eligible_in_the_same_snapshot():
+    from execution_control.session import _symbol_ok
+    with universe_env(((BTC, D('900000000000')), (ETH, D('500000000000')))) as env:
+        result = batch(env, n=1)
+        prepared = SimpleNamespace(universe_batch_digest=result.batch_digest, symbol='BTC')
+        current = SimpleNamespace(universe=env.universe)
+
+        def order(market):
+            return SimpleNamespace(symbol=market)
+        assert _symbol_ok(prepared, order(BTC), 'BTC', current)
+        assert not _symbol_ok(prepared, order(ETH), 'ETH', current)          # eligible, but outside the N
+        for universe in (replace(env.universe, eligible=((ETH, D('500000000000')),)),   # no longer eligible
+                         replace(env.universe, snapshot_sha256='6'*64), None):
+            assert not _symbol_ok(prepared, order(BTC), 'BTC', SimpleNamespace(universe=universe))
+        unregistered = SimpleNamespace(universe_batch_digest='0'*64, symbol='BTC')
+        assert not _symbol_ok(unregistered, order(BTC), 'BTC', current)
+        fixed = SimpleNamespace(universe_batch_digest=None, symbol='BTC')
+        assert _symbol_ok(fixed, order(BTC), 'BTC', None) and not _symbol_ok(fixed, order(ETH), 'ETH', None)
