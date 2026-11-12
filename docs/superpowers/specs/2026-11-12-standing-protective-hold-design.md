@@ -149,7 +149,8 @@ Add after the current text (SD:184-185):
      is not `safety_halt`; or the newest standing entry for that id passed its `valid_until` with no later standing
      `system_disarm` (the process ended before the check of section 4 wrote one);
   2. the startup unit's risk result has no `PERSISTENT_HALT` (6.4.5);
-  3. the coin is held at or above the minimum order;
+  3. the coin is held at or above the minimum order, or a buy in the runner's namespace is active (the sale then waits
+     for it and ends as 6.4.4 says);
   4. now is before the end of the schedule's last window plus one day.
 
   A restart never resumes a hold: the high, the marks and the stop time live in memory only. The sale runs in the
@@ -159,6 +160,12 @@ Add after the current text (SD:184-185):
   before `run()`, so no slot runs. `run()` accepts a start after `window.end` but refuses a start too close to the next
   slot inside the window (`coordinator.py:599-600`); the implementation plan settles that case. If no coordinator can be
   built, status shows `autosell_blocked`.
+
+  Whenever condition 1 holds or a halt is seen, startup applies the first bullet in the coordinator it builds, also
+  when step 3 found no open arming because an earlier stop already closed the entry. The startup reconcile cancels
+  only reserved orders (`runner.py:387-396`), so a sent GTC buy keeps resting. Startup calls `Coordinator.stop()` after
+  `bootstrap` and before `run()` (`coordinator.py:581`, `627`, `650`), and requests a cancel of every active buy in the
+  runner's namespace, repeated after every later monitor unit until reconciliation shows it terminal.
 - **Startup under a halt.** When the newest standing `system_disarm` is `safety_halt`, or the startup unit's risk
   result has `PERSISTENT_HALT`, startup starts no sale. It still applies 6.4.5 in the coordinator it builds: it requests
   a cancel of every active sell in the runner's namespace and repeats the request after every later monitor unit until
@@ -182,8 +189,13 @@ halt instead (6.4.5). The driver also stops at the end slot of the window that i
 `valid_until` alone is not such a moment: the driver keeps selling without a session (`runner.py:438`) and flattens at
 the window end (`driver.py:297`). So at a mid-window `valid_until` the app writes no disarm and does not stop the
 coordinator (`Coordinator.disarm` would, `coordinator.py:673`). At the check after that window's end slot it writes
-`safety_held_at_end` if the coin is held, else `standing_ended`. A restart in between sells (section 3, startup
-condition 1)."
+`safety_held_at_end` if the coin is held at or above the minimum order or any buy in the runner's namespace is still
+active, else `standing_ended`. The runner never cancels a buy it has sent (`runner.py:387-396`), so a buy still active
+there gets the cancel requests of section 3, repeated until terminal, and a fill is sold by 6.4.4, whose sale does not
+end while a buy is active. The check is skipped when the owner's `stop`, `disarm` or `close` closed the entry before
+it: as SD 6.1 says, nothing auto-sells, and a restart sells nothing, because the newest standing `system_disarm` is
+`owner_requested` (SD:167-171). A restart between `valid_until` and that check, with no owner command, sells (section
+3, startup condition 1)."
 
 Reason: SD's "each window already ends flat" (SD:195) is false when the review expires inside a window.
 
@@ -238,8 +250,8 @@ If X, M and Md are not in force, every row that says hold sells instead.
 Notation, per unit:
 
 - `q`: the held units of the coin in the unit's account observation.
-- `p`: that coin's mark in the unit's capture, the Upbit ticker's last trade price (`upbit_collector.py:393-401`,
-  `416-423`). On main it is at most 30 s old. Under approach A (6.4.7) it can be older; I covers a bid that fell below
+- `p`: that coin's mark in the unit's capture, the Upbit ticker's last trade price, or the best bid when the collector
+  marks a stale trade at the bid (UNI:573-575) (`upbit_collector.py:393-401`, `416-423`). On main it is at most 30 s old. Under approach A (6.4.7) it can be older; I covers a bid that fell below
   it.
 - `Eq`: the observation's marked equity, the number the halt test uses (`controller.py:420`).
 - `line`: the halt line, `max(effective floor, L)`, computed exactly as the halt test computes it
@@ -382,10 +394,12 @@ time it keeps the coin, which 6.4.6 bounds.
   already keep that distance (`coordinator.py:321-325`). A unit that falls due then waits for the first monitor unit
   after the boundary unit.
 - **Partial fills.** A remainder at or above the minimum order goes in the next attempt. A remainder below the minimum
-  quantity or the minimum notional stays in the account (PLB 4.5) and ends the sale with status `protective_dust`.
+  quantity or the minimum notional stays in the account (PLB 4.5) and gets no attempt. It ends the sale with status
+  `protective_dust` once no buy in the runner's namespace is active (section 3). Until then the sale sends nothing and
+  keeps checking after each monitor unit.
 - **When the sale ends.** When the holding is below the minimum order and no buy in the runner's namespace is active
   (section 3); on the owner's `close`; when the owner's `exit`
-  order is recorded (6.4.8); at a halt (6.4.5); or at `monitor_until`. After `monitor_until` no scheduled unit runs,
+  order is dispatched and live (6.4.8); at a halt (6.4.5); or at `monitor_until`. After `monitor_until` no scheduled unit runs,
   so no automatic attempt is made (`coordinator.py:159-164`, `614`). The account chain then stops 30 s after the last
   capture (CL:206-208), and after that an owner `exit` refuses too. Status shows `autosell_blocked`. Each standing
   window's coordinator is built with `monitor_until` = window end + 1 day, the maximum (`coordinator.py:314`). A normal
@@ -474,11 +488,14 @@ time it keeps the coin, which 6.4.6 bounds.
   (Y owner-signed, in the blocker-1 spec) re-checks the floor at the bid, blocks new entries and alerts, like a
   mismatch. During a hold it fires I, because T watches the last trade and would not see a bid that fell while nobody
   traded.
-- **One stale-trade rule.** The merged universe spec changes the same collector differently: a last trade older than
-  30 s is marked at the best bid if the book is at most 10 s old, and otherwise the capture fails closed
-  (UNI:573-575). The owner asked on 2026-11-12 that the two become one rule. The blocker-1 spec defines it for every
-  profile, universe profiles included, and the universe accounts PR implements that rule instead. This amendment uses
-  its result: T uses the capture's mark `p`, and I fires on the bid-gap alert.
+- **One stale-trade rule.** The merged universe spec and the merged PR 4c plan mark a last trade older than 30 s at
+  the best bid when the book is at most 10 s old, and otherwise fail the capture closed (UNI:573-575;
+  `docs/superpowers/plans/2026-11-11-upbit-krw-universe-pr4c-terms-orders-accounts.md:50-54`). That PR lands before the
+  blocker-1 code (CL:410-411). The owner asked on 2026-11-12 that this and approach A become one rule. The blocker-1
+  spec, not yet written at `3868cde`, must define that rule for every profile and either amend UNI 12 and the PR 4c
+  plan before PR 4c lands, or replace PR 4c's collector rule in its own code. This amendment works under either rule:
+  T uses the capture's mark `p`, I fires on approach A's bid-gap alert where one exists, and a capture that fails closed
+  is a refused unit, which I covers.
 - **The narrow live route.** A halt written by `Controller.halt` (`controller.py:873-889`) is a journal halt row, so
   6.4.5 applies.
 
@@ -490,9 +507,11 @@ time it keeps the coin, which 6.4.6 bounds.
 - **`close`.** Ends the hold or the sale. It writes `system_disarm` with the standing id and reason `owner_requested`; a
   second disarm for a closed entry is harmless (SD:98-100). A later restart then sells nothing. A red toast says that
   protection has ended and the coin stays held.
-- **`exit`.** Ends the hold or the sale only once its order is recorded (reserved or dispatched). A refused `exit`, for
-  example because units are still promised to a resting protective sell (`controller.py:574-577`), leaves the hold or
-  the sale running.
+- **`exit`.** Ends the hold or the sale only once its order is dispatched and live: `Coordinator.submit_exit`
+  returned without raising and the state it returned is not `REJECTED` (`controller.py:699`). A `RESERVED` row left by
+  a failed dispatch does not count, because the next reconciliation cancels it locally (`runner.py:390-392`). A refused
+  `exit` (one that raised, was rejected, or was refused because units are still promised to a resting protective sell,
+  `controller.py:574-577`) leaves the hold or the sale running.
 - **`cancel-all`.** Cancels as usual. It does not end a sale: the next attempt sends again. To stop selling, use
   `close`.
 
@@ -628,25 +647,31 @@ Tests, by behaviour. All use fakes and a temporary home.
   and no order. The price is the bid less the protocol slippage, floored to the tick, from the unit's own book.
 - **Attempt rule.** It sends when no sell is active; with one active (ours or the driver's) it requests a cancel and
   sends nothing; it resends only after reconciliation shows the old order terminal; it retries a refused attempt at the
-  next unit; each attempt has a new signal id; the sale ends at dust.
+  next unit; each attempt has a new signal id; the sale ends at dust once no buy is active, and sends no attempt below
+  the minimum.
 - **Halt.** During a hold or a sale, a halt sends nothing new, and active sells get cancel requests. An owner-log-only
   halt counts.
 - **Owner commands.** `stop` and `disarm` change nothing. `close` ends both and writes `owner_requested`, and a restart
-  after it sells nothing. `exit` ends them only once its order is recorded; a refused `exit` leaves the sale running.
-  `cancel-all` does not end a sale.
+  after it sells nothing. `exit` ends them only once its order is dispatched and live; a refused `exit` leaves the
+  sale running. An `exit` whose dispatch raises after its reserve, or that the venue rejects, leaves the hold or the
+  sale running. `cancel-all` does not end a sale.
 - **Startup.** A newest `safety_*` disarm (not `safety_halt`), no halt, a held coin and a time inside the schedule give
   a sale. So does an entry past its `valid_until` with no later standing disarm. `safety_halt`, `PERSISTENT_HALT`,
   `owner_requested` or a time past the last window's end plus one day give no sale. With `safety_halt` or
   `PERSISTENT_HALT`, every active sell left from before the restart, an owner `exit` included, gets a cancel request
   that is repeated until it is terminal. With no window left to start, the
   sale runs in a sale-only coordinator in which no slot runs. Step 3 writes `safety_restart` for a standing id, and the
-  test checks the reason actually written.
+  test checks the reason actually written. With the entry already closed by `safety_missed_slot`, the coin flat and a
+  GTC buy active, the buy gets repeated cancel requests, and if it fills, the sale sells it.
 - **Normal end.** A review expiry with the coin held is `held_at_end` and holds. So is a mid-window review failure
   while the owner log folds (state invalid, code unsigned, key or code hash changed). A review failure because the
   owner log does not fold is `held_at_end` and sells at the first check: X, M and Md are not in force, and B fires on
   `line` `None`. The last window's end with the coin
   held sells. A mid-window `valid_until` is not a stop: no disarm is written and the coordinator keeps running until
-  the window's end slot. A restart between that `valid_until` and the window end, with the coin held, sells.
+  the window's end slot. A restart between that `valid_until` and the window end, with the coin held, sells. An owner
+  `stop` after a mid-window `valid_until`, with the coin held at the window end, writes no `safety_held_at_end` and
+  starts no sale, and a restart after it sells nothing. A deployment end with the coin flat and a driver buy still
+  active writes `safety_held_at_end`, requests the buy's cancel until it is terminal, and sells a later fill.
 - **Buy cancels.** At every safety stop each active buy gets a cancel request; a refused or unconfirmed one is requested
   again after the next monitor unit; the sale does not end while a buy is active.
 - **Halt and resting sells.** A halt as the first stop, and a halt during a hold or a sale, both request a cancel of
