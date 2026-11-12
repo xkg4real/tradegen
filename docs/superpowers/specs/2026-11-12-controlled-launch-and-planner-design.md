@@ -37,7 +37,8 @@ Owner decisions of 2026-11-12:
 - **Q4, the standing period.** A fixed cap of 7 days per signature. The study freezes `review_max_age_seconds` at
   30 days (8.2), so one study can be traded for up to 30 days after it ends, re-signed every 7 days.
 - **Q5, protective commands.** Two new console commands: `cancel-all` and `exit` (4.5).
-- **Q6, holdings after a safety stop under standing arming.** Sold automatically (companion, section 6.4).
+- **Q6, holdings after a safety stop under standing arming.** Sold automatically (companion, section 6.4), except
+  after a halt, which sells nothing, as PLB (f) says (companion SD-O1, decided 2026-11-12).
 
 **Approach chosen:** a separate live launcher module, `tools/owner/live.py`. `tools/owner/rehearsal.py` is not
 edited and stays dry-only. Rejected alternatives:

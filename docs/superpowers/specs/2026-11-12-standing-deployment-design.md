@@ -18,6 +18,7 @@ investment advice. Neither the software nor its author is a licensed advisor.
 - **Q4.** One signature pair covers at most 7 days. The study freezes `review_max_age_seconds` at 30 days, so one
   study can be traded for up to 30 days after it ends, with a new signature pair every 7 days.
 - **Q6.** After a safety stop, the app sells automatically any holding that the strategy no longer manages (6.4).
+  A halt is the exception: it sells nothing (SD-O1, decided by the owner on 2026-11-12).
 
 ## 2. Why every session is one day today
 
@@ -180,8 +181,8 @@ These end the standing deployment automatically:
 - the clock moving backward;
 - an open arming found at startup, meaning a restart.
 
-Each closes the standing entry (`system_disarm`, reason `safety_<code>`). Then auto-sell starts (6.4). If no current
-account observation exists, the disarm is retried at each monitor unit with a red toast, as in base design 4.3.
+Each closes the standing entry (`system_disarm`, reason `safety_<code>`). Then auto-sell starts (6.4), except after a
+halt (SD-O1). If no current account observation exists, the disarm is retried at each monitor unit with a red toast, as in base design 4.3.
 
 ### 6.3 Normal end
 
@@ -208,11 +209,11 @@ Each closes the entry with reason `standing_ended`. There is no auto-sell, becau
 - **Clock rollback.** After a clock rollback, the runner refuses protective actions while the time is earlier than the
   last time it saw (`runner.py:473`), so auto-sell waits until then.
 
-**This amends PLB.** PLB 0.1 item 4 and acceptance (f) say that nothing sells on a breach or a halt. Under a standing
-deployment, a halt is a safety stop, so the held coin is sold. The controller already allows sells under a halt and
-blocks only buys (`controller.py:613-615`). Outside a standing deployment, PLB (f) is unchanged. The owner approved
-the list of safety stops, halt included, on 2026-11-12. The owner confirms or reverses this amendment when reviewing
-this document (open decision SD-O1, section 9).
+**A halt sells nothing (SD-O1).** PLB 0.1 item 4 and acceptance (f) say that nothing sells on a breach or a halt.
+On 2026-11-12 the owner kept that rule for standing deployments too. A halt is still a safety stop: it closes the
+standing entry, but it does not start auto-sell, and the held coin stays until the owner decides with `exit` (base
+design, 4.5). The controller allows that sell under a halt and blocks only buys (`controller.py:613-615`). If a halt
+follows another safety stop whose auto-sell is running, that auto-sell stops at the halt. PLB (f) is unchanged.
 
 ## 7. What does not change
 
@@ -246,7 +247,8 @@ Tests, by behaviour. All of them use fakes and a temporary home.
 - A `system_disarm` with `standing_id` closes the entry. A new entry with the same id re-arms.
 - A loosening signed during a standing period does not count until the entry closes. A tightening counts at once.
 - An unbound preparation is refused while a standing entry is open.
-- Each safety stop closes the entry and starts auto-sell. A normal end and an owner stop do not auto-sell.
+- Each safety stop closes the entry. All but a halt start auto-sell. A halt, a normal end and an owner stop do not
+  auto-sell, and a halt stops an auto-sell that is already running.
 - Auto-sell repeats once per bar, cancels its previous exit first, and stops when flat or on `close`.
 - A handoff over 30 seconds is a safety stop.
 
@@ -258,7 +260,7 @@ implementation PR asks for it again.
 
 | Id | Question | Default in this document | Alternative |
 |---|---|---|---|
-| SD-O1 | Does a halt during a standing deployment auto-sell (6.4)? | Yes, as approved on 2026-11-12; this amends PLB (f) for standing deployments | No: a halt closes the standing entry but sells nothing, and PLB (f) stays as written |
+| SD-O1 | Does a halt during a standing deployment auto-sell (6.4)? | Decided by the owner on 2026-11-12: no. A halt closes the standing entry and sells nothing; PLB (f) stays as written | Yes, which would amend PLB (f) for standing deployments |
 | SD-O2 | Window length | 48 hours, the study's shape | 24 to 72 hours, a multiple of the bar |
 | SD-O3 | Retry interval for a refused daily preparation | 15 minutes | Any interval of at least one bar |
 | SD-O4 | Order of signing | Start the launcher, then sign `standing_armed` | None. Signing first is closed at startup by design (Q2). |
