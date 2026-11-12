@@ -27,7 +27,7 @@ def isolated(home: Path):
     """
     import requests
     from execution_orders import transport
-    from execution_control import capability, session
+    from execution_control import capability, session, universe_odds
 
     global REAL_SEND
     previous = list(STRAYS)
@@ -38,10 +38,12 @@ def isolated(home: Path):
     saved_request = requests.sessions.Session.request
     saved_capabilities = dict(capability._ISSUED)
     saved_sessions = dict(session._PREPARED)
+    saved_batches = dict(universe_odds._BATCHES)
     transport._send = _refuse
     requests.sessions.Session.request = _refuse
     capability._ISSUED.clear()
     session._PREPARED.clear()
+    universe_odds._BATCHES.clear()
     try:
         yield
         assert not STRAYS, "test swallowed an unmocked trading HTTP attempt"
@@ -53,4 +55,6 @@ def isolated(home: Path):
         capability._ISSUED.update(saved_capabilities)
         session._PREPARED.clear()
         session._PREPARED.update(saved_sessions)
+        universe_odds._BATCHES.clear()
+        universe_odds._BATCHES.update(saved_batches)
         STRAYS[:] = previous

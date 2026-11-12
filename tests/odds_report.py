@@ -25,7 +25,7 @@ STOP_CEIL = W0 / T                        # L_min = 0 under stop-based sizing: 1
 N = 20_000
 _PROB = re.compile(r"1 in |below about|\d\s?%")
 _ZERO = re.compile(r"(?<![\d.,])0(?:\.0+)?%|\b1 in 0\b|\babout 0\b")
-_CATALOGUE_SHA256 = "482d0fc4372eff866e517ec195c6a49c2a15b98e9a3658b20f36718ad2ed0dd8"   # flag.proxy reworded 2026-11-03
+_CATALOGUE_SHA256 = "3ea62822c7afd02cf50e56e0e0e0c9056a7eed15e3fef26d93ea270a05f70c88"   # notin.delist 2026-11-12
 _REPLAY = {"y0": 2019.0, "y1": 2026.0, "cut": 1.0 - 0.60, "bench_sr": 0.788830441182887,
            "haircut_sr": 0.7296150117404476, "diff": 0.4271945783845257, "ci_lo": 0.03344352887529298,
            "ci_hi": 0.8346050647267628, "fstar": 1.0, "h": 29.0, "growth": 0.02889, "growth_iid": 0.02613}
@@ -882,3 +882,10 @@ def test_build_freezes_mappings_and_refuses_inconsistent_reports():
     _raises(lambda: R.build(**{k: v for k, v in fields.items() if k != "provenance"}), TypeError)
     for missing in ("columns", "flags", "notes"):
         _raises(lambda missing=missing: R.build(**{k: v for k, v in fields.items() if k != missing}), TypeError)
+
+
+def test_not_in_box_names_rotation_selection():
+    """Universe spec section 9: delistings, Upbit warnings and rotation selection are not modelled."""
+    text = R.say("notin.delist")
+    assert "delistings and Upbit warnings" in text and "rotation" in text
+    assert "\n- " + text + "\n" in R.render(_rep())

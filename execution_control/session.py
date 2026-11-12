@@ -2,15 +2,16 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from datetime import datetime, timedelta
+from datetime import datetime, time, timedelta
 from uuid import uuid4
 import re
 
-from core.compliance import model, owner
+from core.compliance import gate, model, owner
 from core.odds import models, plan as odds_plan, simulate
 from execution_control.capability import digest, plain
 from execution_control.model import rules_digest
 from execution_control.store import guard_pending
+from execution_control.universe_odds import UniverseBatch, registered_batch
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -33,11 +34,14 @@ class PreparedSession:
     prepared_at: datetime
     expires_at: datetime
     record_digest: str
+    # Spec section 10: None for a fixed session, and then left out of fields, digest(fields) and the journal row.
+    universe_batch_digest: str | None = None
 
 
 _PREPARED: dict[int, tuple[PreparedSession, str]] = {}
 _PREPARATION_AGE = timedelta(seconds=30)
 _RULES_AGE = timedelta(minutes=5)
+_UNIVERSE_MARGIN = timedelta(seconds=60)  # the runner's expiry check then blocks buys before the controller refuses
 
 
 class PreparationError(ValueError):
@@ -53,12 +57,29 @@ def _aware(value):
     return type(value) is datetime and value.utcoffset() is not None
 
 
+def _record(prepared):
+    """vars(prepared) in its canonical encoding: universe_batch_digest only when a batch was bound."""
+    return {key: value for key, value in vars(prepared).items()
+            if key != "universe_batch_digest" or value is not None}
+
+
+def _symbol_ok(prepared, order, symbol, ctx) -> bool:
+    """A fixed session trades its prepared symbol. A universe session (spec section 9) trades one of its batch's
+    N coins that is eligible in the snapshot in force, and that snapshot must be the batch's."""
+    if prepared.universe_batch_digest is None:
+        return prepared.symbol == symbol
+    batch, universe = registered_batch(prepared.universe_batch_digest), ctx.universe
+    return (batch is not None and universe is not None and universe.snapshot_sha256 == batch.snapshot_sha256
+            and order.symbol in {coin.market for coin in batch.coins}
+            and order.symbol in {market for market, _ in universe.eligible})
+
 
 def prepare_session(*, journal, session_id: str, selected_plan, inputs, positions,
                     policy, instrument_rules, now: datetime, selection_seed_hex: str,
                     account_scope: str, market: str, quote_currency: str,
                     clock, positions_asof: datetime, completion_check=None,
-                    expires_at: datetime | None = None) -> PreparedSession:
+                    expires_at: datetime | None = None,
+                    universe_batch: UniverseBatch | None = None) -> PreparedSession:
     """Actually rerun selected_plan with a fresh comparison seed before arming.
 
     Inputs and positions come from the caller's reconciled observations. A result
@@ -76,6 +97,11 @@ def prepare_session(*, journal, session_id: str, selected_plan, inputs, position
     their earliest verified expiry. That deadline is checked after final owner
     loading. It cannot replace this module's checks or grant authority with a
     boolean or an unverified timestamp.
+
+    ``universe_batch`` (spec section 9) must be the object run_batch registered in this process and journaled.
+    Its code hash, state hash, owner head, snapshot and Seoul date must be current, every coin must have passed,
+    and ``selected_plan`` must be that batch's plan for one of its coins. The expiry is capped 60 seconds before
+    the snapshot's end and before the next Seoul midnight, and the batch digest is bound into the session.
     """
     _require(callable(clock), "SESSION_PREPARATION_CLOCK_REQUIRED")
     _require(completion_check is None or callable(completion_check), "SESSION_PREPARATION_CHECK_REQUIRED")
@@ -91,6 +117,9 @@ def prepare_session(*, journal, session_id: str, selected_plan, inputs, position
         raise ValueError("invalid session expiry")
     if inputs.now != now or selected_plan.start != now.astimezone(model.KST).date():
         raise ValueError("session input date mismatch")
+    _require(universe_batch is None or (type(universe_batch) is UniverseBatch
+             and registered_batch(universe_batch.batch_digest) is universe_batch),
+             "SESSION_UNIVERSE_BATCH_UNREGISTERED")
     last = None
 
     def current_time():
@@ -137,6 +166,26 @@ def prepare_session(*, journal, session_id: str, selected_plan, inputs, position
 
     if ctx.session.armed or ctx.owner.armed_sessions:
         raise ValueError("prepare before owner session arming")
+    if universe_batch is None:
+        # Spec section 9: an Upbit coin no signed map lists (gate's derived coin) trades only through a batch.
+        venue, _ = odds_plan.instrument(selected_plan, ctx)
+        _require(gate._derived(ctx.active, venue, selected_plan.leg.symbol) is None,
+                 "SESSION_UNIVERSE_BATCH_REQUIRED")
+    else:
+        universe = ctx.universe
+        _require(universe is not None
+                 and (universe_batch.code_hash, universe_batch.state_hash, universe_batch.owner_head,
+                      universe_batch.snapshot_sha256, universe_batch.seoul_date)
+                 == (ctx.code_hash, ctx.active.state_hash, ctx.owner.head[1], universe.snapshot_sha256,
+                     now.astimezone(model.KST).date()),
+                 "SESSION_UNIVERSE_BATCH_STALE")
+        coin = next((c for c in universe_batch.coins if c.market == f"KRW-{selected_plan.leg.symbol}"), None)
+        _require(selected_plan.leg.venue == "upbit" and coin is not None
+                 and coin.plan_hash == odds_plan.plan_hash(selected_plan), "SESSION_UNIVERSE_TEMPLATE_INVALID")
+        _require(all(c.passed for c in universe_batch.coins), "SESSION_UNIVERSE_BATCH_FAILED")
+        midnight = datetime.combine(universe_batch.seoul_date + timedelta(days=1), time(0), tzinfo=model.KST)
+        end = min(end, universe.valid_until - _UNIVERSE_MARGIN, midnight - _UNIVERSE_MARGIN).astimezone(end.tzinfo)
+        current_time()  # the capped expiry may already have passed
     report = simulate.simulate(selected_plan, ctx, fresh)
     if report.refused is not None or any(flag.level == "red" for flag in report.flags):
         raise ValueError("fresh odds preparation refused")
@@ -165,6 +214,10 @@ def prepare_session(*, journal, session_id: str, selected_plan, inputs, position
         events = tx.events
         # A row inside a pending guard transaction would leave it unresumable; resume the guard first.
         _require(not guard_pending(events), "SESSION_PREPARATION_GUARD_PENDING")
+        if universe_batch is not None:
+            batches = [row["data"] for row in events if row["kind"] == "universe_odds_batch"
+                       and row["data"].get("batch_digest") == universe_batch.batch_digest]
+            _require(batches == [plain(universe_batch)], "SESSION_UNIVERSE_BATCH_UNREGISTERED")
         prepared_ids = {row["data"].get("session_id") for row in events if row["kind"] == "session_prepared"}
         committed_at = current_time()
         _require(review_deadline is None or committed_at < review_deadline,
@@ -175,6 +228,8 @@ def prepare_session(*, journal, session_id: str, selected_plan, inputs, position
                       venue=selected_plan.leg.venue, symbol=selected_plan.leg.symbol,
                       account_scope=account_scope, market=market, quote_currency=quote_currency,
                       stake_krw=str(selected_plan.stake_krw), prepared_at=committed_at, expires_at=end)
+        if universe_batch is not None:
+            fields["universe_batch_digest"] = universe_batch.batch_digest
         actual_session_id = session_id + "-" + digest(fields)
         fields["session_id"] = actual_session_id
         prepared = PreparedSession(**fields, record_digest=digest(fields))
@@ -199,7 +254,8 @@ def verify_session(prepared, *, session_id: str, policy, instrument_rules, ctx, 
     registered = _PREPARED.get(id(prepared))
     if type(prepared) is not PreparedSession or registered is None or registered[0] is not prepared:
         raise ValueError("session preparation not issued in this process")
-    fields = {key: value for key, value in vars(prepared).items() if key != "record_digest"}
+    record = _record(prepared)
+    fields = {key: value for key, value in record.items() if key != "record_digest"}
     bound = {key: value for key, value in fields.items() if key != "session_id"}
     label, separator, suffix = prepared.session_id.rpartition("-")
     if (not separator or re.fullmatch(r"[A-Za-z][A-Za-z0-9_-]{0,31}", label) is None
@@ -220,7 +276,7 @@ def verify_session(prepared, *, session_id: str, policy, instrument_rules, ctx, 
             or not prepared.prepared_at <= now < prepared.expires_at
             or prepared.prepared_at.astimezone(model.KST).date() != now.astimezone(model.KST).date()
             or prepared.code_hash != ctx.code_hash or prepared.state_hash != ctx.active.state_hash
-            or prepared.venue != order.venue or prepared.symbol != symbol
+            or prepared.venue != order.venue or not _symbol_ok(prepared, order, symbol, ctx)
             or prepared.account_scope != order.account_scope or prepared.market != order.market
             or prepared.quote_currency != quote):
         raise ValueError("session preparation stale or mismatched")
@@ -228,5 +284,5 @@ def verify_session(prepared, *, session_id: str, policy, instrument_rules, ctx, 
         raise ValueError("owner session not signed and armed")
     found = [row for row in events if row["kind"] == "session_prepared"
              and row["data"].get("session_id") == session_id]
-    if len(found) != 1 or found[0]["data"] != plain(prepared):
+    if len(found) != 1 or found[0]["data"] != plain(record):
         raise ValueError("session preparation journal mismatch")

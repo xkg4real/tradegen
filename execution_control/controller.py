@@ -21,6 +21,7 @@ from execution_control.capability import _issue, digest, plain
 from execution_control.model import Order, InstrumentRules, order_body, order_digest, validate_order
 from execution_control.session import PreparedSession, verify_session
 from execution_control.store import guard_pending
+from execution_control.universe_odds import CoinOdds, UniverseBatch
 from execution_orders.model import AdapterResult, request_digest, validate_request
 
 _ACTIVE = frozenset({'RESERVED', 'DISPATCHING', 'ACKNOWLEDGED', 'UNKNOWN', 'PARTIAL', 'CANCEL_REQUESTED'})
@@ -62,6 +63,9 @@ class OrderState:
     order_digest: str
     venue_order_id: str = ''
     filled_quantity: Decimal = Decimal(0)
+    side: str | None = None             # the journaled order's side
+    symbol: str | None = None           # the journaled order's venue symbol, e.g. 'KRW-BTC'
+    updated_at: datetime | None = None  # journal time of the order's last event
 
 
 def _exact(method):
@@ -147,8 +151,10 @@ def _rules(body):
 
 def _event_data(kind, data):
     pair = {'client_id', 'order_digest'}
+    # Spec section 10: a fixed session's row keeps the old key set; a universe session adds universe_batch_digest.
+    prepared = {f.name for f in fields(PreparedSession)} - {'universe_batch_digest'}
     shapes = {
-        'session_prepared': {f.name for f in fields(PreparedSession)},
+        'session_prepared': prepared,
         'risk_snapshot': {'policy_digest', 'day', 'high_watermark', 'day_start_equity', 'effective_floor',
                           'calculated_floor', 'daily_stopped', 'floor_relaxation_approved'},
         'kill': {'session_id', 'reason'}, 'halt': {'floor'},
@@ -166,13 +172,28 @@ def _event_data(kind, data):
                                      'new_baseline_sha256', 'path_start', 'path_end', 'halt_required',
                                      'required_records'},
         'continuous_guard_complete': {'transaction_id'},
+        # Odds batches (spec section 9) are audit rows; prepare_session matches them by content.
+        'universe_odds_batch': {f.name for f in fields(UniverseBatch)},
     }
-    if type(data) is not dict or kind not in shapes or set(data) != shapes[kind]:
+    allowed = [shapes.get(kind)] + ([prepared | {'universe_batch_digest'}] if kind == 'session_prepared' else [])
+    if type(data) is not dict or kind not in shapes or set(data) not in allowed:
         raise ValueError('invalid lifecycle event fields')
     for key in ('order_digest', 'request_digest', 'permit_digest', 'fill_digest', 'fill_key', 'policy_digest',
-                'plan_hash','input_digest','rules_digest','code_hash','state_hash','seed_hex','selection_seed_hex','record_digest'):
+                'plan_hash','input_digest','rules_digest','code_hash','state_hash','seed_hex','selection_seed_hex','record_digest',
+                'universe_batch_digest', 'batch_digest', 'template_plan_hash', 'owner_head', 'rule_sha256',
+                'snapshot_sha256'):
         if key in data and (type(data[key]) is not str or re.fullmatch('[0-9a-f]{64}', data[key]) is None):
             raise ValueError('invalid lifecycle digest')
+    if kind == 'universe_odds_batch':
+        coins, names = data['coins'], {f.name for f in fields(CoinOdds)}
+        if (type(coins) is not list or not coins or type(data['n']) is not int or len(coins) > data['n']
+                or type(data['prior_batches']) is not int or data['prior_batches'] < 0
+                or any(type(coin) is not dict or set(coin) != names or type(coin['market']) is not str
+                       or type(coin['passed']) is not bool
+                       or any(type(coin[key]) is not str or re.fullmatch('[0-9a-f]{64}', coin[key]) is None
+                              for key in ('plan_hash', 'seed_hex', 'inputs_digest', 'report_digest'))
+                       for coin in coins)):
+            raise ValueError('invalid lifecycle event fields')
 
 
 def _fill_record(body):
@@ -229,7 +250,8 @@ def _fold(events):
                 stopped_days.add(data['day'])
             risk_history.append(data)
             continue
-        elif kind in ('session_prepared', 'continuous_guard_prepare', 'continuous_guard_complete'):
+        elif kind in ('session_prepared', 'continuous_guard_prepare', 'continuous_guard_complete',
+                      'universe_odds_batch'):
             continue
         elif kind in _ORDER_EVENTS:
             key = data.get('client_id')
@@ -248,11 +270,12 @@ def _fold(events):
                                    session_id=data['session_id'], status='RESERVED', filled=Decimal(0),
                                    venue_order_id='', metadata={}, fill_hashes={}, fill_quantities={}, cancel_pending=False,
                                    request_digest=data['request_digest'], trade_date=data.get('trade_date', ''),
-                                   permit_digest=data['permit_digest'])
+                                   permit_digest=data['permit_digest'], updated_at=now)
                 continue
             if key not in orders or data.get('order_digest') != orders[key]['digest']:
                 raise ValueError('unknown or changed order event')
             rec = orders[key]; state = rec['status']
+            rec['updated_at'] = now
             if kind == 'fill':
                 fill_key, fill_hash = data.get('fill_key'), data.get('fill_digest')
                 if state not in _ACTIVE or not rec['venue_order_id'] or type(fill_key) is not str:
@@ -325,7 +348,8 @@ def _fold(events):
 def _view(rec):
     state = 'UNKNOWN' if rec['status'] == 'DISPATCHING' else rec['status']
     return OrderState(client_id=rec['order'].client_id, status=state, order_digest=rec['digest'],
-                      venue_order_id=rec['venue_order_id'], filled_quantity=rec['filled'])
+                      venue_order_id=rec['venue_order_id'], filled_quantity=rec['filled'],
+                      side=rec['order'].side, symbol=rec['order'].symbol, updated_at=rec['updated_at'])
 
 
 class Controller:
@@ -438,7 +462,8 @@ class Controller:
             ctx = owner.load_context(now, self._positions(obs, orders))
             if halted:
                 obs = replace(obs, risk=replace(obs.risk, halted=True))
-            return self._snapshot_risk(tx, obs, now, orders, ctx)
+            # Runner and coordinator buy checks use the snapshot this observation saw (spec section 6).
+            return replace(self._snapshot_risk(tx, obs, now, orders, ctx), universe=ctx.universe)
 
     @_exact
     def approve_floor_relaxation(self, *, floor, now, session_id):
@@ -850,6 +875,8 @@ class Controller:
     def kill(self,session_id,*,reason,now):
         if type(session_id) is not str or not session_id.strip():
             raise ValueError('session identity required')
+        if type(reason) is not str or not reason.strip():
+            reason='reason_invalid'  # the kill latch is a safety stop: it never fails on its reason
         _instant(now)
         with self.journal.transaction() as tx:
             _,_,_,last=_fold(tx.events)
@@ -860,7 +887,8 @@ class Controller:
             except Exception:
                 pass
             stamp=now if clock_ok else last or datetime(1970,1,1,tzinfo=timezone.utc)
-            tx.append('kill',{'session_id':session_id,'reason':'owner_requested' if clock_ok else 'clock_ambiguous'},now=stamp)
+            # Spec section 7: the caller's reason (the coordinator passes owner_requested or market_vanished).
+            tx.append('kill',{'session_id':session_id,'reason':reason if clock_ok else 'clock_ambiguous'},now=stamp)
             if not clock_ok:
                 return False
             try:

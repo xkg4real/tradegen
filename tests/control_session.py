@@ -1,13 +1,13 @@
 """Real fresh-odds preparation in test-signed temporary homes only."""
 from contextlib import contextmanager
 from dataclasses import replace
-from datetime import timedelta
+from datetime import datetime, time, timedelta, timezone
 from decimal import Decimal
 from types import SimpleNamespace
 
 from core.compliance import model as M, owner
 from core.odds import models
-from execution_control.capability import digest
+from execution_control.capability import digest, plain
 from execution_control.controller import AccountObservation, Controller
 from execution_control.dry_run import DryRunAdapter
 from execution_control.model import Order, InstrumentRules
@@ -35,6 +35,33 @@ def selected(now):
     seed = models.market_seed(models.data_hashes(series, inputs.replay), inputs.calendar_sha256,
                               inputs.comparison_id, inputs.run_counter).hex()
     return plan, inputs, seed
+
+
+def universe_snapshot(now, *, eligible=(('KRW-BTC', D('900000000000')),), sha='5'*64, valid_until=None):
+    """A Universe as PR 3's load_context returns it: built for the UTC day before `now`, in force from that day's
+    00:40 UTC (09:40 KST) until the next day's 00:40 UTC, or until `valid_until`."""
+    day = now.astimezone(timezone.utc).date() - timedelta(days=1)
+    start = datetime.combine(day, time(0, 40), tzinfo=timezone.utc)
+    return M.Universe(day=day, rule_sha256='7'*64, snapshot_sha256=sha, built_at=start - timedelta(minutes=10),
+                      valid_from=start, valid_until=valid_until or start + timedelta(days=1),
+                      listed=tuple(sorted(market for market, _ in eligible)), eligible=tuple(sorted(eligible)))
+
+
+@contextmanager
+def universe_context(**changes):
+    """Patch owner.load_context to return the real sealed context re-sealed with `changes`; each value is either
+    the new field value or a function of the real context (for example universe=lambda ctx: env.universe)."""
+    from dataclasses import fields
+    from unittest.mock import patch
+    real = owner.load_context
+
+    def load(now, positions, **kwargs):
+        ctx = real(now, positions, **kwargs)
+        body = {f.name: getattr(ctx, f.name) for f in fields(M.Context) if f.name != 'ctx_hash'}
+        body.update({name: value(ctx) if callable(value) else value for name, value in changes.items()})
+        return M.seal_context(**body)
+    with patch.object(owner, 'load_context', load):
+        yield
 
 
 @contextmanager
@@ -95,7 +122,7 @@ def test_real_fresh_odds_preparation_and_signed_arm_bind_content():
     with signed_control() as env:
         assert env.prepared.seed_hex!=env.prepared.selection_seed_hex
         assert env.prepared.session_id.endswith(digest({k:v for k,v in vars(env.prepared).items()
-                                                     if k not in ('session_id','record_digest')}))
+                                                     if k not in ('session_id','record_digest','universe_batch_digest')}))
         verification(env)
         with env.journal.transaction() as tx:
             assert [e['kind'] for e in tx.events]==['session_prepared']
@@ -114,7 +141,7 @@ def test_fabricated_mutated_expired_and_wrong_account_preparations_refuse():
         refused(lambda:verification(env,order=replace(env.order,account_scope='other-account')))
         refused(lambda:verification(env,now=env.prepared.expires_at))
         object.__setattr__(env.prepared,'stake_krw','999999999')
-        fields={k:v for k,v in vars(env.prepared).items() if k!='record_digest'}
+        fields={k:v for k,v in vars(env.prepared).items() if k not in ('record_digest','universe_batch_digest')}
         object.__setattr__(env.prepared,'record_digest',digest(fields))
         refused(lambda:verification(env))
 
@@ -340,3 +367,22 @@ def test_preparation_rechecks_time_after_final_content_and_journal_snapshot_work
             with seam:
                 _fixed_refusal(lambda: prepare_session(**args), 'SESSION_PREPARATION_INPUTS_STALE_OR_FUTURE')
             _no_preparation(env, before)
+
+
+FIXED_SESSION_FIELDS = ('plan_hash', 'input_digest', 'policy_digest', 'rules_digest', 'code_hash', 'state_hash',
+                        'seed_hex', 'selection_seed_hex', 'venue', 'symbol', 'account_scope', 'market',
+                        'quote_currency', 'stake_krw', 'prepared_at', 'expires_at')   # bound fields at fd85850
+
+
+def test_fixed_session_keeps_its_pre_universe_identity_record_and_row():
+    with signed_control() as env:
+        prepared = env.prepared
+        assert prepared.universe_batch_digest is None
+        bound = {key: getattr(prepared, key) for key in FIXED_SESSION_FIELDS}
+        assert prepared.session_id == 'fixture-' + digest(bound)
+        assert prepared.record_digest == digest(dict(bound, session_id=prepared.session_id))
+        with env.journal.transaction() as tx:
+            rows = [row['data'] for row in tx.events if row['kind'] == 'session_prepared']
+        assert rows == [plain(dict(bound, session_id=prepared.session_id, record_digest=prepared.record_digest))]
+        assert env.controller.states() == ()          # a row with the pre-change key set still folds
+        verification(env)

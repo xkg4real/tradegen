@@ -186,7 +186,8 @@ first. Types use `datetime` (aware, UTC), `date`, `Decimal`.
   batch_digest: str; seoul_date: date; template_plan_hash: str; code_hash: str; state_hash: str; owner_head: str;
   rule_sha256: str; snapshot_sha256: str; n: int; coins: tuple[CoinOdds, ...]; started_at: datetime;
   finished_at: datetime; prior_batches: int`; `run_batch(controller, template, bars: Mapping[str, UniverseBars], *,
-  n: int, now: datetime, clock) -> UniverseBatch`; `registered_batch(batch_digest: str) -> UniverseBatch | None`.
+  n: int, now: datetime, clock, positions, positions_asof: datetime) -> UniverseBatch` (the caller's
+  positions, at most 30 s old, not the account provider); `registered_batch(batch_digest: str) -> UniverseBatch | None`.
 - `session.prepare_session(..., universe_batch: UniverseBatch | None = None)`; refusal codes
   `SESSION_UNIVERSE_BATCH_UNREGISTERED`, `SESSION_UNIVERSE_BATCH_STALE`, `SESSION_UNIVERSE_BATCH_FAILED`,
   `SESSION_UNIVERSE_TEMPLATE_INVALID`.

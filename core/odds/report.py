@@ -421,7 +421,7 @@ CATALOGUE: Mapping[str, str] = MappingProxyType({
     "notin.fx": "won-dollar moves beyond the historical range in the data, and the timing of the KRW=X rate",
     "notin.upbit": "Upbit withdrawal holds after a KRW deposit, and the Upbit-to-OKX route closing without notice",
     "notin.freeze": "exchange freezes or failure",
-    "notin.delist": "delistings and Upbit warnings (survivorship)",
+    "notin.delist": "delistings and Upbit warnings (survivorship), and how a rotation strategy picks its coin",
     "notin.krx": "KRX halts, VI auctions, designations, resets and other special reference-price regimes",
     "notin.intraday": "intraday moves",
     "notin.unfilled": "unfilled orders beyond what is modelled",
