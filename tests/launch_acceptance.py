@@ -13,7 +13,7 @@ MODULES = ("launch_guards", "network_route", "accounts_collector", "launch_profi
            "launch_account_interval", "launch_live_history", "launch_coordinator", "launch_study",
            "launch_quote_diagnostics", "launch_shortened_study", "launch_study_review",
            "launch_instrument_refresh", "launch_owner_ops", "owner_guards", "launch_owner_rehearsal",
-           "launch_universe_store", "launch_floor_state_check")
+           "launch_universe_store", "launch_floor_state_check", "launch_clock_check")
 
 
 def tests():
