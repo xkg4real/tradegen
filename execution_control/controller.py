@@ -876,7 +876,7 @@ class Controller:
         if type(session_id) is not str or not session_id.strip():
             raise ValueError('session identity required')
         if type(reason) is not str or not reason.strip():
-            raise ValueError('kill reason required')
+            reason='reason_invalid'  # the kill latch is a safety stop: it never fails on its reason
         _instant(now)
         with self.journal.transaction() as tx:
             _,_,_,last=_fold(tx.events)

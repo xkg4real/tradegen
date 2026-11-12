@@ -697,13 +697,17 @@ def test_order_state_carries_side_symbol_and_last_event_time():
 def test_kill_records_the_given_reason_or_clock_ambiguous():
     with signed_control() as env:
         assert env.controller.kill(env.session_id, reason='market_vanished', now=env.now) is True
+        # The kill latch is a safety stop: a reason that is not a non-blank str journals reason_invalid and kills.
+        bad = ('', '  ', None, 7)
+        for number, reason in enumerate(bad):
+            assert env.controller.kill(f'bad-{number}', reason=reason, now=env.now) is True
         snapshot(env, server_time=env.now + timedelta(seconds=61))
         assert env.controller.kill('second', reason='market_vanished', now=env.now) is False
-        for bad in ('', '  ', None, 7):
-            refused(lambda: env.controller.kill('third', reason=bad, now=env.now))
         with env.journal.transaction() as tx:
             kills = [row['data'] for row in tx.events if row['kind'] == 'kill']
+            assert {f'bad-{number}' for number in range(len(bad))} <= _fold(tx.events)[1]
         assert kills == [{'session_id': env.session_id, 'reason': 'market_vanished'},
+                         *({'session_id': f'bad-{number}', 'reason': 'reason_invalid'} for number in range(len(bad))),
                          {'session_id': 'second', 'reason': 'clock_ambiguous'}]
 
 
