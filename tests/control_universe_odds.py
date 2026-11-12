@@ -165,11 +165,11 @@ def test_batch_refusals_happen_before_any_simulation_or_row():
         with universe_context(code_signed=False):
             run('UNIVERSE_BATCH_STATE_UNUSABLE')
         positions = env.observation.positions
-        for bad, asof in ((None, env.now), (replace(positions, equity_krw=0.0), env.now),
-                          (positions, env.now.replace(tzinfo=None))):
-            run('UNIVERSE_BATCH_POSITIONS_INVALID', positions=bad, positions_asof=asof)
+        for bad in (None, replace(positions, equity_krw=0.0)):
+            run('UNIVERSE_BATCH_POSITIONS_INVALID', positions=bad)
         second = timedelta(seconds=1)
-        for asof, started in ((env.now - 31*second, env.now),                  # stale
+        for asof, started in ((env.now.replace(tzinfo=None), env.now),         # not aware
+                              (env.now - 31*second, env.now),                  # stale
                               (env.now - 20*second, env.now + 15*second),      # stale by the first clock read
                               (env.now + second, env.now + second)):           # future
             run('UNIVERSE_BATCH_POSITIONS_STALE', positions_asof=asof, clock=lambda started=started: started)
@@ -195,13 +195,25 @@ def test_batch_refuses_inside_a_pending_guard_transaction():
 def test_batch_never_calls_the_account_provider():
     """The batch runs on the console thread, off the coordinator's work lock (spec section 9), so it takes the
     caller's reconciled positions and never calls the live, non-reentrant account provider."""
+    calls = []
+
     def provider(stamp):
+        calls.append(stamp)
         raise AssertionError('account provider called')
+
+    def events(env):
+        with env.journal.transaction() as tx:
+            return list(tx.events)
     with universe_env() as env:
         env.controller.account_provider = provider
+        first = batch(env)
+        before = events(env)
         result = batch(env)
-        assert result.coins[0].passed
-        assert batch_rows(env) == [plain(result)] and U.registered_batch(result.batch_digest) is result
+        after = events(env)
+        assert calls == [] and first.coins[0].passed and result.coins[0].passed
+        assert after[:len(before)] == before and len(after) == len(before) + 1          # one new row, nothing else
+        assert (after[-1]['kind'], after[-1]['data']) == ('universe_odds_batch', plain(result))
+        assert U.registered_batch(result.batch_digest) is result
 
 
 def test_largest_batch_row_fits_one_journal_row_and_folds():

@@ -156,12 +156,12 @@ def run_batch(controller, template, bars, *, n, now, clock, positions, positions
     """
     from execution_control.controller import _event_data
     _require(callable(clock) and _instant(now), "UNIVERSE_BATCH_CLOCK_INVALID")
-    _require(_instant(positions_asof) and not owner._positions_problem(positions),     # load_context's own check
-             "UNIVERSE_BATCH_POSITIONS_INVALID")
+    _require(not owner._positions_problem(positions), "UNIVERSE_BATCH_POSITIONS_INVALID")  # load_context's check
     started = _read(clock)
     _require(timedelta(0) <= started - now <= _CLOCK_AGE, "UNIVERSE_BATCH_CLOCK_INVALID")
-    _require(positions_asof <= now and timedelta(0) <= started - positions_asof <= _CLOCK_AGE,
-             "UNIVERSE_BATCH_POSITIONS_STALE")
+    # prepare_session's account rule, checked once before any context load or simulation
+    _require(_instant(positions_asof) and positions_asof <= now
+             and timedelta(0) <= started - positions_asof <= _CLOCK_AGE, "UNIVERSE_BATCH_POSITIONS_STALE")
     _require(type(n) is int and 1 <= n <= MAX_COINS, "UNIVERSE_BATCH_N_INVALID")
     _require(_template_ok(template), "UNIVERSE_BATCH_TEMPLATE_INVALID")
     ctx = _context(now, positions)
