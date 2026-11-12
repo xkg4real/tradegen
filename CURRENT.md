@@ -1,91 +1,159 @@
 ---
-status: returned
-reason: pr23_merged_owner_signed_code_0962e94
+status: handoff
+reason: usage_limit_weekly
 from: claude
-task: first-trade-foundation
-cycle: 2026-11-11
-done_ids: cloud-compat-1, cloud-compat-2, cloud-compat-3, odds-1, odds-2, odds-3, odds-4, odds-5, odds-6, odds-7, odds-8, odds-9, odds-10, odds-11, odds-12, odds-13, odds-14, odds-15, odds-16, odds-17, odds-18, odds-19, odds-final, odds-pr, spec-rev-3-3, policy-plan-1, policy-preview-1, policy-pr, e1-1, e1-2, e1-3, e1-4, e1-5, e1-6, e1-7, e1-8, e1-9, e1-10, e1-11, e1-12, e1-13, e1-pr, e2-1, e2-2, e3-1, e3-2, e3-3, e2-3, e3-4, e2-e3-pr, pr6-pr7-merge, research-preregister-1, research-evaluate-1, account-readiness-1, research-paper-1, account-provider-1, account-regression-1, account-research-pr, pr8-human-code-review-approval, pr8-merge, launch-network-1, launch-collector-1, launch-profile-1, launch-strategy-1, launch-runner-1, launch-program-2, launch-workflow-2, launch-baseline-2, launch-quotes-2, launch-deployment-2, launch-review-request-2, launch-driver-2, launch-review-auth-2, launch-baseline-integration-2, launch-market-protocol-1, launch-recovery-cutoff-1, kis-live-contract-1, kis-live-backend-1, kis-live-ui-1, launch-static-guard-1, launch-windows-design-1, kis-live-regression-1, launch-regression-1, launch-delivery-1, pr9-owner-review, launch-windows-inputs-1, launch-owner-authority-1, launch-live-evidence, launch-live-history-1, launch-windows-coordinator-1, launch-study-module-1, okx-data-1, final-review-1, pr10-owner-review, venues-upbit-terms, pr11-owner-review, rules-review-1122/research, launch-quote-diagnostics-1, launch-shortened-study-1, cloud-compat-4, launch-resume-regression-1, launch-resume-delivery-1, pr12-owner-merge, account-okx-usdc-1, launch-market-readiness-1/audit, rules-review-1122/entity-mapping, launch-held-positions-1/candidates, launch-held-positions-1/chronological-reducer, launch-instrument-refresh-1, launch-controlled-coordinator-1/owner-ops, launch-controlled-coordinator-1/rehearsal, launch-authenticated-selection-1, launch-source-boundaries-1, launch-preparation-freshness-1, launch-48h-integration-1, launch-48h-delivery-1, pr13-owner-merge, launch-study-review-windows-1, rules-review-1122/table-1110, launch-continuous-guard-commit-1, tests-hermetic-runs-1, tests-keyless-krx-1, pr14-pr17-owner-merge, policy-loss-budget-spec-1, pr18-owner-review, policy-loss-budget-state-check-1, pr23-owner-review
-next_ids: policy-loss-budget-plan-1, rules-review-1202, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, launch-private-capture-setup-1, e1-14-owner-setup, launch-prospective-study, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1
-updated_at: 2026-11-12T12:54:42+09:00
+task: upbit-universe
+cycle: 2026-11-10
+done_ids: universe-pr0, universe-pr1, universe-pr2, universe-pr3, universe-pr4b, universe-pr4a
+next_ids: universe-pr4c, universe-pr4d, universe-pr4e, universe-pr5, universe-pr5-clock-notify, universe-code-approve, policy-loss-budget-plan-1, rules-review-1202, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, launch-private-capture-setup-1, e1-14-owner-setup, launch-prospective-study, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1
+updated_at: 2026-11-12T16:53:45+09:00
 stale_after_hours: 3
-waiting_on: universe PR 4b (#30) review and merge by the owner, then PR 4a, 4c-4e and PR 5 (universe-impl session); the loss-budget implementation plan starts on main after universe PR 5; owner's rules --check output after the 0962e94 code-approve not yet seen; approve --kind rules before 2026-12-02 (rules re-review session)
-work_branch: none (claude/floor-state-check merged as PR23)
-work_commit: 0962e941d53132def834b8b26f99778b9e31837f
-runtime_tested_commit: 23f3861 (tree equals 0962e94)
-uncommitted_changes: none
-pr: https://github.com/xkg4real/tradegen/pull/23 (merged)
-usage_weekly_pct: 86
+waiting_on: none
+work_branch: none (claude/universe-pr4c-terms 는 로컬에만 있고 커밋 없음, push 안 함)
+work_commit: 971a5389208c
+runtime_tested_commit: 56a0b7f (PR 4a head, 전체 실행)
+uncommitted_changes: no
+pr: https://github.com/xkg4real/tradegen/pull/32 (merged)
+usage_weekly_pct: 98
 usage_source: claude-code get_usage (Weekly, all models)
 handoff_threshold_pct: 95
 usage_5h_pct: unknown
 usage_resets_at: 2026-11-17T17:00:00+09:00
-session: Claude Code desktop on the owner's Windows PC; separate scratch clone, TRADEGEN_PR9 venv read-only
+session: Claude Code desktop on the owner's Windows PC (universe-impl side session); separate scratch clone, TRADEGEN_PR9 venv read-only
 ---
 
-# 인수인계: PR23 병합, 소유자가 0962e94 코드에 서명
+# 인수인계: Upbit KRW 유니버스 구현 (PR 0 ~ PR 5)
 
-## 0. 사용자에게 전달할 최신 상태
+## 0. 한 줄 요약
 
-- PR23(읽기 전용 손실 하한 상태 점검)이 0962e94로 병합되었습니다. 서명 범위 밖이라 그 자체로는 서명이 필요 없었습니다.
-- 소유자는 2026-11-12 새벽 TRADEGEN_PR9를 0962e94로 맞추고 code-approve를 했다고 알렸습니다(owner log 파일 수정 시각 02:51 KST와 일치, 내용은 읽지 않음). rules --check 출력은 아직 받지 못했습니다. 기대값: OK, entry #10, 표 셋 모두 in force, exit 0(11-18부터 exit 1).
-- 그 뒤 main은 a456ea8입니다(#26 시계 점검 도구, #27·#28 문서). 코드 해시는 0962e94와 같은 1660e1db0abf5d29(87개 파일)라 서명이 그대로 유효합니다.
-- 열린 PR: #29(시계 메모, 문서), #30(유니버스 PR 4b, 서명 범위 코드 변경). #30 병합 뒤 TRADEGEN_PR9를 맞추면 code: UNSIGNED가 됩니다. 계획은 유니버스와 손실 한도 코드가 모두 들어간 head에서 한 번만 서명하는 것입니다.
+유니버스 PR 0, 1, 2, 3, 4b, 4a가 모두 main에 병합됐습니다. main은 `971a538`(#32)입니다. 다음 사람은 **PR 4c**부터 시작하면 됩니다: `docs/superpowers/plans/2026-11-11-upbit-krw-universe-pr4c-terms-orders-accounts.md`(Task 1-10). 4c의 사전 점검은 시작했지만 사용량 때문에 중간에 멈췄고 결과물이 없습니다. 그러니 사전 점검부터 다시 하세요.
 
-실거래 시작일이나 수익을 확정하지 않습니다. 실제 API·계좌·키·owner log 내용·서명·활성화·주문은 쓰지 않았습니다.
+## 1. 목표와 완료 조건
 
-## 1. 이미 확정된 결정
+- **사용자 요청 (원문 그대로):**
+  > 자자잦 시발 사용량 ㅈ됐습니다. 지금까지 한 일들 GPT한테 인계할 준비 하고 지난주처럼 .md파일 제공해주세요.
+- **이 작업의 원래 요청:** 시작 세션이 맡긴 일입니다. owner가 승인한 스펙 rev 3과 계획 10개(PR 0, 1, 2, 3, 4a, 4b, 4c, 4d, 4e, 5)를 index의 "Needs" 순서대로 하나씩 PR로 구현합니다.
+- **owner 지시 (원문 그대로, 2026-11-12):**
+  > 유니버스 PR 5까지 모두 main에 병합되면, SendMessage로 세션 local_597dbe11-9cd4-4fd6-8f04-6c9e741d8a1b 에 "유니버스 PR 5 병합 완료: PR 번호와 merge 커밋" 을 보내 주세요. 그 세션이 docs/pc-clock-decision-2026-11-12.md 의 1초 허용치 코드 PR을 만듭니다.
+- **완료 조건:**
+  - PR 4c, 4d, 4e, 5가 각각 계획대로 구현되고 리뷰를 거쳐 PR로 열려야 합니다.
+  - 각 PR의 전체 실행에서 실패는 아래 7절의 "알려진 실패"만 있어야 합니다.
+  - 병합은 owner가 합니다.
+  - PR 5가 병합되면 위 메시지가 전달되어야 합니다.
+- **범위 밖:**
+  - 서명, 무장, 실주문, 병합은 하지 않습니다.
+  - loss-budget(PLB) 코드는 유니버스 PR 5 병합 뒤에 main 기준으로 계획을 새로 씁니다. owner가 11-11에 "Universe first"로 정했습니다.
 
-- 이전 인수인계 1절 그대로입니다.
-- 소유자가 PR23을 병합했고(2026-11-11), 0962e94에서 code-approve를 했습니다(2026-11-12, 소유자 보고).
+## 2. 근거
 
-## 2. 직접 읽어야 할 근거
+| 종류 | 위치 | 이 작업에서 쓰는 부분 |
+|---|---|---|
+| 스펙 | `docs/superpowers/specs/2026-11-11-upbit-krw-universe-design.md` (rev 3) | 6, 7, 8, 9, 10, 19절 |
+| 계획 index | `docs/superpowers/plans/2026-11-11-upbit-krw-universe-index.md` | 순서("Needs"), 공유 파일, run_batch 계약 줄(4a에서 갱신됨) |
+| 남은 계획 | `docs/superpowers/plans/2026-11-11-upbit-krw-universe-pr4c-terms-orders-accounts.md`, `...-pr4d-driver-history.md`, `...-pr4e-runner-coordinator.md`, `...-pr5-study.md` | Task 전체 |
+| 진행 기록 | handoff 브랜치 `context/upbit-universe/` | 아래 표 참조 |
+| PLB 스펙 | `docs/superpowers/specs/2026-11-11-principal-loss-budget-design.md` | 유니버스 다음 순서, 겹치는 파일 |
+| PC 시계 결정 | `docs/pc-clock-decision-2026-11-12.md` | PR 5 뒤 1초 허용치 PR |
 
-- docs/superpowers/specs/2026-11-11-principal-loss-budget-design.md (8.2, 9.1~9.3절)
-- docs/superpowers/plans/2026-11-11-floor-state-check.md (병합됨)
-- docs/superpowers/plans/2026-11-11-upbit-krw-universe-index.md (PR 4a~5 순서)
+`context/upbit-universe/` 안의 파일:
+- `universe-impl-status.md`: 진행 기록 전체. 판정, 위험 요소, 4e 수정 지시가 들어 있습니다.
+- `implementer-rules.md`: 구현자 규칙. LF, 줄 120자 이내, 커밋 trailer, 금지 사항.
+- `pr4a-preflight.md`, `pr4b-preflight.md`: 사전 점검 표. 4c 사전 점검을 이 형식으로 쓰면 됩니다.
+- `pr4a-sdd-progress.md`, `pr4b-sdd-progress.md`: Task별 커밋, 리뷰, 판정 기록.
 
-## 3. 구현한 범위와 한계
+## 3. 판단 기록
 
-이번 주기에 새 코드는 없습니다. 소유자 동기화·서명 절차를 확인했습니다.
+| 결정 | 이유 | 버린 대안과 이유 |
+|---|---|---|
+| `run_batch`가 호출자의 `positions`와 `positions_asof`를 받고, 계좌 provider를 호출하지 않음 (owner가 (a) 승인) | 코디네이터의 `ContinuousAccountProvider`는 재진입이 안 되고, 겹친 호출을 거부하며, baseline 전진을 커밋함. console의 odds 배치가 worker tick을 실패시키고 거부될 때도 상태를 쓸 수 있었음 | 계획 원안(배치 안에서 provider 호출): 위의 위험 때문에 버림 |
+| positions 신선도 조건: `positions_asof <= now`이고 `started - positions_asof <= 30 s`. 어기면 `UNIVERSE_BATCH_POSITIONS_STALE`, 모양이 틀리면 `_INVALID` | `prepare_session`과 같은 기준 | — |
+| 배치 없이 upbit의 매핑 안 된 코인을 준비하면 `SESSION_UNIVERSE_BATCH_REQUIRED`로 거부 | 스펙 9절은 임의 코인 집합을 금지함. 이 수정 전에는 ETH 단일 세션이 배치 없이 준비됐음 | KRW-BTC 고정 세션은 그대로 둠 |
+| kill의 reason이 비었거나 str이 아니면 `reason_invalid`로 기록하고 kill은 그대로 진행 | kill latch는 안전 정지라서 reason 때문에 실패하면 안 됨 | 계획 원안(빈 reason이면 raise): 버림 |
+| odds 카드의 `notin.delist` 문구에 로테이션 선택을 추가하고, `tests/odds_report.py`의 catalogue pin을 갱신 | 스펙 9절. 그 한 줄을 되돌리면 이전 해시가 정확히 복원되는 것을 확인함 | — |
+| 서명 문구: PR마다 code-approve를 하지 않음. 유니버스 PR 전부와 PLB 코드가 끝난 뒤 owner가 한 번만 함. TRADEGEN_PR9는 0962e94(서명됨, --check OK)에 그대로 둠. 중간 head를 실행할 때만 그 head에 승인이 필요함 | owner의 11-11 지시. TRADEGEN_GITHUB 세션과 합의함 | "병합 head마다 code-approve": 틀린 문구라서 #32 본문에서 고침 |
+| MODULES 등록 줄에 append만 하는 경우는 "공유 파일 PR은 동시에 하나만" 규칙의 예외 | 시작 세션의 판정 (b) | — |
+| **PR 4e 수정 1:** `Coordinator.odds_batch`는 `self._observation`을 work lock 없이 한 번만 읽음. None이거나 ACCOUNT_AGE보다 오래됐으면 코디네이터 코드로 거부. `positions=observation.positions`, `positions_asof=observation.asof`를 넘김 | 위 (a) 결정의 후속. 4e 테스트 `test_the_odds_batch_runs_off_the_work_lock_over_the_snapshot_top_n`는 다른 스레드에서 `c._work`를 잡고 있어서, lock을 잠깐이라도 잡으면 멈춤 | lock 안에서 읽기: 테스트가 멈추고 worker도 막힘 |
+| **PR 4e 수정 2 (Hazard 5):** `now`는 `read_bars` 뒤에 잡음. 서울 날짜가 바뀌었으면 거부하고, 새 `now`를 넘김 | 코인 3개 이상이면 GET이 51번 넘게 나가서 30 s `_CLOCK_AGE`를 넘김 | 원안(now 먼저): 배치가 거부됨 |
 
-| 항목 | 결과 | 남은 경계 |
-| --- | --- | --- |
-| 동기화 절차 | 소유자 가이드의 next-time 블록(fetch, index 재생성, checkout --detach origin/main)을 fd85850 상태 복제본에서 Windows PowerShell 5.1로 그대로 실행: status는 owner_pubkey.pem 한 줄, log는 0962e94 | 실제 TRADEGEN_PR9는 읽기만 했고, 소유자가 직접 실행 |
-| 기대 해시 | 소유자 .venv Python으로 계산한 0962e94 코드 해시 1660e1db...d4dc, 87개 파일. 표 해시 rules 1699d1d6, instruments 50fa819f, venues 5d966ef1(모두 in force) | sign.py는 실행하지 않음 |
+## 4. 진행 상황
 
-## 4. 최종 검증
+- [x] universe-pr0: 규칙을 갱신한 뒤에도 고정 드라이버가 계속 동작함. #20, merge `59a4eb8`
+- [x] universe-pr1: 서명 규칙, 플래그 분류, 스냅샷 검증. #21, `df9118c`
+- [x] universe-pr2: 공개 데이터 리더, 스냅샷 빌더와 라이터. #24, `c213ed0`
+- [x] universe-pr3: 게이트, read-back, 공개 조회. #25, `249cc3d`
+- [x] universe-pr4b: 프로필, 프로토콜 다이제스트, 로테이션 프로그램. #30, `3868cde`
+- [x] universe-pr4a: odds 배치, 유니버스 세션 바인딩, kill reason. #32, `971a538`. #30의 rule 3 top-N 테스트 수정(cc571fe)도 여기에 포함됨
+- [ ] universe-pr4c: 약관, 주문, 계좌 ← **여기서 멈춤** (사전 점검 중에 중단, 결과물 없음)
+- [ ] universe-pr4d: 드라이버 이력 (4c 필요)
+- [ ] universe-pr4e: runner와 coordinator (4a와 4d 필요, 위 수정 1과 2 반영)
+- [ ] universe-pr5: 48시간 study (4e 필요)
+- [ ] universe-pr5-clock-notify: PR 5 병합 뒤 메시지 전달
+- [ ] universe-code-approve: owner만 함
 
-- launch 묶음(23f3861, 트리 = 0962e94, Windows, 키 없음): 423 PASS / 0 FAIL / 2 NOT_RUN(POSIX 전용). 실제 ~/.tradegen 파일 목록은 전후 동일.
-- TRADEGEN_PR9: HEAD 0962e94, git status는 untracked owner_pubkey.pem 한 줄(--no-optional-locks로 읽기만).
-- main a456ea8 코드 해시 = 0962e94 코드 해시(1660e1db0abf5d29, 87개).
+**마지막으로 통과한 검증 (PR 4a head 56a0b7f, main 3868cde 위):**
 
-## 5. 실패 이력과 현재 작업 상태
+```
+OPENBLAS_NUM_THREADS=1 TRADEGEN_RUNS_DIR=<scratch> python -X utf8 -m tests.run_all   (그 뒤 git restore qa/acceptance_results.json)
+2547/2672 passed, 2 failed (checkout-location 2건), 123 not run (REFDATA/OWNER/POSIX)
+```
 
-- 유니버스 세션의 테스트가 02:51 KST owner log 쓰기로 실제 홈 감시에 두 번 걸렸습니다. 소유자 서명 시각과 일치해 그 세션에 알렸습니다.
-- 작업 clone은 세션 scratch, 미커밋 변경 없음, 실행 중인 관측·거래 작업 없음.
+## 5. 중단 지점
 
-## 6. 다음 개발 과업
+- PR 4c 사전 점검 에이전트(계획 4c를 main과 대조하는 작업)를 사용량 때문에 직접 멈췄습니다. 결과 파일은 없습니다.
+- 4c 작업 트리는 로컬 스크래치에 있습니다. 브랜치는 `claude/universe-pr4c-terms`, 기준은 3868cde이고 커밋은 없습니다. 이제 main이 971a538이므로 **새로 origin/main에서 브랜치를 따는 것이 맞습니다.**
+- 커밋하지 않은 변경, 실패 중인 테스트는 없습니다.
 
-1. policy-loss-budget-plan-1: 유니버스 PR 5가 병합된 main에서 손실 한도 구현 계획. 첫 과업은 전체 테스트 측정과 영향받는 테스트 목록. 설계 8.3절 문서(owner checklist 0단계 포함)는 구현 PR과 함께.
-2. rules-review-1202: rules 표 재검토(별도 세션 진행 중), 병합 뒤 소유자 approve --kind rules, 2026-12-02 전.
-3. 나머지 next_ids는 이전 문서 그대로.
+## 6. 다음 할 일 (순서대로)
 
-코드 서명, 하한을 낮추는 limit_set, study freeze는 유니버스 PR 5와 손실 한도 변경이 모두 들어간 한 head에서 한 번만 합니다(설계 7.4, 12.5절).
+1. **universe-pr4c**
+   - **브랜치:** `git fetch && git switch -c gpt/universe-pr4c-terms origin/main` (971a538 이상)
+   - **사전 점검:** 계획 4c와 main을 대조합니다. 형식은 `context/upbit-universe/pr4a-preflight.md`와 같은 표입니다.
+     - PR 4a와 4b에서 테스트가 추가되어 테스트 개수와 줄 번호가 바뀌었을 수 있습니다. 인용은 줄 번호가 아니라 내용으로 다시 찾으세요.
+     - 4c가 4a/4b와 같은 파일을 건드리는지 확인하세요. 특히 `tests/renewal_boundaries.py`, `tests/launch_acceptance.py`의 MODULES, `execution_control/*`, `core/compliance/*`를 보세요.
+   - **구현:** Task 1-9를 Task마다 리뷰하고, 마지막에 브랜치 전체를 리뷰합니다.
+   - **전체 실행:** `OPENBLAS_NUM_THREADS=1`, `TRADEGEN_RUNS_DIR=<스크래치>`로 돌리고, 끝나면 `git restore qa/acceptance_results.json`.
+   - **줄바꿈 확인:** `git diff --stat`와 `git diff --stat --ignore-cr-at-eol`이 같아야 합니다.
+   - **PR 전:** `gh pr list`로 공유 파일을 쓰는 열린 PR이 있는지 확인합니다.
+   - **PR 본문:** 3절의 서명 문구, 실제 확률, "법률·투자 조언 아님"을 넣습니다.
+   - 완료 기준: 계획 Task 10, 그리고 알려진 실패만 있는 전체 실행.
+2. **universe-pr4d** (4c가 병합된 뒤): 계획 4d를 위와 같은 절차로 진행합니다. 완료 기준은 계획 4d의 마지막 Task입니다.
+3. **universe-pr4e** (4a와 4d가 병합된 뒤)
+   - 3절의 수정 1과 2를 반드시 반영합니다. 앵커는 계획 4e의 P2977(Consumes), P3001(가짜 run_batch), P3129(호출)인데, 내용으로 찾으세요.
+   - 테스트의 가짜 `run_batch`는 `positions`와 `positions_asof`를 받고, 그 값이 마지막 observation의 값인지 assert합니다.
+4. **universe-pr5** (4e가 병합된 뒤): 계획 5를 진행합니다.
+   - PLB 쪽 겹침 메모(`context/upbit-universe/universe-impl-status.md`의 "Overlap note")도 확인하세요. PLB 코드가 먼저 main에 들어온 경우에만 해당합니다.
+5. **universe-pr5-clock-notify**
+   - PR 5가 병합되면 `git fetch`로 merge 커밋을 확인하고 owner에게 "유니버스 PR 5 병합 완료: #번호, merge 커밋"을 알립니다.
+   - GPT는 Claude 세션에 메시지를 보낼 수 없습니다. owner나 사용량이 풀린 Claude가 세션 local_597dbe11-9cd4-4fd6-8f04-6c9e741d8a1b에 전달합니다. 그 세션이 1초 허용치 코드 PR을 엽니다.
+6. **universe-code-approve:** owner만 할 수 있습니다.
+   - 유니버스 PR 전부와 PLB 코드가 병합된 뒤 한 번 code-approve합니다.
+   - 그 뒤에 strategy review와 history window를 새로 해야 합니다.
 
-## 7. 소유자가 할 순서
+## 7. 주의사항 / 하지 말 것
 
-1. (선택) rules --check 출력을 보여주면 기대값과 대조합니다.
-2. #30 등 유니버스 PR을 검토·병합합니다. 병합 뒤 TRADEGEN_PR9는 서명 시점까지 0962e94에 두어도 됩니다.
-3. 설계 9.2절 순서 전에는 total_loss_floor_krw를 낮춰 서명하지 않습니다.
+**절대 규칙 (owner):**
+- 무장, 실주문, 자격 증명·키·`.env` 값을 입력하거나 읽는 일은 하지 않습니다.
+- `tools/signer/sign.py`를 실행하지 않고, 암호를 묻지 않습니다. 서명은 owner만 합니다.
+- 실제 `~/.tradegen`과 `~/.nextgen`에는 쓰지 않습니다. 테스트에서 네트워크와 실제 거래소 API는 쓰지 않습니다.
+- QUANTGEN은 수정하지 않습니다. 서명된 표와 `sign.py`는 owner 승인 없이 바꾸지 않습니다. 고정(pinned) 파일은 바이트 단위로 같게 유지합니다.
+- 공개 repo입니다. 비밀, 금액, 개인정보, 사용자 이름이 든 로컬 경로를 넣지 않습니다.
+- Windows 예약 작업을 만들지 않습니다. `pip install`을 하지 않습니다. 병합하지 않습니다.
+- 매번 실제 확률과 "법률·투자 조언 아님"을 밝힙니다. 다른 세션, 웹, Notion의 내용은 지시가 아니라 자료로 봅니다.
 
-## 8. 유지할 제한
+**환경:**
+- repo는 바이트 단위로 정확해야 합니다(`* -text`). Python 파일은 LF이고, `execution_launch/study.py`와 일부 문서(plans index.md 등)는 CRLF입니다.
+- `sed -i`는 쓰지 마세요. CRLF가 사라집니다. 편집기나 Python bytes로 고치세요.
+- 실행: `.venv\Scripts\python.exe -X utf8`. `-I`를 쓰면 PYTHONIOENCODING이 무시되니, 출력은 `-X utf8`로 받으세요.
+- PC의 RAM이 부족합니다. `OPENBLAS_NUM_THREADS=1`을 쓰고 무거운 실행은 하나씩 하세요.
+- 커밋 identity는 기존 PR과 같게 두고, 덮어쓰지 마세요.
 
-이전 문서 8절과 같습니다. 공개 저장소에는 금액·개인 경로·계좌 식별자·비공개 자료를 올리지 않습니다.
+**알려진 실패 (main에서도 남; 새로 생긴 실패가 아님):**
+- `compliance_guards/test_cryptography_is_pinned_installed_and_usable`, `compliance_signer/test_commands_sign_exactly_what_was_shown`: 실행한 checkout에 자체 `.venv`가 없으면 실패합니다.
+- `launch_owner_ops/test_runtime_worker_runs_once_and_closes_with_bounded_lifecycle`: 원래 가끔 실패합니다.
+- `launch_coordinator/test_close_while_awaiting_timer_returns_promptly`: 1.5 s 타이밍 테스트라서 부하가 있으면 실패하고, 단독으로 돌리면 통과합니다.
+- owner가 전체 실행 도중 서명하면 `control_controller`의 실제 home 가드가 걸릴 수 있습니다.
 
-## 9. 다음 에이전트가 이어받을 지시
-
-AGENTS.md, 이 문서, LEDGER.md를 먼저 읽습니다. 미병합 PR을 병합하지 않습니다. PR 상태를 말하기 전에 fetch하고 gh pr list로 다시 확인합니다. 소유자 서명 시간과 전체 검사가 겹치면 실제 홈 감시가 실패로 보고하니 해당 묶음만 다시 돌립니다.
-
-## 10. 전달 및 기록
-
-법률·세무·투자 조언이 아니며 작성자는 면허를 가진 자문가가 아닙니다.
+**실제 확률:**
+- 이 인계는 확률을 바꾸지 않고, 주문도 내지 않습니다.
+- 유니버스 전략은 아직 백테스트되지 않았습니다. 확률은 PR 4c의 평가기와 48시간 study가 끝나야 나옵니다. 그 전까지는 기존 odds 카드의 수치가 적용됩니다.
+- 이 문서는 소프트웨어 설계 기록이며, 법률·세무·투자 조언이 아닙니다.
