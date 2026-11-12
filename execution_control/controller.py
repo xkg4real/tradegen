@@ -21,6 +21,7 @@ from execution_control.capability import _issue, digest, plain
 from execution_control.model import Order, InstrumentRules, order_body, order_digest, validate_order
 from execution_control.session import PreparedSession, verify_session
 from execution_control.store import guard_pending
+from execution_control.universe_odds import CoinOdds, UniverseBatch
 from execution_orders.model import AdapterResult, request_digest, validate_request
 
 _ACTIVE = frozenset({'RESERVED', 'DISPATCHING', 'ACKNOWLEDGED', 'UNKNOWN', 'PARTIAL', 'CANCEL_REQUESTED'})
@@ -171,15 +172,28 @@ def _event_data(kind, data):
                                      'new_baseline_sha256', 'path_start', 'path_end', 'halt_required',
                                      'required_records'},
         'continuous_guard_complete': {'transaction_id'},
+        # Odds batches (spec section 9) are audit rows; prepare_session matches them by content.
+        'universe_odds_batch': {f.name for f in fields(UniverseBatch)},
     }
     allowed = [shapes.get(kind)] + ([prepared | {'universe_batch_digest'}] if kind == 'session_prepared' else [])
     if type(data) is not dict or kind not in shapes or set(data) not in allowed:
         raise ValueError('invalid lifecycle event fields')
     for key in ('order_digest', 'request_digest', 'permit_digest', 'fill_digest', 'fill_key', 'policy_digest',
                 'plan_hash','input_digest','rules_digest','code_hash','state_hash','seed_hex','selection_seed_hex','record_digest',
-                'universe_batch_digest'):
+                'universe_batch_digest', 'batch_digest', 'template_plan_hash', 'owner_head', 'rule_sha256',
+                'snapshot_sha256'):
         if key in data and (type(data[key]) is not str or re.fullmatch('[0-9a-f]{64}', data[key]) is None):
             raise ValueError('invalid lifecycle digest')
+    if kind == 'universe_odds_batch':
+        coins, names = data['coins'], {f.name for f in fields(CoinOdds)}
+        if (type(coins) is not list or not coins or type(data['n']) is not int or len(coins) > data['n']
+                or type(data['prior_batches']) is not int or data['prior_batches'] < 0
+                or any(type(coin) is not dict or set(coin) != names or type(coin['market']) is not str
+                       or type(coin['passed']) is not bool
+                       or any(type(coin[key]) is not str or re.fullmatch('[0-9a-f]{64}', coin[key]) is None
+                              for key in ('plan_hash', 'seed_hex', 'inputs_digest', 'report_digest'))
+                       for coin in coins)):
+            raise ValueError('invalid lifecycle event fields')
 
 
 def _fill_record(body):
@@ -236,7 +250,8 @@ def _fold(events):
                 stopped_days.add(data['day'])
             risk_history.append(data)
             continue
-        elif kind in ('session_prepared', 'continuous_guard_prepare', 'continuous_guard_complete'):
+        elif kind in ('session_prepared', 'continuous_guard_prepare', 'continuous_guard_complete',
+                      'universe_odds_batch'):
             continue
         elif kind in _ORDER_EVENTS:
             key = data.get('client_id')
