@@ -2,7 +2,7 @@
 
 One batch simulates the reviewed template plan once per coin with a fresh comparison seed, journals one inert
 ``universe_odds_batch`` control row and registers the result in this process by identity, like
-``session._PREPARED``. It never prepares, signs or arms a session and reads no exchange: the caller supplies the
+``session._PREPARED``. It never prepares, signs or arms a session and reads no market data: the caller supplies the
 plain final daily bars and their receipt digests. Only an object returned here can be bound by prepare_session.
 """
 from __future__ import annotations
@@ -71,7 +71,7 @@ def _body(batch):
 
 def registered_batch(batch_digest):
     """The batch this process issued under `batch_digest`, unchanged since; else None."""
-    for batch, recorded in _BATCHES.values():
+    for batch, recorded in tuple(_BATCHES.values()):  # one-step snapshot: run_batch may register concurrently
         if recorded == batch_digest == batch.batch_digest == digest(_body(batch)):
             return batch
     return None
