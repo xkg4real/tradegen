@@ -48,7 +48,8 @@ def universe_env(eligible=((BTC, D('900000000000')),)):
 
 
 def batch(env, n=1):
-    return U.run_batch(env.controller, selected(env.now)[0], env.bars, n=n, now=env.now, clock=lambda: env.now)
+    return U.run_batch(env.controller, selected(env.now)[0], env.bars, n=n, now=env.now, clock=lambda: env.now,
+                       positions=env.observation.positions, positions_asof=env.observation.asof)
 
 
 def batch_rows(env):
@@ -133,7 +134,8 @@ def test_batch_refusals_happen_before_any_simulation_or_row():
         template = selected(env.now)[0]
 
         def run(code, template=template, bars=None, **changes):
-            args = dict(n=1, now=env.now, clock=lambda: env.now) | changes
+            args = dict(n=1, now=env.now, clock=lambda: env.now, positions=env.observation.positions,
+                        positions_asof=env.observation.asof) | changes
             _fixed_refusal(lambda: U.run_batch(env.controller, template, env.bars if bars is None else bars,
                                                **args), code)
         for n in (0, U.MAX_COINS + 1, True, 1.0):
@@ -148,10 +150,15 @@ def test_batch_refusals_happen_before_any_simulation_or_row():
             run('UNIVERSE_BATCH_BARS_MISSING', bars={BTC: SimpleNamespace(**(vars(env.bars[BTC]) | changes))})
         with universe_context(code_signed=False):
             run('UNIVERSE_BATCH_STATE_UNUSABLE')
-        observation, stale = env.observation, env.now - timedelta(seconds=31)
-        env.observation = replace(observation, asof=stale, risk=replace(observation.risk, asof=stale))
-        run('UNIVERSE_BATCH_STATE_UNUSABLE')
-        env.observation = observation
+        positions = env.observation.positions
+        for bad, asof in ((None, env.now), (replace(positions, equity_krw=0.0), env.now),
+                          (positions, env.now.replace(tzinfo=None))):
+            run('UNIVERSE_BATCH_POSITIONS_INVALID', positions=bad, positions_asof=asof)
+        second = timedelta(seconds=1)
+        for asof, started in ((env.now - 31*second, env.now),                  # stale
+                              (env.now - 20*second, env.now + 15*second),      # stale by the first clock read
+                              (env.now + second, env.now + second)):           # future
+            run('UNIVERSE_BATCH_POSITIONS_STALE', positions_asof=asof, clock=lambda started=started: started)
         for universe in (None, universe_snapshot(env.now, eligible=())):
             env.universe = universe
             run('UNIVERSE_BATCH_NO_SNAPSHOT')
@@ -169,6 +176,18 @@ def test_batch_refuses_inside_a_pending_guard_transaction():
         with env.journal.transaction() as tx:
             assert [row['kind'] for row in tx.events] == ['continuous_guard_prepare']
         assert U._BATCHES == {}
+
+
+def test_batch_never_calls_the_account_provider():
+    """The batch runs on the console thread, off the coordinator's work lock (spec section 9), so it takes the
+    caller's reconciled positions and never calls the live, non-reentrant account provider."""
+    def provider(stamp):
+        raise AssertionError('account provider called')
+    with universe_env() as env:
+        env.controller.account_provider = provider
+        result = batch(env)
+        assert result.coins[0].passed
+        assert batch_rows(env) == [plain(result)] and U.registered_batch(result.batch_digest) is result
 
 
 def test_largest_batch_row_fits_one_journal_row_and_folds():

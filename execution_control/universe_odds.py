@@ -115,19 +115,12 @@ def _series(market, rows):
                             md5=odds_plan.series_md5(market, "UPBIT", dates, opens, closes, "", "final"))
 
 
-def _context(controller, now):
-    """The owner context at `now` over the journal's positions, loaded as Controller.observe loads it."""
-    from execution_control.controller import _fold  # controller imports this module (session too, after Task 5)
+def _context(now, positions):
+    """The owner context at `now` over the caller's positions, in the numeric context Controller.observe uses."""
     with localcontext() as numeric:
         numeric.prec = 2048
         numeric.traps[Inexact] = True
-        with controller.journal.transaction() as tx:
-            orders = _fold(tx.events)[0]
-            try:
-                positions = controller._positions(controller._account(now, tx.events), orders)
-            except ValueError:
-                raise UniverseOddsError("UNIVERSE_BATCH_STATE_UNUSABLE") from None
-            return owner.load_context(now, positions)
+        return owner.load_context(now, positions)
 
 
 def _coin(template, ctx, now, market, series, receipts):
@@ -150,21 +143,28 @@ def _coin(template, ctx, now, market, series, receipts):
                             and result.plan_hash == plan_hash and result.provenance.get("seed_hex") == seed))
 
 
-def run_batch(controller, template, bars, *, n, now, clock):
+def run_batch(controller, template, bars, *, n, now, clock, positions, positions_asof):
     """Simulate `template` once per top-N coin of the snapshot in force and journal one batch row (spec section 9).
 
     `bars` maps each market to PR 2's UniverseBars, read by attribute: `market`, `bars` as (ISO date, open, close)
     rows and `receipt_sha256`. `now` is the inputs' time; the first `clock` read must lie within 30 seconds after
-    it. Callers take now after the bars are read. Refuses while any session is armed, with no snapshot in force,
-    or inside a pending continuous-guard transaction. A refusal writes nothing and registers nothing.
+    it. Callers take now after the bars are read. `positions` is the model.Positions the owner context is loaded
+    over, and `positions_asof` its aware reconciliation time: at or before `now` and at most 30 seconds before the
+    first clock read. Callers pass the positions they last reconciled; the batch never calls the account provider.
+    Refuses while any session is armed, with no snapshot in force, or inside a pending continuous-guard
+    transaction. A refusal writes nothing and registers nothing.
     """
     from execution_control.controller import _event_data
     _require(callable(clock) and _instant(now), "UNIVERSE_BATCH_CLOCK_INVALID")
+    _require(_instant(positions_asof) and not owner._positions_problem(positions),     # load_context's own check
+             "UNIVERSE_BATCH_POSITIONS_INVALID")
     started = _read(clock)
     _require(timedelta(0) <= started - now <= _CLOCK_AGE, "UNIVERSE_BATCH_CLOCK_INVALID")
+    _require(positions_asof <= now and timedelta(0) <= started - positions_asof <= _CLOCK_AGE,
+             "UNIVERSE_BATCH_POSITIONS_STALE")
     _require(type(n) is int and 1 <= n <= MAX_COINS, "UNIVERSE_BATCH_N_INVALID")
     _require(_template_ok(template), "UNIVERSE_BATCH_TEMPLATE_INVALID")
-    ctx = _context(controller, now)
+    ctx = _context(now, positions)
     _require(model.is_sealed(ctx) and ctx.owner.ok and ctx.code_signed and ctx.active.valid,
              "UNIVERSE_BATCH_STATE_UNUSABLE")
     _require(not ctx.session.armed and not ctx.owner.armed_sessions, "UNIVERSE_BATCH_SESSION_ARMED")
