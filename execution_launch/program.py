@@ -1,7 +1,7 @@
 """Explicit deterministic paper candidates; no fitted edge or deployment approval.
 
-The decision function consumes only supplied historical marks. Source artifacts
-and parameters are bound with the same digest shape as the existing runner;
+The decision functions consume only supplied historical marks or recorded
+universe slots. Source artifacts and parameters are bound with the same digest shape as the existing runner;
 matching that digest does not authenticate a callback or its source.
 """
 from __future__ import annotations
@@ -220,6 +220,7 @@ def choose(spec: ProgramSpec, state: ChooserState, now_slot: ChooserSlot,
              and type(state.hold_count) is int and state.hold_count >= 0
              and all(type(slot) is ChooserSlot and type(slot.top_n) is tuple and isinstance(slot.flags, Mapping)
                      and isinstance(slot.prices, Mapping) for slot in slots)
+             and all(type(coin) is str for slot in slots for coin in slot.top_n)
              and all(type(flag) is str and flag in _FLAG_CLASSES for slot in slots for flag in slot.flags.values())
              and len(now_slot.top_n) <= spec.max_candidates, "PROGRAM_CHOOSER_INPUT_INVALID")
     for slot in slots:

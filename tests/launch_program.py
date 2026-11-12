@@ -201,6 +201,7 @@ def test_chooser_refuses_other_kinds_bad_state_bad_prices_and_a_wider_candidate_
     rejected(lambda: decide(CASH_STATE, at({}, {"KRW-AAA": "Warning"})), "PROGRAM_CHOOSER_INPUT_INVALID")
     rejected(lambda: decide(CASH_STATE, at({}), at({}, {"KRW-AAA": "bogus"})), "PROGRAM_CHOOSER_INPUT_INVALID")
     rejected(lambda: decide(CASH_STATE, at({}, {"KRW-AAA": 1})), "PROGRAM_CHOOSER_INPUT_INVALID")
+    rejected(lambda: decide(CASH_STATE, at({}, {}, top=("KRW-AAA", 7))), "PROGRAM_CHOOSER_INPUT_INVALID")
     rejected(lambda: decide(CASH_STATE, at({"KRW-AAA": "0"})), "PROGRAM_AMOUNT_INVALID")
     rejected(lambda: decide(CASH_STATE, ChooserSlot(top_n=COINS, flags={}, prices={"KRW-AAA": 101.0})),
              "PROGRAM_DECIMAL_REQUIRED")
