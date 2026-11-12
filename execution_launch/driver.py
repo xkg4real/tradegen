@@ -163,7 +163,7 @@ def _identity(program, protocol, profile, window, artifact, code_sha):
              == (protocol.venue, protocol.market, protocol.symbol, "KRW", "gtc")
              and profile.account_scope is not None and profile.instrument_rules is not None,
              "FIXED_DRIVER_SCOPE_MISMATCH")
-    terms = rule_terms_digest(profile.instrument_rules)
+    terms = rule_terms_digest(profile.instrument_rules, universe_rule_sha256=profile.universe_rule_sha256)
     contract = profile_contract_digest(profile)
     _require(terms == protocol.rule_terms_digest and contract == protocol.profile_contract_digest
              and profile.policy.initial_equity == protocol.initial_cash_quote

@@ -239,7 +239,7 @@ def build_review_request(profile, protocol, result, *, now, program_artifact: by
                  "REVIEW_PARAMETERS_FORMAT_INVALID")
         code = program_digest(spec, program_artifact)
         contract = profile_contract_digest(profile)
-        terms = rule_terms_digest(profile.instrument_rules)
+        terms = rule_terms_digest(profile.instrument_rules, universe_rule_sha256=profile.universe_rule_sha256)
         _require(code == profile.strategy_code_sha256 == protocol.strategy_code_sha256
                  and spec.strategy_id == profile.strategy_id == protocol.strategy_id
                  and contract == protocol.profile_contract_digest and terms == protocol.rule_terms_digest,

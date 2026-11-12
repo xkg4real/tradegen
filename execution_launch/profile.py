@@ -90,6 +90,9 @@ class LaunchProfile:
     instrument_rules: InstrumentRules | None = None
     strategy_id: str | None = None
     strategy_code_sha256: str | None = None
+    # Universe profile (spec section 10): the signed universe rule's sha256; symbol and instrument_rules then name
+    # the current trade coin. None for a fixed profile, whose canonical body leaves the key out.
+    universe_rule_sha256: str | None = None
 
     def __post_init__(self):
         _validate_profile(self)
@@ -165,6 +168,8 @@ def _validate_profile(profile):
         _text(profile.account_scope, "account_scope", _SCOPE)
     if profile.strategy_code_sha256 is not None:
         _text(profile.strategy_code_sha256, "strategy_code_sha256", _SHA)
+    if profile.universe_rule_sha256 is not None:
+        _text(profile.universe_rule_sha256, "universe_rule_sha256", _SHA)
     if type(profile.policy) is not PolicyInputs or type(profile.conventions) is not AccountingConventions:
         raise ProfileError("PROFILE_SCHEMA_INVALID")
     for name in ("version", "source_sha256"):
@@ -260,6 +265,8 @@ def profile_body(profile: LaunchProfile) -> dict:
     _validate_profile(profile)
     body = {f.name: getattr(profile, f.name) for f in fields(LaunchProfile)
             if f.name not in ("policy", "conventions", "instrument_rules")}
+    if profile.universe_rule_sha256 is None:
+        del body["universe_rule_sha256"]  # a fixed profile keeps today's canonical body byte for byte
     body["policy"] = {f.name: decimal_text(v) if type(v := getattr(profile.policy, f.name)) is Decimal else v
                       for f in fields(PolicyInputs)}
     condition = profile.policy.recovery_condition
@@ -280,18 +287,24 @@ def profile_digest(profile: LaunchProfile) -> str:
 
 
 
-def rule_terms_digest(rules: InstrumentRules) -> str:
+def rule_terms_digest(rules: InstrumentRules, *, universe_rule_sha256: str | None = None) -> str:
     """Stable economic rule identity; refresh time is checked separately by E2.
 
     The source digest and every lot/tick/minimum/fee/scope term remain bound.
     Only the observation's asof timestamp is omitted for prospective evidence.
+    A universe profile passes its universe_rule_sha256: the coin's symbol and
+    tick are then left out as well and the rule sha256 is hashed in their place,
+    so the fixed and universe forms never share a digest (spec section 10).
     """
     try:
         rules_digest(rules)
     except (TypeError, ValueError, AttributeError, ArithmeticError):
         raise ProfileError("PROFILE_INSTRUMENT_RULES_INVALID", "instrument_rules") from None
+    left_out = ("asof",) if universe_rule_sha256 is None else ("asof", "symbol", "tick_size")
     body = {f.name: decimal_text(v) if type(v := getattr(rules, f.name)) is Decimal else v
-            for f in fields(InstrumentRules) if f.name != "asof"}
+            for f in fields(InstrumentRules) if f.name not in left_out}
+    if universe_rule_sha256 is not None:
+        body["universe_rule_sha256"] = _text(universe_rule_sha256, "universe_rule_sha256", _SHA)
     raw = json.dumps(body, sort_keys=True, separators=(",", ":"), ensure_ascii=True, allow_nan=False)
     return hashlib.sha256(raw.encode("ascii")).hexdigest()
 
@@ -302,10 +315,18 @@ def profile_contract_digest(profile: LaunchProfile) -> str:
     This is not the complete runtime snapshot digest. Current asof is deliberately
     excluded so fresh identical rules do not invalidate multi-day research. The
     controller still enforces the full current rules_digest and five-minute age.
+    A universe profile also leaves out its trade coin (the top-level symbol and
+    the rules' symbol and tick); lot, minimums, fees, source digest and
+    universe_rule_sha256 stay bound, so the contract holds across coins.
     """
     body = profile_body(profile)
+    left_out = ("asof",)
+    if profile.universe_rule_sha256 is not None:
+        del body["symbol"]
+        left_out = ("asof", "symbol", "tick_size")
     if body["instrument_rules"] is not None:
-        del body["instrument_rules"]["asof"]
+        for name in left_out:
+            del body["instrument_rules"][name]
     raw = json.dumps(body, sort_keys=True, separators=(",", ":"), ensure_ascii=True, allow_nan=False)
     return hashlib.sha256(raw.encode("ascii")).hexdigest()
 

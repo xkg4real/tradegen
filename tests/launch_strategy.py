@@ -7,6 +7,7 @@ statistical evidence or approval for a real account.
 from dataclasses import asdict, replace
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal, localcontext
+import hashlib
 import json
 
 from execution_control.model import InstrumentRules, rules_digest
@@ -286,3 +287,52 @@ def test_one_roundtrip_matches_independent_cash_fee_tick_and_lot_arithmetic():
     assert shifted.total_return==float(D('0.42957'))
     assert shifted.total_fees_quote==float(D('2.430'))
     assert shifted.turnover_quote==float(D('2430'))
+
+
+RULE = hashlib.sha256(b'fixture-universe-rule').hexdigest()
+
+
+def universe_protocol(protocol, rules):
+    from execution_launch.strategy import UNIVERSE_EVALUATOR_REVISION
+    return replace(protocol, evaluator_revision=UNIVERSE_EVALUATOR_REVISION, universe_rule_sha256=RULE,
+                   rule_terms_digest=rule_terms_digest(rules, universe_rule_sha256=RULE))
+
+
+def test_fixed_protocol_digest_and_json_are_byte_identical_to_the_pre_universe_encoding():
+    p, *_ = fixture_capture()
+    encoded = protocol_json(p)
+    assert p.universe_rule_sha256 is None and 'universe_rule_sha256' not in encoded
+    assert evidence_digest(p) == '8d008761f9b0ddd58d148e52d5b6088d3acbdba18bf30f5317e05bdace8ca937'
+    assert hashlib.sha256(encoded.encode('ascii')).hexdigest() == (
+        '28ea85cb261fb70bbd56558656ecce3e738b41b886ccfe7c02445183bd2a43dd')
+    assert parse_protocol(encoded) == p
+
+
+def test_universe_protocol_round_trips_and_binds_its_rule_and_the_btc_benchmark():
+    p, _, _, rules, _, _, _ = fixture_capture()
+    u = universe_protocol(p, rules)
+    encoded = protocol_json(u)
+    assert parse_protocol(encoded) == u and evidence_digest(parse_protocol(encoded)) == evidence_digest(u)
+    assert json.loads(encoded)['universe_rule_sha256'] == RULE and evidence_digest(u) != evidence_digest(p)
+    assert register_protocol(u)[-1].protocol_digest == evidence_digest(u)
+    for changes, code in (({'symbol': 'KRW-ETH'}, 'STRATEGY_EVALUATOR_SCOPE_UNSUPPORTED'),
+                          ({'evaluator_revision': EVALUATOR_REVISION}, 'STRATEGY_EVALUATOR_UNSUPPORTED'),
+                          ({'universe_rule_sha256': 'e'*63}, 'STRATEGY_DIGEST_INVALID')):
+        rejected(lambda changes=changes: register_protocol(replace(u, **changes)), code)
+    rejected(lambda: register_protocol(replace(p, evaluator_revision=u.evaluator_revision)),
+             'STRATEGY_EVALUATOR_UNSUPPORTED')
+    body = json.loads(encoded)
+    del body['universe_rule_sha256']
+    rejected(lambda: parse_protocol(json.dumps(body)), 'STRATEGY_EVALUATOR_UNSUPPORTED')
+    body = json.loads(protocol_json(p))
+    body['universe_rule_sha256'] = None
+    rejected(lambda: parse_protocol(json.dumps(body)), 'STRATEGY_JSON_SCHEMA_INVALID')
+
+
+def test_fixed_evaluator_refuses_a_universe_protocol_and_capture_rules_use_its_selector():
+    from execution_launch.strategy import _rule_terms
+    p, bars, decisions, rules, _, _, now = fixture_capture()
+    u = universe_protocol(p, rules)
+    rejected(lambda: run_paper_validation(u, bars, decisions, rules, registry=register_protocol(u),
+                                          source_kind='synthetic', now=now), 'STRATEGY_EVALUATOR_UNSUPPORTED')
+    assert _rule_terms(rules, RULE) == u.rule_terms_digest != p.rule_terms_digest == _rule_terms(rules, None)
