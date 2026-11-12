@@ -150,8 +150,10 @@ def _rules(body):
 
 def _event_data(kind, data):
     pair = {'client_id', 'order_digest'}
+    # Spec section 10: a fixed session's row keeps the old key set; a universe session adds universe_batch_digest.
+    prepared = {f.name for f in fields(PreparedSession)} - {'universe_batch_digest'}
     shapes = {
-        'session_prepared': {f.name for f in fields(PreparedSession)},
+        'session_prepared': prepared,
         'risk_snapshot': {'policy_digest', 'day', 'high_watermark', 'day_start_equity', 'effective_floor',
                           'calculated_floor', 'daily_stopped', 'floor_relaxation_approved'},
         'kill': {'session_id', 'reason'}, 'halt': {'floor'},
@@ -170,10 +172,12 @@ def _event_data(kind, data):
                                      'required_records'},
         'continuous_guard_complete': {'transaction_id'},
     }
-    if type(data) is not dict or kind not in shapes or set(data) != shapes[kind]:
+    allowed = [shapes.get(kind)] + ([prepared | {'universe_batch_digest'}] if kind == 'session_prepared' else [])
+    if type(data) is not dict or kind not in shapes or set(data) not in allowed:
         raise ValueError('invalid lifecycle event fields')
     for key in ('order_digest', 'request_digest', 'permit_digest', 'fill_digest', 'fill_key', 'policy_digest',
-                'plan_hash','input_digest','rules_digest','code_hash','state_hash','seed_hex','selection_seed_hex','record_digest'):
+                'plan_hash','input_digest','rules_digest','code_hash','state_hash','seed_hex','selection_seed_hex','record_digest',
+                'universe_batch_digest'):
         if key in data and (type(data[key]) is not str or re.fullmatch('[0-9a-f]{64}', data[key]) is None):
             raise ValueError('invalid lifecycle digest')
 

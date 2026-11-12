@@ -33,6 +33,8 @@ class PreparedSession:
     prepared_at: datetime
     expires_at: datetime
     record_digest: str
+    # Spec section 10: None for a fixed session, and then left out of fields, digest(fields) and the journal row.
+    universe_batch_digest: str | None = None
 
 
 _PREPARED: dict[int, tuple[PreparedSession, str]] = {}
@@ -51,6 +53,12 @@ def _require(condition, code):
 
 def _aware(value):
     return type(value) is datetime and value.utcoffset() is not None
+
+
+def _record(prepared):
+    """vars(prepared) in its canonical encoding: universe_batch_digest only when a batch was bound."""
+    return {key: value for key, value in vars(prepared).items()
+            if key != "universe_batch_digest" or value is not None}
 
 
 
@@ -199,7 +207,8 @@ def verify_session(prepared, *, session_id: str, policy, instrument_rules, ctx, 
     registered = _PREPARED.get(id(prepared))
     if type(prepared) is not PreparedSession or registered is None or registered[0] is not prepared:
         raise ValueError("session preparation not issued in this process")
-    fields = {key: value for key, value in vars(prepared).items() if key != "record_digest"}
+    record = _record(prepared)
+    fields = {key: value for key, value in record.items() if key != "record_digest"}
     bound = {key: value for key, value in fields.items() if key != "session_id"}
     label, separator, suffix = prepared.session_id.rpartition("-")
     if (not separator or re.fullmatch(r"[A-Za-z][A-Za-z0-9_-]{0,31}", label) is None
@@ -228,5 +237,5 @@ def verify_session(prepared, *, session_id: str, policy, instrument_rules, ctx, 
         raise ValueError("owner session not signed and armed")
     found = [row for row in events if row["kind"] == "session_prepared"
              and row["data"].get("session_id") == session_id]
-    if len(found) != 1 or found[0]["data"] != plain(prepared):
+    if len(found) != 1 or found[0]["data"] != plain(record):
         raise ValueError("session preparation journal mismatch")
