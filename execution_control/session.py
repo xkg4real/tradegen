@@ -6,7 +6,7 @@ from datetime import datetime, time, timedelta
 from uuid import uuid4
 import re
 
-from core.compliance import model, owner
+from core.compliance import gate, model, owner
 from core.odds import models, plan as odds_plan, simulate
 from execution_control.capability import digest, plain
 from execution_control.model import rules_digest
@@ -167,7 +167,12 @@ def prepare_session(*, journal, session_id: str, selected_plan, inputs, position
 
     if ctx.session.armed or ctx.owner.armed_sessions:
         raise ValueError("prepare before owner session arming")
-    if universe_batch is not None:
+    if universe_batch is None:
+        # Spec section 9: an Upbit coin no signed map lists (gate's derived coin) trades only through a batch.
+        venue, _ = odds_plan.instrument(selected_plan, ctx)
+        _require(gate._derived(ctx.active, venue, selected_plan.leg.symbol) is None,
+                 "SESSION_UNIVERSE_BATCH_REQUIRED")
+    else:
         universe = ctx.universe
         _require(universe is not None
                  and (universe_batch.code_hash, universe_batch.state_hash, universe_batch.owner_head,

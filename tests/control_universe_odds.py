@@ -10,7 +10,9 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from core.compliance import model as M
+import yaml
+
+from core.compliance import model as M, rules
 from core.odds import plan as odds_plan
 from execution_control import session as S, universe_odds as U
 from execution_control.capability import digest, plain
@@ -45,6 +47,18 @@ def universe_env(eligible=((BTC, D('900000000000')),)):
         env.bars = {market: coin_bars(market) for market, _ in eligible}
         with universe_context(universe=lambda ctx: env.universe):
             yield env
+
+
+@contextmanager
+def ruled_env(eligible):
+    """universe_env under a test-signed venues file whose upbit entry carries PR 3's fixture universe_rule, and
+    env.universe built under that rule's sha256: a coin no signed map lists then resolves as a derived instrument."""
+    with universe_env(eligible) as env:
+        doc = yaml.safe_load(OF.ODDS_VENUES)
+        doc['venues']['upbit'] |= yaml.safe_load(F._UNIVERSE_RULE_YAML)
+        F.approve(env.home, env.key, 'venues', OF._dump(doc))
+        env.universe = replace(env.universe, rule_sha256=rules.universe_rule_sha256(F.universe_rule()))
+        yield env
 
 
 def batch(env, n=1):
@@ -317,3 +331,17 @@ def test_universe_session_symbol_needs_a_batch_coin_eligible_in_the_same_snapsho
         assert not _symbol_ok(unregistered, order(BTC), 'BTC', current)
         fixed = SimpleNamespace(universe_batch_digest=None, symbol='BTC')
         assert _symbol_ok(fixed, order(BTC), 'BTC', None) and not _symbol_ok(fixed, order(ETH), 'ETH', None)
+
+
+def test_a_fixed_preparation_refuses_a_coin_only_the_universe_rule_resolves():
+    """Spec section 9 rules out an ad hoc set: under a signed universe_rule with a snapshot in force, an Upbit coin
+    that no signed map lists resolves as a derived instrument, so preparing it without a batch refuses. The mapped
+    KRW-BTC fixed session prepares as before."""
+    with ruled_env(((BTC, D('900000000000')), (ETH, D('500000000000')))) as env:
+        plan = selected(env.now)[0]
+        eth = replace(plan, leg=replace(plan.leg, symbol='ETH'))
+        _fixed_refusal(lambda: prepare(env, None, selected_plan=eth), 'SESSION_UNIVERSE_BATCH_REQUIRED')
+        assert prepared_rows(env) == []
+        fixed = prepare(env, None)
+        assert (fixed.symbol, fixed.universe_batch_digest) == ('BTC', None)
+        assert prepared_rows(env) == [plain(S._record(fixed))]          # the fixed row keeps its old key set
