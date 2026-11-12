@@ -129,9 +129,11 @@ def test_rule_2_a_held_coin_without_a_return_is_kept():
 
 
 def test_rule_3_best_is_the_largest_return_among_unflagged_top_n_coins_ties_by_symbol():
-    flags = {"KRW-AAA": "caution", "KRW-BBB": "unflagged", "KRW-CCC": "unflagged"}
+    flags = {"KRW-AAA": "caution", "KRW-BBB": "unflagged", "KRW-CCC": "unflagged", "KRW-ZZZ": "unflagged"}
+    lag = ChooserSlot(top_n=COINS, flags=LAG.flags, prices={**LAG.prices, "KRW-ZZZ": D(100)})
     now = at({"KRW-AAA": "200", "KRW-BBB": "110", "KRW-CCC": "110", "KRW-ZZZ": "300"}, flags)
-    assert decide(CASH_STATE, now)[0] == "KRW-BBB"  # AAA is caution, ZZZ is outside the top-N, BBB ties CCC
+    # ZZZ is unflagged with the largest defined return, so only the top-N filter keeps it out
+    assert decide(CASH_STATE, now, lag)[0] == "KRW-BBB"  # AAA is caution, ZZZ is outside the top-N, BBB ties CCC
     now = at({"KRW-AAA": "120", "KRW-CCC": "110"}, {**flags, "KRW-AAA": "unknown"})
     assert decide(CASH_STATE, now)[0] == "KRW-CCC"  # unknown is not unflagged; BBB has no price
 
