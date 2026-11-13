@@ -6,14 +6,14 @@ task: upbit-universe
 cycle: 2026-11-10
 done_ids: workflow-resume-1113, universe-pr0, universe-pr1, universe-pr2, universe-pr3, universe-pr4b, universe-pr4a
 next_ids: universe-pr4c, universe-pr4d, universe-pr4e, universe-pr5, universe-pr5-clock-notify, universe-code-approve, policy-loss-budget-plan-1, rules-review-1202, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, launch-private-capture-setup-1, e1-14-owner-setup, launch-prospective-study, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1
-updated_at: 2026-11-13T16:52:19+09:00
+updated_at: 2026-11-13T17:05:14+09:00
 stale_after_hours: 3
 waiting_on: none
 work_branch: gpt/universe-pr4c-terms
-work_commit: 971a5389208c85d34fdd6479c96580e9b8fcc68d
-runtime_tested_commit: 56a0b7f (PR 4a head, 전체 실행)
+work_commit: 8137c4712b164c120ec8063e50dc3e05b741c23f
+runtime_tested_commit: 8137c47 (81 guard checks PASS; full regression running)
 uncommitted_changes: no
-pr: https://github.com/xkg4real/tradegen/pull/32 (merged)
+pr: https://github.com/xkg4real/tradegen/pull/33 (draft; not merged)
 usage_weekly_pct: unknown
 usage_source: unavailable
 handoff_threshold_pct: 95
@@ -165,3 +165,7 @@ OPENBLAS_NUM_THREADS=1 TRADEGEN_RUNS_DIR=<scratch> python -X utf8 -m tests.run_a
 ### 워크플로우 완료와 PR 4c 구현 중
 
 작업흐름은 context/upbit-universe/gpt-workflow-2026-11-13.md와 기존 Notion 두 페이지에 기록했습니다. PR4c의 Tasks1~9를 파일별로 병렬 구현하고 있으며, 전체 검증은 소스를 고정한 뒤 수행합니다. 구현 중 서명 대상 코드 변경으로 생긴 검사 오류는 최종 검증으로 세지 않습니다. Task9 불완전 플래그 자료의 경보 해제, Task8 타시장 0평가 및 legacy snapshot 직렬화 회귀, 잘못된 시장목록의 상장폐지 오판을 기존 계획의 요구사항에 맞게 보완하고 있습니다.
+
+### PR 4c 코드 체크포인트
+
+8137c47을 push하고 draft PR33을 열었습니다. Tasks1~9의 구현·독립 검토가 끝났으며, 고정 소스의 경계 검사81개 PASS/0FAIL/0NOT_RUN입니다. 전체 회귀는 진행 중이며 아직 병합하지 않았습니다. context/upbit-universe/gpt-20261113/에 Task별 집중 검사와 검토 기록을 저장했습니다. 과거 병렬 수정 중 오류는 진단 기록이며 최종 통과로 표시하지 않습니다. 추가 보완: 무한대 등 비정상 보유 수량이 상장폐지 0평가 경로로 숨겨지지 않도록 거부하고16개 평가검사를 통과했습니다.
