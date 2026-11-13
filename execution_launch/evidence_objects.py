@@ -14,8 +14,10 @@ crash leaving a temporary file blocks further staging; reading an unrelated
 authenticated reference remains possible. A referenced two-link final file is
 refused. Missing, changed, partial or over-limit objects never become a replacement payload.
 
-Limits bound each payload, not the total store/window. Repeated staging needs
-the integrating caller's finite window byte/object quota before operational use.
+ObjectLimits bound each payload. Optional StoreBudget bounds physical data and
+lock-file counts under the same lock as staging; production history writers
+must supply their one window's authenticated budget on every call. This is not
+a sandbox against unrelated code that writes directly or omits that budget.
 
 The explicit root must have an existing real parent. Path and opened-file
 identity checks reject links/reparse points and unexpected replacement; this is
@@ -47,6 +49,8 @@ _HARD_CHUNK_BYTES = 1024 * 1024
 _HARD_PAYLOAD_BYTES = 64 * 1024 * 1024
 _HARD_CHUNKS = 4096
 _HARD_MANIFEST_BYTES = 1024 * 1024
+_HARD_STORE_BYTES = 1024 ** 4
+_HARD_STORE_OBJECTS = 1000000
 _DOMAIN = b"TRADEGEN-EVIDENCE-OBJECTS-v1\x00"
 _HASH = re.compile(r"[0-9a-f]{64}")
 _PROCESS_LOCK = Lock()
@@ -142,6 +146,158 @@ class PayloadReference:
                  and _hash(self.manifest_sha256) and _hash(self.payload_sha256) and _hash(self.policy_sha256)
                  and _integer(self.manifest_bytes, _HARD_MANIFEST_BYTES)
                  and _integer(self.payload_bytes, _HARD_PAYLOAD_BYTES), "EVIDENCE_OBJECT_REFERENCE_INVALID")
+
+
+@dataclass(frozen=True, kw_only=True)
+class ObjectDescriptor:
+    kind: str
+    sha256: str
+    byte_count: int
+
+    def __post_init__(self):
+        _require(self.kind in ("chunk", "manifest") and _hash(self.sha256)
+                 and _integer(self.byte_count, max(_HARD_CHUNK_BYTES, _HARD_MANIFEST_BYTES)),
+                 "EVIDENCE_OBJECT_INPUT_INVALID")
+
+
+@dataclass(frozen=True, kw_only=True)
+class PayloadPreview:
+    reference: PayloadReference
+    objects: tuple[ObjectDescriptor, ...]
+
+    def __post_init__(self):
+        _require(type(self.reference) is PayloadReference and type(self.objects) is tuple
+                 and 2 <= len(self.objects) <= _HARD_CHUNKS + 1
+                 and all(type(item) is ObjectDescriptor for item in self.objects), "EVIDENCE_OBJECT_INPUT_INVALID")
+        self.reference.__post_init__()
+        for item in self.objects:
+            item.__post_init__()
+        _require(len({item.sha256 for item in self.objects}) == len(self.objects)
+                 and self.objects[-1].kind == "manifest"
+                 and self.objects[-1].sha256 == self.reference.manifest_sha256
+                 and self.objects[-1].byte_count == self.reference.manifest_bytes
+                 and all(item.kind == "chunk" for item in self.objects[:-1]), "EVIDENCE_OBJECT_INPUT_INVALID")
+
+
+@dataclass(frozen=True, kw_only=True)
+class StoreBudget:
+    """Finite physical-file budget, including orphans, pending and objects.lock.
+
+    Directory allocation/metadata and volume free space are not inferred from
+    logical st_size totals. Temporary and final copies both count at their peak.
+    """
+    max_bytes: int
+    max_objects: int
+
+    def __post_init__(self):
+        _require(_integer(self.max_bytes, _HARD_STORE_BYTES) and _integer(self.max_objects, _HARD_STORE_OBJECTS),
+                 "EVIDENCE_OBJECT_INPUT_INVALID")
+
+
+@dataclass(frozen=True, kw_only=True)
+class InventoryEntry:
+    name: str
+    byte_count: int
+
+    def __post_init__(self):
+        _require(type(self.name) is str and (self.name in ("objects.lock", "objects/pending.blob")
+                 or re.fullmatch(r"objects/[0-9a-f]{64}\.blob", self.name) is not None)
+                 and type(self.byte_count) is int and 0 <= self.byte_count <= _HARD_MANIFEST_BYTES,
+                 "EVIDENCE_OBJECT_INPUT_INVALID")
+
+
+@dataclass(frozen=True, kw_only=True)
+class StoreInventory:
+    entries: tuple[InventoryEntry, ...]
+
+    def __post_init__(self):
+        _require(type(self.entries) is tuple and 1 <= len(self.entries) <= _HARD_STORE_OBJECTS
+                 and all(type(item) is InventoryEntry for item in self.entries)
+                 and len({item.name for item in self.entries}) == len(self.entries)
+                 and any(item.name == "objects.lock" and item.byte_count <= 1 for item in self.entries),
+                 "EVIDENCE_OBJECT_INPUT_INVALID")
+        for item in self.entries:
+            item.__post_init__()
+
+    @property
+    def byte_count(self):
+        return sum(item.byte_count for item in self.entries)
+
+    @property
+    def object_count(self):
+        return len(self.entries)
+
+    @property
+    def pending(self):
+        return any(item.name == "objects/pending.blob" for item in self.entries)
+
+
+@dataclass(frozen=True, kw_only=True)
+class StorageAdmission:
+    final_bytes: int
+    peak_bytes: int
+    final_objects: int
+    peak_objects: int
+
+
+def admit_store_budget(preview: PayloadPreview, inventory: StoreInventory, budget: StoreBudget) -> StorageAdmission:
+    """Pure peak prediction; actual inventory and reuse validation occur under the writer lock."""
+    _require(type(preview) is PayloadPreview and type(inventory) is StoreInventory and type(budget) is StoreBudget,
+             "EVIDENCE_OBJECT_INPUT_INVALID")
+    preview.__post_init__(); inventory.__post_init__(); budget.__post_init__()
+    _require(not inventory.pending, "EVIDENCE_OBJECT_INTERRUPTED_WRITE")
+    sizes = {item.name: item.byte_count for item in inventory.entries}
+    total, count = inventory.byte_count, inventory.object_count
+    peak_bytes, peak_count = total, count
+    for item in preview.objects:
+        name = "objects/" + item.sha256 + ".blob"
+        if name in sizes:
+            _require(sizes[name] == item.byte_count, "EVIDENCE_OBJECT_HASH_MISMATCH")
+        else:
+            # The temporary verified file and exclusive final copy coexist.
+            peak_bytes = max(peak_bytes, total + 2 * item.byte_count)
+            peak_count = max(peak_count, count + 2)
+            total += item.byte_count
+            count += 1
+            sizes[name] = item.byte_count
+    _require(peak_bytes <= budget.max_bytes and peak_count <= budget.max_objects, "EVIDENCE_OBJECT_LIMIT_EXCEEDED")
+    return StorageAdmission(final_bytes=total, peak_bytes=peak_bytes, final_objects=count, peak_objects=peak_count)
+
+
+def _prepare_payload(payload, limits):
+    _require(type(limits) is ObjectLimits, "EVIDENCE_OBJECT_INPUT_INVALID")
+    limits.__post_init__()
+    _require(type(payload) is bytes and len(payload) > 0, "EVIDENCE_OBJECT_INPUT_INVALID")
+    size = len(payload)
+    count = (size + limits.chunk_bytes - 1) // limits.chunk_bytes
+    _require(size <= limits.max_payload_bytes and count <= limits.max_chunks, "EVIDENCE_OBJECT_LIMIT_EXCEEDED")
+    chunks = tuple(payload[i:i + limits.chunk_bytes] for i in range(0, size, limits.chunk_bytes))
+    manifest = {"schema": SCHEMA, "policy_sha256": limits.policy_sha256,
+                "payload_sha256": hashlib.sha256(payload).hexdigest(), "payload_bytes": size,
+                "chunk_bytes": limits.chunk_bytes,
+                "chunks": [{"index": i, "bytes": len(chunk), "sha256": _object_digest("chunk", chunk)}
+                           for i, chunk in enumerate(chunks)]}
+    raw = _canonical(manifest)
+    _require(len(raw) <= limits.max_manifest_bytes, "EVIDENCE_OBJECT_LIMIT_EXCEEDED")
+    reference = PayloadReference(schema=SCHEMA, manifest_sha256=_object_digest("manifest", raw),
+                                 manifest_bytes=len(raw), payload_sha256=manifest["payload_sha256"],
+                                 payload_bytes=size, policy_sha256=limits.policy_sha256)
+    return reference, raw, chunks
+
+
+def _preview(reference, manifest, chunks):
+    ordered = {}
+    for kind, raw in (("chunk", chunk) for chunk in chunks):
+        item = ObjectDescriptor(kind=kind, sha256=_object_digest(kind, raw), byte_count=len(raw))
+        ordered.setdefault(item.sha256, item)
+    item = ObjectDescriptor(kind="manifest", sha256=reference.manifest_sha256, byte_count=len(manifest))
+    _require(item.sha256 not in ordered, "EVIDENCE_OBJECT_HASH_MISMATCH")
+    return PayloadPreview(reference=reference, objects=tuple(ordered.values()) + (item,))
+
+
+def preview_payload(payload: bytes, *, limits: ObjectLimits) -> PayloadPreview:
+    """Pure deterministic reference and ordered unique object sizes; no storage access."""
+    return _preview(*_prepare_payload(payload, limits))
 
 
 def encode_reference(reference: PayloadReference) -> bytes:
@@ -244,7 +400,7 @@ class EvidenceObjectStore:
             os.close(descriptor)
 
     @contextmanager
-    def _locked(self, *, create):
+    def _locked(self, *, create, writing=False):
         with _PROCESS_LOCK:
             try:
                 self._paths()
@@ -285,7 +441,7 @@ class EvidenceObjectStore:
                         # A pending new publication blocks writes, not unrelated
                         # authenticated references. Reads still validate the entire
                         # referenced graph and reject any referenced two-link file.
-                        if create:
+                        if create or writing:
                             try:
                                 os.lstat(self._objects / "pending.blob")
                             except FileNotFoundError:
@@ -383,23 +539,69 @@ class EvidenceObjectStore:
                  and reference.manifest_bytes <= self.limits.max_manifest_bytes, "EVIDENCE_OBJECT_LIMIT_EXCEEDED")
 
     def _prepare(self, payload):
-        _require(type(payload) is bytes and len(payload) > 0, "EVIDENCE_OBJECT_INPUT_INVALID")
-        size = len(payload)
-        count = (size + self.limits.chunk_bytes - 1) // self.limits.chunk_bytes
-        _require(size <= self.limits.max_payload_bytes and count <= self.limits.max_chunks,
-                 "EVIDENCE_OBJECT_LIMIT_EXCEEDED")
-        chunks = tuple(payload[i:i + self.limits.chunk_bytes] for i in range(0, size, self.limits.chunk_bytes))
-        manifest = {"schema": SCHEMA, "policy_sha256": self.limits.policy_sha256,
-                    "payload_sha256": hashlib.sha256(payload).hexdigest(), "payload_bytes": size,
-                    "chunk_bytes": self.limits.chunk_bytes,
-                    "chunks": [{"index": i, "bytes": len(chunk), "sha256": _object_digest("chunk", chunk)}
-                               for i, chunk in enumerate(chunks)]}
-        raw = _canonical(manifest)
-        _require(len(raw) <= self.limits.max_manifest_bytes, "EVIDENCE_OBJECT_LIMIT_EXCEEDED")
-        reference = PayloadReference(schema=SCHEMA, manifest_sha256=_object_digest("manifest", raw),
-                                     manifest_bytes=len(raw), payload_sha256=manifest["payload_sha256"],
-                                     payload_bytes=size, policy_sha256=self.limits.policy_sha256)
-        return reference, raw, chunks
+        return _prepare_payload(payload, self.limits)
+
+    def preview(self, payload: bytes) -> PayloadPreview:
+        """Pure, immutable reference and exact unique publication sizes; no I/O."""
+        return _preview(*self._prepare(payload))
+
+    def initialize(self) -> None:
+        """Explicitly create empty infrastructure before binding a history window.
+
+        No object, reference, journal or head is created. Interrupted publication
+        is not repaired. Budgeted per-slot stage never initializes directories.
+        """
+        with self._locked(create=True):
+            pass
+
+    def _inventory_locked(self, budget):
+        _require(type(budget) is StoreBudget, "EVIDENCE_OBJECT_INPUT_INVALID")
+        budget.__post_init__()
+        # This root belongs only to this component; directories and unknown
+        # filenames are not silently omitted from a purported usage snapshot.
+        with os.scandir(self.root) as entries:
+            seen = set()
+            visited = 0
+            for entry in entries:
+                visited += 1
+                _require(visited <= 2 and entry.name not in seen and entry.name in ("objects", "objects.lock"),
+                         "EVIDENCE_OBJECT_PATH_REFUSED")
+                seen.add(entry.name)
+        _require(seen == {"objects", "objects.lock"}, "EVIDENCE_OBJECT_PATH_REFUSED")
+        lock = self._regular(self.root / "objects.lock", 1)
+        result = [InventoryEntry(name="objects.lock", byte_count=lock.st_size)]
+        total = lock.st_size
+        _require(total <= budget.max_bytes, "EVIDENCE_OBJECT_LIMIT_EXCEEDED")
+        with os.scandir(self._objects) as entries:
+            for entry in entries:
+                # At most max_objects + 1 directory entries are visited. No
+                # unbounded walk, or truncation presented as complete inventory.
+                _require(len(result) < budget.max_objects, "EVIDENCE_OBJECT_LIMIT_EXCEEDED")
+                _require(entry.name == "pending.blob" or re.fullmatch(r"[0-9a-f]{64}\.blob", entry.name) is not None,
+                         "EVIDENCE_OBJECT_PATH_REFUSED")
+                info = entry.stat(follow_symlinks=False)
+                _file_info(info, max(_HARD_CHUNK_BYTES, _HARD_MANIFEST_BYTES))
+                total += info.st_size
+                _require(total <= budget.max_bytes, "EVIDENCE_OBJECT_LIMIT_EXCEEDED")
+                result.append(InventoryEntry(name="objects/" + entry.name, byte_count=info.st_size))
+        return StoreInventory(entries=tuple(sorted(result, key=lambda item: item.name)))
+
+    def inventory(self, *, budget: StoreBudget) -> StoreInventory:
+        """Bounded actual-file inventory, including forensic pending/orphan files."""
+        _require(type(budget) is StoreBudget, "EVIDENCE_OBJECT_INPUT_INVALID")
+        with self._locked(create=False):
+            return self._inventory_locked(budget)
+
+    def _admit_locked(self, preview, budget):
+        inventory = self._inventory_locked(budget)
+        admission = admit_store_budget(preview, inventory, budget)
+        names = {item.name for item in inventory.entries}
+        # A matching filename and size do not establish valid reused evidence.
+        # Validate every reused planned object before publishing any new one.
+        for item in preview.objects:
+            if "objects/" + item.sha256 + ".blob" in names:
+                self._read_object(item.kind, item.sha256, item.byte_count)
+        return admission
 
     def _read(self, reference):
         self._reference(reference)
@@ -427,10 +629,28 @@ class EvidenceObjectStore:
                  "EVIDENCE_OBJECT_HASH_MISMATCH")
         return payload
 
-    def stage(self, payload: bytes) -> PayloadReference:
-        """Validate admission before I/O, then publish objects; never commit a history slot."""
+    def stage(self, payload: bytes, *, budget: StoreBudget | None = None) -> PayloadReference:
+        """Publish complete objects; never commit a history slot.
+
+        Budgeted history staging requires initialize() to have completed before
+        window binding. Per-slot quota admission and publication share one lock,
+        and refusal does not initialize or change the directory tree. The legacy
+        no-budget API remains for standalone callers/tests, not production v3.
+        """
         reference, manifest, chunks = self._prepare(payload)
-        with self._locked(create=True):
+        preview = _preview(reference, manifest, chunks)
+        if budget is not None:
+            _require(type(budget) is StoreBudget, "EVIDENCE_OBJECT_INPUT_INVALID")
+            budget.__post_init__()
+            self._paths()
+            if not self.root.exists():
+                # Distinguish impossible admission without creating anything.
+                empty = StoreInventory(entries=(InventoryEntry(name="objects.lock", byte_count=0),))
+                admit_store_budget(preview, empty, budget)
+                raise EvidenceObjectError("EVIDENCE_OBJECT_MISSING")
+        with self._locked(create=budget is None, writing=True):
+            if budget is not None:
+                self._admit_locked(preview, budget)
             for chunk in chunks:
                 self._publish("chunk", chunk)
             self._publish("manifest", manifest)

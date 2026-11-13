@@ -519,3 +519,73 @@ def test_prepare_never_issues_after_append_or_transaction_exit_expires_account_o
                 refused(lambda: S.verify_session(reconstructed, session_id=reconstructed.session_id,
                     policy=env.policy, instrument_rules=env.rules, ctx=None, now=env.fake.now,
                     order=env.order, events=rows), 'session preparation not issued in this process')
+
+
+def history_storage_fixture():
+    """Synthetic explicit policy, never an operational storage default."""
+    from execution_launch.evidence_objects import ObjectLimits
+    from execution_launch.history_storage import HistoryStoragePolicy, policy_digest
+    from tests.launch_universe_history import universe_env
+    env = universe_env()
+    policy = HistoryStoragePolicy(schema_version=1, history_version=3,
+        object_limits=ObjectLimits(chunk_bytes=32768, max_payload_bytes=2097152,
+                                   max_chunks=64, max_manifest_bytes=65536),
+        max_window_bytes=134217728, max_window_objects=4096, max_journal_bytes=16777216)
+    env.protocol = replace(env.protocol, history_storage_sha256=policy_digest(policy))
+    return env, policy
+
+
+def test_universe_history_setup_and_export_share_explicit_frozen_policy():
+    from execution_launch import coordinator as C
+    from execution_launch.history_storage import policy_bytes, policy_digest
+    env, policy = history_storage_fixture()
+    now = env.window.start - timedelta(minutes=1)
+    with F.temp_home() as home, head_root() as hroot:
+        assert O.setup_history(window=env.window, protocol=env.protocol, storage_policy=policy,
+            state_directory=home, head_directory=hroot, now=now)["initialized"]
+        files = {"profile.json": json.dumps(profile_body(env.profile)),
+                 "program.json": program_json(env.program), "protocol.json": protocol_json(env.protocol),
+                 "history-storage.json": policy_bytes(policy).decode("ascii")}
+        with private_inputs(files) as paths:
+            args = dict(profile_path=paths["profile.json"], program_path=paths["program.json"],
+                protocol_path=paths["protocol.json"], history_storage_path=paths["history-storage.json"],
+                window=env.window, clock=lambda: now, head_root=hroot)
+            with patch.object(C, "read_file", wraps=C.read_file) as reads:
+                exported = compose_driver(**args)
+            assert sum(call.args[0] == paths["history-storage.json"] for call in reads.call_args_list) == 1
+            raw = history_journal(home, env.window).read_bytes()
+            row = json.loads(raw.splitlines()[0])
+            assert row["data"]["history_version"] == 3
+            assert row["data"]["history_storage"] == json.loads(policy_bytes(policy))
+            assert exported.protocol.history_storage_sha256 == policy_digest(policy)
+            again = compose_driver(**args)
+            assert again.identity == exported.identity and history_journal(home, env.window).read_bytes() == raw
+            refused(lambda: O.setup_history(window=env.window, protocol=env.protocol, storage_policy=policy,
+                state_directory=home, head_directory=hroot, now=now), "OWNER_EXISTING_HEAD_REFUSED")
+
+
+def test_history_setup_policy_pairs_and_digest_refuse_before_head_creation():
+    env, policy = history_storage_fixture()
+    with F.temp_home() as home, head_root() as hroot:
+        kwargs = dict(window=env.window, state_directory=home, head_directory=hroot,
+                      now=env.window.start - timedelta(minutes=1))
+        refused(lambda: O.setup_history(**kwargs, protocol=env.protocol), "OWNER_HISTORY_POLICY_PROTOCOL_REQUIRED")
+        refused(lambda: O.setup_history(**kwargs, storage_policy=policy), "OWNER_HISTORY_POLICY_PROTOCOL_REQUIRED")
+        refused(lambda: O.setup_history(**kwargs, protocol=env.protocol,
+            storage_policy=replace(policy, max_window_bytes=policy.max_window_bytes + 1)),
+            "OWNER_HISTORY_STORAGE_MISMATCH")
+        refused(lambda: O.setup_history(**kwargs, protocol=LD.fixture().protocol, storage_policy=policy),
+            "OWNER_HISTORY_STORAGE_MISMATCH")
+        assert list(home.iterdir()) == [] and list(hroot.iterdir()) == []
+
+
+def test_history_cli_requires_paired_protocol_policy_and_has_no_implicit_defaults():
+    base = ["setup-history", "--window", "window.json", "--state-root", "/private-state", "--head-root", "/private-head"]
+    assert O._arguments(base)[1].keys() == {"window", "state-root", "head-root"}
+    for extra in (["--protocol", "protocol.json"], ["--history-storage", "storage.json"]):
+        refused(lambda: O._arguments(base + extra), "OWNER_HISTORY_POLICY_PROTOCOL_REQUIRED")
+    command, values = O._arguments(base + ["--protocol", "protocol.json", "--history-storage", "storage.json"])
+    assert command == "setup-history" and values["protocol"] == "protocol.json"
+    assert values["history-storage"] == "storage.json"
+    duplicate = base + ["--protocol", "protocol.json", "--history-storage", "a.json", "--history-storage", "b.json"]
+    refused(lambda: O._arguments(duplicate), "OWNER_ARGUMENTS_INVALID")

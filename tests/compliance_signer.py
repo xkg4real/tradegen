@@ -1241,6 +1241,24 @@ def test_detached_review_schema_and_signing_bytes_match_runtime_without_repo_imp
     _raises(lambda:signer._rr_parse_review_request(json.dumps(changed)),ValueError)
 
 
+def test_detached_review_source_closure_covers_each_lossless_history_dependency():
+    from execution_launch.driver import _SOURCE_FILES, describe_fixed_driver
+    from tests.launch_driver import fixture
+    identity = describe_fixed_driver(fixture().driver)
+    assert signer._REVIEW_SOURCES == _SOURCE_FILES
+    assert signer._review_source_hash(ROOT) == identity.deployment_code_sha256
+    original_read = signer._review_read
+    for name in ("execution_launch/evidence_objects.py", "execution_launch/history_storage.py",
+                 "execution_launch/live_history.py", "execution_launch/baseline_head.py",
+                 "execution_control/store.py", "core/isolation.py"):
+        target = ROOT / name
+        def altered(path, limit, target=target):
+            raw = original_read(path, limit)
+            return raw + b"\n# synthetic source mismatch\n" if path == target else raw
+        with _patched(signer, "_review_read", altered):
+            assert signer._review_source_hash(ROOT) != identity.deployment_code_sha256
+
+
 def test_detached_review_reader_refuses_links_oversize_directories_and_fifo_before_open():
     import tempfile
     with tempfile.TemporaryDirectory(dir=_home()) as folder:

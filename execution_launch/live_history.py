@@ -28,8 +28,10 @@ trade coin the coordinator chose and its tick, that coin's book receipt or ``"un
 coin, every holding, the slot's universe record (snapshot in force, flag exceptions and defined ticker prices with
 the raw-body sha256s, allow-list, buy-block reasons, events) and the chooser's decision. The section 14 chooser runs
 here at recording and again at replay, over the last L+1 price vectors, h and the hold count, and replay requires
-the stored decision to equal the derived one. A row over the cap drops the flag and ticker parts and allows no
-buys. Retained fields still face the existing storage cap; the unconditional spec size guarantee remains unresolved.
+the stored decision to equal the derived one. New universe windows require an explicit protocol-bound storage
+policy and history data v3: a small journal reference names the complete lossless contextual payload. Existing v2
+bytes remain readable for auditing; their old approvals do not authorize new source. Valid flags, tickers, quotes
+and holdings are never discarded for size. Quota or storage failures refuse before a new slot is committed.
 """
 from __future__ import annotations
 
@@ -40,6 +42,7 @@ from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from fractions import Fraction
 import hashlib
+import json
 import os
 from pathlib import Path
 import stat
@@ -60,6 +63,9 @@ from execution_launch.baseline_head import BaselineHead, BaselineHeadError
 from execution_launch.driver import (AccountAnchor, ChooserInputs, DeploymentWindow, FixedDriverIdentity,
                                      HistoryFrame, HistoryReceipt, UniverseBar, chooser_decision,
                                      describe_fixed_driver, fixed_history_dependencies, history_frame_digest)
+from execution_launch.evidence_objects import EvidenceObjectError, EvidenceObjectStore, decode_reference
+from execution_launch.history_storage import (HistoryStorageError, HistoryStoragePolicy, SlotContext,
+    admit_journal_row, decode_slot_payload, encode_slot_payload, parse_policy, policy_bytes, policy_digest)
 from execution_launch.paper_capture import sample_prefetched_book
 from execution_launch.profile import LaunchProfile, profile_contract_digest
 from execution_launch.program import ChooserState, ProgramSpec, program_digest, target_fraction
@@ -69,7 +75,7 @@ from execution_launch.strategy import ForwardProtocol, PaperBar, PaperDecision, 
 STORE_DIRECTORY = "execution-history"
 EXECUTION_WINDOW = timedelta(seconds=10)     # the driver's slot window and the quote freshness bound
 ACCOUNT_MAX_AGE = timedelta(seconds=30)      # the driver's account-anchor age bound
-SIZE_FALLBACK = "HISTORY_ROW_SIZE_FALLBACK"  # buy-block reason of a row whose flag and ticker parts hit the cap
+SIZE_FALLBACK = "HISTORY_ROW_SIZE_FALLBACK"  # historical v2 reason only; never produced by the v3 writer
 PRICE_WINDOW_MS = 60_000                     # a price is defined only for a trade within 60 s of the slot (section 14)
 MAX_PRICE_TEXT = 16                          # section 14 price encoding: a decimal string of at most 16 characters
 _LOCK = threading.Lock()                     # own lock: the head takes its own, the chain reads without one
@@ -82,6 +88,9 @@ _START = ChooserState(held=None, hold_count=0)           # a window's chooser st
 _SLOT_V2_KEYS = frozenset({"index", "trade_symbol", "tick_size", "receipt", "anchor", "holdings", "universe",
                            "decision"})
 _RECORD_KEYS = frozenset({"snapshot", "flags", "tickers", "allow", "reasons", "events"})
+_BOUND_V3_KEYS = frozenset({"identity", "history_version", "history_storage"})
+_SLOT_V3_KEYS = frozenset({"history_version", "index", "payload_ref"})
+OBJECT_DIRECTORY = "payload-objects"
 
 
 class LiveHistoryError(ValueError):
@@ -269,14 +278,101 @@ def _tail_row(journal):
         raise LiveHistoryError("HISTORY_CHAIN_TRANSITION_UNVERIFIED") from None
 
 
+def _validate_slot_structure(data, index, at):
+    """Independent v3 head boundary. Profile-dependent dust and chooser math remain replay's job."""
+    from execution_accounts.quotes import parse_orderbook
+    _require(type(data) is dict and set(data) == _SLOT_V2_KEYS
+             and type(data["index"]) is int and data["index"] == index
+             and type(data["trade_symbol"]) is str
+             and UNIVERSE_MARKET.fullmatch(data["trade_symbol"]) is not None,
+             "HISTORY_STORE_RECORD_INVALID")
+    tick = _decimal(data["tick_size"])
+    _require(tick > 0 and _plain(tick) == data["tick_size"], "HISTORY_STORE_RECORD_INVALID")
+    anchor = _parse_anchor(data["anchor"])
+    _require(anchor.cash_quote >= 0 and anchor.units >= 0
+             and timedelta(0) <= at - anchor.account_asof <= ACCOUNT_MAX_AGE,
+             "HISTORY_STORE_RECORD_INVALID")
+    if data["receipt"] != "unavailable":
+        book = parse_orderbook(_parse_receipt(data["receipt"]), symbol=data["trade_symbol"], now=at)
+        _require((Fraction(book.bid) / Fraction(tick)).denominator == 1
+                 and (Fraction(book.ask) / Fraction(tick)).denominator == 1,
+                 "HISTORY_STORE_RECORD_INVALID")
+    holdings = data["holdings"]
+    _require(type(holdings) is list, "HISTORY_STORE_RECORD_INVALID")
+    for row in holdings:
+        _require(type(row) is list and len(row) == 6 and type(row[0]) is str
+                 and UNIVERSE_MARKET.fullmatch(row[0]) is not None and _valid_stamp(row[3])
+                 and type(row[4]) is bool and type(row[5]) is bool,
+                 "HISTORY_STORE_RECORD_INVALID")
+        units, price = _decimal(row[1]), _decimal(row[2])
+        _require(units >= 0 and price >= 0 and _plain(units) == row[1] and _plain(price) == row[2]
+                 and row[4] == (price == 0) and (price != 0 or row[5]),
+                 "HISTORY_STORE_RECORD_INVALID")
+    _require(holdings == sorted(holdings) and len({row[0] for row in holdings}) == len(holdings),
+             "HISTORY_STORE_RECORD_INVALID")
+    _parse_record(data["universe"])
+    choice = data["decision"]
+    if choice is not None:
+        _require(type(choice) is dict and set(choice) == {"coin", "target_fraction", "held", "hold_count"}
+                 and type(choice["hold_count"]) is int and choice["hold_count"] >= 0
+                 and all(choice[key] is None or (type(choice[key]) is str
+                         and UNIVERSE_MARKET.fullmatch(choice[key]) is not None) for key in ("coin", "held")),
+                 "HISTORY_STORE_RECORD_INVALID")
+        fraction = _decimal(choice["target_fraction"])
+        _require(0 <= fraction <= 1 and _plain(fraction) == choice["target_fraction"],
+                 "HISTORY_STORE_RECORD_INVALID")
+    return data
+
+
+def _v3_slot(root, window_sha, identity, policy, row):
+    """Resolve an authenticated reference against externally bound context, never context learned from a row."""
+    try:
+        data = row["data"]
+        _require(type(data) is dict and set(data) == _SLOT_V3_KEYS
+                 and type(data["history_version"]) is int and data["history_version"] == 3
+                 and type(data["index"]) is int and data["index"] == row["seq"] - 2
+                 and _valid_stamp(row["utc"]), "HISTORY_STORE_RECORD_INVALID")
+        reference = decode_reference(_canonical(data["payload_ref"]))
+        context = SlotContext(window_digest=window_sha, driver_identity_digest=digest(identity),
+                              index=data["index"], sampled_at=datetime.fromisoformat(row["utc"]))
+        objects = EvidenceObjectStore(root=root / STORE_DIRECTORY / window_sha / OBJECT_DIRECTORY,
+                                      limits=policy.object_limits)
+        slot = decode_slot_payload(objects.read(reference), context=context, policy=policy)
+        return _validate_slot_structure(slot, context.index, context.sampled_at)
+    except LiveHistoryError:
+        raise
+    except (EvidenceObjectError, HistoryStorageError, ValueError, TypeError, KeyError, OverflowError):
+        raise LiveHistoryError("HISTORY_STORE_RECORD_INVALID") from None
+
+
 class HistoryChain:
     """The journal as the chain behind its BaselineHead: GENESIS over an absent or empty journal at the reviewed
     initialization, the fsynced tail row (``prev_sha256 == old``, ``row_sha256 == new``) at every advance. It reads
     without the journal lock, because the recording instance holds that lock while the head advances."""
-    def __init__(self, *, root: Path, window: DeploymentWindow) -> None:
+    def __init__(self, *, root: Path, window: DeploymentWindow,
+                 storage_policy: HistoryStoragePolicy | None = None) -> None:
         self._digest = _window_digest(window)
-        self._root = root
+        self._root, self._window = root, window
+        self._storage_policy = storage_policy
+        self._identity, self._step = None, None
+        self._policy_sha = None
+        if storage_policy is not None:
+            try:
+                parse_policy(policy_bytes(storage_policy))
+                self._policy_sha = policy_digest(storage_policy)
+            except (HistoryStorageError, ValueError, TypeError):
+                raise LiveHistoryError("HISTORY_STORAGE_POLICY_INVALID") from None
         _checked(root, self._digest)
+
+    def bind_identity(self, identity: FixedDriverIdentity, *, bar_seconds: int) -> None:
+        """One-time external context from the issued driver's checked LiveHistory.bind, not from journal bytes."""
+        _require(type(identity) is FixedDriverIdentity and identity.deployment_window_digest == self._digest
+                 and type(bar_seconds) is int and 60 <= bar_seconds <= 86400,
+                 "HISTORY_DRIVER_BINDING_MISMATCH")
+        step = timedelta(seconds=bar_seconds)
+        _require(self._identity is None or (identity == self._identity and step == self._step),
+                 "HISTORY_IDENTITY_CHANGED")
+        self._identity, self._step = identity, step
 
     def _journal(self):
         return _checked(self._root, self._digest) / "history.jsonl"
@@ -293,6 +389,33 @@ class HistoryChain:
     def successor(self, old: str, new: str) -> int:
         row = _tail_row(self._journal())
         _require(row["prev_sha256"] == old and row["row_sha256"] == new, "HISTORY_CHAIN_TRANSITION_UNVERIFIED")
+        if self._storage_policy is not None:
+            _require(policy_digest(self._storage_policy) == self._policy_sha,
+                     "HISTORY_STORAGE_POLICY_MISMATCH")
+            _require(self._identity is not None and self._step is not None,
+                     "HISTORY_DRIVER_BINDING_MISMATCH")
+            _require(type(row["schema"]) is int and row["schema"] == SCHEMA and _valid_stamp(row["utc"]),
+                     "HISTORY_CHAIN_TRANSITION_UNVERIFIED")
+            data = row["data"]
+            if row["seq"] == 1:
+                _require(row["kind"] == "bound" and type(data) is dict and set(data) == _BOUND_V3_KEYS
+                         and type(data["history_version"]) is int and data["history_version"] == 3
+                         and datetime.fromisoformat(row["utc"]) < self._window.start
+                         and data["identity"] == asdict(self._identity)
+                         and parse_policy(_canonical(data["history_storage"])) == self._storage_policy,
+                         "HISTORY_CHAIN_TRANSITION_UNVERIFIED")
+            else:
+                _require(row["kind"] == "slot", "HISTORY_CHAIN_TRANSITION_UNVERIFIED")
+                slot = self._window.start + (row["seq"] - 2) * self._step
+                at = datetime.fromisoformat(row["utc"])
+                _require(slot <= self._window.end and slot <= at <= slot + EXECUTION_WINDOW,
+                         "HISTORY_CHAIN_TRANSITION_UNVERIFIED")
+                payload = _v3_slot(self._root, self._digest, self._identity, self._storage_policy, row)
+                _require((payload["decision"] is None) == (slot == self._window.end),
+                         "HISTORY_CHAIN_TRANSITION_UNVERIFIED")
+        else:
+            _require(type(row["data"]) is dict and "history_version" not in row["data"],
+                     "HISTORY_CHAIN_TRANSITION_UNVERIFIED")
         return row["seq"]
 
 
@@ -326,7 +449,8 @@ class LiveHistory:
     the journal (before the window starts, head at GENESIS) or replays it from the original bytes; every later
     operation re-runs the path checks and the head and size checks before trusting the durable record."""
     def __init__(self, program: ProgramSpec, protocol: ForwardProtocol, profile: LaunchProfile, *,
-                 window: DeploymentWindow, root: Path, clock: Callable[[], datetime], trusted_head) -> None:
+                 window: DeploymentWindow, root: Path, clock: Callable[[], datetime], trusted_head,
+                 storage_policy: HistoryStoragePolicy | None = None) -> None:
         _require(type(program) is ProgramSpec and type(protocol) is ForwardProtocol and type(profile) is LaunchProfile
                  and callable(clock) and type(trusted_head) is BaselineHead, "HISTORY_INPUT_REQUIRED")
         self._digest = _window_digest(window)
@@ -338,7 +462,23 @@ class LiveHistory:
         self._dir = _checked(root, self._digest)
         self._base = root
         self._program, self._protocol, self._profile, self._window = program, protocol, profile, window
-        self._universe = protocol.universe_rule_sha256 is not None   # a universe window records history row v2
+        self._universe = protocol.universe_rule_sha256 is not None
+        self._storage_policy = storage_policy
+        try:
+            _require((storage_policy is None) == (protocol.history_storage_sha256 is None),
+                     "HISTORY_STORAGE_POLICY_REQUIRED")
+            if storage_policy is not None:
+                _require(self._universe and policy_digest(storage_policy) == protocol.history_storage_sha256,
+                         "HISTORY_STORAGE_POLICY_MISMATCH")
+                chain = trusted_head._chain
+                _require(type(chain) is HistoryChain and chain._root == root and chain._digest == self._digest
+                         and chain._storage_policy == storage_policy, "HISTORY_DRIVER_BINDING_MISMATCH")
+        except LiveHistoryError:
+            raise
+        except (HistoryStorageError, ValueError, TypeError, AttributeError):
+            raise LiveHistoryError("HISTORY_STORAGE_POLICY_INVALID") from None
+        self._storage_policy_sha = protocol.history_storage_sha256
+        self._driver_identity = None
         self._clock, self._head_authority = clock, trusted_head
         self._identity, self._bound, self._failed = "", False, False
         self._slots, self._chain, self._marks = (), "", ()
@@ -371,7 +511,19 @@ class LiveHistory:
         except OSError:
             raise LiveHistoryError("HISTORY_STORE_IO_REFUSED") from None
 
+    def _check_storage_policy(self):
+        try:
+            _require((self._storage_policy is None) == (self._storage_policy_sha is None)
+                     and self._protocol.history_storage_sha256 == self._storage_policy_sha,
+                     "HISTORY_STORAGE_POLICY_MISMATCH")
+            if self._storage_policy is not None:
+                _require(policy_digest(self._storage_policy) == self._storage_policy_sha,
+                         "HISTORY_STORAGE_POLICY_MISMATCH")
+        except HistoryStorageError:
+            raise LiveHistoryError("HISTORY_STORAGE_POLICY_MISMATCH") from None
+
     def _ready(self):
+        self._check_storage_policy()
         _require(not self._failed, "HISTORY_RECONCILIATION_REQUIRED")
         _require(self._bound, "HISTORY_NOT_BOUND")
 
@@ -548,13 +700,48 @@ class LiveHistory:
 
     # -- durable record ----------------------------------------------------------------------------------------
 
+    def _object_store(self):
+        return EvidenceObjectStore(root=self._dir / OBJECT_DIRECTORY, limits=self._storage_policy.object_limits)
+
     def _append(self, kind, data, at, *, create=False):
+        self._check_storage_policy()
+        if create and self._storage_policy is not None:
+            # Refuse an impossible header before creating even the history lock/directory.
+            try:
+                preflight = _canonical(_row(self._seq + 1, self._head, kind, data, at)) + b"\n"
+                admit_journal_row(self._storage_policy, journal_bytes=self._size, next_row_bytes=len(preflight))
+            except HistoryStorageError:
+                raise LiveHistoryError("HISTORY_STORAGE_LIMIT_EXCEEDED") from None
         with self._locked(create=create):
             _require(self._read_head() == self._head, "HISTORY_HEAD_MISMATCH")
             _require(self._file_size() == self._size, "HISTORY_STORE_CHANGED")
-            row = _row(self._seq + 1, self._head, kind, data, at)
-            line = _canonical(row) + b"\n"
-            _require(len(line) <= MAX_ROW_BYTES and self._seq < self._slot_count + 1, "HISTORY_STORE_RECORD_INVALID")
+            payload = preview = objects = None
+            policy = self._storage_policy
+            try:
+                if policy is not None and kind == "slot":
+                    context = SlotContext(window_digest=self._digest, driver_identity_digest=self._identity,
+                                          index=data["index"], sampled_at=at)
+                    payload = encode_slot_payload(data, context=context, policy=policy)
+                    objects = self._object_store()
+                    preview = objects.preview(payload)
+                    data = {"history_version": 3, "index": data["index"],
+                            "payload_ref": asdict(preview.reference)}
+                row = _row(self._seq + 1, self._head, kind, data, at)
+                line = _canonical(row) + b"\n"
+                _require(len(line) <= MAX_ROW_BYTES and self._seq < self._slot_count + 1,
+                         "HISTORY_STORE_RECORD_INVALID")
+                if policy is not None:
+                    admit_journal_row(policy, journal_bytes=self._size, next_row_bytes=len(line))
+                    if create:
+                        # Window infrastructure, before its bound row commits; slot admission itself creates no infra.
+                        self._object_store().initialize()
+                        self._object_store().inventory(budget=policy.store_budget)
+                    if payload is not None:
+                        reference = objects.stage(payload, budget=policy.store_budget)
+                        _require(reference == preview.reference, "HISTORY_STORAGE_REFERENCE_CHANGED")
+            except (EvidenceObjectError, HistoryStorageError) as exc:
+                code = "HISTORY_STORAGE_LIMIT_EXCEEDED" if "LIMIT" in str(exc) else "HISTORY_STORAGE_UNAVAILABLE"
+                raise LiveHistoryError(code) from None
             self._failed = True
             try:
                 with open(checked_target(self._dir / "history.jsonl", "history journal", within=self._dir), "ab") as fh:
@@ -576,9 +763,10 @@ class LiveHistory:
             self._failed = False
             return new
 
-    def _replay(self, identity):
-        """Every row from the original bytes: structure, chain, identity, receipt parse and the derivation rules."""
+    def _replay(self, identity, *, install=True):
+        """Validate the complete prefix. With install=False return a snapshot without adopting any state."""
         from execution_accounts.quotes import parse_orderbook
+        self._check_storage_policy()
         with self._locked():
             slots, chain, marks, previous, size, seq = [], "", (), GENESIS, 0, 0
             prices, state, recent, allow = (), _START, (), None
@@ -589,6 +777,8 @@ class LiveHistory:
                         if not line:
                             break
                         seq += 1
+                        if self._storage_policy is not None:
+                            admit_journal_row(self._storage_policy, journal_bytes=size, next_row_bytes=len(line))
                         _require(seq <= self._slot_count + 1, "HISTORY_STORE_RECORD_INVALID")
                         row = _decode(line)
                         _require(set(row) == _ROW_KEYS and type(row["schema"]) is int and row["schema"] == SCHEMA
@@ -598,13 +788,22 @@ class LiveHistory:
                                  "HISTORY_STORE_RECORD_INVALID")
                         at, data = datetime.fromisoformat(row["utc"]), row["data"]
                         if seq == 1:
-                            _require(set(data) == {"identity"} and type(data["identity"]) is dict
+                            expected_keys = {"identity"} if self._storage_policy is None else _BOUND_V3_KEYS
+                            _require(set(data) == expected_keys, "HISTORY_STORE_RECORD_INVALID")
+                            if self._storage_policy is not None:
+                                _require(type(data["history_version"]) is int and data["history_version"] == 3
+                                         and at < self._window.start
+                                         and parse_policy(_canonical(data["history_storage"])) == self._storage_policy,
+                                         "HISTORY_STORE_RECORD_INVALID")
+                            _require(type(data["identity"]) is dict
                                      and set(data["identity"]) == _IDENTITY_KEYS
                                      and all(type(value) is str for value in data["identity"].values()),
                                      "HISTORY_STORE_RECORD_INVALID")
                             _require(data["identity"] == asdict(identity), "HISTORY_IDENTITY_CHANGED")
                         elif self._universe:
-                            # History row v2: the row's own trade coin and tick and its book or none; the decision
+                            if self._storage_policy is not None:
+                                data = _v3_slot(self._base, self._digest, identity, self._storage_policy, row)
+                            # The preserved logical history row v2: the row's own trade coin and tick and its book or none; the decision
                             # derived again from the stored record must equal the stored one (spec section 12).
                             _require(set(data) == _SLOT_V2_KEYS and type(data["index"]) is int
                                      and data["index"] == seq - 2 and type(data["trade_symbol"]) is str
@@ -641,14 +840,22 @@ class LiveHistory:
             except Exception:
                 raise LiveHistoryError("HISTORY_STORE_RECORD_INVALID") from None
             _require(self._read_head() == previous, "HISTORY_HEAD_MISMATCH")
-            self._slots, self._chain, self._marks = tuple(slots), chain, marks
-            self._prices, self._state, self._inputs, self.recorded_allow = prices, state, recent, allow
-            self._head, self._size, self._seq = previous, size, seq
+            result = (tuple(slots), chain, marks, prices, state, recent, allow, previous, size, seq)
+            if install:
+                self._slots, self._chain, self._marks = tuple(slots), chain, marks
+                self._prices, self._state, self._inputs, self.recorded_allow = prices, state, recent, allow
+                self._head, self._size, self._seq = previous, size, seq
+            return result
 
     def _durable_unchanged(self):
         _require(self._read_head() == self._head, "HISTORY_HEAD_MISMATCH")
         self._paths()
         _require(self._file_size() == self._size, "HISTORY_STORE_CHANGED")
+        if self._storage_policy is not None:
+            actual = self._replay(self._driver_identity, install=False)
+            expected = (self._slots, self._chain, self._marks, self._prices, self._state, self._inputs,
+                        self.recorded_allow, self._head, self._size, self._seq)
+            _require(actual == expected, "HISTORY_STORE_CHANGED")
 
     # -- public contract ---------------------------------------------------------------------------------------
 
@@ -656,6 +863,7 @@ class LiveHistory:
         """Bind the issued fixed driver whose history callables are exactly this instance's, then create the
         journal (only before the window starts, over a head at GENESIS) or replay the existing one."""
         with _LOCK:
+            self._check_storage_policy()
             _require(not self._failed, "HISTORY_RECONCILIATION_REQUIRED")
             _require(not self._bound, "HISTORY_ALREADY_BOUND")
             try:
@@ -670,14 +878,20 @@ class LiveHistory:
                      and identity.program_digest == program_digest(self._program, driver.artifact),
                      "HISTORY_DRIVER_BINDING_MISMATCH")
             self._paths()
+            if self._storage_policy is not None:
+                self._head_authority._chain.bind_identity(identity, bar_seconds=self._protocol.bar_seconds)
             if self._file_size() == 0:
+                _require(not self._universe or self._storage_policy is not None, "HISTORY_STORAGE_POLICY_REQUIRED")
                 now = self._now()
                 _require(now < self._window.start, "HISTORY_WINDOW_ALREADY_STARTED")
                 _require(self._read_head() == GENESIS, "HISTORY_HEAD_NOT_INITIALIZED")
-                self._append("bound", {"identity": asdict(identity)}, now, create=True)
+                header = {"identity": asdict(identity)}
+                if self._storage_policy is not None:
+                    header |= {"history_version": 3, "history_storage": json.loads(policy_bytes(self._storage_policy))}
+                self._append("bound", header, now, create=True)
             else:
                 self._replay(identity)
-            self._identity, self._bound = digest(identity), True
+            self._identity, self._bound, self._driver_identity = digest(identity), True, identity
             return identity
 
     def record_slot(self, book, account: AccountObservation, *, trade_symbol: str | None = None,
@@ -705,9 +919,7 @@ class LiveHistory:
             return head
 
     def _record_universe(self, book, account, symbol, universe, tick, positions):
-        """One history row v2 (spec section 12). Over the 256 KiB cap the flag and ticker parts become
-        "unavailable", the allow-list empty and SIZE_FALLBACK a reason. Retained data must still fit the
-        existing storage cap; the unconditional spec size guarantee remains unresolved."""
+        """One lossless v3 row. Storage limits never alter valid market data or chooser inputs."""
         _require(type(symbol) is str and UNIVERSE_MARKET.fullmatch(symbol) is not None
                  and type(universe) is SlotUniverse and type(tick) is Decimal and tick.is_finite() and tick > 0
                  and type(positions) is tuple and all(type(item) is Position for item in positions),
@@ -725,17 +937,16 @@ class LiveHistory:
             raise
         except Exception:
             raise LiveHistoryError("HISTORY_INPUT_REQUIRED") from None
-        for fallback in (False, True):
-            if fallback:
-                record = {**record, "flags": "unavailable", "tickers": "unavailable", "allow": [],
-                          "reasons": record["reasons"] + [SIZE_FALLBACK]}
-            bar, decision, chain, prices, state, inputs, choice = self._derive_universe(
-                index, book, anchor, sampled_at, self._chain, self._prices, self._state, symbol, tick, record)
-            data = {"index": index, "trade_symbol": symbol, "tick_size": tick_text,
-                    "receipt": "unavailable" if book is None else _receipt_body(book.receipt),
-                    "anchor": _anchor_body(anchor), "holdings": holdings, "universe": record, "decision": choice}
-            if len(_canonical(_row(self._seq + 1, self._head, "slot", data, sampled_at))) < MAX_ROW_BYTES:
-                break
+        _require(self._storage_policy is not None, "HISTORY_STORAGE_POLICY_REQUIRED")
+        bar, decision, chain, prices, state, inputs, choice = self._derive_universe(
+            index, book, anchor, sampled_at, self._chain, self._prices, self._state, symbol, tick, record)
+        data = {"index": index, "trade_symbol": symbol, "tick_size": tick_text,
+                "receipt": "unavailable" if book is None else _receipt_body(book.receipt),
+                "anchor": _anchor_body(anchor), "holdings": holdings, "universe": record, "decision": choice}
+        try:
+            _validate_slot_structure(data, index, sampled_at)
+        except (ValueError, TypeError, KeyError, OverflowError):
+            raise LiveHistoryError("HISTORY_INPUT_REQUIRED") from None
         head = self._append("slot", data, sampled_at)
         self._slots += (_Slot(bar=bar, anchor=anchor, decision=decision, sampled_at=sampled_at, row_sha256=head,
                               universe_sha256=evidence_digest(record)),)
@@ -749,6 +960,13 @@ class LiveHistory:
             self._ready()
             _require(type(observation) is DecisionInput and _aware(observation.now), "HISTORY_OBSERVATION_REQUIRED")
             self._current(observation.now)
+            if self._storage_policy is not None:
+                before = self._now()
+                _require(observation.now <= before, "HISTORY_TICK_IN_FUTURE")
+                self._durable_unchanged()
+                after = self._now()
+                _require(before <= after, "HISTORY_CLOCK_ROLLBACK")
+                self._current(after)
             return self._frame()
 
     def _verify(self, frame, identity, now):
@@ -769,5 +987,9 @@ class LiveHistory:
                 recorded = False
             _require(recorded, "HISTORY_FRAME_NOT_RECORDED")
             self._durable_unchanged()
+            if self._storage_policy is not None:
+                finished_at = self._now()
+                _require(checked_at <= finished_at, "HISTORY_CLOCK_ROLLBACK")
+                _require(finished_at <= expires, "HISTORY_SLOT_WINDOW_CLOSED")
             return HistoryReceipt(frame_digest=history_frame_digest(frame), driver_identity_digest=self._identity,
                                   source_audit_sha256=slot.row_sha256, verified_at=slot.sampled_at, expires_at=expires)

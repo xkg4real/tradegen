@@ -1,8 +1,9 @@
 """Invented anchors/authentication only; no real history, credentials or orders."""
-from dataclasses import replace
+from dataclasses import fields, replace
 from datetime import timedelta
 from decimal import Decimal, localcontext
 from fractions import Fraction
+from io import BytesIO
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -133,6 +134,50 @@ def test_registered_callback_parameters_contract_and_code_are_rechecked():
         reject(lambda:describe_fixed_driver(env.driver), "FIXED_DRIVER_DEPLOYMENT_CHANGED")
     object.__setattr__(env.program, "fast_window", 1)
     reject(lambda:describe_fixed_driver(env.driver), "FIXED_DRIVER_REGISTERED_INPUT_CHANGED")
+
+
+def test_storage_policy_changes_protocol_identity_without_changing_identity_or_window_wire_fields():
+    from tests.launch_universe_history import universe_env
+    from execution_launch.strategy import evidence_digest
+    env = universe_env()
+    env.protocol = replace(env.protocol, history_storage_sha256=None)
+    legacy = describe_fixed_driver(construct(env))
+    env.protocol = replace(env.protocol, history_storage_sha256="1" * 64)
+    driver = construct(env)
+    first = describe_fixed_driver(driver)
+    env.protocol = replace(env.protocol, history_storage_sha256="2" * 64)
+    second = describe_fixed_driver(construct(env))
+    assert len({value.protocol_digest for value in (legacy, first, second)}) == 3
+    assert first.protocol_digest == evidence_digest(driver.callback.protocol)
+    assert first.deployment_code_sha256 == second.deployment_code_sha256 == legacy.deployment_code_sha256
+    assert first.deployment_window_digest == second.deployment_window_digest == legacy.deployment_window_digest
+    assert {f.name for f in fields(first)} == {
+        "factory_id", "program_digest", "deployment_code_sha256", "protocol_digest",
+        "profile_contract_digest", "rule_terms_digest", "deployment_window_digest"}
+    assert {f.name for f in fields(env.window)} == {"deployment_id", "start", "end"}
+    object.__setattr__(driver.callback.protocol, "history_storage_sha256", "3" * 64)
+    reject(lambda: describe_fixed_driver(driver), "FIXED_DRIVER_DEPLOYMENT_CHANGED")
+
+
+def test_each_history_storage_source_is_bound_for_fixed_and_universe_factories():
+    from tests.launch_universe_history import universe_env
+    fixed = fixture()
+    universe = universe_env()
+    universe.protocol = replace(universe.protocol, history_storage_sha256="1" * 64)
+    universe_driver = construct(universe)
+    root = Path(__file__).resolve().parents[1]
+    original_open = Path.open
+    sources = ("execution_launch/evidence_objects.py", "execution_launch/history_storage.py",
+               "execution_launch/live_history.py", "execution_launch/baseline_head.py",
+               "execution_control/store.py", "core/isolation.py")
+    for name in sources:
+        target = root / name
+        changed = target.read_bytes() + b"\n# synthetic source mismatch\n"
+        def altered(path, *args, target=target, changed=changed, **kwargs):
+            return BytesIO(changed) if path == target else original_open(path, *args, **kwargs)
+        with patch.object(Path, "open", altered):
+            reject(lambda: describe_fixed_driver(fixed.driver), "FIXED_DRIVER_DEPLOYMENT_CHANGED")
+            reject(lambda: describe_fixed_driver(universe_driver), "FIXED_DRIVER_DEPLOYMENT_CHANGED")
 
 
 def test_missing_boolean_wrong_digest_expired_and_raising_source_authentication_refuse():

@@ -302,6 +302,7 @@ def test_fixed_protocol_digest_and_json_are_byte_identical_to_the_pre_universe_e
     p, *_ = fixture_capture()
     encoded = protocol_json(p)
     assert p.universe_rule_sha256 is None and 'universe_rule_sha256' not in encoded
+    assert p.history_storage_sha256 is None and 'history_storage_sha256' not in encoded
     assert evidence_digest(p) == '8d008761f9b0ddd58d148e52d5b6088d3acbdba18bf30f5317e05bdace8ca937'
     assert hashlib.sha256(encoded.encode('ascii')).hexdigest() == (
         '28ea85cb261fb70bbd56558656ecce3e738b41b886ccfe7c02445183bd2a43dd')
@@ -336,3 +337,43 @@ def test_fixed_evaluator_refuses_a_universe_protocol_and_capture_rules_use_its_s
     rejected(lambda: run_paper_validation(u, bars, decisions, rules, registry=register_protocol(u),
                                           source_kind='synthetic', now=now), 'STRATEGY_EVALUATOR_UNSUPPORTED')
     assert _rule_terms(rules, RULE) == u.rule_terms_digest != p.rule_terms_digest == _rule_terms(rules, None)
+
+
+def test_legacy_universe_protocol_encoding_is_unchanged_without_a_storage_binding():
+    p, _, _, rules, *_ = fixture_capture()
+    u = universe_protocol(p, rules)
+    encoded = protocol_json(u)
+    assert 'history_storage_sha256' not in encoded
+    assert evidence_digest(u) == '8b21db1e77ea77dfacd5ef3f398ddd49549cd63bfc2b00a6a9e0a4db84b6e5b0'
+    assert hashlib.sha256(encoded.encode('ascii')).hexdigest() == (
+        '2976361d2e0a829bd4ea30be1e7a23571f995d6c2c83562702b10445d2f3af8b')
+    assert parse_protocol(encoded) == u
+
+
+def test_history_storage_policy_digest_round_trips_and_changes_registration_binding():
+    p, _, _, rules, *_ = fixture_capture()
+    old = universe_protocol(p, rules)
+    first = replace(old, history_storage_sha256='1' * 64)
+    second = replace(old, history_storage_sha256='2' * 64)
+    assert parse_protocol(protocol_json(first)) == first
+    assert json.loads(protocol_json(first))['history_storage_sha256'] == first.history_storage_sha256
+    assert len({evidence_digest(value) for value in (old, first, second)}) == 3
+    assert register_protocol(first)[-1].protocol_digest == evidence_digest(first)
+    # The digest is an explicit policy binding, not a new statistical or terminal-liquidation rule.
+    assert first.evaluator_revision == old.evaluator_revision
+
+
+def test_history_storage_binding_refuses_null_malformed_hash_and_nonuniverse_scope():
+    p, _, _, rules, *_ = fixture_capture()
+    u = universe_protocol(p, rules)
+    for bad in ('', 'a' * 63, 'a' * 65, 'A' * 64, True, 1, [], {}):
+        rejected(lambda bad=bad: protocol_json(replace(u, history_storage_sha256=bad)),
+                 'STRATEGY_DIGEST_INVALID')
+    body = json.loads(protocol_json(u))
+    body['history_storage_sha256'] = None
+    rejected(lambda: parse_protocol(json.dumps(body)), 'STRATEGY_JSON_SCHEMA_INVALID')
+    rejected(lambda: protocol_json(replace(p, history_storage_sha256='1' * 64)),
+             'STRATEGY_HISTORY_STORAGE_SCOPE_UNSUPPORTED')
+    for changes in ({'venue': 'okx'}, {'market': 'futures'}, {'quote_currency': 'USD'}, {'symbol': 'KRW-ETH'}):
+        rejected(lambda changes=changes: protocol_json(replace(u, history_storage_sha256='1' * 64, **changes)),
+                 'STRATEGY_EVALUATOR_SCOPE_UNSUPPORTED')

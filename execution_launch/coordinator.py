@@ -58,6 +58,7 @@ from execution_launch.baseline_head import BaselineHead
 from execution_launch.driver import (DeploymentWindow, FixedDriverError, FixedDriverIdentity, describe_fixed_driver,
                                      make_fixed_driver)
 from execution_launch.live_history import HistoryChain, LiveHistory
+from execution_launch.history_storage import (HistoryStoragePolicy, MAX_POLICY_BYTES, parse_policy, policy_digest)
 from execution_launch.instrument_refresh import renew_profile
 from execution_launch.paper_capture import sample_prefetched_book
 from execution_launch.profile import LaunchProfile, parse_profile_json, risk_policy
@@ -760,7 +761,8 @@ class Composition:
 
 
 def compose(*, profile_path: str, program_path: str, protocol_path: str, capture_path: str, review_path: str,
-            evaluated_at: datetime, window: DeploymentWindow, clock: Callable[[], datetime], head_root) -> Composition:
+            evaluated_at: datetime, window: DeploymentWindow, clock: Callable[[], datetime], head_root,
+            history_storage_path: str | None = None) -> Composition:
     """Wire the reviewed artifacts for one deployment window in the integration guide's order: the private-input
     loader (every file a bounded local .json), the capture re-evaluated at the original evaluator time, the fixed
     driver over the installed program artifact with the live history's exact callables, LiveHistory.bind (the
@@ -770,11 +772,12 @@ def compose(*, profile_path: str, program_path: str, protocol_path: str, capture
     profile = parse_profile_json(read_file(profile_path, MAX_CONFIG_BYTES))
     program = parse_program(read_file(program_path, MAX_CONFIG_BYTES))
     protocol = parse_protocol(read_file(protocol_path, MAX_CONFIG_BYTES))
+    storage_policy = read_history_storage(protocol, history_storage_path)
     result = evaluate_capture_json(protocol, read_file(capture_path, MAX_CAPTURE_BYTES), profile.instrument_rules,
                                    now=evaluated_at)
     document = read_file(review_path, MAX_DOCUMENT_BYTES)
     prepared = _compose_driver(profile=profile, program=program, protocol=protocol, window=window,
-                               clock=clock, head_root=head_root)
+                               clock=clock, head_root=head_root, storage_policy=storage_policy)
     history, driver, identity = prepared.history, prepared.driver, prepared.identity
     authority = CurrentOwnerAuthority(clock=clock)
     verifiers = ReviewVerifiers(document, clock=clock, authority_provider=authority,
@@ -796,10 +799,30 @@ class DriverComposition:
     history: LiveHistory
 
 
-def _compose_driver(*, profile, program, protocol, window, clock, head_root) -> DriverComposition:
+def read_history_storage(protocol: ForwardProtocol, path: str | None) -> HistoryStoragePolicy | None:
+    """Read one explicit policy and check the frozen protocol binding; no default or state write.
+
+    Omitted legacy policies remain omitted. LiveHistory decides whether an existing
+    legacy universe journal can be read; it refuses fresh legacy universe writes.
+    """
+    _require(type(protocol) is ForwardProtocol, "COORDINATOR_HISTORY_STORAGE_PROTOCOL_REQUIRED")
+    expected = protocol.history_storage_sha256
+    if path is None:
+        _require(expected is None, "COORDINATOR_HISTORY_STORAGE_REQUIRED")
+        return None
+    policy = parse_policy(read_file(path, MAX_POLICY_BYTES))
+    _require(expected is not None and policy_digest(policy) == expected,
+             "COORDINATOR_HISTORY_STORAGE_MISMATCH")
+    return policy
+
+
+def _compose_driver(*, profile, program, protocol, window, clock, head_root,
+                    storage_policy: HistoryStoragePolicy | None = None) -> DriverComposition:
     root = state_root().absolute()
-    head = BaselineHead(root=head_root, name=history_head_name(window), chain=HistoryChain(root=root, window=window))
-    history = LiveHistory(program, protocol, profile, window=window, root=root, clock=clock, trusted_head=head)
+    head = BaselineHead(root=head_root, name=history_head_name(window),
+                        chain=HistoryChain(root=root, window=window, storage_policy=storage_policy))
+    history = LiveHistory(program, protocol, profile, window=window, root=root, clock=clock, trusted_head=head,
+                          storage_policy=storage_policy)
     driver = make_fixed_driver(program, protocol, profile, window=window, history_provider=history.provider,
                                history_verifier=history.verifier, program_artifact=artifact("program.py"))
     identity = history.bind(driver)
@@ -808,7 +831,8 @@ def _compose_driver(*, profile, program, protocol, window, clock, head_root) -> 
 
 
 def compose_driver(*, profile_path: str, program_path: str, protocol_path: str,
-                   window: DeploymentWindow, clock: Callable[[], datetime], head_root) -> DriverComposition:
+                   window: DeploymentWindow, clock: Callable[[], datetime], head_root,
+                   history_storage_path: str | None = None) -> DriverComposition:
     """Exportable actual driver identity without requiring a review that signs that identity.
 
     The operator must first initialize this window's independent history head to GENESIS.
@@ -818,5 +842,6 @@ def compose_driver(*, profile_path: str, program_path: str, protocol_path: str,
     profile = parse_profile_json(read_file(profile_path, MAX_CONFIG_BYTES))
     program = parse_program(read_file(program_path, MAX_CONFIG_BYTES))
     protocol = parse_protocol(read_file(protocol_path, MAX_CONFIG_BYTES))
+    storage_policy = read_history_storage(protocol, history_storage_path)
     return _compose_driver(profile=profile, program=program, protocol=protocol, window=window,
-                           clock=clock, head_root=head_root)
+                           clock=clock, head_root=head_root, storage_policy=storage_policy)

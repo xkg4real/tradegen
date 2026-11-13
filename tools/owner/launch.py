@@ -2,6 +2,7 @@
 
     python -m tools.owner.launch setup-account --state STATE.json --reviewed-head HASH --state-root ROOT --head-root HEAD_ROOT
     python -m tools.owner.launch setup-history --window WINDOW.json --state-root ROOT --head-root HEAD_ROOT
+    python -m tools.owner.launch setup-history --window WINDOW.json --protocol PROTOCOL.json --history-storage POLICY.json --state-root ROOT --head-root HEAD_ROOT
     python -m tools.owner.launch export-driver --profile PROFILE.json --program PROGRAM.json --protocol PROTOCOL.json --window WINDOW.json --state-root ROOT --head-root HEAD_ROOT
     python -m tools.owner.launch export-manifest --repo REPOSITORY
 
@@ -33,10 +34,12 @@ from execution_accounts.baseline import restore_state
 from execution_accounts.baseline_store import CheckpointStore
 from execution_control.store import GENESIS
 from execution_launch.baseline_head import BaselineHead, BaselineHeadError, CheckpointChain
-from execution_launch.coordinator import Coordinator, compose_driver, history_head_name
+from execution_launch.coordinator import Coordinator, compose_driver, history_head_name, read_history_storage
 from execution_launch.deployment import export_manifest
 from execution_launch.driver import DeploymentWindow
 from execution_launch.live_history import HistoryChain
+from execution_launch.history_storage import HistoryStoragePolicy, policy_digest
+from execution_launch.strategy import ForwardProtocol, parse_protocol, protocol_json
 from execution_launch.workflow import MAX_CONFIG_BYTES, read_file
 
 _CODE = re.compile(r"[A-Z][A-Z0-9_]{0,95}")
@@ -45,7 +48,8 @@ _MAX_COMMAND = 4096
 _FIXED_ERROR_MODULES = frozenset({__name__, "execution_launch.coordinator", "execution_launch.deployment",
     "execution_launch.workflow", "execution_launch.profile", "execution_launch.driver",
     "execution_launch.live_history", "execution_launch.baseline_head", "execution_launch.instrument_refresh",
-    "execution_accounts.baseline", "execution_accounts.baseline_store", "execution_accounts.instrument_terms"})
+    "execution_accounts.baseline", "execution_accounts.baseline_store", "execution_accounts.instrument_terms",
+    "execution_launch.history_storage", "execution_launch.strategy"})
 
 
 class OwnerOperationError(ValueError):
@@ -152,13 +156,26 @@ def setup_account(*, state_path: str, reviewed_head: str, state_directory: Path,
 
 
 def setup_history(*, window: DeploymentWindow, state_directory: Path,
-                  head_directory: Path, now: datetime) -> dict:
+                  head_directory: Path, now: datetime, protocol: ForwardProtocol | None = None,
+                  storage_policy: HistoryStoragePolicy | None = None) -> dict:
+    """Initialize only an empty window, with explicit paired protocol/policy for v3.
+
+    Legacy fixed-window callers omit both. This does not bind a driver or adopt
+    a journal; the actual history binding later verifies the same policy again.
+    """
+    _require((protocol is None) == (storage_policy is None), "OWNER_HISTORY_POLICY_PROTOCOL_REQUIRED")
+    if protocol is not None:
+        _require(type(protocol) is ForwardProtocol, "OWNER_HISTORY_POLICY_PROTOCOL_REQUIRED")
+        protocol_json(protocol)  # strict protocol validation, including the supported universe scope
+        _require(type(storage_policy) is HistoryStoragePolicy and protocol.history_storage_sha256 is not None
+                 and policy_digest(storage_policy) == protocol.history_storage_sha256,
+                 "OWNER_HISTORY_STORAGE_MISMATCH")
     _require(type(window) is DeploymentWindow and _aware(now) and _aware(window.start)
              and _aware(window.end) and now < window.start < window.end,
              "OWNER_HISTORY_WINDOW_ALREADY_STARTED_OR_INVALID")
     root = _root(state_directory)
     head = BaselineHead(root=head_directory, name=history_head_name(window),
-                        chain=HistoryChain(root=root, window=window))
+                        chain=HistoryChain(root=root, window=window, storage_policy=storage_policy))
     _empty_head(head)
     head.initialize_reviewed_head(GENESIS)
     _require(head.read() == GENESIS, "OWNER_SETUP_READBACK_REFUSED")
@@ -300,15 +317,19 @@ def _arguments(argv):
         "export-driver": {"profile", "program", "protocol", "window", "state-root", "head-root"},
         "export-manifest": {"repo"},
     }
+    optional = {"setup-history": {"protocol", "history-storage"}, "export-driver": {"history-storage"}}
     command, *rest = argv
     _require(command in required and len(rest) % 2 == 0, "OWNER_ARGUMENTS_INVALID")
+    allowed = required[command] | optional.get(command, set())
     values = {}
     for index in range(0, len(rest), 2):
         key, value = rest[index:index+2]
-        _require(key.startswith("--") and key[2:] in required[command] and key[2:] not in values
+        _require(key.startswith("--") and key[2:] in allowed and key[2:] not in values
                  and value and not value.startswith("--"), "OWNER_ARGUMENTS_INVALID")
         values[key[2:]] = value
-    _require(set(values) == required[command], "OWNER_ARGUMENTS_REQUIRED")
+    _require(required[command] <= set(values), "OWNER_ARGUMENTS_REQUIRED")
+    if command == "setup-history":
+        _require(("protocol" in values) == ("history-storage" in values), "OWNER_HISTORY_POLICY_PROTOCOL_REQUIRED")
     return command, values
 
 
@@ -329,12 +350,17 @@ def main(argv=None) -> int:
             else:
                 window = read_window(args["window"])
                 if command == "setup-history":
+                    protocol = (parse_protocol(read_file(args["protocol"], MAX_CONFIG_BYTES))
+                                if "protocol" in args else None)
+                    storage_policy = (read_history_storage(protocol, args["history-storage"])
+                                      if protocol is not None else None)
                     report = setup_history(window=window, state_directory=root, head_directory=head_root,
-                                           now=datetime.now(timezone.utc))
+                        now=datetime.now(timezone.utc), protocol=protocol, storage_policy=storage_policy)
                 else:
                     prepared = compose_driver(profile_path=args["profile"], program_path=args["program"],
                         protocol_path=args["protocol"], window=window,
-                        clock=lambda: datetime.now(timezone.utc), head_root=head_root)
+                        clock=lambda: datetime.now(timezone.utc), head_root=head_root,
+                        history_storage_path=args.get("history-storage"))
                     # Exact identity schema consumed by the detached review signer.
                     report = asdict(prepared.identity)
         print(json.dumps(report, sort_keys=True, ensure_ascii=True))

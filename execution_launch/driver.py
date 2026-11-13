@@ -36,7 +36,12 @@ _ID = re.compile(r"[A-Za-z][A-Za-z0-9_.:-]{0,95}")
 _SOURCE_FILES = ("execution_launch/driver.py", "execution_launch/program.py",
     "execution_launch/strategy.py", "execution_launch/runner.py",
     "execution_launch/profile.py", "execution_control/model.py",
-    "execution_control/capability.py", "execution_control/controller.py")
+    "execution_control/capability.py", "execution_control/controller.py",
+    "execution_launch/evidence_objects.py", "execution_launch/history_storage.py",
+    "execution_launch/live_history.py", "execution_launch/baseline_head.py",
+    "execution_control/store.py", "core/isolation.py")
+# Keep the independently maintained signer _REVIEW_SOURCES in agreement. This source closure applies to both
+# fixed and universe factories: legacy wire bytes stay compatible, not legacy approval of changed code.
 _LOCK = RLock()
 _ISSUED = {}
 _CALLBACKS = {}
