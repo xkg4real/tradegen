@@ -201,9 +201,11 @@ def test_manifest_cannot_omit_a_real_file_or_substitute_tiny_broker_package():
 def test_source_and_target_environment_symlinks_hardlinks_and_duplicate_dist_refuse():
     with fixture() as e:
         directory=e.environment/'lib'/'python3.13'/'site-packages'
-        shutil.copytree(directory/'cryptography-1.0.dist-info',directory/'duplicate.dist-info')
+        duplicate=directory/'cryptography-2.0.dist-info'
+        shutil.copytree(directory/'cryptography-1.0.dist-info',duplicate)
+        (duplicate/'METADATA').write_bytes(b'Name: cryptography\nVersion: 2.0\n')
         refused(lambda:R.target_deployment_code_hash(e.repo,e.environment),'PASSKEY_DEPLOYMENT_REFUSED')
-        shutil.rmtree(directory/'duplicate.dist-info')
+        shutil.rmtree(duplicate)
         path=e.repo/'execution'/'sample.py'; path.unlink(); path.symlink_to(e.pem)
         refused(lambda:R.target_deployment_code_hash(e.repo,e.environment))
 
@@ -312,3 +314,52 @@ def test_shared_runtime_library_is_closed_and_missing_configured_file_refuses():
             assert R._read(pinned)!=original
             library.unlink()
             refused(R._shared_runtime_library,'PASSKEY_RUNTIME_UNSUPPORTED')
+
+
+def test_target_d14_ignores_unrelated_metadata_but_broker_inventory_still_checks_it():
+    with fixture() as e:
+        site=e.environment/'lib'/'python3.13'/'site-packages'
+        unrelated=site/'aenum-1.0.dist-info';unrelated.mkdir()
+        (unrelated/'METADATA').write_bytes(b'Name: aenum\nVersion: 1.0\n')
+        original=R._read
+        def refuse_unrelated(path,*args,**kwargs):
+            if path == unrelated/'METADATA':
+                raise C.PasskeyError('PASSKEY_RELEASE_READ_REFUSED')
+            return original(path,*args,**kwargs)
+        with patch.object(R,'_read',side_effect=refuse_unrelated):
+            assert R.target_deployment_code_hash(e.repo,e.environment)==e.code
+            refused(lambda:R._distributions(site),'PASSKEY_RELEASE_READ_REFUSED')
+
+
+def test_required_distribution_metadata_name_and_version_must_match_selected_directory():
+    with fixture() as e:
+        path=e.environment/'lib'/'python3.13'/'site-packages'/'cryptography-1.0.dist-info'/'METADATA'
+        for raw in (b'Name: aenum\nVersion: 1.0\n',b'Name: cryptography\nVersion: 2.0\n'):
+            path.write_bytes(raw)
+            refused(lambda:R.target_deployment_code_hash(e.repo,e.environment),'PASSKEY_DEPLOYMENT_REFUSED')
+
+
+def test_required_metadata_hardlinks_are_still_refused_with_fixed_diagnostic():
+    import os
+    with fixture() as e:
+        path=e.environment/'lib'/'python3.13'/'site-packages'/'cryptography-1.0.dist-info'/'METADATA'
+        os.link(path,e.base/'cache-metadata')
+        assert path.stat().st_nlink == 2
+        refused(lambda:R.target_deployment_code_hash(e.repo,e.environment),'PASSKEY_RELEASE_READ_REFUSED')
+
+
+def test_public_owner_and_release_boundaries_sanitize_legacy_runtime_errors():
+    with fixture() as e:
+        with patch.object(S,'_bundle_read',side_effect=RuntimeError('PRIVATE_PATH_MARKER')):
+            refused(lambda:R._read(e.pem),'PASSKEY_RELEASE_READ_REFUSED')
+            refused(lambda:e.reader.observe(retained=None),'PASSKEY_OWNER_READ_REFUSED')
+        with patch.object(R,'_target_files',side_effect=RuntimeError('PRIVATE_PATH_MARKER')):
+            refused(lambda:R.target_deployment_code_hash(e.repo,e.environment),'PASSKEY_DEPLOYMENT_REFUSED')
+        def broken_clock():
+            raise RuntimeError('PRIVATE_CLOCK_MARKER')
+        reader=O.OwnerReader(locations=e.locations,roots=e.roots,clock=broken_clock)
+        refused(lambda:reader.observe(retained=None),'PASSKEY_CLOCK_INVALID')
+        assets=e.base/'assets';assets.mkdir();(assets/'x.txt').write_bytes(b'x')
+        manifest=R._release_inventory(assets,role='RP',dependency_roots=())
+        with patch.object(R,'_release_inventory',side_effect=RuntimeError('PRIVATE_PATH_MARKER')):
+            refused(lambda:R.verify_release(assets,manifest,dependency_roots=()),'PASSKEY_RELEASE_READ_REFUSED')

@@ -60,7 +60,7 @@ def read_packet(directory: Path) -> PacketSnapshot:
             return result
     except C.PasskeyError:
         raise
-    except (OSError,ValueError,TypeError,AttributeError,OverflowError,RecursionError):
+    except (OSError,ValueError,TypeError,AttributeError,OverflowError,RuntimeError):
         raise C.PasskeyError('PASSKEY_PACKET_INVALID') from None
 
 

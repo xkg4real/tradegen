@@ -26,6 +26,15 @@ _MAX_ROWS = 32768
 _MAX_ANCHORS = 8192
 
 
+def _clock_time(clock):
+    try:
+        return C.instant(clock())
+    except C.PasskeyError:
+        raise
+    except (RuntimeError,ValueError,TypeError,OSError,OverflowError):
+        raise C.PasskeyError('PASSKEY_CLOCK_INVALID') from None
+
+
 def _lines(raw):
     C.binary(raw, _MAX_LOG)
     count = raw.count(b'\n')
@@ -240,7 +249,7 @@ class OwnerReader:
                'PASSKEY_OWNER_LOCATION_INVALID')
         locations, roots, clock = self._configuration
         C.checked(locations, OwnerLocations); C.checked(roots, TrustRoots)
-        begin = C.instant(clock())
+        begin = _clock_time(clock)
         C.need(self._last is None or begin >= self._last, 'PASSKEY_CLOCK_ROLLBACK')
         try:
             paths = (locations.app_repo, locations.app_environment, locations.compliance_root,
@@ -258,7 +267,7 @@ class OwnerReader:
             try:
                 code = target_deployment_code_hash(locations.app_repo, locations.app_environment)
                 problem = None
-            except (C.PasskeyError, ValueError, OSError):
+            except (C.PasskeyError, ValueError, OSError, RuntimeError):
                 code, problem = None, 'PASSKEY_DEPLOYMENT_REFUSED'
             C.need(S._bundle_read(locations.compliance_root/'owner.jsonl', _MAX_LOG) == (raw,log_identity)
                    and S._bundle_read(locations.public_key_path,4096) == (pem,pem_identity)
@@ -266,7 +275,7 @@ class OwnerReader:
                    and tuple((str(p),S._bundle_directory(p)[1][:2]) for p in paths) == identities
                    and self._parameters_now()==self._parameters and self.clock is clock,
                    'PASSKEY_OWNER_CHANGED')
-            finish = C.instant(clock())
+            finish = _clock_time(clock)
             C.need(finish >= begin, 'PASSKEY_CLOCK_ROLLBACK')
             evidence = OwnerLogEvidence(public_key_raw=public, log_bytes=raw, anchors=anchors,
                 observed_at=begin, completed_at=finish, head=evidence.head)
@@ -275,7 +284,7 @@ class OwnerReader:
                 deployment_problem=problem,completed_at=finish)
         except C.PasskeyError:
             raise
-        except (ValueError, OSError, TypeError, AttributeError, OverflowError):
+        except (ValueError, OSError, TypeError, AttributeError, OverflowError, RuntimeError):
             raise C.PasskeyError('PASSKEY_OWNER_READ_REFUSED') from None
 
 

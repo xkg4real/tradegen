@@ -19,6 +19,51 @@ from . import authority_contract as A, contract as C
 _MAX = 2*1024*1024
 _REFUSED_ATTRIBUTES = 0x400 | 0x1000 | 0x40000 | 0x400000
 
+# Original archive contract section 8.3. Internal module diagnostics are not
+# public protocol values; exception text is never an output fallback.
+_PUBLIC_CODES = frozenset('PASSKEY_PENDING PASSKEY_APPLIED PASSKEY_EXACT_RETRY PASSKEY_EXPIRED PASSKEY_REVOKED '
+    'PASSKEY_GRANT_INVALID PASSKEY_REGISTRY_CHANGED PASSKEY_TARGET_CHANGED PASSKEY_ORIGIN_RP_INVALID '
+    'PASSKEY_UV_REQUIRED PASSKEY_SIGNATURE_INVALID PASSKEY_REQUEST_REUSED PASSKEY_CLOCK_INVALID '
+    'PASSKEY_OWNER_CHANGED PASSKEY_RESOURCE_LIMIT PASSKEY_STORE_INDETERMINATE PASSKEY_FORMAT_INVALID '
+    'PASSKEY_CHANNEL_REFUSED PASSKEY_SCOPE_UNSUPPORTED PASSKEY_BOOTSTRAP_REQUIRED'.split())
+_INTERNAL_CODES = {
+    'PASSKEY_PACKET_INVALID': 'PASSKEY_TARGET_CHANGED',
+    'PASSKEY_RELEASE_CHANGED': 'PASSKEY_GRANT_INVALID',
+    'PASSKEY_RELEASE_INCOMPLETE': 'PASSKEY_GRANT_INVALID',
+    'PASSKEY_RELEASE_INVALID': 'PASSKEY_GRANT_INVALID',
+    'PASSKEY_RELEASE_INVENTORY_CHANGED': 'PASSKEY_GRANT_INVALID',
+    'PASSKEY_RELEASE_LOCATION_INVALID': 'PASSKEY_GRANT_INVALID',
+    'PASSKEY_RELEASE_READ_REFUSED': 'PASSKEY_GRANT_INVALID',
+    'PASSKEY_RUNTIME_UNSUPPORTED': 'PASSKEY_CHANNEL_REFUSED',
+    'PASSKEY_DEPLOYMENT_CHANGED': 'PASSKEY_OWNER_CHANGED',
+    'PASSKEY_DEPLOYMENT_REFUSED': 'PASSKEY_OWNER_CHANGED',
+    'PASSKEY_OWNER_ANCHOR_INVALID': 'PASSKEY_OWNER_CHANGED',
+    'PASSKEY_OWNER_KEY_CHANGED': 'PASSKEY_OWNER_CHANGED',
+    'PASSKEY_OWNER_LOCATION_INVALID': 'PASSKEY_OWNER_CHANGED',
+    'PASSKEY_OWNER_LOG_INVALID': 'PASSKEY_OWNER_CHANGED',
+    'PASSKEY_OWNER_PREFIX_INVALID': 'PASSKEY_OWNER_CHANGED',
+    'PASSKEY_OWNER_READ_REFUSED': 'PASSKEY_OWNER_CHANGED',
+    'PASSKEY_OWNER_STALE': 'PASSKEY_CLOCK_INVALID',
+    'PASSKEY_CLOCK_ROLLBACK': 'PASSKEY_CLOCK_INVALID',
+    'PASSKEY_ALGORITHM_UNSUPPORTED': 'PASSKEY_SCOPE_UNSUPPORTED',
+    'PASSKEY_BACKUP_FLAGS_CHANGED': 'PASSKEY_SIGNATURE_INVALID',
+    'PASSKEY_CHALLENGE_INVALID': 'PASSKEY_TARGET_CHANGED',
+    'PASSKEY_COUNTER_INVALID': 'PASSKEY_REQUEST_REUSED',
+    'PASSKEY_LIBRARY_UNAVAILABLE': 'PASSKEY_CHANNEL_REFUSED',
+    'PASSKEY_REGISTRATION_INVALID': 'PASSKEY_SIGNATURE_INVALID',
+    'PASSKEY_USER_HANDLE_INVALID': 'PASSKEY_TARGET_CHANGED',
+}
+
+
+def _public_error(exc):
+    """Exact known typed codes only; never invoke an exception's __str__."""
+    code = exc.args[0] if isinstance(exc, C.PasskeyError) and len(exc.args) == 1 else None
+    if type(code) is str and len(code) <= 96:
+        if code in _PUBLIC_CODES:
+            return code
+        return _INTERNAL_CODES.get(code, 'PASSKEY_STORE_INDETERMINATE')
+    return 'PASSKEY_STORE_INDETERMINATE'
+
 
 def _identity(info):
     return info.st_dev, info.st_ino, info.st_mode, info.st_size, info.st_mtime_ns, info.st_ctime_ns
@@ -204,8 +249,8 @@ def main(argv=None):
                     disabled=state.disabled,operational_channel_ready=False,current_use_eligible=False,execution_ready=False)
         print(json.dumps(result,sort_keys=True,separators=(',',':')))
         return 0
-    except C.PasskeyError as exc:
-        print(json.dumps(dict(status='REFUSED',reason=str(exc),operational_channel_ready=False,
+    except Exception as exc:
+        print(json.dumps(dict(status='REFUSED',reason=_public_error(exc),operational_channel_ready=False,
                               current_use_eligible=False,execution_ready=False),sort_keys=True,separators=(',',':')))
         return 2
 

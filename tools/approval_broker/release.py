@@ -26,7 +26,7 @@ _MAX_FILES = 8192
 def _read(path, maximum=_MAX_FILE):
     try:
         return S._bundle_read(path,maximum,empty=True)
-    except (ValueError,OSError,TypeError):
+    except (ValueError,OSError,TypeError,RuntimeError):
         raise C.PasskeyError('PASSKEY_RELEASE_READ_REFUSED') from None
 
 
@@ -35,7 +35,7 @@ def _directory(path):
            'PASSKEY_RELEASE_LOCATION_INVALID')
     try:
         return S._bundle_directory(path)
-    except (ValueError,OSError,TypeError):
+    except (ValueError,OSError,TypeError,RuntimeError):
         raise C.PasskeyError('PASSKEY_RELEASE_LOCATION_INVALID') from None
 
 
@@ -86,12 +86,23 @@ def _normalized(name):
     return re.sub(r'[-_.]+','-',name).lower()
 
 
-def _distributions(site):
+def _distributions(site, *, required=None):
     result, total = {}, 0
+    # A target D14 scan needs precisely the original two distributions. The
+    # broker release deliberately leaves this unset and verifies every one.
+    if required is not None:
+        C.need(type(required) is tuple and required == S._RECORD_DISTS,'PASSKEY_DEPLOYMENT_REFUSED')
+        required = frozenset(_normalized(name) for name in required)
     with S._BundlePin(site) as pin:
         for name in sorted(pin.names(_MAX_FILES)):
             if not name.endswith('.dist-info'):
                 continue
+            directory_name, separator, directory_version = name[:-10].rpartition('-')
+            if required is not None:
+                candidate = _normalized(directory_name if separator else name[:-10])
+                if candidate not in required:
+                    continue
+                C.need(separator and directory_name and directory_version,'PASSKEY_DEPLOYMENT_REFUSED')
             directory = site/name
             _directory(directory)
             C.need(len(result)<256,'PASSKEY_RESOURCE_LIMIT')
@@ -108,6 +119,8 @@ def _distributions(site):
             C.need(len(names)==len(versions)==1 and 1 <= len(names[0]) <= 128
                    and 1 <= len(versions[0]) <= 64,'PASSKEY_DEPLOYMENT_REFUSED')
             key = _normalized(names[0])
+            if required is not None:
+                C.need(key == candidate and versions[0] == directory_version,'PASSKEY_DEPLOYMENT_REFUSED')
             C.need(key not in result,'PASSKEY_DEPLOYMENT_REFUSED')
             result[key] = (directory,names[0],versions[0],raw,identity)
     return result
@@ -156,7 +169,7 @@ def _target_files(repo,environment):
     rows = {p.relative_to(root).as_posix():hashlib.sha256(raw).hexdigest()
             for p,(raw,_) in snapshots.items()}
     site = _sites(env)
-    distributions = _distributions(site)
+    distributions = _distributions(site,required=S._RECORD_DISTS)
     for name in S._RECORD_DISTS:
         C.need(_normalized(name) in distributions,'PASSKEY_DEPLOYMENT_REFUSED')
         directory,_,version,metadata,metadata_id = distributions[_normalized(name)]
@@ -177,7 +190,7 @@ def target_deployment_code_hash(repo,environment):
         return S.sha256_hex(S.canonical_json(_target_files(repo,environment)))
     except C.PasskeyError:
         raise
-    except (ValueError,OSError,TypeError,AttributeError,RecursionError):
+    except (ValueError,OSError,TypeError,AttributeError,RecursionError,RuntimeError):
         raise C.PasskeyError('PASSKEY_DEPLOYMENT_REFUSED') from None
 
 
@@ -367,5 +380,5 @@ def verify_release(directory,manifest, *, dependency_roots):
         C.need(A.release_bytes(actual)==A.release_bytes(manifest),'PASSKEY_RELEASE_CHANGED')
     except C.PasskeyError:
         raise
-    except (ValueError,OSError,TypeError,AttributeError,RecursionError):
+    except (ValueError,OSError,TypeError,AttributeError,RecursionError,RuntimeError):
         raise C.PasskeyError('PASSKEY_RELEASE_READ_REFUSED') from None

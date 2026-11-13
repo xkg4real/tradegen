@@ -297,3 +297,78 @@ def test_verified_future_code_change_crossed_during_final_configuration_never_re
             F.refused(lambda:e.engine.read_current(result.application_id),'PASSKEY_OWNER_CHANGED')
         assert len(seen)==2 and calls
         assert e.ledger.inspect().state.owner_evidence.head.sequence == 2
+
+
+def _cli_failure(exception):
+    """Exercise CLI failure before any preparation effect, without an authority success double."""
+    from contextlib import redirect_stdout
+    from io import StringIO
+    import json
+    output = StringIO()
+    with patch.object(cli,'load_installation',side_effect=exception), \
+         patch.object(L,'prepare_authority_store',side_effect=AssertionError('preparation must not run')) as prepare, \
+         redirect_stdout(output):
+        exit_code = cli.main(['--config','/private/fixture-config.json','prepare-authority-store'])
+    prepare.assert_not_called()
+    assert exit_code == 2
+    raw = output.getvalue()
+    body = json.loads(raw)
+    assert body['status'] == 'REFUSED'
+    assert body['operational_channel_ready'] is body['current_use_eligible'] is body['execution_ready'] is False
+    assert '/private/' not in raw
+    return body['reason']
+
+
+def test_cli_public_error_codes_pass_exactly_without_becoming_success():
+    # This is the closed public protocol list, independent of the CLI mapping.
+    codes = ('PASSKEY_PENDING PASSKEY_APPLIED PASSKEY_EXACT_RETRY PASSKEY_EXPIRED PASSKEY_REVOKED '
+        'PASSKEY_GRANT_INVALID PASSKEY_REGISTRY_CHANGED PASSKEY_TARGET_CHANGED PASSKEY_ORIGIN_RP_INVALID '
+        'PASSKEY_UV_REQUIRED PASSKEY_SIGNATURE_INVALID PASSKEY_REQUEST_REUSED PASSKEY_CLOCK_INVALID '
+        'PASSKEY_OWNER_CHANGED PASSKEY_RESOURCE_LIMIT PASSKEY_STORE_INDETERMINATE PASSKEY_FORMAT_INVALID '
+        'PASSKEY_CHANNEL_REFUSED PASSKEY_SCOPE_UNSUPPORTED PASSKEY_BOOTSTRAP_REQUIRED').split()
+    for code in codes:
+        assert _cli_failure(C.PasskeyError(code)) == code
+
+
+def test_cli_known_internal_diagnostics_map_to_public_failure_domains():
+    cases = (
+        ('PASSKEY_PACKET_INVALID','PASSKEY_TARGET_CHANGED'),
+        ('PASSKEY_RELEASE_CHANGED','PASSKEY_GRANT_INVALID'),
+        ('PASSKEY_RELEASE_INVENTORY_CHANGED','PASSKEY_GRANT_INVALID'),
+        ('PASSKEY_RELEASE_READ_REFUSED','PASSKEY_GRANT_INVALID'),
+        ('PASSKEY_DEPLOYMENT_REFUSED','PASSKEY_OWNER_CHANGED'),
+        ('PASSKEY_OWNER_PREFIX_INVALID','PASSKEY_OWNER_CHANGED'),
+        ('PASSKEY_OWNER_KEY_CHANGED','PASSKEY_OWNER_CHANGED'),
+        ('PASSKEY_OWNER_LOG_INVALID','PASSKEY_OWNER_CHANGED'),
+        ('PASSKEY_OWNER_STALE','PASSKEY_CLOCK_INVALID'),
+        ('PASSKEY_CLOCK_ROLLBACK','PASSKEY_CLOCK_INVALID'),
+        ('PASSKEY_RUNTIME_UNSUPPORTED','PASSKEY_CHANNEL_REFUSED'),
+        ('PASSKEY_LIBRARY_UNAVAILABLE','PASSKEY_CHANNEL_REFUSED'),
+    )
+    for internal, public in cases:
+        assert _cli_failure(C.PasskeyError(internal)) == public
+
+
+def test_cli_arbitrary_typed_text_os_errors_and_unknown_codes_are_redacted():
+    class NoStringError(Exception):
+        def __str__(self):
+            raise AssertionError('exception formatter must not be invoked')
+    class NoStringPasskeyError(C.PasskeyError):
+        def __str__(self):
+            raise AssertionError('typed exception formatter must not be invoked')
+    cases = (
+        C.PasskeyError('/private/owner.pem: private fixture detail'),
+        C.PasskeyError('PASSKEY_RELEASE_NOT_A_REVIEWED_CODE'),
+        C.PasskeyError('PASSKEY_OWNER_CHANGED /private/owner.jsonl'),
+        C.PasskeyError('PASSKEY_OWNER_CHANGED\n'),
+        C.PasskeyError('P'*1000),
+        C.PasskeyError(['PASSKEY_OWNER_CHANGED']),
+        C.PasskeyError('PASSKEY_OWNER_CHANGED','/private/extra'),
+        C.PasskeyError(),
+        OSError('/private/config.json: sensitive operating-system detail'),
+        ValueError('PASSKEY_OWNER_CHANGED'),
+        NoStringError('/private/unformatted'),
+        NoStringPasskeyError('/private/unformatted'),
+    )
+    for error in cases:
+        assert _cli_failure(error) == 'PASSKEY_STORE_INDETERMINATE'
