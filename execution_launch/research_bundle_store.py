@@ -608,7 +608,8 @@ class BundleStore:
                  and result.sequence == catalog.sequence + 1, 'BUNDLE_STORE_STORAGE_CHANGED')
         return result
 
-    def _commit(self, kind, raw, payloads):
+    def _commit(self, kind, raw, payloads, *, require_new=False):
+        _require(type(require_new) is bool, 'BUNDLE_STORE_INPUT_INVALID')
         self._configuration()
         manifest, digest = self._manifest(kind, raw)
         F.validate_payloads(manifest, payloads, limits=self.limits.format_limits)
@@ -624,6 +625,7 @@ class BundleStore:
         with self._locked() as anchor:
             catalog = self._load()
             existing = catalog.entries.get(digest)
+            _require(not require_new or existing is None, 'BUNDLE_STORE_ALREADY_PUBLISHED')
             _require(not any(entry.row['run_id'] == manifest.run_id
                              and entry.row['revision_id'] == manifest.revision_id
                              and entry.row['bundle_sha256'] != digest for entry in catalog.entries.values()),
@@ -661,8 +663,8 @@ class BundleStore:
             self._check_anchor(anchor)
             return self._receipt(catalog.entries[digest])
 
-    def archive_raw(self, manifest, payloads):
-        return self._commit('RAW_ARCHIVED', manifest, payloads)
+    def archive_raw(self, manifest, payloads, *, require_new=False):
+        return self._commit('RAW_ARCHIVED', manifest, payloads, require_new=require_new)
 
     def commit_verified(self, manifest, payloads):
         return self._commit('VERIFIED_UNAPPROVED', manifest, payloads)
