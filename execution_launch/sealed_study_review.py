@@ -9,14 +9,15 @@ The final owner/graph observation is finite, not a persistent storage lease.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta, timezone
 import hashlib
 import json
 from pathlib import Path
 
 from core.compliance import model as compliance
-from execution_control.owner_authority import CurrentOwnerAuthority, MAX_AUTHORITY_AGE_SECONDS
+from execution_control.capability import digest as control_digest
+from execution_control.owner_authority import CurrentOwnerAuthority, MAX_AUTHORITY_AGE_SECONDS, ReviewAuthority
 from execution_launch import bundle_attestation as A, bundle_auth as U
 from execution_launch import research_bundle as B, research_bundle_format as F, study_review as S
 from execution_launch import coordinator as C
@@ -69,6 +70,41 @@ class SealedSelectionAssessment:
     execution_ready: bool = False
     current_operational_use: bool = False
     automatic_recovery_supported: bool = False
+
+
+@dataclass(frozen=True, kw_only=True, slots=True)
+class _SourceReviewRecordBasis:
+    study_id: str
+    document_sha256: str
+    purpose: str
+    revocation_target_sha256: str
+    audit_logical_id: str
+    audit_sha256: str
+
+
+@dataclass(frozen=True, kw_only=True, slots=True)
+class _SelectionRecordBasis:
+    """Actual private observation for recording, never a reusable permission."""
+    bundle_digest: str
+    input_archive_digest: str
+    attestation_sha256: str
+    revocation_target_sha256: str
+    family_sha256: str
+    selected_study_id: str
+    program_sha256: str
+    protocol_sha256: str
+    evidence_sha256: str
+    profile_contract_sha256: str
+    rule_terms_sha256: str
+    window_sha256: str
+    driver_identity_sha256: str
+    source_reviews: tuple[_SourceReviewRecordBasis, ...]
+    evaluated_at: datetime
+    approval_expires_at: datetime
+    started_at: datetime
+    observed_at: datetime
+    first_authority: ReviewAuthority = field(repr=False)
+    selected_authority: ReviewAuthority = field(repr=False)
 
 
 def _documents(source_reviews, audit_logical_ids):
@@ -125,7 +161,7 @@ def _implementation(candidate, result, variant, composition, document, authority
 def _authenticate_sealed_study_selection(store, bundle_digest, *, archive_attestation,
         source_reviews, audit_logical_ids, current_profile, window, history_head_root,
         history_storage_policy=None, clock, authority_provider, final_dependency_guard=None,
-        completion_dependency_guard=None):
+        completion_dependency_guard=None, selection_record_guard=None):
     """Evaluate sealed originals once and authenticate a fixed research selection.
 
     Caller-created assessments/results/providers are not accepted as trust. The
@@ -134,6 +170,8 @@ def _authenticate_sealed_study_selection(store, bundle_digest, *, archive_attest
     all operational gates remain outside this display-only result.
     """
     _need(type(store) is BundleStore, 'SEALED_SELECTION_STORE_REQUIRED')
+    _need(selection_record_guard is None or callable(selection_record_guard),
+          'SEALED_SELECTION_RECORD_GUARD_INVALID')
     _need(type(authority_provider) is CurrentOwnerAuthority and callable(clock)
           and getattr(authority_provider, '_clock', None) is clock, 'SEALED_SELECTION_ACTUAL_PROVIDER_REQUIRED')
     _need(type(archive_attestation) is bytes, 'SEALED_SELECTION_DOCUMENT_BYTES_REQUIRED')
@@ -215,11 +253,53 @@ def _authenticate_sealed_study_selection(store, bundle_digest, *, archive_attest
         # actual journal bytes additionally catches same-size legacy corruption.
         composition.history._durable_unchanged()
         composition.history._replay(composition.identity, install=False)
+    if composition is not None and selection_record_guard is not None:
+        _need(authenticated.source_reviews_authenticated
+              and selected in authenticated.authenticated_study_ids,
+              'SEALED_SELECTION_SELECTED_REVIEW_REQUIRED')
+        # Bind the detached documents actually checked against the entire issued
+        # family. Caller mappings and constructed result objects are not reread.
+        reviewed = tuple(_SourceReviewRecordBasis(study_id=identifier,
+            document_sha256=hashlib.sha256(documents[identifier]).hexdigest(),
+            purpose=bodies[identifier]['purpose'],
+            revocation_target_sha256=revocation_target(documents[identifier],
+                purpose=bodies[identifier]['purpose']),
+            audit_logical_id=audits[identifier], audit_sha256=bodies[identifier]['audit_sha256'])
+            for identifier in sorted(authenticated.authenticated_study_ids))
+        expires = min(_time(datetime.fromisoformat(body['expires_at'])) for body in
+                      (envelope['body'], *(bodies[item.study_id] for item in reviewed)))
+        identity = composition.identity
+        basis = _SelectionRecordBasis(bundle_digest=bundle_digest,
+            input_archive_digest=snapshot.input_archive_digest, attestation_sha256=document_digest,
+            revocation_target_sha256=target,
+            family_sha256=bodies[selected]['request']['family_commitment']['family_sha256'],
+            selected_study_id=selected, program_sha256=identity.program_digest,
+            protocol_sha256=identity.protocol_digest, evidence_sha256=evidence_digest(results[selected]),
+            profile_contract_sha256=identity.profile_contract_digest,
+            rule_terms_sha256=identity.rule_terms_digest, window_sha256=identity.deployment_window_digest,
+            driver_identity_sha256=control_digest(identity), source_reviews=reviewed,
+            evaluated_at=snapshot.evaluated_at, approval_expires_at=expires,
+            started_at=started, observed_at=last_observation,
+            first_authority=first, selected_authority=observed)
+        _need(selection_record_guard(basis) is None, 'SEALED_SELECTION_RECORD_GUARD_INVALID')
     if final_dependency_guard is not None:
         final_dependency_guard()
+    if composition is not None and selection_record_guard is not None:
+        # Recording and dependency checks can perform I/O. Re-read actual history
+        # after that work; callable identity alone does not authenticate its bytes.
+        composition.history._durable_unchanged()
+        composition.history._replay(composition.identity, install=False)
     observed_at = _time(clock())
     _need(observed_at >= last_observation, 'SEALED_SELECTION_CLOCK_ROLLBACK')
-    latest = authority_provider(observed_at)
+    if selection_record_guard is not None:
+        # A checkpoint observation retains its actual completion watermark.
+        # The first actual owner observation supplies this restrictive prefix;
+        # no caller checkpoint or new authorization interval is introduced.
+        latest = authority_provider.observe_checkpoint(observed_at,
+            key_fingerprint=first.context.owner.fingerprint, code_hash=first.context.code_hash,
+            owner_head=first.context.owner.head)
+    else:
+        latest = authority_provider(observed_at)
     _archive(archive_attestation, latest, observed_at, target)
     _archive(archive_attestation, first, observed_at, target)
     for identifier in authenticated.authenticated_study_ids:
@@ -234,11 +314,16 @@ def _authenticate_sealed_study_selection(store, bundle_digest, *, archive_attest
                      _time(datetime.fromisoformat(body['expires_at']))) for body in (envelope['body'], *bodies.values()))
     rule_observed_at = _time(profile.instrument_rules.asof)
     revocation_head = latest.context.owner.head
+    completion_bound = None
     if completion_dependency_guard is not None:
-        completion_dependency_guard()
+        completion_bound = completion_dependency_guard()
+        if completion_bound is not None:
+            completion_bound = _time(completion_bound)
+    owner_completed_at = _time(authority_provider._last)
     # Only bounded primitive comparisons follow this completion clock.
     finished = _time(clock())
-    _need(finished >= observed_at, 'SEALED_SELECTION_CLOCK_ROLLBACK')
+    _need(finished >= observed_at and finished >= owner_completed_at
+          and (completion_bound is None or finished >= completion_bound), 'SEALED_SELECTION_CLOCK_ROLLBACK')
     day = finished.astimezone(compliance.KST).date()
     for original_at, original_day in observations:
         _need(timedelta(0) <= finished-original_at <= timedelta(seconds=MAX_AUTHORITY_AGE_SECONDS),

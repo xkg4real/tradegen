@@ -284,7 +284,8 @@ def _incident_writer_nodes(tree, relative):
     incident_module = Path(relative).name in {
         "research_incident_store.py", "research_incident_monitor.py", "research_incident_cli.py",
         "research_incidents.py", "incident_aware_selection.py", "research_recovery.py",
-        "research_recovery_store.py", "research_recovery_attempts.py", "research_recovery_cli.py"}
+        "research_recovery_store.py", "research_recovery_attempts.py", "research_recovery_cli.py",
+        "recovered_study_selection.py"}
     if relative in STORE_WRITE_SPECS:
         owner, calls, opener, flag_source, setup_targets = STORE_WRITE_SPECS[relative]
         restricted |= {"_append", "_backup", "write", "compare_and_set", "_FLAGS"}
@@ -1192,7 +1193,8 @@ def test_incident_dynamic_helper_and_buffered_writes_cannot_gain_unreviewed_call
     ):
         assert problems(source.replace(before, replacement), RESEARCH_INCIDENT_STORE), replacement
     for relative in ("execution_launch/research_incident_monitor.py", "execution_launch/research_incident_cli.py",
-                     "execution_launch/incident_aware_selection.py", "execution_launch/research_incidents.py"):
+                     "execution_launch/incident_aware_selection.py", "execution_launch/research_incidents.py",
+                     "execution_launch/recovered_study_selection.py"):
         for extra in snippets:
             assert problems(extra, relative), (relative, extra)
 
@@ -1210,6 +1212,7 @@ def test_incident_cas_is_exactly_one_commit_call_with_no_other_authority():
         assert problems(source + "\n" + extra + "\n", RESEARCH_INCIDENT_STORE), extra
     for relative in ("execution_launch/research_incident_monitor.py", "execution_launch/research_incident_cli.py",
                      "execution_launch/incident_aware_selection.py", "execution_launch/research_incidents.py",
+                     "execution_launch/recovered_study_selection.py",
                      "execution_launch/nested/research_incident_store.py"):
         assert "trusted head advance outside pinned callers" in problems(exact, relative), relative
 
@@ -1229,7 +1232,8 @@ def test_incident_provisioning_has_only_explicit_operator_callers_and_no_runtime
                 'from tools.owner import research_incidents as setup')
     for extra in snippets:
         for relative in (RESEARCH_INCIDENT_STORE, "execution_launch/research_incident_cli.py",
-                         "execution_launch/research_incident_monitor.py", "execution_launch/incident_aware_selection.py"):
+                         "execution_launch/research_incident_monitor.py", "execution_launch/incident_aware_selection.py",
+                         "execution_launch/recovered_study_selection.py"):
             assert _incident_operator_problems(ast.parse(extra), relative), (relative, extra)
         assert _incident_operator_problems(ast.parse(source + "\n" + extra + "\n"), OWNER_INCIDENT_SETUP), extra
     for before, after in (('store.provision_empty()', 'store.provision_empty(other)'),
