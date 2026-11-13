@@ -1,0 +1,20 @@
+{
+  "label": "committed-generation-final-related",
+  "head": "a88ab967fb71a5be55722be01260b1fdffa84f1b",
+  "source_hash": "8e1ec8ced66cc3131bc619fa2f75b7d78c54769d945e9f6d7b37364db1b392af",
+  "total": 312,
+  "counts": {
+    "PASS": 312,
+    "FAIL": 0,
+    "NOT_RUN": 0
+  },
+  "process_segments": 1,
+  "seconds": 740.398,
+  "current_segment_seconds": 740.398,
+  "sum_test_seconds": 737.23,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "real_homes_check_scope": "metadata before imports/discovery through completion",
+  "failures": []
+}

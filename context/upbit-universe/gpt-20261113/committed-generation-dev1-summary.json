@@ -1,0 +1,45 @@
+{
+  "label": "committed-generation-dev1",
+  "head": "61b2b20bb4ae48ed063fb6007205cecf2f30fe02",
+  "source_hash": "65affd1d1f2698b1e374167e1713718af2de4e470e96f94269f84feaeb11c062",
+  "total": 115,
+  "counts": {
+    "PASS": 111,
+    "FAIL": 4,
+    "NOT_RUN": 0
+  },
+  "process_segments": 1,
+  "seconds": 81.804,
+  "current_segment_seconds": 81.804,
+  "sum_test_seconds": 77.87,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "real_homes_check_scope": "metadata before imports/discovery through completion",
+  "failures": [
+    {
+      "test": "launch/launch_committed_generation/test_midnight_and_recovery_cutoff_keep_actual_original_times_and_latches",
+      "status": "FAIL",
+      "seconds": 2.2498,
+      "detail": "AssertionError: "
+    },
+    {
+      "test": "launch/launch_committed_generation/test_midnight_successor_preserves_prior_day_open_conflict_in_historical_prefix",
+      "status": "FAIL",
+      "seconds": 1.2057,
+      "detail": "AssertionError: "
+    },
+    {
+      "test": "control/control_guards/test_renewal_effect_closure_rejects_source_io_clock_aliases_and_import_time_effects",
+      "status": "FAIL",
+      "seconds": 0.2446,
+      "detail": "AssertionError: "
+    },
+    {
+      "test": "control/control_guards/test_renewal_validation_has_only_reviewed_pure_calls_and_import_surfaces",
+      "status": "FAIL",
+      "seconds": 0.0577,
+      "detail": "AssertionError: "
+    }
+  ]
+}
