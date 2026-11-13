@@ -1,0 +1,20 @@
+{
+  "label": "carry-full-final",
+  "head": "2b1de13227a8985620f253260dd2ab836a498d0f",
+  "source_hash": "3001278c9174a007be7d5531cbedf3f643a6d6dd11b5044a73316d6d7877d36b",
+  "total": 3071,
+  "counts": {
+    "PASS": 2936,
+    "FAIL": 0,
+    "NOT_RUN": 135
+  },
+  "process_segments": 1,
+  "seconds": 1385.116,
+  "current_segment_seconds": 1385.116,
+  "sum_test_seconds": 1366.443,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "real_homes_check_scope": "metadata before imports/discovery through completion",
+  "failures": []
+}

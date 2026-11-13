@@ -4,17 +4,17 @@ reason: owner_requested_continue_pr4e_and_protective_p2
 from: gpt
 task: upbit-universe
 cycle: 2026-11-10
-done_ids: universe-pr4e, protective-hold/p2-store-integration, universe-pr5/outcome-document-contract, protective-hold/p2-store, protective-hold/p1, universe-pr4d/lossless-history, universe-pr4d, universe-pr4d/lossless-objects, design-revision-1113, upbit-universe-return-1113, universe-pr4d/original-verification, workflow-resume-1113/regression-preparation, universe-pr4d/task2-implementation, universe-pr4d/task3, universe-pr4d/task4, universe-pr4c, universe-pr4d/task1, workflow-resume-1113, workflow-resume-1113/dependencies, universe-pr4c/implementation, universe-pr0, universe-pr1, universe-pr2, universe-pr3, universe-pr4b, universe-pr4a
-next_ids: protective-hold/fixed-carry-v2, universe-pr5/family-preflight, protective-hold/p2-integration, universe-pr5, universe-pr5-clock-notify, universe-code-approve, policy-loss-budget-plan-1, rules-review-1202, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, launch-private-capture-setup-1, e1-14-owner-setup, launch-prospective-study, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1
-updated_at: 2026-11-13T22:46:57+09:00
+done_ids: protective-hold/fixed-carry-v2, universe-pr4e, protective-hold/p2-store-integration, universe-pr5/outcome-document-contract, protective-hold/p2-store, protective-hold/p1, universe-pr4d/lossless-history, universe-pr4d, universe-pr4d/lossless-objects, design-revision-1113, upbit-universe-return-1113, universe-pr4d/original-verification, workflow-resume-1113/regression-preparation, universe-pr4d/task2-implementation, universe-pr4d/task3, universe-pr4d/task4, universe-pr4c, universe-pr4d/task1, workflow-resume-1113, workflow-resume-1113/dependencies, universe-pr4c/implementation, universe-pr0, universe-pr1, universe-pr2, universe-pr3, universe-pr4b, universe-pr4a
+next_ids: universe-pr5/family-preflight, universe-pr5/raw-verified-bundles, protective-hold/p2-integration, universe-pr5, universe-pr5-clock-notify, universe-code-approve, policy-loss-budget-plan-1, rules-review-1202, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, launch-private-capture-setup-1, e1-14-owner-setup, launch-prospective-study, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1
+updated_at: 2026-11-13T23:01:56+09:00
 stale_after_hours: 3
 waiting_on: no prior approval question; future PLB S1-S12 and deployment inputs only
-work_branch: gpt/research-family-preflight
-work_commit: 2879b536d883d42206c827fc6f650ee2ca135d8f
-merged_main_commit: 5217f1e7977fab170a5453ad1ac8d4fc58521dc6
-runtime_tested_commit: A0b123PASS source599e196f; carry final full3071 running on2b1de13/source3001278c; A0b full3103 running on2879b53
-uncommitted_changes: carry and A0b source clean/pushed; sealed-bundle readiness is documentation only, no implementation yet
-pr: PR39 and stacked PR40 draft with complete regressions running; PR34-38 merged
+work_branch: gpt/protective-fixed-carry-v2
+work_commit: fcb42f7457cbb85422cbd748b39cf5fef04aab72
+merged_main_commit: 42ff86b9e8b7e6ab4c506d8abe91f504bbe02591
+runtime_tested_commit: carry2b1de13 full3071=2936PASS/0FAIL/135NR, source3001278c; A0b2879b53 focused123PASS and full3103 ongoing
+uncommitted_changes: B1a archive/receipt/store/adapter active in isolated local tree on2879b53; not yet a delivered implementation
+pr: PR39 merged; PR40 retargeted main, draft full regression ongoing; PR34-38 merged
 usage_weekly_pct: unknown
 usage_source: unavailable
 handoff_threshold_pct: 95
@@ -138,3 +138,13 @@ A0b runtime2879b536d883d42206c827fc6f650ee2ca135d8f/source599e196fa192193299c2b4
 PR40은PR39브랜치를base로한stacked draft이며39병합후main으로retarget한다. 새helper/strategy검증분리와study/select-reviewed소비경로를실제로연결했으나기존승인형식/통계임계/위험한도는그대로다. full3103은family-full label,execsession20430,/workspace/tradegen-session/research-family-1113에서진행중. Carry full-final3071은execsession95772에서계속진행중이며이둘의실행중트리는수정하지않는다.
 
 후속sealedbundle은protective_hold_design이readiness문서만작성중이다. 성공연구만보관하지않고실패/불완전원본의미검증보관과승인·선발제외까지검토한다. 아직코드작업/PR/완료아님. 실제서명된manifest·독립trust·정확원본자동복구를미구현상태에서완료라고부르지않는다.
+
+## 2026-11-13 PR39 완료 및 PR5 저장 구현 체크포인트
+
+- PR39 https://github.com/xkg4real/tradegen/pull/39 병합 완료. main `42ff86b9e8b7e6ab4c506d8abe91f504bbe02591`, 문서 head `fcb42f7457cbb85422cbd748b39cf5fef04aab72`. 병합 tree와 전달 head tree는 정확히 일치한다. runtime `2b1de13`, source fingerprint `3001278c9174a007be7d5531cbedf3f643a6d6dd11b5044a73316d6d7877d36b`도 유지.
+- 완전 회귀 3,071개: 2,936 PASS / 0 FAIL / 135 NOT_RUN, 단일 연속 프로세스 1,385.116초. 기존 PR4e 2,907개 ID/상태 모두 유지. 19 KEYLESS, import/discovery 전부터 실제 홈 metadata와 source 불변, QA bytes 복원. macro121/Windows14 NOT_RUN은 통과 아님. 모든 자료는 합성·테스트 키이며 실계좌/주문 없음.
+- PR40 https://github.com/xkg4real/tradegen/pull/40 은 main으로 base만 변경했다. source `2879b53`/`599e196f` 전체 3,103개 검사가 session20430에서 계속 중이다. 동결 트리에 runtime 편집 금지. 통과 후 main의 문서 커밋만 통합하고 source fingerprint 대조→최종 검증 기록→push/병합.
+- B1a는 별도 `/workspace/tradegen-research-bundle-1113`, branch `gpt/research-bundle-archive`, base `2879b53`에서 구현 중이다. receipt·strict format·catalog/head+복사 backup store·actual A0b adapter/명시 operator utility를 분담했다. 전체 B1a는 아직 테스트/커밋/전달 완료가 아니다.
+- receipt 개발 첫 검사 13 PASS / 1 FAIL: shared json.loads 전체 patch가 정상 plan decode까지 차단한 테스트 계측 오류. 로그 decoder에 한정해 수정한 뒤 format24+receipt14의 38 PASS를 확인했다. 독립 형식 검토로 삭제된 limits slot 진단 정규화와 1개 검사를 추가해 최종 합동 재검증 대기다. 개별 개발 결과를 전체 저장 시스템 PASS로 확대하지 않는다.
+- 저장된 VERIFIED_UNAPPROVED나 dataclass는 권한이 아니다. sealed 재사용은 backup 포함 전체 raw graph·source·receipt·실제 평가를 다시 검증해야 한다. 새 manifest 승인/정확 원본 자동복구/Telegram-WebAuthn/실전 활성화는 미구현 경계다. head 초기화는 명시 operator utility만 허용하고 runtime 자동 초기화/재고정은 금지한다.
+- 작업 계속 중이므로 status=taken. 주간 사용량은 조회수단 없음으로 unknown이며 95%에 도달했다고 추측하지 않는다.
