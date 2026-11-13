@@ -522,7 +522,7 @@ def test_store_process_exception_is_exact_and_rejects_new_effects():
 
 
 def test_committed_reader_imports_are_exact_and_confined_to_existing_controller_methods():
-    assert not _problems(CONTROLLER, (ROOT / CONTROLLER).read_text())
+    assert not _problems(CONTROLLER, (ROOT / CONTROLLER).read_text(encoding="utf-8"))
     for module, (function, names) in COMMITTED_IMPORTS.items():
         names = sorted(names)
         statement = "from " + module + " import " + ", ".join(names)
