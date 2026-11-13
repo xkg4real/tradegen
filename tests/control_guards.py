@@ -73,6 +73,7 @@ COMMITTED_IMPORTS = {
     "execution_launch.committed_account": ("_account", frozenset({"CommittedAccountProvider", "CommittedAccountProjection"})),
     "execution_accounts.model": ("_committed_context", frozenset({"content_digest"})),
     "execution_launch.continuous_guard": ("_committed_context", frozenset({"OwnerContextClaim"})),
+    "execution_accounts.instrument_terms": ("_completion_recheck", frozenset({"observation_for_rules"})),
 }
 
 
@@ -93,6 +94,12 @@ def _function_owners(tree, target, owners=()):
 def _committed_import(rel, node, tree):
     if rel != CONTROLLER or not isinstance(node, ast.ImportFrom) or node.level:
         return False
+    # Constructor admission needs only the exact provider type to require the
+    # explicit completion clock. Projection consumption stays in _account.
+    if (node.module == "execution_launch.committed_account"
+            and _function_owners(tree, node) == ("class:Controller", "__init__")):
+        return (len(node.names) == 1 and node.names[0].name == "CommittedAccountProvider"
+                and node.names[0].asname is None)
     expected = COMMITTED_IMPORTS.get(node.module)
     if expected is None:
         return False
@@ -523,6 +530,28 @@ def test_store_process_exception_is_exact_and_rejects_new_effects():
 
 def test_committed_reader_imports_are_exact_and_confined_to_existing_controller_methods():
     assert not _problems(CONTROLLER, (ROOT / CONTROLLER).read_text(encoding="utf-8"))
+    admission = ("class Controller:\n    def __init__(self):\n"
+                 "        from execution_launch.committed_account import CommittedAccountProvider\n")
+    assert not _problems(CONTROLLER, admission)
+    for source in (
+        admission.replace("CommittedAccountProvider", "CommittedAccountProjection"),
+        admission.replace("CommittedAccountProvider", "CommittedAccountProvider, CommittedAccountProjection"),
+        admission.replace("CommittedAccountProvider", "CommittedAccountProvider as provider"),
+        admission.replace("CommittedAccountProvider", "CommittedAccountProvider as CommittedAccountProvider"),
+        admission.replace("CommittedAccountProvider", "*"),
+        admission.replace("CommittedAccountProvider", "CommittedAccountProvider, publish"),
+        admission.replace("class Controller:", "class Unrelated:"),
+        admission.replace("def __init__", "def unrelated"),
+        admission.replace("execution_launch.committed_account", "execution_launch.continuous_guard_commit"),
+        admission.replace("from execution_launch", "from .execution_launch"),
+        "from execution_launch.committed_account import CommittedAccountProvider\n",
+        "class Controller:\n    def __init__(self):\n        def nested():\n"
+        "            from execution_launch.committed_account import CommittedAccountProvider\n",
+    ):
+        assert _problems(CONTROLLER, source), source
+    for relative in ("execution_control/probe.py", "execution_control/nested/controller.py",
+                     "execution_control/session.py", "execution_orders/probe.py"):
+        assert _problems(relative, admission), relative
     for module, (function, names) in COMMITTED_IMPORTS.items():
         names = sorted(names)
         statement = "from " + module + " import " + ", ".join(names)
@@ -539,7 +568,12 @@ def test_committed_reader_imports_are_exact_and_confined_to_existing_controller_
         assert _problems("execution_control/session.py", wrapped)
     for module in ("execution_launch.committed_account", "execution_accounts.model",
                    "execution_launch.continuous_guard", "execution_launch.continuous_guard_commit",
-                   "execution_accounts.baseline_bridge"):
+                   "execution_accounts.baseline_bridge", "execution_accounts.instrument_terms"):
         assert _problems(CONTROLLER, "import " + module)
     assert _problems(CONTROLLER, "class Controller:\n    def _account(self):\n        from execution_launch.continuous_guard_commit import commit_continuous_guard")
     assert _problems(CONTROLLER, "class Controller:\n    def _account(self):\n        from execution_accounts.baseline_bridge import ContinuousAccountProvider")
+    for name in ("E1UpbitTermsSource", "validate_issued_observation", "observation_for_rules, E1UpbitTermsSource"):
+        assert _problems(CONTROLLER, "class Controller:\n    def _completion_recheck(self):\n"
+                         "        from execution_accounts.instrument_terms import " + name)
+    assert _problems(CONTROLLER, "class Controller:\n    def __init__(self):\n"
+                     "        from execution_accounts.instrument_terms import observation_for_rules")
