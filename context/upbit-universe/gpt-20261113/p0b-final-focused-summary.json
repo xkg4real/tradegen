@@ -1,0 +1,16 @@
+{
+  "label": "p0b-final-focused",
+  "head": "6be78659b164ba08334111f592a0bbbede32428b",
+  "source_hash": "308ff5e1097a6e3960b83bae5ab723c61d453cfdaffef1f61af7c8c4864dd98b",
+  "total": 213,
+  "counts": {
+    "PASS": 213,
+    "FAIL": 0,
+    "NOT_RUN": 0
+  },
+  "seconds": 20.303,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "failures": []
+}

@@ -1,0 +1,59 @@
+{
+  "label": "p0b-first-focused",
+  "head": "6be78659b164ba08334111f592a0bbbede32428b",
+  "source_hash": "368b21dc0184174963061cd90e743fbc03ca5b7a7c2808dc475513738331d5e9",
+  "total": 332,
+  "counts": {
+    "PASS": 324,
+    "FAIL": 7,
+    "NOT_RUN": 1
+  },
+  "seconds": 138.548,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "failures": [
+    {
+      "test": "launch/launch_universe_history/test_each_bar_is_checked_at_its_own_coin_and_tick_and_a_bookless_bar_never_anchors",
+      "status": "FAIL",
+      "seconds": 0.0532,
+      "detail": "LiveHistoryError: HISTORY_TICK_IN_FUTURE"
+    },
+    {
+      "test": "launch/launch_universe_history/test_history_row_v2_records_the_slot_universe_and_frames_carry_it",
+      "status": "FAIL",
+      "seconds": 0.0653,
+      "detail": "LiveHistoryError: HISTORY_TICK_IN_FUTURE"
+    },
+    {
+      "test": "launch/launch_universe_history/test_legacy_v2_logical_replay_is_read_only_and_old_identity_never_resumes_new_code",
+      "status": "FAIL",
+      "seconds": 0.0397,
+      "detail": "LiveHistoryError: HISTORY_TICK_IN_FUTURE"
+    },
+    {
+      "test": "launch/launch_universe_history/test_oversized_logical_row_preserves_valid_flags_tickers_allow_and_book",
+      "status": "FAIL",
+      "seconds": 0.1931,
+      "detail": "LiveHistoryError: HISTORY_TICK_IN_FUTURE"
+    },
+    {
+      "test": "launch/launch_universe_history/test_prior_decision_is_recomputed_from_the_inputs_the_frame_carries",
+      "status": "FAIL",
+      "seconds": 0.0444,
+      "detail": "LiveHistoryError: HISTORY_TICK_IN_FUTURE"
+    },
+    {
+      "test": "launch/launch_universe_history/test_restart_replays_every_row_v2_variant",
+      "status": "FAIL",
+      "seconds": 0.0496,
+      "detail": "LiveHistoryError: HISTORY_TICK_IN_FUTURE"
+    },
+    {
+      "test": "launch/launch_universe_history/test_restart_replays_v2_rows_and_restores_the_chooser_state",
+      "status": "FAIL",
+      "seconds": 0.0586,
+      "detail": "LiveHistoryError: HISTORY_TICK_IN_FUTURE"
+    }
+  ]
+}
