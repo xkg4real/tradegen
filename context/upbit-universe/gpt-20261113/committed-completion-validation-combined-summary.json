@@ -1,0 +1,18 @@
+{
+  "unique_tests": 567,
+  "counts": {
+    "PASS": 567,
+    "FAIL": 0,
+    "NOT_RUN": 0
+  },
+  "evidence_runs": [
+    "committed-completion-final-related",
+    "committed-completion-provider-final"
+  ],
+  "single_run": false,
+  "added_test": [
+    "control/control_committed_completion/test_legacy_constructor_cannot_opt_into_committed_checks_by_replacing_provider"
+  ],
+  "final_source_hash": "bc0a6b77acfcd2ca12aa1a264036b186a3f2e699ebea3f6759a9b64fd8bc8226",
+  "runtime_commit": "9266d32af7f0a3215b3ac24f54a7dfb1e28224e8"
+}

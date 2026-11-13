@@ -1,0 +1,27 @@
+{
+  "label": "committed-completion-halt-reproduction",
+  "head": "a2e61b30daea8f4d4095ca2fc3ffeda776197df6",
+  "source_hash": "b39e258b73f23bc029a34d08dde2fe384b19711e1d547b5388de75805697d710",
+  "total": 1,
+  "counts": {
+    "PASS": 0,
+    "FAIL": 1,
+    "NOT_RUN": 0
+  },
+  "process_segments": 1,
+  "seconds": 3.121,
+  "current_segment_seconds": 3.121,
+  "sum_test_seconds": 1.054,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "real_homes_check_scope": "metadata before imports/discovery through completion",
+  "failures": [
+    {
+      "test": "control/control_committed_completion/test_existing_actual_halt_with_breached_floor_preserves_original_risk_result",
+      "status": "FAIL",
+      "seconds": 1.054,
+      "detail": "_CompletionRefused: COMMITTED_COMPLETION_AUTHORITY_REFUSED"
+    }
+  ]
+}

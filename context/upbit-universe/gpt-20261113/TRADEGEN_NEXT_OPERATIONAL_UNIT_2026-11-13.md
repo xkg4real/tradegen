@@ -71,6 +71,12 @@ error/restart/deadline 자체에서 SELL을 만들지 않는다. 기존 research
 
 완료 기준은 **현재 실제 consumer 단절을 메워 같은 검증 계좌·위험 관찰로 Runner의 모의 의사결정 및 기존 dry control을 실행**하는 것이다. 새 운영 기본값·scheduler·계좌키·소유자 승인·실주문을 만들지 않는다.
 
+현재 27개 신규 회귀의 구현 범위는 actual paired observation 소비, 실제 missing-research 거절, 명시적 dry reducing exit다. 이 범위를 실제 연구 검증을 통과한 자동 tick/자동 BUY까지 완료한 것으로 표시하지 않는다. 위 목록은 목표 계약이며, 최종 실행 결과는 별도 검증 기록으로 확정한다.
+
+가장 작은 후속 양성 회귀는 같은 committed fixture의 프로필·계좌 범위·초기 자금·호가 규칙으로 연구를 다시 실제 평가하고, 임시 소유자 키로 서명한 실제 review 및 CurrentOwnerAuthority, 실제 LiveHistory와 독립 head, 실제 carry driver factory를 연결한 첫 슬롯 warmup HOLD다. 기존 연구의 다른 초기 자금·lot/fee·scope를 사후 수정하거나 그 결과를 재사용하지 않는다. 실제 임계 충족 여부는 새 evaluator 실행으로 확인하고 통과 조건을 낮추지 않는다. 이 경로는 실제 DecisionInput에 같은 paired account가 도달함을 확인하지만, 진입 PreparedSession이나 실제 거래소 출처의 완전성을 발급하지 않는다. 자동 BUY 양성은 별도의 실제 세션 발급과 유효한 계좌·위험 조건을 갖춰야 하므로 이 최소 회귀의 완료 주장에 포함하지 않는다.
+
+기존 fixed/carry driver의 최초 슬롯은 보유 수량 0과 연구 초기 자금에 정확히 일치하는 현금을 요구한다(`FIXED_DRIVER_INITIAL_STATE_INVALID`). 따라서 현재 보유 fixture를 그대로 첫 슬롯에 붙일 수 없다. 이 양성 회귀는 synthetic 원본의 현금·빈 보유/체결/주문 페이지·valuation inputs를 처음부터 flat 상태로 구성한 뒤 실제 coverage 입력 결합·가치 계산·baseline/guard commit·provider를 거친 변형을 사용한다. 발급된 AccountObservation만 고쳐 초기 상태 검사를 통과시키거나 기존 정책을 완화하지 않는다.
+
 ## 그 뒤에도 남는 최소 외부/운영 조건
 
 실제 Upbit 계좌 identity/history retention와 현재 continuous coverage 계약을 충족하는 생산 source adapter가 아직 없다. 이는 코드에 이미 요구된 계약이며 이 카드에서 더 강한 보장을 추가하지 않는다. 지원 가능한 공급 자료의 의미를 조사·구현해야 하며 로컬 서명이나 사용자 입력 한 줄로 완전성을 간주할 수 없다.

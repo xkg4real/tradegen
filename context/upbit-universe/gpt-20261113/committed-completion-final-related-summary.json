@@ -1,0 +1,20 @@
+{
+  "label": "committed-completion-final-related",
+  "head": "f3d9a530d60ad56c0b6b3aece07dd87313c516e6",
+  "source_hash": "42719d6fb3effab2e9a6c3fc48d07a50069d48b3f90fe1b5a78dac3935d84cde",
+  "total": 566,
+  "counts": {
+    "PASS": 566,
+    "FAIL": 0,
+    "NOT_RUN": 0
+  },
+  "process_segments": 1,
+  "seconds": 1129.753,
+  "current_segment_seconds": 1129.753,
+  "sum_test_seconds": 1126.287,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "real_homes_check_scope": "metadata before imports/discovery through completion",
+  "failures": []
+}

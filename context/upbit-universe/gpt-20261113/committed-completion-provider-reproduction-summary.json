@@ -1,0 +1,27 @@
+{
+  "label": "committed-completion-provider-reproduction",
+  "head": "f3d9a530d60ad56c0b6b3aece07dd87313c516e6",
+  "source_hash": "d2056f50e4e200b453dc4dd8cef8fdc1e0430528733c44181178f825852819d4",
+  "total": 1,
+  "counts": {
+    "PASS": 0,
+    "FAIL": 1,
+    "NOT_RUN": 0
+  },
+  "process_segments": 1,
+  "seconds": 3.307,
+  "current_segment_seconds": 3.307,
+  "sum_test_seconds": 1.23,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "real_homes_check_scope": "metadata before imports/discovery through completion",
+  "failures": [
+    {
+      "test": "control/control_committed_completion/test_legacy_constructor_cannot_opt_into_committed_checks_by_replacing_provider",
+      "status": "FAIL",
+      "seconds": 1.2305,
+      "detail": "AssertionError: completion boundary unexpectedly admitted the operation"
+    }
+  ]
+}

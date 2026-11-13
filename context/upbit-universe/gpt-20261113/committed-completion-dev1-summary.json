@@ -1,0 +1,33 @@
+{
+  "label": "committed-completion-dev1",
+  "head": "a2e61b30daea8f4d4095ca2fc3ffeda776197df6",
+  "source_hash": "9ac3c9fa5d6e73b8fec3136c390f74cd73a9a48dea699b16a85a47789e0c049a",
+  "total": 64,
+  "counts": {
+    "PASS": 62,
+    "FAIL": 2,
+    "NOT_RUN": 0
+  },
+  "process_segments": 1,
+  "seconds": 92.832,
+  "current_segment_seconds": 92.832,
+  "sum_test_seconds": 89.937,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "real_homes_check_scope": "metadata before imports/discovery through completion",
+  "failures": [
+    {
+      "test": "control/control_committed_completion/test_genuine_observed_terms_expiry_is_checked_after_actual_final_owner_load",
+      "status": "FAIL",
+      "seconds": 1.1053,
+      "detail": "AssertionError: "
+    },
+    {
+      "test": "control/control_committed_account/test_legacy_cancel_and_reconcile_do_not_gain_new_committed_owner_requirements",
+      "status": "FAIL",
+      "seconds": 0.9978,
+      "detail": "_CompletionRefused: COMMITTED_COMPLETION_AUTHORITY_REFUSED"
+    }
+  ]
+}
