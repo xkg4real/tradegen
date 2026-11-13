@@ -24,6 +24,7 @@ Nothing here loads owner context, signs, arms, orders, reads credentials or touc
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+from copy import deepcopy
 from datetime import datetime, time, timedelta
 from decimal import Decimal, DecimalException, Inexact, localcontext
 from threading import Lock
@@ -34,7 +35,7 @@ from execution_accounts.baseline import BaselineError, BaselineInterval, Baselin
 from execution_accounts.baseline_bridge import BaselineFrame, advance_account_baseline
 from execution_accounts.collector import CoverageEvidence, OpeningAnchor, SourceReceipt, TradeFeeEvidence, instant
 from execution_accounts.model import AccountEvidence, RiskBaseline, content_digest
-from execution_accounts.continuous import (ContinuousEvidenceError, ContinuousPath, PathValuation, VerifiedCoverage, value_path, verify_coverage)
+from execution_accounts.continuous import (COVERAGE_CONTRACT, MAX_DURATION, CoverageRequest, ContinuousEvidenceError, ContinuousPath, PathValuation, VerifiedCoverage, value_path, verify_coverage)
 from execution_launch.continuous_archive import archive_candidate
 from execution_control.risk import account_fills
 from execution_accounts.provider import EvidenceError, _fresh, build_observation
@@ -235,6 +236,29 @@ class StagedContinuousCandidate:
     path_sha256: str
     manifest_sha256: str
     observed_at: datetime
+    capture: ContinuousCapture
+    anchor: OpeningAnchor
+    collection_coverage: CoverageEvidence
+    trade_fees: tuple[TradeFeeEvidence, ...]
+    collection_requested_at: datetime
+    collection_clock: tuple[datetime, ...]
+    collection_baseline_sha256: str
+
+    @property
+    def first_received_at(self):
+        return self.capture.receipts[0].received_at
+
+    @property
+    def collection_started_at(self):
+        return self.collection_clock[0]
+
+    @property
+    def collection_completed_at(self):
+        return self.collection_clock[1]
+
+    @property
+    def execution_ready(self):
+        return False
 
 
 def preview_continuous_upbit_interval(previous: BaselineState, collection: CollectionResult,
@@ -253,7 +277,8 @@ def preview_continuous_upbit_interval(previous: BaselineState, collection: Colle
 
 
 def _preview_continuous_upbit_interval(previous: BaselineState, collection: CollectionResult,
-                                    path: ContinuousPath, *, coverage_verifier, now: datetime) -> ContinuousIntervalPreview:
+                                    path: ContinuousPath, *, coverage_verifier, now: datetime,
+                                    retained_coverage: VerifiedCoverage | None = None) -> ContinuousIntervalPreview:
     """A held-position candidate after independently authenticated complete-path evidence.
 
     The original fenced capture reconciles cash, positions, history and fees.
@@ -331,8 +356,27 @@ def _preview_continuous_upbit_interval(previous: BaselineState, collection: Coll
             endpoint = replace(endpoint, positions=tuple(replace(position, price=marks[position.symbol].price,
                 asof=end) for position in endpoint.positions))
             accounts = (endpoint,)
-        proof = verify_coverage(path, account_capture_sha256=content_digest((collection.manifest_sha256,
-                                collection.bundle.accounts, accounts)), verifier=coverage_verifier, now=now)
+        capture_sha = content_digest((collection.manifest_sha256, collection.bundle.accounts, accounts))
+        if retained_coverage is None:
+            proof = verify_coverage(path, account_capture_sha256=capture_sha,
+                                    verifier=coverage_verifier, now=now)
+        else:
+            # Audit replay checks an EXISTING external claim's binding. It does
+            # not call a verifier, issue a new proof or refresh verified_at.
+            _require(coverage_verifier is None and type(retained_coverage) is VerifiedCoverage,
+                     "ACCOUNT_INTERVAL_REPLAY_CLAIM_REQUIRED")
+            from execution_accounts.collector import digest
+            request = CoverageRequest(path_sha256=content_digest(path), account_capture_sha256=capture_sha,
+                account_scope=path.account_scope, stream_epoch=path.stream_epoch, start=path.start, end=path.end,
+                first_sequence=path.first_sequence, watermark_sequence=path.watermark_sequence)
+            digest(retained_coverage.authority_sha256); digest(retained_coverage.source_proof_sha256)
+            instant(retained_coverage.verified_at)
+            _require(retained_coverage.request_sha256 == content_digest(request)
+                     and retained_coverage.contract == COVERAGE_CONTRACT,
+                     "CONTINUOUS_COVERAGE_BINDING_MISMATCH")
+            _require(path.watermark_received_at <= retained_coverage.verified_at <= now
+                     and now-path.end <= MAX_DURATION, "CONTINUOUS_COVERAGE_STALE_OR_FUTURE")
+            proof = retained_coverage
         _require(proof.verified_at >= observed, "ACCOUNT_INTERVAL_COVERAGE_BEFORE_CAPTURE")
         interval = BaselineInterval(account_scope=previous.account_scope, sequence=previous.sequence+1,
             previous_state_digest=previous.state_digest, start=previous.asof, end=end,
@@ -378,7 +422,11 @@ class ContinuousUpbitCandidateSource:
                      "ACCOUNT_INTERVAL_INPUT_REQUIRED")
             _require(getattr(collector_source, "account_scope", None) == previous.account_scope,
                      "ACCOUNT_INTERVAL_SCOPE_MISMATCH")
+            from execution_launch.guard_capture_material import (
+                _snapshot_inputs, _retain_capture, _admit_tree, _admit_preview)
+            _admit_tree(previous)
             exported = risk_baseline(previous, now=previous.asof, expected_head=previous.state_digest)
+            previous = deepcopy(previous)
             started = instant(clock())
             boundary, midnight = _pending_boundary(previous)
             _require(started <= boundary, "ACCOUNT_INTERVAL_BOUNDARY_MISSED")
@@ -386,20 +434,36 @@ class ContinuousUpbitCandidateSource:
             # Collector self-check only; no opening baseline is published. The
             # bridge subsequently derives the true midnight opening from the path.
             baseline = _opening_collection_baseline(previous, boundary) if in_window and midnight else exported
+            anchor, coverage, trade_fees = _snapshot_inputs(anchor, coverage, trade_fees)
+            baseline_sha = content_digest(baseline)
+            collection_times = []
+            def capture_clock():
+                _require(len(collection_times) < 2, "ACCOUNT_INTERVAL_COLLECTION_CLOCK_INVALID")
+                value = clock()
+                instant(value)
+                collection_times.append(value)
+                return value
             collection = collect_upbit(collector_source, anchor=anchor, coverage=coverage, risk_baseline=baseline,
-                                       clock=clock, trade_fees=trade_fees)
-            observed = collection.bundle.accounts[0].observed_at
+                                       clock=capture_clock, trade_fees=trade_fees)
+            _require(len(collection_times) == 2, "ACCOUNT_INTERVAL_COLLECTION_CLOCK_INVALID")
+            capture = _retain_capture(collection)
+            observed = capture.observed_at
             end = min(observed, boundary)
-            capture = ContinuousCapture(accounts=collection.bundle.accounts, receipts=collection.receipts,
-                                        manifest_sha256=collection.manifest_sha256, observed_at=observed)
-            path = self._path_source(previous, capture, end)
+            # Trusted integrations receive detached data, not aliases of the
+            # original evidence retained for later exact collector replay.
+            path = self._path_source(deepcopy(previous), deepcopy(capture), end)
             now = instant(clock())
             preview = preview_continuous_upbit_interval(previous, collection, path,
                                                     coverage_verifier=self._coverage_verifier, now=now)
             _require(not in_window or preview.interval.end == boundary, "ACCOUNT_INTERVAL_BOUNDARY_NOT_BRACKETED")
+            _admit_preview(preview)
+            _admit_tree(preview)
             candidate_sha = archive_candidate(path, root=self._archive_root)
-            staged = StagedContinuousCandidate(preview=preview, path_sha256=candidate_sha,
-                                               manifest_sha256=collection.manifest_sha256, observed_at=now)
+            staged = StagedContinuousCandidate(preview=deepcopy(preview), path_sha256=candidate_sha,
+                manifest_sha256=collection.manifest_sha256, observed_at=now, capture=capture,
+                anchor=anchor, collection_coverage=coverage, trade_fees=trade_fees,
+                collection_requested_at=started, collection_clock=tuple(collection_times),
+                collection_baseline_sha256=baseline_sha)
         except (AccountIntervalError, ContinuousEvidenceError, EvidenceError, BaselineError):
             raise
         except Exception:
