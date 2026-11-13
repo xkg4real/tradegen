@@ -390,7 +390,7 @@ class AssertionContext:
     expires_at: datetime
 
     def __post_init__(self):
-        need(type(self.purpose) is str and self.purpose in ("ENROLL_PROOF", "ARCHIVE_CONFIRM"),
+        need(type(self.purpose) is str and self.purpose in ("ENROLL_PROOF", "ARCHIVE_CONFIRM", "REVOKE_CREDENTIAL"),
              "PASSKEY_SCOPE_UNSUPPORTED")
         hashed(self.request_id); hashed(self.request_sha256)
         checked(self.rp, RelyingParty); checked(self.credential, CredentialMaterial)
