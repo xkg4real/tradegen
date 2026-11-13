@@ -7,6 +7,7 @@ invokes the actual family evaluator at the original evaluation time.
 """
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass, replace
 from datetime import datetime, timezone
 import hashlib
@@ -16,14 +17,15 @@ from pathlib import Path
 import re
 import stat
 import sys
+from types import MappingProxyType
 
 from execution_launch import research_bundle_format as F
 from execution_launch.research_bundle_store import BundleRoots, BundleStore, BundleStoreLimits
 from execution_launch.evidence_objects import ObjectLimits, StoreBudget, EvidenceObjectError
 from execution_launch import study as S, strategy as E
-from execution_launch.study_evidence import evaluate_study_family
+from execution_launch.study_evidence import FamilyEvaluation, evaluate_study_family
 from execution_launch.study_receipts import validate_study_receipts, receipt_audit_digest
-from execution_launch.profile import parse_profile_json, profile_digest, rule_terms_digest
+from execution_launch.profile import LaunchProfile, parse_profile_json, profile_digest, rule_terms_digest
 from execution_launch.program import program_digest
 from execution_launch.review_request import build_family_commitment
 from execution_launch.workflow import read_file, _PRIVATE
@@ -97,6 +99,20 @@ class SealedEvaluation:
     reasons: tuple[str, ...] = (_AUTH_REQUIRED,)
     manifest_authenticated: bool = False
     execution_ready: bool = False
+
+
+@dataclass(frozen=True, kw_only=True)
+class _SealedStudySnapshot:
+    """One reproduced graph and its actual issuance, never a caller trust token."""
+    bundle_digest: str
+    input_archive_digest: str
+    evaluated_at: datetime
+    plan: S.StudyPlan
+    profile: LaunchProfile
+    family: FamilyEvaluation
+    raw_manifest_bytes: bytes
+    verified_manifest_bytes: bytes
+    files: Mapping[str, bytes]
 
 
 def _safe_path(path):
@@ -436,8 +452,13 @@ def finalize_study_bundle(inputs, store, *, run_id, raw_revision_id, verified_re
         reasons=(_AUTH_REQUIRED,))
 
 
-def evaluate_sealed_study(store, bundle_digest):
-    """Historical actual re-evaluation from complete backed-up bytes, never current approval."""
+def _evaluate_sealed_study_snapshot(store, bundle_digest):
+    """Reproduce the actual sealed family once and retain its exact input graph.
+
+    This internal projection carries no approval. Consumers must obtain it here,
+    then check actual issuance and current authority; constructing the dataclass
+    or deserializing recorded metrics grants neither. No working path is read.
+    """
     _need(type(store) is BundleStore, "BUNDLE_STORE_REQUIRED")
     verified = store.read_verified(bundle_digest, require_backup=True)
     manifest = verified.manifest
@@ -450,8 +471,17 @@ def evaluate_sealed_study(store, bundle_digest):
         revision_id=manifest.revision_id, evaluated_at=manifest.evaluated_at, evaluated=evaluated)
     _need(F.verified_bundle_bytes(expected, limits=store.limits.format_limits) == verified.manifest_bytes
           and payloads == dict(verified.files), "BUNDLE_REPRODUCTION_MISMATCH")
-    return SealedEvaluation(bundle_digest=bundle_digest, input_archive_digest=manifest.input_archive_digest,
-                            evaluated_at=manifest.evaluated_at, family=evaluated[2])
+    return _SealedStudySnapshot(bundle_digest=bundle_digest, input_archive_digest=manifest.input_archive_digest,
+        evaluated_at=manifest.evaluated_at, plan=evaluated[0], profile=evaluated[1], family=evaluated[2],
+        raw_manifest_bytes=raw.manifest_bytes, verified_manifest_bytes=verified.manifest_bytes,
+        files=MappingProxyType(dict(verified.files)))
+
+
+def evaluate_sealed_study(store, bundle_digest):
+    """Historical actual re-evaluation from complete backed-up bytes, never current approval."""
+    snapshot = _evaluate_sealed_study_snapshot(store, bundle_digest)
+    return SealedEvaluation(bundle_digest=snapshot.bundle_digest, input_archive_digest=snapshot.input_archive_digest,
+                            evaluated_at=snapshot.evaluated_at, family=snapshot.family)
 
 
 def _document(raw, maximum=1024*1024):
