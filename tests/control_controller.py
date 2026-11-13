@@ -387,7 +387,13 @@ def test_h2_seoul_day_disagreement_keeps_local_latch_without_owner_write():
         boundary=env.now.replace(hour=0,minute=0,second=5)
         previous=boundary-timedelta(seconds=10)
         snapshot(env,asof=previous,server_time=boundary,risk=replace(env.observation.risk,asof=previous))
-        refused(lambda:env.controller._account(boundary,()))
+        with env.journal.transaction() as tx:
+            try:
+                env.controller._account(boundary, tx)
+            except ValueError as exc:
+                assert str(exc) == 'account or server clock is stale'
+            else:
+                raise AssertionError('previous Seoul-day account accepted')
 
 
 def test_contradictory_terminal_status_adds_no_fill_or_terminal_journal_rows():

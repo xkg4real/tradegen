@@ -20,7 +20,7 @@ from execution_control import risk
 from execution_control.capability import _issue, digest, plain
 from execution_control.model import Order, InstrumentRules, order_body, order_digest, validate_order
 from execution_control.session import PreparedSession, verify_session
-from execution_control.store import guard_pending
+from execution_control.store import guard_pending, Transaction
 from execution_control.universe_odds import CoinOdds, UniverseBatch
 from execution_orders.model import AdapterResult, request_digest, validate_request
 
@@ -54,6 +54,13 @@ class AccountObservation:
             object.__setattr__(self, name, MappingProxyType(dict(getattr(self, name))))
         object.__setattr__(self, 'fills', tuple(self.fills))
         object.__setattr__(self, 'reconciled_client_ids', frozenset(self.reconciled_client_ids))
+
+
+@dataclass(frozen=True, kw_only=True)
+class _AccountRead:
+    """Private per-call pair; committed metadata never becomes an order permit."""
+    observation: AccountObservation
+    committed: object | None = None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -355,7 +362,10 @@ def _view(rec):
 class Controller:
     """Explicit Journal/provider/policy/adapters/session-provider; no live defaults.
 
-    account_provider(now) returns a complete AccountObservation. adapters[venue]
+    Legacy account_provider(now) returns a complete AccountObservation. The exact
+    committed reader instead consumes the current transaction and retains its
+    daily-stop metadata; neither path alone authenticates source completeness.
+    adapters[venue]
     supplies pure prepare/cancel/status methods and dispatch(request, capability,
     now=...). session_provider(session_id) returns this process's actual fresh-odds
     PreparedSession. An order's account scope must match the reconciled account.
@@ -373,9 +383,26 @@ class Controller:
         orders, _, _, _ = _fold(self.journal.snapshot())
         return tuple(_view(orders[key]) for key in sorted(orders))
 
-    def _account(self, now, events, order=None):
+    def _account(self, now, transaction, order=None):
         _instant(now)
-        obs = self.account_provider(now)
+        if type(transaction) is not Transaction or transaction._journal is not self.journal:
+            raise ValueError('actual control transaction required')
+        events = transaction.events  # existing active/thread-bound identity check
+        # Local import avoids committed_account -> AccountObservation -> reader cycle.
+        from execution_launch.committed_account import CommittedAccountProvider, CommittedAccountProjection
+        committed = None
+        if type(self.account_provider) is CommittedAccountProvider:
+            committed = self.account_provider.read(now=now, transaction=transaction)
+            if type(committed) is not CommittedAccountProjection:
+                raise ValueError('COMMITTED_ACCOUNT_PROJECTION_REQUIRED')
+            if (type(committed.daily_stopped) is not bool
+                    or committed.policy_day != now.astimezone(compliance.KST).date()):
+                raise ValueError('COMMITTED_ACCOUNT_POLICY_DAY_MISMATCH')
+            obs = committed.observation
+        else:
+            if not callable(self.account_provider):
+                raise ValueError('account provider required')
+            obs = self.account_provider(now)
         if type(obs) is not AccountObservation:
             raise ValueError('account observation required')
         _instant(obs.asof); _instant(obs.server_time)
@@ -404,9 +431,58 @@ class Controller:
                 raise ValueError('inventory exposure exceeds total venue exposure')
         if Decimal(str(obs.positions.equity_krw)) != obs.risk.equity:
             raise ValueError('account equity sources disagree')
-        return obs
+        return _AccountRead(observation=obs, committed=committed)
 
-    def _snapshot_risk(self, tx, obs, now, orders, ctx):
+    def _committed_context(self, read, ctx, now):
+        """Compare a real current owner observation with the retained local epoch.
+
+        The caller obtained ctx through owner.load_context with actual positions
+        and its operation's session. Matching claims do not authenticate historical
+        source coverage. now retains Controller's supplied-time contract; no
+        completion-clock or operational-readiness claim is made by this check.
+        """
+        if read.committed is None:
+            return
+        from execution_accounts.model import content_digest
+        from execution_launch.continuous_guard import OwnerContextClaim
+        committed = read.committed
+        try:
+            intact = (type(ctx) is compliance.Context and compliance.is_sealed(ctx)
+                and type(ctx.owner) is compliance.OwnerState
+                and type(ctx.active) is compliance.ApprovedState
+                and ctx.ctx_hash == compliance.context_hash(ctx))
+        except (ValueError, TypeError, AttributeError, ArithmeticError, RecursionError):
+            intact = False
+        if not intact:
+            raise ValueError('COMMITTED_ACCOUNT_OWNER_CONTEXT_INVALID')
+        if (ctx.date != now.astimezone(compliance.KST).date() or not ctx.owner.ok
+                or ctx.code_signed is not True):
+            raise ValueError('COMMITTED_ACCOUNT_CURRENT_OWNER_REQUIRED')
+        claim = committed.owner_claim
+        if type(claim) is not OwnerContextClaim:
+            raise ValueError('COMMITTED_ACCOUNT_OWNER_CLAIM_REQUIRED')
+        if (committed.policy_sha256 != content_digest(self.policy)
+                or claim.owner_head_sha256 != ctx.owner.head[1]
+                or claim.code_sha256 != ctx.code_hash
+                # The approval HASH VALUE, not the code_approved row hash.
+                or claim.code_approval_sha256 != ctx.code_hash):
+            raise ValueError('COMMITTED_ACCOUNT_OWNER_EPOCH_CHANGED')
+        if not timedelta(0) <= now-claim.observed_at <= timedelta(seconds=30):
+            raise ValueError('COMMITTED_ACCOUNT_OWNER_CLAIM_STALE')
+        values = []
+        for key in ('total_loss_floor_krw', 'daily_loss_krw'):
+            value = ctx.owner.limits.get(key)
+            if type(value) not in (int, float) or not math.isfinite(value):
+                raise ValueError('COMMITTED_ACCOUNT_EFFECTIVE_LIMITS_REQUIRED')
+            values.append(_money(Decimal(str(value))))
+        if values[1] <= 0:
+            raise ValueError('COMMITTED_ACCOUNT_EFFECTIVE_LIMITS_REQUIRED')
+        if tuple(values) != (claim.signed_floor_krw, claim.signed_daily_loss_krw):
+            raise ValueError('COMMITTED_ACCOUNT_EFFECTIVE_LIMITS_CHANGED')
+        if ctx.owner.halted_floors and not read.observation.risk.halted:
+            raise ValueError('COMMITTED_ACCOUNT_OWNER_HALT_NOT_RETAINED')
+
+    def _snapshot_risk(self, tx, obs, now, orders, ctx, *, committed=None):
         past = [e['data'] for e in tx.events if e['kind'] == 'risk_snapshot']
         today = now.astimezone(compliance.KST).date().isoformat()
         high = max([obs.risk.prior_high_watermark] + [Decimal(e['high_watermark']) for e in past])
@@ -424,7 +500,8 @@ class Controller:
                        approved_effective_floor=floor, is_first_trading_day=first)
         result = risk.evaluate(self.policy, view, now=now)
         signed_daily = ctx.owner.limits.get('daily_loss_krw') if ctx.owner.ok else None
-        daily_stopped = (any(e['daily_stopped'] for e in same)
+        daily_stopped = ((committed is not None and committed.daily_stopped)
+                         or any(e['daily_stopped'] for e in same)
                          or 'DAILY_LOSS_BUDGET_REACHED' in result.reasons
                          or result.recovery_status in ('unverified', 'breached')
                          or (signed_daily is not None and obs.risk.observed_daily_loss >= Decimal(str(signed_daily))))
@@ -458,12 +535,14 @@ class Controller:
         """Persist risk latches independently of an order attempt; never place an exit."""
         with self.journal.transaction() as tx:
             orders, _, halted, _ = _fold(tx.events)
-            obs = self._account(now, tx.events)
+            read = self._account(now, tx)
+            obs = read.observation
             ctx = owner.load_context(now, self._positions(obs, orders))
+            self._committed_context(read, ctx, now)
             if halted:
                 obs = replace(obs, risk=replace(obs.risk, halted=True))
             # Runner and coordinator buy checks use the snapshot this observation saw (spec section 6).
-            return replace(self._snapshot_risk(tx, obs, now, orders, ctx), universe=ctx.universe)
+            return replace(self._snapshot_risk(tx, obs, now, orders, ctx, committed=read.committed), universe=ctx.universe)
 
     @_exact
     def approve_floor_relaxation(self, *, floor, now, session_id):
@@ -477,8 +556,12 @@ class Controller:
             orders, killed, halted, _ = _fold(tx.events)
             if halted or any(e['kind'] == 'halt' for e in tx.events):
                 raise ValueError('a halt cannot be relaxed')
-            obs = self._account(now, tx.events)
+            read = self._account(now, tx)
+            obs = read.observation
             ctx = owner.load_context(now, self._positions(obs, orders), session_id=session_id)
+            self._committed_context(read, ctx, now)
+            if read.committed is not None:
+                raise ValueError('COMMITTED_ACCOUNT_FLOOR_TRANSITION_UNSUPPORTED')
             if (not ctx.owner.ok or not ctx.code_signed or ctx.owner.armed_sessions or ctx.owner.halted_floors
                     or Decimal(str(ctx.owner.limits.get('total_loss_floor_krw', '-1'))) != floor):
                 raise ValueError('signed unarmed floor transition required')
@@ -629,12 +712,14 @@ class Controller:
         validate_observed_order(obj, rules, now=now)
         if not timedelta(0) <= now-rules.asof <= timedelta(minutes=5):
             raise ValueError('instrument rules stale')
-        obs = self._account(now, tx.events, obj)
+        read = self._account(now, tx, obj)
+        obs = read.observation
         if not obs.risk.data_complete or not obs.risk.external_flows_known:
             raise ValueError('complete reconciled account required; manual handling required')
         self._capacity(obj, rules, obs, orders, exclude)
         positions = self._positions(obs, orders, exclude)
         ctx = owner.load_context(now, positions, session_id=session_id)
+        self._committed_context(read, ctx, now)
         if obj.side == 'buy':
             if halted or session_id in killed or guard_pending(tx.events):
                 raise ValueError('local no-entry latch active')
@@ -644,7 +729,7 @@ class Controller:
             if any(k not in self._known and r['status'] in ('ACKNOWLEDGED','PARTIAL')
                    for k,r in orders.items()):
                 raise ValueError('restart requires order reconciliation')
-            result = self._snapshot_risk(tx, obs, now, orders, ctx)
+            result = self._snapshot_risk(tx, obs, now, orders, ctx, committed=read.committed)
             if result.new_entry_blocked:
                 raise ValueError('risk policy blocks new entry')
             signed_floor = ctx.owner.limits.get('total_loss_floor_krw')
@@ -771,11 +856,13 @@ class Controller:
             if rec['status']=='RESERVED':
                 tx.append('cancelled_local',{'client_id':client_id,'order_digest':rec['digest']},now=now)
             else:
-                obj=rec['order'];obs=self._account(now,tx.events,obj)
+                obj=rec['order'];read=self._account(now,tx,obj)
+                obs=read.observation
                 if rec['cancel_pending'] or not rec['venue_order_id']:
                     return _view(rec)
                 positions=self._positions(obs,orders)
                 ctx=owner.load_context(now,positions,session_id=rec['session_id'])
+                self._committed_context(read,ctx,now)
                 intent=self._intent(obj,ctx,recorded=True)
                 approved=ctx.active if ctx.owner.ok and ctx.active.valid else ctx.snapshot
                 if approved is None or not approved.valid or gate._conduct(intent,approved):
@@ -809,7 +896,13 @@ class Controller:
                 raise ValueError('unknown client identity')
             if rec['status'] in _TERMINAL or rec['status']=='RESERVED':
                 return _view(rec)
-            obj=rec['order'];obs=self._account(now,tx.events,obj)
+            obj=rec['order'];read=self._account(now,tx,obj)
+            obs=read.observation
+            if read.committed is not None:
+                # Legacy status/fill reconciliation does not acquire owner authority.
+                # Only the new retained-epoch reader requires a current comparison.
+                ctx=owner.load_context(now,self._positions(obs,orders),session_id=rec['session_id'])
+                self._committed_context(read,ctx,now)
             extra={}
             if obj.venue=='kis':
                 extra={'broker_org_id':rec['metadata'].get('broker_org_id',''),'order_date':rec['trade_date']}
@@ -882,7 +975,7 @@ class Controller:
             _,_,_,last=_fold(tx.events)
             clock_ok=False
             try:
-                self._account(now,tx.events)
+                self._account(now,tx)
                 clock_ok=True
             except Exception:
                 pass
@@ -904,7 +997,7 @@ class Controller:
             _,_,_,last=_fold(tx.events)
             clock_ok=False
             try:
-                self._account(now,tx.events);clock_ok=True
+                self._account(now,tx);clock_ok=True
             except Exception:
                 pass
             tx.append('halt',{'floor':str(floor)},now=now if clock_ok else last or datetime(1970,1,1,tzinfo=timezone.utc))

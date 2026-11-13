@@ -1411,7 +1411,12 @@ _REVIEW_SOURCES = ("execution_launch/driver.py", "execution_launch/program.py",
     "execution_control/model.py", "execution_control/capability.py", "execution_control/controller.py",
     "execution_launch/evidence_objects.py", "execution_launch/history_storage.py",
     "execution_launch/live_history.py", "execution_launch/baseline_head.py",
-    "execution_control/store.py", "core/isolation.py", "execution_launch/managed_behavior.py")
+    "execution_control/store.py", "core/isolation.py", "execution_launch/managed_behavior.py",
+    "execution_launch/committed_account.py", "execution_accounts/baseline_bridge.py",
+    "execution_accounts/baseline.py", "execution_accounts/baseline_store.py",
+    "execution_accounts/continuous.py", "execution_accounts/model.py",
+    "execution_accounts/provider.py", "execution_control/risk.py",
+    "execution_launch/continuous_guard.py", "execution_launch/continuous_guard_commit.py")
 # Independent copies of the reviewed source closures; never import repository code here.
 _REVIEW_CARRY_SOURCES = _REVIEW_SOURCES + (
     "execution_launch/carry_evaluator.py",

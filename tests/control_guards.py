@@ -67,6 +67,41 @@ def _renewal_import(rel, node):
             and all(alias.asname is None for alias in node.names))
 
 
+# One existing Controller consumer, with exact imports at the reviewed local
+# methods. This does not allow the rest of launch/accounts or writer imports.
+COMMITTED_IMPORTS = {
+    "execution_launch.committed_account": ("_account", frozenset({"CommittedAccountProvider", "CommittedAccountProjection"})),
+    "execution_accounts.model": ("_committed_context", frozenset({"content_digest"})),
+    "execution_launch.continuous_guard": ("_committed_context", frozenset({"OwnerContextClaim"})),
+}
+
+
+def _function_owners(tree, target, owners=()):
+    if tree is target:
+        return owners
+    if isinstance(tree, (ast.FunctionDef, ast.AsyncFunctionDef)):
+        owners += (tree.name,)
+    elif isinstance(tree, ast.ClassDef):
+        owners += ("class:" + tree.name,)
+    for child in ast.iter_child_nodes(tree):
+        found = _function_owners(child, target, owners)
+        if found is not None:
+            return found
+    return None
+
+
+def _committed_import(rel, node, tree):
+    if rel != CONTROLLER or not isinstance(node, ast.ImportFrom) or node.level:
+        return False
+    expected = COMMITTED_IMPORTS.get(node.module)
+    if expected is None:
+        return False
+    function, names = expected
+    return (len(node.names) == len(names) and {alias.name for alias in node.names} == names
+            and all(alias.asname is None for alias in node.names)
+            and _function_owners(tree, node) == ("class:Controller", function))
+
+
 def _imports_allowed(rel, module):
     if module == "collections":
         return rel == "execution_control/dry_run.py"
@@ -100,7 +135,8 @@ def _problems(rel, source):
                     hits.append("unapproved routing import")
         elif isinstance(node, ast.ImportFrom):
             module = node.module or ""
-            if (node.level or not (_imports_allowed(rel, module) or _renewal_import(rel, node))
+            if (node.level or not (_imports_allowed(rel, module) or _renewal_import(rel, node)
+                                  or _committed_import(rel, node, tree))
                     or any(a.name == "*" for a in node.names)):
                 hits.append("unapproved from import")
             if module == "functools" and (rel != CONTROLLER or len(node.names) != 1
@@ -483,3 +519,27 @@ def test_store_process_exception_is_exact_and_rejects_new_effects():
                   "p = multiprocessing.get_context('spawn')\n", "import runpy\n", "x.reload(y)\n",
                   "from execution import keys\n", "from core import config\n", "x = __import__('requests')\n"):
         assert _test_process_problems("tests/control_store.py", source + extra), extra
+
+
+def test_committed_reader_imports_are_exact_and_confined_to_existing_controller_methods():
+    assert not _problems(CONTROLLER, (ROOT / CONTROLLER).read_text(encoding="utf-8"))
+    for module, (function, names) in COMMITTED_IMPORTS.items():
+        names = sorted(names)
+        statement = "from " + module + " import " + ", ".join(names)
+        wrapped = "class Controller:\n    def " + function + "(self):\n        " + statement + "\n"
+        assert not _problems(CONTROLLER, wrapped)
+        bad = (statement, "def " + function + "():\n    " + statement,
+               wrapped.replace("class Controller:", "class Unrelated:"),
+               wrapped.replace("def " + function, "def unrelated"),
+               wrapped.replace(names[0], names[0] + " as hidden", 1),
+               wrapped.replace(", ".join(names), ", ".join(names + ["commit"])),
+               "class Controller:\n    def " + function + "(self):\n        def nested():\n            " + statement)
+        for source in bad:
+            assert _problems(CONTROLLER, source), source
+        assert _problems("execution_control/session.py", wrapped)
+    for module in ("execution_launch.committed_account", "execution_accounts.model",
+                   "execution_launch.continuous_guard", "execution_launch.continuous_guard_commit",
+                   "execution_accounts.baseline_bridge"):
+        assert _problems(CONTROLLER, "import " + module)
+    assert _problems(CONTROLLER, "class Controller:\n    def _account(self):\n        from execution_launch.continuous_guard_commit import commit_continuous_guard")
+    assert _problems(CONTROLLER, "class Controller:\n    def _account(self):\n        from execution_accounts.baseline_bridge import ContinuousAccountProvider")

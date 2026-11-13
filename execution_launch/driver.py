@@ -42,7 +42,12 @@ _SOURCE_FILES = ("execution_launch/driver.py", "execution_launch/program.py",
     "execution_launch/evidence_objects.py", "execution_launch/history_storage.py",
     "execution_launch/live_history.py", "execution_launch/baseline_head.py",
     "execution_control/store.py", "core/isolation.py",
-    "execution_launch/managed_behavior.py")
+    "execution_launch/managed_behavior.py",
+    "execution_launch/committed_account.py", "execution_accounts/baseline_bridge.py",
+    "execution_accounts/baseline.py", "execution_accounts/baseline_store.py",
+    "execution_accounts/continuous.py", "execution_accounts/model.py",
+    "execution_accounts/provider.py", "execution_control/risk.py",
+    "execution_launch/continuous_guard.py", "execution_launch/continuous_guard_commit.py")
 # Keep these manifests in agreement with the independently maintained signer.
 # Legacy wire bytes stay compatible, not legacy approval of changed source code.
 _CARRY_SOURCE_FILES = _SOURCE_FILES + ("execution_launch/carry_evaluator.py", "execution_launch/capture_v2.py",
