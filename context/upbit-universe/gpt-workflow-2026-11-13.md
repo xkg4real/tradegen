@@ -1,6 +1,6 @@
 # TRADEGEN 업무처리 워크플로우
 
-기준: 2026-11-13 18:04 KST. PR 4c 병합·PR 4d 원안 Tasks 1–4 구현 및 초안 PR 전달 기록이며 전체 실거래 준비 완료 판정은 아니다.
+기준: 2026-11-13 18:27 KST. PR 4c 병합·PR 4d 원안 전체 검사 완료 기록이며 capacity 승인·해결과 PR34 병합은 대기 중이다. 전체 실거래 준비 완료 판정은 아니다.
 
 ## 1. 근거와 현재 상태
 
@@ -37,26 +37,29 @@
   소유자 `floor_state_check` 고정 결과 코드 답변도 별도로 대기 중이다. 최종 전자서명은 전체 필수 코드가 정리된 뒤다.
 - 실제 API 호출·전자서명·무장·주문·실제 전략 통과를 수행하거나 완료로 표시하지 않았다.
 
-### PR 4d 원안 Tasks 1–4 구현·독립 리뷰 완료, 초안 PR34 전달
+### PR 4d 원안 Tasks 1–4 구현·독립 리뷰·전체 검사 완료, PR34 병합 보류
 
 - ~~PR 4d 원안 Tasks 1–4 구현·독립 리뷰~~ 완료. Task 2는 기존 승인 원안만 구현했으며 알려진 capacity 공백은 남아 있다.
 - [초안 PR #34](https://github.com/xkg4real/tradegen/pull/34): **open / draft / 미병합**.
-  head `ea4e2a4925922ce468208c89020881cb01a08403`, base `7d256f9090bb4de593bf496b010a9753ae5508fd`를 원격에서 확인했다.
+  현재 head `a54a390d14d665a93bb8779ac078c8ea113c69f2`, base `7d256f9090bb4de593bf496b010a9753ae5508fd`를 원격에서 확인했다.
+  이 head는 실행 소스 `ea4e2a4925922ce468208c89020881cb01a08403`에 `docs/universe-pr4d-execution-log.md`만 갱신한 커밋이다.
 - 영향 모듈 통합 검사 **60 PASS / 0 FAIL / 0 NOT_RUN, 7.445초**.
   경계 guard 5개 모듈 **81 PASS / 0 FAIL / 0 NOT_RUN, 11.953초**. 서로 겹치는 수치이므로 합산하지 않는다.
 - 두 실행의 고정 소스 fingerprint는 `1aac24a84d06886bdc132fc36bbab4428978f366dc86f8d8b22edba3886c9cfe`로 같고
   전달 커밋의 런타임과 일치한다. 소스·실제 홈 메타데이터도 불변이다.
-  **PR 4d 원래 구현의 전체 검사 진행 중·결과 대기**다. `pr4d-original-full`은 18:07:28 KST에 소스 `ea4e2a4`를 동결해 시작했다.
-  완료 결과는 아직 없으며 PR33의 전체 결과를 이 PR 검증으로 대신하지 않는다.
+- ~~PR 4d 원래 구현의 전체 검사~~ 완료. `pr4d-original-full`은 18:07:28 KST에 소스 `ea4e2a4`를 동결해 시작했고,
+  **총 2,719개 / 2,584 PASS / 0 FAIL / 135 NOT_RUN**, **1,105.243초**로 끝났다.
+  PR 4c 기준 ID 2,705개를 모두 유지했고 신규 14개는 모두 PASS다. 미실행은 동일한 매크로 선행 조건 121개·Windows 전용 14개다.
+  전체 실행에서도 같은 fingerprint와 소스·실제 홈 메타데이터 불변을 확인했다. 기존 집중 검사 숫자와 합산하지 않는다.
 - 별도 실제 코드 경로의 합성 probe: collector가 검증한 보유 항목 1,500개, 가짜 조회 1,522회,
   131,072바이트 book 입력에서 첫 fallback 뒤 이력 행이 **279,312바이트 > 262,144바이트 한도**로 남는다.
   `HISTORY_STORE_RECORD_INVALID`로 거부되며 journal·독립 head·slots·chooser 상태는 모두 변하지 않았다.
   probe PASS는 **알려진 차단 재현과 거부 동작 확인**이며 capacity 결함을 고친 결과가 아니다. 실제 API 조회는 없었다.
-- 두 번째 fallback이나 새 admission/capacity 계약은 구현하지 않았다. capacity 결정과 알려진 크기 공백이 해결될 때까지
-  **PR34 최종 병합은 보류**한다. 이후 전체 검증이 필요하다.
+- 두 번째 fallback이나 새 admission/capacity 계약은 구현하지 않았다. **원안 전체 검사 통과는 알려진 capacity 공백을 해결하지 않는다.**
+  capacity 결정과 공백 해결 전 **PR34 최종 병합은 보류**한다. 후속 런타임 수정에는 독립 리뷰와 새 검증이 필요하다.
 - 다음 PR 4e 코드는 병합된 PR 4d에 의존한다. PLB 구현은 병합된 PR 5와 소유자 상태 증거에 의존한다.
   추가 설계 승인 2건과 `floor_state_check` 고정 결과 코드 답변은 모두 대기 중이다.
-- [PR 4d 실행 기록](https://github.com/xkg4real/tradegen/blob/ea4e2a4925922ce468208c89020881cb01a08403/docs/universe-pr4d-execution-log.md).
+- [PR 4d 최종 실행 기록](https://github.com/xkg4real/tradegen/blob/a54a390d14d665a93bb8779ac078c8ea113c69f2/docs/universe-pr4d-execution-log.md).
   이전 Task 1 `d34395b`의 31/31 PASS(3.427초)는 아래 이력에 보존한다.
 
 ### 기존 잔여 업무의 의존성 사전분석 완료
@@ -112,7 +115,7 @@
 | 순서·ID | 작업 | 선행 조건 | 완료를 판정할 근거 | 현재 상태 |
 |---|---|---|---|---|
 | 1 / universe-pr4c | ~~상품 조건 authority v2, 종목 교체 갱신, IOC 주문, 상장폐지·저유동성 보유 코인 평가, E1 경고~~ | PR 2·3·4b 병합 | Tasks 1–10·독립 리뷰 완료, 최종 전체 2570/0/135, PR33 merge 7d256f9 | 완료 |
-| 2 / universe-pr4d | 종목 전환 드라이버, 거래 코인을 따르는 이력, history v2와 프레임 입력 | PR 4c 병합 완료 | 원안 Tasks1–4 구현·리뷰, 집중60 PASS·경계81 PASS(합산 금지), capacity 재현 | 초안 PR34 / 원래 구현 전체 검사 진행 중·결과 대기 / capacity 결정·최종 병합 대기 |
+| 2 / universe-pr4d | 종목 전환 드라이버, 거래 코인을 따르는 이력, history v2와 프레임 입력 | PR 4c 병합 완료 | 원안 Tasks1–4 구현·리뷰, 전체2584/0/135 of2719, capacity 차단 재현은 미해결 | 초안 PR34 / 원안 전체 검사 완료 / capacity 결정·수정 후 검증·최종 병합 대기 |
 | 3 / universe-pr4e | runner·coordinator·준비·console odds·리허설 연결 | PR 4a·4d 병합 | 아래 계약 정정 2건, 오래된 관측 거부, 취소·청산·중지 흐름 검사, PR·병합 근거 | 대기 |
 | 4 / universe-pr5 | forward-universe-v1 평가기·수집·후보군 검증·48시간 연구 도구 | PR 4e 병합 | 전체 후보와 실패 시도 보존, 자료 크기·종목별 파서·평가기 검사, PR·병합 근거 | 대기 |
 | 5 / universe-pr5-clock-notify | PR 5 병합 번호·커밋 통지와 담당 세션 조율 | PR 5 실제 병합 | 전달 가능한 채널의 실제 통지 기록. Claude 로컬 세션에 직접 전달할 수 없으면 사용자에게 전달 요청 | 대기 |
@@ -167,12 +170,13 @@
 | 2026-11-13 17:46:10 | universe-pr4c | runtime c80c56c / final head b21439c | 최종 전체 2570/0/135 of 2705, 1093.970초, 소스·실제 홈 메타데이터 불변 | 완료 | PR33 merge 7d256f9090bb4de593bf496b010a9753ae5508fd, GitHub 재확인 | 다음 PR4d Task1, 추가 설계 승인 2건·소유자 상태 증거 별도 대기 |
 | 2026-11-13 17:52 | universe-pr4d/task1 | d34395bd27e0ea30e7a23eed7f626a2ca350bf56 | 31/31 PASS, 3.427초, 소스·실제 홈 메타데이터 불변 | 지적 없음 | gpt/universe-pr4d-driver-history push·원격 head 확인, 미병합 | 기존 Tasks2–4 진행, capacity 최종 fallback 변경은 승인 대기, 알려진 size 공백으로 최종 병합 보류 |
 | 2026-11-13 18:04 | universe-pr4d/original-tasks1-4 | ea4e2a4925922ce468208c89020881cb01a08403 | 집중60/0/0(7.445초)·경계81/0/0(11.953초), 중복 합산 금지, 전체 미실행 | 완료 | PR34 open/draft/미병합, base7d256f9 | capacity 차단 재현은 수정 아님; 최종 병합·전체 검사·승인2건·상태 증거 대기 |
+| 2026-11-13 18:27 | universe-pr4d/original-full | runtime ea4e2a4 / docs-only head a54a390 | 전체2584/0/135 of2719,1105.243초,baseline2705유지+14신규PASS,소스·실제홈메타데이터불변 | 원안 리뷰 완료 | PR34 draft/미병합, 원격 head a54a390 확인 | 알려진capacity공백 미해결, 후속수정 새검증 필요, 승인2건·상태증거 대기 |
 
 ## 5. 사용자 업무와 승인 경계
 
 - 현재 클릭 승인 대기: **PR 4d capacity 처리**, **PR 5 실패한 연구의 인증된 결과 기록** 추가 설계 2건.
   승인 여부가 확인되기 전에는 해당 변경을 승인된 작업으로 처리하지 않는다.
-  PR 4d의 승인 대기는 Task 2 최종 fallback 변경에 국한한다. 기존 fallback·크기 오류 거부를 유지하는 Tasks 1–4 원안은 PR34에 구현됐고, 최종 병합은 공백 해소와 전체 검사 뒤로 남긴다.
+  PR 4d의 승인 대기는 Task 2 최종 fallback 변경에 국한한다. 기존 fallback·크기 오류 거부를 유지하는 Tasks 1–4 원안은 PR34에 구현·전체 검사됐고, 최종 병합은 공백 해소와 수정 후 새 검증 뒤로 남긴다.
 - 현재 상태 증거 대기: 소유자 `floor_state_check` 실행 여부와 **S1–S12 고정 결과 코드** 답변.
   PLB §9.3 step 0 / O14의 조건부 범위 확인용이며, 이미 승인된 O1–O16 결정을 재질문하는 절차가 아니다.
 - 기존 승인 명세 안의 개발·검사·PR 전달과 사용자가 요청한 push·merge 절차는 계속 진행한다.

@@ -1,0 +1,23 @@
+{
+  "baseline_count": 2705,
+  "current_count": 2719,
+  "missing": [],
+  "added": [
+    "execution_launch/launch_live_history/test_fixed_window_frames_and_rows_are_byte_identical_to_fd85850",
+    "execution_launch/launch_live_history/test_fixed_window_refuses_universe_inputs",
+    "execution_launch/launch_universe_history/test_chooser_decision_recomputes_one_decision_from_its_inputs",
+    "execution_launch/launch_universe_history/test_each_bar_is_checked_at_its_own_coin_and_tick_and_a_bookless_bar_never_anchors",
+    "execution_launch/launch_universe_history/test_history_row_v2_records_the_slot_universe_and_frames_carry_it",
+    "execution_launch/launch_universe_history/test_oversized_row_drops_flag_and_ticker_parts_and_allows_no_buys",
+    "execution_launch/launch_universe_history/test_prior_decision_is_recomputed_from_the_inputs_the_frame_carries",
+    "execution_launch/launch_universe_history/test_restart_refuses_malformed_v2_fields_before_the_independent_head_check",
+    "execution_launch/launch_universe_history/test_restart_replays_every_row_v2_variant",
+    "execution_launch/launch_universe_history/test_restart_replays_v2_rows_and_restores_the_chooser_state",
+    "execution_launch/launch_universe_history/test_two_slot_switch_sells_the_old_coin_then_buys_the_new_one",
+    "execution_launch/launch_universe_history/test_universe_driver_construction_pins_benchmark_symbol_ioc_and_rule",
+    "execution_launch/launch_universe_history/test_universe_slots_require_their_inputs_and_a_book_of_the_coin_at_its_tick",
+    "execution_launch/launch_universe_history/test_window_end_targets_zero_and_records_no_decision"
+  ],
+  "new_all_pass": true,
+  "unchanged_not_run": 135
+}

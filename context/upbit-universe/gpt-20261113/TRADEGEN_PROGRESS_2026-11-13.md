@@ -9,8 +9,9 @@
 | PR4c | [PR33 병합](https://github.com/xkg4real/tradegen/pull/33), main `7d256f9090bb4de593bf496b010a9753ae5508fd` |
 | PR4c 최종 전체 검사 | 2,705개: **2,570 PASS / 0 FAIL / 135 NOT_RUN**. 검증 runtime `c80c56c`; 이후 문서만 수정 |
 | PR4d 기존 Tasks1~4 | 구현·독립 검토 완료, [PR34 초안](https://github.com/xkg4real/tradegen/pull/34). **미병합** |
-| PR4d 코드 | `gpt/universe-pr4d-driver-history`, `ea4e2a4925922ce468208c89020881cb01a08403` |
-| PR4d 집중·경계 검사 | 각각 **60/60 PASS**, **81/81 PASS**. 겹치는 검사이므로 합산하지 않음. 원래 구현 전체 검사는 진행 중 |
+| PR4d 코드 | `gpt/universe-pr4d-driver-history`, `a54a390d14d665a93bb8779ac078c8ea113c69f2` |
+| PR4d 집중·경계 검사 | 각각 **60/60 PASS**, **81/81 PASS**. 겹치는 검사이므로 합산하지 않음 |
+| PR4d 원래 구현 전체 검사 | **2,719개: 2,584 PASS / 0 FAIL / 135 NOT_RUN**, 1,105.243초. 검증 runtime `ea4e2a4`; 이후 문서만 수정 |
 | 호환성 | 고정 종목 프레임·이력의 기존 golden hash, 기존 검사 목록과 CRLF 보존 |
 | 기록 | GitHub 코드·인계 브랜치와 기존 Notion 업무/승인 페이지 갱신 |
 
@@ -47,9 +48,9 @@ PR4d에는 잘못된 v2 기록17가지의 거부 검사도 포함됩니다. 두 
 
 ## 재개 위치
 
-- 코드: 위 PR34 브랜치의 `ea4e2a4`, 미커밋 변경 없음.
+- 코드: 위 PR34 브랜치의 `a54a390`, 미커밋 변경 없음.
 - 인계: GitHub `handoff` 브랜치의 `CURRENT.md`, `LEDGER.md`, `context/upbit-universe/gpt-20261113/`.
-- PR34는 알려진 용량 계약 문제와 전체 검사 결과 대기로 초안·미병합 상태를 유지합니다.
+- PR34는 전체 검사 통과 후에도 알려진 용량 계약 문제 때문에 초안·미병합 상태를 유지합니다.
 - 주간 사용량 조회는 제공되지 않아 `unknown`입니다. 과거 Claude 수치를 GPT 사용량으로 재사용하지 않았습니다.
 
 이 문서는 소프트웨어 작업 기록이며 법률·세무·투자 조언이 아닙니다.

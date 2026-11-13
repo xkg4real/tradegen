@@ -4,14 +4,14 @@ reason: owner_requested_resume
 from: gpt
 task: upbit-universe
 cycle: 2026-11-10
-done_ids: workflow-resume-1113/regression-preparation, universe-pr4d/task2-implementation, universe-pr4d/task3, universe-pr4d/task4, universe-pr4c, universe-pr4d/task1, workflow-resume-1113, workflow-resume-1113/dependencies, universe-pr4c/implementation, universe-pr0, universe-pr1, universe-pr2, universe-pr3, universe-pr4b, universe-pr4a
+done_ids: universe-pr4d/original-verification, workflow-resume-1113/regression-preparation, universe-pr4d/task2-implementation, universe-pr4d/task3, universe-pr4d/task4, universe-pr4c, universe-pr4d/task1, workflow-resume-1113, workflow-resume-1113/dependencies, universe-pr4c/implementation, universe-pr0, universe-pr1, universe-pr2, universe-pr3, universe-pr4b, universe-pr4a
 next_ids: universe-pr4d, universe-pr4e, universe-pr5, universe-pr5-clock-notify, universe-code-approve, policy-loss-budget-plan-1, rules-review-1202, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, launch-private-capture-setup-1, e1-14-owner-setup, launch-prospective-study, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1
-updated_at: 2026-11-13T18:19:56+09:00
+updated_at: 2026-11-13T18:28:39+09:00
 stale_after_hours: 3
 waiting_on: PR4d capacity and PR5 authenticated failed-trial decisions; owner floor-state evidence
 work_branch: gpt/universe-pr4d-driver-history
-work_commit: ea4e2a4925922ce468208c89020881cb01a08403
-runtime_tested_commit: ea4e2a4 fingerprint verified against60focused and81guard PASS; PR4d original full running
+work_commit: a54a390d14d665a93bb8779ac078c8ea113c69f2
+runtime_tested_commit: ea4e2a4 full2584PASS0FAIL135NR; a54a390 changes execution log only
 uncommitted_changes: no
 pr: https://github.com/xkg4real/tradegen/pull/34 (draft; unmerged; capacity decision pending)
 usage_weekly_pct: unknown
@@ -27,11 +27,12 @@ session: Cloud Codex; owner Windows deployment remains separate
 ## 0. 한 줄 요약
 
 PR4c는 PR33/main7d256f9로 병합됐으며 수정 runtime 전체검사는2570 PASS /0 FAIL /135 NOT_RUN입니다.
-PR4d 원래 Tasks1~4 구현·독립 검토를 마쳐 draft PR34를 열었습니다. 원격 head는 `ea4e2a4`입니다.
+PR4d 원래 Tasks1~4 구현·독립 검토를 마쳐 draft PR34를 열었습니다. 원격 head는 `a54a390`이며 마지막 변경은 전체검사 기록 문서뿐입니다.
 집중60/60 및 경계81/81 검사가 통과했고 같은 소스 fingerprint를 전달 커밋에서 확인했습니다.
 다만 실제 합성 입력의 행이 첫fallback뒤에도279312바이트로 한도262144를 넘었습니다. 기존 거부 시
 journal·head·메모리 상태는 보존되지만 승인된§12의 무조건적 용량 보장은 충족하지 못합니다.
-원래 구현의 전체 검사는 진행 중입니다. 용량 계약을 해결하기 전까지 PR34는 초안·미병합으로 유지합니다.
+원래 구현 전체검사도2719개 중2584 PASS /0 FAIL /135 NOT_RUN으로 끝났습니다.
+용량 계약을 해결하기 전까지 PR34는 초안·미병합으로 유지합니다.
 
 ## 1. 목표와 완료 조건
 
@@ -85,7 +86,8 @@ journal·head·메모리 상태는 보존되지만 승인된§12의 무조건적
 - [x] universe-pr4d/task2-implementation: f3e6ac3, 원래 v2기록·첫fallback; 검토완료, 용량specgap 미해결.
 - [x] universe-pr4d/task3: ea4e2a4, 종목/틱/이전결정/전환 검증·독립검토.
 - [x] universe-pr4d/task4: ea4e2a4, v2재생/상태복원·독립검토; 잘못된17가지기록 검사.
-- [ ] universe-pr4d: PR34초안, 추가용량결정·최종전체검사·최종병합 대기.
+- [x] universe-pr4d/original-verification: ea4e2a4 전체2584PASS0FAIL135NR; 원래구현 검사완료.
+- [ ] universe-pr4d: PR34초안, 추가용량결정·수정시재검증·최종병합 대기.
 - [ ] universe-pr4e / universe-pr5: 사전 대조 기록 있음, 런타임 미구현.
 - [ ] PR5 완료 알림 / PLB 계획·코드 / 시계 코드 / 운영 연결 / 소유자 최종 승인 / 실제48h연구·검토.
 
@@ -96,12 +98,14 @@ PR4d Task1은 커밋 `d34395b`에서31 PASS /0 FAIL /0 NR,3.427초. 기존 두 g
 
 ## 5. 현재 작업 지점
 
-- 코드: `gpt/universe-pr4d-driver-history` / `ea4e2a4925922ce468208c89020881cb01a08403`, push완료·깨끗한 트리.
+- 코드: `gpt/universe-pr4d-driver-history` / `a54a390d14d665a93bb8779ac078c8ea113c69f2`, push완료·깨끗한 트리.
+  full검증 runtime은 ea4e2a4이며 이후 execution-log문서만 변경.
 - PR34: https://github.com/xkg4real/tradegen/pull/34 (draft, 미병합), base main7d256f9.
 - PR4d 원래Tasks1~4 코드·검토 완료. 추가secondfallback/admission계약은 미승인·미구현.
 - 집중검사60PASS0FAIL0NR(7.445초), 경계검사81PASS0FAIL0NR(11.953초), 겹치는 수는 합산하지 않음.
   두 검사 fingerprint `1aac24a84d06886bdc132fc36bbab4428978f366dc86f8d8b22edba3886c9cfe`와
-  전달 커밋의 Python/YAML bytes가 같음. 소스·실제홈 메타데이터 불변. PR4d 원래 구현 전체검사는 pr4d-original-full 라벨로 진행 중. 코드·테스트 고정; 중복 실행 금지.
+  전달 커밋의 Python/YAML bytes가 같음. 소스·실제홈 메타데이터 불변. 원래구현 full은 ea4e2a4에서2719 total/2584PASS/0FAIL/135NR,1105.243초로 완료.
+  PR33의2705개 ID전부 유지+신규14개PASS; 동일한135NR(121macro전제/14Windows). 소스·홈불변.
 - 실제코드 P2재현: collector/provider검증된1500합성보유내역,1522가짜조회,131072바이트호가.
   첫fallback후279312바이트 → HISTORY_STORE_RECORD_INVALID. journal/head/slots/chooser상태 모두 불변.
   재현PASS는 알려진거부를 확인한 것이며 용량문제 해결PASS가 아님.
@@ -116,7 +120,8 @@ PR4d Task1은 커밋 `d34395b`에서31 PASS /0 FAIL /0 NR,3.427초. 기존 두 g
 
 1. 8절에서 이미 요청한 PR4d 용량 계약 결정 확인. 승인 전secondfallback/newadmission구현 금지.
    승인되면 실제P2probe와 거부 시 상태불변·nobook재생·용량경계회귀로 보완을 검증.
-2. 코드 고정 후 최종guard/full·독립검토·PR34본문 갱신. known§12 미충족을 해결하기 전 최종병합 금지.
+2. 원래 구현 full은 이미 완료했으므로 이유없이 반복하지 않음. 승인된수정 후 고정소스에서
+   필요한guard/full·독립검토·PR34본문 갱신. known§12 미충족을 해결하기 전 최종병합 금지.
    기존full런처는19KEYLESS·가짜source·격리상태; QA결과는 덮어쓰지 않음.
 3. PR34 병합 main에서 PR4e 계획. 계좌 provider 재호출 금지·observation한번읽기·read_bars후now 계약 유지.
    preflight의 terms-blocked→market-vanished 정지 우선순위 회귀도 반영.
