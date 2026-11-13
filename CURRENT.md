@@ -6,15 +6,15 @@ task: upbit-universe
 cycle: 2026-11-10
 done_ids: protective-hold/p1, universe-pr4d/lossless-history, universe-pr4d, universe-pr4d/lossless-objects, design-revision-1113, upbit-universe-return-1113, universe-pr4d/original-verification, workflow-resume-1113/regression-preparation, universe-pr4d/task2-implementation, universe-pr4d/task3, universe-pr4d/task4, universe-pr4c, universe-pr4d/task1, workflow-resume-1113, workflow-resume-1113/dependencies, universe-pr4c/implementation, universe-pr0, universe-pr1, universe-pr2, universe-pr3, universe-pr4b, universe-pr4a
 next_ids: universe-pr4e, protective-hold/p2, universe-pr5, universe-pr5-clock-notify, universe-code-approve, policy-loss-budget-plan-1, rules-review-1202, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, launch-private-capture-setup-1, e1-14-owner-setup, launch-prospective-study, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1
-updated_at: 2026-11-13T21:32:58+09:00
+updated_at: 2026-11-13T21:45:40+09:00
 stale_after_hours: 3
 waiting_on: no prior approval question; future PLB S1-S12 and deployment inputs only
-work_branch: gpt/protective-hold-state
-work_commit: 3ee4e68bbec0fc7ac8a721b37ad8a931813d1ccb
+work_branch: gpt/universe-pr4e-runner-coordinator
+work_commit: a772a24073ffb523ff7fa8d1e030398eaf56227a
 merged_main_commit: 6030fe3063dc6b63eeaad48b3d818577f1c1219b
-runtime_tested_commit: P1 delivered3ee4e68 and merge6030fe3 match fingerprint6bf6b1ea; 106PASS0FAIL0NR; P0b base full2660PASS0FAIL135NR separately recorded
-uncommitted_changes: resuming from verified main6030fe3; PR4e and P2 isolated worktrees next
-pr: https://github.com/xkg4real/tradegen/pull/35 (merged); PR34 also merged
+runtime_tested_commit: PR4e a772a24 fingerprint b80c7edc independent9PASS; complete KEYLESS suite running; preliminary155PASS not frozen acceptance
+uncommitted_changes: PR4e source clean and pushed; separate P2 store/tests/registry/guards in progress
+pr: https://github.com/xkg4real/tradegen/pull/36 (draft, full regression running); PR34/35 merged
 usage_weekly_pct: unknown
 usage_source: unavailable
 handoff_threshold_pct: 95
@@ -93,3 +93,9 @@ P0b는 policy→protocol→identity→contextual payload DAG, 실제 동일 잠�
 - 상태의 can_*와 AuthorityFacts/EffectIntent는 인증이나 실행 권한이 아니다. 후속 P2는 독립 head·영속 outbox·전역 ID 중복 방지, P3/P4는 독립 사실 인증·dispatch 직전 재검증이 필요하다. 기존 terminal target0가 아직 남았다는 점은 변함없다.
 - 최신 사용자 설명은 `TRADEGEN_STATUS_2026-11-13.md`, P1 상세는 `TRADEGEN_PROTECTIVE_STATE_EXECUTION_LOG_2026-11-13.md`. Notion 두 기존 페이지에 최신 결과와 실전 미준비를 구분해 반영한다.
 - 실제 Windows 설치·실계좌 연결·owner 전자서명·연구 선발·활성화는 수행하지 않았다. 새 승인 질문 없이 가능한 후속 개발 순서를 문서로 보존했다. 이번 상태 반환은 전체 작업 완료나95% 사용량 도달 선언이 아니다.
+
+## 진행 체크포인트 — PR4e 구현 push, 전체 검사 중
+
+PR36 a772a24에서 유니버스 Runner/Coordinator/owner rehearsal을 연결했다. 독립 9검사(실제 v3 history/head와 1,500 합성 보유·131072바이트 정상 호가 포함)는 소스 b80c7edc에서 통과했다. 개발 단계155 PASS는 테스트/최종 수정이 겹쳐 source_unchanged=false이므로 최종 승인 근거로 사용하지 않는다. 전체 suite는 /workspace/tradegen-session/universe-pr4e-1113/verify_checkpointed.py로 실행 중이며 결과와 각 검사 checkpoint를 보존한다.
+
+별도 gpt/protective-hold-store에서 P2 영속 상태·알림 outbox를 구현 중이다. 독립검토에서 활성 session.lock/root 교체와 unavailable inode, dense journal allocation 문제를 찾아 수정·회귀를 추가했다. 최종 source 동결/검증/commit 전이며 완료 ID에 넣지 않는다. 실제 authority 발급·계좌 대조·live activation·주문은 수행하지 않았다.
