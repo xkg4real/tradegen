@@ -181,7 +181,7 @@ def broker_fixture(*, kind='partial', client_id='integration-sent'):
 def status_result(e, **changes):
     filled = e.expected_filled
     return AdapterResult(**(dict(status='filled' if filled == 2 else 'partial' if filled else 'open',
-        code='synthetic-status', venue_order_id='integration-broker', client_id='integration-sent',
+        code='synthetic_status', venue_order_id='integration-broker', client_id='integration-sent',
         filled_quantity=filled, average_price=D('10000') if filled else None,
         fee=e.expected_fee, fee_currency='KRW') | changes))
 
@@ -402,7 +402,7 @@ def test_unknown_and_interrupted_dispatch_remain_uncertain_and_never_resend():
         with flat() as e:
             completion = complete(e)
             obj = history(e, 'uncertain-'+state.lower(), status=state, broker_id='')
-            dry = DryRunAdapter(upbit, results=(AdapterResult(status='unknown', code='synthetic-unavailable'),)*2)
+            dry = DryRunAdapter(upbit, results=(AdapterResult(status='unknown', code='synthetic_unavailable'),)*2)
             result, startup, _ = reconcile(e, completion, adapter=dry)
             again, _, _ = reconcile(e, completion, startup=startup, adapter=dry)
             assert result.status == again.status == 'BLOCKED'
@@ -578,8 +578,8 @@ def test_actual_reducing_reserve_dispatch_unknown_then_restart_status_never_retr
     with F.fixture(held=True) as e:
         completion = complete(e)
         provider = F.provider(e)
-        dry = DryRunAdapter(upbit, results=(AdapterResult(status='unknown', code='synthetic-timeout'),
-            AdapterResult(status='unknown', code='synthetic-status-timeout')))
+        dry = DryRunAdapter(upbit, results=(AdapterResult(status='unknown', code='synthetic_timeout'),
+            AdapterResult(status='unknown', code='synthetic_status_timeout')))
         controller = Controller(journal=e.journal, account_provider=provider, policy=e.policy,
             adapters={'upbit': dry}, session_provider=lambda _: None, clock=e.clock)
         obj = Order(client_id=namespace(e)+'actual-unknown', account_scope=SCOPE, venue='upbit', market='spot',
