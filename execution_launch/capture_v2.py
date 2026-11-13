@@ -65,7 +65,7 @@ def _structure(archive):
     program = archive.program
     _require(program.schema_version == 1 and program.kind in ("cash", "moving_average_trend")
              and parameters_json(program) == archive.program_parameters_json,
-             "CAPTURE_V2_PROGRAM_NONCANONICAL_OR_UNSUPPORTED")
+             "CAPTURE_V2_PROGRAM_FORMAT_OR_KIND_INVALID")
     _require(type(archive.program_artifact_sha256) is str
              and _SHA.fullmatch(archive.program_artifact_sha256) is not None,
              "CAPTURE_V2_ARTIFACT_DIGEST_INVALID")
