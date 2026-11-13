@@ -37,7 +37,10 @@ MODULES = ("launch_guards", "network_route", "accounts_collector", "launch_profi
            "launch_committed_generation", "launch_committed_generation_runner",
            "launch_guard_generation_format", "launch_guard_generation_archive",
            "launch_committed_inspection", "launch_committed_startup_commit",
-           "launch_committed_startup", "launch_committed_startup_integration")
+           "launch_committed_startup", "launch_committed_startup_integration",
+           "launch_research_route_release", "launch_recovered_selection",
+           "launch_recovered_selection_boundaries", "launch_recovered_selection_integration",
+           "launch_recovered_selection_cli")
 
 
 def tests():

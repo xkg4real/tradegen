@@ -1,8 +1,8 @@
 # TRADEGEN PR5 B2b-2 — 정확 원본 복구 운영 절차
 
-2026-11-13. 실제 CLI·준비 코드와 명령 예시를 대조했고, CLI 회귀 14개를 포함한 관련 검증을 완료했습니다. **사용자 PC 배포·설정 및 native Windows 운영 확인은 별도로 필요합니다.** 아래 명령을 실제 사용자 PC에서 실행한 기록은 아닙니다.
+2026-11-13. 기존 복구 CLI는 회귀 14개를 포함한 관련 검증을 완료했습니다. 새 7절의 `select-recovered`와 core는 함께 구현·검사 동결 후 검증하며, 현재 새 명령의 런타임 결과는 대기입니다. **사용자 PC 배포·설정 및 native Windows 운영 확인은 별도로 필요합니다.** 아래 명령을 실제 사용자 PC에서 실행한 기록은 아닙니다.
 
-이 절차는 미리 등록한 연구 보관물의 정확한 원본과 기존 서명 문서를 별도 목적지에 복원하고, 시도·결과·알림 대기를 기록합니다. **자료 보류 해제, 연구 선발, 전략 승인, 거래 활성화는 수행하지 않습니다.** 실패 연구의 원본도 보존되며, 복구됐다고 평가 통과 연구로 바뀌지 않습니다.
+1–6절의 기존 복구 명령은 미리 등록한 연구 보관물의 정확한 원본과 기존 서명 문서를 별도 목적지에 복원하고, 시도·결과·알림 대기를 기록합니다. 이 복구 결과 자체는 보류 해제·연구 선발·전략 승인·거래 활성화가 아닙니다. 새 7절은 현재 조건을 다시 검증하여 특정 복구 목적지의 연구용 선발과 제한된 기록만 처리합니다. 일반 보류·운영 활성화는 유지합니다. 실패 연구의 원본도 보존되며, 복구됐다고 평가 통과 연구로 바뀌지 않습니다.
 
 ## 1. 준비 조건과 입력값
 
@@ -75,7 +75,7 @@ $RecoveryArgs = $AttemptArgs + $IncidentArgs + @(
 & $TradegenPython -m execution_launch.research_recovery_cli route-register @RecoveryArgs --source-head-name '<SOURCE_HEAD_NAME>' --digest '<BUNDLE_SHA256>'
 ```
 
-`RECOVERY_ROUTE_REGISTERED`와 반환된 `route_id`를 비공개 운영 기록에 보관합니다. 이때 실제 원본 전체·백업·원래 서명·현재 소유자 상태·별도 목적지를 검사합니다. 등록 자체가 복구 실행이나 자료 사용 승인은 아닙니다. `--source-head-name`과 `--digest`는 경로 등록에만 넣습니다.
+`RECOVERY_ROUTE_REGISTERED`와 반환된 `route_id`를 비공개 운영 기록에 보관합니다. 이때 실제 원본 전체·백업·원래 서명·현재 소유자 상태·별도 목적지를 검사합니다. 등록 자체가 복구 실행이나 자료 사용 승인은 아닙니다. `--source-head-name`은 경로 등록에만 넣습니다. `run-once`에는 `--digest`를 넣지 않으며, 7절의 별도 선발 명령은 대상 대조를 위해 `--digest`를 요구합니다.
 
 ## 4. 실제 사건을 확인하고 사건 ID 확보
 
@@ -112,9 +112,46 @@ $RecoveryArgs = $AttemptArgs + $IncidentArgs + @(
 
 각각 `RECOVERY_STORE_VERIFIED`, `RECOVERY_NOTIFICATIONS_PENDING`, `NOTIFICATIONS_PENDING` 결과를 확인합니다. 시도 저장소 검증은 목적지 자료가 지금도 정상이라는 재검증이 아닙니다. `record_semantics: historical_observation_not_current_eligibility`를 그대로 적용합니다.
 
-outbox는 저장된 알림 대기 목록입니다. **이 단위는 Telegram·이메일 등 네트워크 전송을 하지 않으며**, 목록 조회나 성공 결과만으로 전송·수신 완료를 기록하지 않습니다. 자동 승인 요청·서명도 수행하지 않습니다. `quarantine_released`, `current_use_eligible`, `research_selection_ready`, `execution_ready`, `network_delivery_performed`는 모두 `false`입니다.
+outbox는 저장된 알림 대기 목록입니다. **이 단위는 Telegram·이메일 등 네트워크 전송을 하지 않으며**, 목록 조회나 성공 결과만으로 전송·수신 완료를 기록하지 않습니다. 자동 승인 요청·서명도 수행하지 않습니다. 위 복구·조회 명령의 `quarantine_released`, `current_use_eligible`, `research_selection_ready`, `execution_ready`, `network_delivery_performed`는 모두 `false`입니다.
 
-## 7. 재시도·중단·소스 소실 처리
+## 7. 복구 목적지에서 현재 연구용 선발 확인
+
+실제 terminal `EXACT_ARCHIVE_RESTORED` 기록이 있고, 대상이 `VERIFIED_UNAPPROVED`이며, 현재 해당 route의 사건 한 개만 적용될 때 사용합니다. raw 실패·불완전 자료는 그대로 보존하며 이 명령으로 승인용 연구로 바꾸지 않습니다. 추가 사건이 있으면 먼저 그 거절 사유를 확인합니다.
+
+원본·원본 백업은 이미 없어도 됩니다. 아래 입력은 실제 복구 목적지, 기존 사건/시도 저장소, 원 archive 서명과 기존 source review, 현재 profile·window·독립 history head입니다. `--head-root`는 **LiveHistory의 독립 head root**이며 destination catalog head와 다릅니다. 필요한 모든 적격 후보의 기존 review 문서와 확정 graph 안 audit logical ID를 넣습니다. audit에 원본 파일 경로를 넣지 않습니다.
+
+```powershell
+$RecoveredSelectionArgs = $AttemptArgs + $IncidentArgs + @(
+  '--destination-root', '<DESTINATION_ROOT>',
+  '--destination-backup-root', '<DESTINATION_BACKUP_ROOT>',
+  '--destination-head-name', '<DESTINATION_HEAD_NAME>',
+  '--destination-limits', '<DESTINATION_LIMITS_JSON>',
+  '--digest', '<BUNDLE_SHA256>',
+  '--route-id', '<ROUTE_SHA256>',
+  '--incident-id', '<INCIDENT_SHA256>',
+  '--archive-attestation', '<ORIGINAL_ATTESTATION_JSON>',
+  '--profile', '<CURRENT_PROFILE_JSON>',
+  '--window', '<EXACT_REVIEWED_WINDOW_JSON>',
+  '--head-root', '<HISTORY_HEAD_ROOT>'
+)
+# 각 적격 후보의 실제 기존 문서/논리 ID를 추가합니다.
+$RecoveredSelectionArgs += @(
+  '--source-review', '<EXISTING_SOURCE_REVIEW_JSON>',
+  '--audit', '<STUDY_ID>=<SEALED_AUDIT_LOGICAL_ID>'
+)
+# 실제 history 구성에 policy가 있으면 --history-storage <HISTORY_POLICY_JSON>도 추가합니다.
+& $TradegenPython -m execution_launch.research_recovery_cli select-recovered @RecoveredSelectionArgs
+```
+
+이 명령은 원 source 옵션을 받지 않습니다. source 설정을 포함하는 기존 `$RecoveryArgs` 대신 위 배열을 사용합니다. 서명키·거래키·password·사용자 지정 시각·승인 bool을 보내지 않습니다. runtime은 저장소나 history head를 자동 provision하지 않습니다. 필요한 준비는 기존 명시적 운영자 절차로 먼저 수행합니다.
+
+실제 현재 owner·철회·기한·원문/backup/artifact·full family·source review·factory/history를 다시 검사합니다. `status: SELECTED`이면 `research_selection_ready: true`와 non-null `release_record_id`가 함께 있어야 합니다. 이는 해당 목적지의 연구용 검증 결과이며 거래 시작 승인이 아닙니다. 정상 미선발은 실제 status/reasons를 표시하고 ready=false·release_record_id=null입니다. `REFUSED` 또는 종료 코드 2이면 우회 호출 없이 고정 진단을 확인합니다.
+
+일반 incident-aware 선발은 보류를 계속 거절합니다. 새 명령은 일반 보류를 삭제하거나 다른 사본에 예외를 적용하지 않습니다. 같은 명령을 다시 호출해도 현재 검증을 생략하지 않으며 기존 record만 현재 허가로 표시하지 않습니다. `current_operational_use`, `execution_ready`, `automatic_operational_recovery_supported`, `network_delivery_performed`는 모두 false입니다. 원래 승인이 현재도 유효하면 복구 자체 때문에 재서명하지 않고, 만료·철회·코드/자료/규칙/window 변경의 기존 승인 조건은 유지합니다.
+
+이 명령은 scoped release/사건 기록과 기존 history binding을 쓸 수 있는 검증 작업입니다. 원 손상본을 덮어쓰거나 새 복구를 시작하지 않으며, 연구용 결과를 자동 활성화·주문·Telegram 전송에 연결하지 않습니다.
+
+## 8. 재시도·중단·소스 소실 처리
 
 | 상황 | 처리 |
 |---|---|
@@ -134,6 +171,7 @@ outbox는 저장된 알림 대기 목록입니다. **이 단위는 Telegram·이
 
 - 실제 `execution_launch/research_recovery_cli.py`, `tools/owner/research_recovery.py`, `execution_launch/research_incident_cli.py`의 명령·필수 옵션·거절·출력 형식을 대조했습니다. 위 명령에는 실행 경로에 없는 옵션을 넣지 않았습니다.
 - 시간·횟수·terminal 조건은 `research_recovery.py`와 `research_recovery_attempts.py`를 대조했습니다. 최종 통합검사·배포 버전·실제 Windows 실행 확인은 상위 세션 결과로 확정해야 합니다.
+- 새 `select-recovered`는 기존 복구 CLI와 같은 단위에서 core·CLI를 함께 동결한 후 집중 검사와 관련 회귀로 확인합니다. 새 명령의 검증 완료 주장은 실제 결과가 확정된 뒤 추가합니다.
 - 이 문서 작성 중 프로그램·테스트·실제 서명·복구·전송·주문을 실행하지 않았습니다. 모든 명령은 치환 전 자리표시자 예시입니다.
 
 법률, 세무, 투자 조언이 아니며 면허를 가진 자문가가 아니다
