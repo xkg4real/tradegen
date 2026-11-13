@@ -10,6 +10,7 @@ import json
 import math
 import os
 import re
+import stat
 import threading
 from collections.abc import Mapping
 from contextlib import contextmanager
@@ -24,7 +25,8 @@ from core.isolation import checked_target, state_root
 PUBKEY_PATH = Path(__file__).with_name("owner_pubkey.pem")   # the trust anchor; absent until owner act 1 (P24)
 
 OWNER_KINDS = frozenset({"approved", "code_approved", "course_completed", "broker_approval", "age_of_majority",
-    "cap_set", "limit_set", "withdrawal_address", "session_armed", "session_ack", "transfer_ack", "key_rotated"})
+    "cap_set", "limit_set", "withdrawal_address", "session_armed", "session_ack", "transfer_ack", "key_rotated",
+    "research_attestation_revoked"})
 SYSTEM_KINDS = frozenset({"system_halt", "system_disarm"})
 APPROVAL_KINDS = ("rules", "instruments", "venues", "calendar")
 SIG_DOMAIN = b"tradegen-owner-log/1\n"
@@ -79,6 +81,11 @@ _ISO_DATE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")
 _BODY_KEYS = ("seq", "prev_sha256", "utc", "kind", "data")
 _LINE_KEYS = frozenset(_BODY_KEYS) | {"row_sha256"}
 _ITEMS = rules.OWNER_REQUIREMENTS - {"age_of_majority"}     # that flag comes only from a birth date
+_RESEARCH_ATTESTATION_PURPOSES = frozenset({
+    "research_archive_manifest_attestation", "strategy_source_and_fixed_implementation_review",
+    "strategy_source_and_fixed_carry_implementation_review",
+})
+_RESEARCH_REVOCATION_REASONS = frozenset({"OWNER_WITHDRAWN", "EVIDENCE_UNTRUSTED", "REVIEW_ERROR"})
 
 
 def _hex64(v) -> bool:
@@ -156,6 +163,11 @@ _DATA = {
     "session_ack": {"session_id": _text, "row_id": _text, "warning_sha256": _hex64},
     "transfer_ack": {"intent_hash": _hex64, "warning_sha256": _hex64},
     "key_rotated": {"old_pubkey_b64": _b64_of(32), "new_pubkey_b64": _b64_of(32)},   # P20: the walk needs both keys
+    "research_attestation_revoked": {
+        "purpose": lambda v: type(v) is str and v in _RESEARCH_ATTESTATION_PURPOSES,
+        "target_sha256": lambda v: type(v) is str and _HEX64.fullmatch(v) is not None,
+        "reason_code": lambda v: type(v) is str and v in _RESEARCH_REVOCATION_REASONS,
+    },
     "system_halt": {"floor_krw": lambda v: _number(v) and v >= 0},
     "system_disarm": {"session_id": _text, "reason": _text},
 }
@@ -164,6 +176,8 @@ _DATA = {
 def _data_problem(kind: str, data) -> str:
     """"" when `data` has exactly the keys of `kind` with valid values, else what is wrong."""
     schema = _DATA[kind]
+    if kind == "research_attestation_revoked" and type(data) is not dict:
+        return "is not an object"
     if not isinstance(data, dict):
         return "is not an object"
     if set(data) != set(schema):
@@ -365,9 +379,193 @@ def read_anchors() -> list[tuple[int, str]]:
             raise ValueError(f"{path.name}: no head anchor")
         found.add(_anchor(head[0], head[1], path.name))
     for path in sorted(store_dir().glob("*/*.anchor.json")):
+        if path.parent.name == "research-attestations":
+            continue                          # Dedicated strict inventory below; never a generic loose anchor.
         doc = _json_object(path.read_bytes(), path.name)
         found.add(_anchor(doc.get("seq"), doc.get("row_sha256"), path.name))
+    found.update(_research_anchor_inventory())
     return sorted(found)
+
+
+def _research_anchor_directory() -> Path:
+    return checked_target(store_dir() / "research-attestations", "research restriction anchors", within=home())
+
+
+def _research_anchor_info(info, *, directory=False):
+    refused_attributes = 0x400 | 0x1000 | 0x40000 | 0x400000  # reparse/offline/recall, including OneDrive placeholders
+    if not (info.st_ino > 0 and (stat.S_ISDIR(info.st_mode) if directory else
+            stat.S_ISREG(info.st_mode) and info.st_nlink == 1 and 0 < info.st_size <= 256)
+            and not getattr(info, "st_file_attributes", 0) & refused_attributes):
+        raise ValueError("research restriction anchor file refused")
+    return info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns
+
+
+def _open_research_anchor(path: Path, flags: int, *, parent_identity=None):
+    """POSIX descriptor-relative no-follow walk; Windows keeps the checked local path."""
+    base = _research_anchor_info(os.lstat(path.parent), directory=True)[:2]
+    if parent_identity is not None and base != parent_identity:
+        raise ValueError("research restriction anchor directory changed")
+    flags |= getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0) | getattr(os, "O_BINARY", 0)
+    if os.name == "nt":
+        return os.open(checked_target(path, "research restriction anchor", within=home()), flags, 0o600)
+    directory = None
+    try:
+        directory_flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+        directory = os.open(path.anchor, directory_flags)
+        for component in path.parts[1:-1]:
+            following = os.open(component, directory_flags, dir_fd=directory)
+            os.close(directory)
+            directory = following
+            _research_anchor_info(os.fstat(directory), directory=True)
+        if _research_anchor_info(os.fstat(directory), directory=True)[:2] != base:
+            raise ValueError("research restriction anchor directory changed")
+        return os.open(path.name, flags, 0o600, dir_fd=directory)
+    finally:
+        if directory is not None:
+            os.close(directory)
+
+
+def _read_research_anchor(path: Path, *, synchronize=False) -> tuple[int, str]:
+    """Bounded exact read; existing anchors are verified and never repaired or overwritten."""
+    path = checked_target(path, "research restriction anchor", within=home())
+    before = _research_anchor_info(os.lstat(path))
+    parent = _research_anchor_info(os.lstat(path.parent), directory=True)[:2]
+    descriptor = _open_research_anchor(path, os.O_RDWR if synchronize else os.O_RDONLY, parent_identity=parent)
+    with os.fdopen(descriptor, "rb") as stream:
+        if _research_anchor_info(os.fstat(stream.fileno())) != before:
+            raise ValueError("research restriction anchor changed")
+        raw = stream.read(257)
+        if synchronize:
+            os.fsync(stream.fileno())
+        if _research_anchor_info(os.fstat(stream.fileno())) != before:
+            raise ValueError("research restriction anchor changed")
+    if _research_anchor_info(os.lstat(path)) != before:
+        raise ValueError("research restriction anchor changed")
+    if _research_anchor_info(os.lstat(path.parent), directory=True)[:2] != parent:
+        raise ValueError("research restriction anchor directory changed")
+    try:
+        body = json.loads(raw.decode("utf-8"), object_pairs_hook=_no_duplicates)
+        if (type(body) is not dict or set(body) != {"seq", "row_sha256"}
+                or model.canonical_json(body).encode("utf-8") != raw):
+            raise ValueError("research restriction anchor format")
+        anchor = _anchor(body["seq"], body["row_sha256"], "research restriction anchor")
+        if anchor[0] < 1 or path.name != anchor[1] + ".anchor.json":
+            raise ValueError("research restriction anchor identity")
+        return anchor
+    except (UnicodeError, ValueError, TypeError, RecursionError):
+        raise ValueError("research restriction anchor invalid") from None
+
+
+def _research_anchor_inventory() -> list[tuple[int, str]]:
+    base = _research_anchor_directory()
+    if not base.exists():
+        return []
+    before = _research_anchor_info(os.lstat(base), directory=True)
+    anchors = []
+    for path in sorted(base.iterdir()):
+        # Every entry matters: a renamed/partial anchor cannot be silently hidden
+        # by the legacy *.anchor.json glob.
+        anchors.append(_read_research_anchor(path))
+    if _research_anchor_info(os.lstat(base), directory=True) != before:
+        raise ValueError("research restriction anchor inventory changed")
+    return anchors
+
+
+def _research_anchors_match(check: LogCheck, *, complete=False) -> None:
+    actual = {(entry.seq, entry.row_sha256) for entry in check.entries
+              if entry.kind == "research_attestation_revoked" and entry.signed}
+    observed = set(_research_anchor_inventory())
+    if not check.ok or not observed <= actual or (complete and observed != actual):
+        raise ValueError("research restriction anchor is not a verified restriction")
+
+
+def _sync_research_anchor_directory(path: Path) -> None:
+    """POSIX directory fsync; Windows power-loss guarantees require native validation."""
+    if os.name != "nt":
+        flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+        descriptor = os.open(checked_target(path, "research restriction anchor directory", within=home()), flags)
+        try:
+            _research_anchor_info(os.fstat(descriptor), directory=True)
+            os.fsync(descriptor)
+        finally:
+            os.close(descriptor)
+
+
+def _make_research_anchor_directory() -> Path:
+    """POSIX-only creation through retained fds; Windows uses a separate native pin."""
+    base = _research_anchor_directory()
+    if os.name == "nt":
+        raise ValueError("research restriction directory pin unsupported")
+    flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+    descriptors = []
+    try:
+        current = Path(base.anchor)
+        descriptor = os.open(current, flags)
+        descriptors.append((current, descriptor, _research_anchor_info(os.fstat(descriptor), directory=True)[:2]))
+        for component in base.parts[1:]:
+            current = current / component
+            if current in (base.parent, base):
+                try:
+                    os.mkdir(component, 0o700, dir_fd=descriptor)
+                except FileExistsError:
+                    pass
+                os.fsync(descriptor)
+            descriptor = os.open(component, flags, dir_fd=descriptor)
+            identity = _research_anchor_info(os.fstat(descriptor), directory=True)[:2]
+            descriptors.append((current, descriptor, identity))
+        for path, descriptor, identity in descriptors:
+            if (_research_anchor_info(os.fstat(descriptor), directory=True)[:2] != identity
+                    or _research_anchor_info(os.lstat(path), directory=True)[:2] != identity):
+                raise ValueError("research restriction directory changed")
+        return base
+    finally:
+        for _, descriptor, _ in reversed(descriptors):
+            os.close(descriptor)
+
+
+@contextmanager
+def _research_anchor_writer_directory():
+    """Keep native Windows ancestor handles through the complete leaf operation."""
+    if os.name == "nt":
+        from core.compliance.revocation_paths import pinned_research_anchor_directory
+        with pinned_research_anchor_directory(home()) as pinned:
+            base = _research_anchor_directory()
+            if pinned.path != base:
+                raise ValueError("research restriction directory mismatch")
+            pinned.check()
+            yield base
+            pinned.check()
+    else:
+        yield _make_research_anchor_directory()
+
+
+def _persist_research_anchor(entry: Entry) -> None:
+    """Caller holds the owner sidecar lock and has verified the complete signed log.
+
+    Exclusive final creation intentionally leaves a partial file on interruption.
+    Its next strict read refuses; no final name is overwritten or auto-repaired.
+    """
+    if entry.kind != "research_attestation_revoked" or not entry.signed or _data_problem(entry.kind, entry.data):
+        raise ValueError("research restriction anchor requires a verified restriction")
+    expected = _anchor(entry.seq, entry.row_sha256, "research restriction anchor")
+    with _research_anchor_writer_directory() as base:
+        identity = _research_anchor_info(os.lstat(base), directory=True)[:2]
+        path = checked_target(base / (entry.row_sha256 + ".anchor.json"), "research restriction anchor", within=home())
+        raw = model.canonical_json({"seq": entry.seq, "row_sha256": entry.row_sha256}).encode("utf-8")
+        try:
+            descriptor = _open_research_anchor(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, parent_identity=identity)
+            with os.fdopen(descriptor, "wb") as stream:
+                stream.write(raw)
+                stream.flush()
+                os.fsync(stream.fileno())
+        except FileExistsError:
+            pass                                    # Reopen and verify; existence is never success by itself.
+        if _read_research_anchor(path, synchronize=True) != expected:
+            raise ValueError("research restriction anchor conflict")
+        if _research_anchor_info(os.lstat(base), directory=True)[:2] != identity:
+            raise ValueError("research restriction anchor directory changed")
+        for directory in (home(), store_dir(), base):
+            _sync_research_anchor_directory(directory)
 
 
 # -- appending system entries --------------------------------------------------------------------------------------
@@ -466,7 +664,8 @@ def owner_state(check: LogCheck, *, date: _dt.date, now_utc: str, session_id: st
     """What the verified log means on Asia/Seoul `date` at `now_utc`, for `session_id`. BROKEN when the check
     failed, when the first fingerprint recorded in alerts.jsonl is not the log's first key (P20: "KEY CHANGED
     since <date>"), or when entry data cannot be read. An entry stamped after `now_utc` is ignored, except a
-    system_halt, a system_disarm and a tightening cap or limit: those only tighten, so they apply at once."""
+    system_halt, a system_disarm, a research attestation revocation and a tightening cap or limit:
+    those only tighten, so they apply at once."""
     if not check.ok:
         return model.OwnerState.broken(check.reason, head=check.head, fingerprint=fingerprint_now)
     if first_recorded is not None and first_recorded[0] != check.first_key_fingerprint:
@@ -491,7 +690,9 @@ def _owner_fold(entries, day: _dt.date, now_utc: str, session_id, head, fingerpr
     stamps of the lines after it, and `day`, so a line stamped ahead cannot push it later than the loosening it
     follows. The halt cutoff is the earliest halt date. An entry stamped after `now_utc` counts only when it is a
     system_halt, a system_disarm or a tightening; a loosening stamped ahead never applies. A session_armed stamped
-    after `now_utc` does not arm the session (armed_sessions) but still blocks loosenings, dated as above."""
+    after `now_utc` does not arm the session (armed_sessions) but still blocks loosenings, dated as above.
+    Research attestation revocations are monotone restrictions at every timestamp; the verified head and
+    their exact target set are returned from this same fold, never from a separate blacklist read."""
     stamps = [_seoul_date(e.utc) for e in entries]
     late, seen = [], _dt.date.min
     for on in stamps:
@@ -530,8 +731,14 @@ def _owner_fold(entries, day: _dt.date, now_utc: str, session_id, head, fingerpr
     values: dict[str, float] = {}
     majority: _dt.date | None = None
     flags, addresses, session_acks, transfer_acks = set(), set(), set(), set()
+    revoked_research_attestations = set()
     for e, on, _ in dated:
         d = e.data
+        if e.kind == "research_attestation_revoked":
+            if not e.signed or _data_problem(e.kind, d):
+                raise ValueError("invalid research attestation revocation")
+            revoked_research_attestations.add((d["purpose"], d["target_sha256"]))
+            continue                            # Restriction applies even when utc is in the future.
         if e.utc > now_utc and e.kind not in ("cap_set", "limit_set"):
             continue
         if e.kind in ("cap_set", "limit_set"):
@@ -561,7 +768,8 @@ def _owner_fold(entries, day: _dt.date, now_utc: str, session_id, head, fingerpr
         limits={k: v for k, v in values.items() if k in _LIMIT_KEYS}, addresses=frozenset(addresses),
         flags=frozenset(flags), halted_floors=frozenset(floor for _, _, floor in halts),
         armed_sessions=frozenset(armed), session_acks=frozenset(session_acks),
-        transfer_acks=frozenset(transfer_acks), fingerprint=fingerprint_now)
+        transfer_acks=frozenset(transfer_acks), fingerprint=fingerprint_now,
+        revoked_research_attestations=frozenset(revoked_research_attestations))
 
 
 def in_force(check: LogCheck) -> dict[str, tuple[str, int]]:
@@ -967,7 +1175,37 @@ def _owner_now(day: _dt.date, now_utc: str, session_id: str | None) -> tuple[mod
     check = verify_log(lines, pubkey_raw, anchors)
     state = owner_state(check, date=day, now_utc=now_utc, session_id=session_id, fingerprint_now=fp,
                         first_recorded=first)
-    return state, check
+    if not state.ok:
+        return state, check
+    try:
+        _research_anchors_match(check)
+        if not any(entry.kind == "research_attestation_revoked" for entry in check.entries):
+            return state, check                # Preserve the pre-existing no-revocation read-side behavior.
+        observed_head = check.head
+        # Only the new restrictive path takes a writer lock. The first unlocked
+        # observation grants nothing; repeat actual PEM/chain/anchor validation.
+        with _exclusive(log_path()):
+            pubkey_raw = read_pubkey(PUBKEY_PATH)
+            fp = fingerprint(pubkey_raw)
+            check = verify_log(_log_lines(log_path()), pubkey_raw, [*read_anchors(), observed_head])
+            state = owner_state(check, date=day, now_utc=now_utc, session_id=session_id, fingerprint_now=fp,
+                                first_recorded=_first_recorded())
+            if not state.ok:
+                return state, check
+            _research_anchors_match(check)
+            for entry in check.entries:
+                if entry.kind == "research_attestation_revoked":
+                    _persist_research_anchor(entry)
+            final = verify_log(_log_lines(log_path()), pubkey_raw, read_anchors())
+            if not final.ok or final.head != check.head or read_pubkey(PUBKEY_PATH) != pubkey_raw:
+                raise ValueError("research restriction observation changed")
+            _research_anchors_match(final, complete=True)
+            state = owner_state(final, date=day, now_utc=now_utc, session_id=session_id, fingerprint_now=fp,
+                                first_recorded=_first_recorded())
+            return state, final
+    except (OSError, ValueError, RuntimeError, TypeError):
+        return model.OwnerState.broken("research restriction anchor unavailable", head=check.head,
+                                       fingerprint=fp), None
 
 
 def _approved_now(check: LogCheck) -> model.ApprovedState:
@@ -989,7 +1227,8 @@ def _approved_now(check: LogCheck) -> model.ApprovedState:
 
 def load_context(now: _dt.datetime, positions: model.Positions, *, session_id: str | None = None) -> model.Context:
     """The only producer of Context (spec 6.4). Hashes the code on disk, verifies the owner log against the repo
-    public key, loads the in-force tables from the store, snapshots a good state and reads the latest snapshot.
+    public key, pins verified research revocations durably, loads the in-force tables from the store,
+    snapshots a good state and reads the latest snapshot.
     `positions` is the caller's (P19): validated, copied read-only, then hashed into ctx_hash. Never raises, except
     ValueError for a naive or out-of-range `now`; anything else fails closed: nothing in force, nothing signed,
     owner state BROKEN."""

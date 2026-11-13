@@ -23,7 +23,8 @@ MODULES = ("launch_guards", "network_route", "accounts_collector", "launch_profi
            "launch_carry_review", "launch_carry_coordinator",
            "launch_study_evidence", "launch_study_family", "launch_study_receipts", "launch_research_bundle_format",
            "launch_research_bundle_store", "launch_research_bundle",
-           "launch_bundle_attestation", "launch_bundle_auth", "launch_bundle_review")
+           "launch_bundle_attestation", "launch_bundle_auth", "launch_bundle_review",
+           "launch_research_revocation", "launch_research_revocation_auth")
 
 
 def tests():

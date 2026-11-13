@@ -386,6 +386,8 @@ def test_event_data_schemas_are_exact():
         "session_ack": {"session_id": "S1", "row_id": "KR-OKX-SPOT", "warning_sha256": "3" * 64},
         "transfer_ack": {"intent_hash": "4" * 64, "warning_sha256": "5" * 64},
         "key_rotated": {"old_pubkey_b64": _b64(bytes(32)), "new_pubkey_b64": _b64(bytes(range(32)))},
+        "research_attestation_revoked": {"purpose": "research_archive_manifest_attestation",
+                                         "target_sha256": "a" * 64, "reason_code": "OWNER_WITHDRAWN"},
         "system_halt": {"floor_krw": 21000},
         "system_disarm": {"session_id": "S1", "reason": "daily loss limit"},
     }
