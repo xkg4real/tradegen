@@ -270,7 +270,7 @@ def test_actual_opening_owner_provenance_two_intervals_and_exactly_two_durable_t
             runtime = e.producer._runtime_components()
             second = F.advance(e)
             assert e.producer._runtime_components() == runtime
-            paired, endpoint = e.producer._current_unit(second, now=e.clock())
+            paired, endpoint, reconciliation = e.producer._current_unit(second, now=e.clock())
         assert counts == dict(baseline=2, guard=2, baseline_cas=2, guard_cas=2)
         assert type(runtime[0]) is CommittedAccountProvider and type(runtime[1]) is Controller
         assert runtime[1].account_provider is runtime[0] and runtime[2] is e.journal
@@ -283,7 +283,8 @@ def test_actual_opening_owner_provenance_two_intervals_and_exactly_two_durable_t
         assert endpoint == second.account and paired.account.asof == second.account.observed_at
         assert second_input.package['now'] >= second_input.package['owner_after'].observed_at
         assert second.account.observed_at <= second_input.package['now'] < second.completed_at
-        assert second.reconciliation.status == 'RECONCILED'
+        assert reconciliation.status == second.reconciliation.status == 'RECONCILED'
+        assert paired.committed.observed_control_head == reconciliation.final_control_head
         assert checkpoint_state(e)[3].sequence == initial[3].sequence+2
         assert sum(row['kind'] == PREPARE for row in rows(e)) == 2
         assert sum(row['kind'] == COMPLETE for row in rows(e)) == 2

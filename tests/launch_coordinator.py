@@ -703,10 +703,11 @@ def test_coordinator_source_static_contract():
                                          "execution_orders.transport", "execution_orders.upbit")) for m in modules), modules
     assert isinstance(tree.body[0], ast.Expr) and isinstance(tree.body[0].value, ast.Constant)
     assert not any(isinstance(node, ast.Expr) for node in tree.body[1:])
-    # K9: compose reaches the loader through workflow's public aliases; neither module is a fixed-driver source.
+    # K9: the committed scheduler is now a shared reviewed dependency; workflow aliases remain public.
     from execution_launch import driver as fixed, workflow as W
     assert W.read_file is W._read_file and W.artifact is W._artifact
-    assert MODULE not in fixed._SOURCE_FILES and "execution_launch/workflow.py" not in fixed._SOURCE_FILES
+    assert MODULE in fixed._SOURCE_FILES and MODULE in fixed._CARRY_SOURCE_FILES
+    assert "execution_launch/workflow.py" not in fixed._SOURCE_FILES
     for node in tree.body:
         if isinstance(node, ast.ImportFrom) and node.module == "execution_launch.workflow":
             assert not any(alias.name.startswith("_") for alias in node.names), [alias.name for alias in node.names]
