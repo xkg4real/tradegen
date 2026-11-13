@@ -1,0 +1,134 @@
+[
+  {
+    "test": "compliance/compliance_signer/test_detached_review_command_retains_process_refusal_and_typed_confirmation",
+    "status": "PASS",
+    "seconds": 0.007,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_carry_review/test_body_schema_request_schema_and_factory_cannot_be_mixed",
+    "status": "PASS",
+    "seconds": 1.8543,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_carry_review/test_carry_signed_summary_distinguishes_valuation_inventory_and_realized_amounts",
+    "status": "PASS",
+    "seconds": 0.0003,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_carry_review/test_cloned_driver_or_wrong_history_dependency_cannot_receive_implementation_receipt",
+    "status": "PASS",
+    "seconds": 0.0982,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_carry_review/test_independent_behavior_document_hash_and_factory_source_closure_match",
+    "status": "PASS",
+    "seconds": 0.0117,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_carry_review/test_independent_signer_hash_detects_every_carry_behavior_dependency",
+    "status": "PASS",
+    "seconds": 0.0343,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_carry_review/test_legacy_and_owner_log_signature_domains_cannot_authenticate_carry",
+    "status": "PASS",
+    "seconds": 0.0152,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_carry_review/test_legacy_review_bytes_domain_and_optional_binding_omission_stay_unchanged",
+    "status": "PASS",
+    "seconds": 0.001,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_carry_review/test_legacy_source_closure_binds_its_actual_behavior_resolver_dependency",
+    "status": "PASS",
+    "seconds": 0.0143,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_carry_review/test_new_review_version_domain_and_factory_are_exactly_bound",
+    "status": "PASS",
+    "seconds": 0.0008,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_carry_review/test_post_signature_summary_edit_cannot_change_the_reviewed_evidence",
+    "status": "PASS",
+    "seconds": 0.0041,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_carry_review/test_real_temporary_owner_and_actual_carry_evaluation_qualify_without_arming",
+    "status": "PASS",
+    "seconds": 4.2774,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_carry_review/test_signed_changed_display_is_rejected_against_the_actual_issued_result",
+    "status": "PASS",
+    "seconds": 0.0515,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_carry_review/test_source_binding_prevents_removing_or_replacing_each_carry_semantic",
+    "status": "PASS",
+    "seconds": 0.0408,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_carry_review/test_standalone_and_runtime_signed_amount_codecs_are_strict_and_equal",
+    "status": "PASS",
+    "seconds": 0.0025,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_carry_review/test_standalone_carry_command_rechecks_new_source_closure_after_confirmation",
+    "status": "PASS",
+    "seconds": 0.0115,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_carry_review/test_standalone_carry_command_signs_exact_displayed_synthetic_document",
+    "status": "PASS",
+    "seconds": 0.0125,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_carry_review/test_standalone_carry_single_request_and_signing_bytes_match_runtime",
+    "status": "PASS",
+    "seconds": 0.0012,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_carry_review/test_standalone_signer_never_imports_runtime_app_modules",
+    "status": "PASS",
+    "seconds": 0.0149,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_carry_review/test_standalone_validator_refuses_unknown_or_cross_revision_contracts",
+    "status": "PASS",
+    "seconds": 0.0009,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_carry_review/test_unsigned_carry_summary_cannot_grant_or_replace_computed_qualification",
+    "status": "PASS",
+    "seconds": 0.002,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_carry_review/test_whole_family_carry_request_uses_schema_four_and_new_signature_domain",
+    "status": "PASS",
+    "seconds": 0.0069,
+    "detail": ""
+  }
+]

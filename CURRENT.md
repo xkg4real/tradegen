@@ -6,15 +6,15 @@ task: upbit-universe
 cycle: 2026-11-10
 done_ids: universe-pr4e, protective-hold/p2-store-integration, universe-pr5/outcome-document-contract, protective-hold/p2-store, protective-hold/p1, universe-pr4d/lossless-history, universe-pr4d, universe-pr4d/lossless-objects, design-revision-1113, upbit-universe-return-1113, universe-pr4d/original-verification, workflow-resume-1113/regression-preparation, universe-pr4d/task2-implementation, universe-pr4d/task3, universe-pr4d/task4, universe-pr4c, universe-pr4d/task1, workflow-resume-1113, workflow-resume-1113/dependencies, universe-pr4c/implementation, universe-pr0, universe-pr1, universe-pr2, universe-pr3, universe-pr4b, universe-pr4a
 next_ids: protective-hold/fixed-carry-v2, protective-hold/p2-integration, universe-pr5, universe-pr5-clock-notify, universe-code-approve, policy-loss-budget-plan-1, rules-review-1202, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, launch-private-capture-setup-1, e1-14-owner-setup, launch-prospective-study, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1
-updated_at: 2026-11-13T22:12:37+09:00
+updated_at: 2026-11-13T22:30:49+09:00
 stale_after_hours: 3
 waiting_on: no prior approval question; future PLB S1-S12 and deployment inputs only
-work_branch: gpt/research-outcome-contract
-work_commit: 34b4a3b7e40bcebaf5cd06f1b6f360cdeafeb27c
+work_branch: gpt/protective-fixed-carry-v2
+work_commit: 0b3920498ea7d7b1d038806ac842527e5911692a
 merged_main_commit: 5217f1e7977fab170a5453ad1ac8d4fc58521dc6
-runtime_tested_commit: PR36 a772a24 full2772PASS0FAIL135NR; PR37 integrated59e15cb187PASS; PR38 samefpb3163893 154PASS0FAIL1NR
-uncommitted_changes: active carry-v2 at gpt/protective-fixed-carry-v2 /workspace/tradegen-protective-carry-1113; owners writing distinct files; not tested complete or committed
-pr: PR36/37/38 merged; carry-v2 active implementation, no PR yet
+runtime_tested_commit: carry focused source8ab8e430 359PASS1fixtureFAIL2WindowsNR; corrected display fixture22PASS; full3071 running on0b39204/source249f1fcb
+uncommitted_changes: carry clean/pushed PR39 draft; separate gpt/research-family-preflight has active A0b helper/study/review/test changes from0b39204
+pr: PR39 draft with full suite running; PR34-38 merged
 usage_weekly_pct: unknown
 usage_source: unavailable
 handoff_threshold_pct: 95
@@ -114,3 +114,13 @@ PR36 a772a24에서 유니버스 Runner/Coordinator/owner rehearsal을 연결했�
 - 현재 gpt/protective-fixed-carry-v2는59e15cb 기반 별도트리에서6명파일소유분리개발중. fixed Upbit KRW GTC만 새protocol/evaluator/typeddecision/capture/factory/review/domain/서명/Coordinator/P2deadline을연결한다. legacy종단의미와wirebytes는기존버전에유지. 새carry는E에서평가잔량을유지하고새주문차단·새관리요청하며 기존GTC의뒤늦은체결과구별한다.
 - carry의정식통합검증은아직미실행. 독립검토가찾은 최소금액SELL표시, 무체결E/HOLD의가상bid0, capture중간가일치, callback지연중E초과경합을수정중. 각부품의개별PASS/AST를전체완료로세지않는다. ownerfiles/API는새 CARRY_V2_API_CARD참조.
 - 실제productionauthority/continuousaccount/controlledlauncher/연구전체semantic검증/봉인·백업·복구/WebAuthn/Windows·iPhone/사용자서명·활성화는남는다. 실제주문없음. 사용자결정E/하한은재질문하지않는다.
+
+## Carry 실제 수직연결 checkpoint — 전체검사 중, A0b 별도 개발
+
+PR39 gpt/protective-fixed-carry-v2 source0b3920498ea7d7b1d038806ac842527e5911692a를push했다. 실제carry protocol/capture/evaluator/issuedresult/independentsigner/history/Coordinator/Runner/P2deadline 경로를연결했고, 기존runtime/owner/risk권한은완화하지않았다. finalslot·원본보존·느린CAS실패·닫힌상태·재시작·기존GTC늦은체결 실제통합11개가39.668초에모두PASS. 실제서명은임시키를통한검증이며실계좌/키/API/주문/활성화없다.
+
+집중362개는359PASS/1FAIL/2WindowsNOT_RUN,255.167초. 실패는기존display-only signer테스트의버전필드없는fixture가새carry안내분기에서KeyError를낸것이다. 실제런타임검증을약화하지않고schema1/2에서잘못입력한확인코드가거절되는테스트로보완했으며관련22개8.824초PASS. source/home메타데이터불변. 전체3071개는정확한최신main통합source249f1fcb0d16897662b43274c75adc3fd8d7076b5ee20ac4ab615eb31146c715에서실행중; /workspace/tradegen-session/protective-carry-1113/verify_checkpointed.py, label carry-full, execsession12299. source변경금지. 아직완료ID/병합으로세지않는다.
+
+A0b별도작업: /workspace/tradegen-research-family-1113, gpt/research-family-preflight, base0b39204. revision_review가study_evidence.py/strategy.py/새helpertests, notion_revision이study.py/CLIloader/studytests, pr4e_owner가study_review.py/실제서명회귀소유. root는registry/guard/통합검증. 모든후보원본·등록chain·프로그램·typeddecision을검사한뒤에만실제평가발급, 누락/추가파일·malformed는전체보류, resource admission은손상과구분한다. 기존정상통계탈락원본은가족hash에서보존한다. 실제failed-evaluation발급/봉인/복구/WebAuthn은이단계범위밖이다. 아직실행검증/commit/PR없음. Carry트리는변경하지않는다.
+
+Notion 두 기존페이지에는PR36–38결과/남은범위를append하고이전내용보존및읽기검증했다. 최신carry 결과는전체검사/전달뒤추가반영한다. 사용량조회도구가없음을재확인했으므로unknown 유지하며95%라고추정하지않았다.

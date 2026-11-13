@@ -1,6 +1,6 @@
 # Carry-v2 implementation coordination
 
-Working tree: `/workspace/tradegen-protective-carry-1113`, starting at `59e15cb` (PR4e plus P2-store, integration tests187PASS). PR36 full suite and upstream merge remain in progress. This is an isolated development tree, not a deployment.
+Working tree: `/workspace/tradegen-protective-carry-1113`, starting at `59e15cb` (PR4e plus P2-store, integration tests187PASS). PR36/37/38 are merged at main5217f1e; this working tree will integrate that main before final validation. This is an isolated development tree, not a deployment.
 
 The detailed approved user requirements and implementation boundaries are in `TRADEGEN_PROTECTIVE_P3_READINESS_2026-11-13.md`, especially §9. Preserve all legacy wire bytes and evaluator semantics. Implement the fixed Upbit KRW GTC vertical path first; the universe evaluator and independent post-deadline management authority are still unavailable. No actual home/key/API/signature/activation/order use. Synthetic temporary test keys and DryRunAdapter only.
 
@@ -30,3 +30,11 @@ The detailed approved user requirements and implementation boundaries are in `TR
 7. Root — registries, guard changes after exact review, API arbitration, independent review, source freeze, tests, commits/PRs/merge and handoff.
 
 Agree interfaces in messages before writing consumers. Do not change another owner's files. Each stage reports tested vs prepared cases accurately. The acceptance goal is an actual Coordinator→LiveHistory→issued factory callback→Runner→Controller/DryRunAdapter final-slot path, real temporary signature verification and actual new evaluator issuance. Do not stub callback/assessment/authority to force the desired outcome. New controlled/live composition remains refused throughout.
+
+## Implemented contract refinements before first integrated run
+
+- Direct dependency review expanded legacy driver closure from 14 to 15 files by adding managed_behavior.py; carry closure has 22 files, adding carry_evaluator.py, capture_v2.py, paper_capture.py, coordinator.py, protective_state.py, protective_store.py and review_request.py. Standalone signer matches exactly. Legacy wire bytes remain compatible; changed source hashes require new approval.
+- Carry ReviewBinding adds computed_summary_sha256 from the actual issued result and mathematical verdict. Signed display changes are refused even through the direct Runner assessment path. This is an internal carry binding, not an inherited legacy approval.
+- V2 capture requires the same exact midpoint mark as the actual driver. Existing capture V1 semantics are unchanged.
+- Original history is recorded before possibly slow P2 deadline persistence, then deadline persistence is required before Runner. Runner rechecks the issued runtime deadline against a fresh clock after callback and before reserve/dispatch. This does not prove an atomic real-network send deadline; controlled/live composition remains unavailable.
+- A valid SELL below the minimum order size stays a SELL decision with a blocked execution reason. E/HOLD simulations do not synthesize executable stressed prices when there is no order.

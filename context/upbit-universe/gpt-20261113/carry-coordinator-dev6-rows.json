@@ -1,0 +1,68 @@
+[
+  {
+    "test": "launch/launch_carry_coordinator/test_a_positive_entry_candidate_at_the_deadline_is_blocked_before_reserve",
+    "status": "PASS",
+    "seconds": 4.6834,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_carry_coordinator/test_actual_callback_finishing_at_deadline_records_request_before_any_reserve",
+    "status": "PASS",
+    "seconds": 2.5323,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_carry_coordinator/test_actual_final_slot_retains_inventory_and_confirms_one_persistent_management_request",
+    "status": "PASS",
+    "seconds": 3.2708,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_carry_coordinator/test_carry_requires_exact_protection_context_and_keeps_controlled_mode_refused",
+    "status": "PASS",
+    "seconds": 1.0881,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_carry_coordinator/test_closed_management_does_not_append_restart_or_deadline_records_on_each_monitor",
+    "status": "PASS",
+    "seconds": 2.9654,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_carry_coordinator/test_deadline_bridge_never_provisions_or_initializes_a_missing_protection_store",
+    "status": "PASS",
+    "seconds": 3.1703,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_carry_coordinator/test_deadline_storage_failure_preserves_final_quote_and_blocks_dependent_execution",
+    "status": "PASS",
+    "seconds": 2.908,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_carry_coordinator/test_existing_gtc_late_fill_is_accounted_under_the_same_id_without_a_new_create",
+    "status": "PASS",
+    "seconds": 3.2415,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_carry_coordinator/test_existing_management_history_records_one_restart_and_reuses_the_durable_request",
+    "status": "PASS",
+    "seconds": 3.6548,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_carry_coordinator/test_legacy_actual_final_slot_still_derives_its_original_terminal_exit",
+    "status": "PASS",
+    "seconds": 6.552,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_carry_coordinator/test_slow_failed_protection_commit_cannot_discard_the_final_original_quote",
+    "status": "PASS",
+    "seconds": 3.0056,
+    "detail": ""
+  }
+]

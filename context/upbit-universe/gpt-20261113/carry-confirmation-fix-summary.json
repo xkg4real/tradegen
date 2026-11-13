@@ -1,0 +1,20 @@
+{
+  "label": "carry-confirmation-fix",
+  "head": "571e24d7b6e55802a786229619cbb68aec28b800",
+  "source_hash": "dbf07fc41ee5dc108398995c7e653c07929d98865cd85877e2a26c34d5f836cf",
+  "total": 22,
+  "counts": {
+    "PASS": 22,
+    "FAIL": 0,
+    "NOT_RUN": 0
+  },
+  "process_segments": 1,
+  "seconds": 8.824,
+  "current_segment_seconds": 8.824,
+  "sum_test_seconds": 6.463,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "real_homes_check_scope": "metadata before imports/discovery through completion",
+  "failures": []
+}

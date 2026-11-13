@@ -1,0 +1,87 @@
+{
+  "label": "carry-dev2",
+  "head": "59e15cb12b822597c2296afda3649eaca3dcb3ad",
+  "source_hash": "06039df42324a2ebc33291f9df850118c02b4cc6e281791324f280a6aaa0faf4",
+  "total": 124,
+  "counts": {
+    "PASS": 113,
+    "FAIL": 11,
+    "NOT_RUN": 0
+  },
+  "process_segments": 1,
+  "seconds": 28.14,
+  "current_segment_seconds": 28.14,
+  "sum_test_seconds": 25.401,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "real_homes_check_scope": "metadata before imports/discovery through completion",
+  "failures": [
+    {
+      "test": "launch/launch_carry_coordinator/test_a_positive_entry_candidate_at_the_deadline_is_blocked_before_reserve",
+      "status": "FAIL",
+      "seconds": 1.4341,
+      "detail": "ReviewAuthenticationError: REVIEW_REQUEST_NOT_ELIGIBLE"
+    },
+    {
+      "test": "launch/launch_carry_coordinator/test_actual_callback_finishing_at_deadline_records_request_before_any_reserve",
+      "status": "FAIL",
+      "seconds": 0.0053,
+      "detail": "ReviewAuthenticationError: REVIEW_REQUEST_NOT_ELIGIBLE"
+    },
+    {
+      "test": "launch/launch_carry_coordinator/test_actual_final_slot_retains_inventory_and_confirms_one_persistent_management_request",
+      "status": "FAIL",
+      "seconds": 0.0057,
+      "detail": "ReviewAuthenticationError: REVIEW_REQUEST_NOT_ELIGIBLE"
+    },
+    {
+      "test": "launch/launch_carry_coordinator/test_carry_requires_exact_protection_context_and_keeps_controlled_mode_refused",
+      "status": "FAIL",
+      "seconds": 0.0049,
+      "detail": "ReviewAuthenticationError: REVIEW_REQUEST_NOT_ELIGIBLE"
+    },
+    {
+      "test": "launch/launch_carry_coordinator/test_closed_management_does_not_append_restart_or_deadline_records_on_each_monitor",
+      "status": "FAIL",
+      "seconds": 0.0053,
+      "detail": "ReviewAuthenticationError: REVIEW_REQUEST_NOT_ELIGIBLE"
+    },
+    {
+      "test": "launch/launch_carry_coordinator/test_deadline_bridge_never_provisions_or_initializes_a_missing_protection_store",
+      "status": "FAIL",
+      "seconds": 0.0052,
+      "detail": "ReviewAuthenticationError: REVIEW_REQUEST_NOT_ELIGIBLE"
+    },
+    {
+      "test": "launch/launch_carry_coordinator/test_deadline_storage_failure_preserves_final_quote_and_blocks_dependent_execution",
+      "status": "FAIL",
+      "seconds": 0.0053,
+      "detail": "ReviewAuthenticationError: REVIEW_REQUEST_NOT_ELIGIBLE"
+    },
+    {
+      "test": "launch/launch_carry_coordinator/test_existing_gtc_late_fill_is_accounted_under_the_same_id_without_a_new_create",
+      "status": "FAIL",
+      "seconds": 0.0062,
+      "detail": "ReviewAuthenticationError: REVIEW_REQUEST_NOT_ELIGIBLE"
+    },
+    {
+      "test": "launch/launch_carry_coordinator/test_existing_management_history_records_one_restart_and_reuses_the_durable_request",
+      "status": "FAIL",
+      "seconds": 0.0063,
+      "detail": "ReviewAuthenticationError: REVIEW_REQUEST_NOT_ELIGIBLE"
+    },
+    {
+      "test": "launch/launch_carry_coordinator/test_legacy_actual_final_slot_still_derives_its_original_terminal_exit",
+      "status": "FAIL",
+      "seconds": 0.3807,
+      "detail": "ReviewAuthenticationError: REVIEW_REQUEST_NOT_ELIGIBLE"
+    },
+    {
+      "test": "launch/launch_carry_coordinator/test_slow_failed_protection_commit_cannot_discard_the_final_original_quote",
+      "status": "FAIL",
+      "seconds": 0.0065,
+      "detail": "ReviewAuthenticationError: REVIEW_REQUEST_NOT_ELIGIBLE"
+    }
+  ]
+}

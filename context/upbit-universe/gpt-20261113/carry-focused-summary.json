@@ -1,0 +1,27 @@
+{
+  "label": "carry-focused",
+  "head": "59e15cb12b822597c2296afda3649eaca3dcb3ad",
+  "source_hash": "8ab8e43060cb2e2de5b82c0c15ed115eae300e9a47435f945faea397ea4df9bb",
+  "total": 362,
+  "counts": {
+    "PASS": 359,
+    "FAIL": 1,
+    "NOT_RUN": 2
+  },
+  "process_segments": 1,
+  "seconds": 255.167,
+  "current_segment_seconds": 255.167,
+  "sum_test_seconds": 252.382,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "real_homes_check_scope": "metadata before imports/discovery through completion",
+  "failures": [
+    {
+      "test": "compliance/compliance_signer/test_detached_review_command_retains_process_refusal_and_typed_confirmation",
+      "status": "FAIL",
+      "seconds": 0.0009,
+      "detail": "KeyError: 'schema_version'"
+    }
+  ]
+}
