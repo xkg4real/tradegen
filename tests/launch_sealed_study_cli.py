@@ -163,7 +163,7 @@ def test_bad_profile_and_duplicate_window_fields_are_not_relabelled_as_current_o
         e.paths['profile'].write_bytes(original)
         e.paths['window'].write_bytes(b'{"deployment_id":"one","deployment_id":"two"}')
         with patch.object(C,'CurrentOwnerAuthority') as authority:
-            failed(e.args,'OWNER_JSON_INVALID')
+            failed(e.args,'OWNER_JSON_DUPLICATE_KEY')
             assert not authority.called
 
 
