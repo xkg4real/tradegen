@@ -21,7 +21,8 @@ MODULES = ("launch_guards", "network_route", "accounts_collector", "launch_profi
            "launch_managed_behavior", "launch_driver_carry", "launch_carry_evaluator",
            "launch_capture_v2", "launch_workflow_v2", "launch_carry_strategy",
            "launch_carry_review", "launch_carry_coordinator",
-           "launch_study_evidence", "launch_study_family")
+           "launch_study_evidence", "launch_study_family", "launch_study_receipts", "launch_research_bundle_format",
+           "launch_research_bundle_store", "launch_research_bundle")
 
 
 def tests():

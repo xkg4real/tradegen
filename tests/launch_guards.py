@@ -37,7 +37,17 @@ CONTINUOUS_ARCHIVE = "execution_launch/continuous_archive.py"
 UNIVERSE_STORE = "execution_launch/universe_store.py"
 EVIDENCE_OBJECTS = "execution_launch/evidence_objects.py"
 PROTECTIVE_STORE = "execution_launch/protective_store.py"
+RESEARCH_BUNDLE_STORE = "execution_launch/research_bundle_store.py"
+OWNER_RESEARCH_SETUP = "tools/owner/research_bundle.py"
 PINNED_WRITES: dict[str, tuple[str, ...]] = {
+    RESEARCH_BUNDLE_STORE: (
+        'os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL | _FLAGS, 0o600)',
+        'os.fdopen(descriptor, "wb")',
+        'os.open(target, os.O_RDWR | _FLAGS)',
+        'os.fdopen(descriptor, "r+b")',
+        'os.open(target, os.O_WRONLY | os.O_APPEND | _FLAGS)',
+        'os.fdopen(descriptor, "ab")',
+    ),
     PROTECTIVE_STORE: (
         'self.root.mkdir(mode=0o700)',
         'os.open(checked_target(self.root / name, "protective setup", within=self.root), '
@@ -121,7 +131,7 @@ WRITE_MODE = re.compile(r"[wax+]")
 # The trusted baseline head is advanced only by the account provider, the live-history journal and the continuous
 # guard commit coordinator (after its durable prepare record and halt latch).
 CAS_CALLERS = frozenset({"execution_accounts/baseline_bridge.py", "execution_launch/live_history.py",
-                         "execution_launch/continuous_guard_commit.py", PROTECTIVE_STORE})
+                         "execution_launch/continuous_guard_commit.py", PROTECTIVE_STORE, RESEARCH_BUNDLE_STORE})
 
 
 def _call_name(node):
@@ -660,11 +670,14 @@ def test_head_authority_writes_are_exact_and_operator_steps_have_no_runtime_call
         tree = ast.parse(path.read_text(encoding="utf-8"))
         relative = path.relative_to(ROOT).as_posix()
         allowed = set()
-        if relative == OWNER_SETUP:
-            # Only these two explicit, reviewed operator operations initialize
-            # heads. The normal coordinator/account/runtime path cannot do so.
+        setup_calls = (OWNER_SETUP_CALLS if relative == OWNER_SETUP else
+                       {"provision_research_store": "store.head.initialize_reviewed_head(store.genesis_digest)"}
+                       if relative == OWNER_RESEARCH_SETUP else {})
+        if setup_calls:
+            # Exact explicit operator functions only; runtime readers/writers
+            # cannot initialize, adopt or repair authority heads.
             definitions = {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
-            for function, shape in OWNER_SETUP_CALLS.items():
+            for function, shape in setup_calls.items():
                 expected = ast.dump(ast.parse(shape, mode="eval").body)
                 matches = [n for n in ast.walk(definitions[function])
                            if isinstance(n, ast.Call) and ast.dump(n) == expected]
@@ -803,3 +816,42 @@ def test_wrapper_flags_a_change_to_the_real_baseline_history_and_head_homes():
     assert {home / "execution-baseline", home / "execution-history"} <= set(CA._REAL)
     if os.environ.get("LOCALAPPDATA"):
         assert Path(os.environ["LOCALAPPDATA"]) / "TRADEGEN-head" in CA._REAL
+
+
+def test_research_bundle_store_writes_and_operator_provisioning_stay_narrow():
+    from tests.acceptance import runtime_py
+    source = (ROOT / RESEARCH_BUNDLE_STORE).read_text(encoding="utf-8")
+    assert not problems(source, RESEARCH_BUNDLE_STORE), problems(source, RESEARCH_BUNDLE_STORE)
+    calls = {ast.dump(node) for node in ast.walk(ast.parse(source)) if isinstance(node, ast.Call)}
+    assert _PINNED_WRITE_TREES[RESEARCH_BUNDLE_STORE] <= calls
+    write = "write outside pinned writer"
+    for shape in PINNED_WRITES[RESEARCH_BUNDLE_STORE]:
+        assert not problems(shape, RESEARCH_BUNDLE_STORE), shape
+        for relative in ("", "execution_launch/research_bundle.py", "execution_launch/research_bundle_format.py",
+                         "execution_launch/study_receipts.py", "execution_launch/nested/research_bundle_store.py"):
+            assert write in problems(shape, relative), (shape, relative)
+    create, append = PINNED_WRITES[RESEARCH_BUNDLE_STORE][0], PINNED_WRITES[RESEARCH_BUNDLE_STORE][4]
+    for altered in (create.replace("os.O_EXCL", "os.O_TRUNC"), create.replace(" | os.O_EXCL", ""),
+                    create.replace("target,", "other,"), create.replace("0o600", "0o666"),
+                    append.replace("os.O_APPEND", "os.O_TRUNC"), append.replace("target,", "other,"),
+                    "os.replace(source, target)", "path.unlink()", "path.write_bytes(raw)"):
+        assert write in problems(altered, RESEARCH_BUNDLE_STORE), altered
+    for extra in ("import requests", "owner.load_context(now)", "owner.arm(x)",
+                  "os.environ['UPBIT_SECRET_KEY']", "head.initialize_reviewed_head(x)"):
+        assert problems(extra, RESEARCH_BUNDLE_STORE), extra
+    assert not problems("self.head.compare_and_set(old, new)", RESEARCH_BUNDLE_STORE)
+    assert "trusted head advance outside pinned callers" in problems(
+        "self.head.compare_and_set(old, new)", "execution_launch/research_bundle.py")
+    for path in runtime_py():
+        relative = path.relative_to(ROOT).as_posix()
+        if relative == OWNER_RESEARCH_SETUP:
+            continue
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        assert not any("provision_research_store" in _reached(node) for node in ast.walk(tree)), relative
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                assert all(alias.name != "tools.owner.research_bundle" for alias in node.names), relative
+            if isinstance(node, ast.ImportFrom):
+                assert node.module != "tools.owner.research_bundle", relative
+                assert not (node.module == "tools.owner" and any(alias.name == "research_bundle"
+                                                                for alias in node.names)), relative
