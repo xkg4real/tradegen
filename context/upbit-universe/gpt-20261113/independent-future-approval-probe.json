@@ -1,0 +1,9 @@
+{
+  "probe": "future_only_code_approval",
+  "signer_exit": 0,
+  "actual_signature_count": 1,
+  "output_created": true,
+  "fixture": "synthetic isolated deployment, real Ed25519, future genuine owner row",
+  "auth_accepted": false,
+  "auth_error": "OwnerAuthorityError: OWNER_AUTHORITY_CODE_NOT_SIGNED"
+}

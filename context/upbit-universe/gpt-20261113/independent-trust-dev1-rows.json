@@ -1,0 +1,47 @@
+[
+  {
+    "test": "compliance_signer/test_archive_actual_export_signer_and_current_owner_auth_preserve_nonoperational_scope",
+    "status": "PASS",
+    "seconds": 11.565
+  },
+  {
+    "test": "compliance_signer/test_archive_signer_checks_expiry_after_heavy_signing_bytes_and_before_publication",
+    "status": "PASS",
+    "seconds": 1.78
+  },
+  {
+    "test": "compliance_signer/test_archive_owner_signature_walk_rejects_bad_prior_approval_even_after_key_rotation",
+    "status": "PASS",
+    "seconds": 0.002
+  },
+  {
+    "test": "launch_bundle_auth/test_corrupted_actual_loader_context_cannot_bypass_seal_or_hash_checks",
+    "status": "PASS",
+    "seconds": 3.975
+  },
+  {
+    "test": "launch_bundle_auth/test_constructed_authority_callback_stored_bundle_and_report_are_not_trust_inputs",
+    "status": "PASS",
+    "seconds": 4.555
+  },
+  {
+    "test": "launch_bundle_auth/test_benign_owner_log_growth_and_existing_halt_do_not_become_trading_permission",
+    "status": "PASS",
+    "seconds": 4.091
+  },
+  {
+    "test": "launch_bundle_auth/test_owner_log_rollback_after_success_is_refused_by_same_provider",
+    "status": "PASS",
+    "seconds": 3.876
+  },
+  {
+    "test": "launch_bundle_auth/test_each_authentication_observes_current_graph_and_key_instead_of_accepting_old_report",
+    "status": "PASS",
+    "seconds": 4.489
+  },
+  {
+    "test": "launch_bundle_auth/test_final_heavy_signature_and_document_digest_work_cannot_hide_expiry",
+    "status": "PASS",
+    "seconds": 7.474
+  }
+]

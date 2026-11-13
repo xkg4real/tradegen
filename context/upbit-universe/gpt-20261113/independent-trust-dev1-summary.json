@@ -1,0 +1,12 @@
+{
+  "source_sha256": "e6a864ab219e8508a561c6481ab91034d31ec6122b4bab8f55e090f5d0b458bd",
+  "source_unchanged": true,
+  "qa_unchanged": true,
+  "keyless_count": 19,
+  "seconds": 41.874,
+  "counts": {
+    "PASS": 9,
+    "FAIL": 0
+  },
+  "scope": "direct selected trust functions, isolated temporary homes, no QA write; fixed signer case copies full D14 source; carry/raw signer deployment fixtures synthetic"
+}

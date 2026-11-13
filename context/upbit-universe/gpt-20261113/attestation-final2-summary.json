@@ -1,0 +1,20 @@
+{
+  "label": "attestation-final2",
+  "head": "3ca4dee3bcf007db63e2c2da83d8aba71f95c4e4",
+  "source_hash": "3af46ef90144fd03d2a67dc6edb7710de4ec8f9678dd12359bc1d99e0bf4de7d",
+  "total": 277,
+  "counts": {
+    "PASS": 264,
+    "FAIL": 0,
+    "NOT_RUN": 13
+  },
+  "process_segments": 1,
+  "seconds": 260.38,
+  "current_segment_seconds": 260.38,
+  "sum_test_seconds": 257.171,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "real_homes_check_scope": "metadata before imports/discovery through completion",
+  "failures": []
+}

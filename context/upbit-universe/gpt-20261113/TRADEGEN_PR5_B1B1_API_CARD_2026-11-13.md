@@ -35,7 +35,7 @@ request_from_manifests(raw_manifest: bytes, verified_manifest: bytes | None, *,
 parse_archive_request(raw: bytes) -> dict
 archive_request_bytes(request: dict) -> bytes
 archive_request_digest(request: dict) -> str  # validates stored request_sha256
-payload_filename(logical_id: str) -> str       # '<logical_id>.bin', no folders
+payload_filename(logical_id: str) -> str       # 'p-<logical_id>.bin', no folders
 file_set_digest(payload_files: list[dict]) -> str
 validate_request_payloads(request: dict, payloads: Mapping[str, bytes]) -> None
 
@@ -73,7 +73,7 @@ Unsigned request exact keys:
 }
 ```
 
-payload_files는 target.files에서 도출한 logical_id 정렬 exact list다. generated payload file은 packet의 `payloads/<payload_filename(logical_id)>`로 고정한다. 원본 original_name/source_name은 경로로 사용하지 않는다. empty 원본도 exact 빈 .bin 파일로 내보내고 hash한다. 원본 수집 누락 상태는 raw manifest에 그대로 남고 가짜 빈 파일로 대신하지 않는다.
+payload_files는 target.files에서 도출한 logical_id 정렬 exact list다. generated payload file은 packet의 `payloads/<payload_filename(logical_id)>`로 고정한다. **모든 ID에 p- 접두사**를 붙여 con/nul/com1 등 유효한 logical ID가 Windows 장치 이름으로 해석되지 않게 한다. 원본 original_name/source_name은 경로로 사용하지 않는다. empty 원본도 exact 빈 .bin 파일로 내보내고 hash한다. 원본 수집 누락 상태는 raw manifest에 그대로 남고 가짜 빈 파일로 대신하지 않는다.
 
 requested_at < expires_at <= requested_at + 24h. requested_at은 verified이면 evaluated_at 이상이어야 한다. raw에는 존재하지 않는 관측·평가 시각을 요구/합성하지 않는다. expiry는 caller의 명시 값이며 자동 기본값/연장 없음.
 

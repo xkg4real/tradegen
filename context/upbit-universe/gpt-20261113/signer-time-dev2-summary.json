@@ -1,0 +1,34 @@
+{
+  "tests": [
+    {
+      "test": "test_archive_future_code_approval_cannot_authorize_signature_or_actual_owner",
+      "status": "PASS",
+      "seconds": 1.1983
+    },
+    {
+      "test": "test_archive_future_reapproval_crossing_confirmation_or_publication_refuses",
+      "status": "PASS",
+      "seconds": 1.7983
+    },
+    {
+      "test": "test_archive_current_code_approval_remains_effective_before_future_reapproval",
+      "status": "PASS",
+      "seconds": 0.795
+    },
+    {
+      "test": "test_archive_signer_checks_expiry_after_heavy_signing_bytes_and_before_publication",
+      "status": "PASS",
+      "seconds": 1.778
+    },
+    {
+      "test": "test_archive_owner_signature_walk_rejects_bad_prior_approval_even_after_key_rotation",
+      "status": "PASS",
+      "seconds": 0.0018
+    }
+  ],
+  "keyless_names": 19,
+  "owned_source_unchanged": true,
+  "qa_unchanged": true,
+  "actual_windows": "NOT_RUN",
+  "real_home_metadata_check": "not performed; only fixture homes used"
+}

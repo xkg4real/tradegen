@@ -1,0 +1,12 @@
+{
+  "label": "attestation-final",
+  "status": "INTERRUPTED_FOR_NEW_GUARD_REVIEW_FINDING",
+  "completed": 27,
+  "counts": {
+    "PASS": 27,
+    "FAIL": 0,
+    "NOT_RUN": 0
+  },
+  "qa_restored": true,
+  "reason": "Independent review found allowed ctypes imports permit extra native loaders/calls; no production offending call present. Do not report this interrupted run as final acceptance."
+}

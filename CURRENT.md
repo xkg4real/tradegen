@@ -4,17 +4,17 @@ reason: owner_requested_continue_pr4e_and_protective_p2
 from: gpt
 task: upbit-universe
 cycle: 2026-11-10
-done_ids: universe-pr5/raw-verified-bundles, universe-pr5/family-preflight, protective-hold/fixed-carry-v2, universe-pr4e, protective-hold/p2-store-integration, universe-pr5/outcome-document-contract, protective-hold/p2-store, protective-hold/p1, universe-pr4d/lossless-history, universe-pr4d, universe-pr4d/lossless-objects, design-revision-1113, upbit-universe-return-1113, universe-pr4d/original-verification, workflow-resume-1113/regression-preparation, universe-pr4d/task2-implementation, universe-pr4d/task3, universe-pr4d/task4, universe-pr4c, universe-pr4d/task1, workflow-resume-1113, workflow-resume-1113/dependencies, universe-pr4c/implementation, universe-pr0, universe-pr1, universe-pr2, universe-pr3, universe-pr4b, universe-pr4a
-next_ids: universe-pr5/archive-attestation, protective-hold/p2-integration, universe-pr5, universe-pr5-clock-notify, universe-code-approve, policy-loss-budget-plan-1, rules-review-1202, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, launch-private-capture-setup-1, e1-14-owner-setup, launch-prospective-study, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1
-updated_at: 2026-11-13T23:18:28+09:00
+done_ids: universe-pr5/archive-attestation, universe-pr5/raw-verified-bundles, universe-pr5/family-preflight, protective-hold/fixed-carry-v2, universe-pr4e, protective-hold/p2-store-integration, universe-pr5/outcome-document-contract, protective-hold/p2-store, protective-hold/p1, universe-pr4d/lossless-history, universe-pr4d, universe-pr4d/lossless-objects, design-revision-1113, upbit-universe-return-1113, universe-pr4d/original-verification, workflow-resume-1113/regression-preparation, universe-pr4d/task2-implementation, universe-pr4d/task3, universe-pr4d/task4, universe-pr4c, universe-pr4d/task1, workflow-resume-1113, workflow-resume-1113/dependencies, universe-pr4c/implementation, universe-pr0, universe-pr1, universe-pr2, universe-pr3, universe-pr4b, universe-pr4a
+next_ids: universe-pr5/research-revocation, universe-pr5/exact-archive-recovery, protective-hold/p2-integration, universe-pr5, universe-pr5-clock-notify, universe-code-approve, policy-loss-budget-plan-1, rules-review-1202, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, launch-private-capture-setup-1, e1-14-owner-setup, launch-prospective-study, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1
+updated_at: 2026-11-13T23:45:02+09:00
 stale_after_hours: 3
 waiting_on: no prior approval question; future PLB S1-S12 and deployment inputs only
-work_branch: gpt/research-bundle-archive
-work_commit: 7bd5e4614e70f410969170ce9ea60d416ea5dc22
-merged_main_commit: a4e66016e0091b2b4b3da4e799cbfdfdf2cad845
-runtime_tested_commit: B1a3ca4dee focused205PASS/0FAIL/0NR, sourcea014d9e6; preceding A0b full3103=2968PASS/0FAIL/135NR
-uncommitted_changes: B1b-1 archive attestation implementation active in isolated /workspace/tradegen-bundle-attestation-1113 on3ca4dee; not delivered
-pr: PR34-41 merged; B1b-1 implementation active, no live activation
+work_branch: gpt/research-bundle-attestation
+work_commit: c4790b3ca318b0f9a61abbfa059b49d489bf164d
+merged_main_commit: 13555b90a256be219f25c1546449eb4d12406d42
+runtime_tested_commit: B1b1 173f346 focused277=264PASS/0FAIL/13WindowsNR source3af46ef9; preceding A0b full3103=2968PASS/0FAIL/135NR
+uncommitted_changes: B1b-2a active /workspace/tradegen-revocation-1113 and B2a active /workspace/tradegen-exact-recovery-1113, both base0e06a37; not delivered
+pr: PR34-42 merged; B1b-2a restrictive revocation and B2a exact recovery active; no live activation
 usage_weekly_pct: unknown
 usage_source: unavailable
 handoff_threshold_pct: 95
@@ -173,3 +173,14 @@ PR40은PR39브랜치를base로한stacked draft이며39병합후main으로retarge
 - 독립 signer는 앱 import 없이 packet/request/모든payload를 재검증하고, 현재 실제 D14 code/key/head/time을 확인 전후 검사한다. auth는 actual store primary+backup과 actual owner provider를 반복 관측한다. request hash는 caller 주장이고 독립대조 전 권한이 아니다.
 - Windows는 사용자 배포환경이므로 native directory handle pin을 구현/검토하며, Linux mock 결과를 실제 Windows 검증으로 보고하지 않는다. 안전한 pin이 불가능한 플랫폼/볼륨에서 lstat-only fallback을 하지 않는다.
 - Notion 두 승인된 페이지에는 PR39·40 기록을 기존내용 정확보존 후 append/readback 완료했다. PR41 및 후속최종상태는 다음 이정표에 갱신한다. UI PR attachment도구는 연결종료오류였으나 GitHub PR은 실제 존재/병합됐다.
+
+## 진행 체크포인트 — PR42 보관 원본 인증 병합, 다음 제한·복구 구현
+
+- [PR42](https://github.com/xkg4real/tradegen/pull/42) runtime173f34653e04e91ee09c25d88ff4c7195987b3c2, headc4790b3ca318b0f9a61abbfa059b49d489bf164d, main13555b90a256be219f25c1546449eb4d12406d42. 병합 tree=검증 PR tree 확인.
+- actual B1a 전체 graph/backup→explicit review packet→독립 signer codec/실제 임시 Ed25519→실제 CurrentOwnerAuthority/전체 graph 인증. archive identity만 확인하고 source/selection/recovery/execution/current_use는 false. 개별 철회와 signature backup은 이 단계 미지원.
+- 최종 집중277=264PASS/0FAIL/13WindowsNOT_RUN, 단일260.380초, fingerprint3af46ef90144fd03d2a67dc6edb7710de4ec8f9678dd12359bc1d99e0bf4de7d. 19KEYLESS, import/discovery 이전부터 source/home metadata 불변, QA복원. 전체 repository 재실행 아님.
+- dev1의 fixture3/guard2 실패와 미래 codeapproval 실결함 재현을 보존했다. futureapproval/서명중효력변경/만료를 수정했다. 첫 final은 새 nativeguard 우회 검토를 위해27PASS에서 의도적으로 중단, 전체 class/native참조 pin 보완 후 최종검사 전부 재실행. fakeWin32검사는 실제Windows 증명이 아니다.
+- 새 B1b-2a는 /workspace/tradegen-revocation-1113(branchgpt/research-attestation-revocation), B2a는 /workspace/tradegen-exact-recovery-1113(branchgpt/research-exact-recovery); 둘 다 base0e06a37, runtime은PR42와동일. B1b2A API카드 파일소유권을 따른다. 아직 구현중이며완료아님.
+- 보호 보유 다음 단계 계획에서 실제 nested control transaction, guard commit 후 baseline 중복갱신, floor/daily-stop projection, E후 새관리권한/history기간의 미구현을 분리했다. 계획 문서를 구현완료로 표시하지 않는다.
+- Notion 두 페이지는 PR41까지 반영/readback완료. PR42와후속상태 다음checkpoint에 반영. PR42 app artifact attach 도구는 connection closed였으며 GitHub PR자체는 정상병합됐다.
+- 사용량 측정수단 unavailable, unknown 유지. 실제 ownerhome/키/API/arm/order 없음. S1~S12 미실행을 가정으로 대체하지 않는다.

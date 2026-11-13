@@ -1,0 +1,51 @@
+{
+  "label": "attestation-dev1",
+  "head": "3ca4dee3bcf007db63e2c2da83d8aba71f95c4e4",
+  "source_hash": "e6a864ab219e8508a561c6481ab91034d31ec6122b4bab8f55e090f5d0b458bd",
+  "total": 274,
+  "counts": {
+    "PASS": 256,
+    "FAIL": 5,
+    "NOT_RUN": 13
+  },
+  "process_segments": 1,
+  "seconds": 239.701,
+  "current_segment_seconds": 239.701,
+  "sum_test_seconds": 235.89,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "real_homes_check_scope": "metadata before imports/discovery through completion",
+  "failures": [
+    {
+      "test": "launch/launch_bundle_review/test_actual_fixed_and_carry_verified_graph_exports_then_authenticates_only_archival_identity",
+      "status": "FAIL",
+      "seconds": 0.0128,
+      "detail": "AssertionError: "
+    },
+    {
+      "test": "launch/launch_bundle_review/test_cli_export_uses_actual_code_and_authenticate_uses_actual_provider_with_current_clock",
+      "status": "FAIL",
+      "seconds": 0.0659,
+      "detail": "AssertionError: "
+    },
+    {
+      "test": "launch/launch_bundle_review/test_raw_signature_authenticates_failure_archive_without_promoting_it",
+      "status": "FAIL",
+      "seconds": 0.0648,
+      "detail": "AssertionError: "
+    },
+    {
+      "test": "launch/launch_guards/test_archive_packet_writes_remain_exclusive_explicit_and_outside_authority",
+      "status": "FAIL",
+      "seconds": 0.0414,
+      "detail": "AssertionError: ['direct effect import', 'direct effect import']"
+    },
+    {
+      "test": "launch/launch_guards/test_launch_and_network_do_not_directly_sign_arm_or_open_http",
+      "status": "FAIL",
+      "seconds": 0.3462,
+      "detail": "AssertionError: ('execution_launch/bundle_review.py', ['direct effect import', 'direct effect import'])"
+    }
+  ]
+}
