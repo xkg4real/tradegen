@@ -39,6 +39,7 @@ UNIVERSE_STORE = "execution_launch/universe_store.py"
 EVIDENCE_OBJECTS = "execution_launch/evidence_objects.py"
 PROTECTIVE_STORE = "execution_launch/protective_store.py"
 RESEARCH_BUNDLE_STORE = "execution_launch/research_bundle_store.py"
+RESEARCH_INCIDENT_STORE = "execution_launch/research_incident_store.py"
 BUNDLE_REVIEW = "execution_launch/bundle_review.py"
 NATIVE_DIRECTORY_CALLS = {
     "__init__": 'ctypes.WinDLL("kernel32", use_last_error=True)',
@@ -51,6 +52,46 @@ NATIVE_DIRECTORY_CALLS = {
 # ctypes structures, aliases, loaders or methods requires a fresh review.
 NATIVE_DIRECTORY_AST_SHA256 = "841bd8050ae79d0a222b549b01a803b4b3d3303d376572447ed35e6de30fbf26"
 OWNER_RESEARCH_SETUP = "tools/owner/research_bundle.py"
+OWNER_INCIDENT_SETUP = "tools/owner/research_incidents.py"
+# Unlike the older file-scoped writers, the incident writer takes dynamic flags
+# through one private helper. Both the helper and each call site are pinned to
+# their exact class/method ancestry; numeric flags and aliases cannot gain the
+# helper's exception. Buffered writes and CAS are part of the same inventory.
+INCIDENT_CALLS = {
+    "_open": (
+        'os.open(target if os.name == "nt" else name, flags | _FLAGS, 0o600, '
+        '**({} if os.name == "nt" else {"dir_fd": pins.fd(root)}))',
+    ),
+    "provision_empty": (
+        'self._open(pins, self.root, name, os.O_WRONLY | os.O_CREAT | os.O_EXCL)',
+        'os.fdopen(fd, "wb")', 'handle.write(raw)',
+        'os.mkdir(self.backup_root / "versions", mode=0o700)',
+        'os.mkdir("versions", mode=0o700, dir_fd=pins.fd(self.backup_root))',
+    ),
+    "_read": ('self._open(pins, root, name, os.O_RDONLY)',),
+    "_locked": ('self._open(pins, self.root, "session.lock", os.O_RDWR)', 'os.fdopen(fd, "r+b")'),
+    "_append": (
+        'self._open(pins, self.root, "journal.jsonl", os.O_WRONLY | os.O_APPEND)',
+        'os.fdopen(fd, "ab")', 'handle.write(line)',
+    ),
+    "_backup": (
+        'self._open(pins, root, name, os.O_WRONLY | os.O_CREAT | os.O_EXCL)',
+        'os.fdopen(fd, "wb")', 'handle.write(raw)',
+    ),
+    "commit": (
+        'self._append(pins, anchor, line, size)',
+        'self._backup(pins, row["row_sha256"] + ".json", raw)',
+        'self.head.compare_and_set(current.head, row["row_sha256"])',
+    ),
+}
+INCIDENT_OPEN = '''@staticmethod
+def _open(pins, root, name, flags):
+    target = checked_target(root / name, "research incident file", within=root)
+    return os.open(target if os.name == "nt" else name, flags | _FLAGS, 0o600,
+                   **({} if os.name == "nt" else {"dir_fd": pins.fd(root)}))
+'''
+INCIDENT_FLAGS = ('_FLAGS = getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_BINARY", 0) '
+                  '| getattr(os, "O_NONBLOCK", 0)')
 PINNED_WRITES: dict[str, tuple[str, ...]] = {
     BUNDLE_REVIEW: (
         'os.mkdir(self.payloads, 0o700)',
@@ -152,7 +193,8 @@ WRITE_MODE = re.compile(r"[wax+]")
 # The trusted baseline head is advanced only by the account provider, the live-history journal and the continuous
 # guard commit coordinator (after its durable prepare record and halt latch).
 CAS_CALLERS = frozenset({"execution_accounts/baseline_bridge.py", "execution_launch/live_history.py",
-                         "execution_launch/continuous_guard_commit.py", PROTECTIVE_STORE, RESEARCH_BUNDLE_STORE})
+                         "execution_launch/continuous_guard_commit.py", PROTECTIVE_STORE, RESEARCH_BUNDLE_STORE,
+                         RESEARCH_INCIDENT_STORE})
 
 
 def _call_name(node):
@@ -189,6 +231,116 @@ def _reached(node):
     if isinstance(node, ast.Name):
         return {node.id}
     return _named(node)
+
+
+def _scoped_nodes(tree):
+    """Exact lexical body ancestry; nested functions/lambdas get no parent exception."""
+    def visit(node, scope):
+        yield node, scope
+        if isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+            for name, value in ast.iter_fields(node):
+                children = value if isinstance(value, list) else [value]
+                for child in children:
+                    if isinstance(child, ast.AST):
+                        yield from visit(child, scope + (node.name,) if name == "body" else scope)
+        elif isinstance(node, ast.Lambda):
+            for child in ast.iter_child_nodes(node):
+                yield from visit(child, scope + ("<lambda>",))
+        else:
+            for child in ast.iter_child_nodes(node):
+                yield from visit(child, scope)
+    return tuple(visit(tree, ()))
+
+
+def _incident_writer_nodes(tree, relative):
+    """The new dynamic writer is closed by caller, arguments and method body.
+
+    These are static source contracts, not an adversarial Python sandbox. They
+    deliberately grant no generic helper, buffered-write or native exception.
+    """
+    scoped, pinned, failures = _scoped_nodes(tree), set(), []
+    restricted = {"_open"}
+    incident_module = Path(relative).name in {
+        "research_incident_store.py", "research_incident_monitor.py", "research_incident_cli.py",
+        "research_incidents.py", "incident_aware_selection.py"}
+    if relative == RESEARCH_INCIDENT_STORE:
+        restricted |= {"_append", "_backup", "write", "compare_and_set"}
+        for method, shapes in INCIDENT_CALLS.items():
+            for shape in shapes:
+                expected = ast.dump(ast.parse(shape, mode="eval").body)
+                matches = [node for node, scope in scoped if scope == ("IncidentStore", method)
+                           and isinstance(node, ast.Call) and ast.dump(node) == expected]
+                if len(matches) != 1:
+                    failures.append("incident writer call inventory changed")
+                for node in matches:
+                    pinned.update(id(inner) for inner in ast.walk(node))
+        definitions = [node for node, scope in scoped if scope == ("IncidentStore",)
+                       and isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == "_open"]
+        if (len(definitions) != 1
+                or ast.dump(definitions[0]) != ast.dump(ast.parse(INCIDENT_OPEN).body[0])):
+            failures.append("incident open helper changed")
+        flags = [node for node in tree.body if isinstance(node, ast.Assign)
+                 and any(isinstance(t, ast.Name) and t.id == "_FLAGS" for t in node.targets)]
+        if len(flags) != 1 or ast.dump(flags[0]) != ast.dump(ast.parse(INCIDENT_FLAGS).body[0]):
+            failures.append("incident write flags changed")
+        # The dynamic names passed to the creation helper are fixed here.
+        creation = [node for node, scope in scoped if scope == ("IncidentStore", "provision_empty")
+                    and isinstance(node, ast.For) and ast.unparse(node.target) == "(name, raw)"]
+        expected = ast.parse('(("session.lock", b"0"), ("journal.jsonl", b""))', mode="eval").body
+        if len(creation) != 1 or ast.dump(creation[0].iter) != ast.dump(expected):
+            failures.append("incident provision targets changed")
+        roots = [node for node, scope in scoped if scope == ("IncidentStore", "_backup")
+                 and isinstance(node, ast.Assign)
+                 and any(isinstance(t, ast.Name) and t.id == "root" for t in node.targets)]
+        if len(roots) != 1 or ast.dump(roots[0]) != ast.dump(ast.parse('root = self.backup_root / "versions"').body[0]):
+            failures.append("incident backup target changed")
+    elif incident_module:
+        restricted |= {"_append", "_backup", "write"}
+    for node, _ in scoped:
+        if id(node) not in pinned and _reached(node) & restricted:
+            failures.append("incident writer helper or buffered write outside exact method")
+    return pinned, failures
+
+
+def _incident_operator_problems(tree, relative):
+    """Only explicit owner utilities can initialize empty store files or heads."""
+    scoped, allowed, failures = _scoped_nodes(tree), set(), []
+    permitted = {
+        OWNER_RESEARCH_SETUP: {"provision_research_store": ('store.provision_empty()',)},
+        OWNER_INCIDENT_SETUP: {
+            "provision_incident_store": ('store.provision_empty()',
+                'store.head.initialize_reviewed_head(store.genesis_digest)'),
+            "main": ('provision_incident_store(store)',),
+        },
+    }.get(relative, {})
+    for function, shapes in permitted.items():
+        for shape in shapes:
+            expected = ast.dump(ast.parse(shape, mode="eval").body)
+            matches = [node for node, scope in scoped if scope == (function,)
+                       and isinstance(node, ast.Call) and ast.dump(node) == expected]
+            if len(matches) != 1:
+                failures.append("incident operator call inventory changed")
+            for node in matches:
+                allowed.update(id(inner) for inner in ast.walk(node))
+    for node, _ in scoped:
+        names = {"provision_empty", "provision_incident_store"}
+        if relative == OWNER_INCIDENT_SETUP:
+            names.add("initialize_reviewed_head")
+        if id(node) not in allowed and _reached(node) & names:
+            failures.append("incident provisioning outside exact operator function")
+        if isinstance(node, ast.Import):
+            banned = any(alias.name == "tools.owner.research_incidents"
+                         or alias.name.startswith("tools.owner.research_incidents.") for alias in node.names)
+        elif isinstance(node, ast.ImportFrom):
+            banned = (node.module == "tools.owner.research_incidents"
+                      or (node.module or "").startswith("tools.owner.research_incidents.")
+                      or node.module == "tools.owner" and any(alias.name == "research_incidents"
+                                                              for alias in node.names))
+        else:
+            banned = False
+        if banned:
+            failures.append("runtime incident operator import")
+    return failures
 
 
 def _assignments(tree):
@@ -323,6 +475,10 @@ def problems(source, relative=""):
     native_imports = _native_directory_imports(tree, relative)
     pinned = {id(inner) for node in ast.walk(tree) if isinstance(node, ast.Call)
               and ast.dump(node) in _PINNED_WRITE_TREES.get(relative, frozenset()) for inner in ast.walk(node)}
+    incident_pins, incident_failures = _incident_writer_nodes(tree, relative)
+    pinned.update(incident_pins)
+    failures.extend(incident_failures)
+    failures.extend(_incident_operator_problems(tree, relative))
     for node in ast.walk(tree):
         if isinstance(node, (ast.Import, ast.ImportFrom)):
             modules = ([alias.name for alias in node.names] if isinstance(node, ast.Import)
@@ -730,7 +886,9 @@ def test_head_authority_writes_are_exact_and_operator_steps_have_no_runtime_call
         allowed = set()
         setup_calls = (OWNER_SETUP_CALLS if relative == OWNER_SETUP else
                        {"provision_research_store": "store.head.initialize_reviewed_head(store.genesis_digest)"}
-                       if relative == OWNER_RESEARCH_SETUP else {})
+                       if relative == OWNER_RESEARCH_SETUP else
+                       {"provision_incident_store": "store.head.initialize_reviewed_head(store.genesis_digest)"}
+                       if relative == OWNER_INCIDENT_SETUP else {})
         if setup_calls:
             # Exact explicit operator functions only; runtime readers/writers
             # cannot initialize, adopt or repair authority heads.
@@ -913,6 +1071,121 @@ def test_research_bundle_store_writes_and_operator_provisioning_stay_narrow():
                 assert node.module != "tools.owner.research_bundle", relative
                 assert not (node.module == "tools.owner" and any(alias.name == "research_bundle"
                                                                 for alias in node.names)), relative
+
+
+def test_incident_store_writes_are_exact_and_owned_by_their_original_methods():
+    source = (ROOT / RESEARCH_INCIDENT_STORE).read_text(encoding="utf-8")
+    assert not problems(source, RESEARCH_INCIDENT_STORE), problems(source, RESEARCH_INCIDENT_STORE)
+    for relative in ("", "execution_launch/research_incident_monitor.py",
+                     "execution_launch/research_incidents.py", "execution_launch/research_incident_cli.py",
+                     "execution_launch/incident_aware_selection.py",
+                     "execution_launch/nested/research_incident_store.py",
+                     "execution_network/research_incident_store.py"):
+        assert problems(source, relative), relative
+    changes = (
+        ("os.O_WRONLY | os.O_CREAT | os.O_EXCL", "os.O_WRONLY | os.O_CREAT | os.O_TRUNC"),
+        ("os.O_WRONLY | os.O_CREAT | os.O_EXCL", "os.O_WRONLY | os.O_CREAT"),
+        ("os.O_WRONLY | os.O_APPEND", "os.O_WRONLY | os.O_TRUNC"),
+        ("flags | _FLAGS, 0o600", "flags | _FLAGS, 0o666"),
+        ('target if os.name == "nt" else name', 'other if os.name == "nt" else name'),
+        ('{"dir_fd": pins.fd(root)}', '{"dir_fd": other_fd}'),
+        ('mode=0o700', 'mode=0o777'),
+        ('"versions"', '"other-versions"'),
+        ('("session.lock", b"0")', '("other.lock", b"0")'),
+        ('("journal.jsonl", b"")', '("other.jsonl", b"")'),
+        ('within=root)', 'within=other_root)'),
+        ('def _append(self, pins, anchor, line, size):', 'def other(self, pins, anchor, line, size):'),
+        (INCIDENT_FLAGS, '_FLAGS = 512'),
+    )
+    for before, after in changes:
+        assert before in source, before
+        assert problems(source.replace(before, after), RESEARCH_INCIDENT_STORE), (before, after)
+    for extra in ('os.replace(a, b)', 'path.unlink()', 'path.write_bytes(raw)',
+                  'open(path, "w")', 'import ctypes', 'import requests', 'import tools.signer.sign',
+                  'owner.load_context(now)', 'owner.arm(x)', 'os.environ["API_KEY"]'):
+        assert problems(source + "\n" + extra + "\n", RESEARCH_INCIDENT_STORE), extra
+
+
+def test_incident_dynamic_helper_and_buffered_writes_cannot_gain_unreviewed_callers():
+    source = (ROOT / RESEARCH_INCIDENT_STORE).read_text(encoding="utf-8")
+    original = 'self._open(pins, self.root, name, os.O_WRONLY | os.O_CREAT | os.O_EXCL)'
+    for altered in ('self._open(pins, self.root, name, 0x241)',
+                    'self._open(pins, self.root, name, caller_flags)',
+                    'self._open(pins, other_root, name, os.O_WRONLY | os.O_CREAT | os.O_EXCL)',
+                    'getattr(self, "_open")(pins, self.root, name, 0x241)'):
+        assert problems(source.replace(original, altered), RESEARCH_INCIDENT_STORE), altered
+    # Identical writes in another method, a nested function or lambda get no
+    # enclosing method's allowance. Bare/aliased helper references also refuse.
+    snippets = (
+        'alias = self._open', 'alias = IncidentStore._open', 'getattr(store, "_open")',
+        'self._open(pins, root, name, 0x241)', 'alias = self._append', 'alias = self._backup',
+        'handle.write(raw)', 'alias = handle.write', 'getattr(handle, "write")',
+    )
+    for extra in snippets:
+        assert problems(source + "\n" + extra + "\n", RESEARCH_INCIDENT_STORE), extra
+    for wrapper in (
+        '\nclass Other:\n    def _backup(self):\n        handle.write(raw)\n',
+        '\n    def unreviewed(self):\n        handle.write(raw)\n',
+    ):
+        assert problems(source + wrapper, RESEARCH_INCIDENT_STORE), wrapper
+    before = '            _need(handle.write(raw) == len(raw), "INCIDENT_STORE_BACKUP_WRITE_REFUSED")'
+    assert before in source
+    for replacement in (
+        '            def nested():\n                handle.write(raw)\n',
+        '            action = lambda: handle.write(raw)\n',
+        before + '\n            handle.write(raw)',
+    ):
+        assert problems(source.replace(before, replacement), RESEARCH_INCIDENT_STORE), replacement
+    for relative in ("execution_launch/research_incident_monitor.py", "execution_launch/research_incident_cli.py",
+                     "execution_launch/incident_aware_selection.py", "execution_launch/research_incidents.py"):
+        for extra in snippets:
+            assert problems(extra, relative), (relative, extra)
+
+
+def test_incident_cas_is_exactly_one_commit_call_with_no_other_authority():
+    source = (ROOT / RESEARCH_INCIDENT_STORE).read_text(encoding="utf-8")
+    exact = 'self.head.compare_and_set(current.head, row["row_sha256"])'
+    assert source.count(exact) == 1
+    for changed in ('self.head.compare_and_set(other, row["row_sha256"])',
+                    'self.head.compare_and_set(current.head, unreviewed_digest)',
+                    'getattr(self.head, "compare_and_set")(current.head, row["row_sha256"])'):
+        assert problems(source.replace(exact, changed), RESEARCH_INCIDENT_STORE), changed
+    for extra in (exact, 'alias = self.head.compare_and_set', 'compare_and_set(old, new)',
+                  'self.head.initialize_reviewed_head(unreviewed_digest)'):
+        assert problems(source + "\n" + extra + "\n", RESEARCH_INCIDENT_STORE), extra
+    for relative in ("execution_launch/research_incident_monitor.py", "execution_launch/research_incident_cli.py",
+                     "execution_launch/incident_aware_selection.py", "execution_launch/research_incidents.py",
+                     "execution_launch/nested/research_incident_store.py"):
+        assert "trusted head advance outside pinned callers" in problems(exact, relative), relative
+
+
+def test_incident_provisioning_has_only_explicit_operator_callers_and_no_runtime_imports():
+    from tests.acceptance import runtime_py
+    source = (ROOT / OWNER_INCIDENT_SETUP).read_text(encoding="utf-8")
+    assert not _incident_operator_problems(ast.parse(source), OWNER_INCIDENT_SETUP)
+    for path in runtime_py():
+        relative = path.relative_to(ROOT).as_posix()
+        hits = _incident_operator_problems(ast.parse(path.read_text(encoding="utf-8")), relative)
+        assert not hits, (relative, hits)
+    snippets = ('store.provision_empty()', 'alias = store.provision_empty',
+                'getattr(store, "provision_empty")', 'provision_incident_store(store)',
+                'alias = provision_incident_store', 'import tools.owner.research_incidents as setup',
+                'from tools.owner.research_incidents import provision_incident_store as setup',
+                'from tools.owner import research_incidents as setup')
+    for extra in snippets:
+        for relative in (RESEARCH_INCIDENT_STORE, "execution_launch/research_incident_cli.py",
+                         "execution_launch/research_incident_monitor.py", "execution_launch/incident_aware_selection.py"):
+            assert _incident_operator_problems(ast.parse(extra), relative), (relative, extra)
+        assert _incident_operator_problems(ast.parse(source + "\n" + extra + "\n"), OWNER_INCIDENT_SETUP), extra
+    for before, after in (('store.provision_empty()', 'store.provision_empty(other)'),
+                          ('store.head.initialize_reviewed_head(store.genesis_digest)',
+                           'store.head.initialize_reviewed_head(unreviewed_digest)'),
+                          ('def provision_incident_store(store):', 'def unreviewed(store):')):
+        assert before in source
+        assert _incident_operator_problems(ast.parse(source.replace(before, after)), OWNER_INCIDENT_SETUP)
+    nested = source.replace('    store.provision_empty()',
+                            '    def hidden():\n        store.provision_empty()')
+    assert _incident_operator_problems(ast.parse(nested), OWNER_INCIDENT_SETUP)
 
 
 def test_archive_packet_writes_remain_exclusive_explicit_and_outside_authority():

@@ -122,9 +122,10 @@ def _implementation(candidate, result, variant, composition, document, authority
         approved_history_verifier=composition.history.verifier)
 
 
-def authenticate_sealed_study_selection(store, bundle_digest, *, archive_attestation,
+def _authenticate_sealed_study_selection(store, bundle_digest, *, archive_attestation,
         source_reviews, audit_logical_ids, current_profile, window, history_head_root,
-        history_storage_policy=None, clock, authority_provider):
+        history_storage_policy=None, clock, authority_provider, final_dependency_guard=None,
+        completion_dependency_guard=None):
     """Evaluate sealed originals once and authenticate a fixed research selection.
 
     Caller-created assessments/results/providers are not accepted as trust. The
@@ -214,6 +215,8 @@ def authenticate_sealed_study_selection(store, bundle_digest, *, archive_attesta
         # actual journal bytes additionally catches same-size legacy corruption.
         composition.history._durable_unchanged()
         composition.history._replay(composition.identity, install=False)
+    if final_dependency_guard is not None:
+        final_dependency_guard()
     observed_at = _time(clock())
     _need(observed_at >= last_observation, 'SEALED_SELECTION_CLOCK_ROLLBACK')
     latest = authority_provider(observed_at)
@@ -231,6 +234,8 @@ def authenticate_sealed_study_selection(store, bundle_digest, *, archive_attesta
                      _time(datetime.fromisoformat(body['expires_at']))) for body in (envelope['body'], *bodies.values()))
     rule_observed_at = _time(profile.instrument_rules.asof)
     revocation_head = latest.context.owner.head
+    if completion_dependency_guard is not None:
+        completion_dependency_guard()
     # Only bounded primitive comparisons follow this completion clock.
     finished = _time(clock())
     _need(finished >= observed_at, 'SEALED_SELECTION_CLOCK_ROLLBACK')
@@ -249,3 +254,14 @@ def authenticate_sealed_study_selection(store, bundle_digest, *, archive_attesta
         source_reviews_authenticated=authenticated.source_reviews_authenticated,
         selected_implementation_authenticated=composition is not None,
         research_selection_ready=composition is not None and authenticated.source_reviews_authenticated)
+
+
+def authenticate_sealed_study_selection(store, bundle_digest, *, archive_attestation,
+        source_reviews, audit_logical_ids, current_profile, window, history_head_root,
+        history_storage_policy=None, clock, authority_provider):
+    """Existing research-only API; no incident namespace or callback is accepted."""
+    return _authenticate_sealed_study_selection(store, bundle_digest,
+        archive_attestation=archive_attestation, source_reviews=source_reviews,
+        audit_logical_ids=audit_logical_ids, current_profile=current_profile, window=window,
+        history_head_root=history_head_root, history_storage_policy=history_storage_policy,
+        clock=clock, authority_provider=authority_provider)
