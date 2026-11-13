@@ -18,6 +18,7 @@ import re
 from threading import RLock
 from typing import Callable
 
+from core.compliance.rules import UNIVERSE_MARKET
 from execution_control.capability import digest
 from execution_control.controller import AccountObservation
 from execution_control.model import Order, decimal_text, validate_order
@@ -302,36 +303,60 @@ def _validate_frame(callback, frame, observation):
     _require(profile_contract_digest(profile) == identity.profile_contract_digest,
              "FIXED_DRIVER_PROFILE_CHANGED")
     frame_sha = history_frame_digest(frame)
+    universe = protocol.universe_rule_sha256 is not None
     _require(frame.deployment_window_digest == identity.deployment_window_digest
-             and frame.source_kind == "prospective_paper_capture", "FIXED_DRIVER_HISTORY_SOURCE_INVALID")
+             and frame.source_kind == "prospective_paper_capture"
+             and (universe or (frame.universe_sha256 is None and frame.chooser_inputs is None)),
+             "FIXED_DRIVER_HISTORY_SOURCE_INVALID")
+    if universe:
+        _sha(frame.universe_sha256)
     step = timedelta(seconds=protocol.bar_seconds)
     rules = profile.instrument_rules
     for index, row in enumerate(frame.bars):
-        _require(type(row) is PaperBar, "FIXED_DRIVER_BAR_REQUIRED")
-        _instant(row.observed_at); _instant(row.received_at); _sha(row.source_sha256)
+        # A universe bar carries its own coin and tick (spec section 12); one whose book was unavailable has no
+        # prices to check. A fixed bar is checked exactly as before, at the profile's tick.
+        _require(type(row) is (UniverseBar if universe else PaperBar), "FIXED_DRIVER_BAR_REQUIRED")
+        booked = not universe or row.source_sha256 is not None
+        _instant(row.observed_at); _instant(row.received_at)
+        if booked:
+            _sha(row.source_sha256)
         _require(row.observed_at == window.start+index*step and row.observed_at <= window.end
                  and row.observed_at <= row.received_at <= row.observed_at+timedelta(seconds=10)
                  and row.received_at <= observation.now, "FIXED_DRIVER_HISTORY_TIME_INVALID")
-        for value in (row.bid, row.ask, row.mark, row.quote_krw):
+        if universe:
+            _require(type(row.symbol) is str and UNIVERSE_MARKET.fullmatch(row.symbol) is not None
+                     and (booked or (row.bid, row.ask, row.mark) == (None, None, None)),
+                     "FIXED_DRIVER_BAR_REQUIRED")
+            _amount(row.tick_size, positive=True)
+            if not booked:
+                continue
+        tick = row.tick_size if universe else rules.tick_size
+        for value in (row.bid, row.ask, row.mark) + (() if universe else (row.quote_krw,)):
             _amount(value, positive=True)
-        _require(row.quote_krw == 1 and row.bid <= row.ask
+        _require((universe or row.quote_krw == 1) and row.bid <= row.ask
                  and Fraction(row.mark) == (Fraction(row.bid)+Fraction(row.ask))/2
-                 and (Fraction(row.bid)/Fraction(rules.tick_size)).denominator == 1
-                 and (Fraction(row.ask)/Fraction(rules.tick_size)).denominator == 1,
+                 and (Fraction(row.bid)/Fraction(tick)).denominator == 1
+                 and (Fraction(row.ask)/Fraction(tick)).denominator == 1,
                  "FIXED_DRIVER_BAR_PRICE_INVALID")
     current = frame.bars[-1]
     _require(current.observed_at <= observation.now <= current.observed_at+timedelta(seconds=10),
              "FIXED_DRIVER_EXECUTION_SLOT_EXPIRED")
+    if universe:
+        # Only a booked bar of the current trade coin at its current tick anchors the quote and sizes the order.
+        _require(current.source_sha256 is not None, "FIXED_DRIVER_BOOK_UNAVAILABLE")
+        _require((current.symbol, current.tick_size) == (profile.symbol, rules.tick_size),
+                 "FIXED_DRIVER_QUOTE_ANCHOR_MISMATCH")
     quote = observation.quote
     _instant(quote.asof)
     _amount(quote.bid, positive=True); _amount(quote.ask, positive=True)
-    _require((quote.venue, quote.market, quote.symbol) == (protocol.venue, protocol.market, protocol.symbol)
+    _require((quote.venue, quote.market, quote.symbol) == (protocol.venue, protocol.market, profile.symbol)
              and (quote.bid, quote.ask, quote.source_sha256) == (current.bid, current.ask, current.source_sha256)
              and timedelta(0) <= current.observed_at-quote.asof <= timedelta(seconds=10)
              and timedelta(0) <= observation.now-quote.asof <= timedelta(seconds=10),
              "FIXED_DRIVER_QUOTE_ANCHOR_MISMATCH")
     if len(frame.bars) == 1:
-        _require(frame.prior_decision is None, "FIXED_DRIVER_INITIAL_DECISION_INVALID")
+        _require(frame.prior_decision is None and frame.chooser_inputs is None,
+                 "FIXED_DRIVER_INITIAL_DECISION_INVALID")
         target = Decimal(0)
     else:
         prior = frame.prior_decision
@@ -342,9 +367,16 @@ def _validate_frame(callback, frame, observation):
                  and frame.bars[-2].received_at <= prior.decided_at
                  and prior.decided_at+timedelta(seconds=protocol.minimum_fill_delay_seconds)
                  <= current.observed_at, "FIXED_DRIVER_DECISION_LOOKAHEAD_OR_CHANGED")
-        expected = target_fraction(callback.program, tuple(row.mark for row in frame.bars[:-1]))
+        if universe:
+            # Recompute only the prior decision, from the inputs the frame carries (spec section 12).
+            coin, _ = chooser_decision(callback.program, frame.chooser_inputs)
+            expected = callback.program.exposure_fraction if coin is not None else Decimal(0)
+        else:
+            coin, expected = None, target_fraction(callback.program, tuple(row.mark for row in frame.bars[:-1]))
         _require(prior.target_fraction == expected, "FIXED_DRIVER_TARGET_MISMATCH")
-        target = Decimal(0) if current.observed_at == window.end else expected
+        # The decided fraction is the target only for the coin the decision names; at the window end it is 0.
+        target = (Decimal(0) if current.observed_at == window.end or (universe and coin != profile.symbol)
+                  else expected)
     anchor, account = frame.anchor, observation.account
     _require(type(anchor) is AccountAnchor, "FIXED_DRIVER_ACCOUNT_ANCHOR_REQUIRED")
     _amount(anchor.cash_quote); _amount(anchor.units); _instant(anchor.account_asof)
@@ -357,7 +389,7 @@ def _validate_frame(callback, frame, observation):
              and account.risk.external_flows_known is True and account.risk.asof == account.asof,
              "FIXED_DRIVER_ACCOUNT_INCOMPLETE")
     key = (protocol.venue, callback.profile.account_scope)
-    holding_key = (*key, protocol.market, protocol.symbol)
+    holding_key = (*key, protocol.market, profile.symbol)
     _amount(account.settled_cash_krw.get(key))
     _amount(account.quote_rates_krw.get((*key, "KRW")), positive=True)
     _require(account.account_scopes.get(protocol.venue) == key[1]
@@ -369,7 +401,8 @@ def _validate_frame(callback, frame, observation):
     for held_key, units in account.holdings.items():
         _amount(units)
         _require(type(held_key) is tuple and len(held_key) == 4, "FIXED_DRIVER_ACCOUNT_SCOPE_INVALID")
-        _require(held_key[:2] != key or held_key == holding_key or units == 0,
+        # A universe driver trades only the profile's coin; other holdings are the coordinator's (spec section 12).
+        _require(universe or held_key[:2] != key or held_key == holding_key or units == 0,
                  "FIXED_DRIVER_OTHER_INVENTORY_UNSUPPORTED")
     equity, inventory = account.held_exposure_krw.get(key), account.inventory_exposure_krw.get(key)
     _amount(equity); _amount(inventory)

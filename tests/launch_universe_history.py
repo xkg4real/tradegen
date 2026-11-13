@@ -280,3 +280,191 @@ def test_oversized_row_drops_flag_and_ticker_parts_and_allows_no_buys():
         record(env, 1, SWITCH[1])
         assert LH.rows(env)[2]["data"]["universe"]["tickers"]["prices"][0] == [BTC, "110", -2000]
         assert env.h.recorded_allow == frozenset({BTC, ETH})
+
+
+def test_two_slot_switch_sells_the_old_coin_then_buys_the_new_one():
+    with head_root() as hroot:
+        env = ubuild(hroot)
+        holdings = ({}, {}, {}, {BTC: D(45)}, {BTC: D(45)}, {BTC: D("0.01")})
+        cash = (D(10000), D(10000), D(10000), D(5000), D(5000), D(9600))
+        signals = []
+        for i in range(6):
+            symbol = ETH if i == 5 else BTC   # the coordinator renews to ETH once the account is flat in BTC
+            record(env, i, SWITCH[i], symbol=symbol, cash=cash[i], holdings=holdings[i])
+            signals.append(tick(env, i, symbol=symbol, cash=cash[i], holdings=holdings[i]))
+        assert [(s.action, s.quantity, s.limit_price) for s in signals] == [
+            ("hold", D(0), D(0)), ("hold", D(0), D(0)), ("entry", D("48.05"), D(105)),
+            ("entry", D("1.52"), D(106)), ("exit", D(45), D(103)), ("entry", D("44.83"), D(108))]
+        frame = env.h.provider(LH.obs(env, env.T(5) + LH.seconds(2)))
+        assert [(bar.symbol, bar.tick_size) for bar in frame.bars] == [(BTC, D(1))] * 5 + [(ETH, D(1))]
+        assert frame.chooser_inputs == ChooserInputs(held=ETH, hold_count=1, top_n=(BTC, ETH), flags=ALL_UNFLAGGED,
+                                                     prices=pairs(SWITCH[4]), lag_prices=pairs(SWITCH[3]))
+        assert [row["data"]["decision"]["coin"] for row in LH.rows(env)[1:]] == [None, BTC, BTC, ETH, ETH, ETH]
+
+
+def test_prior_decision_is_recomputed_from_the_inputs_the_frame_carries():
+    with head_root() as hroot:
+        env = ubuild(hroot)
+        for i in range(3):
+            record(env, i, SWITCH[i])
+        frame = env.h.provider(LH.obs(env, env.T(2) + LH.seconds(2)))
+        carried = frame.chooser_inputs
+        assert carried == ChooserInputs(held=None, hold_count=1, top_n=(BTC, ETH), flags=ALL_UNFLAGGED,
+                                        prices=pairs(SWITCH[1]), lag_prices=pairs(SWITCH[0]))
+        assert frame.prior_decision.target_fraction == D("0.5")
+        signal = tick(env, 2)
+        assert (signal.action, signal.quantity, signal.limit_price) == ("entry", D("48.05"), D(105))
+        # The same frame whose carried prices make ETH the decision gives BTC a target of 0.
+        swapped = replace(carried, prices=((BTC, D(105)), (ETH, D(110)), (XRP, D(200))))
+        assert tick(env, 2, driver=substitute(env, replace(frame, chooser_inputs=swapped))).action == "hold"
+        for changes, code in (({"chooser_inputs": replace(carried, lag_prices=None)}, "FIXED_DRIVER_TARGET_MISMATCH"),
+                              ({"chooser_inputs": None}, "FIXED_DRIVER_CHOOSER_INPUTS_REQUIRED"),
+                              ({"universe_sha256": None}, "FIXED_DRIVER_DIGEST_INVALID")):
+            LH.refused(lambda: tick(env, 2, driver=substitute(env, replace(frame, **changes))), code)
+        fixed = LD.fixture()
+        base = fixed.frame
+        for changes in ({"chooser_inputs": carried}, {"universe_sha256": "e" * 64}):
+            fixed.frame = replace(base, **changes)
+            LD.reject(lambda: LD.decide(fixed), "FIXED_DRIVER_HISTORY_SOURCE_INVALID")
+        # A fixed profile still refuses another coin's holding in its own account.
+        other = LD.fixture()
+        key = (other.profile.venue, other.profile.account_scope)
+        held = dict(other.observation.account.holdings) | {(*key, "spot", ETH): D(1)}
+        other.observation = replace(other.observation, account=replace(other.observation.account, holdings=held))
+        LD.reject(lambda: LD.decide(other), "FIXED_DRIVER_OTHER_INVENTORY_UNSUPPORTED")
+
+
+def test_each_bar_is_checked_at_its_own_coin_and_tick_and_a_bookless_bar_never_anchors():
+    with head_root() as hroot:
+        env = ubuild(hroot)
+        record(env, 0, SWITCH[0])
+        record(env, 1, SWITCH[1], symbol=ETH, tick=D("0.5"), bid=D("100.5"), ask=D("101.5"))
+        record(env, 2, SWITCH[2], booked=False)
+        LH.refused(lambda: tick(env, 2), "FIXED_DRIVER_BOOK_UNAVAILABLE")
+        record(env, 3, SWITCH[3])
+        frame = env.h.provider(LH.obs(env, env.T(3) + LH.seconds(2)))
+        assert [(bar.symbol, bar.tick_size, bar.bid) for bar in frame.bars] == [
+            (BTC, D(1), D(100)), (ETH, D("0.5"), D("100.5")), (BTC, D(1), None), (BTC, D(1), D(103))]
+        signal = tick(env, 3)
+        assert (signal.action, signal.quantity, signal.limit_price) == ("entry", D("47.59"), D(106))
+        assert tick(env, 3, driver=substitute(env, frame)) == signal
+        bars = list(frame.bars)
+        for index, change, code in ((1, {"tick_size": D(1)}, "FIXED_DRIVER_BAR_PRICE_INVALID"),
+                                    (2, {"bid": D(102)}, "FIXED_DRIVER_BAR_REQUIRED"),
+                                    (2, {"symbol": "BTC"}, "FIXED_DRIVER_BAR_REQUIRED"),
+                                    (3, {"tick_size": D("0.5")}, "FIXED_DRIVER_QUOTE_ANCHOR_MISMATCH")):
+            changed = replace(frame, bars=tuple(bars[:index] + [replace(bars[index], **change)] + bars[index + 1:]))
+            LH.refused(lambda: tick(env, 3, driver=substitute(env, changed)), code)
+
+
+def test_window_end_targets_zero_and_records_no_decision():
+    with head_root() as hroot:
+        env = ubuild(hroot, end=2)
+        record(env, 0, SWITCH[0])
+        record(env, 1, SWITCH[1])
+        record(env, 2, SWITCH[2], cash=D(5000), holdings={BTC: D(45)})
+        assert [row["data"]["decision"] for row in LH.rows(env)[2:]] == [
+            {"coin": BTC, "target_fraction": "0.5", "held": BTC, "hold_count": 1}, None]
+        signal = tick(env, 2, cash=D(5000), holdings={BTC: D(45)})
+        assert (signal.action, signal.quantity, signal.limit_price) == ("exit", D(45), D(101))
+        LH.refused(lambda: record(env, 3, SWITCH[3]), "HISTORY_WINDOW_COMPLETE")
+
+
+# Original Task4 test fragment; root appends after Task2/3 shared helpers.
+def test_restart_replays_v2_rows_and_restores_the_chooser_state():
+    with head_root() as hroot:
+        env = ubuild(hroot)
+        held = (Position(market="spot", symbol=BTC, base_currency="BTC", quote_currency="KRW", units=D(45),
+                         price=D(104), asof=env.T(3) - LH.seconds(3)),)
+        holdings = ({}, {}, {}, {BTC: D(45)}, {BTC: D(45)})
+        cash = (D(10000), D(10000), D(10000), D(5000), D(5000))
+        for i in range(5):
+            record(env, i, SWITCH[i], booked=i != 1, cash=cash[i], holdings=holdings[i],
+                   positions=held if i == 3 else (),
+                   slot_universe=reads(env, 2, SWITCH[2], flags={XRP: "caution"}) if i == 2 else None)
+        frame = env.h.provider(LH.obs(env, env.T(4) + LH.seconds(2)))
+        signal = tick(env, 4, cash=D(5000), holdings={BTC: D(45)})
+        assert (signal.action, signal.quantity, signal.limit_price) == ("exit", D(45), D(103))
+        LH.restart(env)
+        assert env.h.provider(LH.obs(env, env.T(4) + LH.seconds(2))) == frame
+        assert env.h.recorded_allow == frozenset({BTC, ETH})
+        assert tick(env, 4, cash=D(5000), holdings={BTC: D(45)}) == signal
+        # The next decisions read the restored state (ETH held for two decisions) and price vectors: BTC jumps, so
+        # slot 5 switches to BTC, and slot 6, flat over one slot, goes to cash.
+        jump = {BTC: D(150), ETH: D(120), XRP: D(200)}
+        record(env, 5, jump)
+        record(env, 6, jump)
+        assert [row["data"]["decision"]["coin"] for row in LH.rows(env)[1:]] == [None, BTC, BTC, ETH, ETH, BTC, None]
+        later = env.h.provider(LH.obs(env, env.T(6) + LH.seconds(2)))
+        assert later.chooser_inputs == ChooserInputs(held=ETH, hold_count=2, top_n=(BTC, ETH), flags=ALL_UNFLAGGED,
+                                                     prices=pairs(jump), lag_prices=pairs(SWITCH[4]))
+        with patch("execution_launch.live_history.chooser_decision",
+                   return_value=(XRP, ChooserState(held=XRP, hold_count=1))):
+            LH.refused(lambda: LH.restart(env), "HISTORY_STORE_RECORD_INVALID")
+        LH.restart(env)
+        assert env.h.provider(LH.obs(env, env.T(6) + LH.seconds(2))) == later
+        # A slot missed across a restart is never backfilled: slot 7 recorded at slot 8 + 1 s refuses, and the
+        # window has no later row (the coordinator's status field for it is PR 4e).
+        LH.refused(lambda: record(env, 8, jump), "HISTORY_SLOT_MISSED")
+        assert len(LH.rows(env)) == 8
+
+
+def test_restart_replays_every_row_v2_variant():
+    """Replay of a coin on another tick, unlisted and dust holdings, a bookless slot with a flag exception and a
+    slot whose universe reads all failed."""
+    with head_root() as hroot:
+        env = ubuild(hroot)
+        stamp = env.T(1) - LH.seconds(3)
+        positions = (Position(market="spot", symbol=ETH, base_currency="ETH", quote_currency="KRW", units=D(2),
+                              price=D(105), asof=stamp),
+                     Position(market="spot", symbol="KRW-OLD", base_currency="OLD", quote_currency="KRW",
+                              units=D(7), price=D(0), asof=stamp, unlisted=True))
+        record(env, 0, SWITCH[0])
+        record(env, 1, SWITCH[1], symbol=ETH, tick=D("0.5"), bid=D("100.5"), ask=D("101.5"), holdings={ETH: D(2)},
+               positions=positions)
+        record(env, 2, SWITCH[2], booked=False, slot_universe=reads(env, 2, SWITCH[2], flags={XRP: "caution"}))
+        record(env, 3, SWITCH[3], slot_universe=down(env, 3))
+        frame = env.h.provider(LH.obs(env, env.T(3) + LH.seconds(2)))
+        LH.restart(env)
+        assert env.h.provider(LH.obs(env, env.T(3) + LH.seconds(2))) == frame
+        assert env.h.recorded_allow == frozenset()
+
+
+def test_restart_refuses_malformed_v2_fields_before_the_independent_head_check():
+    with head_root() as hroot:
+        env = ubuild(hroot)
+        held = (Position(market="spot", symbol=BTC, base_currency="BTC", quote_currency="KRW", units=D(2),
+                         price=D(100), asof=env.T(0) - LH.seconds(3)),)
+        record(env, 0, SWITCH[0], holdings={BTC: D(2)}, positions=held)
+        original = LH.journal(env).read_bytes()
+        head = env.head.read()
+        changes = (
+            lambda d: d.pop("trade_symbol"),
+            lambda d: d.update(trade_symbol=ETH),
+            lambda d: d.update(tick_size="0"),
+            lambda d: d.update(tick_size="1.0"),
+            lambda d: d["holdings"][0].__setitem__(1, "2.0"),
+            lambda d: d["holdings"][0].__setitem__(3, "not-a-time"),
+            lambda d: d["holdings"][0].__setitem__(4, not d["holdings"][0][4]),
+            lambda d: d["holdings"][0].__setitem__(5, not d["holdings"][0][5]),
+            lambda d: d["holdings"].append(list(d["holdings"][0])),
+            lambda d: d["universe"]["snapshot"].update(top_n=[BTC, BTC]),
+            lambda d: d["universe"]["flags"].update(exceptions=[[BTC, "unflagged"]]),
+            lambda d: d["universe"]["flags"].update(exceptions=[[BTC, "warning"], [BTC, "warning"]]),
+            lambda d: d["universe"].update(flags="unavailable"),
+            lambda d: d["universe"]["tickers"]["prices"][0].__setitem__(1, "0"),
+            lambda d: d["universe"]["tickers"]["prices"][0].__setitem__(2, True),
+            lambda d: d["universe"]["tickers"]["prices"][0].__setitem__(2, 60_001),
+            lambda d: d["decision"].update(coin=XRP),
+        )
+        for change in changes:
+            try:
+                # Rehash only the journal, never its independent head. Parser-invalid inputs must refuse at the
+                # row validation boundary, not merely because that untouched final head differs.
+                LH.rewrite(env, 2, lambda row: change(row["data"]), rehash=True)
+                LH.refused(lambda: LH.restart(env), "HISTORY_STORE_RECORD_INVALID")
+                assert env.head.read() == head
+            finally:
+                LH.journal(env).write_bytes(original)
+        LH.restart(env)
+        assert env.head.read() == head and LH.journal(env).read_bytes() == original

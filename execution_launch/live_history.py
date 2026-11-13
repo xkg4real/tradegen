@@ -79,6 +79,9 @@ _ANCHOR_KEYS = frozenset({"cash_quote", "units", "account_asof"})
 _IDENTITY_KEYS = frozenset(f.name for f in fields(FixedDriverIdentity))
 _EXCEPTION_CLASSES = ("caution", "unknown", "warning")   # the flag classes a row lists; "unflagged" is implied
 _START = ChooserState(held=None, hold_count=0)           # a window's chooser starts in cash (PR 4b)
+_SLOT_V2_KEYS = frozenset({"index", "trade_symbol", "tick_size", "receipt", "anchor", "holdings", "universe",
+                           "decision"})
+_RECORD_KEYS = frozenset({"snapshot", "flags", "tickers", "allow", "reasons", "events"})
 
 
 class LiveHistoryError(ValueError):
@@ -217,6 +220,36 @@ def _chooser_parts(record):
             prices[market] = _decimal(text)
             flags.setdefault(market, "unflagged")
     return top_n, tuple(sorted(flags.items())), tuple(sorted(prices.items()))
+
+
+def _parse_record(value):
+    """A stored universe record, checked for shape and canonical text; the chooser reads it exactly as stored."""
+    _require(type(value) is dict and set(value) == _RECORD_KEYS, "HISTORY_STORE_RECORD_INVALID")
+    snapshot, flags, tickers = value["snapshot"], value["flags"], value["tickers"]
+    _require(snapshot == "unavailable"
+             or (type(snapshot) is dict and set(snapshot) == {"day", "sha256", "top_n"}
+                 and type(snapshot["day"]) is str and _sha256(snapshot["sha256"]) and _markets(snapshot["top_n"])),
+             "HISTORY_STORE_RECORD_INVALID")
+    _require(flags == "unavailable"
+             or (type(flags) is dict and set(flags) == {"sha256", "exceptions"} and _sha256(flags["sha256"])
+                 and type(flags["exceptions"]) is list
+                 and all(type(item) is list and len(item) == 2 and item[1] in _EXCEPTION_CLASSES
+                         for item in flags["exceptions"])
+                 and _markets([item[0] for item in flags["exceptions"]])
+                 and flags["exceptions"] == sorted(flags["exceptions"])),
+             "HISTORY_STORE_RECORD_INVALID")
+    _require(tickers == "unavailable"
+             or (flags != "unavailable" and type(tickers) is dict and set(tickers) == {"sha256", "prices"}
+                 and _sha256(tickers["sha256"]) and type(tickers["prices"]) is list
+                 and all(type(item) is list and len(item) == 3 and type(item[1]) is str
+                         and _price_text(_decimal(item[1])) == item[1]
+                         and type(item[2]) is int and abs(item[2]) <= PRICE_WINDOW_MS for item in tickers["prices"])
+                 and _markets([item[0] for item in tickers["prices"]])),
+             "HISTORY_STORE_RECORD_INVALID")
+    _require(_markets(value["allow"]) and value["allow"] == sorted(value["allow"])
+             and all(type(value[key]) is list and all(type(item) is str for item in value[key])
+                     for key in ("reasons", "events")), "HISTORY_STORE_RECORD_INVALID")
+    return value
 
 
 def _tail_row(journal):
@@ -422,6 +455,14 @@ class LiveHistory:
         return [symbol, _plain(units), _plain(price), _utc(asof), price == 0,
                 price == 0 or Fraction(units) * Fraction(price) < minimum]
 
+    def _parse_holdings(self, value):
+        """Stored holdings must be exactly what _holding writes for their own values."""
+        _require(type(value) is list and all(type(row) is list and len(row) == 6 and _valid_stamp(row[3])
+                                             for row in value), "HISTORY_STORE_RECORD_INVALID")
+        parsed = sorted(self._holding(row[0], _decimal(row[1]), _decimal(row[2]), datetime.fromisoformat(row[3]))
+                        for row in value)
+        _require(parsed == value and len({row[0] for row in value}) == len(value), "HISTORY_STORE_RECORD_INVALID")
+
     def _universe_record(self, slot, universe):
         """The row's universe part (spec section 12): the snapshot in force (day, sha256, top-N), the flag read's
         exceptions and the ticker read's defined prices of listed coins, each with its raw-body sha256 or
@@ -540,6 +581,7 @@ class LiveHistory:
         from execution_accounts.quotes import parse_orderbook
         with self._locked():
             slots, chain, marks, previous, size, seq = [], "", (), GENESIS, 0, 0
+            prices, state, recent, allow = (), _START, (), None
             try:
                 with open(checked_target(self._dir / "history.jsonl", "history journal", within=self._dir), "rb") as fh:
                     while True:
@@ -561,6 +603,25 @@ class LiveHistory:
                                      and all(type(value) is str for value in data["identity"].values()),
                                      "HISTORY_STORE_RECORD_INVALID")
                             _require(data["identity"] == asdict(identity), "HISTORY_IDENTITY_CHANGED")
+                        elif self._universe:
+                            # History row v2: the row's own trade coin and tick and its book or none; the decision
+                            # derived again from the stored record must equal the stored one (spec section 12).
+                            _require(set(data) == _SLOT_V2_KEYS and type(data["index"]) is int
+                                     and data["index"] == seq - 2 and type(data["trade_symbol"]) is str
+                                     and UNIVERSE_MARKET.fullmatch(data["trade_symbol"]) is not None,
+                                     "HISTORY_STORE_RECORD_INVALID")
+                            symbol, tick = data["trade_symbol"], _decimal(data["tick_size"])
+                            _require(tick > 0 and _plain(tick) == data["tick_size"], "HISTORY_STORE_RECORD_INVALID")
+                            anchor, record = _parse_anchor(data["anchor"]), _parse_record(data["universe"])
+                            self._parse_holdings(data["holdings"])
+                            book = None if data["receipt"] == "unavailable" else parse_orderbook(
+                                _parse_receipt(data["receipt"]), symbol=symbol, now=at)
+                            bar, decision, chain, prices, state, inputs, choice = self._derive_universe(
+                                seq - 2, book, anchor, at, chain, prices, state, symbol, tick, record)
+                            _require(choice == data["decision"], "HISTORY_STORE_RECORD_INVALID")
+                            slots.append(_Slot(bar=bar, anchor=anchor, decision=decision, sampled_at=at,
+                                               row_sha256=row["row_sha256"], universe_sha256=evidence_digest(record)))
+                            recent, allow = (recent + (inputs,))[-2:], frozenset(record["allow"])
                         else:
                             _require(set(data) == {"index", "receipt", "anchor"} and type(data["index"]) is int
                                      and data["index"] == seq - 2, "HISTORY_STORE_RECORD_INVALID")
@@ -581,6 +642,7 @@ class LiveHistory:
                 raise LiveHistoryError("HISTORY_STORE_RECORD_INVALID") from None
             _require(self._read_head() == previous, "HISTORY_HEAD_MISMATCH")
             self._slots, self._chain, self._marks = tuple(slots), chain, marks
+            self._prices, self._state, self._inputs, self.recorded_allow = prices, state, recent, allow
             self._head, self._size, self._seq = previous, size, seq
 
     def _durable_unchanged(self):
