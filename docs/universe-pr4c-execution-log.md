@@ -14,16 +14,16 @@ The root agent owns the shared renewal boundary pins and final integration. No d
 
 | Task | Implementation | Final integration status |
 |---|---|---|
-| 1 | v2 terms authority, read-time market, receipt binding; v1 digest retained | Pending frozen-source run |
-| 2 | observed maximum, buy-only universe cap, reparsed observation comparison | Pending frozen-source run |
-| 3 | Upbit IOC model/profile/request/response; fixed GTC request retained | Pending frozen-source run |
-| 4 | explicit cross-coin renewal, all refusal checks before head advancement | Pending frozen-source run |
-| 5 | exclusive v1/v2 rehearsal audit authority and profile binding | Pending frozen-source run |
-| 6 | listed-market evidence, unlisted position marker and zero valuation | Pending frozen-source run |
-| 7 | stale-trade fallback to fresh best bid within the capture time budget | Pending frozen-source run |
-| 8 | optional E1 flag encoding, held-market lookup and Upbit-only zero valuation | Pending frozen-source run |
-| 9 | held-coin alerts, complete-read clearing and 09:45 snapshot alert | Pending frozen-source run |
-| 10 | independent review, boundary checks, full suite and PR delivery | In progress |
+| 1 | v2 terms authority, read-time market, receipt binding; v1 digest retained | PASS at corrected frozen head |
+| 2 | observed maximum, buy-only universe cap, reparsed observation comparison | PASS at corrected frozen head |
+| 3 | Upbit IOC model/profile/request/response; fixed GTC request retained | PASS at corrected frozen head |
+| 4 | explicit cross-coin renewal, all refusal checks before head advancement | PASS at corrected frozen head |
+| 5 | exclusive v1/v2 rehearsal audit authority and profile binding | PASS at corrected frozen head |
+| 6 | listed-market evidence, unlisted position marker and zero valuation | PASS at corrected frozen head |
+| 7 | stale-trade fallback to fresh best bid within the capture time budget | PASS at corrected frozen head |
+| 8 | optional E1 flag encoding, held-market lookup and Upbit-only zero valuation | PASS at corrected frozen head |
+| 9 | held-coin alerts, complete-read clearing and 09:45 snapshot alert | PASS at corrected frozen head |
+| 10 | independent review, boundary checks, full suite and PR delivery | Review and verification complete; PR33 |
 
 ## Preflight and reviewed adjustments
 
@@ -76,8 +76,17 @@ The 2,672 baseline IDs are retained apart from the documented stale-book test re
 renamed test all pass. The separate guard run passed 81/81.
 
 The decoder-isolation issue above was reproduced after that run. Its narrow fix and new regression passed the
-40-test Upbit/guard check. A new frozen full run is required before delivery; the first full result is not
-presented as validation of the later runtime change.
+40-test Upbit/guard check. The corrected frozen full run at
+`c80c56cdab946a80ae40be31432b41c881dcd5a2` completed with **2,705 tests: 2,570 PASS, 0 FAIL,
+135 NOT_RUN**, in 1,093.970 seconds. The same 121 macro prerequisites and 14 Windows-specific checks remain
+NOT_RUN; none is counted as a pass. The source fingerprint and actual-home metadata stayed unchanged.
+All baseline test IDs remain apart from the documented rename; the corrected branch adds 33 tests net.
+The first full result above is retained separately and is not substituted for this corrected-head result.
+
+Corrected source fingerprint (tracked Python/YAML bytes):
+`06ae758219b27f6811aa0b1be765bb7a70578593d6c92b9030402b77cdb35ddc`.
+The final documentation-only commit does not change this tested runtime or its tests. No tracked QA results
+were overwritten. This PR is available at https://github.com/xkg4real/tradegen/pull/33.
 
 ## Remaining after this PR
 
