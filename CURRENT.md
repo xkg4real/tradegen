@@ -1,14 +1,14 @@
 ---
-status: returned
-reason: owner_input_required
+status: taken
+reason: owner_revision_requested
 from: gpt
 task: upbit-universe
 cycle: 2026-11-10
 done_ids: upbit-universe-return-1113, universe-pr4d/original-verification, workflow-resume-1113/regression-preparation, universe-pr4d/task2-implementation, universe-pr4d/task3, universe-pr4d/task4, universe-pr4c, universe-pr4d/task1, workflow-resume-1113, workflow-resume-1113/dependencies, universe-pr4c/implementation, universe-pr0, universe-pr1, universe-pr2, universe-pr3, universe-pr4b, universe-pr4a
 next_ids: universe-pr4d, universe-pr4e, universe-pr5, universe-pr5-clock-notify, universe-code-approve, policy-loss-budget-plan-1, rules-review-1202, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, launch-private-capture-setup-1, e1-14-owner-setup, launch-prospective-study, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1
-updated_at: 2026-11-13T18:36:20+09:00
+updated_at: 2026-11-13T19:44:31+09:00
 stale_after_hours: 3
-waiting_on: PR4d capacity and PR5 authenticated failed-trial decisions; owner floor-state evidence
+waiting_on: revised-design decisions only; owner floor_state_check confirmed not run (future PLB dependency)
 work_branch: gpt/universe-pr4d-driver-history
 work_commit: a54a390d14d665a93bb8779ac078c8ea113c69f2
 runtime_tested_commit: ea4e2a4 full2584PASS0FAIL135NR; a54a390 changes execution log only
@@ -24,7 +24,16 @@ session: Cloud Codex; owner Windows deployment remains separate
 
 # 인수인계: Upbit KRW 유니버스 구현
 
-## 0. 한 줄 요약
+## 최신 사용자 정정 — 이전 승인 해석보다 우선
+
+- 사용자 상세 응답에 따라 설계·검증 준비를 재개합니다. 과거 포괄 승인을 정상 호가 폐기 승인으로 해석하지 않습니다.
+- PR4d의 정상 호가를 None으로 바꾸는 추가안은 철회합니다. 기존 flags/tickers 첫 fallback도 무손실 보존 계약으로 대체 검토합니다. 보유내역·정상 호가·근거를 보존하는 분할/참조 저장을 설계합니다. PR34는 초안·미병합이고 runtime은 a54a390 그대로입니다.
+- 보호 보유: 오류·저장장애·재시작 자체는 매도 신호가 아닙니다. 유효 자료로 전략 보유/매도를 판단하며 기존 손실 보호 조건은 유지합니다. 판단 불능과 전략 HOLD를 구분하고, 기존 A1의 오류→매도 조항을 수정 대상으로 명시합니다. 실제 주문 승인 아님.
+- PR5: 후보별 실패 인증만이 아니라 확정 증거의 무손실 저장·버전 백업·4단계 복구 및 Telegram→HTTPS WebAuthn 승인까지 통합 설계합니다. 새 승인 증거/독립 신뢰 경계는 미구현이며 기존 Ed25519 서명과 같다고 간주하지 않습니다.
+- floor_state_check는 사용자·Claude 모두 **미실행**이라고 확인했습니다. 실제 owner 홈을 읽지 않습니다. 미래 PLB 구현에 필요한 S1~S12만 사용자 PC에서 받으며 반복해서 실행 여부를 묻지 않습니다.
+- 아래의 원래 승인 요청/secondfallback 관련 문장은 **과거 체크포인트 기록**입니다. 이번 정정 및 갱신 설계가 우선합니다. 새로 필요한 결정 외 기확정 요구는 재질문하지 않습니다.
+
+## 0. 이전 체크포인트 요약 (이력)
 
 **승인·상태 증거 대기로 반환합니다.** 이미 제시한 두 설계 승인과 PC 상태 점검 답변을 받으면 이 체크포인트에서 재개하세요. 전체 목표나 실전 준비가 완료됐다는 뜻은 아닙니다.
 
