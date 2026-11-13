@@ -28,7 +28,9 @@ Frozen-source focused validation: **123 PASS / 0 FAIL / 0 NOT_RUN**, **69.611 se
 
 This includes the new helper and CLI boundary tests, authenticated family tests, legacy/carry strategy tests and affected source guards. It covers later-candidate corruption and duplicate JSON keys with zero earlier evaluations, exact registration chains, missing/extra files, actual 16 MiB+1 files, resource boundaries, real registry exhaustion, caller mapping changes, raw whitespace hashes, genuine temporary Ed25519 review and numerical rejection retention. Independent review additionally executed 11 selected cases successfully.
 
-Nineteen KEYLESS variables, isolated homes and invented research inputs were used. The source and actual-home metadata remained unchanged from before imports through completion; QA bytes were restored. No actual account, private key, source API, notification, activation or order was used. Full repository regression and delivery status will be added after completion.
+Nineteen KEYLESS variables, isolated homes and invented research inputs were used. The source and actual-home metadata remained unchanged from before imports through completion; QA bytes were restored. No actual account, private key, source API, notification, activation or order was used. Complete repository regression on runtime commit `2879b536d883d42206c827fc6f650ee2ca135d8f`: **2,968 PASS / 0 FAIL / 135 NOT_RUN**, **3,103 total**, **1,400.499 seconds**, one uninterrupted process. The fingerprint above remained unchanged. All 3,071 preceding carry-v2 test IDs and terminal statuses were retained, with 32 additional passing tests. Existing macro prerequisites (121) and Windows cases (14) were not run and are not counted as passes. Source and actual-home metadata were unchanged from before imports/discovery through completion; QA bytes were restored.
+
+PR39's merged main was integrated after this run with documentation-only changes. The tested Python/YAML fingerprint was checked again and remained identical. Focused and full counts overlap and must not be added.
 
 ## Still pending
 
