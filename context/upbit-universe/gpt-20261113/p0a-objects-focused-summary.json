@@ -1,0 +1,16 @@
+{
+  "label": "p0a-objects-focused",
+  "head": "a54a390d14d665a93bb8779ac078c8ea113c69f2",
+  "source_hash": "08098dd8ce036b20963be4551c876349a03f2e7b50a4c6de1a2180dacf3ece8c",
+  "total": 24,
+  "counts": {
+    "PASS": 24,
+    "FAIL": 0,
+    "NOT_RUN": 0
+  },
+  "seconds": 2.829,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "failures": []
+}

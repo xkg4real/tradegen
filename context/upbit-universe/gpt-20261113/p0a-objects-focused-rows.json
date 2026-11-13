@@ -1,0 +1,146 @@
+[
+  {
+    "test": "launch/launch_evidence_objects/test_bad_or_oversized_payload_refuses_before_store_files_are_created",
+    "status": "PASS",
+    "seconds": 0.0157,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_evidence_objects/test_changed_policy_cannot_reinterpret_an_existing_reference",
+    "status": "PASS",
+    "seconds": 0.0031,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_evidence_objects/test_chunk_boundary_and_payload_limit_roundtrip_exact_bytes",
+    "status": "PASS",
+    "seconds": 0.0511,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_evidence_objects/test_chunk_count_is_an_independent_admission_limit",
+    "status": "PASS",
+    "seconds": 0.0035,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_evidence_objects/test_corrupt_existing_chunk_is_never_overwritten_by_restaging",
+    "status": "PASS",
+    "seconds": 0.0034,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_evidence_objects/test_duplicate_stage_and_fresh_instances_preserve_existing_object_bytes",
+    "status": "PASS",
+    "seconds": 0.0117,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_evidence_objects/test_failed_new_stage_preserves_readability_of_an_existing_verified_reference",
+    "status": "PASS",
+    "seconds": 0.0089,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_evidence_objects/test_failure_after_chunk_publication_has_no_accepted_reference_or_implicit_resume",
+    "status": "PASS",
+    "seconds": 0.0052,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_evidence_objects/test_final_copy_write_or_flush_failure_preserves_forensic_files_without_a_reference",
+    "status": "PASS",
+    "seconds": 0.0044,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_evidence_objects/test_fsync_failure_returns_no_reference_and_does_not_adopt_partial_objects",
+    "status": "PASS",
+    "seconds": 0.0018,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_evidence_objects/test_hardlinked_object_is_refused_even_when_content_is_unchanged",
+    "status": "PASS",
+    "seconds": 0.003,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_evidence_objects/test_large_inventory_and_valid_book_survive_without_loss_or_substitution",
+    "status": "PASS",
+    "seconds": 0.0209,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_evidence_objects/test_manifest_limit_accepts_exact_bound_and_refuses_one_byte_less_before_writes",
+    "status": "PASS",
+    "seconds": 0.008,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_evidence_objects/test_manifest_tampering_after_successful_read_is_not_hidden_by_a_cache",
+    "status": "PASS",
+    "seconds": 0.0033,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_evidence_objects/test_missing_manifest_refuses_without_creating_a_replacement",
+    "status": "PASS",
+    "seconds": 0.0034,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_evidence_objects/test_missing_or_corrupt_chunk_refuses_after_an_earlier_successful_read",
+    "status": "PASS",
+    "seconds": 0.0086,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_evidence_objects/test_publication_remains_link_free_during_final_creation_flush_and_pending_removal",
+    "status": "PASS",
+    "seconds": 0.0083,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_evidence_objects/test_reference_extra_fields_duplicate_keys_and_paths_refuse",
+    "status": "PASS",
+    "seconds": 0.0036,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_evidence_objects/test_reference_hash_and_lengths_are_rechecked_even_for_existing_objects",
+    "status": "PASS",
+    "seconds": 0.0043,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_evidence_objects/test_rehashed_manifest_rejects_bad_lengths_order_fields_duplicate_keys_and_paths",
+    "status": "PASS",
+    "seconds": 0.0123,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_evidence_objects/test_retry_after_final_directory_sync_failure_flushes_reused_objects_before_returning_a_reference",
+    "status": "PASS",
+    "seconds": 0.0072,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_evidence_objects/test_symlinked_object_is_refused_even_when_target_bytes_match",
+    "status": "PASS",
+    "seconds": 0.0032,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_evidence_objects/test_symlinked_store_root_cannot_redirect_writes_outside_the_explicit_root",
+    "status": "PASS",
+    "seconds": 0.0003,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_evidence_objects/test_unknown_opened_file_identity_refuses_even_when_path_and_handle_both_report_zero",
+    "status": "PASS",
+    "seconds": 0.004,
+    "detail": ""
+  }
+]

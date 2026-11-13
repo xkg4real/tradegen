@@ -1,18 +1,18 @@
 ---
-status: taken
-reason: owner_revision_design_delivered_storage_implementation_started
+status: returned
+reason: revised_design_and_p0a_checkpoint
 from: gpt
 task: upbit-universe
 cycle: 2026-11-10
-done_ids: design-revision-1113, upbit-universe-return-1113, universe-pr4d/original-verification, workflow-resume-1113/regression-preparation, universe-pr4d/task2-implementation, universe-pr4d/task3, universe-pr4d/task4, universe-pr4c, universe-pr4d/task1, workflow-resume-1113, workflow-resume-1113/dependencies, universe-pr4c/implementation, universe-pr0, universe-pr1, universe-pr2, universe-pr3, universe-pr4b, universe-pr4a
-next_ids: universe-pr4d/lossless-objects, universe-pr4d/lossless-history, universe-pr4d, universe-pr4e, universe-pr5, universe-pr5-clock-notify, universe-code-approve, policy-loss-budget-plan-1, rules-review-1202, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, launch-private-capture-setup-1, e1-14-owner-setup, launch-prospective-study, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1
-updated_at: 2026-11-13T19:54:04+09:00
+done_ids: universe-pr4d/lossless-objects, design-revision-1113, upbit-universe-return-1113, universe-pr4d/original-verification, workflow-resume-1113/regression-preparation, universe-pr4d/task2-implementation, universe-pr4d/task3, universe-pr4d/task4, universe-pr4c, universe-pr4d/task1, workflow-resume-1113, workflow-resume-1113/dependencies, universe-pr4c/implementation, universe-pr0, universe-pr1, universe-pr2, universe-pr3, universe-pr4b, universe-pr4a
+next_ids: universe-pr4d/lossless-history, universe-pr4d, universe-pr4e, universe-pr5, universe-pr5-clock-notify, universe-code-approve, policy-loss-budget-plan-1, rules-review-1202, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, launch-private-capture-setup-1, e1-14-owner-setup, launch-prospective-study, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1
+updated_at: 2026-11-13T20:05:22+09:00
 stale_after_hours: 3
 waiting_on: no prior approval question; future PLB S1-S12 and deployment inputs only
 work_branch: gpt/universe-pr4d-driver-history
-work_commit: a54a390d14d665a93bb8779ac078c8ea113c69f2
-runtime_tested_commit: ea4e2a4 full2584PASS0FAIL135NR; new lossless module in progress, unverified
-uncommitted_changes: P0a lossless-object module and tests in progress
+work_commit: 6be78659b164ba08334111f592a0bbbede32428b
+runtime_tested_commit: 6be7865 matches frozen fingerprint08098dd8; P0a24PASS and regression125PASS; new full not run
+uncommitted_changes: no
 pr: https://github.com/xkg4real/tradegen/pull/34 (draft; lossless revision, unmerged)
 usage_weekly_pct: unknown
 usage_source: unavailable
@@ -24,7 +24,7 @@ session: Cloud Codex; owner Windows deployment remains separate
 
 ## 0. 현재 상태
 
-**개정 설계 두 문서와 검증 준비를 완료하고 P0a 저장 모듈 구현을 시작했습니다.** 전체 목표·실전 준비 완료가 아닙니다. 이전 포괄 승인은 정상 호가 폐기 승인으로 해석하지 않습니다. 종전 두 승인 질문과 floor checker 실행 여부 및 E 질문은 모두 답변 완료입니다.
+**개정 설계 두 문서와 P0a 저장 모듈 구현·검증을 완료하여 체크포인트를 반환합니다.** 전체 목표·실전 준비 완료가 아닙니다. 이전 포괄 승인은 정상 호가 폐기 승인으로 해석하지 않습니다. 종전 두 승인 질문과 floor checker 실행 여부 및 E 질문은 모두 답변 완료입니다.
 
 ## 1. 확정된 최신 요구
 
@@ -57,16 +57,17 @@ PR5 종전 “서명기 변경 없음” 제안은 확대된 최신 요구로 �
 - 실험: 정상행279531B, firstfallback후279312B, cap262144B. 합성1500보유·fake1522조회·131072B호가. 전체 원본 byte roundtrip·경계·4중단모델·누락/손상 거부. 실제 계좌 사례 아님.
 - 실험 한계: 단일writer 메모리journal/head. 운영v3/headCAS/Windows/chooser통합/전원장애 미검사. source fingerprint불변. 원본 코드는 `capacity-preservation-prototype/`에 보존.
 
-## 5. 진행 중 작업
+## 5. 완료한 부품과 다음 구현 위치
 
 - 작업 트리 `/workspace/tradegen-universe-pr4d-1113`.
-- 신규 `execution_launch/evidence_objects.py`: explicitroot/limits, immutable payload reference, bounded strict object/manifest read, no-overwrite stage, no head/window changes.
-- 신규 `tests/launch_evidence_objects.py`: 독립 의미 검증. root가 registry/최종검사를 통합한다.
-- 아직 P0a 테스트/커밋 없음. code freeze 후 새 검증·독립검토를 기록해야 한다. 이전 full을 새 코드 PASS로 쓰지 않는다.
+- 완료한 `execution_launch/evidence_objects.py`: explicitroot/limits, immutable payload reference, bounded strict object/manifest read, no-overwrite stage, no head/window changes.
+- 완료한 `tests/launch_evidence_objects.py`: 독립 의미검증24개. registry·새writer정확shape핀과mutation검사도 통합.
+- P0a 커밋6be7865 push완료. 신규24/기존회귀125 모두PASS0FAIL0NR, 같은frozenfingerprint 전달커밋일치. 독립검토4건수정완료. 이전full은 새revision검증으로쓰지않음.
+- `TRADEGEN_PR4D_P0B_IMPLEMENTATION_PLAN_2026-11-13.md`의 다음단계 계획을 준비함. 계획은미구현·독립설계검토전이며 새작업출발점이다.
 
 ## 6. 다음 작업
 
-1. P0a 저장 모듈/검사 마무리→독립검토→집중/기존 경계 회귀→커밋/push/기록.
+1. 완료 P0a 반복구현 금지. 신규실행이 필요하면 검증된6be7865에서 시작. P0b계획을 독립 검토한 뒤 실제history 연결.
 2. P0b v3 history/identity/head transaction 연결, 기존v1/v2불변, 저장전후동일결정, fault injection. 용량 문제 해결 전 PR34병합 금지.
 3. confirmed merged main에서 PR4e, PR5 기존 준비회귀 반영. E에 따른 새 policy/protocol은 기존 종단 target0 강제매도/평가를 우회 실행하지 않도록 함께 버전 분리.
 4. PR5 공통 helper후시계, 실제S1~S12후PLB, source production authority/controlled/standing/A1개정. 실제source completeness를 임의 발급하지 않음.
@@ -82,4 +83,4 @@ PR5 종전 “서명기 변경 없음” 제안은 확대된 최신 요구로 �
 
 ## 9. 이어받는 에이전트에게
 
-AGENTS/CURRENT/LEDGER 및 최신 개정2 문서를 읽고 원격상태부터 확인한다. 원래 호가 폐기안이나 A1 오류→매도/기한→매도를 구현하지 않는다. 완료ID 반복금지. P0a 부품과 P0b 앱통합을 구분하고 사용자에게 최신 검증 결과만 보고한다. 끝내거나 중단 시 실제 코드/테스트/다음 단계가 복구 가능한지 확인하고 반환한다.
+AGENTS/CURRENT/LEDGER 및 최신 개정2 문서를 읽고 원격상태부터 확인한다. 원래 호가 폐기안이나 A1 오류→매도/기한→매도를 구현하지 않는다. 완료ID 반복금지. 현재는 작업단위 완료 returned이며 실제 코드트리는 clean/pushed다. 후속 작업을 재개할 때는 최신원격을 확인하고 taken으로 전환한다. P0a 부품과 P0b 앱통합을 구분하고 사용자에게 최신 검증 결과만 보고한다. 끝내거나 중단 시 실제 코드/테스트/다음 단계가 복구 가능한지 확인하고 반환한다.

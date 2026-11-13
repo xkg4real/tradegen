@@ -1,6 +1,6 @@
 # TRADEGEN 작업 로그 — 사용자 정정 반영
 
-갱신: 2026-11-13T19:50:33+09:00. 이번 산출물은 **PR4d/PR5 개정 설계와 검증 준비**다. 전체 개발·실거래 준비 완료 보고가 아니다.
+기록 시각: 2026-11-13T19:50:33+09:00. 이번 산출물은 **PR4d/PR5 개정 설계와 검증 준비**다. 전체 개발·실거래 준비 완료 보고가 아니다.
 
 ## 반영한 최신 지시
 
@@ -38,7 +38,7 @@
   runtimeea4e2a4 전체2719개 중2584 PASS /0 FAIL /135 NOT_RUN.
   원래 집중60PASS 및 guard81PASS는 겹치는 검사이므로 합산하지 않는다.
 - 기존135 NOT_RUN은 macro 전제121개와 Windows14개이며 통과로 계산하지 않는다.
-- 신규 저장/보호/연구복구/패스키 런타임 코드를 아직 통합하지 않았다. 기존 검사 결과를 재사용하지 않는다.
+- P0a 저장 부품은 아래와 같이 추가 구현했지만 기존 앱 이력·보호·연구복구·패스키에는 아직 통합하지 않았다. 기존 검사 결과를 새 기능의 근거로 재사용하지 않는다.
 
 ## 다음 실행 순서
 
@@ -49,6 +49,12 @@
 
 법률·세무·투자 조언이 아니며 작성 에이전트는 면허를 가진 자문가가 아니다.
 
-## 이어서 진행 중
+## P0a 구현·검증 완료
 
-P0a: 별도 무손실 증거 객체 저장 모듈과 독립 회귀 검사를 구현 중이다. 앱 history/journal/head 연결(P0b)은 다음 단계이며 아직 새 코드 검증 결과를 주장하지 않는다.
+- 전달 코드: `6be78659b164ba08334111f592a0bbbede32428b` (기존 draft PR34에 push).
+- `execution_launch/evidence_objects.py`: 명시 root/limits, 정확한 원본 bytes, immutable policy-bound 참조, strict bounded manifest/chunk 검증, 덮어쓰기 금지, 중단 잔여물 보존, 정상 기존 자료 읽기.
+- 별도 신규24 PASS/0 FAIL/0 NOT_RUN(2.829초), 이력·드라이버·5종 안전경계 회귀125 PASS/0 FAIL/0 NOT_RUN(14.019초).
+- 두 실행과 전달 커밋의 Python/YAML fingerprint 동일: `08098dd8ce036b20963be4551c876349a03f2e7b50a4c6de1a2180dacf3ece8c`.
+- 독립 검토4건 수정: 중단 신규자료가 기존읽기차단, inode0, transienthardlink와 pathscanner충돌, 마지막dirsync실패 후 재시도flush누락. 각각 회귀 추가.
+- 운영 history/독립head/window총량/chooser재생은 P0b에서 연결한다. PR34는 초안·미병합. 새 revision 전체검사는 아직 실행하지 않았고 기존2584PASS를 재사용하지 않는다.
+- 저장 부품과 최초 scratch15PASS를 구분한다. 실제 Windows·실계좌·거래소·서명·활성화·주문 검증이 아니다.
