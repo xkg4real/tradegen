@@ -1,0 +1,21 @@
+{
+  "label": "producer-smoke1",
+  "head": "c9d09fd00455ae23a67bf2ab08930795d60a83a4",
+  "source_hash": "738be8eb0919ecd9db569312f8e09123786bec311ddaee7dcd7d67240db5bbb3",
+  "real_home_metadata_sha256": "643d5437104296e21d906ecb15b2c96ad278f20cfc4af53b12bb6069bd853726",
+  "selectors": [
+    "launch:launch_committed_producer/test_actual_opening_precedes_separate_setup_and_two_committed_intervals_keep_runtime_identity",
+    "launch:launch_coordinator_committed/test_two_actual_bootstraps_adopt_once_keep_startup_binding_and_advance_once_each",
+    "launch:launch_guards/test_committed_producer_owner_read_exception_is_one_exact_current_account_call",
+    "launch:launch_carry_review/test_independent_behavior_document_hash_and_factory_source_closure_match"
+  ],
+  "full": false,
+  "process_segments": 1,
+  "start_unix": 1794600302.1027918,
+  "registry": [
+    "launch/launch_committed_producer/test_actual_opening_precedes_separate_setup_and_two_committed_intervals_keep_runtime_identity",
+    "launch/launch_coordinator_committed/test_two_actual_bootstraps_adopt_once_keep_startup_binding_and_advance_once_each",
+    "launch/launch_guards/test_committed_producer_owner_read_exception_is_one_exact_current_account_call",
+    "launch/launch_carry_review/test_independent_behavior_document_hash_and_factory_source_closure_match"
+  ]
+}

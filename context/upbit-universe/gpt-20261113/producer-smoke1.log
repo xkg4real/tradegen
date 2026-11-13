@@ -1,0 +1,6 @@
+{"label": "producer-smoke1", "total": 4, "completed": 0, "source_hash": "738be8eb0919ecd9db569312f8e09123786bec311ddaee7dcd7d67240db5bbb3", "segments": 1}
+PASS launch/launch_committed_producer/test_actual_opening_precedes_separate_setup_and_two_committed_intervals_keep_runtime_identity
+PASS launch/launch_coordinator_committed/test_two_actual_bootstraps_adopt_once_keep_startup_binding_and_advance_once_each
+PASS launch/launch_guards/test_committed_producer_owner_read_exception_is_one_exact_current_account_call
+PASS launch/launch_carry_review/test_independent_behavior_document_hash_and_factory_source_closure_match
+{"label": "producer-smoke1", "head": "c9d09fd00455ae23a67bf2ab08930795d60a83a4", "source_hash": "738be8eb0919ecd9db569312f8e09123786bec311ddaee7dcd7d67240db5bbb3", "total": 4, "counts": {"PASS": 4, "FAIL": 0, "NOT_RUN": 0}, "process_segments": 1, "seconds": 90.122, "current_segment_seconds": 90.122, "sum_test_seconds": 86.585, "keyless_names": 19, "source_unchanged": true, "real_homes_unchanged": true, "real_homes_check_scope": "metadata before imports/discovery through completion", "failures": []}

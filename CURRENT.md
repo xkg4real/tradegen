@@ -6,14 +6,14 @@ task: upbit-universe
 cycle: 2026-11-10
 done_ids: universe-pr5/passkey-verification-foundation, protective-hold/committed-startup-retention, universe-pr5/recovered-current-selection, protective-hold/committed-generation-publication, launch-read-capture-renewal-boundaries-1, launch-upbit-read-batch-archive-1, protective-hold/committed-runner-consumer, protective-hold/committed-completion, universe-pr5/recovery-controller, protective-hold/full-capture-archive, universe-pr5/restored-archive-revalidation, protective-hold/retained-continuous-capture, universe-pr5/research-incidents, protective-hold/committed-account-consumer, universe-pr5/sealed-selection, universe-pr5/research-revocation, universe-pr5/exact-archive-recovery, universe-pr5/archive-attestation, universe-pr5/raw-verified-bundles, universe-pr5/family-preflight, protective-hold/fixed-carry-v2, universe-pr4e, protective-hold/p2-store-integration, universe-pr5/outcome-document-contract, protective-hold/p2-store, protective-hold/p1, universe-pr4d/lossless-history, universe-pr4d, universe-pr4d/lossless-objects, design-revision-1113, upbit-universe-return-1113, universe-pr4d/original-verification, workflow-resume-1113/regression-preparation, universe-pr4d/task2-implementation, universe-pr4d/task3, universe-pr4d/task4, universe-pr4c, universe-pr4d/task1, workflow-resume-1113, workflow-resume-1113/dependencies, universe-pr4c/implementation, universe-pr0, universe-pr1, universe-pr2, universe-pr3, universe-pr4b, universe-pr4a
 next_ids: protective-hold/committed-producer-link, universe-pr5/passkey-archive-authority, universe-pr5/recovery-operations, protective-hold/p2-integration, universe-pr5, universe-pr5-clock-notify, universe-code-approve, policy-loss-budget-plan-1, rules-review-1202, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, launch-private-capture-setup-1, e1-14-owner-setup, launch-prospective-study, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1
-updated_at: 2026-11-14T04:49:49+09:00
+updated_at: 2026-11-14T05:11:19+09:00
 stale_after_hours: 3
 waiting_on: no prior approval question; future PLB S1-S12 and deployment inputs only
 work_branch: gpt/committed-producer-link
-work_commit: 5bb4d7d8bdf65fbd6a3048530947b72b563406a7
+work_commit: 8d4bd65cf2dece1a0252984dabadc4bee583e94a
 merged_main_commit: 5bb4d7d8bdf65fbd6a3048530947b72b563406a7
-runtime_tested_commit: PR58 source811c780 finala616fb0 unique456PASS across6runs; PR59 sourceb0cb8b3 finalfa29cdf unique86PASS across2finalruns; see delivery checkpoints and exact coverage JSON
-uncommitted_changes: PR58/59 merged and verified. Producer implementation started in separate main59 worktree with fixed API and four file owners; no producer runtime yet. Full passkey grant/ledger/RP/archive consumer remains pending.
+runtime_tested_commit: producer smoke4PASS at c9d09fd; 446 distinct selected regressions running at c9d09fd in three isolated trees; two test-only contract corrections at 8d4bd65cf2dece1a0252984dabadc4bee583e94a
+uncommitted_changes: Primary source committed; runtime frozen c9d09fd. Two test-only corrections committed, focused rerun pending. Separate passkey-authority engine source implementation in progress; no engine runtime or completion yet.
 pr: PR34-59 merged; PR59 is verification foundation only, not passkey archive authority or live activation
 usage_weekly_pct: unknown
 usage_source: unavailable
@@ -67,7 +67,7 @@ P0b는 policy→protocol→identity→contextual payload DAG, 실제 동일 잠�
 
 ## 6. 다음 작업
 
-1. `protective-hold/committed-producer-link`: 실제 continuous 수집·기존 원본/input 보관·guard commit·completion readback·같은 provider 게시를 기존 rehearsal history/Runner에 연결한다. legacy advancing provider를 commit 뒤 다시 호출하지 않는다. 새 트리는 `/workspace/tradegen-committed-producer-1113`, `gpt/committed-producer-link`, base main PR59이며 아직 production 코드 변경이 없다. exact API 카드를 확정하는 중이다.
+1. `protective-hold/committed-producer-link`: 실제 continuous 수집·기존 원본/input 보관·guard commit·completion readback·같은 provider 게시를 기존 rehearsal history/Runner에 연결한다. legacy advancing provider를 commit 뒤 다시 호출하지 않는다. 새 트리는 `/workspace/tradegen-committed-producer-1113`, `gpt/committed-producer-link`, base main PR59이며 실제 rehearsal 연결 구현을 커밋하고 실행 검증 중이다. live/controlled 지원을 주장하지 않는다.
 2. `universe-pr5/passkey-archive-authority`: PR59의 실제 WebAuthn 검증 기반을 재구현하지 않고 독립 owner grant·credential 활성화/폐기/복구 원장·challenge 일회성 소비·HTTPS RP/브라우저·archive 원본 검증 소비자로 연결한다. 검증 객체/typed context/Telegram 클릭을 승인으로 승격하지 않는다.
 3. 실제 source identity/continuous coverage의 근거와 운영 제약을 별도 검토한다. 로컬 hash·sequence·REST 응답·현재 timestamp로 무누락을 인증하지 않는다. 장시간 gap·새 owner epoch는 기존 보류를 유지한다.
 4. 완료된 연구 복구/선발 경로를 운영 incident/알림·새 버전/재관측/중단 절차에 연결한다. 일반 hold·범위별 승인·E 비청산·기존 손실 하한은 유지한다.
@@ -302,5 +302,16 @@ PR51 전달f52bfb0/maina2e61b3 tree일치. 최종영향범위131PASS138.115초, 
 ## 작업 재개 2026-11-14T04:49:49+09:00
 
 확정 producer API 카드에 따라 별도 main59 작업트리에서 producer·startup 대조 재사용·Coordinator·통합 검사를 분담해 구현하기 시작했다. 아직 새 단위의 실행 결과나 완료 ID는 없다. 실제 owner 사전 관찰의 최초 bootstrap 경계와 고정 capture-input supplier를 명시했으며 기존 하한·E 비청산·controlled 거절을 유지한다.
+
+법률, 세무, 투자 조언이 아니며 면허를 가진 자문가가 아니다
+
+## Producer 실행 체크포인트 2026-11-14T05:11:19+09:00
+
+- runtime `c9d09fd00455ae23a67bf2ab08930795d60a83a4`, 테스트 계약 교정 `8d4bd65cf2dece1a0252984dabadc4bee583e94a`. 둘 다 별도 개발 branch이며 아직 새 PR 병합이나 완료 ID가 아니다. 실제 raw capture→input→guard commit→completion→같은 provider→실제 대조→history/Runner 경로를 구현했다.
+- 첫 smoke **4 PASS/0 FAIL/0 NOT_RUN, 90.122초**, fp `738be8eb0919ecd9db569312f8e09123786bec311ddaee7dcd7d67240db5bbb3`, KEYLESS19/preimport 실제홈 메타데이터·source 불변/QA 복원.
+- 현재 같은 frozen runtime에서 A83/B27/C336, 총 고유446개를 별도 worktree/process로 검증 중이다. 아직 최종 PASS 합계가 아니다. `_current_unit`의 최종 triple 반환에 맞춘 통합검사와 shared source closure에 맞춘 기존 정적 검사의 두 assertion을 test-only로 교정했다. 최초 FAIL은 보존하며 교정 재실행 완료 전 통과로 세지 않는다.
+- 실행 증거 위치: `/workspace/tradegen-session/committed-producer-1113` 및 `committed-producer-a-1113`, `committed-producer-b-1113`, `committed-producer-c-1113`. 각 start/checkpoint/rows/summary/log와 exact registry를 따른다. A/B/C 트리/HEAD는 실행 중 변경하지 않는다.
+- 패스키 다음 트리 `/workspace/tradegen-passkey-authority-1113`, branch `gpt/passkey-authority-engine`, base main59. grant/원장/engine/독립 owner·release/실제 packet 통합을 분담해 구현 중이다. 아직 runtime0, 완료 아님. 원 AuthorityGrant 형식 유지·ENGINE_STATE_ONLY·운영 flags false이며 RP/IPC/Windows 권한 분리/실제 Telegram/app consumer는 이후 범위다. 별도 broker venv를 사용하고 app venv는 변경하지 않는다.
+- 원본 API 카드와 최신 추가 인터페이스를 context에 보관했다. 실제 계좌·키·서명·거래소 API·주문·활성화 없음, 기존 손실 하한·E 비청산 유지. 주간 사용량은 unknown/unavailable이다.
 
 법률, 세무, 투자 조언이 아니며 면허를 가진 자문가가 아니다

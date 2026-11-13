@@ -100,6 +100,9 @@ To retain Coordinator's existing actual prepared-session lookup without mutating
 
 A second private method `_runtime_components()` returns the producer-owned actual startup provider/Controller/Journal only after first actual reconciliation has constructed them. Coordinator calls this method itself, verifies exact identities and its own profile/root/adapter/clock bindings, and creates its launch Runner once. It does not accept a caller-supplied tuple. The startup quote-disabled Runner and its initial binding remain unchanged; the launch Runner is a different consumer of the **same** actual provider/Controller.
 
+Coordinator revalidation uses private `_current_unit(unit, *, now) -> (actual_paired_observation, exact_endpoint_account, actual_reconciliation)`. Only this producer's last actual unit identity and unchanged descriptive fields are accepted. It rereads the real completion graph/current provider and actual Controller; it never consumes a copied result as readiness. If the current control head differs from the retained actual reconciliation head, it performs at most one new genuine shared reconciliation and one final actual account read, then requires exact head equality. An unresolved/foreign result keeps its account-only observation usable for existing reducing gates but entry readiness false. A concurrent second head change refuses, with no loop. Initial unit completion also requires exact final account/control head equality with its actual reconciliation. Final lifetime includes the actual current baseline's existing `_time_status` cutoff/day checks after the last heavy work, without restamping asof.
+
+
 ## 3. Actual owner observation lifecycle
 
 ### Initial operator boundary
@@ -158,7 +161,7 @@ CommittedStartup._reconcile_runtime(inspection, retained, completed,
                                     *, session_id=None) -> StartupResult
 ```
 
-Move the existing reconciliation body after `_runtime` into the private method. Public reconcile retains its original lock, full `_inspect`, freshness refusal and `_runtime` one-binding admission before calling it. Private method revalidates the real `_runtime_pins`, actual `_inspect`/retained records, actual provider's current transaction/package/receipt/completion and dependency/head bytes itself. It never trusts the passed inspection as a proof; caller objects alone cannot skip actual reads. `session_id` is passed to **all** existing initial/final account-only owner reads; known-order cancel/reconcile retains each actual recorded order's own session.
+Move the existing reconciliation body after `_runtime` into a common private `_reconcile_locked` core. Public reconcile retains its original `_work` lock, full `_inspect`, freshness refusal and `_runtime` one-binding admission before calling that core. The private `_reconcile_runtime` wrapper independently acquires `_work` nonblocking and releases it in finally before/after the same core; the producer does not acquire that startup lock itself. Private method revalidates the real `_runtime_pins`, actual `_inspect`/retained records, actual provider's current transaction/package/receipt/completion and dependency/head bytes itself. It never trusts the passed inspection as a proof; caller objects alone cannot skip actual reads. `session_id` is passed to **all** existing initial/final account-only owner reads; known-order cancel/reconcile retains each actual recorded order's own session.
 
 For successor reuse, producer performs actual `_inspect(current_input,current_completion)`, then calls the private method on the same startup runtime after actual provider publication. The method does not call `_runtime`, rewrite `_binding`, replace provider/controller/runner, or open the quote path. Public reconcile on a different initial binding must still refuse as before.
 
@@ -205,5 +208,15 @@ Required tests, with actual temporary signed owner logs and actual existing stor
 Freeze shared source before actual signed fixtures; root owns runtime, merges and measured reports. Do not mutate the old startup/recovered/passkey validation trees. Owner lifecycle and startup core can be implemented in parallel against the fixed signatures; Coordinator waits for producer/runtime methods to land. No test count or timing is promised before actual discovery/execution.
 
 This is missing **rehearsal orchestration**, plus a genuine initial pre-observation requirement. It is not a production completeness solution: hashes/GET fencing/archived receipts cannot prove unseen marks, fills, transfers or gaps absent. `ContinuousUpbitCandidateSource.__call__` continues to refuse live-risk integration; controlled Runner and Coordinator remain closed. Persistent restoration of actual owner-preinterval lifecycle, post-gap recovery, new owner epoch handover, full scheduler production source, native Windows, real account/transport and iPhone approval are not proved by this unit.
+
+## 8. 구현 검토에서 고정한 추가 경계
+
+실행 검사 전 정적 검토에서 다음 사항을 구체화했다. 이는 통과 결과가 아니다.
+
+- 초기 `RiskBaseline`의 형식·크기·Decimal 한도 검사와 분리 복사는 자료 공급자 호출보다 앞선다.
+- `producer._current_unit(unit, *, now)`는 실제 `(account_read, endpoint, reconciliation)`을 반환한다. 현재 Journal head가 보존된 실제 대조 결과의 head와 다르면 공유 startup 대조를 한 번 수행하고, 마지막 계좌 관찰의 head와 그 대조 결과가 정확히 같을 때만 반환한다. 반복 재시도·현재 provider 재구성·옛 결과를 통한 준비 완료는 없다.
+- 마지막 실제 계좌 관찰 뒤에도 현재 baseline을 읽고 최종 clock에서 기존 cutoff/서울 날짜 조건을 적용한다. 30초 이내라는 조건만으로 22시 경계를 넘기지 않는다.
+- Scheduler는 위 실제 대조 결과와 실제 head/transaction을 사용한다. 보유 감시는 account-only이며, 준비 완료 표시에 진입용 risk projection을 필수 조건으로 추가하지 않는다. 명시적 축소/취소는 기존 독립 조건을 유지한다.
+- Fixed/carry의 독립 source review 검증 목록에 실제 producer/startup/archive/collector/owner/Coordinator/호가 sampler 의존성을 함께 넣는다. 앱과 독립 서명 도구가 동일한 목록을 각각 검사하며, 변경 전 source review는 새 코드의 승인으로 사용하지 않는다. 전체 D14 배포 검사는 별도 경계로 유지한다.
 
 법률, 세무, 투자 조언이 아니며 면허를 가진 자문가가 아니다

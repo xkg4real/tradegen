@@ -1,0 +1,20 @@
+{
+  "label": "producer-smoke1",
+  "head": "c9d09fd00455ae23a67bf2ab08930795d60a83a4",
+  "source_hash": "738be8eb0919ecd9db569312f8e09123786bec311ddaee7dcd7d67240db5bbb3",
+  "total": 4,
+  "counts": {
+    "PASS": 4,
+    "FAIL": 0,
+    "NOT_RUN": 0
+  },
+  "process_segments": 1,
+  "seconds": 90.122,
+  "current_segment_seconds": 90.122,
+  "sum_test_seconds": 86.585,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "real_homes_check_scope": "metadata before imports/discovery through completion",
+  "failures": []
+}

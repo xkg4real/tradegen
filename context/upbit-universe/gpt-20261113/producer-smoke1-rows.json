@@ -1,0 +1,26 @@
+[
+  {
+    "test": "launch/launch_committed_producer/test_actual_opening_precedes_separate_setup_and_two_committed_intervals_keep_runtime_identity",
+    "status": "PASS",
+    "seconds": 38.2516,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_coordinator_committed/test_two_actual_bootstraps_adopt_once_keep_startup_binding_and_advance_once_each",
+    "status": "PASS",
+    "seconds": 45.3468,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guards/test_committed_producer_owner_read_exception_is_one_exact_current_account_call",
+    "status": "PASS",
+    "seconds": 0.823,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_carry_review/test_independent_behavior_document_hash_and_factory_source_closure_match",
+    "status": "PASS",
+    "seconds": 2.1634,
+    "detail": ""
+  }
+]
