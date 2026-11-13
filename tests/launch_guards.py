@@ -1,5 +1,6 @@
 """New runtime roots remain in the signed and tested acting closure."""
 import ast
+import hashlib
 from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
 import os
@@ -38,8 +39,28 @@ UNIVERSE_STORE = "execution_launch/universe_store.py"
 EVIDENCE_OBJECTS = "execution_launch/evidence_objects.py"
 PROTECTIVE_STORE = "execution_launch/protective_store.py"
 RESEARCH_BUNDLE_STORE = "execution_launch/research_bundle_store.py"
+BUNDLE_REVIEW = "execution_launch/bundle_review.py"
+NATIVE_DIRECTORY_CALLS = {
+    "__init__": 'ctypes.WinDLL("kernel32", use_last_error=True)',
+    "open_directory": 'self._kernel.CreateFileW(path, 0x80, 0x1, None, 3, 0x02000000 | 0x00200000, None)',
+    "information": 'self._kernel.GetFileInformationByHandle(handle, self._ctypes.byref(info))',
+    "final_path": 'self._kernel.GetFinalPathNameByHandleW(handle, buffer, len(buffer), 0)',
+    "close": 'self._kernel.CloseHandle(handle)',
+}
+# This reviewed native seam intentionally has no extensibility: changing its
+# ctypes structures, aliases, loaders or methods requires a fresh review.
+NATIVE_DIRECTORY_AST_SHA256 = "841bd8050ae79d0a222b549b01a803b4b3d3303d376572447ed35e6de30fbf26"
 OWNER_RESEARCH_SETUP = "tools/owner/research_bundle.py"
 PINNED_WRITES: dict[str, tuple[str, ...]] = {
+    BUNDLE_REVIEW: (
+        'os.mkdir(self.payloads, 0o700)',
+        'os.mkdir("payloads", 0o700, dir_fd=self.root_fd)',
+        'os.open(target if directory_fd is None else name, '
+        'os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0) '
+        '| getattr(os, "O_BINARY", 0) | getattr(os, "O_NOINHERIT", 0) | getattr(os, "O_CLOEXEC", 0), '
+        '0o600, **({} if directory_fd is None else {"dir_fd": directory_fd}))',
+        'os.fdopen(descriptor, "wb")',
+    ),
     RESEARCH_BUNDLE_STORE: (
         'os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL | _FLAGS, 0o600)',
         'os.fdopen(descriptor, "wb")',
@@ -261,9 +282,45 @@ def _writes(node, assigned):
     return name in PATH_WRITES
 
 
+def _native_directory_imports(tree, relative):
+    """Only two exact local imports for the reviewed Windows read-only pins.
+
+    The exception belongs to this class in this module, and is lost if its native
+    calls change. It does not allow ctypes imports elsewhere in the runtime.
+    """
+    if relative != BUNDLE_REVIEW:
+        return set()
+    classes = [node for node in tree.body if isinstance(node, ast.ClassDef)
+               and node.name == "NativeDirectoryAPI"]
+    if len(classes) != 1:
+        return set()
+    native_class = classes[0]
+    if hashlib.sha256(ast.unparse(native_class).encode("utf-8")).hexdigest() != NATIVE_DIRECTORY_AST_SHA256:
+        return set()
+    inside = {id(node) for node in ast.walk(native_class)}
+    native_names = {"ctypes", "wintypes", "_ctypes", "_kernel"}
+    if any(id(node) not in inside and _reached(node) & native_names for node in ast.walk(tree)):
+        return set()
+    methods = [node for node in classes[0].body if isinstance(node, ast.FunctionDef)]
+    if {node.name for node in methods} != set(NATIVE_DIRECTORY_CALLS) or len(methods) != len(NATIVE_DIRECTORY_CALLS):
+        return set()
+    for method in methods:
+        calls = [node for node in ast.walk(method) if isinstance(node, ast.Call)
+                 and (ast.unparse(node.func).startswith("self._kernel.")
+                      or ast.unparse(node.func) == "ctypes.WinDLL")]
+        expected = ast.dump(ast.parse(NATIVE_DIRECTORY_CALLS[method.name], mode="eval").body)
+        if len(calls) != 1 or ast.dump(calls[0]) != expected:
+            return set()
+    initializer = next(node for node in methods if node.name == "__init__")
+    shapes = {ast.dump(ast.parse(shape).body[0])
+              for shape in ("import ctypes", "from ctypes import wintypes")}
+    return {id(node) for node in initializer.body if ast.dump(node) in shapes}
+
+
 def problems(source, relative=""):
     tree, failures = ast.parse(source), []
     assigned = _assignments(tree)
+    native_imports = _native_directory_imports(tree, relative)
     pinned = {id(inner) for node in ast.walk(tree) if isinstance(node, ast.Call)
               and ast.dump(node) in _PINNED_WRITE_TREES.get(relative, frozenset()) for inner in ast.walk(node)}
     for node in ast.walk(tree):
@@ -273,7 +330,8 @@ def problems(source, relative=""):
             for module in modules:
                 if any(module == prefix or module.startswith(prefix + ".") for prefix in TRANSPORT_PREFIXES):
                     failures.append("inquiry or order transport import")
-                elif any(module == prefix or module.startswith(prefix + ".") for prefix in EFFECT_PREFIXES):
+                elif (id(node) not in native_imports
+                      and any(module == prefix or module.startswith(prefix + ".") for prefix in EFFECT_PREFIXES)):
                     failures.append("direct effect import")
             if isinstance(node, ast.ImportFrom) and any(
                     alias.name in TRANSPORT_FROM.get(node.module, frozenset()) for alias in node.names):
@@ -855,3 +913,71 @@ def test_research_bundle_store_writes_and_operator_provisioning_stay_narrow():
                 assert node.module != "tools.owner.research_bundle", relative
                 assert not (node.module == "tools.owner" and any(alias.name == "research_bundle"
                                                                 for alias in node.names)), relative
+
+
+def test_archive_packet_writes_remain_exclusive_explicit_and_outside_authority():
+    source = (ROOT / BUNDLE_REVIEW).read_text(encoding="utf-8")
+    assert not problems(source, BUNDLE_REVIEW), problems(source, BUNDLE_REVIEW)
+    calls = {ast.dump(node) for node in ast.walk(ast.parse(source)) if isinstance(node, ast.Call)}
+    assert _PINNED_WRITE_TREES[BUNDLE_REVIEW] <= calls
+    write = "write outside pinned writer"
+    for shape in PINNED_WRITES[BUNDLE_REVIEW]:
+        for relative in ("", "execution_launch/bundle_auth.py", "execution_launch/bundle_attestation.py",
+                         "execution_launch/nested/bundle_review.py", "execution_network/bundle_review.py"):
+            assert write in problems(shape, relative), (shape, relative)
+    create = PINNED_WRITES[BUNDLE_REVIEW][2]
+    for altered in (create.replace("os.O_EXCL", "os.O_TRUNC"), create.replace(" | os.O_EXCL", ""),
+                    create.replace("0o600", "0o666"), create.replace("target if", "other if"),
+                    "os.replace(source, target)", "path.unlink()", "path.write_bytes(raw)",
+                    "os.mkdir(self.payloads, 0o777)"):
+        assert write in problems(altered, BUNDLE_REVIEW), altered
+    for extra in ("import requests", "owner.load_context(now)", "owner.arm(x)", "key.sign(raw)",
+                  "head.initialize_reviewed_head(x)", "head.compare_and_set(old, new)"):
+        assert problems(extra, BUNDLE_REVIEW), extra
+
+
+def test_archive_packet_native_directory_pins_do_not_gain_write_or_delete_sharing():
+    source = (ROOT / BUNDLE_REVIEW).read_text(encoding="utf-8")
+    shapes = (
+        'ctypes.WinDLL("kernel32", use_last_error=True)',
+        'self._kernel.CreateFileW(path, 0x80, 0x1, None, 3, 0x02000000 | 0x00200000, None)',
+        'self._kernel.GetFileInformationByHandle(handle, self._ctypes.byref(info))',
+        'self._kernel.GetFinalPathNameByHandleW(handle, buffer, len(buffer), 0)',
+        'self._kernel.CloseHandle(handle)',
+    )
+    names = {"WinDLL", "CreateFileW", "GetFileInformationByHandle", "GetFinalPathNameByHandleW", "CloseHandle"}
+    expected = {ast.dump(ast.parse(shape, mode="eval").body) for shape in shapes}
+    def exact_calls(value):
+        calls = [node for node in ast.walk(ast.parse(value)) if isinstance(node, ast.Call)
+                 and _call_name(node) in names]
+        return len(calls) == len(expected) and {ast.dump(node) for node in calls} == expected
+    assert exact_calls(source)
+    assert not problems(source, BUNDLE_REVIEW)
+    # An identical import elsewhere, an alias, or a different module receives
+    # none of this narrowly scoped exception.
+    for altered in (source + "\nimport ctypes\n", source + "\nfrom ctypes import wintypes\n",
+                    source.replace("        import ctypes\n", "        import ctypes as native\n"),
+                    source.replace("from ctypes import wintypes", "from ctypes import wintypes, windll"),
+                    source.replace("class NativeDirectoryAPI:", "class DifferentAPI:")):
+        assert "direct effect import" in problems(altered, BUNDLE_REVIEW)
+    assert "direct effect import" in problems(source, "execution_launch/other.py")
+    # Access is attributes-only, open-existing, with reparse inspection and no
+    # WRITE/DELETE sharing. This is a code contract, not a native Windows test.
+    for old, new in (("path, 0x80, 0x1", "path, 0x80, 0x7"),
+                     ("path, 0x80, 0x1", "path, 0x40000000, 0x1"),
+                     ("None, 3, 0x02000000", "None, 2, 0x02000000"),
+                     ('"kernel32"', '"untrusted"')):
+        assert old in source
+        assert not exact_calls(source.replace(old, new)), (old, new)
+        assert "direct effect import" in problems(source.replace(old, new), BUNDLE_REVIEW)
+    assert not exact_calls(source + "\nself._kernel.CreateFileW(other, 0x80, 1, None, 3, 0, None)\n")
+    changed = source.replace("        self._kernel = ctypes.WinDLL", "        self._kernel.DeleteFileW(path)\n        self._kernel = ctypes.WinDLL")
+    assert "direct effect import" in problems(changed, BUNDLE_REVIEW)
+    for extra in ("ctypes.windll.kernel32.DeleteFileW('unreviewed')",
+                  "ctypes.CDLL('unreviewed')",
+                  "alias = self._kernel; alias.DeleteFileW('unreviewed')"):
+        changed = source.replace("        import ctypes\n", "        import ctypes\n        " + extra + "\n")
+        assert "direct effect import" in problems(changed, BUNDLE_REVIEW), extra
+    for extra in ("NativeDirectoryAPI()._kernel.DeleteFileW('unreviewed')",
+                  "NativeDirectoryAPI()._ctypes.CDLL('unreviewed')"):
+        assert "direct effect import" in problems(source + "\n" + extra + "\n", BUNDLE_REVIEW), extra

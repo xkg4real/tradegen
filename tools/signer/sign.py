@@ -41,6 +41,7 @@ Other commands
                             first one you set, applies only from the next Asia/Seoul date, never inside a session
                             armed on or before the day you set it, and never after a system_halt
   review-approve            detached source/fixed implementation review; see docs/strategy-review-signing.md
+  bundle-attest             exact archived-file identity only; no source, selection, trading or recovery approval
   fingerprint               print the key file's fingerprint (no passphrase needed)
 
 Key rotation, only when the key must change (the old key signs the change, the log stays one chain)
@@ -66,6 +67,7 @@ import getpass
 import hashlib
 import json
 import math
+import ntpath
 import os
 import re
 import secrets
@@ -73,6 +75,9 @@ import stat
 import sys
 import time
 from contextlib import contextmanager
+from collections.abc import Mapping
+from dataclasses import dataclass, fields
+import unicodedata
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
@@ -1506,6 +1511,1307 @@ def _cmd_review_approve(args):
     return 0
 
 
+# Independent research-manifest codec. This copy never imports application code.
+
+@dataclass(frozen=True, kw_only=True)
+class _bf_PayloadReference:
+    schema: int
+    manifest_sha256: str
+    manifest_bytes: int
+    payload_sha256: str
+    payload_bytes: int
+    policy_sha256: str
+
+    def __post_init__(self):
+        _bf__need(type(self.schema) is int and self.schema == 1
+            and all(_bf__hash(value) for value in (self.manifest_sha256, self.payload_sha256, self.policy_sha256))
+            and type(self.manifest_bytes) is int and 0 < self.manifest_bytes <= 1048576
+            and type(self.payload_bytes) is int and 0 < self.payload_bytes <= 67108864)
+
+_bf__HASH = re.compile('[0-9a-f]{64}')
+_bf__ID = re.compile('[A-Za-z][A-Za-z0-9_.:-]{0,95}')
+_bf__LOGICAL = re.compile('[a-z][a-z0-9_-]{0,63}')
+_bf__EMPTY_SHA = hashlib.sha256(b'').hexdigest()
+_bf__RAW_DOMAIN = b'tradegen-research-raw-archive/1\x00'
+_bf__VERIFIED_DOMAIN = b'tradegen-research-bundle/1\x00'
+_bf__ROLES = frozenset({'plan', 'profile', 'registration_commitment', 'capture', 'incomplete_capture', 'source_receipts', 'program_source', 'capture_source_manifest', 'source_file', 'prior_research', 'report', 'other_input', 'evaluation_record'})
+_bf__STATUSES = frozenset({'COLLECTED', 'MISSING', 'REFUSED', 'CHANGED', 'LIMIT_EXCEEDED', 'NOT_READ'})
+_bf__REVISIONS = frozenset({'forward-paper-v1', 'forward-paper-carry-v2'})
+_bf__SOURCES = frozenset({'prospective_paper_capture', 'synthetic', 'retrospective_replay'})
+_bf__SINGLE_ROLES = frozenset({'plan', 'profile', 'registration_commitment', 'source_receipts', 'program_source', 'capture_source_manifest', 'prior_research', 'evaluation_record'})
+_bf__RESERVED = frozenset({'con', 'prn', 'aux', 'nul', 'conin$', 'conout$'} | {prefix + digit for prefix in ('com', 'lpt') for digit in '123456789¹²³'})
+
+class _bf_BundleFormatError(ValueError):
+    """Fixed diagnostics only; no supplied names, values or OS messages."""
+
+def _bf__need(value, code='BUNDLE_FORMAT_INVALID'):
+    if not value:
+        raise _bf_BundleFormatError(code)
+
+def _bf__hash(value):
+    return type(value) is str and _bf__HASH.fullmatch(value) is not None
+
+def _bf__identifier(value):
+    return type(value) is str and _bf__ID.fullmatch(value) is not None
+
+def _bf__logical(value):
+    return type(value) is str and _bf__LOGICAL.fullmatch(value) is not None
+
+def _bf__name(value, maximum=1024):
+    _bf__need(type(value) is str and value and ('\x00' not in value))
+    try:
+        _bf__need(len(value.encode('utf-8')) <= maximum, 'BUNDLE_RESOURCE_LIMIT')
+    except UnicodeError:
+        raise _bf_BundleFormatError('BUNDLE_FORMAT_INVALID') from None
+
+def _bf__stamp(value):
+    try:
+        _bf__need(type(value) is datetime and value.utcoffset() is not None)
+        return value.astimezone(timezone.utc).isoformat(timespec='microseconds')
+    except (ValueError, TypeError, OverflowError):
+        raise _bf_BundleFormatError('BUNDLE_FORMAT_INVALID') from None
+
+def _bf__parse_time(value):
+    _bf__need(type(value) is str and len(value) == 32)
+    try:
+        stamp = datetime.fromisoformat(value)
+        _bf__need(_bf__stamp(stamp) == value)
+        return stamp
+    except (ValueError, TypeError, OverflowError):
+        raise _bf_BundleFormatError('BUNDLE_FORMAT_INVALID') from None
+
+@dataclass(frozen=True, kw_only=True, slots=True)
+class _bf_BundleLimits:
+    max_manifest_bytes: int = 4 * 1024 * 1024
+    max_files: int = 2048
+    max_file_bytes: int = 64 * 1024 * 1024
+    max_total_bytes: int = 512 * 1024 * 1024
+    max_candidates: int = 128
+    max_name_bytes: int = 1024
+
+    def __post_init__(self):
+        ceilings = (4 * 1024 * 1024, 2048, 64 * 1024 * 1024, 512 * 1024 * 1024, 128, 1024)
+        for field, ceiling in zip(fields(type(self)), ceilings):
+            value = getattr(self, field.name)
+            _bf__need(type(value) is int and 0 < value <= ceiling, 'BUNDLE_LIMITS_INVALID')
+_bf_DEFAULT_LIMITS = _bf_BundleLimits()
+
+def _bf__limits(value):
+    _bf__need(type(value) is _bf_BundleLimits, 'BUNDLE_LIMITS_INVALID')
+    try:
+        value.__post_init__()
+    except (AttributeError, TypeError):
+        raise _bf_BundleFormatError('BUNDLE_LIMITS_INVALID') from None
+    return value
+
+def _bf__metadata(value):
+    _bf__name(value.original_name)
+    _bf__need(type(value.role) is str and value.role in _bf__ROLES)
+    _bf__need(value.study_id is None or _bf__identifier(value.study_id))
+    _bf__need(type(value.required) is bool)
+    if value.source_name is not None:
+        _bf__need(value.role == 'source_file')
+        _bf__name(value.source_name)
+
+@dataclass(frozen=True, kw_only=True, slots=True)
+class _bf_BundleFile:
+    logical_id: str
+    original_name: str
+    source_name: str | None
+    role: str
+    study_id: str | None
+    required: bool
+    byte_count: int
+    sha256: str
+    payload_ref: _bf_PayloadReference | None
+
+    def __post_init__(self):
+        _bf__need(_bf__logical(self.logical_id))
+        _bf__metadata(self)
+        _bf__need(type(self.byte_count) is int and 0 <= self.byte_count)
+        _bf__need(self.byte_count <= _bf_DEFAULT_LIMITS.max_file_bytes, 'BUNDLE_RESOURCE_LIMIT')
+        _bf__need(_bf__hash(self.sha256))
+        if self.byte_count == 0:
+            _bf__need(self.sha256 == _bf__EMPTY_SHA and self.payload_ref is None)
+        else:
+            _bf__need(type(self.payload_ref) is _bf_PayloadReference)
+            try:
+                self.payload_ref.__post_init__()
+            except (ValueError, TypeError, AttributeError):
+                raise _bf_BundleFormatError('BUNDLE_FORMAT_INVALID') from None
+            _bf__need(self.payload_ref.payload_bytes == self.byte_count and self.payload_ref.payload_sha256 == self.sha256)
+
+@dataclass(frozen=True, kw_only=True, slots=True)
+class _bf_InputObservation:
+    observation_id: str
+    original_name: str
+    source_name: str | None
+    role: str
+    study_id: str | None
+    required: bool
+    status: str
+    logical_id: str | None
+
+    def __post_init__(self):
+        _bf__need(_bf__logical(self.observation_id))
+        _bf__metadata(self)
+        _bf__need(type(self.status) is str and self.status in _bf__STATUSES)
+        _bf__need(_bf__logical(self.logical_id) if self.status == 'COLLECTED' else self.logical_id is None)
+
+def _bf__ordered(values, cls, attribute, maximum):
+    _bf__need(type(values) is tuple)
+    _bf__need(len(values) <= maximum, 'BUNDLE_RESOURCE_LIMIT')
+    keys = []
+    for value in values:
+        _bf__need(type(value) is cls)
+        value.__post_init__()
+        keys.append(getattr(value, attribute))
+    _bf__need(keys == sorted(set(keys)))
+
+def _bf__files(manifest, limits):
+    _bf__ordered(manifest.files, _bf_BundleFile, 'logical_id', limits.max_files)
+    total = 0
+    for file in manifest.files:
+        _bf__name(file.original_name, limits.max_name_bytes)
+        if file.source_name is not None:
+            _bf__name(file.source_name, limits.max_name_bytes)
+        _bf__need(file.byte_count <= limits.max_file_bytes, 'BUNDLE_RESOURCE_LIMIT')
+        total += file.byte_count
+        _bf__need(file.payload_ref is None or file.payload_ref.policy_sha256 == manifest.object_policy_sha256)
+    _bf__need(total <= limits.max_total_bytes, 'BUNDLE_RESOURCE_LIMIT')
+
+def _bf__base(manifest, kind, limits):
+    _bf__need(type(manifest.schema_version) is int and manifest.schema_version == 1)
+    _bf__need(type(manifest.kind) is str and manifest.kind == kind)
+    _bf__need(all((_bf__identifier(value) for value in (manifest.run_id, manifest.revision_id, manifest.attempt_id))))
+    _bf__need(manifest.parent_bundle_sha256 is None or _bf__hash(manifest.parent_bundle_sha256))
+    _bf__need(_bf__hash(manifest.storage_policy_sha256) and _bf__hash(manifest.object_policy_sha256))
+    _bf__files(manifest, limits)
+
+def _bf__expected(values, limits):
+    _bf__need(type(values) is tuple)
+    _bf__need(len(values) <= limits.max_candidates, 'BUNDLE_RESOURCE_LIMIT')
+    _bf__need(all((_bf__identifier(value) for value in values)) and values == tuple(sorted(set(values))))
+
+@dataclass(frozen=True, kw_only=True, slots=True)
+class _bf_RawArchiveManifest:
+    schema_version: int
+    kind: str
+    run_id: str
+    revision_id: str
+    attempt_id: str
+    parent_bundle_sha256: str | None
+    storage_policy_sha256: str
+    object_policy_sha256: str
+    expected_candidates: tuple[str, ...] | None
+    inventory_complete: bool
+    observed_inputs: tuple[_bf_InputObservation, ...]
+    files: tuple[_bf_BundleFile, ...]
+
+    def __post_init__(self):
+        _bf__raw(self, _bf_DEFAULT_LIMITS)
+
+def _bf__raw(manifest, limits):
+    _bf__need(type(manifest) is _bf_RawArchiveManifest)
+    _bf__base(manifest, 'RAW_ARCHIVED', limits)
+    _bf__need(type(manifest.inventory_complete) is bool)
+    if manifest.expected_candidates is not None:
+        _bf__expected(manifest.expected_candidates, limits)
+    _bf__ordered(manifest.observed_inputs, _bf_InputObservation, 'observation_id', limits.max_files)
+    lookup, collected = ({file.logical_id: file for file in manifest.files}, [])
+    for row in manifest.observed_inputs:
+        _bf__name(row.original_name, limits.max_name_bytes)
+        if row.source_name is not None:
+            _bf__name(row.source_name, limits.max_name_bytes)
+        _bf__need(row.role != 'evaluation_record')
+        if row.status == 'COLLECTED':
+            _bf__need(row.logical_id in lookup)
+            file = lookup[row.logical_id]
+            _bf__need(all((getattr(file, name) == getattr(row, name) for name in ('original_name', 'source_name', 'role', 'study_id', 'required'))))
+            collected.append(row.logical_id)
+    _bf__need(len(collected) == len(set(collected)) and set(collected) == set(lookup))
+
+@dataclass(frozen=True, kw_only=True, slots=True)
+class _bf_CandidateEvidence:
+    study_id: str
+    protocol_digest: str
+    capture_logical_id: str
+    result_digest: str
+
+    def __post_init__(self):
+        _bf__need(_bf__identifier(self.study_id) and _bf__logical(self.capture_logical_id) and _bf__hash(self.protocol_digest) and _bf__hash(self.result_digest))
+
+def _bf__safe_relative(name):
+    _bf__name(name)
+    _bf__need(not any((ord(char) < 32 or ord(char) == 127 for char in name)))
+    _bf__need('\\' not in name and ':' not in name)
+    parts = name.split('/')
+    _bf__need(all((part and part not in ('.', '..') and (not part.endswith(('.', ' '))) and (part.split('.')[0].casefold() not in _bf__RESERVED) and (not any((char in '<>"|?*' for char in part))) for part in parts)))
+
+@dataclass(frozen=True, kw_only=True, slots=True)
+class _bf_VerifiedBundleManifest:
+    schema_version: int
+    kind: str
+    run_id: str
+    revision_id: str
+    attempt_id: str
+    parent_bundle_sha256: str | None
+    storage_policy_sha256: str
+    object_policy_sha256: str
+    input_archive_digest: str
+    plan_digest: str
+    profile_digest: str
+    rules_digest: str
+    registry_digest: str
+    source_digest: str
+    family_digest: str
+    receipt_audit_digest: str
+    evaluator_revision: str
+    source_kind_claim: str
+    capture_start: datetime
+    capture_end: datetime
+    evaluated_at: datetime
+    candidates: tuple[_bf_CandidateEvidence, ...]
+    files: tuple[_bf_BundleFile, ...]
+
+    def __post_init__(self):
+        _bf__verified(self, _bf_DEFAULT_LIMITS)
+
+def _bf__complete_files(files, single_roles):
+    """Shared metadata eligibility only; no source validation or result issuance."""
+    names, by_role = (set(), {})
+    for file in files:
+        _bf__need(file.role not in ('incomplete_capture', 'other_input'))
+        _bf__safe_relative(file.original_name)
+        name = file.original_name
+        if file.role == 'source_file':
+            _bf__need(file.source_name is not None)
+            _bf__safe_relative(file.source_name)
+            name = file.source_name
+        key = (file.role, unicodedata.normalize('NFC', name).casefold())
+        _bf__need(key not in names)
+        names.add(key)
+        by_role.setdefault(file.role, []).append(file)
+    for role in single_roles:
+        rows = by_role.get(role, [])
+        _bf__need(len(rows) == 1 and rows[0].required and (rows[0].study_id is None) and (rows[0].byte_count > 0))
+    _bf__need(by_role.get('source_file') and all((file.required and file.study_id is None and (file.byte_count > 0) for file in by_role['source_file'])))
+    return by_role
+
+def _bf__verified(manifest, limits):
+    _bf__need(type(manifest) is _bf_VerifiedBundleManifest)
+    _bf__base(manifest, 'VERIFIED_UNAPPROVED', limits)
+    _bf__need(all((_bf__hash(getattr(manifest, name)) for name in ('input_archive_digest', 'plan_digest', 'profile_digest', 'rules_digest', 'registry_digest', 'source_digest', 'family_digest', 'receipt_audit_digest'))))
+    _bf__need(type(manifest.evaluator_revision) is str and manifest.evaluator_revision in _bf__REVISIONS)
+    _bf__need(type(manifest.source_kind_claim) is str and manifest.source_kind_claim in _bf__SOURCES)
+    for instant in (manifest.capture_start, manifest.capture_end, manifest.evaluated_at):
+        _bf__stamp(instant)
+    _bf__need(manifest.capture_start < manifest.capture_end <= manifest.evaluated_at)
+    _bf__ordered(manifest.candidates, _bf_CandidateEvidence, 'study_id', limits.max_candidates)
+    _bf__need(manifest.candidates)
+    by_role = _bf__complete_files(manifest.files, _bf__SINGLE_ROLES)
+    captures = {file.logical_id: file for file in by_role.get('capture', [])}
+    _bf__need(len(captures) == len(manifest.candidates))
+    _bf__need({candidate.capture_logical_id for candidate in manifest.candidates} == set(captures))
+    for candidate in manifest.candidates:
+        file = captures[candidate.capture_logical_id]
+        _bf__need(file.study_id == candidate.study_id and file.required and (file.byte_count > 0))
+
+def _bf__plain(value):
+    if type(value) is datetime:
+        return _bf__stamp(value)
+    if type(value) is tuple:
+        return [_bf__plain(item) for item in value]
+    if type(value) in (_bf_BundleFile, _bf_InputObservation, _bf_CandidateEvidence, _bf_PayloadReference, _bf_RawArchiveManifest, _bf_VerifiedBundleManifest):
+        return {field.name: _bf__plain(getattr(value, field.name)) for field in fields(type(value))}
+    _bf__need(value is None or type(value) in (str, int, bool))
+    return value
+
+def _bf__encode(manifest, validator, limits):
+    limits = _bf__limits(limits)
+    try:
+        validator(manifest, limits)
+        raw = json.dumps(_bf__plain(manifest), sort_keys=True, separators=(',', ':'), ensure_ascii=True, allow_nan=False).encode('ascii')
+    except _bf_BundleFormatError:
+        raise
+    except (ValueError, TypeError, AttributeError, OverflowError, RecursionError, UnicodeError):
+        raise _bf_BundleFormatError('BUNDLE_FORMAT_INVALID') from None
+    _bf__need(len(raw) <= limits.max_manifest_bytes, 'BUNDLE_RESOURCE_LIMIT')
+    return raw
+
+def _bf_raw_archive_bytes(manifest, *, limits=_bf_DEFAULT_LIMITS):
+    return _bf__encode(manifest, _bf__raw, limits)
+
+def _bf_verified_bundle_bytes(manifest, *, limits=_bf_DEFAULT_LIMITS):
+    return _bf__encode(manifest, _bf__verified, limits)
+
+def _bf_raw_archive_digest(manifest, *, limits=_bf_DEFAULT_LIMITS):
+    return hashlib.sha256(_bf__RAW_DOMAIN + _bf_raw_archive_bytes(manifest, limits=limits)).hexdigest()
+
+def _bf_verified_bundle_digest(manifest, *, limits=_bf_DEFAULT_LIMITS):
+    return hashlib.sha256(_bf__VERIFIED_DOMAIN + _bf_verified_bundle_bytes(manifest, limits=limits)).hexdigest()
+
+def _bf__scan(raw):
+    depth, nodes, quoted, escaped = (0, 0, False, False)
+    for char in raw:
+        if quoted:
+            if escaped:
+                escaped = False
+            elif char == 92:
+                escaped = True
+            elif char == 34:
+                quoted = False
+        elif char == 34:
+            quoted = True
+        elif char in (91, 123):
+            depth += 1
+            nodes += 1
+            _bf__need(depth <= 12)
+        elif char in (93, 125):
+            depth -= 1
+            _bf__need(depth >= 0)
+        elif char in (44, 58):
+            nodes += 1
+        _bf__need(nodes <= 200000, 'BUNDLE_RESOURCE_LIMIT')
+    _bf__need(depth == 0 and (not quoted))
+
+def _bf__pairs(pairs):
+    result = {}
+    for key, value in pairs:
+        _bf__need(key not in result)
+        result[key] = value
+    return result
+
+def _bf__integer(value):
+    _bf__need(len(value) <= 16)
+    return int(value)
+
+def _bf__number(value):
+    raise _bf_BundleFormatError('BUNDLE_FORMAT_INVALID')
+
+def _bf__keys(body, cls):
+    _bf__need(type(body) is dict and set(body) == {field.name for field in fields(cls)})
+
+def _bf__file(body):
+    _bf__keys(body, _bf_BundleFile)
+    reference = body['payload_ref']
+    if reference is not None:
+        _bf__keys(reference, _bf_PayloadReference)
+        reference = _bf_PayloadReference(**reference)
+    return _bf_BundleFile(**body | {'payload_ref': reference})
+
+def _bf__parse(raw, cls, encoder, limits):
+    limits = _bf__limits(limits)
+    _bf__need(type(raw) is bytes and raw)
+    _bf__need(len(raw) <= limits.max_manifest_bytes, 'BUNDLE_RESOURCE_LIMIT')
+    _bf__scan(raw)
+    try:
+        body = json.loads(raw.decode('ascii'), object_pairs_hook=_bf__pairs, parse_int=_bf__integer, parse_float=_bf__number, parse_constant=_bf__number)
+        _bf__keys(body, cls)
+        _bf__need(type(body['files']) is list)
+        _bf__need(len(body['files']) <= limits.max_files, 'BUNDLE_RESOURCE_LIMIT')
+        body['files'] = tuple((_bf__file(file) for file in body['files']))
+        if cls is _bf_RawArchiveManifest:
+            _bf__need(type(body['observed_inputs']) is list)
+            _bf__need(len(body['observed_inputs']) <= limits.max_files, 'BUNDLE_RESOURCE_LIMIT')
+            for item in body['observed_inputs']:
+                _bf__keys(item, _bf_InputObservation)
+            body['observed_inputs'] = tuple((_bf_InputObservation(**row) for row in body['observed_inputs']))
+            if body['expected_candidates'] is not None:
+                _bf__need(type(body['expected_candidates']) is list)
+                body['expected_candidates'] = tuple(body['expected_candidates'])
+        else:
+            _bf__need(type(body['candidates']) is list)
+            _bf__need(len(body['candidates']) <= limits.max_candidates, 'BUNDLE_RESOURCE_LIMIT')
+            for item in body['candidates']:
+                _bf__keys(item, _bf_CandidateEvidence)
+            body['candidates'] = tuple((_bf_CandidateEvidence(**row) for row in body['candidates']))
+            for name in ('capture_start', 'capture_end', 'evaluated_at'):
+                body[name] = _bf__parse_time(body[name])
+        manifest = cls(**body)
+        _bf__need(encoder(manifest, limits=limits) == raw)
+        return manifest
+    except _bf_BundleFormatError:
+        raise
+    except (ValueError, TypeError, AttributeError, OverflowError, UnicodeError, RecursionError, KeyError):
+        raise _bf_BundleFormatError('BUNDLE_FORMAT_INVALID') from None
+
+def _bf_parse_raw_archive(raw: bytes, *, limits=_bf_DEFAULT_LIMITS):
+    return _bf__parse(raw, _bf_RawArchiveManifest, _bf_raw_archive_bytes, limits)
+
+def _bf_parse_verified_bundle(raw: bytes, *, limits=_bf_DEFAULT_LIMITS):
+    return _bf__parse(raw, _bf_VerifiedBundleManifest, _bf_verified_bundle_bytes, limits)
+
+def _bf_validate_complete_inputs(raw_archive, *, limits=_bf_DEFAULT_LIMITS):
+    """Preflight every original's metadata before actual evaluation.
+
+    This pure check proves neither source authenticity nor semantic validity.
+    It does not construct result digests or a candidate evaluation document.
+    Malformed/incomplete originals remain representable by the raw codec.
+    """
+    _bf_raw_archive_bytes(raw_archive, limits=limits)
+    _bf__need(raw_archive.inventory_complete and raw_archive.expected_candidates and all((row.status == 'COLLECTED' for row in raw_archive.observed_inputs)), 'BUNDLE_INPUT_ARCHIVE_INCOMPLETE')
+    roles = _bf__complete_files(raw_archive.files, _bf__SINGLE_ROLES - {'evaluation_record'})
+    captures = roles.get('capture', [])
+    _bf__need(len(captures) == len(raw_archive.expected_candidates) and {file.study_id for file in captures} == set(raw_archive.expected_candidates), 'BUNDLE_CANDIDATE_SET_MISMATCH')
+    _bf__need(all((file.required and file.byte_count > 0 for file in captures)))
+
+def _bf_validate_verified_inputs(raw_archive, verified, *, limits=_bf_DEFAULT_LIMITS):
+    """Check exact archival linkage only; never issue research or approval."""
+    _bf_raw_archive_bytes(raw_archive, limits=limits)
+    _bf_verified_bundle_bytes(verified, limits=limits)
+    _bf__need(_bf_raw_archive_digest(raw_archive, limits=limits) == verified.input_archive_digest, 'BUNDLE_INPUT_ARCHIVE_MISMATCH')
+    _bf__need(all((getattr(raw_archive, name) == getattr(verified, name) for name in ('run_id', 'attempt_id', 'storage_policy_sha256', 'object_policy_sha256'))) and raw_archive.revision_id != verified.revision_id, 'BUNDLE_INPUT_ARCHIVE_MISMATCH')
+    _bf__need(raw_archive.inventory_complete and raw_archive.expected_candidates and all((row.status == 'COLLECTED' for row in raw_archive.observed_inputs)), 'BUNDLE_INPUT_ARCHIVE_INCOMPLETE')
+    _bf__need(raw_archive.expected_candidates == tuple((row.study_id for row in verified.candidates)), 'BUNDLE_CANDIDATE_SET_MISMATCH')
+    originals = {file.logical_id: file for file in raw_archive.files}
+    derived = {file.logical_id: file for file in verified.files}
+    _bf__need(set(originals) <= set(derived), 'BUNDLE_INPUT_FILE_MISMATCH')
+    for name, file in originals.items():
+        _bf__need(_bf__plain(file) == _bf__plain(derived[name]), 'BUNDLE_INPUT_FILE_MISMATCH')
+    _bf__need(all((file.role in ('evaluation_record', 'report') for name, file in derived.items() if name not in originals)), 'BUNDLE_INPUT_FILE_MISMATCH')
+    _bf__need({file.study_id for file in raw_archive.files if file.role == 'capture'} == set(raw_archive.expected_candidates), 'BUNDLE_CANDIDATE_SET_MISMATCH')
+
+def _bf_validate_payloads(manifest, payloads: Mapping[str, bytes], *, limits=_bf_DEFAULT_LIMITS):
+    """Check original bytes; object availability and semantic truth are separate."""
+    if type(manifest) is _bf_RawArchiveManifest:
+        _bf_raw_archive_bytes(manifest, limits=limits)
+    else:
+        _bf_verified_bundle_bytes(manifest, limits=limits)
+    _bf__need(isinstance(payloads, Mapping), 'BUNDLE_PAYLOAD_MISMATCH')
+    expected = {file.logical_id: file for file in manifest.files}
+    _bf__need(len(payloads) == len(expected), 'BUNDLE_PAYLOAD_MISMATCH')
+    seen = set()
+    for name, raw in payloads.items():
+        _bf__need(type(name) is str and name in expected and (name not in seen) and (type(raw) is bytes), 'BUNDLE_PAYLOAD_MISMATCH')
+        seen.add(name)
+        file = expected[name]
+        _bf__need(len(raw) == file.byte_count and hashlib.sha256(raw).hexdigest() == file.sha256, 'BUNDLE_PAYLOAD_MISMATCH')
+    _bf__need(seen == set(expected), 'BUNDLE_PAYLOAD_MISMATCH')
+
+
+# Independent archive-attestation codec; no runtime application import.
+_ba_PURPOSE = 'research_archive_manifest_attestation'
+_ba_SCOPE = 'archive_manifest_identity'
+_ba_REQUEST_DOMAIN = b'tradegen-research-archive-attestation-request/1\n'
+_ba_SIGNING_DOMAIN = b'tradegen-research-archive-attestation/1\n'
+_ba_FILE_SET_DOMAIN = b'tradegen-research-archive-file-set/1\n'
+_ba_DOCUMENT_DOMAIN = b'tradegen-research-archive-attestation-document/1\n'
+_ba_MAX_REQUEST_BYTES = 12 * 1024 * 1024
+_ba_MAX_DOCUMENT_BYTES = 13 * 1024 * 1024
+_ba_MAX_VALIDITY_SECONDS = 86400
+_ba_APPROVED_CHECKS = ('exact_manifest_and_entire_file_inventory', 'all_available_original_bytes_match', 'raw_and_verified_link_exact', 'raw_incomplete_and_failure_statuses_visible', 'archive_only_scope_and_expiry_reviewed')
+_ba__HASH = re.compile('[0-9a-f]{64}')
+_ba__LOGICAL = re.compile('[a-z][a-z0-9_-]{0,63}')
+_ba__EMPTY_SHA = hashlib.sha256(b'').hexdigest()
+_ba__REQUEST_KEYS = frozenset({'schema_version', 'artifact_kind', 'purpose', 'scope', 'requested_at', 'expires_at', 'deployment_code_hash', 'bundle_kind', 'bundle_digest', 'input_archive_digest', 'raw_manifest_sha256', 'verified_manifest_sha256', 'raw_manifest', 'verified_manifest', 'payload_files', 'file_set_sha256', 'request_sha256'})
+_ba__BODY_KEYS = frozenset({'schema_version', 'purpose', 'scope', 'request', 'deployment_code_hash', 'owner_fingerprint', 'reviewer_id', 'issued_at', 'expires_at', 'approved_checks'})
+_ba__FILE_KEYS = frozenset({'logical_id', 'byte_count', 'sha256'})
+
+class _ba_ArchiveAttestationError(ValueError):
+    """Fixed codes only, never original data, paths or external error text."""
+
+def _ba__need(value, code='ARCHIVE_ATTESTATION_FORMAT_INVALID'):
+    if not value:
+        raise _ba_ArchiveAttestationError(code)
+
+def _ba__hash(value):
+    return type(value) is str and _ba__HASH.fullmatch(value) is not None
+
+def _ba__stamp(value):
+    try:
+        _ba__need(type(value) is datetime and value.utcoffset() is not None, 'ARCHIVE_ATTESTATION_TIME_INVALID')
+        return value.astimezone(timezone.utc).isoformat(timespec='microseconds')
+    except (ValueError, TypeError, OverflowError):
+        raise _ba_ArchiveAttestationError('ARCHIVE_ATTESTATION_TIME_INVALID') from None
+
+def _ba__time(value):
+    _ba__need(type(value) is str and len(value) == 32, 'ARCHIVE_ATTESTATION_TIME_INVALID')
+    try:
+        instant = datetime.fromisoformat(value)
+        _ba__need(_ba__stamp(instant) == value, 'ARCHIVE_ATTESTATION_TIME_INVALID')
+        return instant
+    except (ValueError, TypeError, OverflowError):
+        raise _ba_ArchiveAttestationError('ARCHIVE_ATTESTATION_TIME_INVALID') from None
+
+def _ba__fingerprint(value):
+    return type(value) is str and value.startswith('SHA256:') and _ba__hash(value[7:])
+
+def _ba__budget(value, maximum):
+    pending, nodes, characters = ([(value, 0)], 0, 0)
+    while pending:
+        item, depth = pending.pop()
+        nodes += 1
+        _ba__need(nodes <= 500000 and depth <= 16, 'ARCHIVE_ATTESTATION_RESOURCE_LIMIT')
+        if type(item) is dict:
+            _ba__need(len(item) <= 500000, 'ARCHIVE_ATTESTATION_RESOURCE_LIMIT')
+            for key, child in item.items():
+                _ba__need(type(key) is str)
+                characters += len(key)
+                pending.append((child, depth + 1))
+        elif type(item) is list:
+            _ba__need(len(item) <= 500000, 'ARCHIVE_ATTESTATION_RESOURCE_LIMIT')
+            pending.extend(((child, depth + 1) for child in item))
+        elif type(item) is str:
+            characters += len(item)
+        elif type(item) is int:
+            _ba__need(-10 ** 15 < item < 10 ** 15)
+        else:
+            _ba__need(item is None or type(item) is bool)
+        _ba__need(characters <= maximum, 'ARCHIVE_ATTESTATION_RESOURCE_LIMIT')
+
+def _ba__canonical(value, maximum):
+    _ba__budget(value, maximum)
+    try:
+        raw = json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=True, allow_nan=False).encode('ascii')
+    except (ValueError, TypeError, UnicodeError, OverflowError, RecursionError):
+        raise _ba_ArchiveAttestationError('ARCHIVE_ATTESTATION_FORMAT_INVALID') from None
+    _ba__need(len(raw) <= maximum, 'ARCHIVE_ATTESTATION_RESOURCE_LIMIT')
+    return raw
+
+def _ba__scan(raw):
+    depth, nodes, quoted, escaped = (0, 0, False, False)
+    for char in raw:
+        if quoted:
+            if escaped:
+                escaped = False
+            elif char == 92:
+                escaped = True
+            elif char == 34:
+                quoted = False
+        elif char == 34:
+            quoted = True
+        elif char in (91, 123):
+            depth += 1
+            nodes += 1
+            _ba__need(depth <= 16, 'ARCHIVE_ATTESTATION_RESOURCE_LIMIT')
+        elif char in (93, 125):
+            depth -= 1
+            _ba__need(depth >= 0)
+        elif char in (44, 58):
+            nodes += 1
+        _ba__need(nodes <= 500000, 'ARCHIVE_ATTESTATION_RESOURCE_LIMIT')
+    _ba__need(depth == 0 and (not quoted))
+
+def _ba__pairs(pairs):
+    body = {}
+    for key, value in pairs:
+        _ba__need(key not in body)
+        body[key] = value
+    return body
+
+def _ba__integer(value):
+    _ba__need(len(value) <= 16)
+    return int(value)
+
+def _ba__number(value):
+    raise _ba_ArchiveAttestationError('ARCHIVE_ATTESTATION_FORMAT_INVALID')
+
+def _ba__decode(raw, maximum):
+    _ba__need(type(raw) is bytes and raw)
+    _ba__need(len(raw) <= maximum, 'ARCHIVE_ATTESTATION_RESOURCE_LIMIT')
+    _ba__scan(raw)
+    try:
+        body = json.loads(raw.decode('ascii'), object_pairs_hook=_ba__pairs, parse_int=_ba__integer, parse_float=_ba__number, parse_constant=_ba__number)
+    except _ba_ArchiveAttestationError:
+        raise
+    except (ValueError, TypeError, UnicodeError, OverflowError, RecursionError):
+        raise _ba_ArchiveAttestationError('ARCHIVE_ATTESTATION_FORMAT_INVALID') from None
+    _ba__need(_ba__canonical(body, maximum) == raw)
+    return body
+
+def _ba__clone(body, maximum):
+    return _ba__decode(_ba__canonical(body, maximum), maximum)
+
+def _ba_payload_filename(logical_id: str) -> str:
+    _ba__need(type(logical_id) is str and _ba__LOGICAL.fullmatch(logical_id) is not None, 'ARCHIVE_ATTESTATION_FILE_SET_INVALID')
+    return 'p-' + logical_id + '.bin'
+
+def _ba_file_set_digest(payload_files: list[dict]) -> str:
+    _ba__need(type(payload_files) is list, 'ARCHIVE_ATTESTATION_FILE_SET_INVALID')
+    _ba__need(len(payload_files) <= 2048, 'ARCHIVE_ATTESTATION_RESOURCE_LIMIT')
+    identifiers, total = ([], 0)
+    for row in payload_files:
+        _ba__need(type(row) is dict and set(row) == _ba__FILE_KEYS, 'ARCHIVE_ATTESTATION_FILE_SET_INVALID')
+        _ba_payload_filename(row['logical_id'])
+        _ba__need(type(row['byte_count']) is int and 0 <= row['byte_count'] <= 64 * 1024 * 1024 and _ba__hash(row['sha256']), 'ARCHIVE_ATTESTATION_FILE_SET_INVALID')
+        _ba__need(row['byte_count'] != 0 or row['sha256'] == _ba__EMPTY_SHA, 'ARCHIVE_ATTESTATION_FILE_SET_INVALID')
+        identifiers.append(row['logical_id'])
+        total += row['byte_count']
+    _ba__need(identifiers == sorted(set(identifiers)), 'ARCHIVE_ATTESTATION_FILE_SET_INVALID')
+    _ba__need(total <= 512 * 1024 * 1024, 'ARCHIVE_ATTESTATION_RESOURCE_LIMIT')
+    return hashlib.sha256(_ba_FILE_SET_DOMAIN + _ba__canonical(payload_files, _ba_MAX_REQUEST_BYTES)).hexdigest()
+
+def _ba__manifests(raw_body, verified_body):
+    try:
+        _ba__need(type(raw_body) is dict)
+        raw_bytes = _ba__canonical(raw_body, _bf_DEFAULT_LIMITS.max_manifest_bytes)
+        raw = _bf_parse_raw_archive(raw_bytes)
+        verified, verified_bytes = (None, None)
+        if verified_body is not None:
+            _ba__need(type(verified_body) is dict)
+            verified_bytes = _ba__canonical(verified_body, _bf_DEFAULT_LIMITS.max_manifest_bytes)
+            verified = _bf_parse_verified_bundle(verified_bytes)
+            _bf_validate_verified_inputs(raw, verified)
+        return (raw, raw_bytes, verified, verified_bytes)
+    except _bf_BundleFormatError as exc:
+        code = ('ARCHIVE_ATTESTATION_RESOURCE_LIMIT' if str(exc) == 'BUNDLE_RESOURCE_LIMIT'
+                else 'ARCHIVE_ATTESTATION_MANIFEST_INVALID')
+        raise _ba_ArchiveAttestationError(code) from None
+
+def _ba__request_hash(body):
+    unsigned = {key: value for key, value in body.items() if key != 'request_sha256'}
+    return hashlib.sha256(_ba_REQUEST_DOMAIN + _ba__canonical(unsigned, _ba_MAX_REQUEST_BYTES)).hexdigest()
+
+def _ba__validate_request(request):
+    _ba__need(type(request) is dict and set(request) == _ba__REQUEST_KEYS)
+    _ba__need(type(request['schema_version']) is int and request['schema_version'] == 1)
+    for key, expected in (('artifact_kind', 'unsigned_research_archive_attestation_request'), ('purpose', _ba_PURPOSE), ('scope', _ba_SCOPE)):
+        _ba__need(type(request[key]) is str and request[key] == expected)
+    start, end = (_ba__time(request['requested_at']), _ba__time(request['expires_at']))
+    _ba__need(start < end and end - start <= timedelta(seconds=_ba_MAX_VALIDITY_SECONDS), 'ARCHIVE_ATTESTATION_VALIDITY_INVALID')
+    _ba__need(_ba__hash(request['deployment_code_hash']), 'ARCHIVE_ATTESTATION_CODE_BINDING_INVALID')
+    raw, raw_bytes, verified, verified_bytes = _ba__manifests(request['raw_manifest'], request['verified_manifest'])
+    target = raw if verified is None else verified
+    target_digest = _bf_raw_archive_digest(raw) if verified is None else _bf_verified_bundle_digest(verified)
+    expected_files = [{'logical_id': file.logical_id, 'byte_count': file.byte_count, 'sha256': file.sha256} for file in target.files]
+    _ba__need(type(request['bundle_kind']) is str and request['bundle_kind'] == target.kind and (request['bundle_digest'] == target_digest) and (request['input_archive_digest'] == _bf_raw_archive_digest(raw)) and (request['raw_manifest_sha256'] == hashlib.sha256(raw_bytes).hexdigest()) and (request['verified_manifest_sha256'] == (None if verified_bytes is None else hashlib.sha256(verified_bytes).hexdigest())), 'ARCHIVE_ATTESTATION_MANIFEST_BINDING_MISMATCH')
+    if verified is not None:
+        _ba__need(start >= verified.evaluated_at, 'ARCHIVE_ATTESTATION_VALIDITY_INVALID')
+    supplied_digest = _ba_file_set_digest(request['payload_files'])
+    _ba__need(_ba__canonical(request['payload_files'], _ba_MAX_REQUEST_BYTES) == _ba__canonical(expected_files, _ba_MAX_REQUEST_BYTES) and request['file_set_sha256'] == supplied_digest, 'ARCHIVE_ATTESTATION_FILE_SET_MISMATCH')
+    _ba__need(_ba__hash(request['request_sha256']) and request['request_sha256'] == _ba__request_hash(request), 'ARCHIVE_ATTESTATION_REQUEST_DIGEST_MISMATCH')
+
+def _ba_request_from_manifests(raw_manifest: bytes, verified_manifest: bytes | None, *, requested_at: datetime, expires_at: datetime, deployment_code_hash: str) -> dict:
+    """Bind explicit canonical originals; no source authenticity or actual evaluation."""
+    try:
+        raw = _bf_parse_raw_archive(raw_manifest)
+        verified = None if verified_manifest is None else _bf_parse_verified_bundle(verified_manifest)
+        if verified is not None:
+            _bf_validate_verified_inputs(raw, verified)
+    except _bf_BundleFormatError as exc:
+        code = ('ARCHIVE_ATTESTATION_RESOURCE_LIMIT' if str(exc) == 'BUNDLE_RESOURCE_LIMIT'
+                else 'ARCHIVE_ATTESTATION_MANIFEST_INVALID')
+        raise _ba_ArchiveAttestationError(code) from None
+    target = raw if verified is None else verified
+    files = [{'logical_id': file.logical_id, 'byte_count': file.byte_count, 'sha256': file.sha256} for file in target.files]
+    request = {'schema_version': 1, 'artifact_kind': 'unsigned_research_archive_attestation_request', 'purpose': _ba_PURPOSE, 'scope': _ba_SCOPE, 'requested_at': _ba__stamp(requested_at), 'expires_at': _ba__stamp(expires_at), 'deployment_code_hash': deployment_code_hash, 'bundle_kind': target.kind, 'bundle_digest': _bf_raw_archive_digest(raw) if verified is None else _bf_verified_bundle_digest(verified), 'input_archive_digest': _bf_raw_archive_digest(raw), 'raw_manifest_sha256': hashlib.sha256(raw_manifest).hexdigest(), 'verified_manifest_sha256': None if verified_manifest is None else hashlib.sha256(verified_manifest).hexdigest(), 'raw_manifest': _ba__decode(raw_manifest, _bf_DEFAULT_LIMITS.max_manifest_bytes), 'verified_manifest': None if verified_manifest is None else _ba__decode(verified_manifest, _bf_DEFAULT_LIMITS.max_manifest_bytes), 'payload_files': files, 'file_set_sha256': _ba_file_set_digest(files)}
+    request['request_sha256'] = _ba__request_hash(request)
+    return _ba_parse_archive_request(_ba__canonical(request, _ba_MAX_REQUEST_BYTES))
+
+def _ba_archive_request_bytes(request: dict) -> bytes:
+    copied = _ba__clone(request, _ba_MAX_REQUEST_BYTES)
+    _ba__validate_request(copied)
+    return _ba__canonical(copied, _ba_MAX_REQUEST_BYTES)
+
+def _ba_parse_archive_request(raw: bytes) -> dict:
+    request = _ba__decode(raw, _ba_MAX_REQUEST_BYTES)
+    _ba__validate_request(request)
+    return request
+
+def _ba_archive_request_digest(request: dict) -> str:
+    return _ba_parse_archive_request(_ba_archive_request_bytes(request))['request_sha256']
+
+def _ba_validate_request_payloads(request: dict, payloads: Mapping[str, bytes]) -> None:
+    request = _ba_parse_archive_request(_ba_archive_request_bytes(request))
+    _ba__need(isinstance(payloads, Mapping), 'ARCHIVE_ATTESTATION_PAYLOAD_MISMATCH')
+    expected = {row['logical_id']: row for row in request['payload_files']}
+    _ba__need(len(payloads) == len(expected), 'ARCHIVE_ATTESTATION_PAYLOAD_MISMATCH')
+    seen = set()
+    for name, raw in payloads.items():
+        _ba__need(type(name) is str and name in expected and (name not in seen) and (type(raw) is bytes), 'ARCHIVE_ATTESTATION_PAYLOAD_MISMATCH')
+        row = expected[name]
+        _ba__need(len(raw) == row['byte_count'] and hashlib.sha256(raw).hexdigest() == row['sha256'], 'ARCHIVE_ATTESTATION_PAYLOAD_MISMATCH')
+        seen.add(name)
+    _ba__need(seen == set(expected), 'ARCHIVE_ATTESTATION_PAYLOAD_MISMATCH')
+
+def _ba__validate_body(body):
+    _ba__need(type(body) is dict and set(body) == _ba__BODY_KEYS)
+    _ba__need(type(body['schema_version']) is int and body['schema_version'] == 1)
+    _ba__need(type(body['purpose']) is str and body['purpose'] == _ba_PURPOSE and (type(body['scope']) is str) and (body['scope'] == _ba_SCOPE))
+    _ba__validate_request(body['request'])
+    request = body['request']
+    _ba__need(_ba__hash(body['deployment_code_hash']) and body['deployment_code_hash'] == request['deployment_code_hash'], 'ARCHIVE_ATTESTATION_CODE_BINDING_INVALID')
+    _ba__need(_ba__fingerprint(body['owner_fingerprint']) and type(body['reviewer_id']) is str and (body['reviewer_id'] == 'owner:' + body['owner_fingerprint'][7:]), 'ARCHIVE_ATTESTATION_SIGNER_INVALID')
+    issued, expires = (_ba__time(body['issued_at']), _ba__time(body['expires_at']))
+    _ba__need(body['expires_at'] == request['expires_at'] and _ba__time(request['requested_at']) <= issued < expires and (expires - issued <= timedelta(seconds=_ba_MAX_VALIDITY_SECONDS)), 'ARCHIVE_ATTESTATION_VALIDITY_INVALID')
+    _ba__need(type(body['approved_checks']) is list and body['approved_checks'] == list(_ba_APPROVED_CHECKS), 'ARCHIVE_ATTESTATION_CHECKLIST_INVALID')
+
+def _ba_attestation_body(request: dict, *, owner_fingerprint: str, issued_at: datetime) -> dict:
+    copied = _ba_parse_archive_request(_ba_archive_request_bytes(request))
+    body = {'schema_version': 1, 'purpose': _ba_PURPOSE, 'scope': _ba_SCOPE, 'request': copied, 'deployment_code_hash': copied['deployment_code_hash'], 'owner_fingerprint': owner_fingerprint, 'reviewer_id': 'owner:' + owner_fingerprint[7:] if type(owner_fingerprint) is str else None, 'issued_at': _ba__stamp(issued_at), 'expires_at': copied['expires_at'], 'approved_checks': list(_ba_APPROVED_CHECKS)}
+    _ba__validate_body(body)
+    return body
+
+def _ba_attestation_signing_bytes(body: dict) -> bytes:
+    copied = _ba__clone(body, _ba_MAX_DOCUMENT_BYTES)
+    _ba__validate_body(copied)
+    return _ba_SIGNING_DOMAIN + _ba__canonical(copied, _ba_MAX_DOCUMENT_BYTES)
+
+def _ba_attestation_document_bytes(body: dict, signature: bytes) -> bytes:
+    copied = _ba__clone(body, _ba_MAX_DOCUMENT_BYTES)
+    _ba__validate_body(copied)
+    _ba__need(type(signature) is bytes and len(signature) == 64, 'ARCHIVE_ATTESTATION_SIGNATURE_INVALID')
+    return _ba__canonical({'body': copied, 'signature_b64': base64.b64encode(signature).decode('ascii')}, _ba_MAX_DOCUMENT_BYTES)
+
+def _ba_parse_attestation_document(raw: bytes) -> dict:
+    envelope = _ba__decode(raw, _ba_MAX_DOCUMENT_BYTES)
+    _ba__need(type(envelope) is dict and set(envelope) == {'body', 'signature_b64'})
+    _ba__validate_body(envelope['body'])
+    encoded = envelope['signature_b64']
+    _ba__need(type(encoded) is str and len(encoded) == 88, 'ARCHIVE_ATTESTATION_SIGNATURE_INVALID')
+    try:
+        signature = base64.b64decode(encoded, validate=True)
+    except (ValueError, TypeError):
+        raise _ba_ArchiveAttestationError('ARCHIVE_ATTESTATION_SIGNATURE_INVALID') from None
+    _ba__need(len(signature) == 64 and base64.b64encode(signature).decode('ascii') == encoded, 'ARCHIVE_ATTESTATION_SIGNATURE_INVALID')
+    return envelope
+
+def _ba_attestation_document_digest(raw: bytes) -> str:
+    _ba_parse_attestation_document(raw)
+    return hashlib.sha256(_ba_DOCUMENT_DOMAIN + raw).hexdigest()
+
+def _ba_verify_attestation_signature(raw: bytes, *, public_key_raw: bytes) -> dict:
+    """Verify exact bytes with a supplied key, NOT that key's trust or current use."""
+    envelope = _ba_parse_attestation_document(raw)
+    _ba__need(type(public_key_raw) is bytes and len(public_key_raw) == 32, 'ARCHIVE_ATTESTATION_PUBLIC_KEY_INVALID')
+    body = envelope['body']
+    _ba__need(body['owner_fingerprint'] == 'SHA256:' + hashlib.sha256(public_key_raw).hexdigest(), 'ARCHIVE_ATTESTATION_KEY_MISMATCH')
+    from cryptography.exceptions import InvalidSignature
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+    try:
+        Ed25519PublicKey.from_public_bytes(public_key_raw).verify(base64.b64decode(envelope['signature_b64']), _ba_attestation_signing_bytes(body))
+    except (InvalidSignature, ValueError, TypeError):
+        raise _ba_ArchiveAttestationError('ARCHIVE_ATTESTATION_SIGNATURE_UNVERIFIED') from None
+    return body
+
+
+# Independent native Windows directory pins; native acceptance remains platform-specific.
+class _bw_WindowsPinError(ValueError):
+    """Fixed code; never an OS message, path, or private file data."""
+_bw__CODE = 'BUNDLE_PACKET_WINDOWS_PIN_REFUSED'
+_bw__UNSUPPORTED = 'BUNDLE_PACKET_WINDOWS_PIN_UNSUPPORTED'
+_bw__DRIVE = re.compile('[A-Za-z]:')
+_bw__DIRECTORY = 16
+_bw__REFUSED_ATTRIBUTES = 1024 | 4096 | 262144 | 4194304
+_bw__MAX_CHARS = 32767
+
+def _bw__need(condition, code=_bw__CODE):
+    if not condition:
+        raise _bw_WindowsPinError(code)
+
+def _bw__lexical_path(value):
+    _bw__need(hasattr(ntpath, 'splitroot') and hasattr(ntpath, 'isreserved'), _bw__UNSUPPORTED)
+    _bw__need(type(value) is str and 0 < len(value) <= _bw__MAX_CHARS and ('\x00' not in value))
+    normalized = value.replace('/', '\\')
+    drive, root, tail = ntpath.splitroot(normalized)
+    _bw__need(_bw__DRIVE.fullmatch(drive) is not None and root == '\\')
+    parts = tail.split('\\') if tail else []
+    _bw__need(all((part and part not in ('.', '..') and (not ntpath.isreserved(part)) for part in parts)))
+    return drive.upper() + root + '\\'.join(parts)
+
+def _bw__final_path(value):
+    _bw__need(type(value) is str and value.startswith('\\\\?\\'))
+    return _bw__lexical_path(value[4:])
+
+@dataclass(frozen=True, kw_only=True)
+class _bw_DirectoryInformation:
+    attributes: int
+    volume_serial: int
+    file_index: int
+
+    @property
+    def identity(self):
+        _bw__need(type(self.attributes) is int and self.attributes >= 0 and self.attributes & _bw__DIRECTORY and (not self.attributes & _bw__REFUSED_ATTRIBUTES))
+        _bw__need(type(self.volume_serial) is int and 0 <= self.volume_serial < 2 ** 32 and (type(self.file_index) is int) and (0 < self.file_index < 2 ** 64))
+        return (self.volume_serial, self.file_index)
+
+class _bw_NativeDirectoryAPI:
+    """Small injectable seam; fake APIs must emulate these four methods.
+
+    The object is created only for the explicit Windows operation. No Windows
+    DLL is loaded by importing this draft, and no app module is imported here.
+    """
+
+    def __init__(self):
+        _bw__need(os.name == 'nt', _bw__UNSUPPORTED)
+        import ctypes
+        from ctypes import wintypes
+
+        class FileTime(ctypes.Structure):
+            _fields_ = [('low', wintypes.DWORD), ('high', wintypes.DWORD)]
+
+        class HandleInformation(ctypes.Structure):
+            _fields_ = [('attributes', wintypes.DWORD), ('created', FileTime), ('accessed', FileTime), ('written', FileTime), ('volume', wintypes.DWORD), ('size_high', wintypes.DWORD), ('size_low', wintypes.DWORD), ('links', wintypes.DWORD), ('index_high', wintypes.DWORD), ('index_low', wintypes.DWORD)]
+        self._ctypes, self._info_type = (ctypes, HandleInformation)
+        self._kernel = ctypes.WinDLL('kernel32', use_last_error=True)
+        self._kernel.CreateFileW.argtypes = [wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD, wintypes.LPVOID, wintypes.DWORD, wintypes.DWORD, wintypes.HANDLE]
+        self._kernel.CreateFileW.restype = wintypes.HANDLE
+        self._kernel.GetFileInformationByHandle.argtypes = [wintypes.HANDLE, ctypes.POINTER(HandleInformation)]
+        self._kernel.GetFileInformationByHandle.restype = wintypes.BOOL
+        self._kernel.GetFinalPathNameByHandleW.argtypes = [wintypes.HANDLE, wintypes.LPWSTR, wintypes.DWORD, wintypes.DWORD]
+        self._kernel.GetFinalPathNameByHandleW.restype = wintypes.DWORD
+        self._kernel.CloseHandle.argtypes = [wintypes.HANDLE]
+        self._kernel.CloseHandle.restype = wintypes.BOOL
+
+    def open_directory(self, path):
+        handle = self._kernel.CreateFileW(path, 128, 1, None, 3, 33554432 | 2097152, None)
+        _bw__need(handle is not None and handle != self._ctypes.c_void_p(-1).value)
+        return handle
+
+    def information(self, handle):
+        info = self._info_type()
+        _bw__need(bool(self._kernel.GetFileInformationByHandle(handle, self._ctypes.byref(info))))
+        return _bw_DirectoryInformation(attributes=int(info.attributes), volume_serial=int(info.volume), file_index=int(info.index_high) << 32 | int(info.index_low))
+
+    def final_path(self, handle):
+        buffer = self._ctypes.create_unicode_buffer(_bw__MAX_CHARS + 2)
+        size = self._kernel.GetFinalPathNameByHandleW(handle, buffer, len(buffer), 0)
+        _bw__need(0 < size < len(buffer))
+        return buffer.value
+
+    def close(self, handle):
+        _bw__need(bool(self._kernel.CloseHandle(handle)))
+
+class _bw_WindowsDirectoryPin:
+
+    def __init__(self, api, rows):
+        self._api, self._rows, self._closed = (api, tuple(rows), False)
+        self.root_handle = rows[-1][1]
+        self.identity = rows[-1][2]
+        self.path = rows[-1][0]
+
+    def check(self):
+        _bw__need(not self._closed)
+        for path, handle, identity in self._rows:
+            current = self._api.information(handle)
+            _bw__need(type(current) is _bw_DirectoryInformation and current.identity == identity)
+            _bw__need(ntpath.normcase(_bw__final_path(self._api.final_path(handle))) == ntpath.normcase(path))
+
+@contextmanager
+def _bw__held_windows_directory(path, *, api=None):
+    """Retain every native ancestor/root handle, or refuse without weaker fallback.
+
+    `api` is a dependency-injection seam for hermetic contract tests, never a
+    serialized input or an application-controlled trust flag.
+    """
+    path = _bw__lexical_path(path)
+    try:
+        native = _bw_NativeDirectoryAPI() if api is None else api
+    except _bw_WindowsPinError:
+        raise
+    except (OSError, AttributeError, TypeError, RuntimeError):
+        raise _bw_WindowsPinError(_bw__UNSUPPORTED) from None
+    rows, handles, pin = ([], [], None)
+    drive, root, tail = ntpath.splitroot(path)
+    prefixes = [drive + root]
+    for part in tail.split('\\') if tail else ():
+        prefixes.append(ntpath.join(prefixes[-1], part))
+    try:
+        for prefix in prefixes:
+            handle = native.open_directory(prefix)
+            handles.append(handle)
+            info = native.information(handle)
+            _bw__need(type(info) is _bw_DirectoryInformation)
+            identity = info.identity
+            _bw__need(ntpath.normcase(_bw__final_path(native.final_path(handle))) == ntpath.normcase(prefix))
+            rows.append((prefix, handle, identity))
+        pin = _bw_WindowsDirectoryPin(native, rows)
+        pin.check()
+        try:
+            yield pin
+        finally:
+            pin.check()
+    except _bw_WindowsPinError:
+        raise
+    except (OSError, ValueError, TypeError, AttributeError, RuntimeError, OverflowError):
+        raise _bw_WindowsPinError(_bw__CODE) from None
+    finally:
+        if pin is not None:
+            pin._closed = True
+        close_failed = False
+        for handle in reversed(handles):
+            try:
+                native.close(handle)
+            except Exception:
+                close_failed = True
+        if close_failed:
+            raise _bw_WindowsPinError(_bw__CODE) from None
+
+class _bw__WindowsPinContext:
+    """I/O-free construction; native pins exist only between enter and exit."""
+
+    def __init__(self, path, *, api=None):
+        self._context = _bw__held_windows_directory(path, api=api)
+        self._pin = None
+        self._used = False
+
+    def __enter__(self):
+        _bw__need(not self._used)
+        self._used = True
+        self._pin = self._context.__enter__()
+        return self
+
+    def check(self):
+        _bw__need(self._pin is not None)
+        self._pin.check()
+
+    @property
+    def root_handle(self):
+        self.check()
+        return self._pin.root_handle
+
+    @property
+    def identity(self):
+        self.check()
+        return self._pin.identity
+
+    @property
+    def path(self):
+        self.check()
+        return self._pin.path
+
+    def __exit__(self, exc_type, exc, traceback):
+        _bw__need(self._pin is not None)
+        try:
+            return self._context.__exit__(exc_type, exc, traceback)
+        finally:
+            self._pin = None
+
+def _bw_pin_windows_directory(path, *, api=None):
+    """Return an I/O-free context manager exposing enter/check/exit and root identity."""
+    return _bw__WindowsPinContext(path, api=api)
+
+
+def _bundle_identity(info, *, regular=False):
+    if (type(info.st_ino) is not int or info.st_ino <= 0 or type(info.st_dev) is not int or info.st_dev < 0
+            or getattr(info, 'st_file_attributes', 0) & (0x400 | 0x1000 | 0x00040000 | 0x00400000)
+            or (regular and (not stat.S_ISREG(info.st_mode) or info.st_nlink != 1))):
+        raise ValueError('archive packet path identity refused')
+    return info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns
+
+
+def _bundle_directory(path):
+    path = _review_path(path)
+    if '..' in path.parts or ':' in str(path)[len(path.anchor):]:
+        raise ValueError('archive packet directory refused')
+    for part in (*reversed(path.parents), path):
+        info = os.lstat(part)
+        _bundle_identity(info)
+        if not stat.S_ISDIR(info.st_mode):
+            raise ValueError('archive packet directory refused')
+    return path, _bundle_identity(info)
+
+
+class _BundlePin:
+    """Retained directory/ancestor handles for a complete packet operation."""
+    def __init__(self, path):
+        self.path = Path(path).absolute()
+        self.rows, self.native, self.descriptor = [], None, None
+
+    def __enter__(self):
+        self.path, _ = _bundle_directory(self.path)
+        if os.name == 'nt':
+            self.native = _bw_pin_windows_directory(str(self.path))
+            self.native.__enter__()
+        else:
+            if os.open not in os.supports_dir_fd or not hasattr(os, 'O_DIRECTORY') or not hasattr(os, 'O_NOFOLLOW'):
+                raise ValueError('archive packet platform cannot pin directories')
+            flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | getattr(os, 'O_CLOEXEC', 0)
+            try:
+                previous = None
+                for index, prefix in enumerate((*reversed(self.path.parents), self.path)):
+                    fd = os.open(prefix.anchor if index == 0 else prefix.name, flags,
+                                 **({} if previous is None else {'dir_fd':previous}))
+                    try:
+                        identity = _bundle_identity(os.fstat(fd))[:2]
+                    except BaseException:
+                        os.close(fd)
+                        raise
+                    self.rows.append((prefix, fd, identity))
+                    previous = fd
+                self.descriptor = self.rows[-1][1]
+            except BaseException:
+                self.__exit__(None, None, None)
+                raise
+        try:
+            self.check()
+            return self
+        except BaseException:
+            self.__exit__(None, None, None)
+            raise
+
+    def check(self):
+        if self.native is not None:
+            self.native.check()
+        else:
+            if not self.rows:
+                raise ValueError('archive directory pin is closed')
+            for path, descriptor, identity in self.rows:
+                if (_bundle_identity(os.fstat(descriptor))[:2] != identity
+                        or _bundle_directory(path)[1][:2] != identity):
+                    raise ValueError('archive directory pin changed')
+
+    def stat(self, name):
+        self.check()
+        return os.lstat(self.path / name) if self.native is not None else os.stat(
+            name, dir_fd=self.descriptor, follow_symlinks=False)
+
+    def open(self, name, flags, mode=0o600):
+        self.check()
+        return (os.open(self.path / name, flags | getattr(os, 'O_NOINHERIT', 0), mode)
+                if self.native is not None else os.open(name, flags, mode, dir_fd=self.descriptor))
+
+    def names(self, maximum):
+        self.check()
+        if self.descriptor is not None:
+            os.lseek(self.descriptor, 0, os.SEEK_SET)
+        return _bundle_names(self.path if self.descriptor is None else self.descriptor, maximum)
+
+    def __exit__(self, exc_type, exc, traceback):
+        try:
+            if self.native is not None:
+                return self.native.__exit__(exc_type, exc, traceback)
+        finally:
+            failed = False
+            for _, descriptor, _ in reversed(self.rows):
+                try:
+                    os.close(descriptor)
+                except OSError:
+                    failed = True
+            self.rows = []
+            self.descriptor = None
+            if failed:
+                raise ValueError('archive directory handles did not close cleanly') from None
+
+
+def _bundle_read(path, maximum, *, hash_only=False, empty=False, parent_pin=None):
+    """One bounded original, pinned by opened identity; empty raw evidence is valid."""
+    target = _review_path(path)
+    if parent_pin is None:
+        with _BundlePin(target.parent) as pinned:
+            return _bundle_read(target, maximum, hash_only=hash_only, empty=empty, parent_pin=pinned)
+    if parent_pin.path != target.parent:
+        raise ValueError('archive read directory does not match its pin')
+    initial = parent_pin.stat(target.name)
+    identity = _bundle_identity(initial, regular=True)
+    if not (0 if empty else 1) <= initial.st_size <= maximum:
+        raise ValueError('archive packet input size refused')
+    flags = os.O_RDONLY | getattr(os, 'O_BINARY', 0) | getattr(os, 'O_NOFOLLOW', 0) | getattr(os, 'O_NONBLOCK', 0)
+    descriptor = parent_pin.open(target.name, flags)
+    try:
+        before = os.fstat(descriptor)
+        if _bundle_identity(before, regular=True) != identity:
+            raise ValueError('archive packet input replaced before reading')
+        chunks, length, digest = [], 0, hashlib.sha256()
+        while True:
+            chunk = os.read(descriptor, min(65536, maximum - length + 1))
+            if not chunk:
+                break
+            length += len(chunk)
+            if length > maximum:
+                raise ValueError('archive packet input size refused')
+            digest.update(chunk)
+            if not hash_only:
+                chunks.append(chunk)
+        after = _bundle_identity(os.fstat(descriptor), regular=True)
+        current = _bundle_identity(parent_pin.stat(target.name), regular=True)
+        if identity != after or after != current or length != before.st_size:
+            raise ValueError('archive packet input changed while reading')
+        value = (length, digest.hexdigest()) if hash_only else b''.join(chunks)
+        return value, identity
+    finally:
+        os.close(descriptor)
+
+
+def _bundle_names(directory, maximum):
+    names = set()
+    with os.scandir(directory) as listing:
+        for entry in listing:
+            if entry.name in names or len(names) >= maximum:
+                raise ValueError('archive packet inventory exceeds its bound')
+            names.add(entry.name)
+    return names
+
+
+def _bundle_packet(path, *, pins=None):
+    root, root_identity = _bundle_directory(path)
+    payload_root, payload_identity = _bundle_directory(root / 'payloads')
+    if pins is None:
+        with _BundlePin(root) as root_pin, _BundlePin(payload_root) as payload_pin:
+            return _bundle_packet(root, pins=(root_pin, payload_pin))
+    root_pin, payload_pin = pins
+    if root_pin.path != root or payload_pin.path != payload_root:
+        raise ValueError('archive packet pins do not match the requested directories')
+    if root_pin.names(2) != {'request.json', 'payloads'}:
+        raise ValueError('archive packet file set differs from the request')
+    raw, request_identity = _bundle_read(root / 'request.json', _ba_MAX_REQUEST_BYTES, parent_pin=root_pin)
+    request = _ba_parse_archive_request(raw)
+    expected = {_ba_payload_filename(row['logical_id']) for row in request['payload_files']}
+    if payload_pin.names(2048) != expected:
+        raise ValueError('archive packet file set differs from the request')
+    snapshot = [('request.json', sha256_hex(raw), request_identity)]
+    for row in request['payload_files']:
+        name = _ba_payload_filename(row['logical_id'])
+        actual, identity = _bundle_read(payload_root / name, 64 * 1024 * 1024,
+                                       hash_only=True, empty=True, parent_pin=payload_pin)
+        if actual != (row['byte_count'], row['sha256']):
+            raise ValueError('archive packet original bytes differ from the manifest')
+        snapshot.append(('payloads/' + name, actual, identity))
+    if (root_pin.names(2) != {'request.json', 'payloads'}
+            or payload_pin.names(2048) != expected
+            or _bundle_directory(root) != (root, root_identity)
+            or _bundle_directory(payload_root) != (payload_root, payload_identity)):
+        raise ValueError('archive packet inventory changed while reading')
+    return request, (root_identity, payload_identity, tuple(snapshot))
+
+
+def _bundle_write_new(path, encoded):
+    """Exclusive final create; an interrupted partial file remains unusable evidence."""
+    target = _review_path(path)
+    with _BundlePin(target.parent) as pin:
+        return _bundle_write_pinned(target, encoded, pin)
+
+
+def _bundle_write_pinned(target, encoded, pin):
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, 'O_BINARY', 0) | getattr(os, 'O_NOFOLLOW', 0)
+    descriptor = pin.open(target.name, flags)
+    try:
+        identity = _bundle_identity(os.fstat(descriptor), regular=True)[:2]
+        with os.fdopen(descriptor, 'wb', closefd=False) as stream:
+            stream.write(encoded)
+            stream.flush()
+            os.fsync(stream.fileno())
+        final = _bundle_identity(os.fstat(descriptor), regular=True)
+        if final[:2] != identity or final[2] != len(encoded) or _bundle_identity(pin.stat(target.name), regular=True) != final:
+            raise ValueError('archive attestation output changed during write')
+    finally:
+        os.close(descriptor)
+    readback, _ = _bundle_read(target, len(encoded), hash_only=True, parent_pin=pin)
+    if readback != (len(encoded), sha256_hex(encoded)):
+        raise ValueError('archive attestation output readback differs')
+    if pin.descriptor is not None:
+        os.fsync(pin.descriptor)
+    pin.check()
+
+
+def _confirm_bundle(body):
+    print('About to attest the exact archived manifests and all available original files only.')
+    print('Raw missing, incomplete and failure records remain visible; this does not validate their research.')
+    print('No source authentication, strategy selection, trading, or automatic recovery authority is granted.')
+    print(json.dumps(body, indent=2, sort_keys=True, ensure_ascii=True))
+    code = ''.join(secrets.choice(CODE_ALPHABET) for _ in range(8))
+    typed, stamps = _read_typed(f'Type this code to attest the archive (do not paste): {code}\n> ')
+    if not _typed_ok(code, typed, stamps):
+        raise ValueError('archive confirmation was not typed exactly; nothing was signed')
+
+
+def _bundle_verified_head(lines, public):
+    """Independent full signature/rotation walk from the current deployment PEM.
+
+    This does not replace the application's separate trusted anchors and sealed
+    CurrentOwnerAuthority check. The older generic signer commands are unchanged.
+    """
+    head = _head(lines)
+    if type(public) is not bytes or len(public) != 32:
+        raise ValueError('archive current public key is invalid')
+    entries = [json.loads(line) for line in lines]
+    first = public
+    for entry in reversed(entries):
+        if entry['kind'] == 'key_rotated':
+            if base64.b64decode(entry['data']['new_pubkey_b64']) != first:
+                raise ValueError('archive owner key rotation does not reach the current PEM')
+            first = base64.b64decode(entry['data']['old_pubkey_b64'])
+    from cryptography.exceptions import InvalidSignature
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+    verifier = Ed25519PublicKey.from_public_bytes(first)
+    try:
+        for entry in entries:
+            if entry['kind'] in SCHEMAS:
+                verifier.verify(base64.b64decode(entry['sig']), SIG_DOMAIN + entry['row_sha256'].encode('ascii'))
+            if entry['kind'] == 'key_rotated':
+                verifier = Ed25519PublicKey.from_public_bytes(base64.b64decode(entry['data']['new_pubkey_b64']))
+    except (InvalidSignature, ValueError, TypeError):
+        raise ValueError('archive owner log contains an invalid signature') from None
+    return head
+
+
+def _bundle_code_approval_at(approvals, at):
+    """Latest verified code approval effective now, matching owner._up_to.
+
+    ``approvals`` is an immutable (UTC stamp, code hash) snapshot of the fully
+    verified head. Preserve log order: future rows do not supersede a current
+    approval until their timestamp, including while confirmation is pending.
+    """
+    stamp = at.astimezone(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+    return next((code for utc, code in reversed(approvals) if utc <= stamp), None)
+
+
+def _cmd_bundle_attest(args):
+    """Archive-only detached scope; independent parser, no owner event or app imports."""
+    repo = _refuse_quantgen(Path(args.repo).resolve(), '--repo')
+    packet, _ = _bundle_directory(args.packet)
+    with _BundlePin(packet) as root_pin, _BundlePin(packet / 'payloads') as payload_pin:
+        return _bundle_attest_pinned(args, repo, packet, (root_pin, payload_pin))
+
+
+def _bundle_attest_pinned(args, repo, packet, pins):
+    if Path(sys.prefix).resolve() != (repo / '.venv').resolve():
+        raise ValueError('run bundle-attest with the deployment .venv Python and -I')
+    signer_file = Path(__file__).resolve()
+    if signer_file.is_relative_to(repo) or signer_file.is_relative_to(packet):
+        raise ValueError('run your separately reviewed signer copy outside the repository and packet')
+    output = _review_path(args.output)
+    if output.suffix.lower() != '.json' or output.exists() or output.is_relative_to(packet) or not output.parent.is_dir():
+        raise ValueError('archive attestation output must be a new JSON file outside the packet')
+    request, snapshot = _bundle_packet(packet, pins=pins)
+    if args.expires_at != request['expires_at']:
+        raise ValueError('archive expiry differs from the request')
+    closure = code_hash(repo)
+    if closure != request['deployment_code_hash']:
+        raise ValueError('archive request does not match the current deployment code')
+    pem_path = repo / 'core' / 'compliance' / 'owner_pubkey.pem'
+    pem, pem_identity = _bundle_read(pem_path, 4096)
+    public = _pem_raw(pem)
+    now = datetime.fromisoformat(_utc_now().replace('Z', '+00:00'))
+    body = _ba_attestation_body(request, owner_fingerprint=fingerprint(public), issued_at=now)
+    lines = _read_lines(_log_path())
+    head = _bundle_verified_head(lines, public)
+    entries = tuple(json.loads(line) for line in lines)
+    approvals = tuple((row['utc'], row['data']['sha256']) for row in entries if row['kind'] == 'code_approved')
+    if _bundle_code_approval_at(approvals, now) != closure:
+        raise ValueError('review and code-approve this exact deployment before archive attestation')
+    _confirm_bundle(body)
+    key = _unlock(_key_path(args))
+    if key.public_key().public_bytes_raw() != public:
+        raise ValueError('unlocked archive key does not match the current deployment PEM')
+    with _exclusive(_log_path()):
+        current = _read_lines(_log_path())
+        if _bundle_verified_head(current, public) != head or _wrong_key(key, 'archive_attestation', {}, current):
+            raise ValueError('owner log or current key changed; review the archive again')
+        current_request, current_snapshot = _bundle_packet(packet, pins=pins)
+        current_pem, current_pem_identity = _bundle_read(pem_path, 4096)
+        if (current_request != request or current_snapshot != snapshot or current_pem != pem
+                or current_pem_identity != pem_identity or code_hash(repo) != closure):
+            raise ValueError('archive inputs, deployment or key changed; review again')
+        expires = datetime.fromisoformat(request['expires_at'])
+        signing_bytes = _ba_attestation_signing_bytes(body)
+        current_time = datetime.fromisoformat(_utc_now().replace('Z', '+00:00'))
+        if not now <= current_time < min(expires, now + timedelta(minutes=5)):
+            raise ValueError('archive confirmation expired or clock moved; review again')
+        if _bundle_code_approval_at(approvals, current_time) != closure:
+            raise ValueError('current code approval changed during archive confirmation; review again')
+        encoded = _ba_attestation_document_bytes(body, key.sign(signing_bytes))
+        finished = datetime.fromisoformat(_utc_now().replace('Z', '+00:00'))
+        if not current_time <= finished < min(expires, now + timedelta(minutes=5)):
+            raise ValueError('archive signing expired or clock moved; nothing was published')
+        if _bundle_code_approval_at(approvals, finished) != closure:
+            raise ValueError('current code approval changed during archive signing; nothing was published')
+        _bundle_write_new(output, encoded)
+    print('signed archive identity only; owner log unchanged; source, selection and trading remain separate')
+    return 0
+
+
 def _cmd_event(args) -> int:
     data = json.loads(args.data)
     if args.kind in ("cap_set", "limit_set") and isinstance(data, dict):
@@ -1522,6 +2828,7 @@ def _parser() -> argparse.ArgumentParser:
                             ("approve", _cmd_approve, "approve a table file or the calendar folder"),
                             ("code-approve", _cmd_code_approve, "sign the code hash of the repo"),
                             ("review-approve", _cmd_review_approve, "attest a prospective source and fixed implementation review"),
+                            ("bundle-attest", _cmd_bundle_attest, "attest exact archived manifests and available file bytes only"),
                             ("event", _cmd_event, "sign one owner event")):
         p = sub.add_parser(name, help=text)
         p.set_defaults(run=run)
@@ -1533,6 +2840,9 @@ def _parser() -> argparse.ArgumentParser:
             p.add_argument("--repo", required=True, help="the TRADEGEN repo folder")
         elif name == "review-approve":
             for flag in ("repo", "request", "driver-manifest", "audit", "expires-at", "output"):
+                p.add_argument("--" + flag, required=True)
+        elif name == "bundle-attest":
+            for flag in ("repo", "packet", "expires-at", "output"):
                 p.add_argument("--" + flag, required=True)
         elif name == "event":
             p.add_argument("kind", choices=sorted(set(SCHEMAS) - {"approved", "code_approved"}))
