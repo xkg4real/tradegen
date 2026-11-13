@@ -597,8 +597,10 @@ def test_actual_reducing_reserve_dispatch_unknown_then_restart_status_never_retr
 
 
 def test_required_cutoff_and_new_seoul_day_are_policy_refusals_not_fresh_or_generic_stale():
-    for start, final_time in ((at(26, 21, 59, 45), at(26, 22)), (START, at(27, 0))):
+    for start, final_time in ((at(26, 21, 59, 40), at(26, 22)), (START, at(27, 0))):
         with flat(start=start) as e:
+            if final_time == at(26, 22):
+                assert timedelta(0) < final_time-e.package['interval'].end <= timedelta(seconds=30)
             completion = complete(e)
             e.clock_cell[0] = final_time
             saved, events = checkpoints(e), rows(e)
