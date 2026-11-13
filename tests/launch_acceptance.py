@@ -15,7 +15,7 @@ MODULES = ("launch_guards", "network_route", "accounts_collector", "launch_profi
            "launch_instrument_refresh", "launch_owner_ops", "owner_guards", "launch_owner_rehearsal",
            "launch_universe_store", "launch_floor_state_check", "launch_clock_check", "launch_program",
            "launch_universe_history", "launch_evidence_objects", "launch_history_storage",
-           "launch_lossless_history")
+           "launch_lossless_history", "launch_protective_state")
 
 
 def tests():
