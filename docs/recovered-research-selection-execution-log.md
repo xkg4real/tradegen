@@ -2,9 +2,9 @@
 
 2026-11-13. **관련 회귀 368개가 단일 프로세스에서 모두 통과했다: 368 PASS / 0 FAIL / 0 NOT_RUN, 2,193.820초.** 이 중 신규 검사는 64개다. 전체 저장소의 전체 검사 실행이 아니라 아래에 명시한 관련 범위의 실행이다. 이 문서는 운영 배포나 실거래 준비 완료 보고가 아니다.
 
-검증 label은 `recovered-selection-related1`, 실행 당시 HEAD는 `19f6775935f8d8828eed21fcaa76449507239a5b`이며 구현·검사·등록·운영 안내를 포함한 13개 변경 파일이 있는 작업트리를 동결했다. 해당 변경의 runtime commit은 **`25ba6077267bce997e0ba625065173d96a56cc31`**이다. 검증 source fingerprint는 **`97b858e0fa81969d2b93fc6e6971e5bdb2795c40b8256f904c91fa4ba4d39fe3`**이며 실행 전후 동일했다. 실행기록을 포함하는 delivery commit과 PR 번호·URL은 아직 PENDING이며 실제 생성 결과로 별도 기록한다.
+검증 label은 `recovered-selection-related1`, 실행 당시 HEAD는 `19f6775935f8d8828eed21fcaa76449507239a5b`이며 구현·검사·등록·운영 안내를 포함한 13개 변경 파일이 있는 작업트리를 동결했다. 해당 변경의 runtime commit은 **`25ba6077267bce997e0ba625065173d96a56cc31`**이다. 검증 source fingerprint는 **`97b858e0fa81969d2b93fc6e6971e5bdb2795c40b8256f904c91fa4ba4d39fe3`**이며 실행 전후 동일했다. 실행기록 delivery commit은 `91443c1e109339412537744fd2e5538819f1f7d1`, PR #57의 실제 main merge는 `e224bc604134695ac433560cf2256f74c19ec01c`다. 두 commit의 tree `0b248511c1a822605e868706bb31da74f2e8da8d`가 같음을 fetch 후 확인했다.
 
-PR: <https://github.com/xkg4real/tradegen/pull/57>. 문서 delivery commit과 최종 main merge는 외부 인수인계 기록에 남긴다.
+PR: <https://github.com/xkg4real/tradegen/pull/57>. 문서 delivery commit과 최종 main merge는 외부 인수인계 기록에도 보존했다.
 
 ## 구현 범위
 
