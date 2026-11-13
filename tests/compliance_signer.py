@@ -1333,3 +1333,340 @@ def test_detached_review_command_retains_process_refusal_and_typed_confirmation(
         # Wrong typed confirmation must still refuse both; this fixture does not validate or sign a body.
         for version in (1, 2):
             _raises(lambda:_quiet(signer._confirm_review,{'schema_version':version,'synthetic':True}),ValueError)
+
+
+def test_archive_independent_manifest_and_request_bytes_match_both_runtime_formats():
+    from datetime import timedelta
+    from execution_launch import bundle_attestation as A, research_bundle_format as F
+    from tests.launch_research_bundle_format import fixture
+    e = fixture(); now = e.verified.evaluated_at
+    raw = F.raw_archive_bytes(e.raw); verified = F.verified_bundle_bytes(e.verified)
+    assert signer._bf_raw_archive_bytes(signer._bf_parse_raw_archive(raw)) == raw
+    assert signer._bf_verified_bundle_bytes(signer._bf_parse_verified_bundle(verified)) == verified
+    for target in (None, verified):
+        request = A.request_from_manifests(raw, target, requested_at=now,
+            expires_at=now+timedelta(hours=1), deployment_code_hash='a'*64)
+        copied = signer._ba_request_from_manifests(raw, target, requested_at=now,
+            expires_at=now+timedelta(hours=1), deployment_code_hash='a'*64)
+        assert request == copied and A.archive_request_bytes(request) == signer._ba_archive_request_bytes(copied)
+        assert signer._ba_archive_request_digest(copied) == A.archive_request_digest(request)
+        key = fx.test_key()
+        fp = signer.fingerprint(key.public_key().public_bytes_raw())
+        body = A.attestation_body(request, owner_fingerprint=fp, issued_at=now)
+        assert signer._ba_attestation_body(copied, owner_fingerprint=fp, issued_at=now) == body
+        assert A.attestation_signing_bytes(body) == signer._ba_attestation_signing_bytes(body)
+        document = signer._ba_attestation_document_bytes(body, key.sign(signer._ba_attestation_signing_bytes(body)))
+        assert A.verify_attestation_signature(document, public_key_raw=key.public_key().public_bytes_raw()) == body
+        assert signer._ba_attestation_document_digest(document) == A.attestation_document_digest(document)
+    assert signer._ba_SIGNING_DOMAIN not in (signer.SIG_DOMAIN, signer._rv_REVIEW_DOMAIN, signer._rv_CARRY_REVIEW_DOMAIN)
+
+
+def test_archive_independent_parser_rejects_corrupted_manifest_vectors_and_scope_upgrades():
+    from datetime import timedelta
+    from execution_launch import bundle_attestation as A, research_bundle_format as F
+    from tests.launch_research_bundle_format import fixture
+    e=fixture(); at=e.verified.evaluated_at
+    request=A.request_from_manifests(F.raw_archive_bytes(e.raw), F.verified_bundle_bytes(e.verified),
+        requested_at=at, expires_at=at+timedelta(hours=1), deployment_code_hash='a'*64)
+    mutations=(lambda b:b.__setitem__('schema_version',True),
+        lambda b:b.__setitem__('scope','strategy_selection'),
+        lambda b:b['raw_manifest']['files'][0]['payload_ref'].__setitem__('schema',True),
+        lambda b:b['raw_manifest']['files'][0].__setitem__('byte_count',True),
+        lambda b:b['raw_manifest']['observed_inputs'].pop(),
+        lambda b:b['verified_manifest']['candidates'].pop(),
+        lambda b:b['verified_manifest'].__setitem__('input_archive_digest','0'*64),
+        lambda b:b['payload_files'].pop(),
+        lambda b:b['payload_files'][0].__setitem__('logical_id','../escape'))
+    for mutate in mutations:
+        body=json.loads(A.archive_request_bytes(request)); mutate(body)
+        body['request_sha256']=signer._ba__request_hash(body)
+        raw=signer._ba__canonical(body,signer._ba_MAX_REQUEST_BYTES)
+        for parse in (A.parse_archive_request,signer._ba_parse_archive_request):
+            _raises(lambda parse=parse:parse(raw),ValueError)
+    valid=A.archive_request_bytes(request)
+    for invalid in (valid+b'\n',b'{"scope":"archive_manifest_identity",'+valid[1:], b'{"value":NaN}'):
+        _raises(lambda:A.parse_archive_request(invalid),ValueError)
+        _raises(lambda:signer._ba_parse_archive_request(invalid),ValueError)
+    tree=ast.parse(SIGNER_PATH.read_text())
+    imports=[node.module or '' for node in ast.walk(tree) if isinstance(node,ast.ImportFrom)]
+    assert not any(name.split('.')[0] in {'execution_launch','core','execution_control','tests'} for name in imports)
+
+
+@contextlib.contextmanager
+def _archive_command_env(*, carry=False, aborted=False, full_closure=False):
+    from datetime import timedelta
+    from types import SimpleNamespace
+    from execution_launch.bundle_review import export_review_packet
+    from tests import launch_research_bundle as B
+    with B.fixture(carry=carry,aborted=aborted) as e:
+        result=B.finalize(e)
+        digest=result.input_archive_digest if aborted else result.bundle_digest
+        repo=e.base/'synthetic-deployment'
+        (repo/'core'/'compliance').mkdir(parents=True)
+        (repo/'execution_launch').mkdir()
+        (repo/'.venv').mkdir()
+        (repo/'core'/'compliance'/'__init__.py').write_bytes(b'# invented deployment source\n')
+        source=repo/'execution_launch'/'__init__.py';source.write_bytes(b'# invented launch source\n')
+        if full_closure:
+            # Copy only the actual reviewed Python closure, never PEM, keys, home
+            # records or account files; dependency RECORDs stay in the test venv.
+            for relative,_ in signer.code_files(ROOT):
+                if relative.startswith('venv:'):
+                    continue
+                target=repo/relative;target.parent.mkdir(parents=True,exist_ok=True)
+                target.write_bytes((ROOT/relative).read_bytes())
+        key=fx.test_key();pem=repo/'core'/'compliance'/'owner_pubkey.pem';fx.write_pubkey(pem,key)
+        code=signer.code_hash(repo);files=[list(row) for row in signer.code_files(repo)]
+        if full_closure:assert code==signer.code_hash(ROOT)
+        fx.write_log(_home(),[('code_approved',{'sha256':code,'files':files})],key)
+        packet=e.base/'packet';packet.mkdir()
+        request=export_review_packet(e.store,digest,packet,requested_at=e.at,
+            expires_at=e.at+timedelta(hours=1),deployment_code_hash=code)
+        output=e.base/'attested.json';cell=[e.at]
+        args=signer._parser().parse_args(['bundle-attest','--repo',str(repo),'--packet',str(packet),
+            '--expires-at',request['expires_at'],'--output',str(output)])
+        with fx.pubkey_at(pem),_patched(owner,'REPO_ROOT',repo):
+            yield SimpleNamespace(store=e.store,digest=digest,request=request,repo=repo,packet=packet,output=output,
+                key=key,cell=cell,clock=lambda:cell[0],args=args,source=source,home=_home(),code=code,files=files)
+
+
+def _archive_run(e, *, confirm=None, before_signing_bytes=None, after_sign=None):
+    calls=[];shown=[]
+    e.sign_calls=calls
+    class ActualKey:
+        def public_key(self):return e.key.public_key()
+        def sign(self,raw):
+            calls.append(raw)
+            signature=e.key.sign(raw)
+            if after_sign:after_sign()
+            return signature
+    original=signer._ba_attestation_signing_bytes
+    def signing_bytes(body):
+        raw=original(body)
+        if before_signing_bytes:before_signing_bytes()
+        return raw
+    def confirmed(body):
+        shown.append(body)
+        if confirm:confirm()
+    with contextlib.ExitStack() as stack:
+        for obj,name,value in ((signer,'_utc_now',lambda:e.cell[0].strftime('%Y-%m-%dT%H:%M:%SZ')),
+            (signer,'_confirm_bundle',confirmed),(signer,'_unlock',lambda _:ActualKey()),
+            (signer,'_ba_attestation_signing_bytes',signing_bytes),(sys,'prefix',str(e.repo/'.venv'))):
+            stack.enter_context(_patched(obj,name,value))
+        try:
+            code,_,_=_quiet(e.args.run,e.args)
+            return code,shown,calls
+        except (ValueError,RuntimeError,OSError):
+            assert not e.output.exists(), 'refusal unexpectedly published output'
+            raise
+
+
+def test_archive_actual_export_signer_and_current_owner_auth_preserve_nonoperational_scope():
+    from execution_control.owner_authority import CurrentOwnerAuthority
+    from execution_launch.bundle_auth import authenticate_bundle_attestation
+    from execution_launch import bundle_attestation as A
+    for carry,aborted in ((False,False),(True,False),(False,True)):
+        with _archive_command_env(carry=carry,aborted=aborted,full_closure=not carry and not aborted) as e:
+            before=(e.home/'compliance'/'owner.jsonl').read_bytes()
+            code,shown,calls=_archive_run(e)
+            assert code==0 and len(calls)==len(shown)==1
+            encoded=e.output.read_bytes()
+            assert A.parse_attestation_document(encoded)['body']==shown[0]
+            assert calls[0]==A.attestation_signing_bytes(shown[0])
+            assert (e.home/'compliance'/'owner.jsonl').read_bytes()==before
+            result=authenticate_bundle_attestation(e.store,e.digest,encoded,
+                authority_provider=CurrentOwnerAuthority(clock=e.clock),clock=e.clock)
+            assert result.archive_identity_authenticated and result.revocation_status=='UNSUPPORTED'
+            assert not result.source_authenticated and not result.research_selection_ready and not result.execution_ready
+            assert not result.current_use_eligible and not result.automatic_recovery_supported
+            if aborted:assert shown[0]['request']['bundle_kind']=='RAW_ARCHIVED'
+
+
+def test_archive_signer_rechecks_packet_and_code_after_exact_display_confirmation():
+    for change in ('payload','extra','code','aba'):
+        with _archive_command_env(aborted=True) as e:
+            path=e.packet/'payloads'/signer._ba_payload_filename(e.request['payload_files'][0]['logical_id'])
+            original=path.read_bytes()
+            def mutate():
+                if change=='payload':path.write_bytes(original+b'changed')
+                elif change=='extra':(e.packet/'unlisted.json').write_bytes(b'{}')
+                elif change=='code':e.source.write_bytes(b'# changed after confirmation\n')
+                else:
+                    replaced=path.with_suffix('.old');path.rename(replaced)
+                    path.write_bytes(original);replaced.unlink()
+            _raises(lambda:_archive_run(e,confirm=mutate), (ValueError,RuntimeError,OSError))
+            assert not e.output.exists()
+
+
+def test_archive_signer_checks_expiry_after_heavy_signing_bytes_and_before_publication():
+    from datetime import timedelta
+    for stage in ('before-sign','after-sign','rollback'):
+        with _archive_command_env(aborted=True) as e:
+            def advance():
+                e.cell[0]=(e.cell[0]-timedelta(seconds=1) if stage=='rollback'
+                           else datetime.fromisoformat(e.request['expires_at']))
+            _raises(lambda:_archive_run(e,before_signing_bytes=advance if stage!='after-sign' else None,
+                                         after_sign=advance if stage=='after-sign' else None),ValueError)
+            assert not e.output.exists()
+            assert len(e.sign_calls)==(1 if stage=='after-sign' else 0)
+
+
+def _archive_timed_code_log(e, approvals):
+    """Actual fixture signatures; timestamp variation never fabricates authority."""
+    rows=[]; previous=signer.GENESIS_PREV
+    for sequence,(at,data) in enumerate(approvals, start=1):
+        row,previous=signer.entry_line(e.key,sequence,previous,'code_approved',data,
+            at.astimezone(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'))
+        rows.append(row)
+    (e.home/'compliance'/'owner.jsonl').write_bytes(b''.join(rows))
+
+
+def test_archive_future_code_approval_cannot_authorize_signature_or_actual_owner():
+    from datetime import timedelta
+    from execution_control.owner_authority import CurrentOwnerAuthority, OwnerAuthorityError
+    with _archive_command_env(aborted=True) as e:
+        _archive_timed_code_log(e,[(e.clock()+timedelta(hours=2),{'sha256':e.code,'files':e.files})])
+        _raises(lambda:_archive_run(e),ValueError)
+        assert e.sign_calls==[] and not e.output.exists()
+        try:
+            CurrentOwnerAuthority(clock=e.clock)(e.clock())
+        except OwnerAuthorityError as exc:
+            assert str(exc)=='OWNER_AUTHORITY_CODE_NOT_SIGNED'
+        else:
+            raise AssertionError('a future code approval became current owner authority')
+
+
+def test_archive_future_reapproval_crossing_confirmation_or_publication_refuses():
+    from datetime import timedelta
+    for stage in ('confirmation','before-sign','after-sign'):
+        with _archive_command_env(aborted=True) as e:
+            boundary=e.clock()+timedelta(seconds=30)
+            _archive_timed_code_log(e,[(e.clock(),{'sha256':e.code,'files':e.files}),
+                                      (boundary,_VALID['code_approved'])])
+            def advance():e.cell[0]=boundary
+            _raises(lambda:_archive_run(e,confirm=advance if stage=='confirmation' else None,
+                before_signing_bytes=advance if stage=='before-sign' else None,
+                after_sign=advance if stage=='after-sign' else None),ValueError)
+            assert len(e.sign_calls)==(1 if stage=='after-sign' else 0)
+            assert not e.output.exists()
+
+
+def test_archive_current_code_approval_remains_effective_before_future_reapproval():
+    from datetime import timedelta
+    from execution_control.owner_authority import CurrentOwnerAuthority
+    from execution_launch.bundle_auth import authenticate_bundle_attestation
+    with _archive_command_env(aborted=True) as e:
+        _archive_timed_code_log(e,[(e.clock(),{'sha256':e.code,'files':e.files}),
+                                  (e.clock()+timedelta(seconds=30),_VALID['code_approved'])])
+        code,_,calls=_archive_run(e)
+        assert code==0 and len(calls)==1
+        result=authenticate_bundle_attestation(e.store,e.digest,e.output.read_bytes(),
+            authority_provider=CurrentOwnerAuthority(clock=e.clock),clock=e.clock)
+        assert result.archive_identity_authenticated and not result.current_use_eligible
+
+
+def test_archive_owner_signature_walk_rejects_bad_prior_approval_even_after_key_rotation():
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+    key1=fx.test_key();key2=Ed25519PrivateKey.from_private_bytes(b'2'*32)
+    pub1=key1.public_key().public_bytes_raw();pub2=key2.public_key().public_bytes_raw()
+    row1,h1=signer.entry_line(key1,1,signer.GENESIS_PREV,'code_approved',_VALID['code_approved'],UTC)
+    data={'old_pubkey_b64':base64.b64encode(pub1).decode(),'new_pubkey_b64':base64.b64encode(pub2).decode()}
+    row2,h2=signer.entry_line(key1,2,h1,'key_rotated',data,UTC)
+    row3,_=signer.entry_line(key2,3,h2,'code_approved',_VALID['code_approved'],UTC)
+    good=[row1,row2,row3]
+    assert signer._bundle_verified_head(good,pub2)==signer._head(good)
+    for index in (0,1,2):
+        changed=list(good);body=json.loads(changed[index]);body['sig']=_SIG64
+        changed[index]=(signer.canonical_json(body)+'\n').encode()
+        assert signer._head(changed)==signer._head(good)
+        _raises(lambda:signer._bundle_verified_head(changed,pub2),ValueError)
+
+
+def test_archive_output_exclusive_creation_and_exact_readback():
+    import tempfile
+    with tempfile.TemporaryDirectory(dir=_home()) as temp:
+        root=Path(temp);target=root/'attestation.json'
+        signer._bundle_write_new(target,b'{"test":true}')
+        assert target.read_bytes()==b'{"test":true}'
+        _raises(lambda:signer._bundle_write_new(target,b'replacement'),FileExistsError)
+        assert target.read_bytes()==b'{"test":true}'
+        other=root/'readback.json';original=signer._bundle_read
+        def corrupted(path,maximum,**kwargs):
+            result=original(path,maximum,**kwargs)
+            return ((result[0][0],'0'*64),result[1]) if kwargs.get('hash_only') else result
+        with _patched(signer,'_bundle_read',corrupted):
+            _raises(lambda:signer._bundle_write_new(other,b'original bytes'),ValueError)
+        assert other.exists(), 'failed readback must preserve its untrusted output evidence'
+
+
+def test_archive_command_retains_isolation_typing_and_refuses_repo_owned_signer():
+    with _patched(signer,'_refusal',lambda:'synthetic process refusal'),_patched(signer,'_unlock',_never):
+        assert _quiet(signer.main,['bundle-attest'])[0]==2
+    with _patched(signer,'_read_typed',lambda _:('wrong',HUMAN)):
+        _raises(lambda:_quiet(signer._confirm_bundle,{'synthetic':True}),ValueError)
+    with _archive_command_env(aborted=True) as e, _patched(signer,'__file__',str(e.repo/'sign.py')):
+        _raises(lambda:_archive_run(e),ValueError)
+        assert not e.output.exists()
+
+
+def test_archive_packet_preserves_empty_original_and_rejects_extra_links_and_missing_payload():
+    import tempfile
+    from datetime import timedelta
+    from execution_launch import bundle_attestation as A, research_bundle_format as F
+    from tests.launch_research_bundle_format import file_record,raw_manifest,AT
+    original=raw_manifest((file_record('empty','other_input',b'',name='../untrusted-original'),),expected=None,complete=False)
+    request=A.request_from_manifests(F.raw_archive_bytes(original),None,requested_at=AT,
+        expires_at=AT+timedelta(hours=1),deployment_code_hash='a'*64)
+    with tempfile.TemporaryDirectory(dir=_home()) as temp:
+        root=Path(temp);(root/'payloads').mkdir();leaf=root/'payloads'/'p-empty.bin'
+        leaf.write_bytes(b'');(root/'request.json').write_bytes(A.archive_request_bytes(request))
+        assert signer._bundle_packet(root)[0]==request
+        extra=root/'unlisted';extra.write_bytes(b'')
+        _raises(lambda:signer._bundle_packet(root),ValueError);extra.unlink()
+        alias=root/'payloads'/'alias.bin';os.link(leaf,alias)
+        _raises(lambda:signer._bundle_packet(root),(ValueError,RuntimeError));alias.unlink()
+        leaf.unlink();_raises(lambda:signer._bundle_packet(root),ValueError)
+        outside=root/'outside';outside.write_bytes(b'')
+        leaf.symlink_to(outside)
+        _raises(lambda:signer._bundle_packet(root),(ValueError,RuntimeError))
+
+
+def test_archive_windows_pin_copy_denies_write_delete_sharing_and_checks_native_identity():
+    import ctypes
+    calls=[]
+    class Kernel:
+        def CreateFileW(self,*args):calls.append(args);return 7
+    api=signer._bw_NativeDirectoryAPI.__new__(signer._bw_NativeDirectoryAPI)
+    api._kernel,api._ctypes=Kernel(),ctypes
+    assert api.open_directory('C:\\review')==7
+    assert calls==[('C:\\review',0x80,0x1,None,3,0x02000000|0x00200000,None)]
+    class FakeAPI:
+        def __init__(self):self.opened=[];self.closed=[];self.attributes={}
+        def open_directory(self,path):self.opened.append(path);return len(self.opened)
+        def information(self,handle):return signer._bw_DirectoryInformation(
+            attributes=self.attributes.get(handle,16),volume_serial=1,file_index=handle)
+        def final_path(self,handle):return '\\\\?\\'+self.opened[handle-1]
+        def close(self,handle):self.closed.append(handle)
+    fake=FakeAPI()
+    with signer._bw_pin_windows_directory('C:\\review\\packet',api=fake) as pin:
+        pin.check();assert pin.identity==(1,3)
+    assert fake.opened==['C:\\','C:\\review','C:\\review\\packet'] and fake.closed==[3,2,1]
+    for flag in (0x400,0x1000,0x00040000,0x00400000):
+        fake=FakeAPI();fake.attributes[2]=16|flag
+        def opened():
+            with signer._bw_pin_windows_directory('C:\\review\\packet',api=fake):pass
+        _raises(opened,ValueError)
+        assert fake.closed==[2,1]
+
+
+def test_archive_posix_pin_closes_remaining_ancestors_after_one_close_failure():
+    pin=signer._BundlePin(Path('/synthetic-packet'))
+    pin.rows=[(Path('/synthetic'),101,(1,1)),(Path('/synthetic-packet'),102,(1,2))]
+    pin.descriptor=102
+    called=[]
+    def close(fd):
+        called.append(fd)
+        if fd==102:raise OSError('synthetic close failure')
+    with _patched(signer.os,'close',close):
+        _raises(lambda:pin.__exit__(None,None,None),ValueError)
+    assert called==[102,101] and pin.rows==[] and pin.descriptor is None
