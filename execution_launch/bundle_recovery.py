@@ -29,6 +29,7 @@ from execution_launch import research_bundle_store as S
 from execution_launch.bundle_review import _open_posix_directory, pin_windows_directory
 from execution_launch.evidence_objects import EvidenceObjectStore, preview_payload
 from execution_launch.recovery_artifact import build_recovery_artifact
+from execution_launch.research_revocation import revocation_target, target_is_revoked
 
 _REPO = Path(__file__).resolve().parents[1]
 
@@ -107,6 +108,38 @@ class RecoveryResult:
     current_use_eligible: bool = False
     execution_ready: bool = False
     automatic_operational_recovery_supported: bool = False
+
+
+@dataclass(frozen=True, kw_only=True)
+class RestoredArchiveVerification:
+    """Finite archive observation, never incident linkage or current-use authority.
+
+    The incident_id is the original artifact label. No incident store or durable
+    attempt is consulted. REVOKED preserves the fact of exact archived evidence;
+    no consumer may treat either revocation status as permission to use it.
+    """
+    status: str
+    scope: str
+    incident_id: str
+    bundle_kind: str
+    bundle_digest: str
+    input_archive_digest: str
+    request_sha256: str
+    attestation_sha256: str
+    recovery_artifact_digest: str
+    verified_at: datetime
+    revocation_status: str
+    revocation_target_sha256: str
+    revocation_owner_head: tuple[int, str]
+    destination_backup_verified: bool = True
+    signature_backup_verified: bool = True
+    archive_storage_modified: bool = False
+    source_authenticated: bool = False
+    research_selection_ready: bool = False
+    current_use_eligible: bool = False
+    execution_ready: bool = False
+    automatic_operational_recovery_supported: bool = False
+    quarantine_release_supported: bool = False
 
 
 @dataclass(frozen=True)
@@ -275,8 +308,12 @@ def _read_graph(pin, limits, raw, raw_bytes, verified, verified_bytes, request, 
     return MappingProxyType(payloads)
 
 
-def _finish(document, provider, clock, prior, *, not_before):
-    """Complete expensive work first, then only bounded checks after final clock."""
+def _finish_observation(document, provider, clock, prior, *, not_before, observe_revocation=False):
+    """Complete expensive work first, then only bounded checks after final clock.
+
+    Revocation evidence comes from this final actual owner observation, after all
+    graph reads. It cannot reuse the earlier archive-authentication head.
+    """
     observed = U._time(clock())
     _need(observed >= not_before, 'BUNDLE_RECOVERY_CLOCK_ROLLBACK')
     latest = provider(observed)
@@ -287,6 +324,11 @@ def _finish(document, provider, clock, prior, *, not_before):
     digest = A.attestation_document_digest(document)
     stamps = tuple((U._time(authority.observed_at), authority.context.date) for authority in observations)
     issued, expires = datetime.fromisoformat(body['issued_at']), datetime.fromisoformat(body['expires_at'])
+    revocation = None
+    if observe_revocation:
+        target = revocation_target(document, purpose=A.PURPOSE)
+        revoked = target_is_revoked(U._revocations(latest.context), purpose=A.PURPOSE, target_sha256=target)
+        revocation = ('REVOKED' if revoked else 'NOT_REVOKED_AT_HEAD', target, latest.context.owner.head)
     finished = U._time(clock())
     _need(finished >= observed, 'BUNDLE_RECOVERY_CLOCK_ROLLBACK')
     _need(issued <= finished < expires, 'BUNDLE_RECOVERY_EXPIRED_OR_FUTURE')
@@ -295,6 +337,12 @@ def _finish(document, provider, clock, prior, *, not_before):
         _need(timedelta(0) <= finished-stamp <= timedelta(seconds=MAX_AUTHORITY_AGE_SECONDS),
               'BUNDLE_RECOVERY_AUTHORITY_STALE')
         _need(original_day == day, 'BUNDLE_RECOVERY_OWNER_DAY_CHANGED')
+    return finished, digest, latest, revocation
+
+
+def _finish(document, provider, clock, prior, *, not_before):
+    # Preserve the existing source/prewrite/copy-final observation contract.
+    finished, digest, latest, _ = _finish_observation(document, provider, clock, prior, not_before=not_before)
     return finished, digest, latest
 
 
@@ -394,6 +442,24 @@ def _preflight(destination, plans):
         destination._check_anchor(anchor)
 
 
+def _read_restored_graph(destination, bundle_digest, attestation_bytes, *, artifact_digest,
+                         artifact_bytes, artifact_payloads, authority_provider, clock):
+    """Shared actual artifact/target/artifact reads, not a trusted result adapter.
+
+    Caller retains its own first owner observation across this heavy work and
+    any required final source check, then completes the original time window.
+    """
+    retained = destination.read_raw(artifact_digest, require_backup=True)
+    _need(retained.manifest_bytes == artifact_bytes and dict(retained.files) == dict(artifact_payloads)
+          and retained.files['attestation'] == attestation_bytes, 'BUNDLE_RECOVERY_SIGNATURE_BACKUP_MISMATCH')
+    authenticated = U.authenticate_bundle_attestation(destination, bundle_digest, attestation_bytes,
+        authority_provider=authority_provider, clock=clock)
+    retained = destination.read_raw(artifact_digest, require_backup=True)
+    _need(retained.manifest_bytes == artifact_bytes and dict(retained.files) == dict(artifact_payloads),
+          'BUNDLE_RECOVERY_SIGNATURE_BACKUP_MISMATCH')
+    return authenticated
+
+
 def _restore_signed_backup(source, destination, bundle_digest, attestation_bytes, *, incident_id,
                            authority_provider, clock):
     """Restore exact archival evidence; no runtime provision, re-anchor or orders."""
@@ -423,14 +489,9 @@ def _restore_signed_backup(source, destination, bundle_digest, attestation_bytes
     _need(final_started >= prewrite_at, 'BUNDLE_RECOVERY_CLOCK_ROLLBACK')
     final_first = authority_provider(final_started)
     U._authority(attestation_bytes, final_first, final_started)
-    retained = destination.read_raw(artifact_digest, require_backup=True)
-    _need(retained.manifest_bytes == artifact_bytes and dict(retained.files) == dict(artifact_payloads)
-          and retained.files['attestation'] == attestation_bytes, 'BUNDLE_RECOVERY_SIGNATURE_BACKUP_MISMATCH')
-    authenticated = U.authenticate_bundle_attestation(destination, bundle_digest, attestation_bytes,
+    authenticated = _read_restored_graph(destination, bundle_digest, attestation_bytes,
+        artifact_digest=artifact_digest, artifact_bytes=artifact_bytes, artifact_payloads=artifact_payloads,
         authority_provider=authority_provider, clock=clock)
-    retained = destination.read_raw(artifact_digest, require_backup=True)
-    _need(retained.manifest_bytes == artifact_bytes and dict(retained.files) == dict(artifact_payloads),
-          'BUNDLE_RECOVERY_SIGNATURE_BACKUP_MISMATCH')
     _separate(source, destination)
     finished, final_digest, _ = _finish(attestation_bytes, authority_provider, clock, (final_first,),
                                       not_before=authenticated.verified_at)
@@ -446,6 +507,58 @@ def restore_signed_backup(source, destination, bundle_digest, attestation_bytes,
     """Actual exact restoration; bounded diagnostics preserve all partial evidence."""
     try:
         return _restore_signed_backup(source, destination, bundle_digest, attestation_bytes,
+            incident_id=incident_id, authority_provider=authority_provider, clock=clock)
+    except (OSError, RuntimeError):
+        raise BundleRecoveryError('BUNDLE_RECOVERY_IO_REFUSED') from None
+    except (AttributeError, TypeError, OverflowError):
+        raise BundleRecoveryError('BUNDLE_RECOVERY_INPUT_INVALID') from None
+
+
+
+def _verify_restored_archive(destination, bundle_digest, attestation_bytes, *, incident_id,
+                             authority_provider, clock):
+    _need(type(destination) is S.BundleStore, 'BUNDLE_RECOVERY_DESTINATION_REQUIRED')
+    _provider(authority_provider, clock)
+    _need(type(attestation_bytes) is bytes, 'BUNDLE_RECOVERY_DOCUMENT_BYTES_REQUIRED')
+    destination._configuration()
+    request = A.parse_attestation_document(attestation_bytes)['body']['request']
+    _need(type(bundle_digest) is str and bundle_digest == request['bundle_digest'],
+          'BUNDLE_RECOVERY_TARGET_MISMATCH')
+    artifact, artifact_bytes, artifact_payloads = build_recovery_artifact(attestation_bytes,
+        incident_id=incident_id, limits=destination.limits)
+    artifact_digest = F.raw_archive_digest(artifact, limits=destination.limits.format_limits)
+
+    started = U._time(clock())
+    first = authority_provider(started)
+    U._authority(attestation_bytes, first, started)
+    authenticated = _read_restored_graph(destination, bundle_digest, attestation_bytes,
+        artifact_digest=artifact_digest, artifact_bytes=artifact_bytes, artifact_payloads=artifact_payloads,
+        authority_provider=authority_provider, clock=clock)
+    destination._configuration()
+    finished, document_digest, _, revocation = _finish_observation(attestation_bytes,
+        authority_provider, clock, (first,), not_before=authenticated.verified_at, observe_revocation=True)
+    status, target, head = revocation
+    return RestoredArchiveVerification(status='RESTORED_ARCHIVE_REVERIFIED', scope='archive_identity_only',
+        incident_id=incident_id, bundle_kind=request['bundle_kind'], bundle_digest=bundle_digest,
+        input_archive_digest=request['input_archive_digest'], request_sha256=request['request_sha256'],
+        attestation_sha256=document_digest, recovery_artifact_digest=artifact_digest, verified_at=finished,
+        revocation_status=status, revocation_target_sha256=target, revocation_owner_head=head)
+
+
+def verify_restored_archive(destination, bundle_digest, attestation_bytes, *, incident_id,
+                            authority_provider, clock):
+    """Re-read completed destination evidence without accessing its former source.
+
+    Actual destination raw/verified and both backups, plus the exact original
+    signature artifact and its backup, are mandatory. The final actual owner
+    observation reports canonical revocation status at its retained head. This
+    report neither clears incident holds nor permits selection or orders. An
+    archived revoked signature can still identify exact evidence. No archive
+    writes, provision, source discovery or recovery action happens here; the
+    trusted owner loader retains its existing verified-state side effects.
+    """
+    try:
+        return _verify_restored_archive(destination, bundle_digest, attestation_bytes,
             incident_id=incident_id, authority_provider=authority_provider, clock=clock)
     except (OSError, RuntimeError):
         raise BundleRecoveryError('BUNDLE_RECOVERY_IO_REFUSED') from None
