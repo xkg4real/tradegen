@@ -2,11 +2,11 @@
 
 **앱을 실행하는 것만으로 자동 실거래를 시작할 수는 없다.** 현재 운영 조립은 모의운영 전용이다. 첫 체결 이후의 보유 계좌 증거, 위험 상태, 주문·체결 대조와 실제 운영 승인을 연결하는 작업이 남아 있다. API 설정이나 서명만 추가하면 끝나는 상태가 아니다.
 
-관측 시각: **2026-11-13T14:37:14+00:00**. PR39·40·41은 병합됐고 B1b-1은 로컬 구현 후 최종 검사 중이다. 실행 기록과 부모 세션의 병합 확인에 근거해 문서와 기존 Notion 두 페이지를 갱신했다. 실제 홈 내용·키·계좌·API·주문·활성화를 사용하지 않았다. 금액과 개인 경로는 포함하지 않는다.
+관측 시각: **2026-11-13T15:09:22+00:00**. PR39·40·41·42·43은 병합됐다. B1b-2a의 철회·독립 anchor·Windows 핸들 연결은 구현 후 915건 동결 회귀 진행 중이며, B1b-2b/c 확정본 선발 연결은 별도 작업본에서 구현을 시작했다. 실행 기록과 부모 세션의 병합 확인에 근거해 문서와 기존 Notion 두 페이지를 갱신했다. 실제 홈 내용·키·계좌·API·주문·활성화를 사용하지 않았다. 금액과 개인 경로는 포함하지 않는다.
 
 ## 1. 완료·검증 중·구현 중
 
-서로 겹치는 검사 수를 합산하지 않는다. NOT_RUN은 통과가 아니다. 확인한 최신 병합 main은 **`a4e66016e0091b2b4b3da4e799cbfdfdf2cad845`**이다. 아래 집중검사를 저장소 전체 검사로 확대하지 않는다.
+서로 겹치는 검사 수를 합산하지 않는다. NOT_RUN은 통과가 아니다. 확인한 최신 병합 main은 **`f09b7365c9f2b025ec507c33a234c88cf7654d09`**이다. 아래 집중검사를 저장소 전체 검사로 확대하지 않는다.
 
 | 단위 | 현재 상태와 증거 | 완료로 확대하지 않는 범위 |
 |---|---|---|
@@ -17,7 +17,10 @@
 | [PR39](https://github.com/xkg4real/tradegen/pull/39), carry-v2 | **main `42ff86b9e8b7e6ab4c506d8abe91f504bbe02591` 병합**, head `fcb42f7`. 전체 3,071개 = 2,936 PASS / 0 FAIL / 135 NOT_RUN, 단일 연속 실행 1,385.116초. 검증 소스 `2b1de13`, fingerprint `3001278c9174a007be7d5531cbedf3f643a6d6dd11b5044a73316d6d7877d36b`. | 실제 보유 운영 완료, 미실행 135개의 통과 |
 | [PR40](https://github.com/xkg4real/tradegen/pull/40), A0b | **main `d728b314373019e41661b2599ad4f38bc82f6221` 병합**, head `b6add4d`. 전체 3,103개 = 2,968 PASS / 0 FAIL / 135 NOT_RUN, 단일 연속 실행 1,400.499초. 검증 소스 `2879b53`, fingerprint `599e196fa192193299c2b42a99fa80e4b0a125f459c92138cdde91fde9736bf8`. | 과거 모든 시도 계보·새 실패 발급·PR5 전체 완료 |
 | [PR41](https://github.com/xkg4real/tradegen/pull/41), B1a 연구 보관·백업 | **main `a4e66016e0091b2b4b3da4e799cbfdfdf2cad845` 병합**, head `7bd5e4614e70f410969170ce9ea60d416ea5dc22`, runtime `3ca4dee3bcf007db63e2c2da83d8aba71f95c4e4`. 집중 205 PASS / 0 FAIL / 0 NOT_RUN, 73.806초. fingerprint `a014d9e6fd9a5270afa1fdd66171a8fc039a7e7d3720f0fc5706609bdc1c6e03`. | 전체 회귀 재실행·신뢰 manifest 승인·정확 자동복구·WebAuthn·실거래 |
-| B1b-1 보관 내용 확인 서명 | **로컬 구현 후 최종 검사 진행 중**. 실제 보관 graph·독립 signer·현재 소유자 신뢰에 연결된 archive-only 인증을 작성했다. | 최종 검사 통과·병합·전달·선발 승인·현재 운영 권한 |
+| [PR42](https://github.com/xkg4real/tradegen/pull/42), B1b-1 보관 내용 확인 서명 | **main `13555b90a256be219f25c1546449eb4d12406d42` 병합**. 집중 277개 = 264 PASS / 0 FAIL / 13 Windows NOT_RUN, 260.380초. 실제 보관 graph·독립 signer·현재 소유자 신뢰 인증. | 출처·선발·거래 활성화 승인, native Windows 검증 |
+| [PR43](https://github.com/xkg4real/tradegen/pull/43), B2a 정확 원본 복구 | **main `f09b7365c9f2b025ec507c33a234c88cf7654d09` 병합**, head `81f248f16fb1a1e9e63178fcc2d63563ce541912`, runtime `119645f97c2a21e6277a4ff64f4e66c5a6a4a81b`. 집중 196 PASS / 0 FAIL / 0 NOT_RUN, 309.968초. fingerprint `ce6820e0b2afe181f799b8944e79f800d1cafdeea023614ca2bd1034f3cedbdc`. | 전체 검사·native Windows·CLI·자동 복구 호출·알림·격리 관리·운영 전환·현재 사용 승인 |
+| B1b-2a 제한 전용 철회 | 코드·독립 anchor·Windows 디렉터리 핸들 연결 구현. **915건 동결 회귀 진행 중**. | 최종 검사 통과·병합·실제 Windows 수용 |
+| B1b-2b/c 확정본 선발 연결 | 별도 작업본에서 실제 확정본 재평가·전체 적격 후보 서명·선택된 실행기/history 인증을 구현 중. | 통합 통과·병합·운영 사용·거래 권한 |
 
 PR39·40은 각 병합 트리와 검증한 head의 일치를 확인했다. 두 전체 실행 및 PR41 집중 실행은 19 KEYLESS, 소스·실제 홈 메타데이터 불변과 QA bytes 복원을 확인했다. 실제 홈 내용·실계좌·실제 키·API·주문 검증을 수행한 것은 아니다.
 
@@ -35,13 +38,19 @@ A0b는 **전체 검사와 병합까지 마친 변경**이다. A0a outcome JSON�
 
 **B1a:** 실제 recorder 원본을 raw 묶음과 백업으로 먼저 보존한 뒤 전체 receipt/source/후보를 검사하고 실제 A0b 결과를 별도 검증된 미승인 버전에 연결한다. 작업본을 삭제한 후에도 저장된 전체 bytes로 원래 평가 시각의 실제 재평가를 수행해 정확한 manifest·결과를 대조했다. 형식 오류·중단·계산 예외 원본과 정상 수치 탈락 후보도 남긴다. 용량 한도나 읽기 실패는 관찰 상태로 남기며 완전한 보관이라고 주장하지 않는다. 최초 집중 실행의 204 PASS / 1 FAIL은 부분 root의 더 이른 거절 진단에 대한 테스트 기대값 문제였고, 기대 진단만 수정해 최종 205 PASS를 확인했다. 이 과거 실패도 실행 로그에 보존했다.
 
+**B1b-1:** 보관 원본의 전체 목록·해시를 독립 signer와 실제 현재 소유자 신뢰로 확인하는 기능은 PR42로 병합했다. 출처·선발·거래 활성화를 대신하지 않는다. 13개 실제 Windows 검사는 미실행이다.
+
+**B2a:** PR43은 서명과 정확히 일치하는 전체 백업을 검증하고 이미 별도로 준비한 실제 destination store의 정상 raw/verified commit 경로로 복원하는 callable backend다. 원본 저장소·head를 수정하지 않고 원래 서명 파일을 별도 artifact로 백업한다. 중단된 부분 복원은 남기며 정확 재시도만 허용한다. CLI·자동 호출·알림·지속적 격리 관리·운영 저장소 전환은 아직 없다. 복구 완료 결과는 현재 선발·거래 권한이 아니다. 0 NOT_RUN은 native Windows 검사를 선택하지 않은 집중 실행의 결과다.
+
+**B1b-2a 개발 기록:** 좁은 owner 개발검사의 27 PASS / 1 FAIL은 2031년 halt 뒤 2026년 철회 행을 넣어 기존 보수적 날짜 규칙을 자극한 fixture 순서 문제였다. fixture의 철회 시각을 해당 관측 시각에 맞췄으며 위험정책 코드는 바꾸지 않았다. 현재 최종 915건 회귀 결과로 대체해 발표하지 않고 진행 중으로 남긴다.
+
 ## 3. 다음 개발·전달 단계
 
-1. **B1b-1 최종 검증·전달:** 작성된 보관 내용 확인 서명·독립 signer·실제 current owner 인증의 통합 검사를 마친다. raw 실패 기록의 서명은 원본 보관 신원만 확인하며 검증된 연구·선발·활성화로 승격하지 않는다. 현재는 최종 통과·병합을 주장하지 않는다.
-2. **B1b-2 선발 승인·폐기 연결:** 전체 manifest 인증을 실제 sealed 재평가와 기존 source/factory/family 검토에 연결한다. 개별 attestation 폐기를 기존 소유자 신뢰에 연결하고 현재 키·코드·기한과 함께 검증한다. B1b-1은 이 기능의 대체물이 아니다.
-3. **B2 정확 복구:** 신뢰 서명과 일치하는 전체 bytes에서만 복구한다. 기존 승인 만료·폐기·현재 코드 등 다른 조건도 유효할 때만 재서명 없이 사용할 수 있다. B1a의 백업 검증을 자동복구 완료로 표시하지 않는다. 새 계산·새 관측·변경 보고서는 새 버전과 필요한 새 승인으로 처리한다.
+1. **B1b-2a 검증·전달:** 제한 전용 철회와 같은 Context의 검증된 집합, 재시작 후 로그만 되돌리는 경우의 독립 anchor, 플랫폼 경계를 동결 회귀로 확인한다. 최종 통과·병합 전까지 완료로 확대하지 않는다.
+2. **B1b-2b/c 확정본 선발 연결:** 실제 전체 확정본과 백업에서 한 번 재평가하고, 모든 적격 후보의 출처·family·audit 서명을 확인한 뒤 선택된 실제 factory/history를 검증한다. 현재 사용·거래 권한은 별도로 남긴다.
+3. **복구 운영 연결:** 병합된 정확 복구 backend에 검토된 호출 방식, 제한 범위가 있는 지속적 격리 기록, 결과 알림과 서명 backup 발견을 연결한다. 기존 만료·철회·현재 코드 및 선발 조건이 유효할 때만 기존 승인을 재사용한다. 새 계산·새 관측·변경 보고서는 새 버전과 필요한 새 승인으로 처리한다.
 4. **보유 계좌의 실제 운영 생애주기:** 아래 source·위험 commit/publish·startup 대조·보호 관리·주문 연결을 구현하고, 실제 운영 전까지 합성·장애 주입 회귀로 검증한다. 데이터 저장과 연구 승인이 이 운영 연결을 대신하지 않는다.
-5. **실제 환경 수용과 활성화:** 준비된 구현에 대해 Windows·실계좌·실자료 연구·최종 범위별 서명·controlled 조립을 검증한다. 입력 없이 가능한 개발은 계속하며 기존 사용자 결정을 다시 묻지 않는다.
+5. **실제 환경 수용과 활성화:** Windows·실계좌·실자료 연구·최종 범위별 서명·controlled 조립을 검증한다. 입력 없이 가능한 개발은 계속하며 기존 사용자 결정을 다시 묻지 않는다.
 
 ## 4. 실거래 전에 남은 운영 경계
 
@@ -74,5 +83,7 @@ A0b는 **전체 검사와 병합까지 마친 변경**이다. A0a outcome JSON�
 - PR40 실행: `/workspace/tradegen-session/research-family-1113/family-dev1-checkpoint.json`, `family-full-start.json`, `family-full-checkpoint.json`, `family-full-summary.json`, `family-full.log`.
 - A0b 계약: `/workspace/outputs/TRADEGEN_PR5_A0B_API_CARD_2026-11-13.md`.
 - B1a 병합 실행 근거: [PR41 실행 기록](https://github.com/xkg4real/tradegen/blob/a4e66016e0091b2b4b3da4e799cbfdfdf2cad845/docs/research-bundle-archive-execution-log.md). 상세 계약은 `/workspace/outputs/TRADEGEN_PR5_SEALED_BUNDLE_READINESS_2026-11-13.md`, `/workspace/outputs/TRADEGEN_PR5_B1A_API_CARD_2026-11-13.md`.
-- B1b-1 진행 작업본: `/workspace/tradegen-bundle-attestation-1113`. 계약은 `/workspace/outputs/TRADEGEN_PR5_B1B1_API_CARD_2026-11-13.md`; 로컬 작성과 최종 전달 상태를 구분한다.
+- B1b-1 병합 근거: [PR42 실행 기록](https://github.com/xkg4real/tradegen/blob/13555b90a256be219f25c1546449eb4d12406d42/docs/research-archive-attestation-execution-log.md).
+- B2a 병합 근거: [PR43 실행 기록](https://github.com/xkg4real/tradegen/blob/f09b7365c9f2b025ec507c33a234c88cf7654d09/docs/exact-research-archive-recovery-execution-log.md).
+- B1b-2a 동결 검증 작업본: `/workspace/tradegen-revocation-1113`; 2b/c 구현 작업본: `/workspace/tradegen-sealed-selection-1113`. 최종 전달과 로컬 구현·검사 진행 상태를 구분한다.
 - 운영 경계 소스: `account_interval.py`, `execution_accounts/continuous.py`, `continuous_guard.py`, `continuous_guard_commit.py`, `protective_store.py`, `coordinator.py`, `runner.py`, `tools/owner/rehearsal.py`. 함수·진단 코드를 근거로 읽으며 진행 중 파일의 행 번호를 고정 사실로 사용하지 않는다.

@@ -1,0 +1,241 @@
+{
+  "tests": [
+    {
+      "test": "signer/test_research_revocation_actual_command_appends_only_restriction_and_preserves_original",
+      "status": "PASS",
+      "seconds": 0.2323
+    },
+    {
+      "test": "signer/test_research_revocation_anchor_work_cannot_outlive_document_or_confirmation_check",
+      "status": "PASS",
+      "seconds": 0.1342
+    },
+    {
+      "test": "signer/test_research_revocation_command_accepts_all_existing_source_schema_identities_only",
+      "status": "PASS",
+      "seconds": 0.6644
+    },
+    {
+      "test": "signer/test_research_revocation_command_can_restrict_expired_or_unverified_signature_body",
+      "status": "PASS",
+      "seconds": 0.0966
+    },
+    {
+      "test": "signer/test_research_revocation_commit_reverifies_all_signatures_under_the_existing_lock",
+      "status": "PASS",
+      "seconds": 0.0461
+    },
+    {
+      "test": "signer/test_research_revocation_confirmation_changes_document_key_and_head_never_append",
+      "status": "PASS",
+      "seconds": 0.2322
+    },
+    {
+      "test": "signer/test_research_revocation_confirmation_time_is_fixed_and_rechecked_after_heavy_target_parse",
+      "status": "PASS",
+      "seconds": 0.1135
+    },
+    {
+      "test": "signer/test_research_revocation_exact_retry_pins_all_previously_observed_restrictions",
+      "status": "PASS",
+      "seconds": 0.1173
+    },
+    {
+      "test": "signer/test_research_revocation_failed_anchor_preserves_appended_row_and_exact_retry_finishes_without_signing",
+      "status": "PASS",
+      "seconds": 0.1457
+    },
+    {
+      "test": "signer/test_research_revocation_generic_event_and_direct_sign_or_commit_bypasses_refuse",
+      "status": "PASS",
+      "seconds": 0.001
+    },
+    {
+      "test": "signer/test_research_revocation_parent_swap_cannot_create_anchor_directory_outside_retained_root",
+      "status": "PASS",
+      "seconds": 0.0794
+    },
+    {
+      "test": "signer/test_research_revocation_partial_or_mismatched_anchor_is_retained_and_never_overwritten",
+      "status": "PASS",
+      "seconds": 0.4442
+    },
+    {
+      "test": "signer/test_research_revocation_persisted_anchor_rejects_log_only_rollback_after_signer_restart",
+      "status": "PASS",
+      "seconds": 0.1249
+    },
+    {
+      "test": "signer/test_research_revocation_rotated_current_key_appends_and_prior_signature_corruption_refuses",
+      "status": "PASS",
+      "seconds": 0.1536
+    },
+    {
+      "test": "signer/test_research_revocation_standalone_process_and_typed_confirmation_remain_required",
+      "status": "PASS",
+      "seconds": 0.0334
+    },
+    {
+      "test": "signer/test_signer_copies_match_the_repo",
+      "status": "PASS",
+      "seconds": 0.0002
+    },
+    {
+      "test": "signer/test_every_event_the_signer_accepts_verifies",
+      "status": "PASS",
+      "seconds": 0.0018
+    },
+    {
+      "test": "signer/test_check_data_is_never_looser_than_owner",
+      "status": "PASS",
+      "seconds": 0.0048
+    },
+    {
+      "test": "owner/test_actual_anchor_persistence_runs_under_the_existing_owner_sidecar_lock",
+      "status": "PASS",
+      "seconds": 2.0076
+    },
+    {
+      "test": "owner/test_actual_loader_folds_all_purposes_duplicates_and_head_in_one_sealed_context",
+      "status": "PASS",
+      "seconds": 2.0757
+    },
+    {
+      "test": "owner/test_broken_log_after_revocation_never_becomes_not_revoked_current_authority",
+      "status": "PASS",
+      "seconds": 2.5463
+    },
+    {
+      "test": "owner/test_concurrent_parent_replacement_cannot_redirect_new_directory_creation",
+      "status": "PASS",
+      "seconds": 1.9156
+    },
+    {
+      "test": "owner/test_current_provider_refreshes_same_head_and_restriction_set_and_latches_rollback",
+      "status": "PASS",
+      "seconds": 3.389
+    },
+    {
+      "test": "owner/test_empty_field_keeps_exact_legacy_context_hash_without_global_json_changes",
+      "status": "PASS",
+      "seconds": 0.0853
+    },
+    {
+      "test": "owner/test_existing_loss_limits_halt_and_future_loosening_rules_are_unchanged",
+      "status": "FAIL",
+      "detail": "AssertionError: ",
+      "traceback": "Traceback (most recent call last):\n  File \"/workspace/tradegen-session/revocation-1113/signer-owner-dev2.py\", line 39, in <module>\n    try:function();row=dict(test=name,status='PASS')\n        ~~~~~~~~^^\n  File \"/workspace/tradegen-revocation-1113/tests/compliance_research_revocation.py\", line 177, in test_existing_loss_limits_halt_and_future_loosening_rules_are_unchanged\n    assert after.owner.limits==before.owner.limits and after.owner.halted_floors==before.owner.halted_floors\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError\n",
+      "seconds": 2.8495
+    },
+    {
+      "test": "owner/test_final_observation_rechecks_actual_log_key_and_complete_anchor_inventory",
+      "status": "PASS",
+      "seconds": 5.7348
+    },
+    {
+      "test": "owner/test_fsync_failure_refuses_observation_and_exact_retry_really_flushes_existing_bytes",
+      "status": "PASS",
+      "seconds": 2.5646
+    },
+    {
+      "test": "owner/test_future_dated_restriction_applies_now_without_activating_future_code_approval",
+      "status": "PASS",
+      "seconds": 3.7724
+    },
+    {
+      "test": "owner/test_independent_owner_schema_matches_pure_codec_without_runtime_reverse_dependency",
+      "status": "PASS",
+      "seconds": 0.0001
+    },
+    {
+      "test": "owner/test_initial_observed_restriction_cannot_disappear_before_the_actual_writer_lock",
+      "status": "PASS",
+      "seconds": 3.7815
+    },
+    {
+      "test": "owner/test_invalid_event_fields_fail_actual_signature_chain_schema_validation",
+      "status": "PASS",
+      "seconds": 0.0013
+    },
+    {
+      "test": "owner/test_key_rotation_keeps_restrictions_under_actual_verified_key_chain",
+      "status": "PASS",
+      "seconds": 3.1327
+    },
+    {
+      "test": "owner/test_legacy_observation_without_restrictions_does_not_create_new_lock_or_anchor_directory",
+      "status": "PASS",
+      "seconds": 1.8785
+    },
+    {
+      "test": "owner/test_linked_anchor_is_refused_without_modifying_its_target",
+      "status": "PASS",
+      "seconds": 3.7782
+    },
+    {
+      "test": "owner/test_mutable_or_malformed_revocation_state_cannot_be_sealed_or_hashed_as_empty",
+      "status": "PASS",
+      "seconds": 0.0191
+    },
+    {
+      "test": "owner/test_mutation_of_an_already_sealed_target_set_breaks_hash_or_strict_type_check",
+      "status": "PASS",
+      "seconds": 0.0028
+    },
+    {
+      "test": "owner/test_nonempty_pair_set_changes_context_hash_and_is_order_independent",
+      "status": "PASS",
+      "seconds": 0.0074
+    },
+    {
+      "test": "owner/test_observed_future_and_duplicate_events_get_exact_independent_durable_anchors",
+      "status": "PASS",
+      "seconds": 2.4949
+    },
+    {
+      "test": "owner/test_partial_conflicting_noncanonical_and_unknown_anchor_entries_are_retained_and_refused",
+      "status": "PASS",
+      "seconds": 17.0291
+    },
+    {
+      "test": "owner/test_partial_exclusive_write_is_not_automatically_repaired_or_reported_as_observed",
+      "status": "PASS",
+      "seconds": 2.4677
+    },
+    {
+      "test": "owner/test_research_anchor_for_an_actual_nonrevocation_owner_row_is_refused",
+      "status": "PASS",
+      "seconds": 1.8902
+    },
+    {
+      "test": "owner/test_research_revocation_is_a_signed_restriction_with_exact_independent_schema",
+      "status": "PASS",
+      "seconds": 0.0015
+    },
+    {
+      "test": "owner/test_restart_replays_restrictions_and_preserved_anchor_detects_deleted_event",
+      "status": "PASS",
+      "seconds": 3.1125
+    },
+    {
+      "test": "owner/test_system_append_cannot_issue_the_owner_only_event",
+      "status": "PASS",
+      "seconds": 1.2641
+    },
+    {
+      "test": "owner/test_unsigned_wrong_key_wrong_domain_or_damaged_signature_cannot_restrict_verified_state",
+      "status": "PASS",
+      "seconds": 0.0008
+    },
+    {
+      "test": "owner/test_unsupported_native_directory_pin_refuses_without_path_based_mkdir_fallback",
+      "status": "PASS",
+      "seconds": 0.0004
+    }
+  ],
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "qa_unchanged": true,
+  "actual_windows": "NOT_RUN",
+  "real_home_metadata_check": "not performed; only fixture homes used"
+}

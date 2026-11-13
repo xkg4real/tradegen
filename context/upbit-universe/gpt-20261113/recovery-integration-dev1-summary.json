@@ -1,0 +1,20 @@
+{
+  "label": "recovery-integration-dev1",
+  "head": "13555b90a256be219f25c1546449eb4d12406d42",
+  "source_hash": "ce6820e0b2afe181f799b8944e79f800d1cafdeea023614ca2bd1034f3cedbdc",
+  "total": 196,
+  "counts": {
+    "PASS": 196,
+    "FAIL": 0,
+    "NOT_RUN": 0
+  },
+  "process_segments": 1,
+  "seconds": 309.968,
+  "current_segment_seconds": 309.968,
+  "sum_test_seconds": 306.008,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "real_homes_check_scope": "metadata before imports/discovery through completion",
+  "failures": []
+}

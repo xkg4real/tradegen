@@ -1,0 +1,1178 @@
+[
+  {
+    "test": "launch/launch_bundle_recovery/test_cas_failure_preserves_unconfirmed_evidence_and_never_reanchors",
+    "status": "PASS",
+    "seconds": 6.6795,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_recovery/test_counterfeit_provider_store_and_reused_inspection_are_not_authority_inputs",
+    "status": "PASS",
+    "seconds": 4.5393,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_recovery/test_damaged_primary_catalog_and_old_head_restore_exact_failed_raw_and_signature_backup",
+    "status": "PASS",
+    "seconds": 7.5743,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_recovery/test_destination_id_collision_refuses_before_any_recovery_stage",
+    "status": "PASS",
+    "seconds": 3.6795,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_recovery/test_exact_retry_is_idempotent_and_new_incident_is_separate_evidence",
+    "status": "PASS",
+    "seconds": 22.3524,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_recovery/test_failed_final_real_authentication_preserves_committed_exact_copies_without_success",
+    "status": "PASS",
+    "seconds": 5.9362,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_recovery/test_final_auxiliary_backup_is_rechecked_and_failure_cannot_return_complete",
+    "status": "PASS",
+    "seconds": 7.7028,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_recovery/test_final_validation_initial_observation_cannot_be_refreshed_after_slow_auxiliary_read",
+    "status": "PASS",
+    "seconds": 8.0526,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_recovery/test_frozen_source_configuration_tampering_and_unavailable_inode_are_rejected",
+    "status": "PASS",
+    "seconds": 1.8024,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_recovery/test_interruption_after_raw_commit_preserves_it_and_exact_retry_finishes",
+    "status": "PASS",
+    "seconds": 13.4381,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_recovery/test_long_exact_copy_requires_fresh_final_transaction_and_real_destination_authentication",
+    "status": "PASS",
+    "seconds": 8.2356,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_recovery/test_missing_or_changed_backup_payload_or_manifest_prevents_any_destination_write",
+    "status": "PASS",
+    "seconds": 7.3656,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_recovery/test_missing_primary_and_old_head_do_not_prevent_signed_backup_inspection_or_copy",
+    "status": "PASS",
+    "seconds": 10.5938,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_recovery/test_overlapping_original_or_destination_roots_are_refused_without_writes",
+    "status": "PASS",
+    "seconds": 1.4829,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_recovery/test_policy_mismatch_and_unprovisioned_destination_cannot_auto_seed",
+    "status": "PASS",
+    "seconds": 8.7717,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_recovery/test_signature_artifact_file_limit_refuses_before_copy_and_preserves_source_policy",
+    "status": "PASS",
+    "seconds": 3.7651,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_recovery/test_source_backup_symlink_and_hardlink_payload_are_refused",
+    "status": "PASS",
+    "seconds": 3.8783,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_recovery/test_source_directory_open_failure_closes_prior_handles_and_returns_fixed_diagnostic",
+    "status": "PASS",
+    "seconds": 3.0643,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_recovery/test_source_graph_read_clock_rollback_or_staleness_refuses_without_destination_writes",
+    "status": "PASS",
+    "seconds": 6.1721,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_recovery/test_source_lock_replacement_between_actual_reads_is_detected",
+    "status": "PASS",
+    "seconds": 2.3836,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_recovery/test_verified_linked_raw_manifest_damage_refuses_even_when_target_files_are_intact",
+    "status": "PASS",
+    "seconds": 2.6263,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_recovery/test_verified_restoration_includes_linked_raw_all_candidates_without_issuing_research",
+    "status": "PASS",
+    "seconds": 9.3045,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_recovery/test_whole_batch_catalog_quota_is_refused_before_staging_any_part",
+    "status": "PASS",
+    "seconds": 8.1585,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_recovery/test_windows_pin_adapter_passes_exact_strings_and_holds_all_source_directory_pins",
+    "status": "PASS",
+    "seconds": 1.5039,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_recovery/test_wrong_signature_target_deployment_or_expiry_refuses_before_mutation",
+    "status": "PASS",
+    "seconds": 4.4127,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_recovery_artifact/test_artifact_preserves_exact_signature_bytes_and_deterministic_incident_identity",
+    "status": "PASS",
+    "seconds": 1.458,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_recovery_artifact/test_artifact_rejects_unbounded_or_path_incident_ids_and_malformed_limits",
+    "status": "PASS",
+    "seconds": 1.4935,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_recovery_artifact/test_constructing_artifact_does_not_authenticate_a_signature_or_restore_any_bytes",
+    "status": "PASS",
+    "seconds": 1.3951,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle_format/test_alias_collisions_remain_in_raw_but_cannot_be_verified",
+    "status": "PASS",
+    "seconds": 0.002,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle_format/test_archival_parent_claim_neither_changes_input_binding_nor_creates_authority",
+    "status": "PASS",
+    "seconds": 0.0022,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle_format/test_changed_source_bytes_or_file_metadata_do_not_inherit_raw_link",
+    "status": "PASS",
+    "seconds": 0.0022,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle_format/test_complete_input_metadata_preflight_is_pure_and_does_not_require_invented_results",
+    "status": "PASS",
+    "seconds": 0.0045,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle_format/test_complete_invented_metadata_roundtrip_retains_both_candidates_and_exact_bytes",
+    "status": "PASS",
+    "seconds": 0.0046,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle_format/test_custom_limits_enforce_exact_manifest_file_total_count_and_name_boundaries",
+    "status": "PASS",
+    "seconds": 0.0042,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle_format/test_deleted_frozen_limit_slot_refuses_with_fixed_code_on_all_public_consumers",
+    "status": "PASS",
+    "seconds": 0.0013,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle_format/test_empty_file_representation_cannot_hide_nonempty_content_or_reference",
+    "status": "PASS",
+    "seconds": 0.0003,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle_format/test_empty_malformed_and_unsafe_original_names_are_preserved_without_rewriting",
+    "status": "PASS",
+    "seconds": 0.0008,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle_format/test_envelope_must_have_exact_format_but_original_payload_whitespace_is_retained",
+    "status": "PASS",
+    "seconds": 0.0041,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle_format/test_integer_booleans_and_mutated_frozen_nested_records_are_refused",
+    "status": "PASS",
+    "seconds": 0.0015,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle_format/test_invalid_limits_and_noncanonical_time_or_unsupported_revision_refuse",
+    "status": "PASS",
+    "seconds": 0.0019,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle_format/test_object_policy_and_reference_binding_are_checked_before_payload_use",
+    "status": "PASS",
+    "seconds": 0.0009,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle_format/test_original_inventory_is_bijective_and_metadata_cannot_be_relabelled",
+    "status": "PASS",
+    "seconds": 0.0009,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle_format/test_original_report_cannot_disappear_and_only_named_derived_roles_may_be_added",
+    "status": "PASS",
+    "seconds": 0.0023,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle_format/test_parser_bounds_nesting_and_large_flat_json_before_decoding",
+    "status": "PASS",
+    "seconds": 0.0303,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle_format/test_parser_rejects_extra_keys_duplicate_keys_nonfinite_and_wrong_collection_types",
+    "status": "PASS",
+    "seconds": 0.0063,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle_format/test_payload_set_and_exact_bytes_are_required_without_implicit_coercion",
+    "status": "PASS",
+    "seconds": 0.0022,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle_format/test_raw_kind_and_verified_kind_have_no_cross_parser_or_approval_upgrade",
+    "status": "PASS",
+    "seconds": 0.0025,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle_format/test_required_roles_and_original_candidate_bindings_are_not_optional",
+    "status": "PASS",
+    "seconds": 0.0018,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle_format/test_sorted_exact_collections_and_generated_logical_ids_are_required",
+    "status": "PASS",
+    "seconds": 0.0011,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle_format/test_source_names_use_role_namespaces_and_repo_relative_paths",
+    "status": "PASS",
+    "seconds": 0.0019,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle_format/test_success_only_subset_is_rejected_even_with_a_well_formed_verified_manifest",
+    "status": "PASS",
+    "seconds": 0.0014,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle_format/test_unknown_or_incomplete_raw_archive_cannot_be_promoted",
+    "status": "PASS",
+    "seconds": 0.0044,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle_format/test_unreadable_inventory_and_unknown_candidates_are_distinct_from_empty_expected_set",
+    "status": "PASS",
+    "seconds": 0.0005,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle_format/test_wrong_original_archive_or_identity_cannot_be_used_for_derivation",
+    "status": "PASS",
+    "seconds": 0.0035,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle_store/test_backup_failure_retains_unbacked_primary_and_exact_retry_only_copies_backup",
+    "status": "PASS",
+    "seconds": 0.0939,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle_store/test_backup_readback_damage_cannot_be_reported_as_backed_and_is_preserved",
+    "status": "PASS",
+    "seconds": 0.077,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle_store/test_cas_response_loss_is_resolved_by_exact_catalog_query_without_duplicate_rows",
+    "status": "PASS",
+    "seconds": 0.1647,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle_store/test_catalog_ahead_of_head_is_preserved_and_never_adopted_or_truncated",
+    "status": "PASS",
+    "seconds": 0.0374,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle_store/test_catalog_and_backup_quota_admission_happen_before_any_staging",
+    "status": "PASS",
+    "seconds": 0.0386,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle_store/test_catalog_trailing_partial_or_unknown_row_is_never_read_as_complete",
+    "status": "PASS",
+    "seconds": 0.2111,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle_store/test_competing_os_writer_and_zero_lock_identity_never_stage",
+    "status": "PASS",
+    "seconds": 0.0109,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle_store/test_diagnostics_are_idempotent_bounded_metadata_and_never_modify_originals",
+    "status": "PASS",
+    "seconds": 0.0991,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle_store/test_empty_observed_inventory_is_archived_but_cannot_be_a_verified_research",
+    "status": "PASS",
+    "seconds": 0.0601,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle_store/test_exact_retry_is_read_only_and_same_id_different_bytes_is_refused",
+    "status": "PASS",
+    "seconds": 0.1495,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle_store/test_head_readback_response_loss_does_not_duplicate_a_successful_commit",
+    "status": "PASS",
+    "seconds": 0.0866,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle_store/test_malformed_and_empty_originals_round_trip_as_independent_copies_without_authority",
+    "status": "PASS",
+    "seconds": 0.0794,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle_store/test_partial_final_and_pending_objects_never_become_a_published_archive",
+    "status": "PASS",
+    "seconds": 0.0246,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle_store/test_raw_dependency_and_backup_corruption_refuse_verified_use_without_global_hold",
+    "status": "PASS",
+    "seconds": 0.5912,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle_store/test_roots_names_links_and_runtime_configuration_are_rejected_before_publication",
+    "status": "PASS",
+    "seconds": 0.0242,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle_store/test_session_lock_or_root_replacement_during_stage_is_not_committed",
+    "status": "PASS",
+    "seconds": 0.0377,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle_store/test_single_root_catalog_or_head_rollback_is_refused",
+    "status": "PASS",
+    "seconds": 0.1362,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle_store/test_storage_provision_is_separate_from_operator_head_initialization",
+    "status": "PASS",
+    "seconds": 0.067,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle_store/test_successor_rechecks_backup_graph_after_catalog_append_before_head_advance",
+    "status": "PASS",
+    "seconds": 0.0597,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle_store/test_temporary_copy_peak_is_enforced_at_minus_one_exact_and_plus_one",
+    "status": "PASS",
+    "seconds": 0.1919,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle_store/test_two_catalog_events_require_exact_record_capacity_without_partial_publication",
+    "status": "PASS",
+    "seconds": 0.1411,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle_store/test_unrelated_object_corruption_does_not_block_sound_read_or_new_commit",
+    "status": "PASS",
+    "seconds": 0.2281,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle_store/test_verified_is_separate_immutable_derivation_retaining_every_input_and_candidate",
+    "status": "PASS",
+    "seconds": 0.5754,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle/test_actual_fixed_and_carry_archive_all_results_then_replay_without_working_files",
+    "status": "PASS",
+    "seconds": 3.5615,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle/test_changed_during_read_keeps_exact_read_bytes_and_separate_incident",
+    "status": "PASS",
+    "seconds": 0.0129,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle/test_cli_explicit_operator_finalize_inspect_and_sealed_evaluate_keep_non_authority_status",
+    "status": "PASS",
+    "seconds": 1.3862,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle/test_counterfeit_stored_manifest_is_not_an_issued_result_or_manifest_approval",
+    "status": "PASS",
+    "seconds": 1.7251,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle/test_historical_source_mismatch_still_archives_unknown_plan_and_all_read_bytes",
+    "status": "PASS",
+    "seconds": 0.4786,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle/test_inventory_and_object_chunk_limits_preserve_already_read_originals",
+    "status": "PASS",
+    "seconds": 0.2128,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle/test_last_capture_corruption_archives_exact_bytes_and_issues_no_partial_family",
+    "status": "PASS",
+    "seconds": 0.5711,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle/test_last_receipt_corruption_and_missing_log_are_preserved_before_refusal",
+    "status": "PASS",
+    "seconds": 1.0173,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle/test_missing_symlink_unreadable_and_oversized_inputs_are_distinct_opaque_observations",
+    "status": "PASS",
+    "seconds": 0.1642,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle/test_object_manifest_limit_is_resource_but_arbitrary_preview_error_is_not_hidden",
+    "status": "PASS",
+    "seconds": 0.0204,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle/test_recorded_abort_differs_from_truncation_and_keeps_actual_incomplete_snapshots",
+    "status": "PASS",
+    "seconds": 1.2429,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle/test_required_flag_casefold_collision_and_unsafe_names_are_archived_before_zero_evaluation_refusal",
+    "status": "PASS",
+    "seconds": 1.5836,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle/test_runtime_never_initializes_head_and_explicit_operator_refuses_existing_or_partial_store",
+    "status": "PASS",
+    "seconds": 0.0278,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle/test_sealed_inspection_survives_source_change_but_current_evaluation_refuses",
+    "status": "PASS",
+    "seconds": 1.1112,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle/test_single_handle_reader_rejects_a_b_a_swap_before_read",
+    "status": "PASS",
+    "seconds": 0.0117,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle/test_source_program_prior_and_commitment_mismatches_keep_originals_and_never_issue",
+    "status": "PASS",
+    "seconds": 2.3771,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_bundle/test_unexpected_later_actual_evaluator_failure_keeps_backed_raw_without_verified_release",
+    "status": "PASS",
+    "seconds": 0.5015,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_auth/test_actual_b1a_fixed_and_carry_graphs_remain_non_operational_after_attestation",
+    "status": "PASS",
+    "seconds": 11.3604,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_auth/test_actual_owner_and_failed_raw_archive_authenticate_identity_only",
+    "status": "PASS",
+    "seconds": 3.6883,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_auth/test_benign_owner_log_growth_and_existing_halt_do_not_become_trading_permission",
+    "status": "PASS",
+    "seconds": 4.016,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_auth/test_code_approval_change_during_graph_work_refuses_without_source_mutation",
+    "status": "PASS",
+    "seconds": 3.7049,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_auth/test_constructed_authority_callback_stored_bundle_and_report_are_not_trust_inputs",
+    "status": "PASS",
+    "seconds": 4.2356,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_auth/test_corrupted_actual_loader_context_cannot_bypass_seal_or_hash_checks",
+    "status": "PASS",
+    "seconds": 4.2761,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_auth/test_counterfeit_but_format_valid_verified_claim_can_only_attest_archive_identity",
+    "status": "PASS",
+    "seconds": 4.2232,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_auth/test_each_authentication_observes_current_graph_and_key_instead_of_accepting_old_report",
+    "status": "PASS",
+    "seconds": 4.2596,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_auth/test_expiry_and_clock_rollback_during_graph_work_refuse",
+    "status": "PASS",
+    "seconds": 4.9023,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_auth/test_final_heavy_signature_and_document_digest_work_cannot_hide_expiry",
+    "status": "PASS",
+    "seconds": 6.9572,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_auth/test_final_owner_loader_expiry_is_checked_with_the_completion_clock",
+    "status": "PASS",
+    "seconds": 3.6967,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_auth/test_future_or_expired_signature_refuses_with_actual_current_owner",
+    "status": "PASS",
+    "seconds": 4.1699,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_auth/test_key_rotation_during_graph_work_uses_actual_owner_chain_and_latches",
+    "status": "PASS",
+    "seconds": 2.8073,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_auth/test_object_mutation_during_owner_reobservation_is_caught_by_second_graph_read",
+    "status": "PASS",
+    "seconds": 2.9168,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_auth/test_owner_log_rollback_after_success_is_refused_by_same_provider",
+    "status": "PASS",
+    "seconds": 4.0126,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_auth/test_primary_or_backup_original_damage_refuses_despite_genuine_signature",
+    "status": "PASS",
+    "seconds": 4.2007,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_auth/test_real_signature_wrong_target_deployment_key_or_domain_refuses",
+    "status": "PASS",
+    "seconds": 3.35,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_auth/test_signed_other_file_inventory_cannot_be_replayed_for_requested_store_digest",
+    "status": "PASS",
+    "seconds": 1.4598,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_auth/test_total_observation_window_cannot_refresh_away_the_original_thirty_second_limit",
+    "status": "PASS",
+    "seconds": 7.096,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_auth/test_verified_authentication_rechecks_its_linked_raw_and_backup_dependencies",
+    "status": "PASS",
+    "seconds": 2.6807,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_attestation/test_appending_unknown_inventory_to_raw_changes_signature_target_without_hiding_it",
+    "status": "PASS",
+    "seconds": 0.0102,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_attestation/test_b1a_manifest_domains_and_bytes_are_not_rewritten_by_requests_or_signatures",
+    "status": "PASS",
+    "seconds": 0.0104,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_attestation/test_body_code_identity_and_full_checklist_are_required",
+    "status": "PASS",
+    "seconds": 0.0582,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_attestation/test_body_issued_time_is_fixed_within_request_window_and_expiry_cannot_be_extended",
+    "status": "PASS",
+    "seconds": 0.083,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_attestation/test_byte_depth_node_integer_and_cyclic_input_limits_fail_before_use",
+    "status": "PASS",
+    "seconds": 0.094,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_attestation/test_embedded_attacker_key_is_not_a_trust_input_and_supplied_key_must_match_identity",
+    "status": "PASS",
+    "seconds": 0.0585,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_attestation/test_empty_inventory_remains_unknown_and_no_missing_file_is_synthesized",
+    "status": "PASS",
+    "seconds": 0.0017,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_attestation/test_envelope_format_is_exact_and_has_no_newline_or_alternate_time_spelling",
+    "status": "PASS",
+    "seconds": 0.0373,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_attestation/test_file_set_types_generated_names_order_and_empty_hash_are_strict",
+    "status": "PASS",
+    "seconds": 0.0103,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_attestation/test_fixture_ed25519_signs_and_verifies_exact_archive_only_body",
+    "status": "PASS",
+    "seconds": 0.0538,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_attestation/test_incomplete_empty_and_malformed_originals_are_signed_as_raw_without_upgrade",
+    "status": "PASS",
+    "seconds": 0.0043,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_attestation/test_manifest_admission_limit_is_not_relabelled_as_evidence_corruption",
+    "status": "PASS",
+    "seconds": 0.0005,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_attestation/test_old_domains_and_valid_signature_of_other_body_do_not_verify",
+    "status": "PASS",
+    "seconds": 0.0919,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_attestation/test_payload_bytes_are_exact_and_must_cover_the_complete_declared_family",
+    "status": "PASS",
+    "seconds": 0.0622,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_attestation/test_pure_signature_check_does_not_use_current_clock_owner_files_or_grant_current_use",
+    "status": "PASS",
+    "seconds": 0.0416,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_attestation/test_raw_and_verified_requests_bind_exact_manifests_entire_file_set_and_domain",
+    "status": "PASS",
+    "seconds": 0.0417,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_attestation/test_rehashed_outer_request_cannot_change_manifest_raw_link_or_file_inventory",
+    "status": "PASS",
+    "seconds": 0.0364,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_attestation/test_request_and_document_parsers_reject_duplicate_keys_extra_fields_and_numbers",
+    "status": "PASS",
+    "seconds": 0.0491,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_attestation/test_request_digest_and_bound_scope_cannot_be_changed_or_reinterpreted",
+    "status": "PASS",
+    "seconds": 0.022,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_attestation/test_request_expiry_is_explicit_bounded_and_does_not_precede_verified_evaluation",
+    "status": "PASS",
+    "seconds": 0.0495,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_attestation/test_returned_bodies_are_detached_and_mutation_cannot_change_signed_originals",
+    "status": "PASS",
+    "seconds": 0.0487,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_attestation/test_signature_replay_to_another_archive_or_code_is_refused",
+    "status": "PASS",
+    "seconds": 0.0899,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_attestation/test_structural_signature_shape_is_separate_from_cryptographic_validation",
+    "status": "PASS",
+    "seconds": 0.0833,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_attestation/test_success_only_subset_cannot_be_rehashed_into_an_archive_attestation_request",
+    "status": "PASS",
+    "seconds": 0.0131,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_bundle_attestation/test_windows_device_logical_ids_remain_valid_with_unambiguous_prefixed_filenames",
+    "status": "PASS",
+    "seconds": 0.0098,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guards/test_archive_packet_native_directory_pins_do_not_gain_write_or_delete_sharing",
+    "status": "PASS",
+    "seconds": 0.396,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guards/test_archive_packet_writes_remain_exclusive_explicit_and_outside_authority",
+    "status": "PASS",
+    "seconds": 0.0334,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guards/test_continuous_archive_writes_are_exact_and_cannot_migrate_into_pure_modules",
+    "status": "PASS",
+    "seconds": 0.0477,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guards/test_evidence_object_writes_are_exact_and_cannot_gain_head_or_order_authority",
+    "status": "PASS",
+    "seconds": 0.0361,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guards/test_guard_reads_pin_utf8",
+    "status": "PASS",
+    "seconds": 0.0449,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guards/test_head_authority_writes_are_exact_and_operator_steps_have_no_runtime_caller",
+    "status": "PASS",
+    "seconds": 1.2763,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guards/test_launch_and_account_tests_start_no_process",
+    "status": "PASS",
+    "seconds": 0.334,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guards/test_launch_and_network_do_not_directly_sign_arm_or_open_http",
+    "status": "PASS",
+    "seconds": 0.5815,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guards/test_launch_guard_names_the_effect_behind_bare_names_aliases_and_constant_getattr",
+    "status": "PASS",
+    "seconds": 0.0013,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guards/test_launch_guard_negative_controls",
+    "status": "PASS",
+    "seconds": 0.0008,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guards/test_launch_guard_pins_transport_routes_and_process_effects",
+    "status": "PASS",
+    "seconds": 0.0043,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guards/test_launch_suite_is_complete_registered_and_import_errors_fail",
+    "status": "PASS",
+    "seconds": 0.2547,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guards/test_launch_write_ban_covers_every_shape_and_pins_writers_by_file_and_exact_call",
+    "status": "PASS",
+    "seconds": 0.0344,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guards/test_live_history_writes_are_exact_and_only_through_pinned_checked_targets",
+    "status": "PASS",
+    "seconds": 0.0562,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guards/test_new_packages_are_in_runtime_and_acting_graph",
+    "status": "PASS",
+    "seconds": 0.0042,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guards/test_new_runtime_packages_are_signed_recursively_by_owner_and_signer",
+    "status": "PASS",
+    "seconds": 0.0143,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guards/test_protective_store_writes_stay_exact_and_cannot_self_initialize_authority",
+    "status": "PASS",
+    "seconds": 0.0383,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guards/test_research_bundle_store_writes_and_operator_provisioning_stay_narrow",
+    "status": "PASS",
+    "seconds": 1.5304,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guards/test_study_writes_are_exact_and_only_through_pinned_checked_targets",
+    "status": "PASS",
+    "seconds": 0.0438,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guards/test_trusted_head_is_advanced_only_by_pinned_callers",
+    "status": "PASS",
+    "seconds": 1.0192,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guards/test_universe_store_writes_are_exact_and_cannot_migrate",
+    "status": "PASS",
+    "seconds": 0.0094,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guards/test_wrapper_flags_a_change_to_the_real_baseline_history_and_head_homes",
+    "status": "PASS",
+    "seconds": 0.0012,
+    "detail": ""
+  },
+  {
+    "test": "launch/owner_guards/test_owner_and_execution_helpers_cannot_hide_transitive_narrative_imports",
+    "status": "PASS",
+    "seconds": 0.0004,
+    "detail": ""
+  },
+  {
+    "test": "launch/owner_guards/test_owner_commands_are_in_runtime_and_acting_graphs",
+    "status": "PASS",
+    "seconds": 0.0097,
+    "detail": ""
+  },
+  {
+    "test": "launch/owner_guards/test_owner_commands_cannot_turn_narrative_context_into_an_action_input",
+    "status": "PASS",
+    "seconds": 0.0003,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_archive_actual_export_signer_and_current_owner_auth_preserve_nonoperational_scope",
+    "status": "PASS",
+    "seconds": 11.1065,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_archive_command_retains_isolation_typing_and_refuses_repo_owned_signer",
+    "status": "PASS",
+    "seconds": 0.4799,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_archive_current_code_approval_remains_effective_before_future_reapproval",
+    "status": "PASS",
+    "seconds": 0.8051,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_archive_future_code_approval_cannot_authorize_signature_or_actual_owner",
+    "status": "PASS",
+    "seconds": 0.5468,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_archive_future_reapproval_crossing_confirmation_or_publication_refuses",
+    "status": "PASS",
+    "seconds": 1.8421,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_archive_independent_manifest_and_request_bytes_match_both_runtime_formats",
+    "status": "PASS",
+    "seconds": 0.1542,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_archive_independent_parser_rejects_corrupted_manifest_vectors_and_scope_upgrades",
+    "status": "PASS",
+    "seconds": 0.1348,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_archive_output_exclusive_creation_and_exact_readback",
+    "status": "PASS",
+    "seconds": 0.0065,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_archive_owner_signature_walk_rejects_bad_prior_approval_even_after_key_rotation",
+    "status": "PASS",
+    "seconds": 0.0017,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_archive_packet_preserves_empty_original_and_rejects_extra_links_and_missing_payload",
+    "status": "PASS",
+    "seconds": 0.0217,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_archive_posix_pin_closes_remaining_ancestors_after_one_close_failure",
+    "status": "PASS",
+    "seconds": 0.0001,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_archive_signer_checks_expiry_after_heavy_signing_bytes_and_before_publication",
+    "status": "PASS",
+    "seconds": 1.7894,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_archive_signer_rechecks_packet_and_code_after_exact_display_confirmation",
+    "status": "PASS",
+    "seconds": 2.2666,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_archive_windows_pin_copy_denies_write_delete_sharing_and_checks_native_identity",
+    "status": "PASS",
+    "seconds": 0.0005,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_guards/test_aggregator_skips_missing_and_isolates_broken_modules",
+    "status": "PASS",
+    "seconds": 0.0014,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_guards/test_bare_compile_and_importlib_submodules_are_dynamic",
+    "status": "PASS",
+    "seconds": 0.0005,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_guards/test_cryptography_is_pinned_installed_and_usable",
+    "status": "PASS",
+    "seconds": 0.0068,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_guards/test_harness_flags_a_change_to_the_real_compliance_home",
+    "status": "PASS",
+    "seconds": 0.0004,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_guards/test_imports_stay_on_the_allowlist",
+    "status": "PASS",
+    "seconds": 0.0441,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_guards/test_isolation_report_clean_and_prefixes_active",
+    "status": "PASS",
+    "seconds": 0.9857,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_guards/test_main_blocks_are_one_line",
+    "status": "PASS",
+    "seconds": 0.0431,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_guards/test_no_forbidden_module_import",
+    "status": "PASS",
+    "seconds": 0.1909,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_guards/test_no_function_named_transfer_withdraw_or_deposit_address",
+    "status": "PASS",
+    "seconds": 0.4552,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_guards/test_no_http_verb_calls",
+    "status": "PASS",
+    "seconds": 0.0379,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_guards/test_no_wall_clock_outside_cli_main",
+    "status": "PASS",
+    "seconds": 0.0519,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_guards/test_package_init_is_empty",
+    "status": "PASS",
+    "seconds": 0.0003,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_guards/test_raw_text_has_no_forbidden_words",
+    "status": "PASS",
+    "seconds": 0.0108,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_guards/test_seal_context_only_in_owner",
+    "status": "PASS",
+    "seconds": 0.6096,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_guards/test_suite_is_registered_in_run_all_and_readme",
+    "status": "PASS",
+    "seconds": 0.0116,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_guards/test_suite_runs_hermetic_in_a_temp_home",
+    "status": "PASS",
+    "seconds": 0.0003,
+    "detail": ""
+  },
+  {
+    "test": "cockpit/test_09_no_account_credentials_requested",
+    "status": "PASS",
+    "seconds": 0.0101,
+    "detail": ""
+  },
+  {
+    "test": "macro/macro_m0_harness/test_t_ro_01_no_order_cancel_withdrawal_or_transfer_path",
+    "status": "PASS",
+    "seconds": 2.4399,
+    "detail": ""
+  }
+]

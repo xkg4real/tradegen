@@ -127,3 +127,47 @@ archive output에서 미지원이라고 남기는 것은 `current_operational_us
 - 기존 한도·손실 하한·halt·code approval 미래 시점·독립 head/owner write guards가 유지돼야 한다. 관련 source/owner/review/strategy tests는 부모가 통합 실행한다.
 
 19 KEYLESS, isolated temporary homes/keys, no API/arm/order. source-level/fake-Windows/native-Windows 범위를 구분한다. 새 기능 검증과 기존 B1b-1 검증 수를 합쳐 중복을 숨기지 않는다. 2a 완료가 sealed selection 또는 exact recovery 완료를 뜻하지 않는다.
+
+## 8. 필수 보완 — 재시작 뒤 철회 행의 독립 anchor
+
+부모 승인: 2026-11-13. 첫 구현 검토에서 확인된 경계다. 기존 승인-state snapshot은 같은 state의 **첫 head**를 보존한다. 따라서 새 철회를 본 뒤 프로세스를 재시작하고 owner log만 이전 정상 승인 prefix로 자르면, per-instance head pin 없이 철회가 사라질 수 있었다. 이 보완은 이미 확인된 제한을 유지하는 기록이며 새 승인·서명 권한을 만들지 않는다.
+
+### 8.1 wire/layout
+
+```text
+<compliance home>/approved/research-attestations/<event_row_sha256>.anchor.json
+```
+
+정확 bytes는 `canonical_json({'seq': event_seq, 'row_sha256': event_row_sha256}).encode('utf-8')`, newline 없음이다. seq는 양의 exact int, row SHA는 lowercase 64hex다. 파일명 SHA와 내용 SHA가 같아야 하며, 현재 실제 검증한 owner log의 해당 seq/row가 `research_attestation_revoked`여야 한다. row SHA가 seq와 사건 전체를 이미 결합하므로 filename에 target/개인정보를 추가하지 않는다. 같은 target의 후속 중복 사건도 각 event별 anchor를 보존한다.
+
+기존 `read_anchors()`의 approved `*/*.anchor.json` 수집과 기존 `verify_log` anchor 대조를 사용한다. 새 하위 디렉터리의 **모든 direct entry**를 별도로 엄격하게 검사하여 unknown 이름, 디렉터리, 링크/hardlink, rename으로 숨긴 파일, 부분 파일, canonical bytes 불일치를 조용히 건너뛰지 않는다. legacy table anchor 형식을 일괄 변경하지 않는다. app/signer의 private helper 이름은 각 소유자가 정하되 위 layout/bytes/시점은 동일해야 한다.
+
+### 8.2 저장·동시성
+
+- 기존 owner-log sidecar lock을 사용한다. 다른 이름의 잠금이나 새로운 approving head를 만들지 않는다.
+- **기존 `_write_new`/`_put_anchor`의 rename 방식으로 새 anchor를 쓰지 않는다.** 현재 POSIX rename 경로는 동시에 생긴 target을 교체할 수 있다.
+- 새 anchor는 final 이름에 exclusive create(`O_EXCL`)한다. file fsync, 정확 readback, regular-file/identity/link 검사를 완료한다. 지원되는 플랫폼에서는 parent-directory의 생성·새 entry도 flush한다. 기존 파일은 exact bytes일 때만 재검증·flush하여 재사용하고 절대로 overwrite하지 않는다.
+- 중단으로 생긴 partial final은 그대로 남고 read/다음 실행은 거절한다. 삭제·truncate·재작성·임의 anchor 채택으로 자동 수리하지 않는다. 파일 전체가 exact한 재시도도 미확인 flush 실패를 성공으로 바꾸려면 실제 flush/readback을 다시 완료해야 한다.
+- helper의 추가 정확 write shape는 부모의 guard 검토 대상이다. generic owner/store write 권한을 넓히거나 BaselineHead 초기화를 허용하지 않는다.
+
+### 8.3 실제 app 관찰
+
+`_owner_now`의 최초 실제 검증은 항상 현재 strict anchor inventory와 전체 owner 서명을 검사한다. 따라서 log가 잘려 새 철회가 보이지 않더라도 이미 저장된 anchor가 그 rollback을 거절한다.
+
+최초 검증에 signed revocation이 있으면 같은 sidecar lock 안에서 **현재 PEM·log·anchors를 다시 읽고 전체 서명/rotation·first-fingerprint를 재검증 → 모든 관찰된 철회 event anchor 저장 → anchor 집합과 같은 log head 재조회·재검증**을 수행한다. 이 단계가 성공한 후에만 usable owner state/봉인 Context를 반환한다. 새로 보이는 restriction을 snapshot이 먼저 본 것으로 간주해 anchor 저장을 생략하지 않는다.
+
+철회가 전혀 없는 정상 legacy 읽기는 새 lock 파일·anchor 디렉터리를 만들 필요가 없다. anchor가 이미 있는데 log에 matching revocation이 없거나 자료가 손상됐다면 이 분기로 빠져 허용하지 않고 BROKEN이다. 저장·읽기·fsync·identity/conflict 실패는 owner/context BROKEN 처리이며 빈 철회 집합으로 진행하지 않는다. 기존 sign/owner append는 app에서 호출하지 않는다.
+
+### 8.4 독립 signer 성공과 재시도
+
+새 명령은 independent parser로 existing research-anchor inventory를 읽고 **확인 전과 lock 안에서** 전체 signed log의 seq/row/event와 대조한다. `_bundle_verified_head`의 signature walk만으로 이 anchor 검사를 대신하지 않는다. 잘린 log에 먼저 새 anchor를 만들고 성공을 보고해서는 안 된다.
+
+새 사건은 lock 안에서 입력 snapshot·현재 키·전체 chain/anchors 재검증 후 기존 owner append+fsync 경로로 기록한다. 이어서 모든 확인된 revocation anchor를 완결하고 readback/flush를 확인한다. **성공 출력은 log와 anchor가 모두 확인된 뒤**에만 한다. append 뒤 anchor가 실패하면 “로그에 제한이 이미 기록됐을 수 있으나 durable 확인 실패”로 처리하며 “아무것도 쓰지 않았다”라고 출력하지 않는다.
+
+정확 재시도 규칙: 현재 전체 서명이 검증된 마지막 행이 요청과 같은 purpose/target/reason의 revocation이면 문서·키·head를 다시 검증하고 그 실제 기존 행의 anchor를 완결한다. 새 행을 중복 append하지 않는다. 기존 행의 UTC를 바꾸거나 새 timestamp로 서명한 것처럼 표시하지 않는다. 다른 마지막 행이면 정상 새 제한 사건으로 진행할 수 있으나 기존 모든 anchor/철회 검증은 먼저 통과해야 한다. partial/conflicting anchor는 이 재시도로 덮어쓰지 않는다.
+
+### 8.5 검증과 위협 가정
+
+필수 사례는 (a) signer 성공 뒤 log-only prefix rollback과 fresh provider, (b) 실제 app 관찰 뒤 rollback과 fresh provider, (c) append 후 anchor 저장 실패·응답 손실·동일 마지막 행 재시도, (d) partial/다른 bytes/unknown/link anchor 보존과 거절, (e) future restriction·중복 event 각각의 anchor, (f) 이미 있는 anchor와 log 불일치를 write 전에 거절, (g) key/head/anchor 교체 및 lock 직렬화다. 이전 snapshot에 첫 head만 있는 fixture로 (a)/(b)를 재현해야 한다.
+
+이 보호는 **정상적으로 보존된 독립 anchor에 비해 owner log만 되돌린 경우**를 막는다. 공격자가 관련 log와 모든 anchor를 함께 삭제하거나 일관된 과거 사본으로 되돌릴 수 있는 상황까지 검출한다고 주장하지 않는다. 그 위협은 추가 외부 anchor/backup·접근 통제 경계다. 새 기록이 새로운 승인을 부여하지 않으며 손실 한도·현재 키/코드·서명 만료를 바꾸지 않는다. 실제 native Windows의 crash/durability 검증은 아직 실행되지 않았고 Linux 또는 fake API 검증과 구분한다.

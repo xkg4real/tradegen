@@ -4,17 +4,17 @@ reason: owner_requested_continue_pr4e_and_protective_p2
 from: gpt
 task: upbit-universe
 cycle: 2026-11-10
-done_ids: universe-pr5/archive-attestation, universe-pr5/raw-verified-bundles, universe-pr5/family-preflight, protective-hold/fixed-carry-v2, universe-pr4e, protective-hold/p2-store-integration, universe-pr5/outcome-document-contract, protective-hold/p2-store, protective-hold/p1, universe-pr4d/lossless-history, universe-pr4d, universe-pr4d/lossless-objects, design-revision-1113, upbit-universe-return-1113, universe-pr4d/original-verification, workflow-resume-1113/regression-preparation, universe-pr4d/task2-implementation, universe-pr4d/task3, universe-pr4d/task4, universe-pr4c, universe-pr4d/task1, workflow-resume-1113, workflow-resume-1113/dependencies, universe-pr4c/implementation, universe-pr0, universe-pr1, universe-pr2, universe-pr3, universe-pr4b, universe-pr4a
-next_ids: universe-pr5/research-revocation, universe-pr5/exact-archive-recovery, protective-hold/p2-integration, universe-pr5, universe-pr5-clock-notify, universe-code-approve, policy-loss-budget-plan-1, rules-review-1202, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, launch-private-capture-setup-1, e1-14-owner-setup, launch-prospective-study, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1
-updated_at: 2026-11-13T23:45:02+09:00
+done_ids: universe-pr5/exact-archive-recovery, universe-pr5/archive-attestation, universe-pr5/raw-verified-bundles, universe-pr5/family-preflight, protective-hold/fixed-carry-v2, universe-pr4e, protective-hold/p2-store-integration, universe-pr5/outcome-document-contract, protective-hold/p2-store, protective-hold/p1, universe-pr4d/lossless-history, universe-pr4d, universe-pr4d/lossless-objects, design-revision-1113, upbit-universe-return-1113, universe-pr4d/original-verification, workflow-resume-1113/regression-preparation, universe-pr4d/task2-implementation, universe-pr4d/task3, universe-pr4d/task4, universe-pr4c, universe-pr4d/task1, workflow-resume-1113, workflow-resume-1113/dependencies, universe-pr4c/implementation, universe-pr0, universe-pr1, universe-pr2, universe-pr3, universe-pr4b, universe-pr4a
+next_ids: universe-pr5/research-revocation, universe-pr5/sealed-selection, universe-pr5/recovery-operations, protective-hold/p2-integration, universe-pr5, universe-pr5-clock-notify, universe-code-approve, policy-loss-budget-plan-1, rules-review-1202, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, launch-private-capture-setup-1, e1-14-owner-setup, launch-prospective-study, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1
+updated_at: 2026-11-14T00:14:33+09:00
 stale_after_hours: 3
 waiting_on: no prior approval question; future PLB S1-S12 and deployment inputs only
-work_branch: gpt/research-bundle-attestation
-work_commit: c4790b3ca318b0f9a61abbfa059b49d489bf164d
-merged_main_commit: 13555b90a256be219f25c1546449eb4d12406d42
-runtime_tested_commit: B1b1 173f346 focused277=264PASS/0FAIL/13WindowsNR source3af46ef9; preceding A0b full3103=2968PASS/0FAIL/135NR
-uncommitted_changes: B1b-2a active /workspace/tradegen-revocation-1113 and B2a active /workspace/tradegen-exact-recovery-1113, both base0e06a37; not delivered
-pr: PR34-42 merged; B1b-2a restrictive revocation and B2a exact recovery active; no live activation
+work_branch: gpt/research-attestation-revocation
+work_commit: 797e8f5b934127734ae1207daaced9d1c3501200
+merged_main_commit: f09b7365c9f2b025ec507c33a234c88cf7654d09
+runtime_tested_commit: B2a119645f focused196PASS/0FAIL/0NR sourcece6820e0; 2a797e8f5 broad915 RUNNING, not final acceptance
+uncommitted_changes: 2a documentation only while frozen915 runs; B1b-2b/c active /workspace/tradegen-sealed-selection-1113 base797e8f5, not delivered
+pr: PR34-43 merged; 2a candidate branch pushed, tests pending; sealed-selection development active; no live activation
 usage_weekly_pct: unknown
 usage_source: unavailable
 handoff_threshold_pct: 95
@@ -184,3 +184,13 @@ PR40은PR39브랜치를base로한stacked draft이며39병합후main으로retarge
 - 보호 보유 다음 단계 계획에서 실제 nested control transaction, guard commit 후 baseline 중복갱신, floor/daily-stop projection, E후 새관리권한/history기간의 미구현을 분리했다. 계획 문서를 구현완료로 표시하지 않는다.
 - Notion 두 페이지는 PR41까지 반영/readback완료. PR42와후속상태 다음checkpoint에 반영. PR42 app artifact attach 도구는 connection closed였으며 GitHub PR자체는 정상병합됐다.
 - 사용량 측정수단 unavailable, unknown 유지. 실제 ownerhome/키/API/arm/order 없음. S1~S12 미실행을 가정으로 대체하지 않는다.
+
+## 진행 체크포인트 — PR43 exact recovery 병합, 제한·선발 연결 계속
+
+- [PR43](https://github.com/xkg4real/tradegen/pull/43) runtime119645f97c2a21e6277a4ff64f4e66c5a6a4a81b, head81f248f16fb1a1e9e63178fcc2d63563ce541912, mainf09b7365c9f2b025ec507c33a234c88cf7654d09. main tree=검증 head 확인.
+- 실제 서명→primary catalog/head 비의존 backup 전체→별도 사전 provision된 실제 BundleStore raw/verified 복원→목적지 실제 auth→서명 원본의 별도 artifact backup. 원본 덮기/head 채택/초기화/운영 권한 없음. Callable backend이며 CLI·자동trigger·알림·persistent quarantine·route변경은 미구현.
+- 최종 집중196PASS/0FAIL/0NOT_RUN, 단일309.968초, sourcece6820e0b2afe181f799b8944e79f800d1cafdeea023614ca2bd1034f3cedbdc. nativeWindows 검사는 선택하지 않았으므로0NR을Windows검증으로 해석 금지. source/home metadata 불변·QA복원·19KEYLESS.
+- 2a runtime17801eb631e6314a33bfe692b15a8312edae444f, B2main 통합797e8f5b934127734ae1207daaced9d1c3501200. registry 양쪽 신규모듈을 모두 보존해충돌해소. branchgpt/research-attestation-revocation push완료. source409d7a66ad993bf6fe6eb7adc982b5b9ec189d94977ea473652fd0555d03d681의915개 compliance/control/research 검사 진행중, 완료로기록하지않음.
+- 2a 개발범위: canonical signed-body별 제한 event, fullverifiedhead Context, 모든 source auth 소비, archive revoked상태표시; 재시작 log-onlyrollback 방지 per-event anchor; fullchain/anchor checks와 idempotent signer retry; POSIX dirfd 및 독립Win32 retainedparent 생성. nativeWindows 실제미검증, coherentlog+allanchors rollback은 별도한계. 최초fixture시간오류1건은 고쳤으며실패로그보존.
+- 2b/c 신규트리는 /workspace/tradegen-sealed-selection-1113, branchgpt/research-sealed-selection, base797e8f5. actual single sealed evaluation helper와 private sourceauthentication backend 개발, 실제 factory/history/전체 audit연결orchestrator·CLI 진행. source/tests최종검증전.
+- Notion 두페이지에 PR42·PR43 기록완료; PR43 update15:10:24.416Z/15:10:30.884Z와 기존본문prefix보존 확인. 실제사용자가입력할 S1~S12/Windows/서명/계좌·활성화 미수행. PR43 app attach 연결실패, 실제GitHub병합정상.
