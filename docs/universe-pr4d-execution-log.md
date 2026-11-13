@@ -19,7 +19,12 @@ Scope: the existing approved PR4d plan, Tasks 1–4. The additional capacity ame
 The combined focused run of the four affected/guard modules passed 60/60 in 7.445 seconds. Source fingerprint
 `1aac24a84d06886bdc132fc36bbab4428978f366dc86f8d8b22edba3886c9cfe` and actual-home metadata were unchanged.
 Planned RED runs are retained separately; their expected failures are not final regression failures.
-The full suite for PR4d has not yet run. Focused counts overlap and must not be added together.
+The original implementation's full suite at `ea4e2a4925922ce468208c89020881cb01a08403` completed:
+**2,719 total; 2,584 PASS, 0 FAIL, 135 NOT_RUN**, in 1,105.243 seconds. All 2,705 PR4c baseline IDs remain;
+the 14 added tests pass. The same 135 NOT_RUN cases remain (121 macro reference/owner/freeze prerequisites and
+14 Windows-specific checks), and none is counted as passed. The source fingerprint and actual-home metadata
+stayed unchanged. This result does not resolve the known capacity contract gap or validate a later amendment.
+Focused counts overlap and must not be added together.
 The five boundary guard modules also passed 81/81 in 11.953 seconds on the same frozen fingerprint, with no
 source or actual-home metadata change. The delivered commit's Python/YAML fingerprint is checked against these runs.
 
@@ -45,7 +50,7 @@ A synthetic reproduction exercised the actual collector/provider and actual `Liv
 The separate owner decision proposes a second book-unavailable fallback and an explicit finite admission/refusal
 contract while retaining every holding. Neither is in this branch. No cap was raised, holding pruned, or new capacity
 diagnostic introduced. The original Tasks2–4 can be reviewed independently; final PR4d merge remains on hold until
-the capacity contract is resolved, then final review/guard/full verification is completed.
+the capacity contract is resolved. Any later runtime amendment requires review and its own final verification.
 
 ## Operational boundary
 
