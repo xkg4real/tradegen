@@ -1,6 +1,6 @@
 # TRADEGEN 업무처리 워크플로우
 
-기준: 2026-11-13 17:30 KST. PR 4c 수정 후 재검증 체크포인트이며 최종 검증·병합·실거래 준비 완료 판정은 아니다.
+기준: 2026-11-13 17:37 KST. PR 4c 수정 후 재검증과 기존 업무 의존성 확인 기록이며 최종 검증·병합·실거래 준비 완료 판정은 아니다.
 
 ## 1. 근거와 현재 상태
 
@@ -32,6 +32,26 @@
   이 승인에 의존하는 변경은 승인 완료로 간주하지 않는다. PR 4c 재검증은 계속한다.
 - 실제 API 호출·전자서명·무장·주문·실제 전략 통과를 수행하거나 완료로 표시하지 않았다.
 
+### 기존 잔여 업무의 의존성 사전분석 완료
+
+- `production-readiness-dependencies.md`와 `plb-dependencies.md`를 현재 소스 `c80c56c`에서 읽기 전용으로 작성·대조했다.
+  기존 task의 의존성 근거이며 새 파생업무나 완료된 구현이 아니다. 이 분석은 코드/테스트 수정·실행을 하지 않았다.
+- 11월 12일 승인된 최신 설계의 순서는 **유니버스 PR 5 → PLB → L1 live launcher → L2 현재 planner → L3 standing deployment + A1 protective hold**다.
+  설계 문서에 승인 기록이 있지만 실제 런타임 구현은 아직 없다. 기존 standing 안전정지 매도 규칙은 A1의 보호 보유 정정과 대조해야 한다.
+- 실제 보유 구간의 완전성을 보증하는 source 계약은 미확정이다. 표본 호가·잔고 조회, heartbeat, 자료형 또는 로컬 hash를 완전성 증거로 간주하지 않는다.
+- `Controller.observe`가 이미 journal transaction을 잡으므로, provider에서 `commit_continuous_guard`를 그대로 호출하면 중복 잠금 위험이 있다.
+  하나의 journal transaction 안에서 독립 head·저장소와 위험 기록이 일치한 뒤 관측을 게시하도록 연결해야 한다.
+- **PLB O1–O16의 기본 결정은 이미 승인됐으며 재질문하지 않는다.** PLB 구현 계획은 유니버스 PR 5가 병합된 main 기준으로 작성한다.
+- **별도의 소유자 상태 증거가 대기 중**이다. PLB §9.3 step 0 / O14에 따라 실제 운영 home의 `floor_state_check` S1–S12 결과가 있어야 조건부 구현 범위를 확정한다.
+  실행 여부와 고정 결과 코드만 이미 요청했고 답변을 기다린다. 금액·키·실제 로그를 요청하지 않는다. 단순 exit 0이나 과거 `--check OK`는 이 증거를 대신하지 않는다.
+- 위 상태 증거 요청은 PR 4d capacity / PR 5 실패 연구 인증 결과의 **새 설계 승인 2건과 구분**한다.
+  승인됐던 PLB 선택지를 다시 승인받는 요청이 아니다. PR 4c의 수정 후 전체 검사는 계속 실행 중이다.
+
+근거: [L1/L2 설계](https://github.com/xkg4real/tradegen/blob/c80c56cdab946a80ae40be31432b41c881dcd5a2/docs/superpowers/specs/2026-11-12-controlled-launch-and-planner-design.md),
+[L3 설계](https://github.com/xkg4real/tradegen/blob/c80c56cdab946a80ae40be31432b41c881dcd5a2/docs/superpowers/specs/2026-11-12-standing-deployment-design.md),
+[A1 정정](https://github.com/xkg4real/tradegen/blob/c80c56cdab946a80ae40be31432b41c881dcd5a2/docs/superpowers/specs/2026-11-12-standing-protective-hold-design.md),
+[PLB 설계](https://github.com/xkg4real/tradegen/blob/c80c56cdab946a80ae40be31432b41c881dcd5a2/docs/superpowers/specs/2026-11-11-principal-loss-budget-design.md).
+
 ## 2. 완료가 확인된 개발
 
 | 상태 | 작업 | 근거 |
@@ -53,9 +73,9 @@
 | 3 / universe-pr4e | runner·coordinator·준비·console odds·리허설 연결 | PR 4a·4d 병합 | 아래 계약 정정 2건, 오래된 관측 거부, 취소·청산·중지 흐름 검사, PR·병합 근거 | 대기 |
 | 4 / universe-pr5 | forward-universe-v1 평가기·수집·후보군 검증·48시간 연구 도구 | PR 4e 병합 | 전체 후보와 실패 시도 보존, 자료 크기·종목별 파서·평가기 검사, PR·병합 근거 | 대기 |
 | 5 / universe-pr5-clock-notify | PR 5 병합 번호·커밋 통지와 담당 세션 조율 | PR 5 실제 병합 | 전달 가능한 채널의 실제 통지 기록. Claude 로컬 세션에 직접 전달할 수 없으면 사용자에게 전달 요청 | 대기 |
-| 6 / policy-loss-budget-plan-1 | 최신 main 기준 PLB 구현 계획 작성·명세 대조 후 구현 | 유니버스 PR 5 병합 | 기존 승인 명세와 일치하는 구체적 계획, 위험·다음날 효력·재시작 검사, PR·병합 근거 | 대기 |
+| 6 / policy-loss-budget-plan-1 | 최신 main 기준 PLB 구현 계획 작성·명세 대조 후 구현 | 유니버스 PR 5 병합, step 0 S1–S12 상태 결과 | O1–O16 승인 기본값 보존, O14 조건부 범위, 위험·효력·재시작 검사, PR·병합 근거 | 의존성 사전분석 완료 / 상태 증거 대기 / 구현 전 |
 | 7 / clock-allowance | 승인된 호가 시계 1초 허용치 코드와 경계 검사 | PR 5의 공통 호가 파서 | 1,000ms 허용·1,001ms 거부, 기존 10초 신선도·receipt·HTTP Date 조건 유지 | 대기 |
-| 8 / launch-production-integration | 완전한 보유 구간 증거, 영속 위험 adapter, 현재 planner, controlled coordinator 연결 | 관련 코드와 최종 위험 정책 확정 | 원본 자료 권한·시간순 위험·장애복구·독립 head·동시성·보호 청산 검사 | 미완료 |
+| 8 / launch-production-integration | 보유 source·영속 위험 adapter, L1 live → L2 planner → L3 standing + A1 protective hold | 유니버스·PLB, 확정된 보유 source 완전성 계약 | 원본 자료 권한·시간순 위험·단일 journal 잠금·장애복구·독립 head·보호 보유 검사 | 의존성 사전분석 완료 / source 계약 미확정 / 런타임 미구현 |
 | 9 / owner-setup | 실제 Windows 반영·읽기 전용 계좌/호가 준비·최종 코드와 표/정책 서명 | 실행할 최종 소스 확정 | 사용자가 검토한 코드와 로컬 설치 일치, 실제 서명·효력 검사, 읽기 전용 운영 증거 | 소유자 단계 |
 | 10 / launch-prospective-study | 새 history 구간·사전등록·실제 관측·전체 후보 평가·출처/구현 검토 | 최종 코드·시계 점검·필요 서명·환경 준비 | 소급 변경 없는 실제 48시간 관측, 누락·비용·통계 조건 충족, 전체 후보 검토 증거 | 미실행 |
 | 11 / launch-ready | 실제 통과 전략 검토 서명, 당일 준비·중지/복구 리허설, 무장 안내 | 실제 연구 통과와 유효한 권한·정책·계좌 상태 | 같은 최종 버전에서 모든 실행 전 조건 충족. 실제 arm은 사용자가 직접 수행 | 미완료 |
@@ -100,11 +120,14 @@
 | 2026-11-13 16:54 | workflow-resume-1113/notion | 문서만 | 기존 Notion 2페이지 갱신·저장 내용 재조회 확인, 과거 절 보존 | 공개 정보·완료 범위·서명 경계 확인 | 새 페이지·코드 PR 없음 | 후속 Task별 실제 근거 추가 |
 | 2026-11-13 17:06 | universe-pr4c/tasks1-9 | 8137c4712b164c120ec8063e50dc3e05b741c23f | 고정 경계 81/0/0, 전체 회귀 실행 중, 집중 검사는 위 개별 기록 | 완료 | PR33 open/draft/미병합, 원격 head 확인 | Task 10 전체 회귀·최종 전달·병합 |
 | 2026-11-13 17:30 | universe-pr4c/regression-checkpoint | 첫 실행 8137c47 / 현재 c80c56c | 첫 전체 2569/0/135, 이후 재귀오류 수정 40 PASS, 수정 후 전체 재검증 실행 중 | 수정 독립 리뷰 완료 | PR33 head c80c56c, open/draft/미병합 | 최종 전체 결과·Task 10·병합, 별도 설계 승인 2건 대기 |
+| 2026-11-13 17:37 | existing-task-dependency-evidence | c80c56c 읽기 전용 분석 | 테스트·앱 실행 없음, 최신 승인 설계와 런타임 부재 대조 | production/PLB 의존성 기록 확인 | 문서 기록만 | 새 설계 승인 2건과 별개인 소유자 S1–S12 상태 증거 대기 |
 
 ## 5. 사용자 업무와 승인 경계
 
 - 현재 클릭 승인 대기: **PR 4d capacity 처리**, **PR 5 실패한 연구의 인증된 결과 기록** 추가 설계 2건.
   승인 여부가 확인되기 전에는 해당 변경을 승인된 작업으로 처리하지 않는다.
+- 현재 상태 증거 대기: 소유자 `floor_state_check` 실행 여부와 **S1–S12 고정 결과 코드** 답변.
+  PLB §9.3 step 0 / O14의 조건부 범위 확인용이며, 이미 승인된 O1–O16 결정을 재질문하는 절차가 아니다.
 - 기존 승인 명세 안의 개발·검사·PR 전달과 사용자가 요청한 push·merge 절차는 계속 진행한다.
   새 작업·새 워크플로우·판정 기준 변경이 필요하면 먼저 구체적 결과와 영향 범위를 제시하고 이 대화에서 승인을 요청한다.
 - GitHub 병합은 검토한 정확한 head와 검사 결과를 확인한 뒤 진행하며, 코드/표 전자서명과 무장 승인을 대신하지 않는다.

@@ -4,11 +4,11 @@ reason: owner_requested_resume
 from: gpt
 task: upbit-universe
 cycle: 2026-11-10
-done_ids: workflow-resume-1113, universe-pr4c/implementation, universe-pr0, universe-pr1, universe-pr2, universe-pr3, universe-pr4b, universe-pr4a
+done_ids: workflow-resume-1113, workflow-resume-1113/dependencies, universe-pr4c/implementation, universe-pr0, universe-pr1, universe-pr2, universe-pr3, universe-pr4b, universe-pr4a
 next_ids: universe-pr4c, universe-pr4d, universe-pr4e, universe-pr5, universe-pr5-clock-notify, universe-code-approve, policy-loss-budget-plan-1, rules-review-1202, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, launch-private-capture-setup-1, e1-14-owner-setup, launch-prospective-study, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1
-updated_at: 2026-11-13T17:31:44+09:00
+updated_at: 2026-11-13T17:39:16+09:00
 stale_after_hours: 3
-waiting_on: owner decisions on PR4d capacity and PR5 authenticated failed-trial amendments; PR4c regression continues
+waiting_on: PR4d and PR5 design decisions; owner floor-state evidence; PR4c regression continues
 work_branch: gpt/universe-pr4c-terms
 work_commit: c80c56cdab946a80ae40be31432b41c881dcd5a2
 runtime_tested_commit: 8137c47 full PASS; c80c56c focused40 PASS and corrected full running
@@ -76,6 +76,7 @@ main은 `971a538`(#32)이며 PR4d는 PR4c 병합 뒤 시작합니다.
 - [x] universe-pr4a #32 / 971a538
 - [x] workflow-resume-1113: 기존 Notion2페이지와 md 정정; LEDGER 기록.
 - [x] universe-pr4c/implementation: Tasks1~9 구현과 독립검토; LEDGER 기록. 최종 검증·병합과 구분.
+- [x] workflow-resume-1113/dependencies: PLB·운영 연결 사전분석과 사용자 상태 점검 안내. 구현 완료 아님.
 - [ ] universe-pr4c: PR33 수정 head의 전체 검사 중.
 - [ ] universe-pr4d / universe-pr4e / universe-pr5: 사전 대조 기록 있음, 런타임 미구현.
 - [ ] PR5 완료 알림 / PLB 계획·코드 / 시계 코드 / 운영 연결 / 소유자 최종 승인 / 실제48h연구·검토.
@@ -107,7 +108,9 @@ main은 `971a538`(#32)이며 PR4d는 PR4c 병합 뒤 시작합니다.
 5. PR5: 사전 검토의 시간 인과성·입력 검증 이슈 확인. failed-trial 인증 결과 보완은 승인 후에만 구현.
 6. PR5 병합 시 owner에게 PR번호와 merge SHA를 알림. GPT는 Claude 로컬 세션으로 메시지를 보낼 수 없음.
    owner/Claude가 기존 시작 세션에 전달하며 그 세션이 승인된1초 시계 허용치 PR을 진행.
-7. PR5 후 PLB 계획·코드, 운영 authority/guard/planner/controlled integration 완료.
+7. PR5 후 상태점검 결과에 맞춰 PLB 계획·코드, 운영 authority/guard/planner/controlled integration 완료.
+   최신11/12 approved controlled L1→L2→L3 설계와 A1 protective hold 개정을 사용.
+   held-source completeness 계약 미확정과 중복 journal 잠금 위험은 production-readiness-dependencies.md 참조.
    최종 소유자 code-approve와 신규 실제 study/review/history window는 소유자 환경에서 진행.
 
 ## 7. 주의사항
@@ -124,7 +127,10 @@ main은 `971a538`(#32)이며 PR4d는 PR4c 병합 뒤 시작합니다.
 
 ## 8. 사용자 응답이 필요한 항목
 
-두 질문을 이미 이 대화에서 클릭형으로 제시했으며 답변 전입니다. 같은 질문을 반복하지 마세요.
+설계 질문 두 개를 이미 클릭형으로 제시했으며 답변 전입니다. 같은 질문을 반복하지 마세요.
+또한 PLB spec9.3 step0/O14 구현 범위를 위해 owner PC의 floor_state_check 실행 여부와 S1~S12 고정코드를 요청했습니다.
+금액·원본로그 없이 결과만 받으며, 승인된 O1~O16 기본값을 다시 질문하지 않습니다.
+안내는 같은 context의 TRADEGEN_OWNER_NEXT_STEPS_2026-11-13.md에 있습니다.
 
 - PR4d: 원래 flags/tickers 대체 뒤에도256KiB를 넘으면 book unavailable로 다시 계산;
   계좌/보유내역을 보존해도 초과하면 상태변경 전 명시적으로 용량 거부하는 계약.
