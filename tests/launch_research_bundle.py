@@ -453,3 +453,84 @@ def test_required_flag_casefold_collision_and_unsafe_names_are_archived_before_z
                 assert any(file.role == 'plan' and not file.required for file in raw.manifest.files)
             else:
                 assert path.read_bytes() in role_bytes(raw, 'report')
+
+
+def test_private_sealed_snapshot_keeps_one_actual_family_and_exact_complete_immutable_graph():
+    for carry in (False, True):
+        with fixture(carry=carry) as e:
+            finished = finalize(e)
+            assert finished.status == 'VERIFIED_UNAPPROVED', finished.reasons
+            verified = e.store.read_verified(finished.bundle_digest, require_backup=True)
+            raw = e.store.read_raw(finished.input_archive_digest, require_backup=True)
+            shutil.rmtree(e.work)
+            actual_evaluate = E.evaluate_capture_json
+            actual_research = R._research
+            calls, research_calls = [], []
+            def evaluate(protocol, capture, *args, **kwargs):
+                calls.append((protocol.study_id, capture))
+                return actual_evaluate(protocol, capture, *args, **kwargs)
+            def research(*args, **kwargs):
+                evaluated = actual_research(*args, **kwargs)
+                research_calls.append(evaluated)
+                return evaluated
+            before = dict(E._EVALUATED)
+            with patch.object(E, 'evaluate_capture_json', side_effect=evaluate), \
+                 patch.object(R, '_research', side_effect=research):
+                snapshot = R._evaluate_sealed_study_snapshot(e.store, finished.bundle_digest)
+            assert len(research_calls) == 1 and snapshot.family is research_calls[0][2]
+            assert len(calls) == len(e.env.plan.candidates)
+            assert len({identifier for identifier, _ in calls}) == len(calls)
+            assert dict(calls) == e.env.captures
+            assert snapshot.plan == e.env.plan
+            assert R.profile_digest(snapshot.profile) == verified.manifest.profile_digest
+            assert snapshot.bundle_digest == finished.bundle_digest
+            assert snapshot.input_archive_digest == finished.input_archive_digest
+            assert snapshot.evaluated_at == e.at
+            assert snapshot.raw_manifest_bytes == raw.manifest_bytes
+            assert snapshot.verified_manifest_bytes == verified.manifest_bytes
+            assert dict(snapshot.files) == dict(verified.files)
+            assert all(snapshot.files[key] == value for key, value in raw.files.items())
+            assert len(E._EVALUATED) == len(before) + len(snapshot.family.rows)
+            assert all(E._EVALUATED.get(id(row.result)) == (row.result, E.evidence_digest(row.result))
+                       for row in snapshot.family.rows)
+            assert set(row.study_id for row in snapshot.family.rows) == set(e.env.captures)
+            # These genuine computations fail the numerical minimum; preserving
+            # the full family must not silently keep only a desirable result.
+            assert all(row.result.primary.completed_roundtrips < candidate.protocol.minimum_roundtrips
+                for row, candidate in zip(snapshot.family.rows, snapshot.plan.candidates))
+            logical = next(iter(snapshot.files))
+            try:
+                snapshot.files[logical] = b'changed'
+            except TypeError:
+                pass
+            else:
+                raise AssertionError('sealed input mapping is mutable')
+            assert snapshot.files[logical] == verified.files[logical]
+            assert e.store.read_verified(finished.bundle_digest).manifest_bytes == verified.manifest_bytes
+
+
+def test_public_sealed_evaluation_projects_the_same_single_actual_snapshot_without_new_authority():
+    with fixture() as e:
+        finished = finalize(e)
+        assert finished.status == 'VERIFIED_UNAPPROVED', finished.reasons
+        actual = R._evaluate_sealed_study_snapshot
+        seen = []
+        def snapshot(*args, **kwargs):
+            value = actual(*args, **kwargs)
+            seen.append(value)
+            return value
+        before = dict(E._EVALUATED)
+        with patch.object(R, '_evaluate_sealed_study_snapshot', side_effect=snapshot):
+            displayed = R.evaluate_sealed_study(e.store, finished.bundle_digest)
+        assert len(seen) == 1 and displayed.family is seen[0].family
+        assert type(displayed) is R.SealedEvaluation
+        assert displayed.bundle_digest == seen[0].bundle_digest
+        assert displayed.input_archive_digest == seen[0].input_archive_digest
+        assert displayed.evaluated_at == seen[0].evaluated_at
+        assert len(E._EVALUATED) == len(before) + len(displayed.family.rows)
+        assert displayed.reasons == ('BUNDLE_MANIFEST_AUTHENTICATION_REQUIRED',)
+        assert not displayed.manifest_authenticated and not displayed.execution_ready
+        # Neither display projection nor private dataclass substitutes for the
+        # actual Store input. A later call must re-read and re-evaluate itself.
+        refused(lambda:R._evaluate_sealed_study_snapshot(displayed, finished.bundle_digest), 'BUNDLE_STORE_REQUIRED')
+        refused(lambda:R._evaluate_sealed_study_snapshot(seen[0], finished.bundle_digest), 'BUNDLE_STORE_REQUIRED')
