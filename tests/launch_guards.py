@@ -36,7 +36,18 @@ STUDY = "execution_launch/study.py"
 CONTINUOUS_ARCHIVE = "execution_launch/continuous_archive.py"
 UNIVERSE_STORE = "execution_launch/universe_store.py"
 EVIDENCE_OBJECTS = "execution_launch/evidence_objects.py"
+PROTECTIVE_STORE = "execution_launch/protective_store.py"
 PINNED_WRITES: dict[str, tuple[str, ...]] = {
+    PROTECTIVE_STORE: (
+        'self.root.mkdir(mode=0o700)',
+        'os.open(checked_target(self.root / name, "protective setup", within=self.root), '
+        'os.O_WRONLY | os.O_CREAT | os.O_EXCL | _FLAGS, 0o600)',
+        'os.fdopen(descriptor, "wb")',
+        'os.open(checked_target(target, "protective lock", within=self.root), os.O_RDWR | _FLAGS)',
+        'os.fdopen(descriptor, "r+b")',
+        'os.open(target, os.O_WRONLY | os.O_APPEND | _FLAGS)',
+        'os.fdopen(descriptor, "ab")',
+    ),
     HEAD: (
         'checked_target(self._dir, "baseline head directory", within=self._root).mkdir(mode=0o700, exist_ok=True)',
         'os.open(checked_target(self._dir / "head.lock", "baseline head lock", within=self._dir), '
@@ -110,7 +121,7 @@ WRITE_MODE = re.compile(r"[wax+]")
 # The trusted baseline head is advanced only by the account provider, the live-history journal and the continuous
 # guard commit coordinator (after its durable prepare record and halt latch).
 CAS_CALLERS = frozenset({"execution_accounts/baseline_bridge.py", "execution_launch/live_history.py",
-                         "execution_launch/continuous_guard_commit.py"})
+                         "execution_launch/continuous_guard_commit.py", PROTECTIVE_STORE})
 
 
 def _call_name(node):
@@ -725,6 +736,35 @@ def test_guard_reads_pin_utf8():
                                           "os.open(p, flags)\nopen(p, mode)\n")
     for path in sorted((ROOT / "tests").glob("*guard*.py")):
         assert not read_text_without_encoding(path.read_text(encoding="utf-8")), path.name
+
+
+def test_protective_store_writes_stay_exact_and_cannot_self_initialize_authority():
+    source = (ROOT / PROTECTIVE_STORE).read_text(encoding="utf-8")
+    assert not problems(source, PROTECTIVE_STORE), problems(source, PROTECTIVE_STORE)
+    calls = {ast.dump(node) for node in ast.walk(ast.parse(source)) if isinstance(node, ast.Call)}
+    assert _PINNED_WRITE_TREES[PROTECTIVE_STORE] <= calls
+    write = "write outside pinned writer"
+    for shape in PINNED_WRITES[PROTECTIVE_STORE]:
+        assert not problems(shape, PROTECTIVE_STORE), shape
+        # Existing writers already pin some shared fdopen shapes. Test migration
+        # into unapproved modules without revoking those reviewed exceptions.
+        for relative in ("", "execution_launch/protective_state.py", "execution_launch/nested/protective_store.py",
+                         "execution_network/protective_store.py"):
+            assert write in problems(shape, relative), (shape, relative)
+    create = PINNED_WRITES[PROTECTIVE_STORE][1]
+    append = PINNED_WRITES[PROTECTIVE_STORE][5]
+    for altered in (create.replace("os.O_EXCL", "os.O_TRUNC"), create.replace(" | os.O_EXCL", ""),
+                    create.replace("within=self.root", "within=other"), create.replace("0o600", "0o666"),
+                    append.replace("os.O_APPEND", "os.O_TRUNC"), append.replace("target,", "other,"),
+                    "os.replace(source, target)", "path.unlink()", "path.write_bytes(raw)",
+                    "self.root.mkdir(mode=0o777)"):
+        assert write in problems(altered, PROTECTIVE_STORE), altered
+    for extra in ("import requests", "owner.load_context(now)", "owner.arm(x)",
+                  "os.environ['UPBIT_SECRET_KEY']", "head.initialize_reviewed_head(x)"):
+        assert problems(extra, PROTECTIVE_STORE), extra
+    assert not problems("store.head.compare_and_set(previous.head, row['row_sha256'])", PROTECTIVE_STORE)
+    assert "trusted head advance outside pinned callers" in problems(
+        "store.head.compare_and_set(previous.head, row['row_sha256'])", "execution_launch/protective_state.py")
 
 
 def test_launch_and_account_tests_start_no_process():
