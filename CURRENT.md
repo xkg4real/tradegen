@@ -4,9 +4,9 @@ reason: owner_requested_resume
 from: gpt
 task: upbit-universe
 cycle: 2026-11-10
-done_ids: universe-pr4d/task2-implementation, universe-pr4d/task3, universe-pr4d/task4, universe-pr4c, universe-pr4d/task1, workflow-resume-1113, workflow-resume-1113/dependencies, universe-pr4c/implementation, universe-pr0, universe-pr1, universe-pr2, universe-pr3, universe-pr4b, universe-pr4a
+done_ids: workflow-resume-1113/regression-preparation, universe-pr4d/task2-implementation, universe-pr4d/task3, universe-pr4d/task4, universe-pr4c, universe-pr4d/task1, workflow-resume-1113, workflow-resume-1113/dependencies, universe-pr4c/implementation, universe-pr0, universe-pr1, universe-pr2, universe-pr3, universe-pr4b, universe-pr4a
 next_ids: universe-pr4d, universe-pr4e, universe-pr5, universe-pr5-clock-notify, universe-code-approve, policy-loss-budget-plan-1, rules-review-1202, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, launch-private-capture-setup-1, e1-14-owner-setup, launch-prospective-study, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1
-updated_at: 2026-11-13T18:07:28+09:00
+updated_at: 2026-11-13T18:19:56+09:00
 stale_after_hours: 3
 waiting_on: PR4d capacity and PR5 authenticated failed-trial decisions; owner floor-state evidence
 work_branch: gpt/universe-pr4d-driver-history
@@ -108,6 +108,9 @@ PR4d Task1은 커밋 `d34395b`에서31 PASS /0 FAIL /0 NR,3.427초. 기존 두 g
 - 근거는 `context/upbit-universe/gpt-20261113/`의 pr4d-task2/3/4 및review, pr4d-task34-green-summary.json,
   pr4d-guards-summary.json, pr4d-review-capacity-actual-evidence.json와 TRADEGEN_PROGRESS_2026-11-13.md.
 - PR33은17:46:10KST 병합7d256f9; runtimec80 full2705/2570PASS0FAIL135NR. 그 full을 PR34검증으로 쓰지 않음.
+- PR4e 필수회귀와 PR5 인과성/시장목록 회귀 초안을 같은context의 pr4e-required-regressions.md,
+  pr4e-required-regression-fragments.md, pr5-causality-regressions.md, pr5-regression-fragments.md에 저장.
+  문법 확인만 했고 테스트 실행/실제코드 통합은 안 함. PR5누적320인덱스 소진 처리의 좁은모호성도 기록.
 
 ## 6. 다음 할 일
 
