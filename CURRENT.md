@@ -4,16 +4,16 @@ reason: owner_requested_resume
 from: gpt
 task: upbit-universe
 cycle: 2026-11-10
-done_ids: universe-pr4c, universe-pr4d/task1, workflow-resume-1113, workflow-resume-1113/dependencies, universe-pr4c/implementation, universe-pr0, universe-pr1, universe-pr2, universe-pr3, universe-pr4b, universe-pr4a
+done_ids: universe-pr4d/task2-implementation, universe-pr4d/task3, universe-pr4d/task4, universe-pr4c, universe-pr4d/task1, workflow-resume-1113, workflow-resume-1113/dependencies, universe-pr4c/implementation, universe-pr0, universe-pr1, universe-pr2, universe-pr3, universe-pr4b, universe-pr4a
 next_ids: universe-pr4d, universe-pr4e, universe-pr5, universe-pr5-clock-notify, universe-code-approve, policy-loss-budget-plan-1, rules-review-1202, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, launch-private-capture-setup-1, e1-14-owner-setup, launch-prospective-study, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1
-updated_at: 2026-11-13T17:52:40+09:00
+updated_at: 2026-11-13T18:07:28+09:00
 stale_after_hours: 3
-waiting_on: PR4d and PR5 design decisions; owner floor-state evidence; original PR4d Tasks2-4 continue
+waiting_on: PR4d capacity and PR5 authenticated failed-trial decisions; owner floor-state evidence
 work_branch: gpt/universe-pr4d-driver-history
-work_commit: d34395bd27e0ea30e7a23eed7f626a2ca350bf56
-runtime_tested_commit: d34395b Task1 31PASS; PR33 c80c56c full2570PASS0FAIL135NR
-uncommitted_changes: yes (PR4d Task2 in progress; checkpoint is Task1)
-pr: PR33 merged7d256f9; PR4d not opened
+work_commit: ea4e2a4925922ce468208c89020881cb01a08403
+runtime_tested_commit: ea4e2a4 fingerprint verified against60focused and81guard PASS; PR4d original full running
+uncommitted_changes: no
+pr: https://github.com/xkg4real/tradegen/pull/34 (draft; unmerged; capacity decision pending)
 usage_weekly_pct: unknown
 usage_source: unavailable
 handoff_threshold_pct: 95
@@ -26,11 +26,12 @@ session: Cloud Codex; owner Windows deployment remains separate
 
 ## 0. 한 줄 요약
 
-PR4c 구현·전체 검증을 마치고 PR33을 main `7d256f9`로 병합했습니다.
-수정 runtime `c80c56c`의 전체 결과는2705개 중2570 PASS / 0 FAIL /135 NOT_RUN입니다.
-PR4d Task1도 구현·독립 검토·31개 검사 통과 후 원격 `d34395b`에 저장했습니다.
-현재 원래 승인된 PR4d Task2~4를 작업 브랜치에서 이어갑니다. 추가 용량 보완은 미승인·미구현이며
-기존 크기 한도 거부를 유지하고, 미해결 용량 계약 문제 때문에 PR4d 최종 병합은 보류합니다.
+PR4c는 PR33/main7d256f9로 병합됐으며 수정 runtime 전체검사는2570 PASS /0 FAIL /135 NOT_RUN입니다.
+PR4d 원래 Tasks1~4 구현·독립 검토를 마쳐 draft PR34를 열었습니다. 원격 head는 `ea4e2a4`입니다.
+집중60/60 및 경계81/81 검사가 통과했고 같은 소스 fingerprint를 전달 커밋에서 확인했습니다.
+다만 실제 합성 입력의 행이 첫fallback뒤에도279312바이트로 한도262144를 넘었습니다. 기존 거부 시
+journal·head·메모리 상태는 보존되지만 승인된§12의 무조건적 용량 보장은 충족하지 못합니다.
+원래 구현의 전체 검사는 진행 중입니다. 용량 계약을 해결하기 전까지 PR34는 초안·미병합으로 유지합니다.
 
 ## 1. 목표와 완료 조건
 
@@ -56,7 +57,7 @@ PR4d Task1도 구현·독립 검토·31개 검사 통과 후 원격 `d34395b`에
 
 ## 3. 판단 기록
 
-- Universe를 먼저 완료하고 그 main 기준으로 PLB 계획을 작성합니다. 두 계열과 필요한 시계 코드 병합 후
+- Universe를 먼저 완료하고 그 main 기준으로 PLB 계획을 작성합니다. 두 계열·시계·필요한 운영 연결 코드 병합 후
   소유자가 한 번 code-approve합니다. 중간 PR마다 서명을 요구하지 않습니다.
 - 기존 signed Windows 배포는 변경하지 않습니다. Cloud 테스트는 별도 격리 상태와 가짜 데이터만 사용합니다.
 - PR4c 통합 수정: 불완전한 플래그로 경보를 해제하지 않음; 상장폐지 0평가는 Upbit에만 적용;
@@ -81,7 +82,10 @@ PR4d Task1도 구현·독립 검토·31개 검사 통과 후 원격 `d34395b`에
 - [x] workflow-resume-1113/dependencies: PLB·운영 연결 사전분석과 사용자 상태 점검 안내. 구현 완료 아님.
 - [x] universe-pr4c: PR33 병합7d256f9, 최종full2570PASS/0FAIL/135NR.
 - [x] universe-pr4d/task1: d34395b, immutable bars/chooser/frame fields,31PASS·독립검토 완료.
-- [ ] universe-pr4d: 원래 승인된Task2~4 구현 중. 추가용량설계·최종병합은 대기.
+- [x] universe-pr4d/task2-implementation: f3e6ac3, 원래 v2기록·첫fallback; 검토완료, 용량specgap 미해결.
+- [x] universe-pr4d/task3: ea4e2a4, 종목/틱/이전결정/전환 검증·독립검토.
+- [x] universe-pr4d/task4: ea4e2a4, v2재생/상태복원·독립검토; 잘못된17가지기록 검사.
+- [ ] universe-pr4d: PR34초안, 추가용량결정·최종전체검사·최종병합 대기.
 - [ ] universe-pr4e / universe-pr5: 사전 대조 기록 있음, 런타임 미구현.
 - [ ] PR5 완료 알림 / PLB 계획·코드 / 시계 코드 / 운영 연결 / 소유자 최종 승인 / 실제48h연구·검토.
 
@@ -92,32 +96,34 @@ PR4d Task1은 커밋 `d34395b`에서31 PASS /0 FAIL /0 NR,3.427초. 기존 두 g
 
 ## 5. 현재 작업 지점
 
-- 코드: `gpt/universe-pr4d-driver-history` / 원격체크포인트 `d34395bd27e0ea30e7a23eed7f626a2ca350bf56`.
-- PR33: https://github.com/xkg4real/tradegen/pull/33 ; 2026-11-13 17:46:10 KST 병합, SHA7d256f9.
-- PR4d Task2는 미커밋 작업 중. 원래 첫 fallback만 구현하며 새secondfallback/admission계약은 미구현.
-- Task3(driver)·Task4(replay)는 Task2 기초 완료 후 병렬 진행. 공유 tests/launch_universe_history.py는
-  한 번에 한 작성자만 수정. live_history.py와 tests/launch_live_history.py 모두CRLF 유지.
-- 테스트는19 KEYLESS·격리상태. Task1을 PR4d 전체 검증으로 표기하지 않음.
-- 자료: 같은context의 PR4c_COMPLETION, pr4c-final-summary, pr4d-task1, pr4d-task1-review,
-  pr4d-task1-final-summary. 앞선8137full은 역사적 기록이고 최종결과를 대체하지 않음.
-- 추가 설계2건 및 owner상태 질문은 답변 대기. 무응답을 승인으로 간주하지 않음.
+- 코드: `gpt/universe-pr4d-driver-history` / `ea4e2a4925922ce468208c89020881cb01a08403`, push완료·깨끗한 트리.
+- PR34: https://github.com/xkg4real/tradegen/pull/34 (draft, 미병합), base main7d256f9.
+- PR4d 원래Tasks1~4 코드·검토 완료. 추가secondfallback/admission계약은 미승인·미구현.
+- 집중검사60PASS0FAIL0NR(7.445초), 경계검사81PASS0FAIL0NR(11.953초), 겹치는 수는 합산하지 않음.
+  두 검사 fingerprint `1aac24a84d06886bdc132fc36bbab4428978f366dc86f8d8b22edba3886c9cfe`와
+  전달 커밋의 Python/YAML bytes가 같음. 소스·실제홈 메타데이터 불변. PR4d 원래 구현 전체검사는 pr4d-original-full 라벨로 진행 중. 코드·테스트 고정; 중복 실행 금지.
+- 실제코드 P2재현: collector/provider검증된1500합성보유내역,1522가짜조회,131072바이트호가.
+  첫fallback후279312바이트 → HISTORY_STORE_RECORD_INVALID. journal/head/slots/chooser상태 모두 불변.
+  재현PASS는 알려진거부를 확인한 것이며 용량문제 해결PASS가 아님.
+- 근거는 `context/upbit-universe/gpt-20261113/`의 pr4d-task2/3/4 및review, pr4d-task34-green-summary.json,
+  pr4d-guards-summary.json, pr4d-review-capacity-actual-evidence.json와 TRADEGEN_PROGRESS_2026-11-13.md.
+- PR33은17:46:10KST 병합7d256f9; runtimec80 full2705/2570PASS0FAIL135NR. 그 full을 PR34검증으로 쓰지 않음.
 
 ## 6. 다음 할 일
 
-1. PR4d 원래 승인된 Task2의 v2기록·계좌anchor·선택상태·첫fallback을 구현·검토·집중검사.
-   추가용량설계는 건드리지 않음. 원래코드가 잔여대형행을 거부하는 알려진P2는 그대로 미해결로 기록.
-2. Task2 기초를 고정하고 Task3(driver)와 Task4(replay)를 파일별 분리. 공유테스트는 root가 순차통합.
-   approvedmissing-book 처리와 unavailable replay는 추가secondfallback 승인에 의존하지 않음.
-3. 새 용량 보완 승인을 받으면 그 계약만 구현·검증; 원래Tasks2~4 개발은 기다리지 않아도 됨.
-   수정사항 모두 고정 후 guard/full·독립검토. 알려진§12 크기보장 미충족을 해결하기 전 최종PR4d병합 금지.
-4. PR4e: 3절의 필수 수정2개 및 preflight의 terms-blocked→market-vanished 경합 회귀 반영.
-5. PR5: 사전 검토의 시간 인과성·입력 검증 이슈 확인. failed-trial 인증 결과 보완은 승인 후에만 구현.
-6. PR5 병합 시 owner에게 PR번호와 merge SHA를 알림. GPT는 Claude 로컬 세션으로 메시지를 보낼 수 없음.
-   owner/Claude가 기존 시작 세션에 전달하며 그 세션이 승인된1초 시계 허용치 PR을 진행.
-7. PR5 후 상태점검 결과에 맞춰 PLB 계획·코드, 운영 authority/guard/planner/controlled integration 완료.
-   최신11/12 approved controlled L1→L2→L3 설계와 A1 protective hold 개정을 사용.
-   held-source completeness 계약 미확정과 중복 journal 잠금 위험은 production-readiness-dependencies.md 참조.
-   최종 소유자 code-approve와 신규 실제 study/review/history window는 소유자 환경에서 진행.
+1. 8절에서 이미 요청한 PR4d 용량 계약 결정 확인. 승인 전secondfallback/newadmission구현 금지.
+   승인되면 실제P2probe와 거부 시 상태불변·nobook재생·용량경계회귀로 보완을 검증.
+2. 코드 고정 후 최종guard/full·독립검토·PR34본문 갱신. known§12 미충족을 해결하기 전 최종병합 금지.
+   기존full런처는19KEYLESS·가짜source·격리상태; QA결과는 덮어쓰지 않음.
+3. PR34 병합 main에서 PR4e 계획. 계좌 provider 재호출 금지·observation한번읽기·read_bars후now 계약 유지.
+   preflight의 terms-blocked→market-vanished 정지 우선순위 회귀도 반영.
+4. PR5: 인과성·입력 검증 사전검토 반영. failed-trial인증 결과 확장은 승인 후에만 구현.
+5. PR5병합 PR번호/mergeSHA를 owner에게 전달. GPT는 Claude 로컬 세션에 직접 전달할 도구가 없음.
+6. PR5 main과owner실제state결과로 PLB 계획·코드. O1~O16기승인 기본값 재질문 금지.
+   승인된 시계변경 및 최신11/12 controlled L1→L2→L3+A1보호보유 설계를 순서대로 반영.
+7. held-source production authority는 공식문서에서도 아직 필요한 completeness/common-order/finality
+   계약을 확인하지 못함. 근거없이callback성공을발행하지않음. 관련두evidence문서와운영의존성메모참조.
+8. 모든closure변경 후 최종 owner서명, 신규실제48h관측·검토·현재준비객체·owner활성화. 개발검사와 구분.
 
 ## 7. 주의사항
 
@@ -148,6 +154,6 @@ PR4d Task1은 커밋 `d34395b`에서31 PASS /0 FAIL /0 NR,3.427초. 기존 두 g
 ## 9. 이어받는 에이전트에게
 
 CURRENT/AGENTS/LEDGER와 이 대화의 사용자 정정을 먼저 읽으세요. taken 상태의 다른 실행이 있는지 확인하세요.
-완료 ID는 반복하지 마세요. PR33 병합과 PR4d 원격checkpoint를 확인하고, 현재 Task2 작성자와 중복 편집하지 마세요.
+완료 ID는 반복하지 마세요. PR33 병합과 draft PR34 원격head를 확인하세요. 현재 소스는고정·push완료이고 미승인설계가남았습니다.
 검증·병합·실제연구·서명·무장을 서로 구분하세요. 8절의 미승인 보완을 답변 없이 구현하지 마세요.
 작업별 증거와 원격 SHA를 남기고, 중단할 때만 returned로 전환해 복구 가능한 로그를 제공하세요.

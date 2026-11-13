@@ -1,0 +1,16 @@
+{
+  "label": "review-capacity-actual",
+  "head": "f3e6ac3e1e5cdcb74740759ac2a28d4bdf89b298",
+  "source_hash": "1aac24a84d06886bdc132fc36bbab4428978f366dc86f8d8b22edba3886c9cfe",
+  "total": 1,
+  "counts": {
+    "PASS": 1,
+    "FAIL": 0,
+    "NOT_RUN": 0
+  },
+  "seconds": 3.085,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "failures": []
+}

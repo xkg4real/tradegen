@@ -1,0 +1,16 @@
+{
+  "label": "task2-green",
+  "head": "d34395bd27e0ea30e7a23eed7f626a2ca350bf56",
+  "source_hash": "f72640b9e1ed3c59aab3c333c156f87964c418ece0dbad01ff95d11240ac3bf5",
+  "total": 53,
+  "counts": {
+    "PASS": 53,
+    "FAIL": 0,
+    "NOT_RUN": 0
+  },
+  "seconds": 7.788,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "failures": []
+}
