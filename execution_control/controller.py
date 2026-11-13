@@ -656,6 +656,8 @@ class Controller:
         from execution_launch.committed_account import CommittedAccountProvider, CommittedAccountProjection
         committed = None
         if type(self.account_provider) is CommittedAccountProvider:
+            if self._completion_provider is not self.account_provider:
+                raise _CompletionRefused('COMMITTED_COMPLETION_AUTHORITY_REFUSED')
             committed = self.account_provider.read(now=now, transaction=transaction)
             if type(committed) is not CommittedAccountProjection:
                 raise ValueError('COMMITTED_ACCOUNT_PROJECTION_REQUIRED')

@@ -784,3 +784,28 @@ def test_exact_committed_provider_cannot_be_swapped_for_a_callable_observation()
             assert e.s.journal.snapshot() == before
             if phase == 'dispatch':
                 assert e.controller.states()[0].status == 'RESERVED'
+
+
+def test_legacy_constructor_cannot_opt_into_committed_checks_by_replacing_provider():
+    for supplied_clock in (False, True):
+        for phase in ('observe', 'reserve', 'dispatch'):
+            with F.fixture() as e:
+                if phase == 'dispatch':
+                    assert reserve(e).status == 'RESERVED'
+                observation = F.PF.read(e.s, e.provider, e.now).observation
+                e.controller = Controller(journal=e.s.journal, account_provider=lambda _: observation,
+                    policy=e.s.policy, adapters={'upbit': e.adapter}, session_provider=lambda _: None,
+                    clock=e.clock if supplied_clock else None)
+                e.controller.account_provider = e.provider
+                before = e.s.journal.snapshot()
+                invoke = (lambda: e.controller.observe(now=e.now)) if phase == 'observe' else (
+                    (lambda: reserve(e)) if phase == 'reserve' else (lambda: dispatch(e)))
+                with patch.object(e.provider, 'read', wraps=e.provider.read) as read, \
+                     patch.object(owner, 'load_context', wraps=owner.load_context) as current, \
+                     patch.object(C, '_issue', wraps=C._issue) as issued:
+                    refused(invoke, AUTHORITY)
+                    assert read.call_count == current.call_count == 0
+                    no_send(e, issued)
+                assert e.s.journal.snapshot() == before
+                if phase == 'dispatch':
+                    assert e.controller.states()[0].status == 'RESERVED'
