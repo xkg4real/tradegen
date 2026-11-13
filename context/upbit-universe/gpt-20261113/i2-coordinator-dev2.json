@@ -1,0 +1,98 @@
+[
+  {
+    "name": "test_actual_operation_session_controls_same_head_scheduled_limit_comparison",
+    "status": "PASS",
+    "seconds": 1.032,
+    "detail": ""
+  },
+  {
+    "name": "test_actual_owner_committed_read_and_repeat_observation_keep_heads_and_original_times",
+    "status": "PASS",
+    "seconds": 1.003,
+    "detail": ""
+  },
+  {
+    "name": "test_actual_prior_owner_halt_cannot_disappear_from_matching_guard_epoch",
+    "status": "PASS",
+    "seconds": 1.879,
+    "detail": ""
+  },
+  {
+    "name": "test_callable_projection_and_read_duck_type_never_replace_legacy_observation",
+    "status": "PASS",
+    "seconds": 0.835,
+    "detail": ""
+  },
+  {
+    "name": "test_first_buy_without_prior_observe_retains_guard_only_daily_stop",
+    "status": "FAIL",
+    "seconds": 0.745,
+    "detail": "Traceback (most recent call last):\n  File \"/workspace/tradegen-session/guard-projection-1113/i2_coordinator_dev.py\", line 14, in <module>\n    try:getattr(T,n)();status='PASS';detail=''\n        ~~~~~~~~~~~~^^\n  File \"/workspace/tradegen-guard-projection-1113/tests/control_committed_account.py\", line 334, in test_first_buy_without_prior_observe_retains_guard_only_daily_stop\n    with fixture(daily_stopped=True,spare_cash=True) as e:\n         ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/.python/cpython-3.13.16-linux-x86_64-gnu/lib/python3.13/contextlib.py\", line 141, in __enter__\n    return next(self.gen)\n  File \"/workspace/tradegen-guard-projection-1113/tests/control_committed_account.py\", line 69, in fixture\n    receipt=GC.commit(s,package)\n  File \"/workspace/tradegen-guard-projection-1113/tests/control_continuous_guard_commit.py\", line 68, in commit\n    return commit_continuous_guard(package, now=now or package[\"now\"], expected_guard_head=s.state.state_sha256,\n        expected_baseline_head=s.state.baseline.state_digest, expected_control_head=control, journal=s.journal,\n        guard_store=s.gstore, guard_head=guard or s.ghead, baseline_store=s.bstore, baseline_head=baseline or s.bhead)\n  File \"/workspace/tradegen-guard-projection-1113/execution_launch/continuous_guard_commit.py\", line 340, in commit_continuous_guard\n    plan = plan_continuous_guard(previous, **package)\n  File \"/workspace/tradegen-guard-projection-1113/execution_launch/continuous_guard.py\", line 337, in plan_continuous_guard\n    raise ContinuousGuardError(\"GUARD_EVIDENCE_REFUSED\") from None\nexecution_launch.continuous_guard.ContinuousGuardError: GUARD_EVIDENCE_REFUSED\n"
+  },
+  {
+    "name": "test_guard_and_control_policy_hashes_keep_distinct_decimal_codecs",
+    "status": "PASS",
+    "seconds": 0.974,
+    "detail": ""
+  },
+  {
+    "name": "test_guard_daily_stop_does_not_veto_explicit_reducing_dry_order_or_known_cancel",
+    "status": "PASS",
+    "seconds": 1.221,
+    "detail": ""
+  },
+  {
+    "name": "test_guard_only_daily_stop_is_persisted_without_fake_loss_or_permanent_halt",
+    "status": "PASS",
+    "seconds": 0.995,
+    "detail": ""
+  },
+  {
+    "name": "test_guard_peak_and_permanent_halt_survive_recovered_endpoint",
+    "status": "PASS",
+    "seconds": 0.912,
+    "detail": ""
+  },
+  {
+    "name": "test_kill_and_halt_remain_durable_when_new_provider_is_unavailable",
+    "status": "PASS",
+    "seconds": 1.815,
+    "detail": ""
+  },
+  {
+    "name": "test_legacy_cancel_and_reconcile_do_not_gain_new_committed_owner_requirements",
+    "status": "PASS",
+    "seconds": 1.055,
+    "detail": ""
+  },
+  {
+    "name": "test_new_owner_head_policy_or_future_code_approval_cannot_reuse_committed_epoch",
+    "status": "PASS",
+    "seconds": 2.756,
+    "detail": ""
+  },
+  {
+    "name": "test_owner_change_after_real_reservation_blocks_dispatch_and_preserves_local_cancel",
+    "status": "PASS",
+    "seconds": 1.025,
+    "detail": ""
+  },
+  {
+    "name": "test_same_head_midnight_scheduled_limits_are_compared_with_actual_current_fold",
+    "status": "PASS",
+    "seconds": 0.957,
+    "detail": ""
+  },
+  {
+    "name": "test_unsealed_or_modified_actual_loader_context_refuses_without_public_context_input",
+    "status": "PASS",
+    "seconds": 1.825,
+    "detail": ""
+  },
+  {
+    "name": "test_unsupported_guard_floor_relaxation_and_invalidated_heads_do_not_mutate_state",
+    "status": "PASS",
+    "seconds": 0.851,
+    "detail": ""
+  }
+]

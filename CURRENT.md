@@ -4,17 +4,17 @@ reason: owner_requested_continue_pr4e_and_protective_p2
 from: gpt
 task: upbit-universe
 cycle: 2026-11-10
-done_ids: universe-pr5/research-revocation, universe-pr5/exact-archive-recovery, universe-pr5/archive-attestation, universe-pr5/raw-verified-bundles, universe-pr5/family-preflight, protective-hold/fixed-carry-v2, universe-pr4e, protective-hold/p2-store-integration, universe-pr5/outcome-document-contract, protective-hold/p2-store, protective-hold/p1, universe-pr4d/lossless-history, universe-pr4d, universe-pr4d/lossless-objects, design-revision-1113, upbit-universe-return-1113, universe-pr4d/original-verification, workflow-resume-1113/regression-preparation, universe-pr4d/task2-implementation, universe-pr4d/task3, universe-pr4d/task4, universe-pr4c, universe-pr4d/task1, workflow-resume-1113, workflow-resume-1113/dependencies, universe-pr4c/implementation, universe-pr0, universe-pr1, universe-pr2, universe-pr3, universe-pr4b, universe-pr4a
-next_ids: universe-pr5/sealed-selection, universe-pr5/recovery-operations, protective-hold/p2-integration, universe-pr5, universe-pr5-clock-notify, universe-code-approve, policy-loss-budget-plan-1, rules-review-1202, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, launch-private-capture-setup-1, e1-14-owner-setup, launch-prospective-study, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1
-updated_at: 2026-11-14T00:31:26+09:00
+done_ids: universe-pr5/sealed-selection, universe-pr5/research-revocation, universe-pr5/exact-archive-recovery, universe-pr5/archive-attestation, universe-pr5/raw-verified-bundles, universe-pr5/family-preflight, protective-hold/fixed-carry-v2, universe-pr4e, protective-hold/p2-store-integration, universe-pr5/outcome-document-contract, protective-hold/p2-store, protective-hold/p1, universe-pr4d/lossless-history, universe-pr4d, universe-pr4d/lossless-objects, design-revision-1113, upbit-universe-return-1113, universe-pr4d/original-verification, workflow-resume-1113/regression-preparation, universe-pr4d/task2-implementation, universe-pr4d/task3, universe-pr4d/task4, universe-pr4c, universe-pr4d/task1, workflow-resume-1113, workflow-resume-1113/dependencies, universe-pr4c/implementation, universe-pr0, universe-pr1, universe-pr2, universe-pr3, universe-pr4b, universe-pr4a
+next_ids: universe-pr5/recovery-operations, protective-hold/p2-integration, universe-pr5, universe-pr5-clock-notify, universe-code-approve, policy-loss-budget-plan-1, rules-review-1202, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, launch-private-capture-setup-1, e1-14-owner-setup, launch-prospective-study, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1
+updated_at: 2026-11-14T00:46:38+09:00
 stale_after_hours: 3
 waiting_on: no prior approval question; future PLB S1-S12 and deployment inputs only
-work_branch: gpt/research-sealed-selection
-work_commit: 93a453c29c26ef28848e297cd24bf2f472b6bf53
-merged_main_commit: 90575da9c53d7fb542fe1e4c4fd4c78d4adf2e87
-runtime_tested_commit: 2a797e8f5 related915=914PASS/0FAIL/1WindowsNR source409d7a66; sealed93a453c related315 RUNNING, one CLI expectation failure under review
-uncommitted_changes: sealed documentation only during frozen315; P2-I1 active /workspace/tradegen-guard-projection-1113 basef09b736, source/tests not final
-pr: PR34-44 merged; sealed-selection branch pushed and regression pending; P2-I1 development active; no live activation
+work_branch: gpt/committed-guard-projection
+work_commit: 9944e6aa38209acf3ae48ce144d6da14de3ab7c4
+merged_main_commit: 2767cde2157709226ceaae640a16de2d99e3ced4
+runtime_tested_commit: sealed93a453c runtime unchanged at566b422; 315 distinct=314PASS/0outstandingFAIL/1WindowsNR across broad+17CLI; P2 final709 RUNNING at9944e6a
+uncommitted_changes: P2 docs only while final709 frozen; B2b-1 new /workspace/tradegen-incidents-1113 base9944e6a active, not delivered
+pr: PR34-45 merged; P2-I1/I2 candidate pushed and709 pending; incident/quarantine B2b-1 active; no live activation
 usage_weekly_pct: unknown
 usage_source: unavailable
 handoff_threshold_pct: 95
@@ -81,12 +81,13 @@ P0b는 policy→protocol→identity→contextual payload DAG, 실제 동일 잠�
 
 ## 9. 이어받는 에이전트에게
 
-최신 front matter와 맨 아래 체크포인트를 먼저 따른다. PR34–44 완료 ID를 반복 구현하지 않는다. main90575da는 PR44 테스트/전달 tree와 같다. 실제 키·홈 내용·거래소 API·주문·활성화는 금지하며 사용자가 확정한 E 비청산과 하한을 유지한다.
+최신 front matter와 맨 아래 체크포인트를 우선한다. PR34–45 완료 ID는 반복 구현하지 않는다. main2767cde는 PR45 전달 tree와 일치한다. 실제 키·홈 내용·거래소 API·주문·활성화는 금지이며 E 비청산과 기존 하한을 유지한다.
 
-1. sealed-selection 트리93a453c의315 관련검사는 현재 진행 중이다. label sealed-selection-integration-dev1의 정확한 종료/rows를 먼저 확인한다. 검사 중 source/tests 편집 금지. 알려진1실패는 duplicate-key CLI 진단의 테스트 기대값 OWNER_JSON_INVALID 대신 실제 계약 OWNER_JSON_DUPLICATE_KEY다. 실행 종료 후 기대값 한 곳만 수정하고 관련회귀를 실행한다. 거절/비권한 검사는 유지하고 최초 실패를 보존한다.
-2. P2-I1은 guard-projection 트리basef09b736에서 구현 중이다. helper11tests, committedprojection/별도회귀와 API카드를 확인하고 최종동결 뒤 등록·검증한다. actual Transaction/실제 store+head에 연결한 읽기 경로이며 Controller·live source·controlled gate는 아직 연결하지 않는다. I2 계획은 별도 문서다.
-3. 정확 복구 backend는 PR43에서 완료했다. 자동 사건 감지·독립지속보류·outbox/복구workflow는 B2 운영 다음단계 문서를 따른다. 설계 문서를 구현완료로 표시하지 않는다.
-4. 작업 단위별 원격 checkpoint를 남긴다. usage는 신뢰할 수 있는 조회수단이 없어 unknown/unavailable이며95%를 추정하지 않는다. S1~S12 실제 입력도 미실행 그대로다.
+1. P2 tree9944e6a의 guard-projection-integration-final 709건이 진행 중이다. 종료/정확 rows부터 확인한다. source/tests 동결 유지. 첫 broad run225PASS에서 기존 private _account 테스트가 잘못된 transaction 때문에 거절되어 시계 조건을 확인하지 못하는 문제를 찾아 중단했고, 실제 tx와 정확한 stale-clock 진단 검증으로 수정해 새709를 처음부터 실행했다. 중단 기록과 QA 복원 근거를 보존한다.
+2. P2-I1 read-only projection과 I2 actual Controller tx 소비는 구현됐다. I1개발72PASS, I2개발16PASS이며 전체최종으로 합산하지 않는다. 실제 temporary owner와 stores/head 사용, source coverage는 합성 fixture이며 운영 issuer가 아니다. source/controlled/refusal과 완료시각 freshness 미구현 경계를 유지한다.
+3. B2b-1은 새 incidents tree/base9944e6a에서 독립 사건 기록·의존 연구 보류·outbox를 개발 중이다. API카드/파일소유는 leadnotion_revision 기준. 실제 primary 자료를 삭제/덮거나 오류를 매도로 만들지 않는다. 자동 복원/release/활성화는 이번 최소 단계 밖이다. 중간 PASS를 완료로 기록하지 않는다.
+4. PR45는 original315=313PASS1testexpectationFAIL1WindowsNR 후 CLI17PASS로 정확대조한 고유315=314PASS0outstandingFAIL1NR이다. 단일 all-green run이 아니다. runtime은 변하지 않았고 오류 기대값만 수정됐다. 재구현/불필요한 전체반복 금지.
+5. 각 작업 단위별 원격 checkpoint를 남긴다. 사용량unknown/unavailable이며95%를 추측하지 않는다. 실제 S1~S12 미실행과 사용자 Windows/서명/계좌 설정을 가정으로 대체하지 않는다.
 
 ## 최종 P1 결과와 이어갈 지점
 
@@ -208,3 +209,13 @@ PR40은PR39브랜치를base로한stacked draft이며39병합후main으로retarge
 - sealed-selection runtime93a453c29c26ef28848e297cd24bf2f472b6bf53 push완료. actualsingleevaluation→전체eligible source/audit→actualfixed/carry factory/history→finalgraph/owner/revocation/time연결. coordinator개발14PASS117.130초, 최초7PASS3fixtureFAIL보존. 관련315회귀진행중이며CLI duplicate-key 기대값1실패확인; runtime은올바르게거절했다. 최종통과/병합아님.
 - P2-I1 새트리/workbranch gpt/committed-guard-projection, basef09b736. 실제확정baseline helper와activeTransaction/실제store+head 투영개발중. read-only이며metadata를버리는 __call__나Controller연결없다. 임의coverage/ownerclaim을운영권한으로승격하지않는다.
 - B2운영 다음단계와P2-I1/I2문서는설계이며완료ID가아니다. floor_state_check/actualWindows/사용자범위별서명/계좌검증/활성화는미수행이다.
+
+## 진행 체크포인트 — PR45 확정본 선발 병합, P2 최종검사·B2 운영 연결
+
+- [PR45](https://github.com/xkg4real/tradegen/pull/45) runtime93a453c29c26ef28848e297cd24bf2f472b6bf53, finaltest566b422b5f2c3aecbbc1bffe3ee81db32d132615, delivered e39a20380458d17c7d46669ca47ee2215150257a, main2767cde2157709226ceaae640a16de2d99e3ced4. tree/fingerprint 일치 및 appartifact attach 성공.
+- sealed 실제1회평가/전체실패후보보존/모든eligible출처·audit/actualfixed+carryfactory와history/최종owner·revocation·expiry 연결. execution/currentoperational/automaticrecovery false; missingindependenthead를초기화하지않는다.
+- 최초315=313PASS1FAIL1WindowsNR678.166초. 유일실패는 실제duplicate-key거절 진단을잘못기대한테스트; 기대값만고친뒤 CLI17PASS46.936초. runtime roots unchanged. 고유315의대조314PASS0미해결FAIL1NR을 단일연속전체통과로표시하지않는다. finalsource68271d1dddd107dd89284ca778de0f047be31f597ccc7e3d9c1daf84c3796d4e, 양쪽19KEYLESS/source·preimporthome metadata불변/QA복원.
+- P2-I1 runtimeba5167f,72PASS12.091초, I2 runtime4e28b4b,개발16PASS19.355초. actualtx→realstores+heads/package/PREPARE/COMPLETE/prefix→계좌재조정→현재owner/code/efflimits→retaineddaily-stop 소비. 기존owner 영구halt 누락을거절하며공유factory+독립signer sourceclosure10개추가. legacy25/carry32개. 새운영coverage/controlledcomposition/완료시각freshness는미구현이다.
+- main45통합7f2713b에서시작한709는225PASS후정확한시계테스트복원을위해중단했다. private _account에invalidtuple을주던검사를actualtx+정확staleclock거절로수정한9944e6aa38209acf3ae48ce144d6da14de3ab7c4에서 final709를새로실행중. source993dfcb5f2ba4f30e315dacfdebb53a2b4260b5eea847cd2e2a495cceedea904, labelguard-projection-integration-final. 이branch는원격push완료, 미병합/최종결과대기다.
+- B2b-1 새tree/workbranch /workspace/tradegen-incidents-1113 / gpt/research-incident-quarantine, base9944e6a. 보호형태format/reducer=protective_hold_design, store=pr4e_runner, monitor/consumer/APIlead=notion_revision, operatorCLI=pr4e_owner, actualintegrationtests=pr4e_coordinator, 독립review=revision_review. Rootregistry/guards/검증/전달. 아직완료/PR아님.
+- Notion두페이지 PR45까지갱신·readback완료15:39:09/14UTC, 이전본문보존. 최초실패/재실행구분과실거래미준비를유지했다.

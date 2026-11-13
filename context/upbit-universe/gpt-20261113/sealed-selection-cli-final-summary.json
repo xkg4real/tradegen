@@ -1,0 +1,20 @@
+{
+  "label": "sealed-selection-cli-final",
+  "head": "566b422b5f2c3aecbbc1bffe3ee81db32d132615",
+  "source_hash": "68271d1dddd107dd89284ca778de0f047be31f597ccc7e3d9c1daf84c3796d4e",
+  "total": 17,
+  "counts": {
+    "PASS": 17,
+    "FAIL": 0,
+    "NOT_RUN": 0
+  },
+  "process_segments": 1,
+  "seconds": 46.936,
+  "current_segment_seconds": 46.936,
+  "sum_test_seconds": 44.428,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "real_homes_check_scope": "metadata before imports/discovery through completion",
+  "failures": []
+}

@@ -1,0 +1,13 @@
+{
+  "status": "INTERRUPTED_NOT_FINAL",
+  "completed": 225,
+  "counts": {
+    "PASS": 225,
+    "FAIL": 0,
+    "NOT_RUN": 0
+  },
+  "reason": "Old private _account(boundary, ()) assertion now refused invalid transaction instead of testing intended Seoul day mismatch; replace with actual transaction and exact stale-clock reason before rerunning.",
+  "qa_restored": true,
+  "source_unchanged_before_fix": true,
+  "real_home_metadata_unchanged_after_interrupt": true
+}

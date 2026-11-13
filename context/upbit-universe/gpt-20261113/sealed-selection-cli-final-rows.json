@@ -1,0 +1,104 @@
+[
+  {
+    "test": "launch/launch_sealed_study_cli/test_actual_cli_current_revocation_refuses_complete_research_without_reranking_or_provision",
+    "status": "PASS",
+    "seconds": 6.1086,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_sealed_study_cli/test_actual_legacy_and_carry_cli_selects_with_real_owner_signatures_factory_and_history",
+    "status": "PASS",
+    "seconds": 22.6122,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_sealed_study_cli/test_actual_no_qualified_cli_result_authenticates_archive_without_creating_history_head",
+    "status": "PASS",
+    "seconds": 2.8582,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_sealed_study_cli/test_argument_types_nul_digest_and_repeat_count_are_bounded_before_io",
+    "status": "PASS",
+    "seconds": 0.0007,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_sealed_study_cli/test_audit_mapping_rejects_duplicates_paths_and_nonlogical_identifiers_before_io",
+    "status": "PASS",
+    "seconds": 0.0006,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_sealed_study_cli/test_bad_profile_and_duplicate_window_fields_are_not_relabelled_as_current_observations",
+    "status": "PASS",
+    "seconds": 1.5076,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_sealed_study_cli/test_cli_builds_one_actual_provider_with_the_same_real_clock_before_core_refusal",
+    "status": "PASS",
+    "seconds": 1.4893,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_sealed_study_cli/test_fixed_window_over_24_hours_and_invalid_history_policy_refuse_before_owner",
+    "status": "PASS",
+    "seconds": 1.6326,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_sealed_study_cli/test_help_performs_no_file_or_owner_io_and_does_not_describe_read_only_operation",
+    "status": "PASS",
+    "seconds": 0.0005,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_sealed_study_cli/test_malformed_or_oversized_source_review_refuses_before_owner_construction",
+    "status": "PASS",
+    "seconds": 1.4101,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_sealed_study_cli/test_minimal_and_repeated_explicit_arguments_have_no_implicit_clock_or_authority",
+    "status": "PASS",
+    "seconds": 0.0003,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_sealed_study_cli/test_missing_duplicate_unknown_and_authority_injection_arguments_refuse_before_io",
+    "status": "PASS",
+    "seconds": 0.0007,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_sealed_study_cli/test_oversized_archive_is_refused_by_actual_bounded_reader_before_parsing_or_owner",
+    "status": "PASS",
+    "seconds": 1.4045,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_sealed_study_cli/test_private_path_and_malformed_archive_refuse_before_current_owner_construction",
+    "status": "PASS",
+    "seconds": 1.4505,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_sealed_study_cli/test_signed_review_study_id_is_derived_and_duplicate_document_refuses_before_owner",
+    "status": "PASS",
+    "seconds": 2.4504,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_sealed_study_cli/test_unexpected_core_display_object_cannot_publish_operational_flags",
+    "status": "PASS",
+    "seconds": 1.5008,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_sealed_study_cli/test_untrusted_exception_text_is_redacted_and_interrupt_is_not_approval",
+    "status": "PASS",
+    "seconds": 0.0007,
+    "detail": ""
+  }
+]

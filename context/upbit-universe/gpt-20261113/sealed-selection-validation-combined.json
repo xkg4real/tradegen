@@ -1,0 +1,31 @@
+{
+  "scope": "315 distinct related tests across original run and targeted CLI correction; not a single all-green run",
+  "runtime_commit": "93a453c29c26ef28848e297cd24bf2f472b6bf53",
+  "final_head": "566b422b5f2c3aecbbc1bffe3ee81db32d132615",
+  "initial_source": "e0cdaa623973a1a265649cf89b4e8ae8968001c619bcdc5cfecee4a2b085ddb4",
+  "final_source": "68271d1dddd107dd89284ca778de0f047be31f597ccc7e3d9c1daf84c3796d4e",
+  "runtime_roots_unchanged": true,
+  "initial_counts": {
+    "PASS": 313,
+    "FAIL": 1,
+    "NOT_RUN": 1
+  },
+  "initial_seconds": 678.166,
+  "cli_counts": {
+    "PASS": 17,
+    "FAIL": 0,
+    "NOT_RUN": 0
+  },
+  "cli_seconds": 46.936,
+  "distinct_counts": {
+    "PASS": 314,
+    "FAIL": 0,
+    "NOT_RUN": 1
+  },
+  "total": 315,
+  "source_change": "one test expectation OWNER_JSON_INVALID to OWNER_JSON_DUPLICATE_KEY; no runtime change",
+  "source_unchanged_within_each_run": true,
+  "real_home_metadata_unchanged_within_each_run": true,
+  "keyless_names": 19,
+  "qa_restored": true
+}

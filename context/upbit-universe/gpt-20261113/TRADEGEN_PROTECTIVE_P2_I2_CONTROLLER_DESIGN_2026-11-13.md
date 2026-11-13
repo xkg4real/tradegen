@@ -21,7 +21,7 @@ Controller._snapshot_risk(tx, obs, now, orders, ctx, *, committed=None)
 
 `type(account_provider) is CommittedAccountProvider`일 때만 `.read(now=now, transaction=tx)`를 호출한다. 임의 `.read` duck type, callable이 반환한 projection, caller-supplied projection은 승인 입력으로 받지 않는다. 기존 경로는 `account_provider(now)`를 호출하고 **exact AccountObservation**을 요구한 뒤 `(obs, None)`으로 감싼다. committed_account가 AccountObservation을 import하므로 새 provider 타입 import는 Controller의 소비 함수 안에서 수행해 import cycle을 피한다. 모든 기존 시각·server day·risk.asof·계좌 범위·무신용·금액·환율·노출·equity 일치 검사를 공통으로 수행한다. provider 실패를 기존 provider로 fallback하거나 마지막 정상 관측의 시각을 바꾸지 않는다.
 
-현재 `_account` 내부 호출 지점 5곳(`observe`, `approve_floor_relaxation`, `_authorize`, `cancel`, `reconcile`)에 actual tx를 전달한다. `_authorize`가 reserve와 dispatch 양쪽에서 쓰이므로 영향을 받는 public 메서드는 6개다. `_authorize`의 외부 반환형은 그대로 유지한다. observation과 metadata를 인스턴스 mutable cache에 분리 저장하지 않는다.
+현재 `_account` 내부 호출 지점 7곳(`observe`, `approve_floor_relaxation`, `_authorize`, `cancel`, `reconcile`, `kill`, `halt`)에 actual tx를 전달한다. `_authorize`가 reserve와 dispatch 양쪽에서 쓰이므로 영향을 받는 public 메서드는 8개다. kill/halt의 시계 확인 실패에도 기존 restrictive journal 기록을 남기는 동작은 유지한다. `_authorize`의 외부 반환형은 그대로 유지한다. observation과 metadata를 인스턴스 mutable cache에 분리 저장하지 않는다.
 
 ## metadata와 현재 owner의 별도 경계
 
@@ -93,3 +93,11 @@ carry Runner의 기존 fresh clock gate는 E를 막지만, Controller 내부의 
 6. **활성화 경계**: actual controlled composition/live candidate refusal 유지. 새 패치의 성공은 합성 자료의 transaction/risk 소비 연결이며 production completeness·관리 승인·post-E 실행 준비 판정이 아니다. 실제 Windows·실계좌 검증을 실행하지 않았다면 NOT_RUN으로 기록한다.
 
 소스 변경 후 실제 factory dependency closure와 독립 signer의 대응 목록에 새 consumed module을 같은 범위로 포함하고 전체 D14/current code 검증을 유지한다. 이전 코드 서명을 새 코드 승인으로 재사용하지 않는다. root가 guard/registry/통합 회귀를 소유한다.
+
+## 실제 codec 구분
+
+GuardCheckpoint.policy_sha256는 execution_accounts.model.content_digest를 사용한다. Controller risk_snapshot.policy_digest는 execution_control.capability.digest를 사용하며 exponent Decimal 표현에서 결과가 다를 수 있다. guard epoch 비교에는 전자, control suffix 비교에는 후자를 그대로 사용한다. 두 문자열이 같다고 가정하거나 한쪽 codec으로 기록을 바꾸지 않는다.
+
+## I2 개발 확인
+
+2026-11-13 소유 구현은 Controller와 새 control_committed_account 회귀 모듈이다. 실제 현재 owner halt가 있는데 projection의 permanent-halt가 누락된 경우도 COMMITTED_ACCOUNT_OWNER_HALT_NOT_RETAINED로 거절한다. 원래 파일은 LF이므로 LF를 보존했다. 개발 3차는 16/16 PASS(19KEYLESS, 임시 owner/store/head, 실제 임시 서명, DryRunAdapter만)이며 root 통합 회귀는 별도다. 1차14건 중13PASS/1fixtureFAIL(날짜가 다른 원래 historical fill), 2차16건 중15PASS/1fixtureFAIL(변경한 원본 page hash 재생성 누락) 기록도 보존했다. 두 오류 모두 fixture를 정상 원본 계약에 맞춰 수정했으며 실제 검증을 완화하지 않았다.

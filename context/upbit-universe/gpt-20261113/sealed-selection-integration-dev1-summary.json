@@ -1,0 +1,27 @@
+{
+  "label": "sealed-selection-integration-dev1",
+  "head": "93a453c29c26ef28848e297cd24bf2f472b6bf53",
+  "source_hash": "e0cdaa623973a1a265649cf89b4e8ae8968001c619bcdc5cfecee4a2b085ddb4",
+  "total": 315,
+  "counts": {
+    "PASS": 313,
+    "FAIL": 1,
+    "NOT_RUN": 1
+  },
+  "process_segments": 1,
+  "seconds": 678.166,
+  "current_segment_seconds": 678.166,
+  "sum_test_seconds": 674.678,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "real_homes_check_scope": "metadata before imports/discovery through completion",
+  "failures": [
+    {
+      "test": "launch/launch_sealed_study_cli/test_bad_profile_and_duplicate_window_fields_are_not_relabelled_as_current_observations",
+      "status": "FAIL",
+      "seconds": 1.45,
+      "detail": "AssertionError: {'archive_identity_authenticated': False, 'automatic_recovery_supported': False, 'current_operational_use': False, 'execution_ready': False, 'reasons': ['OWNER_JSON_DUPLICATE_KEY'], 'research_selection_ready': False, 'scope': 'sealed_research_selection', 'selected_implementation_authenticated': False, 'source_reviews_authenticated': False, 'status': 'REFUSED'}"
+    }
+  ]
+}

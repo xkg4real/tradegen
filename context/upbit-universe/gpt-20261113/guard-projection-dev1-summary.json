@@ -1,0 +1,20 @@
+{
+  "label": "guard-projection-dev1",
+  "head": "f09b7365c9f2b025ec507c33a234c88cf7654d09",
+  "source_hash": "bea500c2661e93716d5b20f7950cd5eed23a30edb7380cc38267ed92ab8b6258",
+  "total": 72,
+  "counts": {
+    "PASS": 72,
+    "FAIL": 0,
+    "NOT_RUN": 0
+  },
+  "process_segments": 1,
+  "seconds": 12.091,
+  "current_segment_seconds": 12.091,
+  "sum_test_seconds": 8.837,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "real_homes_check_scope": "metadata before imports/discovery through completion",
+  "failures": []
+}
