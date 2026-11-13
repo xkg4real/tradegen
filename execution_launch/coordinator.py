@@ -58,17 +58,20 @@ from execution_accounts.instrument_terms import within_buy_cap
 from execution_accounts.universe import TickerRead
 from execution_control.capability import digest
 from execution_control.controller import Controller, OrderState
+from execution_control.dry_run import DryRunAdapter
 from execution_control.owner_authority import CurrentOwnerAuthority
 from execution_control.store import Journal, JournalError
 from execution_control.universe_odds import run_batch
 from execution_launch.baseline_head import BaselineHead
+from execution_launch.committed_account import CommittedAccountProvider
+from execution_launch.committed_producer import CommittedAccountProducer
 from execution_launch.driver import (DeploymentWindow, FixedDriverError, FixedDriverIdentity, describe_fixed_driver,
                                      make_fixed_driver, make_fixed_carry_driver)
 from execution_launch.live_history import HistoryChain, LiveHistory, SlotUniverse
 from execution_launch.history_storage import (HistoryStoragePolicy, MAX_POLICY_BYTES, parse_policy, policy_digest)
 from execution_launch.instrument_refresh import renew_profile
 from execution_launch.paper_capture import sample_prefetched_book
-from execution_launch.profile import LaunchProfile, parse_profile_json, risk_policy
+from execution_launch.profile import LaunchProfile, parse_profile_json, profile_contract_digest, risk_policy
 from execution_launch.program import ProgramSpec, parse_program
 from execution_launch.managed_behavior import resolve_behavior
 from execution_launch.protective_state import ManagementEvent, policy_digest as management_policy_digest, state_digest
@@ -369,10 +372,14 @@ class _TickBoard:
 
 
 class Coordinator:
-    """Builds and owns exactly one ContinuousAccountProvider, Journal, Controller and Runner over the explicit
-    adapters; construction checks everything in the refusal-code order and creates no file."""
+    """Own the legacy frame runtime, or adopt one explicit committed producer runtime.
+
+    The committed branch has no provider/Controller/Runner until actual startup
+    reconciliation. It creates a separate launch Runner over that same runtime;
+    neither publication nor history advances the committed baseline again.
+    """
     def __init__(self, *, mode: str, profile: LaunchProfile, evidence: EvidencePackage, driver: StrategyDriver,
-                 implementation_verifier: Callable, adapters: Mapping[str, object], account_source: Callable,
+                 implementation_verifier: Callable, adapters: Mapping[str, object], account_source: Callable | None,
                  trusted_head: object, quote_source: object, window: DeploymentWindow, bar_seconds: int,
                  monitor_until: datetime, clock: Callable[[], datetime], account_prefetch: Callable | None = None,
                  history: object | None = None, terms_source: object | None = None,
@@ -382,17 +389,23 @@ class Coordinator:
                  wait: Callable[[threading.Event, float], bool] = threading.Event.wait,
                  slot_source: object | None = None, program: object | None = None,
                  toast: Callable[[str, str], bool] = toast,
-                 protective_store: ProtectiveStore | None = None) -> None:
+                 protective_store: ProtectiveStore | None = None,
+                 committed_producer: CommittedAccountProducer | None = None) -> None:
         _require(mode == "rehearsal", "COORDINATOR_MODE_UNSUPPORTED")
         _require(type(profile) is LaunchProfile and (profile.venue, profile.market, profile.quote_currency)
                  == ("upbit", "spot", "KRW"), "COORDINATOR_VENUE_UNSUPPORTED")
         _require(type(evidence) is EvidencePackage and type(driver) is StrategyDriver
-                 and all(callable(f) for f in (clock, wait, account_source, implementation_verifier, toast))
+                 and all(callable(f) for f in (clock, wait, implementation_verifier, toast))
+                 and (callable(account_source) if committed_producer is None else account_source is None)
                  and (account_prefetch is None or callable(account_prefetch))
                  and callable(getattr(quote_source, "read", None)) and callable(getattr(trusted_head, "read", None))
                  and (history is None or callable(getattr(history, "record_slot", None)))
                  and (terms_source is None or callable(getattr(terms_source, "read", None))),
                  "COORDINATOR_INTEGRATIONS_REQUIRED")
+        if committed_producer is not None:
+            _require(type(committed_producer) is CommittedAccountProducer and account_prefetch is None,
+                     "COORDINATOR_COMMITTED_INTEGRATIONS_REQUIRED")
+            _require(profile.universe_rule_sha256 is None, "COORDINATOR_COMMITTED_FIXED_REQUIRED")
         universe = profile.universe_rule_sha256 is not None    # spec section 10: a universe launch profile
         carry = resolve_behavior(evidence.protocol) == "protective-carry-v2"
         _require(not universe or (callable(getattr(slot_source, "read_flags", None))
@@ -446,18 +459,33 @@ class Coordinator:
                 _require(not (window.start <= slot <= window.end and abs(slot - boundary) <= BOUNDARY_BAND),
                          "COORDINATOR_SLOT_NEAR_BOUNDARY")
         root = state_root().absolute()
-        self._store = CheckpointStore(root=root)                              # path metadata only
-        self._board = _TickBoard()
-        self._provider = ContinuousAccountProvider(source=self._board.account_frame, store=self._store,
-                                                   trusted_head=trusted_head)
-        self._journal = Journal()                                             # path checks only
-        self._controller = Controller(journal=self._journal, account_provider=self._provider, policy=policy,
-                                      adapters=adapters, session_provider=self._session_for)
-        self._runner = Runner(profile=profile, quote_provider=self._board.quote, account_provider=self._provider,
-                              evidence=evidence, driver=driver, implementation_verifier=implementation_verifier,
-                              mode=mode, controller=self._controller, launch_session=None, isolated_state_root=root,
-                              clock=self._now if carry else None,
-                              deadline_record=self._management_deadline if carry else None)
+        self._committed_producer = committed_producer
+        self._committed_unit, self._committed_account = None, None
+        self._committed_reconciliation = None
+        self._committed_root = root
+        self._committed_adapters = None if committed_producer is None else dict(adapters)
+        self._committed_contract = profile_contract_digest(profile) if committed_producer is not None else None
+        self._committed_policy = digest(policy) if committed_producer is not None else None
+        if committed_producer is None:
+            self._store = CheckpointStore(root=root)                              # path metadata only
+            self._board = _TickBoard()
+            self._provider = ContinuousAccountProvider(source=self._board.account_frame, store=self._store,
+                                                       trusted_head=trusted_head)
+            self._journal = Journal()                                             # path checks only
+            self._controller = Controller(journal=self._journal, account_provider=self._provider, policy=policy,
+                                          adapters=adapters, session_provider=self._session_for)
+            self._runner = Runner(profile=profile, quote_provider=self._board.quote, account_provider=self._provider,
+                                  evidence=evidence, driver=driver, implementation_verifier=implementation_verifier,
+                                  mode=mode, controller=self._controller, launch_session=None, isolated_state_root=root,
+                                  clock=self._now if carry else None,
+                                  deadline_record=self._management_deadline if carry else None)
+        else:
+            _require(set(self._committed_adapters) == {"upbit"}
+                     and type(self._committed_adapters["upbit"]) is DryRunAdapter,
+                     "COORDINATOR_COMMITTED_REHEARSAL_REQUIRED")
+            self._store, self._journal = committed_producer._baseline_store, committed_producer._journal
+            self._board = _TickBoard()
+            self._provider, self._controller, self._runner = None, None, None
         self._profile, self._evidence, self._driver = profile, evidence, driver
         self._implementation_verifier, self._head = implementation_verifier, trusted_head
         self._account_source, self._account_prefetch = account_source, account_prefetch
@@ -479,6 +507,85 @@ class Coordinator:
         self._vanished, self._disarmed, self._terms_unavailable = False, False, False
         self._remainder_ticks, self._remainder = 0, False
         self._within_cap = True                 # PR 4c: the trade coin's last terms read is within its v2 buy cap
+        self._committed_session_provider = self._session_for
+        if committed_producer is not None:
+            self._committed_configuration()
+            committed_producer._bind_startup(session_provider=self._committed_session_provider)
+
+    def _committed_configuration(self):
+        """Check actual pinned composition, never a caller-supplied readiness claim."""
+        producer = self._committed_producer
+        _require(type(producer) is CommittedAccountProducer, "COORDINATOR_COMMITTED_BINDING_CHANGED")
+        producer._configuration()
+        _require(producer._root == self._committed_root == state_root().absolute()
+                 and producer._baseline_store is self._store and producer._baseline_head is self._head
+                 and producer._journal is self._journal and producer._clock is self._clock
+                 and profile_contract_digest(producer._profile) == self._committed_contract
+                 and profile_contract_digest(self._profile) == self._committed_contract
+                 and digest(risk_policy(producer._profile)) == self._committed_policy
+                 and digest(risk_policy(self._profile)) == self._committed_policy
+                 and set(producer._adapters) == set(self._committed_adapters) == {"upbit"}
+                 and all(producer._adapters[key] is value and type(value) is DryRunAdapter
+                         for key, value in self._committed_adapters.items()),
+                 "COORDINATOR_COMMITTED_BINDING_CHANGED")
+        if self._runner is not None:
+            provider, controller, journal = producer._runtime_components()
+            _require(type(provider) is CommittedAccountProvider and type(controller) is Controller
+                     and provider is self._provider and controller is self._controller and journal is self._journal
+                     and controller.journal is journal and controller.account_provider is provider
+                     and controller._completion_clock is self._clock
+                     and controller.session_provider is self._committed_session_provider
+                     and set(controller.adapters) == set(self._committed_adapters)
+                     and all(controller.adapters[key] is value for key, value in self._committed_adapters.items())
+                     and self._runner.account_provider is provider and self._runner.controller is controller,
+                     "COORDINATOR_COMMITTED_BINDING_CHANGED")
+            self._runner._controller_boundary()
+
+    def _adopt_committed_runtime(self):
+        self._committed_configuration()
+        if self._runner is not None:
+            return
+        provider, controller, journal = self._committed_producer._runtime_components()
+        _require(type(provider) is CommittedAccountProvider and type(controller) is Controller
+                 and journal is self._journal and controller.journal is journal
+                 and controller.account_provider is provider and controller._completion_clock is self._clock
+                 and controller.session_provider is self._committed_session_provider,
+                 "COORDINATOR_COMMITTED_BINDING_CHANGED")
+        # The startup Runner and its initial binding remain untouched. This is
+        # the launch consumer of the same genuinely reconciled runtime.
+        runner = Runner(profile=self._profile, quote_provider=self._board.quote, account_provider=provider,
+                        evidence=self._evidence, driver=self._driver,
+                        implementation_verifier=self._implementation_verifier, mode="rehearsal",
+                        controller=controller, launch_session=None, isolated_state_root=self._committed_root,
+                        clock=self._now if self._carry else None,
+                        deadline_record=self._management_deadline if self._carry else None)
+        self._provider, self._controller, self._runner = provider, controller, runner
+        if self._stopping.is_set():
+            runner.stop()
+        self._committed_configuration()
+
+    def _committed_completion(self, completed_at):
+        _require(_aware(completed_at) and (self._last_time is None or completed_at >= self._last_time),
+                 "COORDINATOR_CLOCK_ROLLBACK")
+        self._last_time = completed_at
+
+    def _current_committed(self, now):
+        self._ready = False
+        self._committed_configuration()
+        _require(self._runner is not None and self._committed_unit is not None,
+                 "COORDINATOR_STARTUP_RECONCILE_REQUIRED")
+        pair, account, result = self._committed_producer._current_unit(self._committed_unit, now=now)
+        self._committed_completion(pair.completed_at)
+        self._committed_configuration()
+        _require(result.final_control_head == pair.committed.observed_control_head
+                 and pair.committed.transaction_id == self._committed_unit.transaction_id,
+                 "COORDINATOR_STARTUP_RECONCILE_REQUIRED")
+        self._committed_reconciliation = result
+        self._ready = (result.status in ("RECONCILED", "RECONCILED_OPEN")
+                       and not result.unresolved_client_ids and not result.external_order_ids)
+        self._observation, self._committed_account = pair.account, account
+        return pair
+
 
     # -- status ------------------------------------------------------------------------------------------------
 
@@ -489,13 +596,15 @@ class Coordinator:
     def _update(self, **changes) -> None:
         with self._status_lock:
             self._status = replace(self._status, phase=self._phase,
-                                   strategy_stopped=self._stopping.is_set() or self._runner.stopped
+                                   strategy_stopped=self._stopping.is_set() or (self._runner is not None and self._runner.stopped)
                                    or changes.get("window_ended_missed_slot", self._status.window_ended_missed_slot),
                                    **changes)
 
     def _refused(self, stage, code, *, slot) -> None:
         """An account-step failure is kept apart from risk and order state; a slot's outcome is in `reasons`."""
         changes = {}
+        if self._committed_producer is not None and stage in ("account", "control"):
+            self._ready = False
         if stage == "account":
             changes.update(account_source=code, new_entry_blocked=True)
         if stage == "control":
@@ -549,6 +658,14 @@ class Coordinator:
 
     def _prefetch(self, previous) -> None:
         self._update(in_flight="account_source")
+        if self._committed_producer is not None:
+            self._ready = False
+            self._committed_configuration()
+            unit = self._committed_producer._collect_current()
+            self._committed_completion(unit.completed_at)
+            self._adopt_committed_runtime()
+            self._committed_unit = unit
+            return
         if self._account_prefetch is not None:
             try:
                 self._account_prefetch(previous)
@@ -563,7 +680,15 @@ class Coordinator:
             raise CoordinatorError(_code(exc, "COORDINATOR_QUOTE_SOURCE_FAILED")) from None
 
     def _publish(self, previous, now, book):
-        """The unit's one frame: from the producer without I/O, published, then observed through the provider."""
+        """Publish a legacy frame or revalidate the actual committed unit; never advance it twice."""
+        if self._committed_producer is not None:
+            pair = self._current_committed(now)
+            self._board.publish(None, book)  # committed accounts are never read from the tick board
+            self._published += 1
+            self._held = held_coins(self._committed_account, self._profile.instrument_rules.min_notional_krw)
+            self._update(published_units=self._published, account_source="", account_asof=pair.account.asof,
+                         held_symbol=self._held[0] if self._held else None, trade_symbol=self._profile.symbol)
+            return pair.account
         try:
             frame = self._account_source(previous, now)
         except Exception as exc:
@@ -605,8 +730,13 @@ class Coordinator:
                 now = self._time()             # retry the issued object; never fork from the old snapshot
             renewal = self._pending_terms
             frame = self._latest_frame
-            self._runner.refresh_instrument_rules(renewal, now=now,
-                                                  account=None if frame is None else frame.accounts[0])
+            if self._committed_producer is not None:
+                self._committed_configuration()
+                _require(self._runner is not None, "COORDINATOR_STARTUP_RECONCILE_REQUIRED")
+                account = self._committed_account
+            else:
+                account = None if frame is None else frame.accounts[0]
+            self._runner.refresh_instrument_rules(renewal, now=now, account=account)
             self._profile = renewal.profile
             self._pending_terms = None
             self._launch = self._runner.launch_session  # same actual PreparedSession, updated wrapper only
@@ -803,6 +933,18 @@ class Coordinator:
                     self._holdings(now)
                 stage = "control"
                 self._update(in_flight="control")
+                if self._committed_producer is not None:
+                    # The producer has already done actual reconciliation and a
+                    # current account-only Controller read. Risk for a new entry
+                    # is checked by Runner at its own decision boundary; no old
+                    # display projection is presented as a current risk result.
+                    now = self._time()
+                    self._management_deadline(now)
+                    result = self._committed_reconciliation
+                    self._update(new_entry_blocked=True, risk_reasons=(), recovery_status=None,
+                                 recovery_deadline=None, orders=self._controller.states(),
+                                 reasons=() if not result.reason else (result.reason,))
+                    return
                 risk = self._controller.observe(now=now)
                 self._ready = True
                 reconcile_orders(self._runner, now)
@@ -856,6 +998,11 @@ class Coordinator:
                 sample_prefetched_book(book, slot=slot, sampled_at=now)
                 stage = "account"
                 observation = self._publish(previous, now, book)
+                if self._committed_producer is not None:
+                    now = self._time()
+                    _require(slot <= now <= slot + SLOT_WINDOW, "COORDINATOR_SLOT_WINDOW_MISSED")
+                    sample_prefetched_book(book, slot=slot, sampled_at=now)
+                    _require(self._ready, "COORDINATOR_STARTUP_RECONCILE_REQUIRED")
                 stage = "control"
                 if self._history is not None:
                     self._update(in_flight="history")
@@ -1019,10 +1166,14 @@ class Coordinator:
                 if self._universe:
                     self._holdings(now)
                 self._update(in_flight="control")
+                if self._committed_producer is not None:
+                    now = self._time()
                 state = action(now)
                 self._update(orders=self._controller.states())
                 return state
             except Exception as exc:
+                if self._committed_producer is not None:
+                    self._ready = False
                 raise CoordinatorError(_code(exc, "COORDINATOR_DEPENDENCY_REFUSED")) from None
             finally:
                 self._board.clear()
@@ -1053,7 +1204,8 @@ class Coordinator:
             if not self._closing.is_set():
                 self._run()
         finally:
-            self._runner.stop()
+            if self._runner is not None:
+                self._runner.stop()
             self._board.clear()
             self._phase = "closed"
             self._update()
@@ -1085,8 +1237,8 @@ class Coordinator:
                     self._slot(due.slot)
             else:
                 self._monitor(due.kind)
-            strategy_done = (self._stopping.is_set() or self._runner.stopped or due.at > self._window.end
-                             or self.status().window_ended_missed_slot)
+            strategy_done = (self._stopping.is_set() or (self._runner is not None and self._runner.stopped)
+                             or due.at > self._window.end or self.status().window_ended_missed_slot)
             self._phase = "monitoring" if strategy_done else "running"
             self._update()
         if not self._closing.is_set():
@@ -1095,14 +1247,16 @@ class Coordinator:
     def stop(self) -> None:
         """Strategy stop: no further slot runs; monitoring, cancel and exit stay available. No venue cancel."""
         self._stopping.set()
-        self._runner.stop()
+        if self._runner is not None:
+            self._runner.stop()
         self._update()
 
     def close(self, timeout: float = 0.0) -> bool:
         """Stop and end the schedule; True once run() has finished (at once when it never started)."""
         self._stopping.set()
         self._closing.set()
-        self._runner.stop()
+        if self._runner is not None:
+            self._runner.stop()
         self._update()
         with self._status_lock:
             started = self._started
@@ -1169,6 +1323,8 @@ class Coordinator:
                 if now is None:
                     from datetime import timezone
                     now = datetime(1970, 1, 1, tzinfo=timezone.utc)
+            if self._committed_producer is not None:
+                self._committed_configuration()
             if republish and clock_valid and self._latest_frame is not None:
                 self._board.publish(self._latest_frame, None)
             owner_recorded = self._controller.kill(launch.prepared.session_id, reason=reason, now=now)
@@ -1198,7 +1354,12 @@ class Coordinator:
                          and (not self._carry or at < self._window.end), "COORDINATOR_MANAGEMENT_RENEWAL_REQUIRED")
                 return at
 
-            observation, now, actual = self._observation, getattr(inputs, "now", None), preparation_clock()
+            actual = preparation_clock()
+            if self._committed_producer is not None:
+                self._current_committed(actual)
+                _require(self._ready, "COORDINATOR_STARTUP_RECONCILE_REQUIRED")
+                actual = self._time()
+            observation, now = self._observation, getattr(inputs, "now", None)
             _require(observation is not None and _aware(now) and observation.asof <= now <= actual
                      and actual - now <= ACCOUNT_AGE and actual - observation.asof <= ACCOUNT_AGE,
                      "COORDINATOR_PREPARATION_ACCOUNT_NOT_CURRENT")

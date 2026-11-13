@@ -311,8 +311,8 @@ def test_independent_behavior_document_hash_and_factory_source_closure_match():
     assert signer._review_carry_behavior_digest() == behavior_digest()
     assert signer._REVIEW_SOURCES == driver_module._SOURCE_FILES
     assert signer._REVIEW_CARRY_SOURCES == driver_module._CARRY_SOURCE_FILES
-    assert len(signer._REVIEW_SOURCES) == len(set(signer._REVIEW_SOURCES)) == 25
-    assert len(signer._REVIEW_CARRY_SOURCES) == len(set(signer._REVIEW_CARRY_SOURCES)) == 32
+    assert len(signer._REVIEW_SOURCES) == len(set(signer._REVIEW_SOURCES)) == 46
+    assert len(signer._REVIEW_CARRY_SOURCES) == len(set(signer._REVIEW_CARRY_SOURCES)) == 49
     assert signer._REVIEW_CARRY_SOURCES[-1] == 'execution_launch/review_request.py'
     assert signer._review_source_hash(ROOT) == driver_module._sources()[0]
     carry_hash = signer._review_source_hash(ROOT, factory_id=CARRY_FACTORY_ID)
@@ -359,8 +359,8 @@ def test_both_factories_and_independent_signer_detect_each_committed_account_dep
         'execution_accounts/provider.py', 'execution_control/risk.py',
         'execution_launch/continuous_guard.py', 'execution_launch/continuous_guard_commit.py',
     )
-    assert signer._REVIEW_SOURCES[-len(dependencies):] == dependencies
-    assert driver_module._SOURCE_FILES[-len(dependencies):] == dependencies
+    assert signer._REVIEW_SOURCES[15:25] == dependencies
+    assert driver_module._SOURCE_FILES[15:25] == dependencies
     with tempfile.TemporaryDirectory(prefix='tradegen-closure-fixture-') as temporary:
         replica = Path(temporary)
         for name in driver_module._CARRY_SOURCE_FILES:
@@ -377,6 +377,65 @@ def test_both_factories_and_independent_signer_detect_each_committed_account_dep
                 target = replica / name
                 raw = target.read_bytes()
                 target.write_bytes(raw + b'\n# temporary changed committed account dependency\n')
+                try:
+                    for factory in (FACTORY_ID, CARRY_FACTORY_ID):
+                        actual = driver_module._sources(factory)[0]
+                        independent = signer._review_source_hash(replica, factory_id=factory)
+                        assert actual == independent and actual != original[factory], (name, factory)
+                finally:
+                    target.write_bytes(raw)
+            for factory in (FACTORY_ID, CARRY_FACTORY_ID):
+                assert driver_module._sources(factory)[0] == original[factory]
+                assert signer._review_source_hash(replica, factory_id=factory) == original[factory]
+
+
+def test_both_factories_and_independent_signer_detect_each_producer_dependency():
+    """Real public source copies only: changing any consumed file changes both hashes.
+
+    The app and standalone signer read the same disposable checkout independently;
+    no hash/verifier result is mocked and the real repository is never edited.
+    """
+    dependencies = (
+        'execution_launch/committed_producer.py',
+        'execution_launch/committed_startup.py',
+        'execution_launch/coordinator.py',
+        'execution_launch/account_interval.py',
+        'execution_launch/continuous_archive.py',
+        'execution_launch/guard_capture_material.py',
+        'execution_launch/guard_capture_format.py',
+        'execution_launch/guard_capture_archive.py',
+        'execution_launch/guard_generation_format.py',
+        'execution_launch/guard_generation_archive.py',
+        'execution_launch/research_bundle_format.py',
+        'execution_launch/research_bundle_store.py',
+        'execution_accounts/collector.py',
+        'execution_accounts/upbit_collector.py',
+        'execution_control/owner_authority.py',
+        'execution_control/dry_run.py',
+        'core/compliance/model.py',
+        'core/compliance/owner.py',
+        'execution_launch/protective_state.py',
+        'execution_launch/protective_store.py',
+        'execution_launch/paper_capture.py',
+    )
+    assert signer._REVIEW_SOURCES[25:] == dependencies
+    assert driver_module._SOURCE_FILES[25:] == dependencies
+    with tempfile.TemporaryDirectory(prefix='tradegen-closure-fixture-') as temporary:
+        replica = Path(temporary)
+        for name in driver_module._CARRY_SOURCE_FILES:
+            destination = replica / name
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_bytes((ROOT / name).read_bytes())
+        with patch.object(driver_module, '__file__', str(replica / 'execution_launch/driver.py')):
+            original = {}
+            for factory in (FACTORY_ID, CARRY_FACTORY_ID):
+                original[factory] = driver_module._sources(factory)[0]
+                assert signer._review_source_hash(replica, factory_id=factory) == original[factory]
+                assert signer._review_source_hash(ROOT, factory_id=factory) == original[factory]
+            for name in dependencies:
+                target = replica / name
+                raw = target.read_bytes()
+                target.write_bytes(raw + b'\n# temporary changed producer dependency\n')
                 try:
                     for factory in (FACTORY_ID, CARRY_FACTORY_ID):
                         actual = driver_module._sources(factory)[0]

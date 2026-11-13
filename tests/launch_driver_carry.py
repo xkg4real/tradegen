@@ -149,7 +149,7 @@ def test_each_carry_source_dependency_change_invalidates_an_issued_driver_withou
     root = Path(D.__file__).resolve().parent.parent
     original_open = Path.open
     extras = tuple(name for name in D._CARRY_SOURCE_FILES if name not in D._SOURCE_FILES)
-    assert len(extras) == 7
+    assert len(extras) == 3
     for name in extras:
         watched = root / name
         body = watched.read_bytes()
@@ -164,8 +164,8 @@ def test_each_carry_source_dependency_change_invalidates_an_issued_driver_withou
 
 def test_shared_behavior_dependency_change_invalidates_both_factories_without_writing():
     legacy, carry = L.fixture(), fixture()
-    assert len(D._SOURCE_FILES) == len(set(D._SOURCE_FILES)) == 25
-    assert len(D._CARRY_SOURCE_FILES) == len(set(D._CARRY_SOURCE_FILES)) == 32
+    assert len(D._SOURCE_FILES) == len(set(D._SOURCE_FILES)) == 46
+    assert len(D._CARRY_SOURCE_FILES) == len(set(D._CARRY_SOURCE_FILES)) == 49
     name = 'execution_launch/managed_behavior.py'
     assert name in D._SOURCE_FILES
     watched = Path(D.__file__).resolve().parent.parent / name

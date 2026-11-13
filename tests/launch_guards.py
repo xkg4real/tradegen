@@ -43,6 +43,8 @@ RESEARCH_INCIDENT_STORE = "execution_launch/research_incident_store.py"
 RESEARCH_RECOVERY_STORE = "execution_launch/research_recovery_store.py"
 BUNDLE_REVIEW = "execution_launch/bundle_review.py"
 UPBIT_READ_ARCHIVE = "execution_launch/upbit_read_archive.py"
+COMMITTED_PRODUCER = "execution_launch/committed_producer.py"
+PRODUCER_OWNER_READ = 'owner.load_context(at, account.positions, session_id=self._session_id)'
 CAPTURE_PUBLIC_IMPORTS = ("UpbitReadEvent", "capture_upbit_reads")
 NATIVE_DIRECTORY_CALLS = {
     "__init__": 'ctypes.WinDLL("kernel32", use_last_error=True)',
@@ -518,11 +520,47 @@ def _capture_transport_imports(tree, relative):
     return {id(matches[0])} if len(matches) == 1 else set()
 
 
+def _producer_owner_read_nodes(tree, relative):
+    """One current owner read with real account positions, in its reviewed method.
+
+    No other owner import, callable alias, nested helper or duplicate call gains
+    this exception. Signing, sealing, arming and file writes remain forbidden.
+    This structural check complements the producer's actual signed-home tests;
+    it does not certify arbitrary code placed around this call.
+    """
+    if relative != COMMITTED_PRODUCER:
+        return set()
+    imports = [node for node in tree.body if isinstance(node, ast.ImportFrom)
+               and node.module == 'core.compliance' and node.level == 0
+               and [(item.name, item.asname) for item in node.names] == [('model', 'CM'), ('owner', None)]]
+    if len(imports) != 1:
+        return set()
+    classes = [node for node in tree.body if isinstance(node, ast.ClassDef)
+               and node.name == 'CommittedAccountProducer']
+    if len(classes) != 1:
+        return set()
+    methods = [node for node in classes[0].body if isinstance(node, ast.FunctionDef)
+               and node.name == '_owner_read']
+    if len(methods) != 1:
+        return set()
+    expected = ast.dump(ast.parse(PRODUCER_OWNER_READ, mode='eval').body)
+    matches = [(node, ancestry) for node, ancestry in _scoped_nodes(tree)
+               if isinstance(node, ast.Call) and _call_name(node) == 'load_context']
+    if len(matches) != 1:
+        return set()
+    node, ancestry = matches[0]
+    if (ancestry != ('CommittedAccountProducer', '_owner_read')
+            or id(node) not in {id(child) for child in ast.walk(methods[0])}):
+        return set()
+    return {id(node), id(node.func)} if ast.dump(node) == expected else set()
+
+
 def problems(source, relative=""):
     tree, failures = ast.parse(source), []
     assigned = _assignments(tree)
     native_imports = _native_directory_imports(tree, relative)
     capture_imports = _capture_transport_imports(tree, relative)
+    owner_read_nodes = _producer_owner_read_nodes(tree, relative)
     pinned = {id(inner) for node in ast.walk(tree) if isinstance(node, ast.Call)
               and ast.dump(node) in _PINNED_WRITE_TREES.get(relative, frozenset()) for inner in ast.walk(node)}
     incident_pins, incident_failures = _incident_writer_nodes(tree, relative)
@@ -554,7 +592,7 @@ def problems(source, relative=""):
                 failures.append("star import")
         called = {_call_name(node)} if isinstance(node, ast.Call) else set()
         reached = _reached(node)
-        if (called | _named(node)) & PRIVILEGED:
+        if id(node) not in owner_read_nodes and (called | _named(node)) & PRIVILEGED:
             failures.append("privileged or dynamic call")
         if "compile" in called and ast.unparse(node.func) != "re.compile":
             failures.append("dynamic compilation")
@@ -565,7 +603,7 @@ def problems(source, relative=""):
                 failures.append("environment access")
             if node.attr in {"__globals__", "__code__", "__closure__", "_ISSUED"}:
                 failures.append("runtime mutation")
-        if reached & PRIVILEGED_REFERENCES:
+        if id(node) not in owner_read_nodes and reached & PRIVILEGED_REFERENCES:
             failures.append("privileged reference")
         if isinstance(node, ast.Constant) and isinstance(node.value, str) and ENDPOINT.search(node.value):
             failures.append("venue endpoint literal")
@@ -611,6 +649,40 @@ def test_launch_guard_negative_controls():
                    "model.seal_context(**fields)", "seal_context(now=now)"):
         assert problems(source), source
     assert not problems("from urllib.parse import urlsplit\npattern = re.compile('x')\nis_sealed(context)")
+
+
+def test_committed_producer_owner_read_exception_is_one_exact_current_account_call():
+    source = (ROOT / COMMITTED_PRODUCER).read_text(encoding='utf-8')
+    assert not problems(source, COMMITTED_PRODUCER), problems(source, COMMITTED_PRODUCER)
+    assert source.count(PRODUCER_OWNER_READ) == 1
+    for relative in ('', 'execution_launch/other.py', 'execution_network/committed_producer.py'):
+        assert 'privileged or dynamic call' in problems(source, relative), relative
+    for replacement in ('owner.load_context(account.asof, account.positions, session_id=self._session_id)',
+                        'owner.load_context(at, account.positions)',
+                        'owner.load_context(at, placeholder, session_id=self._session_id)',
+                        'getattr(owner, "load_context")(at, account.positions, session_id=self._session_id)',
+                        'owner.load_context'):
+        assert problems(source.replace(PRODUCER_OWNER_READ, replacement), COMMITTED_PRODUCER), replacement
+    for altered in (source.replace('class CommittedAccountProducer:', 'class OtherProducer:'),
+                    source.replace('def _owner_read(self, account):', 'def other_read(self, account):'),
+                    source.replace('model as CM, owner', 'model as CM, owner as alias'),
+                    source + '\n' + PRODUCER_OWNER_READ + '\n',
+                    source + '\nf = owner.load_context\n'):
+        assert problems(altered, COMMITTED_PRODUCER)
+    nested = ('from core.compliance import model as CM, owner\n'
+              'class CommittedAccountProducer:\n'
+              '    def _owner_read(self, account):\n'
+              '        def hidden():\n'
+              '            return ' + PRODUCER_OWNER_READ + '\n')
+    assert problems(nested, COMMITTED_PRODUCER)
+    default = ('from core.compliance import model as CM, owner\n'
+               'class CommittedAccountProducer:\n'
+               '    def _owner_read(self, account=' + PRODUCER_OWNER_READ + '):\n'
+               '        pass\n')
+    assert problems(default, COMMITTED_PRODUCER)
+    for extra in ('owner.arm(x)', 'key.sign(raw)', 'model.seal_context(**fields)',
+                  'path.write_bytes(raw)', 'head.compare_and_set(old, new)', 'import requests'):
+        assert problems(source + '\n' + extra + '\n', COMMITTED_PRODUCER), extra
 
 
 def test_new_runtime_packages_are_signed_recursively_by_owner_and_signer():
