@@ -31,7 +31,8 @@ MODULES = ("launch_guards", "network_route", "accounts_collector", "launch_profi
            "launch_research_incident_monitor", "launch_research_incident_cli",
            "launch_research_incident_integration", "launch_guard_capture_material", "launch_recovery_revalidation",
            "launch_research_recovery_attempts", "launch_research_recovery_store",
-           "launch_research_recovery_cli", "launch_research_recovery_integration")
+           "launch_research_recovery_cli", "launch_research_recovery_integration",
+           "launch_guard_capture_format", "launch_guard_capture_archive")
 
 
 def tests():
