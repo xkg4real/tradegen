@@ -185,4 +185,3 @@ def test_odds_refuses_a_seoul_day_change_during_bars_even_with_fresh_positions()
             refused(lambda: c.odds_batch("TEMPLATE", read_bars), "UNIVERSE_BATCH_CLOCK_INVALID")
         assert batch_calls == []
 ````
-

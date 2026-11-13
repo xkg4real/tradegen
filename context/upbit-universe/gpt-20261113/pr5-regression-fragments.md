@@ -151,4 +151,3 @@ def assert_returned_capacity_frame_has_no_silent_price_truncation(frame, names, 
         assert {order[row[0]] for row in frame["prices"]} == set(expected_prices)
     assert any(row[0] == names["KRW-BTC"] for row in frame["books"])
 ````
-
