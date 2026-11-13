@@ -586,7 +586,7 @@ def test_cli_outputs_are_new_redacted_files_only():
             assert code == 2 and report["reasons"] == ["STUDY_OUTPUT_EXISTS"]
         code, _, raw = invoke("--help")
         assert code == 0 and "freeze" in raw and "select" in raw
-        # select: two complete captures and one missing file; without a trusted verifier nothing qualifies
+        # select: a missing later candidate refuses the entire family before any candidate is evaluated
         captures = root / "captures"
         captures.mkdir()
         (inputs / "plan.json").write_text(S.study_plan_json(env.plan), encoding="utf-8")
@@ -596,20 +596,10 @@ def test_cli_outputs_are_new_redacted_files_only():
         code, report, raw = invoke("select", "--plan", str(inputs / "plan.json"), "--profile",
                                    str(inputs / "profile.json"), "--captures", str(captures), "--now",
                                    env.now.isoformat())
-        assert code == 0 and report["execution_ready"] is False and report["research_review_ready"] is False
-        selection = report["selection"]
-        assert selection["status"] == "NO_QUALIFIED_MARKET" and report["reasons"] == ["STUDY_NO_QUALIFIED_CANDIDATE"]
-        assert selection["execution_ready"] is False and selection["selected_study_id"] is None
-        statuses = {row["study_id"]: (row["status"], row["reasons"]) for row in selection["rows"]}
-        assert statuses == {study_id(A): ("EXCLUDED", ["STRATEGY_TRUSTED_REVIEW_REQUIRED"]),
-                            study_id(B): ("EXCLUDED", ["STRATEGY_TRUSTED_REVIEW_REQUIRED"]),
-                            study_id(C): ("MISSING", ["STUDY_RESULT_MISSING"])}
-        assert report["evaluation"] == {study_id(A): "EVALUATED", study_id(B): "EVALUATED",
-                                        study_id(C): "WORKFLOW_FILE_UNAVAILABLE_OR_REFUSED"}
-        requests = report["review_requests"]
-        assert requests == []  # A missing family member cannot be omitted from signed selection evidence.
-        assert all(request["artifact_kind"] == "unsigned_strategy_review_request"
-                   and request["authority"]["execution_ready"] is False for request in requests)
+        assert code == 2 and report["workflow_complete"] is False
+        assert report["execution_ready"] is False and report["research_review_ready"] is False
+        assert report["reasons"] == ["STUDY_CAPTURE_FAMILY_INCOMPLETE"]
+        assert "evaluation" not in report and "selection" not in report and not report.get("review_requests")
         assert '"' + PRINCIPAL + '"' not in raw and SCOPE not in raw and str(root) not in raw
         assert sorted(path.name for path in captures.iterdir()) == sorted(
             candidate.protocol.study_id + ".capture.json" for candidate in env.plan.candidates[:2])

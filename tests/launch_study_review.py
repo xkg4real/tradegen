@@ -24,6 +24,7 @@ from unittest.mock import patch
 from core.compliance import model as M
 from execution_control.owner_authority import ReviewAuthority
 from execution_launch import strategy as evaluator, study as S, study_review as R
+from execution_launch.study_evidence import DEFAULT_LIMITS
 from execution_launch.driver import DeploymentWindow, describe_fixed_driver, make_fixed_driver
 from execution_launch.paper_capture import capture_json
 from execution_launch.profile import profile_body
@@ -66,7 +67,7 @@ def fixture():
     frozen = plan(500, programs=(A, B, program("fixture-ma-200-250", 200, 250)))
     outcome = Driver(frozen).run()
     at = frozen.candidates[0].protocol.capture_end + timedelta(seconds=60)
-    results = {candidate.protocol.study_id: R.evaluate_capture_json(candidate.protocol, capture_json(archive),
+    results = {candidate.protocol.study_id: evaluator.evaluate_capture_json(candidate.protocol, capture_json(archive),
         profile().instrument_rules, now=at) for candidate, archive in zip(frozen.candidates, outcome.archives)}
     env = SimpleNamespace(plan=frozen, outcome=outcome, results=results, now=at)
     now = env.now + timedelta(seconds=2)
@@ -158,6 +159,87 @@ def test_missing_capture_extra_capture_and_imported_metrics_refuse():
                      f.captures | {"extra-study": "{}"},
                      f.captures | {first: f.env.results[first]}):
         refused(lambda captures=captures: select(captures=captures), "STUDY_REVIEW_CAPTURE_FAMILY_INCOMPLETE")
+
+
+@isolated_evaluations
+def test_later_malformed_original_refuses_before_any_evaluation_or_signature():
+    f = fixture()
+    last = f.env.plan.candidates[-1].protocol.study_id
+    original = json.loads(f.captures[last])
+    variants = []
+    missing_bar = deepcopy(original)
+    missing_bar['bars'].pop()
+    variants.append(json.dumps(missing_bar))
+    broken_registration = deepcopy(original)
+    broken_registration['registry'][-1]['protocol_digest'] = 'f'*64
+    variants.append(json.dumps(broken_registration))
+    broken_prefix = deepcopy(original)
+    broken_prefix['decisions'][-1]['history_sha256'] = 'f'*64
+    variants.append(json.dumps(broken_prefix))
+    broken_time = deepcopy(original)
+    broken_time['bars'][-1]['received_at'] = 'not-a-timestamp'
+    variants.append(json.dumps(broken_time))
+    variants.append('{"registry":[],'+f.captures[last].lstrip()[1:])
+    before = dict(evaluator._EVALUATED)
+    for raw in variants:
+        with patch.object(evaluator, 'run_paper_validation', side_effect=AssertionError('evaluation before full validation')) as run, \
+             patch.object(R, 'verify_source_review', side_effect=AssertionError('signature before full validation')) as verify:
+            refused(lambda raw=raw: select(captures=f.captures | {last: raw}, authority_provider=no_history))
+            assert run.call_count == verify.call_count == 0
+        assert evaluator._EVALUATED == before
+
+
+@isolated_evaluations
+def test_incomplete_family_fails_before_evaluation_and_current_owner_access():
+    f = fixture()
+    last = f.env.plan.candidates[-1].protocol.study_id
+    before = dict(evaluator._EVALUATED)
+    for captures in ({key: raw for key, raw in f.captures.items() if key != last},
+                     f.captures | {'unregistered-candidate': f.captures[last]}):
+        with patch.object(evaluator, 'run_paper_validation', side_effect=AssertionError('unexpected evaluation')) as run, \
+             patch.object(R, 'verify_source_review', side_effect=AssertionError('unexpected signature')) as verify:
+            refused(lambda captures=captures: select(captures=captures, authority_provider=no_history),
+                    'STUDY_REVIEW_CAPTURE_FAMILY_INCOMPLETE')
+            assert run.call_count == verify.call_count == 0
+        assert evaluator._EVALUATED == before
+
+
+@isolated_evaluations
+def test_oversized_valid_original_is_a_resource_limit_before_evaluation_or_signature():
+    f = fixture()
+    last = f.env.plan.candidates[-1].protocol.study_id
+    raw = f.captures[last].encode('utf-8')
+    # Valid JSON plus preserved whitespace exceeds admission; it is not a
+    # missing candidate or malformed archive, and no evaluation may begin.
+    oversized = raw + b' ' * (DEFAULT_LIMITS.max_capture_bytes - len(raw) + 1)
+    before = dict(evaluator._EVALUATED)
+    with patch.object(evaluator, 'run_paper_validation', side_effect=AssertionError('unexpected evaluation')) as run, \
+         patch.object(R, 'verify_source_review', side_effect=AssertionError('unexpected signature')) as verify:
+        refused(lambda: select(captures=f.captures | {last: oversized}, authority_provider=no_history),
+                'STUDY_EVIDENCE_RESOURCE_LIMIT')
+        assert run.call_count == verify.call_count == 0
+    assert evaluator._EVALUATED == before
+
+
+@isolated_evaluations
+def test_whole_family_commitment_uses_the_bytes_evaluated_before_caller_mapping_changes():
+    f = fixture()
+    captures = dict(f.captures)
+    last = f.env.plan.candidates[-1].protocol.study_id
+    actual = evaluator.run_paper_validation
+    calls = []
+    def evaluate(*args, **kwargs):
+        calls.append(args[0].study_id)
+        # The family snapshot already exists. This caller-owned map must not
+        # change either the later evaluation or its signed raw-byte commitment.
+        captures[last] = '{}'
+        return actual(*args, **kwargs)
+    with patch.object(evaluator, 'run_paper_validation', side_effect=evaluate):
+        result = select(captures=captures)
+    assert result.selection.status == 'SELECTED'
+    assert calls == [candidate.protocol.study_id for candidate in f.env.plan.candidates]
+    assert captures[last] == '{}' and result.source_reviews_authenticated
+    assert not result.execution_ready
 
 
 @isolated_evaluations
@@ -376,6 +458,8 @@ def test_cli_uses_real_clock_boundary_and_explicit_review_files_only():
             path = root / f"review-{index}.json"
             path.write_text(raw, encoding="utf-8")
             argv += ["--review", str(path)]
+        (root/'report.md').write_text('Synthetic report; not another candidate.', encoding='utf-8')
+        (root/'receipts.jsonl').write_text('{}\n', encoding='utf-8')
         before = {path.name: path.read_bytes() for path in root.iterdir()}
         # Patch the wall-clock boundary, not datetime's type used by _aware.
         class FakeDatetime(type(f.now)):
@@ -396,6 +480,31 @@ def test_cli_uses_real_clock_boundary_and_explicit_review_files_only():
         assert code == 2 and result["reasons"] == ["STUDY_REVIEW_ARGUMENTS_INVALID"]
         code, result, _ = invoke(argv + argv[-2:])
         assert code == 2 and result["reasons"] == ["STUDY_REVIEW_DUPLICATE_DOCUMENT"]
+
+
+@isolated_evaluations
+def test_cli_extra_candidate_capture_is_rejected_before_evaluation_or_owner_loading():
+    f = fixture()
+    before_registry = dict(evaluator._EVALUATED)
+    with tempfile.TemporaryDirectory(prefix='review-extra-capture-') as temporary:
+        root = Path(os.path.realpath(temporary))
+        (root/'plan.json').write_text(S.study_plan_json(f.env.plan), encoding='utf-8')
+        (root/'profile.json').write_text(json.dumps(profile_body(f.profile)), encoding='utf-8')
+        for identifier, raw in f.captures.items():
+            (root/(identifier+'.capture.json')).write_text(raw, encoding='utf-8', newline='')
+        (root/'unexpected.capture.json').write_text(next(iter(f.captures.values())), encoding='utf-8', newline='')
+        argv = ['select-reviewed', '--plan', str(root/'plan.json'), '--profile', str(root/'profile.json'),
+                '--captures', str(root), '--evaluated-at', f.env.now.isoformat()]
+        before = {path.name: path.read_bytes() for path in root.iterdir()}
+        with patch.object(R, 'CurrentOwnerAuthority', side_effect=AssertionError('unexpected owner load')), \
+             patch.object(evaluator, 'run_paper_validation', side_effect=AssertionError('unexpected evaluation')) as run, \
+             patch.object(R, 'verify_source_review', side_effect=AssertionError('unexpected signature')) as verify:
+            code, body, raw = invoke(argv)
+        assert code == 2 and not body['workflow_complete'] and not body['execution_ready']
+        assert run.call_count == verify.call_count == 0
+        assert str(root) not in raw and PRINCIPAL not in raw and SCOPE not in raw
+        assert before == {path.name: path.read_bytes() for path in root.iterdir()}
+        assert evaluator._EVALUATED == before_registry
 
 
 @isolated_evaluations

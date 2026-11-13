@@ -45,6 +45,7 @@ from typing import Callable
 from core.isolation import checked_target
 from execution_launch.paper_capture import CaptureArchive, PaperCapture, PaperCaptureV2, _bindings, _clock_value, capture_json
 from execution_launch.capture_v2 import capture_json_v2
+from execution_launch.study_evidence import DEFAULT_LIMITS, StudyEvidenceError, evaluate_study_family
 from execution_launch.managed_behavior import CARRY_EVALUATOR_REVISION, decision_document
 from execution_launch.private_input import _REFUSED_ATTRIBUTES
 from execution_launch.profile import (LaunchProfile, ProfileError, parse_profile_json, preflight_profile,
@@ -607,22 +608,146 @@ class _Sink:
             self._handle.close()
 
 
+def _capture_directory(path):
+    """Validate an explicit input directory before any candidate-name enumeration."""
+    try:
+        _require(isinstance(path, (str, Path)) and str(path) and "\x00" not in str(path),
+                 "STUDY_CAPTURE_DIRECTORY_REFUSED")
+        candidate = Path(path)
+        _require(".." not in candidate.parts and ":" not in str(candidate)[len(candidate.anchor):],
+                 "STUDY_CAPTURE_DIRECTORY_REFUSED")
+        absolute = Path(os.path.abspath(candidate))
+        _require(not any(part.casefold() in _PRIVATE or part.casefold() == ".env"
+                         or part.casefold().startswith(".env.") for part in absolute.parts),
+                 "STUDY_CAPTURE_DIRECTORY_REFUSED")
+        if os.name == "nt":
+            from execution_launch.private_input import _checked_path
+            # Reuse the existing Win32 lexical boundary without opening a probe file.
+            _checked_path(str(absolute / "family-inventory.json"), suffix=".json", private=_PRIVATE)
+        _require(os.path.normcase(os.path.realpath(absolute, strict=True)) == os.path.normcase(str(absolute)),
+                 "STUDY_CAPTURE_DIRECTORY_REFUSED")
+        for prefix in (*reversed(absolute.parents), absolute):
+            info = os.lstat(prefix)
+            _require(stat.S_ISDIR(info.st_mode) and info.st_ino > 0
+                     and not getattr(info, "st_file_attributes", 0) & _REFUSED_ATTRIBUTES,
+                     "STUDY_CAPTURE_DIRECTORY_REFUSED")
+        return absolute, (info.st_dev, info.st_ino)
+    except StudyError:
+        raise
+    except (OSError, RuntimeError, ValueError, TypeError):
+        raise StudyError("STUDY_CAPTURE_DIRECTORY_REFUSED") from None
+
+
+def _capture_names(directory_or_fd):
+    """Only candidate filenames count; unrelated reports and receipt logs are allowed."""
+    names, count = set(), 0
+    if type(directory_or_fd) is int:
+        os.lseek(directory_or_fd, 0, os.SEEK_SET)
+    with os.scandir(directory_or_fd) as entries:
+        for entry in entries:
+            count += 1
+            if count > 65536:
+                raise StudyEvidenceError("STUDY_EVIDENCE_RESOURCE_LIMIT")
+            if entry.name.casefold().endswith(".capture.json"):
+                names.add(entry.name)
+                if len(names) > DEFAULT_LIMITS.max_candidates:
+                    raise StudyEvidenceError("STUDY_EVIDENCE_RESOURCE_LIMIT")
+    return names
+
+
+def _capture_file_admission(directory, identity, descriptor, name):
+    """Classify only an opened, unchanged regular file's verified size as a resource limit."""
+    file_fd = None
+    try:
+        target = directory / name
+        before = (os.stat(name, dir_fd=descriptor, follow_symlinks=False)
+                  if descriptor is not None else os.lstat(target))
+
+        def regular(info):
+            if not (stat.S_ISREG(info.st_mode) and info.st_nlink == 1 and info.st_ino > 0
+                    and not getattr(info, "st_file_attributes", 0) & _REFUSED_ATTRIBUTES):
+                raise WorkflowError("WORKFLOW_FILE_REFUSED")
+
+        regular(before)
+        flags = os.O_RDONLY | getattr(os, "O_NONBLOCK", 0) | _FLAGS
+        file_fd = (os.open(name, flags, dir_fd=descriptor) if descriptor is not None
+                   else os.open(target, flags))
+        opened = os.fstat(file_fd)
+        regular(opened)
+        current = (os.stat(name, dir_fd=descriptor, follow_symlinks=False)
+                   if descriptor is not None else os.lstat(target))
+        regular(current)
+        if not ((before.st_dev, before.st_ino, before.st_size)
+                == (opened.st_dev, opened.st_ino, opened.st_size)
+                == (current.st_dev, current.st_ino, current.st_size)):
+            raise WorkflowError("WORKFLOW_FILE_REFUSED")
+        _require(_capture_directory(directory) == (directory, identity), "STUDY_CAPTURE_DIRECTORY_CHANGED")
+        if opened.st_size > DEFAULT_LIMITS.max_capture_bytes:
+            raise StudyEvidenceError("STUDY_EVIDENCE_RESOURCE_LIMIT")
+    except OSError:
+        raise WorkflowError("WORKFLOW_FILE_UNAVAILABLE_OR_REFUSED") from None
+    finally:
+        if file_fd is not None:
+            os.close(file_fd)
+
+
+def load_capture_family(plan, directory) -> dict[str, bytes]:
+    """Read the exact current candidate set before evaluation, preserving original bytes.
+
+    This is bounded admission and a checked read snapshot, not a sealed bundle or
+    an authenticated source. Neither additional candidates nor case aliases are
+    silently dropped. Existing private-file readers remain the byte boundary.
+    """
+    validate_study_plan(plan)
+    if len(plan.candidates) > DEFAULT_LIMITS.max_candidates:
+        raise StudyEvidenceError("STUDY_EVIDENCE_RESOURCE_LIMIT")
+    absolute, identity = _capture_directory(directory)
+    expected = {candidate.protocol.study_id + ".capture.json" for candidate in plan.candidates}
+    descriptor = None
+    try:
+        scan_target = absolute
+        if os.name != "nt":
+            _require(os.open in os.supports_dir_fd and hasattr(os, "O_DIRECTORY") and hasattr(os, "O_NOFOLLOW"),
+                     "STUDY_CAPTURE_DIRECTORY_REFUSED")
+            flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | getattr(os, "O_CLOEXEC", 0)
+            descriptor = os.open(absolute.anchor, flags)
+            for component in absolute.parts[1:]:
+                following = os.open(component, flags, dir_fd=descriptor)
+                os.close(descriptor)
+                descriptor = following
+            opened = os.fstat(descriptor)
+            _require((opened.st_dev, opened.st_ino) == identity, "STUDY_CAPTURE_DIRECTORY_CHANGED")
+            scan_target = descriptor
+        _require(_capture_names(scan_target) == expected, "STUDY_CAPTURE_FAMILY_INCOMPLETE")
+        captures, total = {}, 0
+        for candidate in plan.candidates:
+            identifier = candidate.protocol.study_id
+            name = identifier + ".capture.json"
+            _capture_file_admission(absolute, identity, descriptor, name)
+            raw = _read_file(str(absolute / name), DEFAULT_LIMITS.max_capture_bytes)
+            total += len(raw)
+            if len(raw) > DEFAULT_LIMITS.max_capture_bytes or total > DEFAULT_LIMITS.max_total_bytes:
+                raise StudyEvidenceError("STUDY_EVIDENCE_RESOURCE_LIMIT")
+            captures[identifier] = raw
+        _require(_capture_names(scan_target) == expected, "STUDY_CAPTURE_FAMILY_INCOMPLETE")
+        _require(_capture_directory(absolute) == (absolute, identity), "STUDY_CAPTURE_DIRECTORY_CHANGED")
+        return captures
+    except OSError:
+        raise StudyError("STUDY_CAPTURE_DIRECTORY_REFUSED") from None
+    finally:
+        if descriptor is not None:
+            os.close(descriptor)
+
+
 def _select(plan, profile, captures, now):
-    results, evaluation, capture_digests = {}, {}, {}
-    for candidate in plan.candidates:
-        identifier = candidate.protocol.study_id
-        try:
-            raw = _read_file(str(Path(captures) / (identifier + ".capture.json")), MAX_CAPTURE_BYTES)
-            results[identifier] = evaluate_capture_json(candidate.protocol, raw, profile.instrument_rules, now=now)
-            capture_digests[identifier] = hashlib.sha256(raw).hexdigest()
-            evaluation[identifier] = "EVALUATED"
-        except (WorkflowError, StrategyEvidenceError) as exc:
-            evaluation[identifier] = _reason(exc)
+    validate_study_plan(plan)
+    raw_captures = load_capture_family(plan, captures)
+    evaluated = evaluate_study_family(tuple(candidate.protocol for candidate in plan.candidates),
+        raw_captures, profile.instrument_rules, registry=plan.registry, now=now)
+    results, capture_digests = evaluated.results, evaluated.capture_digests
+    evaluation = {row.study_id: "EVALUATED" for row in evaluated.rows}
     selection = rank_market_evidence(plan, results, profile=profile, now=now, review_verifier=None)
     artifact, requests = _fixed_file(PROGRAM_SOURCE), []
-    # A review binds failures too: partial families cannot emit selectable review requests.
-    if len(results) != len(plan.candidates):
-        return selection, evaluation, requests
     family = build_family_commitment(plan_digest=validate_study_plan(plan), capture_digests=capture_digests,
                                      result_digests={key: evidence_digest(value) for key, value in results.items()})
     for candidate, row in zip(plan.candidates, selection.rows):

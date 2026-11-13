@@ -22,7 +22,6 @@ from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
 import hashlib
 import json
-from pathlib import Path
 import sys
 
 from execution_control.owner_authority import CurrentOwnerAuthority, OwnerAuthorityError
@@ -34,11 +33,12 @@ from execution_launch.review_auth import (MAX_DOCUMENT_BYTES, ReviewAuthenticati
 from execution_launch.review_request import build_family_commitment, computed_summary
 from execution_launch.managed_behavior import CARRY_EVALUATOR_REVISION
 from execution_launch.strategy import (ReviewBinding, StrategyEvidenceError, _plain,
-                                       evaluate_capture_json, evidence_digest)
+                                       evidence_digest)
+from execution_launch.study_evidence import StudyEvidenceError, evaluate_study_family
 from execution_launch.study import (MarketSelection, PROGRAM_SOURCE, StudyError, StudyPlan,
                                     _MAX_PLAN_BYTES, _fixed_file, parse_study_plan,
-                                    rank_market_evidence, validate_study_plan)
-from execution_launch.workflow import (MAX_CAPTURE_BYTES, MAX_CONFIG_BYTES, WorkflowError,
+                                    load_capture_family, rank_market_evidence, validate_study_plan)
+from execution_launch.workflow import (MAX_CONFIG_BYTES, WorkflowError,
                                        _CODE, _base, _read_file, _time)
 
 
@@ -127,6 +127,8 @@ def authenticate_study_selection(plan: StudyPlan, *, profile: LaunchProfile,
     clock and authority_provider are trusted deployment dependencies, never
     deserialized from JSON. The CLI supplies CurrentOwnerAuthority itself. Raw
     captures, rather than imported metrics or ValidationResults, are required.
+    Every original is snapshotted and checked before any candidate arithmetic
+    or owner-signature verification. Numerical failures remain in that family.
     A fresh current profile is required, with the same frozen policy/source/terms.
     The original evaluated_at is reproducibility metadata, not the approval clock.
     """
@@ -138,18 +140,19 @@ def authenticate_study_selection(plan: StudyPlan, *, profile: LaunchProfile,
     _need(evaluated_at <= initial_now, "STUDY_REVIEW_EVALUATION_IN_FUTURE")
     ids = {candidate.protocol.study_id for candidate in plan.candidates}
     _need(isinstance(captures, Mapping) and set(captures) == ids
-          and all(type(value) in (str, bytes) and len(value) <= MAX_CAPTURE_BYTES for value in captures.values()),
+          and all(type(value) in (str, bytes) for value in captures.values()),
           "STUDY_REVIEW_CAPTURE_FAMILY_INCOMPLETE")
     _need(isinstance(reviews, Mapping) and set(reviews) <= ids
           and all(type(value) in (str, bytes) and len(value) <= MAX_DOCUMENT_BYTES for value in reviews.values()),
           "STUDY_REVIEW_DOCUMENT_FAMILY_INVALID")
     artifact = _fixed_file(PROGRAM_SOURCE)
-    results = {candidate.protocol.study_id: evaluate_capture_json(candidate.protocol,
-        captures[candidate.protocol.study_id], profile.instrument_rules, now=evaluated_at)
-        for candidate in plan.candidates}
+    # Snapshot all raw originals and validate the whole family before any actual
+    # evaluation or signature verification. The commitment uses those same bytes.
+    evaluated = evaluate_study_family(tuple(candidate.protocol for candidate in plan.candidates),
+        captures, profile.instrument_rules, registry=plan.registry, now=evaluated_at)
+    results = evaluated.results
     family = build_family_commitment(plan_digest=validate_study_plan(plan),
-        capture_digests={key: hashlib.sha256(value.encode("utf-8") if type(value) is str else value).hexdigest()
-                         for key, value in captures.items()},
+        capture_digests=evaluated.capture_digests,
         result_digests={key: evidence_digest(value) for key, value in results.items()})
     now = _aware(clock())
     _need(now >= initial_now, "STUDY_REVIEW_CLOCK_ROLLBACK")
@@ -248,9 +251,7 @@ def main(argv=None):
         evaluated_at = _time(args["evaluated-at"])
         plan = parse_study_plan(_read_file(args["plan"], _MAX_PLAN_BYTES))
         profile = parse_profile_json(_read_file(args["profile"], MAX_CONFIG_BYTES))
-        captures = {candidate.protocol.study_id: _read_file(
-            str(Path(args["captures"]) / (candidate.protocol.study_id + ".capture.json")), MAX_CAPTURE_BYTES)
-            for candidate in plan.candidates}
+        captures = load_capture_family(plan, args["captures"])
         reviews = {}
         for path in args["review"]:
             raw = _read_file(path, MAX_DOCUMENT_BYTES)
@@ -271,7 +272,7 @@ def main(argv=None):
                       implementation_authenticated=False, reasons=list(result.selection.reasons))
         print(json.dumps(output, sort_keys=True, allow_nan=False))
         return 0
-    except (StudyReviewError, StudyError, ReviewAuthenticationError, OwnerAuthorityError,
+    except (StudyReviewError, StudyError, StudyEvidenceError, ReviewAuthenticationError, OwnerAuthorityError,
             StrategyEvidenceError, WorkflowError, ProfileError) as exc:
         code = exc.code if type(exc) is ProfileError else str(exc)
         if _CODE.fullmatch(code) is None:

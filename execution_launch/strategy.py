@@ -453,12 +453,8 @@ def _block_p(differences, block_length, replications, seed):
     return (exceed+1)/(replications+1)
 
 
-def run_paper_validation(protocol, bars, decisions, rules, *, registry, source_kind, now):
-    """Evaluate one completely captured future window; no network or live operation.
-
-    A result can be serialized for audit, but imported summary claims are never
-    accepted by assessment. Replay the archived inputs with this evaluator.
-    """
+def _paper_validation_inputs(protocol, bars, decisions, rules, *, registry, source_kind, now):
+    """Complete input checks only; no simulation, inference or result issuance."""
     sha = _protocol(protocol); _instant(now)
     # This is the fixed-symbol evaluator; a forward-universe-v1 protocol is evaluated only by its own revision.
     _require(protocol.evaluator_revision == EVALUATOR_REVISION, 'STRATEGY_EVALUATOR_UNSUPPORTED')
@@ -474,6 +470,17 @@ def run_paper_validation(protocol, bars, decisions, rules, *, registry, source_k
     _require(len(bars)-1 >= protocol.minimum_observations, "STRATEGY_OBSERVATIONS_INSUFFICIENT")
     _require(protocol.bootstrap_replications*((len(bars)-1)//protocol.block_length+1) <= 10000000,
              'STRATEGY_INFERENCE_WORK_LIMIT')
+    return sha, registry_sha
+
+
+def run_paper_validation(protocol, bars, decisions, rules, *, registry, source_kind, now):
+    """Evaluate one completely captured future window; no network or live operation.
+
+    A result can be serialized for audit, but imported summary claims are never
+    accepted by assessment. Replay the archived inputs with this evaluator.
+    """
+    sha, registry_sha = _paper_validation_inputs(protocol, bars, decisions, rules,
+        registry=registry, source_kind=source_kind, now=now)
     primary, net = _simulate(protocol, bars, decisions, rules)
     doubled, _ = _simulate(protocol, bars, decisions, rules, cost_multiple=2)
     delayed, _ = _simulate(protocol, bars, decisions, rules, lag=2)
@@ -492,15 +499,9 @@ def run_paper_validation(protocol, bars, decisions, rules, *, registry, source_k
     return result
 
 
-def run_carry_validation(protocol, archive, rules, *, now):
-    """Issue actual fixed carry-v2 arithmetic after full capture re-derivation.
-
-    Neither an imported result nor a standalone simulator return is accepted.
-    Capture hashes/labels remain claims requiring independent source review.
-    The final observation marks remaining inventory without a fabricated fill.
-    """
+def _carry_validation_inputs(protocol, archive, rules, *, now):
+    """Complete carry input checks without arithmetic or issued result state."""
     from execution_launch.capture_v2 import validate_capture_v2
-    from execution_launch.carry_evaluator import simulate_carry
 
     sha = _protocol(protocol); _instant(now)
     _require(protocol.evaluator_revision == CARRY_EVALUATOR_REVISION, 'STRATEGY_EVALUATOR_UNSUPPORTED')
@@ -523,6 +524,20 @@ def run_carry_validation(protocol, archive, rules, *, now):
     _require(len(bars) - 1 >= protocol.minimum_observations, 'STRATEGY_OBSERVATIONS_INSUFFICIENT')
     _require(protocol.bootstrap_replications * ((len(bars) - 1) // protocol.block_length + 1) <= 10000000,
              'STRATEGY_INFERENCE_WORK_LIMIT')
+    return sha
+
+
+def run_carry_validation(protocol, archive, rules, *, now):
+    """Issue actual fixed carry-v2 arithmetic after full capture re-derivation.
+
+    Neither an imported result nor a standalone simulator return is accepted.
+    Capture hashes/labels remain claims requiring independent source review.
+    The final observation marks remaining inventory without a fabricated fill.
+    """
+    from execution_launch.carry_evaluator import simulate_carry
+
+    sha = _carry_validation_inputs(protocol, archive, rules, now=now)
+    bars, decisions = archive.bars, archive.decisions
     primary, net = simulate_carry(protocol, bars, decisions, rules)
     doubled, _ = simulate_carry(protocol, bars, decisions, rules, cost_multiple=2)
     delayed, _ = simulate_carry(protocol, bars, decisions, rules, lag=2)
@@ -718,16 +733,8 @@ def protocol_json(protocol):
     return json.dumps(_plain(protocol), sort_keys=True, indent=2)+'\n'
 
 
-def evaluate_capture_json(protocol, raw, rules, *, now):
-    """Strict evidence import reruns arithmetic, never imports a precomputed PASS."""
-    if type(protocol) is ForwardProtocol and protocol.schema_version == 2:
-        from execution_launch.capture_v2 import parse_capture_v2
-        _protocol(protocol)
-        try:
-            archive = parse_capture_v2(protocol, raw)
-        except (ValueError, TypeError, AttributeError, OverflowError):
-            raise StrategyEvidenceError('STRATEGY_CARRY_CAPTURE_INVALID') from None
-        return run_carry_validation(protocol, archive, rules, now=now)
+def _decode_paper_capture(raw):
+    """Preserve the legacy strict wire decoder without issuing an evaluation."""
     data = _json(raw, _MAX_CAPTURE_BYTES)
     _require(type(data) is dict and set(data) == {'registry', 'source_kind', 'bars', 'decisions'},
              'STRATEGY_CAPTURE_JSON_SCHEMA_INVALID')
@@ -747,5 +754,55 @@ def evaluate_capture_json(protocol, raw, rules, *, now):
     for item in data['decisions']:
         body = _object(item, PaperDecision); body['decided_at'] = _date(body['decided_at'])
         body['target_fraction'] = _decimal(body['target_fraction']); decisions.append(PaperDecision(**body))
-    return run_paper_validation(protocol, tuple(bars), tuple(decisions), rules,
-                               registry=tuple(registry), source_kind=data['source_kind'], now=now)
+    return tuple(registry), data['source_kind'], tuple(bars), tuple(decisions)
+
+
+def _decode_carry_capture(protocol, raw):
+    from execution_launch.capture_v2 import parse_capture_v2
+
+    _protocol(protocol)
+    try:
+        return parse_capture_v2(protocol, raw)
+    except (ValueError, TypeError, AttributeError, OverflowError):
+        raise StrategyEvidenceError('STRATEGY_CARRY_CAPTURE_INVALID') from None
+
+
+def validate_capture_json(protocol, raw, rules, *, now, expected_registry_digest=None):
+    """Validate every input without simulation or authority-bearing result issuance.
+
+    The optional registry digest enforces a caller's frozen-plan consistency;
+    neither it nor a successful return authenticates publication or provenance.
+    Evaluation always repeats these checks, so this returns no trusted token.
+    """
+    if type(protocol) is ForwardProtocol and protocol.schema_version == 2:
+        archive = _decode_carry_capture(protocol, raw)
+        _carry_validation_inputs(protocol, archive, rules, now=now)
+        registry = archive.registry
+    else:
+        registry, source_kind, bars, decisions = _decode_paper_capture(raw)
+        _paper_validation_inputs(protocol, bars, decisions, rules,
+            registry=registry, source_kind=source_kind, now=now)
+    if expected_registry_digest is not None:
+        _hash(expected_registry_digest)
+        _require(validate_registry(registry) == expected_registry_digest,
+                 'STRATEGY_CAPTURE_REGISTRY_MISMATCH')
+
+
+def require_evaluation_capacity(count):
+    """Read-only admission for one synchronous family; no reservation or authority.
+
+    This does not synchronize unrelated concurrent evaluators. Each issuance
+    retains its own existing capacity check and a failed family returns nothing.
+    """
+    _require(type(count) is int and 1 <= count <= 128 and len(_EVALUATED) + count <= 128,
+             'STRATEGY_EVALUATION_REGISTRY_FULL')
+
+
+def evaluate_capture_json(protocol, raw, rules, *, now):
+    """Strict evidence import reruns arithmetic, never imports a precomputed PASS."""
+    if type(protocol) is ForwardProtocol and protocol.schema_version == 2:
+        archive = _decode_carry_capture(protocol, raw)
+        return run_carry_validation(protocol, archive, rules, now=now)
+    registry, source_kind, bars, decisions = _decode_paper_capture(raw)
+    return run_paper_validation(protocol, bars, decisions, rules,
+                               registry=registry, source_kind=source_kind, now=now)
