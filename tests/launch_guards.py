@@ -40,6 +40,7 @@ EVIDENCE_OBJECTS = "execution_launch/evidence_objects.py"
 PROTECTIVE_STORE = "execution_launch/protective_store.py"
 RESEARCH_BUNDLE_STORE = "execution_launch/research_bundle_store.py"
 RESEARCH_INCIDENT_STORE = "execution_launch/research_incident_store.py"
+RESEARCH_RECOVERY_STORE = "execution_launch/research_recovery_store.py"
 BUNDLE_REVIEW = "execution_launch/bundle_review.py"
 NATIVE_DIRECTORY_CALLS = {
     "__init__": 'ctypes.WinDLL("kernel32", use_last_error=True)',
@@ -53,6 +54,7 @@ NATIVE_DIRECTORY_CALLS = {
 NATIVE_DIRECTORY_AST_SHA256 = "841bd8050ae79d0a222b549b01a803b4b3d3303d376572447ed35e6de30fbf26"
 OWNER_RESEARCH_SETUP = "tools/owner/research_bundle.py"
 OWNER_INCIDENT_SETUP = "tools/owner/research_incidents.py"
+OWNER_RECOVERY_SETUP = "tools/owner/research_recovery.py"
 # Unlike the older file-scoped writers, the incident writer takes dynamic flags
 # through one private helper. Both the helper and each call site are pinned to
 # their exact class/method ancestry; numeric flags and aliases cannot gain the
@@ -92,6 +94,23 @@ def _open(pins, root, name, flags):
 '''
 INCIDENT_FLAGS = ('_FLAGS = getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_BINARY", 0) '
                   '| getattr(os, "O_NONBLOCK", 0)')
+RECOVERY_CALLS = {
+    **INCIDENT_CALLS,
+    "_pinned": ('_Pins(paths)',),
+    "operation": ('self._open(pins, self.root, "operation.lock", os.O_RDWR)', 'os.fdopen(fd, "r+b")'),
+}
+RECOVERY_OPEN = INCIDENT_OPEN.replace('research incident file', 'research recovery file')
+RECOVERY_IMPORTS = ('from execution_launch.research_incident_store import '
+                    'IncidentStoreError, _Pins, _canonical, _decode as _bounded_decode, '
+                    '_directory, _file, _hash, _identity, _stamp, _FLAGS')
+# Two explicit stores only. This table does not grant an arbitrary filename,
+# class, helper, import, callable or native-effect allowance.
+STORE_WRITE_SPECS = {
+    RESEARCH_INCIDENT_STORE: ("IncidentStore", INCIDENT_CALLS, INCIDENT_OPEN, INCIDENT_FLAGS,
+        '(("session.lock", b"0"), ("journal.jsonl", b""))'),
+    RESEARCH_RECOVERY_STORE: ("RecoveryAttemptStore", RECOVERY_CALLS, RECOVERY_OPEN, RECOVERY_IMPORTS,
+        '(("session.lock", b"0"), ("operation.lock", b"0"), ("journal.jsonl", b""))'),
+}
 PINNED_WRITES: dict[str, tuple[str, ...]] = {
     BUNDLE_REVIEW: (
         'os.mkdir(self.payloads, 0o700)',
@@ -194,7 +213,7 @@ WRITE_MODE = re.compile(r"[wax+]")
 # guard commit coordinator (after its durable prepare record and halt latch).
 CAS_CALLERS = frozenset({"execution_accounts/baseline_bridge.py", "execution_launch/live_history.py",
                          "execution_launch/continuous_guard_commit.py", PROTECTIVE_STORE, RESEARCH_BUNDLE_STORE,
-                         RESEARCH_INCIDENT_STORE})
+                         RESEARCH_INCIDENT_STORE, RESEARCH_RECOVERY_STORE})
 
 
 def _call_name(node):
@@ -262,34 +281,45 @@ def _incident_writer_nodes(tree, relative):
     restricted = {"_open"}
     incident_module = Path(relative).name in {
         "research_incident_store.py", "research_incident_monitor.py", "research_incident_cli.py",
-        "research_incidents.py", "incident_aware_selection.py"}
-    if relative == RESEARCH_INCIDENT_STORE:
-        restricted |= {"_append", "_backup", "write", "compare_and_set"}
-        for method, shapes in INCIDENT_CALLS.items():
+        "research_incidents.py", "incident_aware_selection.py", "research_recovery.py",
+        "research_recovery_store.py", "research_recovery_attempts.py", "research_recovery_cli.py"}
+    if relative in STORE_WRITE_SPECS:
+        owner, calls, opener, flag_source, setup_targets = STORE_WRITE_SPECS[relative]
+        restricted |= {"_append", "_backup", "write", "compare_and_set", "_FLAGS"}
+        if relative == RESEARCH_RECOVERY_STORE:
+            restricted.add("_Pins")
+        for method, shapes in calls.items():
             for shape in shapes:
                 expected = ast.dump(ast.parse(shape, mode="eval").body)
-                matches = [node for node, scope in scoped if scope == ("IncidentStore", method)
+                matches = [node for node, scope in scoped if scope == (owner, method)
                            and isinstance(node, ast.Call) and ast.dump(node) == expected]
                 if len(matches) != 1:
                     failures.append("incident writer call inventory changed")
                 for node in matches:
                     pinned.update(id(inner) for inner in ast.walk(node))
-        definitions = [node for node, scope in scoped if scope == ("IncidentStore",)
+        definitions = [node for node, scope in scoped if scope == (owner,)
                        and isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == "_open"]
         if (len(definitions) != 1
-                or ast.dump(definitions[0]) != ast.dump(ast.parse(INCIDENT_OPEN).body[0])):
+                or ast.dump(definitions[0]) != ast.dump(ast.parse(opener).body[0])):
             failures.append("incident open helper changed")
-        flags = [node for node in tree.body if isinstance(node, ast.Assign)
-                 and any(isinstance(t, ast.Name) and t.id == "_FLAGS" for t in node.targets)]
-        if len(flags) != 1 or ast.dump(flags[0]) != ast.dump(ast.parse(INCIDENT_FLAGS).body[0]):
+        expected_flags = ast.parse(flag_source).body[0]
+        if relative == RESEARCH_RECOVERY_STORE:
+            flags = [node for node in tree.body if isinstance(node, ast.ImportFrom)
+                     and node.module == "execution_launch.research_incident_store"]
+        else:
+            flags = [node for node in tree.body if isinstance(node, ast.Assign)
+                     and any(isinstance(t, ast.Name) and t.id == "_FLAGS" for t in node.targets)]
+        if len(flags) != 1 or ast.dump(flags[0]) != ast.dump(expected_flags):
             failures.append("incident write flags changed")
+        else:
+            pinned.update(id(inner) for inner in ast.walk(flags[0]))
         # The dynamic names passed to the creation helper are fixed here.
-        creation = [node for node, scope in scoped if scope == ("IncidentStore", "provision_empty")
+        creation = [node for node, scope in scoped if scope == (owner, "provision_empty")
                     and isinstance(node, ast.For) and ast.unparse(node.target) == "(name, raw)"]
-        expected = ast.parse('(("session.lock", b"0"), ("journal.jsonl", b""))', mode="eval").body
+        expected = ast.parse(setup_targets, mode="eval").body
         if len(creation) != 1 or ast.dump(creation[0].iter) != ast.dump(expected):
             failures.append("incident provision targets changed")
-        roots = [node for node, scope in scoped if scope == ("IncidentStore", "_backup")
+        roots = [node for node, scope in scoped if scope == (owner, "_backup")
                  and isinstance(node, ast.Assign)
                  and any(isinstance(t, ast.Name) and t.id == "root" for t in node.targets)]
         if len(roots) != 1 or ast.dump(roots[0]) != ast.dump(ast.parse('root = self.backup_root / "versions"').body[0]):
@@ -312,6 +342,11 @@ def _incident_operator_problems(tree, relative):
                 'store.head.initialize_reviewed_head(store.genesis_digest)'),
             "main": ('provision_incident_store(store)',),
         },
+        OWNER_RECOVERY_SETUP: {
+            "provision_recovery_attempt_store": ('store.provision_empty()',
+                'store.head.initialize_reviewed_head(store.genesis_digest)'),
+            "main": ('provision_recovery_attempt_store(store)',),
+        },
     }.get(relative, {})
     for function, shapes in permitted.items():
         for shape in shapes:
@@ -323,18 +358,19 @@ def _incident_operator_problems(tree, relative):
             for node in matches:
                 allowed.update(id(inner) for inner in ast.walk(node))
     for node, _ in scoped:
-        names = {"provision_empty", "provision_incident_store"}
-        if relative == OWNER_INCIDENT_SETUP:
+        names = {"provision_empty", "provision_incident_store", "provision_recovery_attempt_store"}
+        if relative in (OWNER_INCIDENT_SETUP, OWNER_RECOVERY_SETUP):
             names.add("initialize_reviewed_head")
         if id(node) not in allowed and _reached(node) & names:
             failures.append("incident provisioning outside exact operator function")
         if isinstance(node, ast.Import):
-            banned = any(alias.name == "tools.owner.research_incidents"
-                         or alias.name.startswith("tools.owner.research_incidents.") for alias in node.names)
+            banned = any(alias.name == module or alias.name.startswith(module + ".")
+                         for alias in node.names for module in
+                         ("tools.owner.research_incidents", "tools.owner.research_recovery"))
         elif isinstance(node, ast.ImportFrom):
-            banned = (node.module == "tools.owner.research_incidents"
-                      or (node.module or "").startswith("tools.owner.research_incidents.")
-                      or node.module == "tools.owner" and any(alias.name == "research_incidents"
+            banned = (any(node.module == module or (node.module or "").startswith(module + ".")
+                          for module in ("tools.owner.research_incidents", "tools.owner.research_recovery"))
+                      or node.module == "tools.owner" and any(alias.name in ("research_incidents", "research_recovery")
                                                               for alias in node.names))
         else:
             banned = False
@@ -888,7 +924,9 @@ def test_head_authority_writes_are_exact_and_operator_steps_have_no_runtime_call
                        {"provision_research_store": "store.head.initialize_reviewed_head(store.genesis_digest)"}
                        if relative == OWNER_RESEARCH_SETUP else
                        {"provision_incident_store": "store.head.initialize_reviewed_head(store.genesis_digest)"}
-                       if relative == OWNER_INCIDENT_SETUP else {})
+                       if relative == OWNER_INCIDENT_SETUP else
+                       {"provision_recovery_attempt_store": "store.head.initialize_reviewed_head(store.genesis_digest)"}
+                       if relative == OWNER_RECOVERY_SETUP else {})
         if setup_calls:
             # Exact explicit operator functions only; runtime readers/writers
             # cannot initialize, adopt or repair authority heads.
@@ -1186,6 +1224,125 @@ def test_incident_provisioning_has_only_explicit_operator_callers_and_no_runtime
     nested = source.replace('    store.provision_empty()',
                             '    def hidden():\n        store.provision_empty()')
     assert _incident_operator_problems(ast.parse(nested), OWNER_INCIDENT_SETUP)
+
+
+def test_recovery_store_writes_and_singleflight_lock_are_exact_and_method_scoped():
+    source = (ROOT / RESEARCH_RECOVERY_STORE).read_text(encoding="utf-8")
+    assert not problems(source, RESEARCH_RECOVERY_STORE), problems(source, RESEARCH_RECOVERY_STORE)
+    for relative in ("", RESEARCH_INCIDENT_STORE, "execution_launch/research_recovery.py",
+                     "execution_launch/research_recovery_attempts.py", "execution_launch/research_recovery_cli.py",
+                     "execution_launch/nested/research_recovery_store.py", "execution_network/research_recovery_store.py"):
+        assert problems(source, relative), relative
+    for before, after in (
+        ('"operation.lock"', '"unreviewed.lock"'),
+        ('("operation.lock", b"0"), ', ''),
+        ('"operation.lock", os.O_RDWR', '"operation.lock", os.O_RDWR | os.O_CREAT'),
+        ('"operation.lock", os.O_RDWR', '"operation.lock", os.O_WRONLY | os.O_TRUNC'),
+        ('def operation(self):', 'def another_operation(self):'),
+        ('os.O_WRONLY | os.O_CREAT | os.O_EXCL', 'os.O_WRONLY | os.O_CREAT | os.O_TRUNC'),
+        ('os.O_WRONLY | os.O_CREAT | os.O_EXCL', 'os.O_WRONLY | os.O_CREAT'),
+        ('os.O_WRONLY | os.O_APPEND', 'os.O_WRONLY | os.O_TRUNC'),
+        ('flags | _FLAGS, 0o600', 'flags | _FLAGS, 0o666'),
+        ('target if os.name == "nt" else name', 'other if os.name == "nt" else name'),
+        ('{"dir_fd": pins.fd(root)}', '{"dir_fd": foreign_fd}'),
+        ('within=root)', 'within=other_root)'),
+        ('mode=0o700', 'mode=0o777'),
+        ('"versions"', '"other-versions"'),
+        ('("session.lock", b"0")', '("unreviewed.lock", b"0")'),
+        ('("journal.jsonl", b"")', '("other.jsonl", b"")'),
+        ('os.fdopen(fd, "ab")', 'os.fdopen(fd, "wb")'),
+    ):
+        assert before in source, before
+        assert problems(source.replace(before, after), RESEARCH_RECOVERY_STORE), (before, after)
+    for extra in ('os.replace(a, b)', 'os.unlink(path)', 'path.write_bytes(raw)', 'open(path, "w")',
+                  'import ctypes', 'import requests', 'import tools.signer.sign', 'owner.load_context(now)',
+                  'owner.arm(x)', 'os.environ["API_KEY"]'):
+        assert problems(source + "\n" + extra + "\n", RESEARCH_RECOVERY_STORE), extra
+
+
+def test_recovery_retained_helpers_flags_and_buffered_writes_cannot_gain_aliases_or_callers():
+    source = (ROOT / RESEARCH_RECOVERY_STORE).read_text(encoding="utf-8")
+    original = 'self._open(pins, self.root, "operation.lock", os.O_RDWR)'
+    for altered in ('self._open(pins, self.root, "operation.lock", 2)',
+                    'self._open(pins, self.root, "operation.lock", caller_flags)',
+                    'self._open(pins, other_root, "operation.lock", os.O_RDWR)',
+                    'getattr(self, "_open")(pins, self.root, "operation.lock", 2)'):
+        assert problems(source.replace(original, altered), RESEARCH_RECOVERY_STORE), altered
+    for before, after in (('_decode as _bounded_decode', '_decode as caller_decode'),
+                          ('IncidentStoreError, _Pins,', 'IncidentStoreError, _Pins as PinAlias,'),
+                          ('_stamp, _FLAGS,', '_stamp, _FLAGS as caller_flags,'),
+                          ('_Pins(paths)', '_Pins(unreviewed_paths)')):
+        assert before in source, before
+        assert problems(source.replace(before, after), RESEARCH_RECOVERY_STORE), (before, after)
+    extras = ('alias = self._open', 'alias = RecoveryAttemptStore._open', 'getattr(store, "_open")',
+              'alias = self._append', 'alias = self._backup', 'handle.write(raw)',
+              'alias = handle.write', 'getattr(handle, "write")', '_FLAGS = 512', 'alias = _FLAGS',
+              'alias = _Pins', '_Pins(paths)',
+              'from execution_launch.research_incident_store import _Pins')
+    for extra in extras:
+        assert problems(source + "\n" + extra + "\n", RESEARCH_RECOVERY_STORE), extra
+    # A new method, nested function or lambda cannot inherit an existing method's
+    # fd/write permission even when its call text is otherwise identical.
+    prefix = '    def added(self):\n        '
+    for extra in (original, 'handle.write(raw)', 'os.fdopen(fd, "r+b")'):
+        assert problems(source + "\n" + prefix + extra + "\n", RESEARCH_RECOVERY_STORE), extra
+    before = '            _need(handle.write(raw) == len(raw), "RECOVERY_STORE_BACKUP_WRITE_REFUSED")'
+    assert before in source
+    for replacement in ('            def nested():\n                handle.write(raw)\n',
+                        '            action = lambda: handle.write(raw)\n',
+                        before + '\n            handle.write(raw)'):
+        assert problems(source.replace(before, replacement), RESEARCH_RECOVERY_STORE), replacement
+    for relative in ("execution_launch/research_recovery.py", "execution_launch/research_recovery_attempts.py",
+                     "execution_launch/research_recovery_cli.py"):
+        for extra in ('self._open(pins, root, name, 0x241)', 'alias = self._open',
+                      'self._append(pins, anchor, line, size)', 'handle.write(raw)'):
+            assert problems(extra, relative), (relative, extra)
+
+
+def test_recovery_cas_remains_one_exact_commit_call_and_never_moves_to_operation():
+    source = (ROOT / RESEARCH_RECOVERY_STORE).read_text(encoding="utf-8")
+    exact = 'self.head.compare_and_set(current.head, row["row_sha256"])'
+    assert source.count(exact) == 1
+    for changed in ('self.head.compare_and_set(other, row["row_sha256"])',
+                    'self.head.compare_and_set(current.head, caller_digest)',
+                    'getattr(self.head, "compare_and_set")(current.head, row["row_sha256"])'):
+        assert problems(source.replace(exact, changed), RESEARCH_RECOVERY_STORE), changed
+    for extra in (exact, 'alias = self.head.compare_and_set', 'compare_and_set(old, new)',
+                  'self.head.initialize_reviewed_head(caller_digest)'):
+        assert problems(source + "\n" + extra + "\n", RESEARCH_RECOVERY_STORE), extra
+    changed = source.replace('    def operation(self):', '    def operation(self):\n        ' + exact)
+    assert problems(changed, RESEARCH_RECOVERY_STORE)
+    for relative in ("execution_launch/research_recovery.py", "execution_launch/research_recovery_attempts.py",
+                     "execution_launch/research_recovery_cli.py", "execution_launch/nested/research_recovery_store.py"):
+        assert "trusted head advance outside pinned callers" in problems(exact, relative), relative
+
+
+def test_recovery_provisioning_is_only_the_exact_owner_function_and_never_runtime_imported():
+    from tests.acceptance import runtime_py
+    source = (ROOT / OWNER_RECOVERY_SETUP).read_text(encoding="utf-8")
+    assert not _incident_operator_problems(ast.parse(source), OWNER_RECOVERY_SETUP)
+    for path in runtime_py():
+        relative = path.relative_to(ROOT).as_posix()
+        hits = _incident_operator_problems(ast.parse(path.read_text(encoding="utf-8")), relative)
+        assert not hits, (relative, hits)
+    snippets = ('store.provision_empty()', 'alias = store.provision_empty', 'getattr(store, "provision_empty")',
+                'provision_recovery_attempt_store(store)', 'alias = provision_recovery_attempt_store',
+                'import tools.owner.research_recovery as setup',
+                'from tools.owner.research_recovery import provision_recovery_attempt_store as setup',
+                'from tools.owner import research_recovery as setup')
+    for extra in snippets:
+        for relative in (RESEARCH_RECOVERY_STORE, "execution_launch/research_recovery_cli.py",
+                         "execution_launch/research_recovery.py", "execution_launch/research_recovery_attempts.py"):
+            assert _incident_operator_problems(ast.parse(extra), relative), (relative, extra)
+        assert _incident_operator_problems(ast.parse(source + "\n" + extra + "\n"), OWNER_RECOVERY_SETUP), extra
+    for before, after in (('store.provision_empty()', 'store.provision_empty(other)'),
+                          ('store.head.initialize_reviewed_head(store.genesis_digest)',
+                           'store.head.initialize_reviewed_head(caller_digest)'),
+                          ('def provision_recovery_attempt_store(store):', 'def unreviewed(store):')):
+        assert before in source
+        assert _incident_operator_problems(ast.parse(source.replace(before, after)), OWNER_RECOVERY_SETUP)
+    nested = source.replace('    store.provision_empty()', '    def hidden():\n        store.provision_empty()')
+    assert _incident_operator_problems(ast.parse(nested), OWNER_RECOVERY_SETUP)
 
 
 def test_archive_packet_writes_remain_exclusive_explicit_and_outside_authority():

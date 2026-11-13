@@ -72,7 +72,62 @@ class CurrentOwnerAuthority:
         finally:
             self._lock.release()
 
-    def _observe(self, now):
+    def observe_checkpoint(self, now, *, key_fingerprint, code_hash, owner_head) -> ReviewAuthority:
+        """Fresh actual observation restricted by a durable historical checkpoint.
+
+        The checkpoint is not authority: its key/code must match the current
+        loader and its head must be a prefix of the whole independently verified
+        signed log. Only actual observations update this provider's normal pins.
+        Caller retains trusted-time continuity from its own durable attempt.
+        """
+        _need(_aware(now), "OWNER_AUTHORITY_TIME_INVALID")
+        def hexadecimal(value):
+            return (type(value) is str and len(value) == 64
+                    and all(char in "0123456789abcdef" for char in value))
+        _need(type(key_fingerprint) is str and key_fingerprint.startswith("SHA256:")
+              and hexadecimal(key_fingerprint[7:]) and hexadecimal(code_hash)
+              and type(owner_head) is tuple and len(owner_head) == 2
+              and type(owner_head[0]) is int and 1 <= owner_head[0] < 2**63
+              and hexadecimal(owner_head[1]), "OWNER_AUTHORITY_CHECKPOINT_INVALID")
+        _need(self._lock.acquire(blocking=False), "OWNER_AUTHORITY_CONCURRENT_REFUSED")
+        try:
+            completions = []
+            observed = self._observe(now, _completion=completions)
+            try:
+                public = owner.read_pubkey(owner.PUBKEY_PATH)
+            except Exception:
+                raise OwnerAuthorityError("OWNER_AUTHORITY_KEY_UNREADABLE") from None
+            _need(public == observed.public_key_raw
+                  and owner.fingerprint(public) == observed.context.owner.fingerprint == key_fingerprint,
+                  "OWNER_AUTHORITY_KEY_CHANGED")
+            _need(observed.context.code_hash == code_hash, "OWNER_AUTHORITY_CODE_CHANGED")
+            try:
+                lines = owner._log_lines(owner.log_path())
+            except (OSError, RuntimeError):
+                raise OwnerAuthorityError("OWNER_AUTHORITY_LOG_UNREADABLE") from None
+            check = owner.verify_log(lines, public, [owner_head])
+            _need(check.ok, "OWNER_AUTHORITY_LOG_REWRITTEN")
+            _need(check.head == observed.context.owner.head,
+                  "OWNER_AUTHORITY_LOG_CHANGED_DURING_OBSERVATION")
+            finished = self._clock()
+            _need(_aware(finished), "OWNER_AUTHORITY_TIME_INVALID")
+            _need(finished >= now and len(completions) == 1 and finished >= completions[0],
+                  "OWNER_AUTHORITY_CLOCK_ROLLBACK")
+            _need(finished-now <= timedelta(seconds=MAX_AUTHORITY_AGE_SECONDS),
+                  "OWNER_AUTHORITY_OBSERVATION_LATE")
+            _need(observed.context.date == finished.astimezone(compliance.KST).date(),
+                  "OWNER_AUTHORITY_DAY_CHANGED")
+            self._last = finished
+            return observed
+        except Exception as exc:
+            code = str(exc) if type(exc) is OwnerAuthorityError else "OWNER_AUTHORITY_UNAVAILABLE"
+            if self._pinned is not None and not self._latched:
+                self._latched = code
+            raise OwnerAuthorityError(code) from None
+        finally:
+            self._lock.release()
+
+    def _observe(self, now, *, _completion=None):
         if self._latched:
             raise OwnerAuthorityError(self._latched)
         _need(self._last is None or now >= self._last, "OWNER_AUTHORITY_CLOCK_ROLLBACK")
@@ -81,6 +136,8 @@ class CurrentOwnerAuthority:
         except ValueError:
             raise OwnerAuthorityError("OWNER_AUTHORITY_TIME_INVALID") from None
         finished = self._clock()
+        if _completion is not None:
+            _completion.append(finished)
         _need(_aware(finished), "OWNER_AUTHORITY_TIME_INVALID")
         _need(finished >= now, "OWNER_AUTHORITY_CLOCK_ROLLBACK")
         _need(finished - now <= timedelta(seconds=MAX_AUTHORITY_AGE_SECONDS), "OWNER_AUTHORITY_OBSERVATION_LATE")
