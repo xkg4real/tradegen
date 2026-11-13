@@ -610,6 +610,7 @@ class Runner:
             reconciled = 0
             risk = None
             committed = None
+            generation_constraints = {}
             observed_at = now
             if self.mode != 'observe' or self._committed_provider is not None:
                 self._controller_boundary()
@@ -621,6 +622,8 @@ class Runner:
                     _require(type(committed) is CommittedControllerObservation
                              and type(committed.risk) is RiskResult,
                              'RUNNER_COMMITTED_OBSERVATION_REQUIRED')
+                    generation_constraints = {
+                        'expected_committed_transaction_id': committed.committed.transaction_id}
                     _instant(committed.completed_at)
                     _require(committed.completed_at >= now, 'RUNNER_COMMITTED_OBSERVATION_REQUIRED')
                     observed_at = committed.completed_at
@@ -689,7 +692,7 @@ class Runner:
             if self._committed_provider is not None:
                 self._controller_boundary()
             reserved = self.controller.reserve(order, self.profile.instrument_rules,
-                                               session_id=session_id, now=execution_now)
+                                               session_id=session_id, now=execution_now, **generation_constraints)
             if self.stopped:
                 state = self._cancel_stopped_reservation(reserved, requested_now=now,
                                                          execution_now=execution_now)
@@ -703,7 +706,7 @@ class Runner:
                     client_id=order.client_id, order_status='RESERVED', reconciled_orders=reconciled, **metadata)
             if self._committed_provider is not None:
                 self._controller_boundary()
-            state = self.controller.dispatch(order.client_id, now=execution_now)
+            state = self.controller.dispatch(order.client_id, now=execution_now, **generation_constraints)
             return self._dispatch_tick_result(state, reconciled_orders=reconciled,
                 protective_action_needed=risk.protective_action_needed, metadata=metadata)
         except RunnerError as exc:
@@ -746,11 +749,14 @@ class Runner:
             _require(type(signal) is Signal and signal.action == 'exit', 'RUNNER_EXIT_REQUIRED')
             committed = None
             session_id = None
+            generation_constraints = {}
             if self._committed_provider is not None:
                 session_id = self._exit_session_id()
                 committed = Controller.read_committed_account(self.controller, now=now, session_id=session_id)
                 _require(type(committed) is CommittedControllerObservation and committed.risk is None,
                          'RUNNER_COMMITTED_OBSERVATION_REQUIRED')
+                generation_constraints = {
+                    'expected_committed_transaction_id': committed.committed.transaction_id}
             _, account = self._observations(now, committed=committed)
             observed_at = committed.completed_at if committed is not None else now
             order = self._order(signal, account, observed_at)
@@ -765,10 +771,10 @@ class Runner:
                 self._controller_boundary()
             self.controller.reserve(order, self.profile.instrument_rules,
                                     session_id=session_id if committed is not None else self._exit_session_id(),
-                                    now=observed_at)
+                                    now=observed_at, **generation_constraints)
             if self._committed_provider is not None:
                 self._controller_boundary()
-            return self.controller.dispatch(order.client_id, now=observed_at)
+            return self.controller.dispatch(order.client_id, now=observed_at, **generation_constraints)
 
     def run(self, timestamps, *, max_steps, should_stop=None, entry_allow=None) -> tuple[TickResult, ...]:
         """Bounded synchronous adapter over an external clock/scheduler iterable.
