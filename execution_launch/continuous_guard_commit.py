@@ -313,17 +313,26 @@ def _advance(store, head, old, state, new, code):
 
 def commit_continuous_guard(package: dict, *, now: datetime, expected_guard_head: str, expected_baseline_head: str,
                             expected_control_head: str, journal: Journal, guard_store: GuardCheckpointStore,
-                            guard_head, baseline_store: CheckpointStore, baseline_head) -> GuardCommitReceipt:
+                            guard_head, baseline_store: CheckpointStore, baseline_head,
+                            expected_evaluated_at: datetime | None = None) -> GuardCommitReceipt:
     """Apply (or idempotently resume) one recomputed guard plan; refuse rather than repair or guess.
 
     ``package`` holds the exact ``plan_continuous_guard`` keyword inputs; the plan is recomputed here and never
     deserialized. ``now`` is the current receipt time for journal rows. A refusal after the prepare row leaves
     the transaction pending; only the same package can resume it.
+
+    ``expected_evaluated_at`` optionally binds a retained package's original evaluation instant. Under the
+    actual journal lock its recomputed successor must retain that instant, including the duplicate-plan branch
+    which returns a previously stored checkpoint. This is an additional correspondence check, not freshness
+    or source authority. Omitting it preserves the existing idempotent replay semantics.
     """
     _instant(now)
     for value in (expected_guard_head, expected_baseline_head, expected_control_head):
         _hash(value)
     _need(type(package) is dict and set(package) == _PACKAGE_KEYS, "GUARD_PACKAGE_REQUIRED")
+    if expected_evaluated_at is not None:
+        expected_evaluated_at = _instant(expected_evaluated_at)
+        _need(_instant(package["now"]) == expected_evaluated_at, "GUARD_COMMIT_EVALUATION_TIME_MISMATCH")
     _need(type(journal) is Journal and type(guard_store) is GuardCheckpointStore
           and type(baseline_store) is CheckpointStore
           and all(callable(getattr(h, n, None))
@@ -339,6 +348,10 @@ def commit_continuous_guard(package: dict, *, now: datetime, expected_guard_head
         previous = _previous_guard(guard_store, expected_guard_head, state.new_guard_sha256)
         plan = plan_continuous_guard(previous, **package)
         new_guard = plan.proposed_checkpoint
+        if expected_evaluated_at is not None:
+            _need(_instant(plan.recorded_at) == expected_evaluated_at
+                  and _instant(new_guard.recorded_at) == expected_evaluated_at,
+                  "GUARD_COMMIT_EVALUATION_TIME_MISMATCH")
         new_baseline = new_guard.baseline
         _need(plan.previous_guard_sha256 == expected_guard_head
               and plan.previous_baseline_sha256 == expected_baseline_head, "GUARD_PREDECESSOR_MISMATCH")

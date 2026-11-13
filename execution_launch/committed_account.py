@@ -95,6 +95,25 @@ class CommittedAccountProjection:
         return False
 
 
+@dataclass(frozen=True, kw_only=True)
+class CommittedGenerationInspection:
+    """Historical durable correspondence, never a current account or permit."""
+    transaction_id: str
+    guard_head: str
+    baseline_head: str
+    completion_head: str
+    receipt_control_head: str
+    observed_control_head: str
+    package_sha256: str
+    input_sha256: str
+    asof: datetime
+    evaluated_at: datetime
+
+    @property
+    def execution_ready(self):
+        return False
+
+
 @dataclass(frozen=True, slots=True)
 class _Generation:
     """Detached evidence, not a public source/owner authorization token."""
@@ -378,6 +397,49 @@ class CommittedAccountProvider:
                     return self._read(now, transaction, previous, previous)
                 self._still(candidate, previous)
                 object.__setattr__(self, "_CommittedAccountProvider__generation", candidate)
+                return answer
+        except CommittedAccountError:
+            raise
+        except (ValueError, RuntimeError, TypeError, AttributeError, KeyError, DecimalException,
+                OverflowError, RecursionError):
+            raise CommittedAccountError("COMMITTED_ACCOUNT_EVIDENCE_REFUSED") from None
+
+    def inspect_committed(self, *, now: datetime,
+                          transaction: Transaction) -> CommittedGenerationInspection:
+        """Inspect an actual completed generation without projecting old accounts.
+
+        The caller supplies its actual current time and active Journal transaction.
+        Expired endpoint freshness is not converted into account authority: this
+        path never calls current reconciliation, and always completes its own
+        actual store/head/control rereads before returning original metadata.
+        """
+        try:
+            with localcontext() as numeric:
+                numeric.prec = 512; numeric.traps[Inexact] = True
+                generation = self.__generation
+                _instant(now)
+                self._still(generation, generation)
+                events = self._events(transaction)
+                guard, baseline = self._states(generation)
+                binding = self._binding(generation, guard, baseline)
+                completion, _, _ = self._history(generation, events,
+                    guard.permanently_halted, binding, now, baseline)
+                _need(guard.recorded_at == generation.package["now"]
+                      and guard.recorded_at <= now, "COMMITTED_ACCOUNT_CLOCK_ROLLBACK")
+                _need(self._states(generation) == (guard, baseline),
+                      "COMMITTED_ACCOUNT_STATE_CHANGED")
+                self._still(generation, generation)
+                _need(self._events(transaction) == events, "COMMITTED_ACCOUNT_CONTROL_CHANGED")
+                receipt = generation.receipt
+                answer = CommittedGenerationInspection(
+                    transaction_id=receipt.transaction_id, guard_head=receipt.guard_head,
+                    baseline_head=receipt.baseline_head, completion_head=completion,
+                    receipt_control_head=receipt.control_head,
+                    observed_control_head=events[-1]["row_sha256"],
+                    package_sha256=generation.package_sha256,
+                    input_sha256=binding["input_sha256"], asof=baseline.asof,
+                    evaluated_at=guard.recorded_at)
+                self._still(generation, generation)
                 return answer
         except CommittedAccountError:
             raise

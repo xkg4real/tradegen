@@ -147,7 +147,20 @@ def _lock(fh, acquire: bool) -> None:
 
 
 class Journal:
-    def __init__(self, root: Path | None = None):
+    def __setattr__(self, name, value):
+        if name == "_require_existing" and name in self.__dict__:
+            raise AttributeError("control existing mode is immutable")
+        object.__setattr__(self, name, value)
+
+    def __delattr__(self, name):
+        if name == "_require_existing":
+            raise AttributeError("control existing mode is immutable")
+        object.__delattr__(self, name)
+
+    def __init__(self, root: Path | None = None, *, require_existing: bool = False):
+        if type(require_existing) is not bool:
+            raise JournalError("control existing mode must be bool")
+        self._require_existing = require_existing
         try:
             self._base = state_root().absolute()
             self._root = Path(root).absolute() if root is not None else self._base / "execution-control"
@@ -156,6 +169,11 @@ class Journal:
             self._check_paths()
         except (OSError, RuntimeError, ValueError, TypeError):
             raise JournalError("control state path refused") from None
+
+    @property
+    def requires_existing(self) -> bool:
+        """A restrictive construction mode, not a durable state or authority claim."""
+        return self._require_existing
 
     def _check_paths(self) -> None:
         checked_target(self._root, "control directory", within=self._base)
@@ -173,13 +191,32 @@ class Journal:
             raise JournalError("control state exceeds size limit")
         return raw
 
-    def _anchor(self, seq: int, head: str, size: int) -> None:
+    def _existing_files(self) -> None:
+        self._check_paths()
+        if (not self._root.is_dir() or any(not (self._root / name).is_file()
+                for name in ("control.lock", "journal.jsonl", "checkpoint.json"))):
+            raise JournalError("control existing state missing")
+
+    def _existing_pair(self, expected_pair) -> None:
+        """Finite byte/path checks only; no filesystem lease or automatic repair."""
+        self._existing_files()
+        if (type(expected_pair) is not tuple or len(expected_pair) != 2
+                or any(type(value) is not bytes for value in expected_pair)
+                or self._read("journal.jsonl", MAX_JOURNAL_BYTES) != expected_pair[0]
+                or self._read("checkpoint.json", 4096) != expected_pair[1]):
+            raise JournalError("control state changed during transaction")
+
+    def _anchor(self, seq: int, head: str, size: int, *, expected_pair=None) -> None:
+        if self.requires_existing:
+            self._existing_pair(expected_pair)
         body = {"schema": SCHEMA, "seq": seq, "head_sha256": head, "journal_bytes": size}
         temp = self._root / (".checkpoint." + os.urandom(12).hex() + ".tmp")
         with open(checked_target(temp, "control checkpoint temporary", within=self._root), "xb") as fh:
             fh.write(_canonical(body) + b"\n")
             fh.flush()
             os.fsync(fh.fileno())
+        if self.requires_existing:
+            self._existing_pair(expected_pair)
         os.replace(checked_target(temp, "control checkpoint temporary", within=self._root),
                    checked_target(self._root / "checkpoint.json", "control checkpoint", within=self._root))
         _sync_directory(self._root)
@@ -187,7 +224,9 @@ class Journal:
     def _load(self, *, initialize: bool = True) -> tuple[list[dict], int]:
         journal = self._root / "journal.jsonl"
         anchor = self._root / "checkpoint.json"
-        if initialize and not journal.exists() and not anchor.exists():
+        if self.requires_existing:
+            self._existing_files()
+        if initialize and not self.requires_existing and not journal.exists() and not anchor.exists():
             # Only a genuinely empty pair is initialized. A partial first write is a refusal.
             with open(checked_target(journal, "control journal", within=self._root), "xb") as fh:
                 fh.flush()
@@ -263,11 +302,13 @@ class Journal:
             _THREAD.active = True
             try:
                 self._check_paths()
-                checked_target(self._root, "control directory", within=self._base).mkdir(parents=True, exist_ok=True)
-                with open(checked_target(self._root / "control.lock", "control lock", within=self._root), "a+b") as fh:
+                if not self.requires_existing:
+                    checked_target(self._root, "control directory", within=self._base).mkdir(parents=True, exist_ok=True)
+                with open(checked_target(self._root / "control.lock", "control lock", within=self._root),
+                          "r+b" if self.requires_existing else "a+b") as fh:
                     _lock(fh, True)
                     try:
-                        rows, size = self._load()
+                        rows, size = self._load(initialize=False) if self.requires_existing else self._load()
                         tx = Transaction(self, rows, size)
                         _THREAD.transaction = tx
                         entered = True
@@ -317,16 +358,33 @@ class Transaction:
             raise JournalError("control append exceeds size limit")
         try:
             self._journal._check_paths()
-            rows, size = self._journal._load()
+            rows, size = (self._journal._load(initialize=False) if self._journal.requires_existing
+                          else self._journal._load())
             if size != self._size or rows != self._rows:
                 raise JournalError("control state changed during transaction")
+            expected_pair = None
+            if self._journal.requires_existing:
+                expected_raw = b"".join(_canonical(item) + b"\n" for item in rows)
+                expected_checkpoint = _canonical({"schema": SCHEMA, "seq": len(rows),
+                    "head_sha256": previous, "journal_bytes": size}) + b"\n"
+                expected_pair = (expected_raw, expected_checkpoint)
             with open(checked_target(self._journal._root / "journal.jsonl", "control journal",
-                                     within=self._journal._root), "ab") as fh:
+                                     within=self._journal._root),
+                      "r+b" if self._journal.requires_existing else "ab") as fh:
+                if self._journal.requires_existing:
+                    fh.seek(0, os.SEEK_END)
+                    if fh.tell() != size:
+                        raise JournalError("control state changed during transaction")
+                    self._journal._existing_pair(expected_pair)
                 if fh.write(line) != len(line):
                     raise JournalError("control append incomplete")
                 fh.flush()
                 os.fsync(fh.fileno())
-            self._journal._anchor(row["seq"], row["row_sha256"], size + len(line))
+            if self._journal.requires_existing:
+                self._journal._anchor(row["seq"], row["row_sha256"], size + len(line),
+                                      expected_pair=(expected_raw + line, expected_checkpoint))
+            else:
+                self._journal._anchor(row["seq"], row["row_sha256"], size + len(line))
         except (OSError, RuntimeError, ValueError, TypeError):
             self._active = False
             raise JournalError("control append failed; reconciliation required") from None

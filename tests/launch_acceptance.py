@@ -34,7 +34,10 @@ MODULES = ("launch_guards", "network_route", "accounts_collector", "launch_profi
            "launch_research_recovery_cli", "launch_research_recovery_integration",
            "launch_guard_capture_format", "launch_guard_capture_archive", "launch_committed_runner",
            "launch_upbit_read_format", "launch_upbit_read_archive", "launch_upbit_read_integration",
-           "launch_committed_generation", "launch_committed_generation_runner")
+           "launch_committed_generation", "launch_committed_generation_runner",
+           "launch_guard_generation_format", "launch_guard_generation_archive",
+           "launch_committed_inspection", "launch_committed_startup_commit",
+           "launch_committed_startup", "launch_committed_startup_integration")
 
 
 def tests():
