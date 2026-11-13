@@ -1,0 +1,20 @@
+{
+  "label": "revocation-integration-dev1",
+  "head": "797e8f5b934127734ae1207daaced9d1c3501200",
+  "source_hash": "409d7a66ad993bf6fe6eb7adc982b5b9ec189d94977ea473652fd0555d03d681",
+  "total": 915,
+  "counts": {
+    "PASS": 914,
+    "FAIL": 0,
+    "NOT_RUN": 1
+  },
+  "process_segments": 1,
+  "seconds": 1231.571,
+  "current_segment_seconds": 1231.571,
+  "sum_test_seconds": 1226.056,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "real_homes_check_scope": "metadata before imports/discovery through completion",
+  "failures": []
+}

@@ -4,17 +4,17 @@ reason: owner_requested_continue_pr4e_and_protective_p2
 from: gpt
 task: upbit-universe
 cycle: 2026-11-10
-done_ids: universe-pr5/exact-archive-recovery, universe-pr5/archive-attestation, universe-pr5/raw-verified-bundles, universe-pr5/family-preflight, protective-hold/fixed-carry-v2, universe-pr4e, protective-hold/p2-store-integration, universe-pr5/outcome-document-contract, protective-hold/p2-store, protective-hold/p1, universe-pr4d/lossless-history, universe-pr4d, universe-pr4d/lossless-objects, design-revision-1113, upbit-universe-return-1113, universe-pr4d/original-verification, workflow-resume-1113/regression-preparation, universe-pr4d/task2-implementation, universe-pr4d/task3, universe-pr4d/task4, universe-pr4c, universe-pr4d/task1, workflow-resume-1113, workflow-resume-1113/dependencies, universe-pr4c/implementation, universe-pr0, universe-pr1, universe-pr2, universe-pr3, universe-pr4b, universe-pr4a
-next_ids: universe-pr5/research-revocation, universe-pr5/sealed-selection, universe-pr5/recovery-operations, protective-hold/p2-integration, universe-pr5, universe-pr5-clock-notify, universe-code-approve, policy-loss-budget-plan-1, rules-review-1202, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, launch-private-capture-setup-1, e1-14-owner-setup, launch-prospective-study, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1
-updated_at: 2026-11-14T00:14:33+09:00
+done_ids: universe-pr5/research-revocation, universe-pr5/exact-archive-recovery, universe-pr5/archive-attestation, universe-pr5/raw-verified-bundles, universe-pr5/family-preflight, protective-hold/fixed-carry-v2, universe-pr4e, protective-hold/p2-store-integration, universe-pr5/outcome-document-contract, protective-hold/p2-store, protective-hold/p1, universe-pr4d/lossless-history, universe-pr4d, universe-pr4d/lossless-objects, design-revision-1113, upbit-universe-return-1113, universe-pr4d/original-verification, workflow-resume-1113/regression-preparation, universe-pr4d/task2-implementation, universe-pr4d/task3, universe-pr4d/task4, universe-pr4c, universe-pr4d/task1, workflow-resume-1113, workflow-resume-1113/dependencies, universe-pr4c/implementation, universe-pr0, universe-pr1, universe-pr2, universe-pr3, universe-pr4b, universe-pr4a
+next_ids: universe-pr5/sealed-selection, universe-pr5/recovery-operations, protective-hold/p2-integration, universe-pr5, universe-pr5-clock-notify, universe-code-approve, policy-loss-budget-plan-1, rules-review-1202, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, launch-private-capture-setup-1, e1-14-owner-setup, launch-prospective-study, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1
+updated_at: 2026-11-14T00:31:26+09:00
 stale_after_hours: 3
 waiting_on: no prior approval question; future PLB S1-S12 and deployment inputs only
-work_branch: gpt/research-attestation-revocation
-work_commit: 797e8f5b934127734ae1207daaced9d1c3501200
-merged_main_commit: f09b7365c9f2b025ec507c33a234c88cf7654d09
-runtime_tested_commit: B2a119645f focused196PASS/0FAIL/0NR sourcece6820e0; 2a797e8f5 broad915 RUNNING, not final acceptance
-uncommitted_changes: 2a documentation only while frozen915 runs; B1b-2b/c active /workspace/tradegen-sealed-selection-1113 base797e8f5, not delivered
-pr: PR34-43 merged; 2a candidate branch pushed, tests pending; sealed-selection development active; no live activation
+work_branch: gpt/research-sealed-selection
+work_commit: 93a453c29c26ef28848e297cd24bf2f472b6bf53
+merged_main_commit: 90575da9c53d7fb542fe1e4c4fd4c78d4adf2e87
+runtime_tested_commit: 2a797e8f5 related915=914PASS/0FAIL/1WindowsNR source409d7a66; sealed93a453c related315 RUNNING, one CLI expectation failure under review
+uncommitted_changes: sealed documentation only during frozen315; P2-I1 active /workspace/tradegen-guard-projection-1113 basef09b736, source/tests not final
+pr: PR34-44 merged; sealed-selection branch pushed and regression pending; P2-I1 development active; no live activation
 usage_weekly_pct: unknown
 usage_source: unavailable
 handoff_threshold_pct: 95
@@ -81,7 +81,12 @@ P0b는 policy→protocol→identity→contextual payload DAG, 실제 동일 잠�
 
 ## 9. 이어받는 에이전트에게
 
-원격 상태·CURRENT·LEDGER·최신 실행 로그부터 읽는다. 부품/연구/배포/활성화의 완료를 구분한다. 전체 실전 준비 완료라고 하지 않는다. 다음 코드는 확인된 병합 main에서 시작하고 새 source별 검증을 수행한다. 진행 중이었다는 이유로 사용자 결정을 재질문하거나 이미 완료한 단계를 반복하지 않는다. 작업 단위마다 복구 가능한 체크포인트를 남긴다. 주간 사용량은 조회 수단이 없으므로 unknown이며95% 도달을 추측하지 않았다.
+최신 front matter와 맨 아래 체크포인트를 먼저 따른다. PR34–44 완료 ID를 반복 구현하지 않는다. main90575da는 PR44 테스트/전달 tree와 같다. 실제 키·홈 내용·거래소 API·주문·활성화는 금지하며 사용자가 확정한 E 비청산과 하한을 유지한다.
+
+1. sealed-selection 트리93a453c의315 관련검사는 현재 진행 중이다. label sealed-selection-integration-dev1의 정확한 종료/rows를 먼저 확인한다. 검사 중 source/tests 편집 금지. 알려진1실패는 duplicate-key CLI 진단의 테스트 기대값 OWNER_JSON_INVALID 대신 실제 계약 OWNER_JSON_DUPLICATE_KEY다. 실행 종료 후 기대값 한 곳만 수정하고 관련회귀를 실행한다. 거절/비권한 검사는 유지하고 최초 실패를 보존한다.
+2. P2-I1은 guard-projection 트리basef09b736에서 구현 중이다. helper11tests, committedprojection/별도회귀와 API카드를 확인하고 최종동결 뒤 등록·검증한다. actual Transaction/실제 store+head에 연결한 읽기 경로이며 Controller·live source·controlled gate는 아직 연결하지 않는다. I2 계획은 별도 문서다.
+3. 정확 복구 backend는 PR43에서 완료했다. 자동 사건 감지·독립지속보류·outbox/복구workflow는 B2 운영 다음단계 문서를 따른다. 설계 문서를 구현완료로 표시하지 않는다.
+4. 작업 단위별 원격 checkpoint를 남긴다. usage는 신뢰할 수 있는 조회수단이 없어 unknown/unavailable이며95%를 추정하지 않는다. S1~S12 실제 입력도 미실행 그대로다.
 
 ## 최종 P1 결과와 이어갈 지점
 
@@ -194,3 +199,12 @@ PR40은PR39브랜치를base로한stacked draft이며39병합후main으로retarge
 - 2a 개발범위: canonical signed-body별 제한 event, fullverifiedhead Context, 모든 source auth 소비, archive revoked상태표시; 재시작 log-onlyrollback 방지 per-event anchor; fullchain/anchor checks와 idempotent signer retry; POSIX dirfd 및 독립Win32 retainedparent 생성. nativeWindows 실제미검증, coherentlog+allanchors rollback은 별도한계. 최초fixture시간오류1건은 고쳤으며실패로그보존.
 - 2b/c 신규트리는 /workspace/tradegen-sealed-selection-1113, branchgpt/research-sealed-selection, base797e8f5. actual single sealed evaluation helper와 private sourceauthentication backend 개발, 실제 factory/history/전체 audit연결orchestrator·CLI 진행. source/tests최종검증전.
 - Notion 두페이지에 PR42·PR43 기록완료; PR43 update15:10:24.416Z/15:10:30.884Z와 기존본문prefix보존 확인. 실제사용자가입력할 S1~S12/Windows/서명/계좌·활성화 미수행. PR43 app attach 연결실패, 실제GitHub병합정상.
+
+## 진행 체크포인트 — PR44 연구 승인 철회 병합, 선발·계좌 투영 계속
+
+- [PR44](https://github.com/xkg4real/tradegen/pull/44) runtime17801eb631e6314a33bfe692b15a8312edae444f, tested797e8f5b934127734ae1207daaced9d1c3501200, delivered71848aab255e74edaabe16bd79f7089fada40de8, main90575da9c53d7fb542fe1e4c4fd4c78d4adf2e87. main tree=delivered tree 및 source fingerprint 일치 확인.
+- 관련915=914PASS/0FAIL/1nativeWindowsGetConsoleModeNOT_RUN, 단일1231.571초, source409d7a66ad993bf6fe6eb7adc982b5b9ec189d94977ea473652fd0555d03d681.19KEYLESS, import/discovery 전부터 source/home metadata불변, QA복원. 전체repository 검사나nativeWindows 검증이 아니다.
+- exact canonical signed body별철회, 실제verifiedowner Context와공통sourceauth, 재시작log-onlyrollback방어anchors, 독립signer exactretry를연결했다. 모든 log+anchor의coherentrollback보장은없다. 원본삭제/청산/활성화/하한완화없다. PR44appartifactattach연결종료, GitHub병합은정상이다.
+- sealed-selection runtime93a453c29c26ef28848e297cd24bf2f472b6bf53 push완료. actualsingleevaluation→전체eligible source/audit→actualfixed/carry factory/history→finalgraph/owner/revocation/time연결. coordinator개발14PASS117.130초, 최초7PASS3fixtureFAIL보존. 관련315회귀진행중이며CLI duplicate-key 기대값1실패확인; runtime은올바르게거절했다. 최종통과/병합아님.
+- P2-I1 새트리/workbranch gpt/committed-guard-projection, basef09b736. 실제확정baseline helper와activeTransaction/실제store+head 투영개발중. read-only이며metadata를버리는 __call__나Controller연결없다. 임의coverage/ownerclaim을운영권한으로승격하지않는다.
+- B2운영 다음단계와P2-I1/I2문서는설계이며완료ID가아니다. floor_state_check/actualWindows/사용자범위별서명/계좌검증/활성화는미수행이다.

@@ -119,3 +119,10 @@ python -m execution_launch.sealed_study_cli select-sealed
 actual retained receipts+전체 후보 capture → actual B1a finalization → 같은 원본의 actual single reevaluation → 임시 실제 owner code/table 서명 → actual archive/source signatures → 실제 preprovisioned history head/factory 연결의 양성 경로가 필요하다. 수치 결과나 PASS를 교체하지 않는다. 개발 fixture는 명시 fake market source이며 실증 수익 증거가 아니다.
 
 single evaluation/발급 횟수, 후보 실패 보존, forged/unissued/mutated family, missing/revoked/expired source, audit mismatch, archive 철회, final graph/backup 손상, actual final owner 변화, actual factory/window/history 불일치, head 미설정, 최종 crypto 지연·만료·30초·clock rollback, no-qualified/no history write, cached result 재사용 거절을 검증한다. 실제 user home/키/API/orders 없음, KEYLESS 임시환경, QA는 부모만 관리한다.
+
+## 구현 검토 보완
+
+- 최종 history 검사는 실제 `_durable_unchanged()`에 이어 `_replay(identity, install=False)`로 전체 원본을 다시 읽는다. legacy journal의 같은 길이 변조는 크기 검사만으로 충분하지 않으므로 전체 row/hash/chain 및 독립 head를 대조한다. 재검사는 새 head 초기화·채택·수정 없이 수행한다.
+- 적격 후보가 없는 경로에도 경제 계약, current profile 전체 설정, 관측 시각의 freshness 검사를 적용한다. 과거 sealed profile의 asof는 원본 재현용으로 유지하며 현재 명시 profile의 asof만 별도 입력으로 검사한다. 새 timestamp를 설정하는 것 자체를 실제 관측의 증거라고 주장하지 않는다.
+- 문서 mapping은 처음 길이를 제한하고 실제 열거도 129번째 전에 중단한다. 같은 key를 반복하는 custom mapping을 거절한다.
+- 구현 인증 실패 뒤 정상적으로 남은 bind journal을 지우거나 되돌리지 않는다. 반환 assessment는 실제 실행기 callback을 전달하지 않으며, 별도의 계좌·위험·session·활성화 절차를 대체하지 않는다.
