@@ -167,6 +167,7 @@ RecoveryAttemptStore(*, root, backup_root, head_root, head_name, limits)
 .provision_empty()          # files only; never initializes head
 .inspect()
 .admit(event, *, expected_head)
+.admit_pair(first, second, *, expected_head) # exactly two strict forecast rows; returns current snapshot only
 .commit(event, *, expected_head)
 .operation()                # separate cross-process operation lock, no journal/head lock held
 .check_operation()          # recheck currently held operation root/lock identity; no permission

@@ -1,0 +1,20 @@
+{
+  "label": "recovery-revalidation-integration-final",
+  "head": "24c51f62023c5c6c932411c75fae6d1c607be004",
+  "source_hash": "5afbc6402e885a67963213d0abb2420b8d4ab82e8c589fcdb31e8b2efa2f124e",
+  "total": 142,
+  "counts": {
+    "PASS": 142,
+    "FAIL": 0,
+    "NOT_RUN": 0
+  },
+  "process_segments": 1,
+  "seconds": 812.315,
+  "current_segment_seconds": 812.315,
+  "sum_test_seconds": 809.041,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "real_homes_check_scope": "metadata before imports/discovery through completion",
+  "failures": []
+}
