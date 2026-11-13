@@ -7,7 +7,7 @@ is not protected continuation. Capacity admission is not a disk reservation.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 import hashlib
 import json
@@ -322,15 +322,9 @@ def _record_failure(incident_store, bundle_store, namespace, registration, snaps
     return _projection(committed, registration, graph_checked=False, observed=observed)
 
 
-def check_target(incident_store, bundle_store, bundle_digest, *, clock):
-    """Finite actual graph read plus durable restriction observation, never a lease."""
-    namespace, binding = _inputs(incident_store, bundle_store, bundle_digest)
-    snapshot = incident_store.inspect()
-    registration = _existing(snapshot.state, binding, bundle_digest)
-    _need(registration is not None, 'INCIDENT_TARGET_UNREGISTERED')
-    observed = _observed(clock, snapshot.state.last_trusted_at)
-    if F.blocked_incidents(snapshot.state, registration):
-        return _projection(snapshot, registration, graph_checked=False, observed=observed)
+def _check_registered_graph(incident_store, bundle_store, bundle_digest, *,
+                            namespace, binding, snapshot, registration, observed):
+    """Actual shared graph/failure path. A healthy read never removes a hold."""
     # This is capacity preflight, NOT a future write/disk reservation. Its
     # proposed broad failure includes all registered dependencies, never strips
     # normal quotes or records. Commit repeats admission under the actual lock.
@@ -349,4 +343,34 @@ def check_target(incident_store, bundle_store, bundle_digest, *, clock):
     # Include concurrently appended restrictions in the returned observation.
     final = incident_store.inspect()
     _need(_existing(final.state, binding, bundle_digest) == registration, 'INCIDENT_REGISTRATION_CHANGED')
-    return _projection(final, registration, graph_checked=True, observed=observed)
+    return replace(_projection(final, registration, graph_checked=True, observed=observed), graph_checked=True)
+
+
+def check_target(incident_store, bundle_store, bundle_digest, *, clock):
+    """Finite actual graph read plus durable restriction observation, never a lease."""
+    namespace, binding = _inputs(incident_store, bundle_store, bundle_digest)
+    snapshot = incident_store.inspect()
+    registration = _existing(snapshot.state, binding, bundle_digest)
+    _need(registration is not None, 'INCIDENT_TARGET_UNREGISTERED')
+    observed = _observed(clock, snapshot.state.last_trusted_at)
+    if F.blocked_incidents(snapshot.state, registration):
+        return _projection(snapshot, registration, graph_checked=False, observed=observed)
+    result = _check_registered_graph(incident_store, bundle_store, bundle_digest,
+        namespace=namespace, binding=binding, snapshot=snapshot, registration=registration, observed=observed)
+    return replace(result, graph_checked=result.graph_checked and not result.held)
+
+
+def _check_recovered_target(incident_store, bundle_store, bundle_digest, *, clock):
+    """Read a held graph for recovery research without releasing any restriction.
+
+    Unlike the general monitor's early held return, this private path performs
+    the full backed read. Its descriptive result may be held and graph_checked;
+    neither the constructor nor a historical result is a current authorization.
+    """
+    namespace, binding = _inputs(incident_store, bundle_store, bundle_digest)
+    snapshot = incident_store.inspect()
+    registration = _existing(snapshot.state, binding, bundle_digest)
+    _need(registration is not None, 'INCIDENT_TARGET_UNREGISTERED')
+    observed = _observed(clock, snapshot.state.last_trusted_at)
+    return _check_registered_graph(incident_store, bundle_store, bundle_digest,
+        namespace=namespace, binding=binding, snapshot=snapshot, registration=registration, observed=observed)

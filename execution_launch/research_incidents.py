@@ -2,10 +2,11 @@
 
 An adapter must establish dependency provenance. These constructors and hashes
 prove only internal consistency, never that a read failed or a message was sent.
-There is deliberately no release, recovery, approval, expiry or trading event.
+A scoped research-route record is historical metadata only. General holds never
+change; no record issues source, owner, recovery, approval or trading authority.
 """
 from dataclasses import dataclass, fields
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from functools import wraps
 import hashlib
 import json
@@ -21,6 +22,23 @@ _HASH = re.compile(r'[0-9a-f]{64}\Z')
 _REASON = re.compile(r'[A-Z][A-Z0-9_]{0,95}\Z')
 _ATTEMPT = re.compile(r'[a-z][a-z0-9_-]{0,63}\Z')
 _CATEGORIES = ('INTEGRITY_FAILURE', 'READ_UNAVAILABLE', 'RESOURCE_LIMIT', 'VALIDATION_REFUSED')
+_RESEARCH_RELEASE = 'RESEARCH_ROUTE_RELEASE'
+_RELEASE_REGISTRATION_DOMAIN = b'tradegen-research-release-registration/1\n'
+_RELEASE_BINDING_DOMAIN = b'tradegen-research-route-release-binding/1\n'
+_STUDY_ID = re.compile(r'[A-Za-z][A-Za-z0-9_.:-]{0,95}\Z')
+_RELEASE_BINDING_HASHES = (
+    'route_id', 'attempt_id', 'outcome_event_id', 'incident_id',
+    'incident_namespace_sha256', 'attempt_namespace_sha256',
+    'source_store_binding_sha256', 'source_registration_sha256',
+    'destination_store_binding_sha256', 'destination_registration_sha256',
+    'bundle_digest', 'input_archive_digest', 'graph_sha256', 'recovery_artifact_digest')
+_RELEASE_SELECTION_HASHES = (
+    'bundle_digest', 'input_archive_digest', 'attestation_sha256', 'revocation_target_sha256',
+    'family_sha256', 'program_sha256', 'protocol_sha256', 'evidence_sha256',
+    'profile_contract_sha256', 'rule_terms_sha256', 'window_sha256', 'driver_identity_sha256')
+_SOURCE_REVIEW_PURPOSES = (
+    'strategy_source_and_fixed_implementation_review',
+    'strategy_source_and_fixed_carry_implementation_review')
 _MAX_DEPTH = 16
 _MAX_NODES = 2_000_000
 
@@ -266,7 +284,106 @@ def parse_registration(document, *, limits=DEFAULT_LIMITS):
     return result
 
 
+
+def _release_identifier(value, pattern):
+    if type(value) is not str or pattern.fullmatch(value) is None:
+        _fail()
+    return value
+
+
+def _release_head(value):
+    if type(value) is not list or len(value) != 2:
+        _fail()
+    return [_integer(value[0]), _hash(value[1])]
+
+
+def _release_selection(document):
+    _keys(document, _RELEASE_SELECTION_HASHES +
+          ('selected_study_id', 'source_reviews', 'evaluated_at', 'approval_expires_at'))
+    for name in _RELEASE_SELECTION_HASHES:
+        _hash(document[name])
+    selected = _release_identifier(document['selected_study_id'], _STUDY_ID)
+    reviews = document['source_reviews']
+    if type(reviews) is not list or not reviews:
+        _fail()
+    if len(reviews) > 128:
+        _fail('INCIDENT_RESOURCE_LIMIT')
+    previous = None
+    identifiers = set()
+    for item in reviews:
+        _keys(item, ('study_id', 'document_sha256', 'purpose', 'revocation_target_sha256',
+                     'audit_logical_id', 'audit_sha256'))
+        identity = _release_identifier(item['study_id'], _STUDY_ID)
+        if previous is not None and identity <= previous:
+            _fail()
+        previous = identity
+        identifiers.add(identity)
+        for name in ('document_sha256', 'revocation_target_sha256', 'audit_sha256'):
+            _hash(item[name])
+        _enum(item['purpose'], _SOURCE_REVIEW_PURPOSES)
+        _release_identifier(item['audit_logical_id'], _ATTEMPT)
+    if selected not in identifiers:
+        _fail()
+    if _time(document['evaluated_at']) >= _time(document['approval_expires_at']):
+        _fail()
+    return document
+
+
+def _release_binding(document):
+    _keys(document, _RELEASE_BINDING_HASHES + ('selection',))
+    for name in _RELEASE_BINDING_HASHES:
+        _hash(document[name])
+    selection = _release_selection(document['selection'])
+    if (document['source_store_binding_sha256'] == document['destination_store_binding_sha256']
+            or any(document[name] != selection[name] for name in ('bundle_digest', 'input_archive_digest'))):
+        _fail()
+    return document
+
+
+@_fixed
+def registration_digest(registration, *, limits=DEFAULT_LIMITS):
+    """Bind exact registration metadata; never authenticate its dependency graph."""
+    limits = _limits(limits)
+    raw = _bounded(_registration_doc(registration, limits), limits.max_event_bytes)
+    return hashlib.sha256(_RELEASE_REGISTRATION_DOMAIN + raw).hexdigest()
+
+
+@_fixed
+def research_release_binding_digest(binding, *, limits=DEFAULT_LIMITS):
+    """Strict inert binding, not a source verification or current-use decision."""
+    limits = _limits(limits)
+    raw = _bounded(_release_binding(_plain(binding)), limits.max_event_bytes)
+    return hashlib.sha256(_RELEASE_BINDING_DOMAIN + raw).hexdigest()
+
+
+def _release_payload(document, limits):
+    _keys(document, ('release_schema', 'scope', 'binding', 'binding_sha256', 'incident_head',
+                     'attempt_head', 'destination_head', 'owner_checkpoint'))
+    if type(document['release_schema']) is not int or document['release_schema'] != 1:
+        _fail()
+    _enum(document['scope'], ('recovered_research_selection',))
+    binding = _release_binding(document['binding'])
+    _hash(document['binding_sha256'])
+    if document['binding_sha256'] != research_release_binding_digest(binding, limits=limits):
+        _fail('INCIDENT_RELEASE_BINDING_MISMATCH')
+    for name in ('incident_head', 'attempt_head', 'destination_head'):
+        _release_head(document[name])
+    checkpoint = document['owner_checkpoint']
+    _keys(checkpoint, ('key_fingerprint', 'code_hash', 'owner_head', 'observed_at'))
+    fingerprint = checkpoint['key_fingerprint']
+    if type(fingerprint) is not str or len(fingerprint) != 71 or not fingerprint.startswith('SHA256:'):
+        _fail()
+    _hash(fingerprint[7:]); _hash(checkpoint['code_hash'])
+    _release_head(checkpoint['owner_head'])
+    if not (_time(binding['selection']['evaluated_at']) <= _time(checkpoint['observed_at'])
+            < _time(binding['selection']['approval_expires_at'])):
+        _fail()
+    return document
+
+
 def _payload(kind, document, limits):
+    if kind == _RESEARCH_RELEASE:
+        return _release_payload(document, limits)
     if kind == 'REGISTER':
         return _registration_doc(parse_registration(document, limits=limits), limits)
     if kind == 'FAILURE':
@@ -318,7 +435,7 @@ def _event_doc(value, limits):
     if type(value) is not IncidentEvent or type(value.schema) is not int or value.schema != 1:
         _fail()
     _hash(value.event_id)
-    _enum(value.kind, ('REGISTER', 'FAILURE', 'DELIVERY'))
+    _enum(value.kind, ('REGISTER', 'FAILURE', 'DELIVERY', _RESEARCH_RELEASE))
     if value.observed_at is None:
         if value.kind != 'FAILURE':
             _fail()
@@ -326,6 +443,11 @@ def _event_doc(value, limits):
     else:
         at = _stamp(value.observed_at)
     payload = _payload(value.kind, _plain(value.payload), limits)
+    if value.kind == _RESEARCH_RELEASE:
+        checkpoint_at = _time(payload['owner_checkpoint']['observed_at'])
+        if (not timedelta(0) <= _time(at)-checkpoint_at <= timedelta(seconds=30)
+                or _time(at) >= _time(payload['binding']['selection']['approval_expires_at'])):
+            _fail()
     body = dict(schema=1, kind=value.kind, observed_at=at, payload=payload)
     if value.event_id != _digest(b'event', body):
         _fail('INCIDENT_EVENT_ID_MISMATCH')
@@ -336,7 +458,7 @@ def _event_doc(value, limits):
 
 @_fixed
 def make_event(kind, payload, *, observed_at):
-    _enum(kind, ('REGISTER', 'FAILURE', 'DELIVERY'))
+    _enum(kind, ('REGISTER', 'FAILURE', 'DELIVERY', _RESEARCH_RELEASE))
     at = None if observed_at is None else _stamp(observed_at)
     body = dict(schema=1, kind=kind, observed_at=at, payload=_payload(kind, _plain(payload), DEFAULT_LIMITS))
     return IncidentEvent(schema=1, event_id=_digest(b'event', body), kind=kind,
@@ -495,6 +617,61 @@ def _affected(registrations, *, store_binding_sha256, bundle_digest, scope, fail
     return tuple(sorted(bundles)), tuple(sorted(originals))
 
 
+def _blocked_incidents(registrations, incidents, registration):
+    blocked = []
+    for incident in incidents:
+        # Preserve historical affected IDs, and extend physical-scope membership
+        # from ALL current registrations. A late dependent's copy cannot escape.
+        bundles, originals = _affected(registrations,
+            store_binding_sha256=incident.store_binding_sha256, bundle_digest=incident.bundle_digest,
+            scope=incident.scope, failed_objects=incident.failed_objects)
+        bundles = set(bundles) | set(incident.affected_bundle_digests)
+        originals = set(originals) | set(incident.affected_raw_digests)
+        candidate_bundles, candidate_raw = _affected((registration,),
+            store_binding_sha256=incident.store_binding_sha256, bundle_digest=incident.bundle_digest,
+            scope=incident.scope, failed_objects=incident.failed_objects)
+        if (registration.bundle_digest in bundles or registration.input_archive_digest in originals
+                or candidate_bundles or candidate_raw):
+            blocked.append(incident)
+    return tuple(blocked)
+
+
+def _apply_release(state, event, body, limits):
+    """Check local references only; external provenance remains unverified here."""
+    binding = body['binding']
+    prior = tuple(item for item in state.events if item.kind == _RESEARCH_RELEASE)
+    for item in prior:
+        if item.payload['binding_sha256'] == body['binding_sha256']:
+            if event_bytes(item, limits=limits) != event_bytes(event, limits=limits):
+                _fail('INCIDENT_RELEASE_CONFLICT')
+            return False
+    if len(prior) >= limits.max_incidents:
+        _fail('INCIDENT_RESOURCE_LIMIT')
+    targets = []
+    for prefix in ('source', 'destination'):
+        target = next((item for item in state.registrations
+            if item.store_binding_sha256 == binding[prefix+'_store_binding_sha256']
+            and item.bundle_digest == binding['bundle_digest']), None)
+        if target is None:
+            _fail('INCIDENT_TARGET_UNREGISTERED')
+        if (target.bundle_kind != 'VERIFIED_UNAPPROVED'
+                or registration_digest(target, limits=limits) != binding[prefix+'_registration_sha256']
+                or target.input_archive_digest != binding['input_archive_digest']
+                or target.graph_sha256 != binding['graph_sha256']):
+            _fail('INCIDENT_RELEASE_REGISTRATION_MISMATCH')
+        targets.append(target)
+    if any(getattr(targets[0], name) != getattr(targets[1], name)
+           for name in ('raw_manifest_sha256', 'verified_manifest_sha256', 'objects')):
+        _fail('INCIDENT_RELEASE_REGISTRATION_MISMATCH')
+    if not any(item.incident_id == binding['incident_id'] for item in state.incidents):
+        _fail('INCIDENT_RELEASE_INCIDENT_MISMATCH')
+    for target in targets:
+        blocked = _blocked_incidents(state.registrations, state.incidents, target)
+        if tuple(item.incident_id for item in blocked) != (binding['incident_id'],):
+            _fail('INCIDENT_RELEASE_INCIDENT_MISMATCH')
+    return True
+
+
 def _apply(state, event, limits):
     """Internal deterministic fold; caller has checked the event and prior fold."""
     if event.observed_at is not None and state.last_trusted_at is not None and event.observed_at < state.last_trusted_at:
@@ -534,6 +711,9 @@ def _apply(state, event, limits):
             bundle_digest=incident.bundle_digest, category=incident.category, reason_code=incident.reason_code)
         incidents += (incident,)
         outbox += (NotificationIntent(message_id=_digest(b'notification', intent_body), **intent_body),)
+    elif event.kind == _RESEARCH_RELEASE:
+        if not _apply_release(state, event, body, limits):
+            return state
     else:
         message = next((item for item in outbox if item.message_id == body['message_id']), None)
         if message is None:
@@ -549,6 +729,8 @@ def _apply(state, event, limits):
         if len(receipts) >= limits.max_attempts:
             _fail('INCIDENT_RESOURCE_LIMIT')
         receipts += (receipt,)
+    if len(state.events) >= limits.max_targets+limits.max_incidents+limits.max_attempts:
+        _fail('INCIDENT_RESOURCE_LIMIT')
     return IncidentState(registrations=registrations, incidents=incidents, outbox=outbox, receipts=receipts,
         events=state.events+(event,), last_trusted_at=event.observed_at or state.last_trusted_at)
 
@@ -677,19 +859,20 @@ def state_digest(state, *, limits=DEFAULT_LIMITS):
 def blocked_incidents(state, registration):
     _validate_state(state, DEFAULT_LIMITS)
     _registration_doc(registration, DEFAULT_LIMITS)
-    blocked = []
-    for incident in state.incidents:
-        # Preserve historical affected IDs, and extend physical-scope membership
-        # from ALL current registrations. A late dependent's copy cannot escape.
-        bundles, originals = _affected(state.registrations,
-            store_binding_sha256=incident.store_binding_sha256, bundle_digest=incident.bundle_digest,
-            scope=incident.scope, failed_objects=incident.failed_objects)
-        bundles = set(bundles) | set(incident.affected_bundle_digests)
-        originals = set(originals) | set(incident.affected_raw_digests)
-        candidate_bundles, candidate_raw = _affected((registration,),
-            store_binding_sha256=incident.store_binding_sha256, bundle_digest=incident.bundle_digest,
-            scope=incident.scope, failed_objects=incident.failed_objects)
-        if (registration.bundle_digest in bundles or registration.input_archive_digest in originals
-                or candidate_bundles or candidate_raw):
-            blocked.append(incident)
-    return tuple(blocked)
+    return _blocked_incidents(state.registrations, state.incidents, registration)
+
+
+@_fixed
+def research_route_releases(state, *, route_id=None, incident_id=None,
+                            destination_store_binding_sha256=None, limits=DEFAULT_LIMITS):
+    """Return original validated records, never authority or a general unhold."""
+    limits = _limits(limits)
+    filters = (('route_id', route_id), ('incident_id', incident_id),
+               ('destination_store_binding_sha256', destination_store_binding_sha256))
+    for _, value in filters:
+        if value is not None:
+            _hash(value)
+    _validate_state(state, limits)
+    return tuple(event for event in state.events if event.kind == _RESEARCH_RELEASE
+                 and all(value is None or event.payload['binding'][name] == value
+                         for name, value in filters))
