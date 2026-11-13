@@ -191,8 +191,13 @@ def _identity(program, protocol, profile, window, artifact, code_sha):
     _require(program.strategy_id == protocol.strategy_id == profile.strategy_id
              and code == protocol.strategy_code_sha256 == profile.strategy_code_sha256,
              "FIXED_DRIVER_PROGRAM_BINDING_MISMATCH")
+    universe = protocol.universe_rule_sha256 is not None
+    # A universe protocol's symbol is the benchmark KRW-BTC, never a trading pin: a universe launch profile starts
+    # with it, trades with IOC orders and carries the same signed rule as its program (spec section 12).
     _require((profile.venue, profile.market, profile.symbol, profile.quote_currency, profile.time_in_force)
-             == (protocol.venue, protocol.market, protocol.symbol, "KRW", "gtc")
+             == (protocol.venue, protocol.market, protocol.symbol, "KRW", "ioc" if universe else "gtc")
+             and profile.universe_rule_sha256 == program.universe_rule_sha256 == protocol.universe_rule_sha256
+             and (program.kind == "universe_top1_momentum") == universe
              and profile.account_scope is not None and profile.instrument_rules is not None,
              "FIXED_DRIVER_SCOPE_MISMATCH")
     terms = rule_terms_digest(profile.instrument_rules, universe_rule_sha256=profile.universe_rule_sha256)

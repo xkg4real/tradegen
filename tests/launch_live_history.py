@@ -530,3 +530,16 @@ def test_fixed_window_frames_and_rows_are_byte_identical_to_fd85850():
         data = [row["data"] for row in rows(env)[1:]]
         assert all(set(item) == {"index", "receipt", "anchor"} for item in data)
         assert hashlib.sha256(b"".join(_canonical(item) for item in data)).hexdigest() == FIXED_SLOT_DATA_SHA256
+
+
+def test_fixed_window_refuses_universe_inputs():
+    with head_root() as hroot:
+        env = build(hroot)
+        env.c[0] = env.T(0) + seconds(1)
+        account = account_at(env, env.T(0) - seconds(1))
+        for options in ({"trade_symbol": SYMBOL}, {"tick_size": D(1)}, {"universe": object()},
+                        {"positions": (None,)}):
+            refused(lambda: env.h.record_slot(book_at(env, 0), account, **options), "HISTORY_INPUT_REQUIRED")
+        assert len(rows(env)) == 1
+        record(env, 0)
+        assert set(rows(env)[1]["data"]) == {"index", "receipt", "anchor"}
