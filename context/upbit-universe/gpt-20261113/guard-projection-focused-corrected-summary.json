@@ -1,0 +1,20 @@
+{
+  "label": "guard-projection-focused-corrected",
+  "head": "9944e6aa38209acf3ae48ce144d6da14de3ab7c4",
+  "source_hash": "93e81aef848c209139c6d8c41b03976e0cf58f65886a85edd87139ac5a52b670",
+  "total": 70,
+  "counts": {
+    "PASS": 70,
+    "FAIL": 0,
+    "NOT_RUN": 0
+  },
+  "process_segments": 1,
+  "seconds": 18.659,
+  "current_segment_seconds": 18.659,
+  "sum_test_seconds": 16.24,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "real_homes_check_scope": "metadata before imports/discovery through completion",
+  "failures": []
+}

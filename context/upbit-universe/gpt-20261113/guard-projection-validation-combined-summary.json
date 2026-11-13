@@ -1,0 +1,14 @@
+{
+  "kind": "distinct registry reconciliation across two runs; not a single all-green 709 run",
+  "total": 709,
+  "counts": {
+    "PASS": 708,
+    "FAIL": 0,
+    "NOT_RUN": 1
+  },
+  "base": "guard-projection-integration-final",
+  "test_only_correction": "guard-projection-focused-corrected",
+  "intermediate_test_edit_failure": "guard-projection-focused-final (54 PASS, 3 syntax-related FAIL of 57; preserved)",
+  "runtime_unchanged": true,
+  "final_source_hash": "93e81aef848c209139c6d8c41b03976e0cf58f65886a85edd87139ac5a52b670"
+}

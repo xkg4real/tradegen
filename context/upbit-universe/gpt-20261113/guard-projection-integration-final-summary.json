@@ -1,0 +1,33 @@
+{
+  "label": "guard-projection-integration-final",
+  "head": "9944e6aa38209acf3ae48ce144d6da14de3ab7c4",
+  "source_hash": "993dfcb5f2ba4f30e315dacfdebb53a2b4260b5eea847cd2e2a495cceedea904",
+  "total": 709,
+  "counts": {
+    "PASS": 706,
+    "FAIL": 2,
+    "NOT_RUN": 1
+  },
+  "process_segments": 1,
+  "seconds": 965.71,
+  "current_segment_seconds": 965.71,
+  "sum_test_seconds": 961.357,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "real_homes_check_scope": "metadata before imports/discovery through completion",
+  "failures": [
+    {
+      "test": "launch/launch_driver_carry/test_shared_behavior_dependency_change_invalidates_both_factories_without_writing",
+      "status": "FAIL",
+      "seconds": 0.0065,
+      "detail": "AssertionError: "
+    },
+    {
+      "test": "launch/launch_guards/test_guard_reads_pin_utf8",
+      "status": "FAIL",
+      "seconds": 0.0215,
+      "detail": "AssertionError: control_guards.py"
+    }
+  ]
+}

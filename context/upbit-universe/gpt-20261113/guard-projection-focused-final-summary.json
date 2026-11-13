@@ -1,0 +1,39 @@
+{
+  "label": "guard-projection-focused-final",
+  "head": "9944e6aa38209acf3ae48ce144d6da14de3ab7c4",
+  "source_hash": "d12e125caac88f3eac64ea9073258a70b444693ae249816e135b1d34ab31fd04",
+  "total": 57,
+  "counts": {
+    "PASS": 54,
+    "FAIL": 3,
+    "NOT_RUN": 0
+  },
+  "process_segments": 1,
+  "seconds": 16.18,
+  "current_segment_seconds": 16.18,
+  "sum_test_seconds": 13.324,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "real_homes_check_scope": "metadata before imports/discovery through completion",
+  "failures": [
+    {
+      "test": "launch/launch_guards/test_guard_reads_pin_utf8",
+      "status": "FAIL",
+      "seconds": 0.0213,
+      "detail": "SyntaxError: unmatched ')' (<unknown>, line 525)"
+    },
+    {
+      "test": "launch/launch_guards/test_launch_and_account_tests_start_no_process",
+      "status": "FAIL",
+      "seconds": 0.0027,
+      "detail": "SyntaxError: unmatched ')' (control_guards.py, line 525)"
+    },
+    {
+      "test": "control/control_guards/import",
+      "status": "FAIL",
+      "seconds": 0.0015,
+      "detail": "SyntaxError: unmatched ')' (control_guards.py, line 525)"
+    }
+  ]
+}
