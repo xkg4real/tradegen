@@ -1,0 +1,28 @@
+{
+  "label": "bundle-receipts-dev1",
+  "head": "2879b536d883d42206c827fc6f650ee2ca135d8f",
+  "source_hash": "7ca7f7f6bdad7cfda00b7bb932d4652aa2c7134628ed79cc63f05454af9293cd",
+  "real_home_metadata_sha256": "643d5437104296e21d906ecb15b2c96ad278f20cfc4af53b12bb6069bd853726",
+  "selectors": [
+    "launch:launch_study_receipts/"
+  ],
+  "full": false,
+  "process_segments": 1,
+  "start_unix": 1794578370.5746422,
+  "registry": [
+    "launch/launch_study_receipts/test_actual_fixed_and_carry_recorders_audit_all_candidates_without_evaluation_or_source_io",
+    "launch/launch_study_receipts/test_audit_encoding_is_versioned_and_does_not_claim_authority",
+    "launch/launch_study_receipts/test_complete_recorded_abort_is_distinct_from_missing_or_truncated_end_and_never_evaluates",
+    "launch/launch_study_receipts/test_duplicate_json_key_and_nonfinite_or_float_tokens_refuse",
+    "launch/launch_study_receipts/test_json_nodes_are_bounded_before_decoder_and_invalid_limits_refuse",
+    "launch/launch_study_receipts/test_last_candidate_last_bar_or_decision_damage_is_not_hidden_by_valid_receipts",
+    "launch/launch_study_receipts/test_last_receipt_hash_raw_body_and_source_scope_changes_refuse",
+    "launch/launch_study_receipts/test_log_decision_mismatch_and_legacy_terminal_null_carry_terminal_typed_contract",
+    "launch/launch_study_receipts/test_log_line_record_body_and_capture_limits_exact_and_one_under",
+    "launch/launch_study_receipts/test_missing_extra_or_wrongly_typed_candidate_inputs_refuse_without_io",
+    "launch/launch_study_receipts/test_newline_density_and_json_depth_are_rejected_before_json_decode",
+    "launch/launch_study_receipts/test_receipt_after_slot_cannot_be_relabelled_as_historical_prefetch",
+    "launch/launch_study_receipts/test_rehashed_malformed_orderbook_is_not_accepted_as_original_evidence",
+    "launch/launch_study_receipts/test_slot_boolean_gap_duplicate_extra_fields_and_post_end_data_refuse"
+  ]
+}

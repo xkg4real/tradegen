@@ -4,17 +4,17 @@ reason: owner_requested_continue_pr4e_and_protective_p2
 from: gpt
 task: upbit-universe
 cycle: 2026-11-10
-done_ids: universe-pr5/family-preflight, protective-hold/fixed-carry-v2, universe-pr4e, protective-hold/p2-store-integration, universe-pr5/outcome-document-contract, protective-hold/p2-store, protective-hold/p1, universe-pr4d/lossless-history, universe-pr4d, universe-pr4d/lossless-objects, design-revision-1113, upbit-universe-return-1113, universe-pr4d/original-verification, workflow-resume-1113/regression-preparation, universe-pr4d/task2-implementation, universe-pr4d/task3, universe-pr4d/task4, universe-pr4c, universe-pr4d/task1, workflow-resume-1113, workflow-resume-1113/dependencies, universe-pr4c/implementation, universe-pr0, universe-pr1, universe-pr2, universe-pr3, universe-pr4b, universe-pr4a
-next_ids: universe-pr5/raw-verified-bundles, protective-hold/p2-integration, universe-pr5, universe-pr5-clock-notify, universe-code-approve, policy-loss-budget-plan-1, rules-review-1202, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, launch-private-capture-setup-1, e1-14-owner-setup, launch-prospective-study, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1
-updated_at: 2026-11-13T23:10:31+09:00
+done_ids: universe-pr5/raw-verified-bundles, universe-pr5/family-preflight, protective-hold/fixed-carry-v2, universe-pr4e, protective-hold/p2-store-integration, universe-pr5/outcome-document-contract, protective-hold/p2-store, protective-hold/p1, universe-pr4d/lossless-history, universe-pr4d, universe-pr4d/lossless-objects, design-revision-1113, upbit-universe-return-1113, universe-pr4d/original-verification, workflow-resume-1113/regression-preparation, universe-pr4d/task2-implementation, universe-pr4d/task3, universe-pr4d/task4, universe-pr4c, universe-pr4d/task1, workflow-resume-1113, workflow-resume-1113/dependencies, universe-pr4c/implementation, universe-pr0, universe-pr1, universe-pr2, universe-pr3, universe-pr4b, universe-pr4a
+next_ids: universe-pr5/archive-attestation, protective-hold/p2-integration, universe-pr5, universe-pr5-clock-notify, universe-code-approve, policy-loss-budget-plan-1, rules-review-1202, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, launch-private-capture-setup-1, e1-14-owner-setup, launch-prospective-study, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1
+updated_at: 2026-11-13T23:18:28+09:00
 stale_after_hours: 3
 waiting_on: no prior approval question; future PLB S1-S12 and deployment inputs only
-work_branch: gpt/research-family-preflight
-work_commit: b6add4d88b61d4bab83b418e04d520d3106e584f
-merged_main_commit: d728b314373019e41661b2599ad4f38bc82f6221
-runtime_tested_commit: A0b2879b53 full3103=2968PASS/0FAIL/135NR, source599e196f; carry2b1de13 full3071=2936PASS/0FAIL/135NR
-uncommitted_changes: B1a archive/receipt/store/adapter active in isolated local tree on2879b53; not yet a delivered implementation
-pr: PR34-40 merged; B1a implementation undergoing focused integration before delivery
+work_branch: gpt/research-bundle-archive
+work_commit: 7bd5e4614e70f410969170ce9ea60d416ea5dc22
+merged_main_commit: a4e66016e0091b2b4b3da4e799cbfdfdf2cad845
+runtime_tested_commit: B1a3ca4dee focused205PASS/0FAIL/0NR, sourcea014d9e6; preceding A0b full3103=2968PASS/0FAIL/135NR
+uncommitted_changes: B1b-1 archive attestation implementation active in isolated /workspace/tradegen-bundle-attestation-1113 on3ca4dee; not delivered
+pr: PR34-41 merged; B1b-1 implementation active, no live activation
 usage_weekly_pct: unknown
 usage_source: unavailable
 handoff_threshold_pct: 95
@@ -156,3 +156,20 @@ PR40은PR39브랜치를base로한stacked draft이며39병합후main으로retarge
 - B1a 저장 개발은 계속 중이다. 형식26/receipt14/store23/adapter17 및 기존 관련 검사를 합한 205개 집중런 session28676이 진행 중이다. 현재 실제 fixed/carry recorder→raw/backup→actualA0b→verified/backup→작업본삭제→sealed재평가 경로는 PASS했다. 한 테스트가 임의 partial root파일의 진단을 ALREADY_PROVISIONED로 기대했으나 엄격 경로검사에서 PATH_REFUSED가 먼저 나와 실패했으며, 런 종료 후 정확한 기대코드만 수정한다. 완료/병합으로 기록하지 않는다.
 - B1a metadata eligibility가 평가 뒤에만 확인되는 경로는 공개 순수 complete-input preflight를 추출해 actual evaluator 이전으로 옮겼다. original receipt abort진단은 유지한다. 최종 합동검증이 끝나면 코드·실행기록을 별도PR로 전달한다.
 - 새 manifest 독립 인증과 정확 복구, 생산 보유관리·실제 source증거·WebAuthn 등은 남아 있다. 앱 실행만으로 실거래 가능하다고 보고하지 않는다.
+
+## 2026-11-13 PR41 연구 원본·별도 검증 묶음 저장 완료
+
+- PR41 https://github.com/xkg4real/tradegen/pull/41 병합 main `a4e66016e0091b2b4b3da4e799cbfdfdf2cad845`, 문서 head `7bd5e4614e70f410969170ce9ea60d416ea5dc22`. git tree가 정확히 일치한다. runtime `3ca4dee3bcf007db63e2c2da83d8aba71f95c4e4`의 Python/YAML fingerprint `a014d9e6fd9a5270afa1fdd66171a8fc039a7e7d3720f0fc5706609bdc1c6e03`는 main 문서 통합 뒤에도 동일하다.
+- 관련 집중검사 205 PASS / 0 FAIL / 0 NOT_RUN, 단일73.806초. 새 전체 repository 회귀가 아니라 전체 신규 기능 및 관련 기존 source/owner/review/object/credential 검사다.19KEYLESS, import/discovery 이전부터 source/home metadata 불변, QA복원. 직전 A0b 전체3103 결과와 합산하지 않는다.
+- 실제 fixed/carry recorder→RAW_ARCHIVED+실제복사backup→receipt/source/전체후보/metadata 선행검증→actualA0b→별도 VERIFIED_UNAPPROVED+backup→작업본삭제→sealed-only 재평가가 PASS했다. 불완전/손상/평가예외/수치탈락 후보를 보존하고, 위조 manifest는 저장사실만으로 실제재현을 통과하지 못한다. 실제 시장/계좌/키/API/주문은 없다.
+- 204PASS/1FAIL 개발 기록은 partial unknown root파일의 엄격경로거절 진단을 잘못 기대한 테스트였으며 기대코드만 수정했다. 앞선 JSON decoder 계측 실패와 모든 개발 결과도 보존했다. Windows native 운용·전원장애·물리백업분리·실계좌 장애를 입증한 결과가 아니다.
+- B1a는 서명·출처권한·자동복구가 아니다. kind는 원본/검증 주장이고 실제 sealed소비자는 전체bytes와 실제평가를 확인해야 한다. B1b의 독립 manifest 확인 및 B2의 신뢰서명 기준 복구는 다음단계다.
+
+## 계속 중: B1b-1 archive attestation
+
+- 별도 트리 `/workspace/tradegen-bundle-attestation-1113`, branch `gpt/research-bundle-attestation`, base3ca4dee. B1a 소스는 동결/전달 완료이므로 이 트리에서만 편집한다. API카드/준비문서는 context 사본에 있다.
+- 역할: protective_hold_design=format/API; notion_revision=실제 packet exporter/CLI; revision_review=독립 standalone signer; pr4e_owner=actual CurrentOwnerAuthority + 전체graph 인증; pr4e_coordinator=신뢰경계 독립검토; pr4e_runner=경로/파일/Windows pin 독립검토. root는 registry/writeguards/통합검증/commit/PR/handoff.
+- 목표는 raw/verified 전체 파일 목록과 정확bytes의 archive-only 소유자 확인이다. 개별 폐기 조회 UNSUPPORTED, source/선발/거래/자동복구/current-use는 false. 기존 Ed25519 source review를 새 manifest 승인으로 바꾸지 않는다. 실제 signer는 사용자만 사용하며 개발은 임시 fixture 키만 쓴다.
+- 독립 signer는 앱 import 없이 packet/request/모든payload를 재검증하고, 현재 실제 D14 code/key/head/time을 확인 전후 검사한다. auth는 actual store primary+backup과 actual owner provider를 반복 관측한다. request hash는 caller 주장이고 독립대조 전 권한이 아니다.
+- Windows는 사용자 배포환경이므로 native directory handle pin을 구현/검토하며, Linux mock 결과를 실제 Windows 검증으로 보고하지 않는다. 안전한 pin이 불가능한 플랫폼/볼륨에서 lstat-only fallback을 하지 않는다.
+- Notion 두 승인된 페이지에는 PR39·40 기록을 기존내용 정확보존 후 append/readback 완료했다. PR41 및 후속최종상태는 다음 이정표에 갱신한다. UI PR attachment도구는 연결종료오류였으나 GitHub PR은 실제 존재/병합됐다.

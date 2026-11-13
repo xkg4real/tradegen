@@ -1,0 +1,20 @@
+{
+  "label": "bundle-storage-dev3",
+  "head": "2879b536d883d42206c827fc6f650ee2ca135d8f",
+  "source_hash": "890a6b9c229e8922a53b7dcf99e1b35ff2f72b5ee1c61ae11adddabd38bf34ab",
+  "total": 62,
+  "counts": {
+    "PASS": 62,
+    "FAIL": 0,
+    "NOT_RUN": 0
+  },
+  "process_segments": 1,
+  "seconds": 6.749,
+  "current_segment_seconds": 6.749,
+  "sum_test_seconds": 4.071,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "real_homes_check_scope": "metadata before imports/discovery through completion",
+  "failures": []
+}

@@ -1,0 +1,27 @@
+{
+  "label": "bundle-receipts-dev1",
+  "head": "2879b536d883d42206c827fc6f650ee2ca135d8f",
+  "source_hash": "7ca7f7f6bdad7cfda00b7bb932d4652aa2c7134628ed79cc63f05454af9293cd",
+  "total": 14,
+  "counts": {
+    "PASS": 13,
+    "FAIL": 1,
+    "NOT_RUN": 0
+  },
+  "process_segments": 1,
+  "seconds": 4.193,
+  "current_segment_seconds": 4.193,
+  "sum_test_seconds": 1.119,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "real_homes_check_scope": "metadata before imports/discovery through completion",
+  "failures": [
+    {
+      "test": "launch/launch_study_receipts/test_newline_density_and_json_depth_are_rejected_before_json_decode",
+      "status": "FAIL",
+      "seconds": 0.0112,
+      "detail": "AssertionError: must reject before decoder"
+    }
+  ]
+}

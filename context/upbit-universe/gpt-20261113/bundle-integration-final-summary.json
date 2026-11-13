@@ -1,0 +1,20 @@
+{
+  "label": "bundle-integration-final",
+  "head": "3ca4dee3bcf007db63e2c2da83d8aba71f95c4e4",
+  "source_hash": "a014d9e6fd9a5270afa1fdd66171a8fc039a7e7d3720f0fc5706609bdc1c6e03",
+  "total": 205,
+  "counts": {
+    "PASS": 205,
+    "FAIL": 0,
+    "NOT_RUN": 0
+  },
+  "process_segments": 1,
+  "seconds": 73.806,
+  "current_segment_seconds": 73.806,
+  "sum_test_seconds": 70.916,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "real_homes_check_scope": "metadata before imports/discovery through completion",
+  "failures": []
+}

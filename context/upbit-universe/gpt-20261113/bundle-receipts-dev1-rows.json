@@ -1,0 +1,86 @@
+[
+  {
+    "test": "launch/launch_study_receipts/test_actual_fixed_and_carry_recorders_audit_all_candidates_without_evaluation_or_source_io",
+    "status": "PASS",
+    "seconds": 0.3536,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_study_receipts/test_audit_encoding_is_versioned_and_does_not_claim_authority",
+    "status": "PASS",
+    "seconds": 0.108,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_study_receipts/test_complete_recorded_abort_is_distinct_from_missing_or_truncated_end_and_never_evaluates",
+    "status": "PASS",
+    "seconds": 0.0303,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_study_receipts/test_duplicate_json_key_and_nonfinite_or_float_tokens_refuse",
+    "status": "PASS",
+    "seconds": 0.0091,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_study_receipts/test_json_nodes_are_bounded_before_decoder_and_invalid_limits_refuse",
+    "status": "PASS",
+    "seconds": 0.0004,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_study_receipts/test_last_candidate_last_bar_or_decision_damage_is_not_hidden_by_valid_receipts",
+    "status": "PASS",
+    "seconds": 0.4435,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_study_receipts/test_last_receipt_hash_raw_body_and_source_scope_changes_refuse",
+    "status": "PASS",
+    "seconds": 0.0359,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_study_receipts/test_log_decision_mismatch_and_legacy_terminal_null_carry_terminal_typed_contract",
+    "status": "PASS",
+    "seconds": 0.0279,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_study_receipts/test_log_line_record_body_and_capture_limits_exact_and_one_under",
+    "status": "PASS",
+    "seconds": 0.0356,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_study_receipts/test_missing_extra_or_wrongly_typed_candidate_inputs_refuse_without_io",
+    "status": "PASS",
+    "seconds": 0.0022,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_study_receipts/test_newline_density_and_json_depth_are_rejected_before_json_decode",
+    "status": "FAIL",
+    "seconds": 0.0112,
+    "detail": "AssertionError: must reject before decoder"
+  },
+  {
+    "test": "launch/launch_study_receipts/test_receipt_after_slot_cannot_be_relabelled_as_historical_prefetch",
+    "status": "PASS",
+    "seconds": 0.0066,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_study_receipts/test_rehashed_malformed_orderbook_is_not_accepted_as_original_evidence",
+    "status": "PASS",
+    "seconds": 0.0321,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_study_receipts/test_slot_boolean_gap_duplicate_extra_fields_and_post_end_data_refuse",
+    "status": "PASS",
+    "seconds": 0.0229,
+    "detail": ""
+  }
+]

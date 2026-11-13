@@ -57,6 +57,7 @@ raw_archive_digest(manifest, *, limits=DEFAULT_LIMITS) -> str
 verified_bundle_bytes(manifest, *, limits=DEFAULT_LIMITS) -> bytes
 parse_verified_bundle(raw: bytes, *, limits=DEFAULT_LIMITS) -> VerifiedBundleManifest
 verified_bundle_digest(manifest, *, limits=DEFAULT_LIMITS) -> str
+validate_complete_inputs(raw_archive, *, limits=DEFAULT_LIMITS) -> None
 validate_verified_inputs(raw_archive, verified, *, limits=DEFAULT_LIMITS) -> None
 validate_payloads(manifest, payloads: Mapping[str,bytes], *, limits=DEFAULT_LIMITS) -> None
 ```
@@ -70,6 +71,8 @@ validate_payloads(manifest, payloads: Mapping[str,bytes], *, limits=DEFAULT_LIMI
 - 빈 파일은 정확히 `byte_count=0`, `sha256=SHA256(b'')`, `payload_ref=None`. nonempty는 exact PayloadReference이고 payload bytes/hash/policy가 파일·manifest와 일치해야 한다. store는 empty에 object.stage를 호출하지 않고 b''를 반환한다.
 - source_kind_claim은 prospective_paper_capture/synthetic/retrospective_replay. evaluator는 forward-paper-v1/forward-paper-carry-v2만. 시간은 aware datetime → UTC microsecond 문서형식, start<end<=evaluated_at.
 - verified에는 raw.files 전체를 동일 항목으로 포함하고 추가 파일 역할은 evaluation_record/report뿐. evaluation_record는 정확히 한 개. raw는 evaluation_record 역할을 받지 않는다.
+- verified의 단일 필수 역할은 plan/profile/registration_commitment/source_receipts/program_source/capture_source_manifest/prior_research/evaluation_record이며 required=True, nonempty, study_id=None이다. source_file도 최소 한 개이고 같은 조건이다. capture는 모든 candidates와 정확히 대응하는 required/nonempty 파일이다. raw에는 이 정상 연구 조건을 강요하지 않는다.
+- `validate_complete_inputs`는 RAW의 complete inventory·필수 역할/required·안전한 이름·동일 역할 내 casefold/NFC 충돌·전체 후보 대응을 순수하게 선행 검사한다. 원본 receipt의 정상 중단 진단 다음, 실제 evaluator 호출 전에 수행한다. 이 helper는 가짜 결과 digest나 verified manifest를 만들지 않으며 출처·평가·승인 증거가 아니다. raw codec는 이 요건을 만족하지 않는 원본도 계속 보존한다.
 - `validate_verified_inputs`는 raw digest= input_archive_digest, 동일 run/attempt/정책, 서로 다른 revision, raw의 complete inventory·expected nonempty set·모든 관측 COLLECTED, verified candidates=expected, 정확한 capture file study ID 대조, raw.files 전부 동일 포함을 검사한다. 새 판정은 기존 manifest 수정이 아니다. 실제 plan/source/receipt/evaluator 진위는 adapter 재검증 책임이다. parent_bundle_sha256는 보관 계보 주장이지 과거 모든 attempt의 완전성 검증이 아니다.
 - parser는 exact keyset/type/중복 key/깊이/노드/정수 자릿수/크기를 제한하고 canonical envelope bytes만 받는다. dataclass를 직접 구성·변조해도 serialize/validate에서 재검사한다. float/NaN/Infinity 금지.
 - `validate_payloads`는 files의 정확한 logical_id 집합과 bytes의 길이/SHA를 확인한다. payload_ref의 실제 object graph 읽기는 store 책임이다.

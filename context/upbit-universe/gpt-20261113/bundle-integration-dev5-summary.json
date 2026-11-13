@@ -1,0 +1,27 @@
+{
+  "label": "bundle-integration-dev5",
+  "head": "2879b536d883d42206c827fc6f650ee2ca135d8f",
+  "source_hash": "86fea3d91f3aa3230ca4cf1c7ac0419273a1e1e4becf7d555c8e9bcd71581305",
+  "total": 205,
+  "counts": {
+    "PASS": 204,
+    "FAIL": 1,
+    "NOT_RUN": 0
+  },
+  "process_segments": 1,
+  "seconds": 73.864,
+  "current_segment_seconds": 73.864,
+  "sum_test_seconds": 70.633,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "real_homes_check_scope": "metadata before imports/discovery through completion",
+  "failures": [
+    {
+      "test": "launch/launch_research_bundle/test_runtime_never_initializes_head_and_explicit_operator_refuses_existing_or_partial_store",
+      "status": "FAIL",
+      "seconds": 0.0285,
+      "detail": "AssertionError: ('BUNDLE_STORE_PATH_REFUSED', 'BUNDLE_STORE_ALREADY_PROVISIONED')"
+    }
+  ]
+}
