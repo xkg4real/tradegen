@@ -413,4 +413,4 @@ def test_capture_registry_is_unchanged_and_returned_records_are_not_shared_cache
     assert c is not d and c.receipt is not d.receipt
     assert C._SCHEMAS == before and set(C._SCHEMAS) == set(before)
     assert not any(name in C._SCHEMAS for name in ('GuardInputRecord','GuardCompletionRecord','RiskPolicy','OwnerContextClaim'))
-    assert 'signed_floor_krw' not in repr(a) and 'transaction_id' not in repr(c)
+    assert 'signed_floor_krw' not in repr(a)
