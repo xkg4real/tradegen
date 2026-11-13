@@ -1,0 +1,16 @@
+{
+  "label": "protective-p1-final",
+  "head": "a0b28d0fc0fee4a359f833f91a7c0f572777481e",
+  "source_hash": "6bf6b1ea51b0c3b4cffe880eaafc006f8625072b68438b1f0d386fe5c13c88e4",
+  "total": 106,
+  "counts": {
+    "PASS": 106,
+    "FAIL": 0,
+    "NOT_RUN": 0
+  },
+  "seconds": 12.517,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "failures": []
+}

@@ -1,23 +1,20 @@
 ---
-status: taken
-reason: lossless_history_complete_protective_state_implementation_in_progress
+status: returned
+reason: verified_lossless_history_and_pure_protection_complete_live_tasks_remain
 from: gpt
 task: upbit-universe
 cycle: 2026-11-10
-done_ids: universe-pr4d/lossless-history, universe-pr4d, universe-pr4d/lossless-objects, design-revision-1113, upbit-universe-return-1113, universe-pr4d/original-verification, workflow-resume-1113/regression-preparation, universe-pr4d/task2-implementation, universe-pr4d/task3, universe-pr4d/task4, universe-pr4c, universe-pr4d/task1, workflow-resume-1113, workflow-resume-1113/dependencies, universe-pr4c/implementation, universe-pr0, universe-pr1, universe-pr2, universe-pr3, universe-pr4b, universe-pr4a
-next_ids: universe-pr4e, protective-hold/p1, universe-pr5, universe-pr5-clock-notify, universe-code-approve, policy-loss-budget-plan-1, rules-review-1202, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, launch-private-capture-setup-1, e1-14-owner-setup, launch-prospective-study, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1
-updated_at: 2026-11-13T20:51:44+09:00
+done_ids: protective-hold/p1, universe-pr4d/lossless-history, universe-pr4d, universe-pr4d/lossless-objects, design-revision-1113, upbit-universe-return-1113, universe-pr4d/original-verification, workflow-resume-1113/regression-preparation, universe-pr4d/task2-implementation, universe-pr4d/task3, universe-pr4d/task4, universe-pr4c, universe-pr4d/task1, workflow-resume-1113, workflow-resume-1113/dependencies, universe-pr4c/implementation, universe-pr0, universe-pr1, universe-pr2, universe-pr3, universe-pr4b, universe-pr4a
+next_ids: universe-pr4e, protective-hold/p2, universe-pr5, universe-pr5-clock-notify, universe-code-approve, policy-loss-budget-plan-1, rules-review-1202, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, launch-private-capture-setup-1, e1-14-owner-setup, launch-prospective-study, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1
+updated_at: 2026-11-13T21:00:12+09:00
 stale_after_hours: 3
 waiting_on: no prior approval question; future PLB S1-S12 and deployment inputs only
-work_branch: gpt/universe-pr4d-driver-history
-work_commit: 062c127f0f403ff45c3df8c3c1ff6c0f587c13cc
-merged_main_commit: 86c9e94bcd3fedbbe3d7879d66786ec1590d1b74
-runtime_tested_commit: a0b28d0fc0fee4a359f833f91a7c0f572777481e; fingerprint308ff5e1; focused213PASS0FAIL0NR; full 2660 PASS /0 FAIL /135 NOT_RUN of 2795 (resumed after environment restart; exact registry coverage)
-uncommitted_changes: P0b source branch clean; independent P1 worktree has implementation in progress
-active_work_branch: gpt/protective-hold-state
-active_worktree: /workspace/tradegen-protective-state-1113
-active_work_commit: a0b28d0fc0fee4a359f833f91a7c0f572777481e
-pr: https://github.com/xkg4real/tradegen/pull/34 (merged)
+work_branch: gpt/protective-hold-state
+work_commit: 3ee4e68bbec0fc7ac8a721b37ad8a931813d1ccb
+merged_main_commit: 6030fe3063dc6b63eeaad48b3d818577f1c1219b
+runtime_tested_commit: P1 delivered3ee4e68 and merge6030fe3 match fingerprint6bf6b1ea; 106PASS0FAIL0NR; P0b base full2660PASS0FAIL135NR separately recorded
+uncommitted_changes: none in either source branch; user artifacts and tests recorded in handoff
+pr: https://github.com/xkg4real/tradegen/pull/35 (merged); PR34 also merged
 usage_weekly_pct: unknown
 usage_source: unavailable
 handoff_threshold_pct: 95
@@ -28,7 +25,7 @@ session: Cloud Codex; owner Windows deployment remains separate
 
 ## 0. 사용자에게 설명한 현재 상태
 
-사용자는 앱을 켜면 바로 자동매매가 되는지 물었다. **아직 아니다**라고 명확히 답하고 독립적으로 가능한 P0b 구현을 완료했다. 현재 coordinator는 모의운영만 받으며 flat-only 계좌 경로는 보유/새 체결 이후 거절한다. 키·서명만 추가하면 되는 상태가 아니다. 사용자 PC 설치나 실제 연결을 확인하지 않았다.
+사용자는 앱을 켜면 바로 자동매매가 되는지 물었다. **아직 아니다**라고 명확히 답하고 독립적으로 가능한 P0b 저장 연결과 P1 순수 보호 상태 구현·검증·병합을 완료했다. 현재 coordinator는 모의운영만 받으며 flat-only 계좌 경로는 보유/새 체결 이후 거절한다. 키·서명만 추가하면 되는 상태가 아니다. 사용자 PC 설치나 실제 연결을 확인하지 않았다.
 
 ## 1. 확정된 최신 요구
 
@@ -66,8 +63,8 @@ P0b는 policy→protocol→identity→contextual payload DAG, 실제 동일 잠�
 
 ## 6. 다음 작업
 
-1. 별도 P1 작업 트리에서 순수 보호 상태 구현을 병렬로 시작했다. 아직 완료로 세지 않으며 게시 전 확인된 main으로 옮기고 검사한다. 완료 P0a/P0b/PR34 반복 금지. 원격 main/PR/handoff 확인 후 병합 main에서 PR4e 작업 트리 생성. `TRADEGEN_PR4E_IMPLEMENTATION_READINESS_2026-11-13.md`의 A~F와 C1/C2/C3 회귀를 따른다. 기록된 정상 호가를 저장오류로 None 재시도하지 않는다.
-2. 보호 보유 P1 순수 상태→P2 영속/복구→P3 새 driver/protocol/evaluator/매도→P4 운영 연결. `TRADEGEN_PROTECTIVE_HOLD_IMPLEMENTATION_PLAN_2026-11-13.md` 참조. 기존 terminal target0/평가 강제청산을 숨기지 않고 새 행동 revision 이전 live/arming 조립은 차단한다.
+1. P1은 확인된 PR34 main으로 옮긴 뒤 같은 소스 fingerprint를 확인하고 PR35로 병합했다. 완료 P0a/P0b/P1/PR34/PR35 반복 금지. 원격 main/PR/handoff 확인 후 병합 main에서 PR4e 작업 트리 생성. `TRADEGEN_PR4E_IMPLEMENTATION_READINESS_2026-11-13.md`의 A~F와 C1/C2/C3 회귀를 따른다. 기록된 정상 호가를 저장오류로 None 재시도하지 않는다.
+2. 완료 P1 순수 상태를 기반으로 P2 영속/복구→P3 새 driver/protocol/evaluator/매도→P4 운영 연결. `TRADEGEN_PROTECTIVE_HOLD_IMPLEMENTATION_PLAN_2026-11-13.md` 참조. 기존 terminal target0/평가 강제청산을 숨기지 않고 새 행동 revision 이전 live/arming 조립은 차단한다.
 3. PR5 전체 후보 outcome/유니버스 평가/확정 bundle/복구·승인 체계. 금융 회계는 FIFO 기준이며 실현·미실현·가상 청산 비용을 섞지 않는다. listing 부재에 따른0평가는 관측/체결가가 아니다.
 4. 실제 source 완전성 권한·continuous guard/publish/잠금·controlled launcher/planner/standing 구현. 실제 근거 없는 complete/VerifiedCoverage 발급 금지.
 5. PR5 공통 helper 뒤 시계, 실제 S1~S12 뒤 PLB 상태 의존 분기, 최종 코드 closure와 Windows/iPhone/실제 관측 연구/소유자 승인·활성화.
@@ -83,3 +80,14 @@ P0b는 policy→protocol→identity→contextual payload DAG, 실제 동일 잠�
 ## 9. 이어받는 에이전트에게
 
 원격 상태·CURRENT·LEDGER·최신 실행 로그부터 읽는다. 부품/연구/배포/활성화의 완료를 구분한다. 전체 실전 준비 완료라고 하지 않는다. 다음 코드는 확인된 병합 main에서 시작하고 새 source별 검증을 수행한다. 진행 중이었다는 이유로 사용자 결정을 재질문하거나 이미 완료한 단계를 반복하지 않는다. 작업 단위마다 복구 가능한 체크포인트를 남긴다. 주간 사용량은 조회 수단이 없으므로 unknown이며95% 도달을 추측하지 않았다.
+
+## 최종 P1 결과와 이어갈 지점
+
+- PR35 head3ee4e68bbec0fc7ac8a721b37ad8a931813d1ccb, main6030fe3063dc6b63eeaad48b3d818577f1c1219b. 병합 tree와 테스트한 PR tree 일치.
+- `execution_launch/protective_state.py`: 기한/오류/재시작은 매도 원인이 아님. 권한·자료·진입/감소·대기 주문·시계 복구를 구분하는 순수 상태와 효과 의도만 계산. 실제 코드/서명/주문 경로 연결 없음.
+- 신규24개 의미 검증과 기존 경계82개,106 PASS/0 FAIL/0 NOT_RUN,12.517초. fingerprint6bf6b1ea51b0c3b4cffe880eaafc006f8625072b68438b1f0d386fe5c13c88e4가 테스트 작업본·rebase 후 전달 커밋·병합 소스에서 동일.
+- 첫 검사 실패1개는 새 worktree의 .venv 링크 누락이었다. 기존 환경을 연결했고 dependency나 검사를 약화하지 않았다. 최초105PASS/1FAIL 결과도 보존했다.
+- 독립 검토: unavailable/SELL의 잘못된 진입 가능 표시, fault별 기능 표시, clock fault의 신뢰 시각 보존, facts를 포함한 중복 사건 검증, pending outbox/partial/UNKNOWN 때 진입·재활성화 차단을 수정·검사했다.
+- 상태의 can_*와 AuthorityFacts/EffectIntent는 인증이나 실행 권한이 아니다. 후속 P2는 독립 head·영속 outbox·전역 ID 중복 방지, P3/P4는 독립 사실 인증·dispatch 직전 재검증이 필요하다. 기존 terminal target0가 아직 남았다는 점은 변함없다.
+- 최신 사용자 설명은 `TRADEGEN_STATUS_2026-11-13.md`, P1 상세는 `TRADEGEN_PROTECTIVE_STATE_EXECUTION_LOG_2026-11-13.md`. Notion 두 기존 페이지에 최신 결과와 실전 미준비를 구분해 반영한다.
+- 실제 Windows 설치·실계좌 연결·owner 전자서명·연구 선발·활성화는 수행하지 않았다. 새 승인 질문 없이 가능한 후속 개발 순서를 문서로 보존했다. 이번 상태 반환은 전체 작업 완료나95% 사용량 도달 선언이 아니다.

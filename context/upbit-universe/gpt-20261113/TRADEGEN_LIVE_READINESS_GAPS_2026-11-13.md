@@ -15,7 +15,7 @@
 | 보유 계좌를 Controller로 전달 | `ContinuousUpbitCandidateSource.collect/latest`는 후보 자료를 수집·보관할 수 있다. | 같은 클래스의 `__call__`은 무조건 `CONTINUOUS_LIVE_RISK_INTEGRATION_REQUIRED`를 낸다. 아직 Controller용 계좌 provider가 아니다. |
 | 위험 상태의 영속화·재시작 | `execution_launch/continuous_guard.py:plan_continuous_guard`와 `continuous_guard_commit.py:commit_continuous_guard/classify_restart`가 계산·단계별 commit·중단 분류를 구현한다. | 완전성/소유자 증거의 실제 인증 및 성공 후 account observation 발행이 연결되지 않았다. `Controller.observe`는 이미 journal transaction 안에서 provider를 호출한다. 기존 provider 안에 commit 함수를 단순 삽입하면 같은 journal을 중첩 진입한다. 조립 단계에서 journal→head/store 순서와 publish 시점을 함께 해결해야 한다. |
 | 이력 용량 | P0a 객체 저장과 P0b 실제 v3 history·정책 해시·독립 head·재생 연결을 구현했다. 정상 호가·보유·유니버스 입력을 저장 용량 때문에 삭제하지 않는다. | 저장 단계 완료가 보유 관리·실거래 허가를 만들지는 않는다. 전체 회귀의 실행 가능한 검사는 완료했다. PR 정리와 실제 Windows 저장·시간 경계 검증은 구분해야 한다. |
-| 보호 보유·매도 | 위험 gate, 중지 후 명시적 취소/매도 경로, 미체결·부분 체결 대조 부품이 있다. | 최신 요구인 오류/저장 장애/재시작/E 만료 자체로 SELL을 만들지 않는 보호 상태와 복구·주문 실행의 통합이 남았다. 현재 `execution_launch/driver.py:_validate_frame`에는 window end의 target=0 분기가 남아 있다. P0b에서 이 행동을 고쳤다고 보고하지 않는다. |
+| 보호 보유·매도 | 위험 gate, 중지 후 명시적 취소/매도 경로, 미체결·부분 체결 대조 부품이 있다. | PR35로 오류/저장 장애/재시작/E 만료 자체로 SELL을 만들지 않는 순수 보호 상태를 구현했다. 영속 복구·주문 실행과의 통합은 남았다. 현재 `execution_launch/driver.py:_validate_frame`에는 window end의 target=0 분기가 남아 있다. P0b에서 이 행동을 고쳤다고 보고하지 않는다. |
 | 전략 연구·인증 | 기존 `study.py`의 고정 후보군 동결·전향 capture·선발, `study_review.py:authenticate_study_selection`의 원본 전체 재평가, Ed25519 연구 검토가 있다. | PR5 유니버스 연구 경로·정상 평가 실패 outcome·불변 연구 묶음/복구 및 새 승인 흐름은 후속 단계다. 실제 자료로 선정되고 현재 배포에 인증된 전략이 준비됐다는 증거는 없다. |
 | 최종 활성화 | `execution_control/session.py:prepare_session/verify_session`은 현재 코드·규칙·계좌·기한·소유자 `session_armed`를 별도로 확인한다. Runner의 controlled 모드 부품도 있다. | 세션 준비는 활성화가 아니다. 운영 coordinator/planner/standing 관리 연결과 사용자 최종 승인·실제 세션 검증이 남았다. 연구 검토 승인만으로 거래 활성화되지 않는다. |
 
@@ -43,4 +43,6 @@
 
 법률, 세무, 투자 조언이 아니며 면허를 가진 자문가가 아니다.
 
-최종 저장 단계 상태: PR34 병합 완료, main `86c9e94bcd3fedbbe3d7879d66786ec1590d1b74`. 병합 tree와 검증된 문서 head062c127의 tree가 일치한다. 별도 P1 순수 보호 상태 전이는 구현·검토 중이며 실주문 경로에 연결하지 않았다.
+최종 저장 단계 상태: PR34 병합 완료, main `86c9e94bcd3fedbbe3d7879d66786ec1590d1b74`. 병합 tree와 검증된 문서 head062c127의 tree가 일치한다. P1 순수 보호 상태 전이는 PR35로 구현·106개 검사·병합을 완료했다. 실주문 경로 연결은 아직이다.
+
+최신 main: `6030fe3063dc6b63eeaad48b3d818577f1c1219b` (PR35). 전체 현황은 `TRADEGEN_STATUS_2026-11-13.md` 참조.
