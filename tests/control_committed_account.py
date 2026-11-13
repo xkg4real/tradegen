@@ -35,14 +35,18 @@ D=Decimal
 
 @contextmanager
 def fixture(*, prices=('101',), start=GF.START, end=None, floor='100', daily='10',
-            configure=None, pol=None, daily_stopped=False, halted=False, spare_cash=False):
+            configure=None, pol=None, daily_stopped=False, halted=False, spare_cash=False, clock=None,
+            control_prefix=False, flat_cash=False):
+    if spare_cash and flat_cash:
+        raise ValueError('fixture cash allocations are mutually exclusive')
     with memoized_pure_inputs(), CF.temp_home() as home, head_root() as hroot, CF.pubkey_at(home/'fixture-owner.pem'):
         key=CF.full_home(home,limits={'total_loss_floor_krw':float(floor),'daily_loss_krw':float(daily)})
         if configure is not None:
             configure(home,key,start)
         contexts=[]
         def current_claim(at,**_):
-            ctx=owner.load_context(at,M.Positions(equity_krw=100.0,holdings={('upbit','BTC'):1.0}))
+            ctx=owner.load_context(at,M.Positions(equity_krw=100.0,
+                holdings={} if flat_cash else {('upbit','BTC'):1.0}))
             assert M.is_sealed(ctx) and ctx.owner.ok and ctx.code_signed
             contexts.append(ctx)
             return OwnerContextClaim(owner_head_sha256=ctx.owner.head[1],code_sha256=ctx.code_hash,
@@ -66,17 +70,26 @@ def fixture(*, prices=('101',), start=GF.START, end=None, floor='100', daily='10
             package=GF.build(state,policy,claim,prices,end=end)
         if spare_cash:
             package=with_spare_cash(package)
-        receipt=GC.commit(s,package)
-        provider=PF.provider(s,package,receipt)
+        elif flat_cash:
+            package=with_flat_cash(package)
+        control=GENESIS
+        if control_prefix:
+            prior=s.journal.snapshot()  # verified actual prefix, outside the guard transaction
+            control=prior[-1]['row_sha256'] if prior else GENESIS
+        receipt=GC.commit(s,package,control=control)
+        provider=PF.provider(s,package,receipt,expected_control_head=control)
         adapter=DryRunAdapter(upbit)
+        clock_cell=[package['now']]
+        fixture_clock=(lambda:clock_cell[0]) if clock is None else clock
         controller=Controller(journal=s.journal,account_provider=provider,policy=policy,
-                              adapters={'upbit':adapter},session_provider=lambda _:None)
+                              adapters={'upbit':adapter},session_provider=lambda _:None,clock=fixture_clock)
         rules=InstrumentRules(venue='upbit',market='spot',symbol='KRW-BTC',lot_size=D('0.1'),tick_size=D(1),
             min_quantity=D('0.1'),min_notional_krw=D(1),fee_fraction=D(0),asof=package['now'],source_digest='a'*64)
         order=Order(client_id='fixture-reducing-order',account_scope=GF.SCOPE,venue='upbit',market='spot',
             symbol='KRW-BTC',side='sell',quantity=D('0.1'),limit_price=D(100),quote_krw=D(1))
         yield SimpleNamespace(s=s,package=package,receipt=receipt,provider=provider,controller=controller,
-            home=home,key=key,adapter=adapter,rules=rules,order=order,now=package['now'],contexts=contexts)
+            home=home,key=key,adapter=adapter,rules=rules,order=order,now=package['now'],contexts=contexts,
+            clock=fixture_clock,clock_cell=clock_cell)
 
 
 
@@ -102,6 +115,41 @@ def with_spare_cash(package):
     capture=replace(capture,captured_accounts=(account,),endpoint_accounts=(account,))
     inputs=replace(package['valuation_inputs'],opening_cash_krw=D(50),
                    opening_units=(('KRW-BTC',D('0.5')),),historical_fills=fills)
+    path=package['path']
+    def synthetic(request, supplied_path):
+        return VerifiedCoverage(request_sha256=content_digest(request),contract=COVERAGE_CONTRACT,
+            authority_sha256='b'*64,source_proof_sha256='c'*64,verified_at=supplied_path.watermark_received_at)
+    coverage=verify_coverage(path,account_capture_sha256=content_digest((capture.manifest_sha256,
+        capture.captured_accounts,capture.endpoint_accounts)),verifier=synthetic,now=package['now'])
+    valuation=value_path(path,opening_cash_krw=inputs.opening_cash_krw,opening_units=inputs.opening_units,
+        historical_fills=inputs.historical_fills,interval_fills=inputs.interval_fills,
+        previous_equity_krw=package['baseline_before'].equity_krw,
+        previous_realized_net_krw=package['baseline_before'].realized_net_total_krw)
+    interval=replace(package['interval'],equity_krw=valuation.equity_krw,
+        minimum_equity_krw=valuation.minimum_equity_krw,maximum_equity_krw=valuation.maximum_equity_krw,
+        realized_net_total_krw=valuation.realized_net_total_krw,source_sha256=content_digest((account,)),
+        coverage_sha256=content_digest((path,coverage)))
+    return package|{'account_capture':capture,'valuation_inputs':inputs,'coverage':coverage,'interval':interval}
+
+
+def with_flat_cash(package):
+    """Recompute a synthetic all-cash input packet before the actual guard commit.
+
+    The existing fixture coverage contract remains explicitly invented. Actual
+    account reconciliation, path valuation, guard planning and publication run
+    normally; no returned projection, result or source-authority verdict changes.
+    """
+    from execution_accounts.continuous import COVERAGE_CONTRACT, VerifiedCoverage, verify_coverage, value_path
+    from execution_accounts.model import CashBalance
+    capture=package['account_capture']
+    original=capture.endpoint_accounts[0]
+    pages=tuple(replace(page,rows=() if page.kind in ('fills','orders') else page.rows,
+                        page_sha256='') for page in original.pages)
+    account=replace(original,balances=(CashBalance(currency='KRW',total=D(100),settled=D(100)),),
+                    positions=(),pages=pages)
+    capture=replace(capture,captured_accounts=(account,),endpoint_accounts=(account,))
+    inputs=replace(package['valuation_inputs'],opening_cash_krw=D(100),opening_units=(),
+                   historical_fills=(),interval_fills=())
     path=package['path']
     def synthetic(request, supplied_path):
         return VerifiedCoverage(request_sha256=content_digest(request),contract=COVERAGE_CONTRACT,
@@ -314,7 +362,8 @@ def test_kill_and_halt_remain_durable_when_new_provider_is_unavailable():
 def test_legacy_cancel_and_reconcile_do_not_gain_new_committed_owner_requirements():
     with fixture() as e:
         obs=PF.read(e.s,e.provider,e.now).observation
-        e.controller.account_provider=lambda _:obs
+        e.controller=Controller(journal=e.s.journal,account_provider=lambda _:obs,policy=e.s.policy,
+                                adapters={'upbit':e.adapter},session_provider=lambda _:None)
         e.controller.reserve(e.order,e.rules,session_id='fixture',now=e.now)
         e.controller.dispatch(e.order.client_id,now=e.now)
         with patch.object(owner,'load_context',side_effect=AssertionError('legacy reconciliation has no owner read')):

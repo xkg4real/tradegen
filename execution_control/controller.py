@@ -26,6 +26,16 @@ from execution_orders.model import AdapterResult, request_digest, validate_reque
 
 _ACTIVE = frozenset({'RESERVED', 'DISPATCHING', 'ACKNOWLEDGED', 'UNKNOWN', 'PARTIAL', 'CANCEL_REQUESTED'})
 _TERMINAL = frozenset({'REJECTED', 'EXPIRED', 'CANCELLED_LOCAL', 'FILLED', 'CANCELED'})
+_COMPLETION_CODES = frozenset('COMMITTED_COMPLETION_' + name for name in (
+    'CLOCK_REQUIRED', 'CLOCK_INVALID', 'CLOCK_ROLLBACK', 'REQUEST_FUTURE', 'STALE',
+    'POLICY_BOUNDARY', 'PHASE_CHANGED', 'AUTHORITY_REFUSED', 'LOCAL_RECORD_FAILED'))
+
+
+class _CompletionRefused(ValueError):
+    def __init__(self, code):
+        super().__init__(code if code in _COMPLETION_CODES else 'COMMITTED_COMPLETION_AUTHORITY_REFUSED')
+
+
 _ORDER_EVENTS = frozenset({'reserved', 'dispatching', 'acknowledged', 'rejected', 'unknown', 'expired',
                           'cancelled_local', 'cancel_requested', 'reconciled', 'fill'})
 
@@ -57,10 +67,58 @@ class AccountObservation:
 
 
 @dataclass(frozen=True, kw_only=True)
+class CommittedControllerObservation:
+    """Finite actual observations, not source authentication or execution authority.
+
+    committed is the exact CommittedAccountProjection returned by _account. Its
+    annotation stays opaque to avoid the reader/AccountObservation import cycle.
+    risk is None on the separate account-only path for explicit reducing work.
+    Constructing or copying this value never issues a permit or source proof.
+    """
+    account: AccountObservation = field(repr=False)
+    risk: risk.RiskResult | None = field(repr=False)
+    committed: object = field(repr=False)
+    completed_at: datetime
+
+    @property
+    def execution_ready(self):
+        return False
+
+
+@dataclass(frozen=True, kw_only=True)
 class _AccountRead:
     """Private per-call pair; committed metadata never becomes an order permit."""
     observation: AccountObservation
     committed: object | None = None
+
+
+@dataclass(kw_only=True)
+class _Completion:
+    """Operation-local observations, never caller-supplied permission or a lease."""
+    transaction: Transaction
+    provider: object
+    started: datetime
+    read: _AccountRead | None = None
+    owner_fingerprint: str | None = None
+    prepared: PreparedSession | None = None
+    terms_deadline: datetime | None = None
+    observed_result: risk.RiskResult | None = None
+    clock_usable: bool = True
+    local_record_started: bool = False
+
+
+@dataclass(frozen=True, kw_only=True)
+class _DispatchProof:
+    transaction: Transaction
+    count: int
+    size: int
+    rows_sha256: str
+    row_sha256: str
+    row_digest: str
+    client_id: str
+    order_digest: str
+    request_digest: str
+    permit_digest: str
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -370,12 +428,237 @@ class Controller:
     now=...). session_provider(session_id) returns this process's actual fresh-odds
     PreparedSession. An order's account scope must match the reconciled account.
     """
-    def __init__(self, *, journal, account_provider, policy, adapters, session_provider):
+    def __init__(self, *, journal, account_provider, policy, adapters, session_provider, clock=None):
         self.journal, self.account_provider, self.policy = journal, account_provider, policy
         self.adapters, self.session_provider = dict(adapters), session_provider
         self._permits = {}
         self._known = set()
         self._reconciled_at = {}
+        from execution_launch.committed_account import CommittedAccountProvider
+        self._completion_provider = account_provider if type(account_provider) is CommittedAccountProvider else None
+        if self._completion_provider is not None and not callable(clock):
+            raise _CompletionRefused('COMMITTED_COMPLETION_CLOCK_REQUIRED')
+        self._completion_clock, self._completion_last = clock, None
+
+    def _completion_time(self, frame):
+        """Sample after journal work; never lower the last accepted watermark."""
+        try:
+            events = frame.transaction.events
+            tail = datetime.fromisoformat(events[-1]['utc']) if events else None
+        except Exception:
+            raise _CompletionRefused('COMMITTED_COMPLETION_PHASE_CHANGED') from None
+        try:
+            actual = _instant(self._completion_clock())
+        except Exception:
+            frame.clock_usable = False
+            raise _CompletionRefused('COMMITTED_COMPLETION_CLOCK_INVALID') from None
+        if ((self._completion_last is not None and actual < self._completion_last)
+                or (tail is not None and actual < tail)):
+            frame.clock_usable = False
+            raise _CompletionRefused('COMMITTED_COMPLETION_CLOCK_ROLLBACK')
+        self._completion_last = actual
+        return actual
+
+    def _completion_start(self, tx, requested):
+        if self._completion_provider is None:
+            return None, requested
+        try:
+            _instant(requested)
+        except Exception:
+            raise _CompletionRefused('COMMITTED_COMPLETION_CLOCK_INVALID') from None
+        frame = _Completion(transaction=tx, provider=self._completion_provider, started=requested)
+        actual = self._completion_time(frame)
+        if actual < requested:
+            raise _CompletionRefused('COMMITTED_COMPLETION_REQUEST_FUTURE')
+        frame.started = actual
+        return frame, actual
+
+    def _completion_lifetime(self, frame, now, rules=None, prepared=None):
+        first = frame.started.astimezone(compliance.KST)
+        current = now.astimezone(compliance.KST)
+        if first.date() != current.date():
+            raise _CompletionRefused('COMMITTED_COMPLETION_POLICY_BOUNDARY')
+        read = frame.read
+        if read is not None:
+            obs = read.observation
+            condition = self.policy.recovery_condition
+            previous = obs.risk.prior_day_realized_net_profit
+            exceptional = (previous is None and obs.risk.is_first_trading_day) or previous == 0
+            if condition is not None and exceptional:
+                cutoff = first.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(seconds=condition.cutoff_seconds)
+                if first < cutoff <= current:
+                    raise _CompletionRefused('COMMITTED_COMPLETION_POLICY_BOUNDARY')
+            if (not timedelta(0) <= now-obs.asof <= timedelta(seconds=30)
+                    or abs(now-obs.server_time) > timedelta(seconds=60)
+                    or current.date() != obs.server_time.astimezone(compliance.KST).date()
+                    or current.date() != obs.asof.astimezone(compliance.KST).date()
+                    or not timedelta(0) <= now-read.committed.owner_claim.observed_at <= timedelta(seconds=30)):
+                raise _CompletionRefused('COMMITTED_COMPLETION_STALE')
+        if not timedelta(0) <= now-frame.started <= timedelta(seconds=30):
+            raise _CompletionRefused('COMMITTED_COMPLETION_STALE')
+        if rules is not None and not timedelta(0) <= now-rules.asof <= timedelta(minutes=5):
+            raise _CompletionRefused('COMMITTED_COMPLETION_AUTHORITY_REFUSED')
+        if frame.terms_deadline is not None and now >= frame.terms_deadline:
+            raise _CompletionRefused('COMMITTED_COMPLETION_AUTHORITY_REFUSED')
+        if prepared is not None and (not prepared.prepared_at <= now < prepared.expires_at
+                or prepared.prepared_at.astimezone(compliance.KST).date() != current.date()):
+            raise _CompletionRefused('COMMITTED_COMPLETION_AUTHORITY_REFUSED')
+
+    def _completion_owner(self, frame, read, positions, session_id, now):
+        if frame is not None:
+            if frame.read is None:
+                frame.read = read
+            if (self.account_provider is not frame.provider or read.committed is None
+                    or any(getattr(read.committed, name) != getattr(frame.read.committed, name) for name in (
+                        'transaction_id', 'guard_head', 'baseline_head', 'completion_head',
+                        'receipt_control_head', 'policy_sha256', 'owner_claim', 'policy_day'))):
+                raise _CompletionRefused('COMMITTED_COMPLETION_AUTHORITY_REFUSED')
+            now = self._completion_time(frame)
+            self._completion_lifetime(frame, now)
+        ctx = owner.load_context(now, positions, session_id=session_id)
+        self._committed_context(read, ctx, now)
+        if frame is not None:
+            if frame.owner_fingerprint is None:
+                frame.owner_fingerprint = ctx.owner.fingerprint
+            elif frame.owner_fingerprint != ctx.owner.fingerprint:
+                raise _CompletionRefused('COMMITTED_COMPLETION_AUTHORITY_REFUSED')
+            completed = self._completion_time(frame)
+            self._completion_lifetime(frame, completed)
+        return ctx
+
+    def _completion_physical(self, frame, proof=None):
+        """Read actual bytes under the already-held transaction, without adopting."""
+        try:
+            tx = frame.transaction
+            if type(tx) is not Transaction or tx._journal is not self.journal:
+                raise ValueError('transaction')
+            events = tx.events
+            self.journal._check_paths()
+            rows, size = self.journal._load(initialize=False)
+            if tuple(rows) != events or size != tx._size:
+                raise ValueError('readback')
+            if proof is not None:
+                last = events[-1] if events else None
+                if (type(proof) is not _DispatchProof or proof.transaction is not tx
+                        or len(events) != proof.count or size != proof.size
+                        or digest(events) != proof.rows_sha256 or last is None
+                        or digest(last) != proof.row_digest or last['row_sha256'] != proof.row_sha256
+                        or last['kind'] != 'dispatching' or last['data'] != {
+                            'client_id': proof.client_id, 'order_digest': proof.order_digest,
+                            'request_digest': proof.request_digest, 'permit_digest': proof.permit_digest}):
+                    raise ValueError('phase')
+            return events
+        except Exception:
+            raise _CompletionRefused('COMMITTED_COMPLETION_PHASE_CHANGED') from None
+
+    def _completion_proof(self, frame, row, *, count, size, previous, obj, request_sha, permit_sha):
+        try:
+            events = self._completion_physical(frame)
+            if (len(events) != count+1 or not events or events[-1] != row
+                    or row['seq'] != count+1 or row['prev_sha256'] != previous
+                    or row['kind'] != 'dispatching' or row['data'] != {
+                        'client_id': obj.client_id, 'order_digest': order_digest(obj),
+                        'request_digest': request_sha, 'permit_digest': permit_sha}
+                    or frame.transaction._size <= size):
+                raise _CompletionRefused('COMMITTED_COMPLETION_PHASE_CHANGED')
+            return _DispatchProof(transaction=frame.transaction, count=len(events), size=frame.transaction._size,
+                rows_sha256=digest(events), row_sha256=row['row_sha256'], row_digest=digest(row),
+                client_id=obj.client_id, order_digest=order_digest(obj), request_digest=request_sha, permit_digest=permit_sha)
+        except _CompletionRefused:
+            raise
+        except Exception:
+            raise _CompletionRefused('COMMITTED_COMPLETION_PHASE_CHANGED') from None
+
+    def _completion_recheck(self, frame, obj=None, rules=None, session_id=None, permit=None,
+                            request=None, request_sha=None, exclude=None, proof=None, reserved_row=None):
+        """Read-only reuse of existing checks; never issue a second permit or risk row."""
+        try:
+            now = self._completion_time(frame)
+            self._completion_lifetime(frame, now, rules, frame.prepared)
+            events = self._completion_physical(frame, proof)
+            orders, killed, halted, _ = _fold(events)
+            read = self._account(now, frame.transaction, obj)
+            obs = read.observation
+            if obj is not None:
+                from execution_launch.instrument_refresh import validate_observed_order
+                from execution_accounts.instrument_terms import observation_for_rules
+                validate_observed_order(obj, rules, now=now)
+                terms = observation_for_rules(rules, account_scope=obj.account_scope, now=now)
+                if terms is not None:
+                    deadline = terms.authority.valid_until
+                    frame.terms_deadline = (deadline if frame.terms_deadline is None
+                                            else min(frame.terms_deadline, deadline))
+                if not obs.risk.data_complete or not obs.risk.external_flows_known:
+                    raise ValueError('incomplete')
+                self._capacity(obj, rules, obs, orders, exclude)
+            ctx = self._completion_owner(frame, read, self._positions(obs, orders, exclude), session_id, now)
+            if obj is None and frame.observed_result is not None:
+                current_risk, _, _ = self._risk_view(frame.transaction, obs, now, ctx, committed=read.committed)
+                expected = replace(frame.observed_result, universe=None,
+                    reasons=tuple(dict.fromkeys(frame.observed_result.reasons)))
+                actual = replace(current_risk, reasons=tuple(dict.fromkeys(current_risk.reasons)))
+                if expected != actual:
+                    raise ValueError('risk observation changed during completion')
+            if obj is not None:
+                if obj.side == 'buy':
+                    self._buy_latches(frame.transaction, orders, killed, halted, session_id,
+                                      own_dispatch=None if proof is None else proof.client_id)
+                    result, _, _ = self._risk_view(frame.transaction, obs, now, ctx, committed=read.committed)
+                    if result.new_entry_blocked:
+                        raise ValueError('risk policy blocks new entry')
+                    self._buy_floor(obs, ctx)
+                    self._buy_session(frame.transaction, obj, rules, obs, orders, ctx, session_id,
+                                      now, exclude, expected=frame.prepared)
+                intent = self._intent(obj, ctx, recorded=exclude is not None)
+                self._exact_caps(obj, obs, orders, ctx, intent, exclude)
+                if not gate.verify_permit(permit, intent, ctx)[0]:
+                    raise ValueError('permit')
+                validate_request(request)
+                if (request_digest(request) != request_sha or request.order_digest != order_digest(obj)
+                        or request.operation != 'create'):
+                    raise ValueError('request')
+            final_events = self._completion_physical(frame, proof)
+            if final_events != events:
+                raise _CompletionRefused('COMMITTED_COMPLETION_PHASE_CHANGED')
+            view = None
+            if reserved_row is not None:
+                actual = orders.get(obj.client_id)
+                if (not final_events or final_events[-1] != reserved_row
+                        or reserved_row['kind'] != 'reserved' or actual is None
+                        or actual['status'] != 'RESERVED' or actual['digest'] != order_digest(obj)):
+                    raise _CompletionRefused('COMMITTED_COMPLETION_PHASE_CHANGED')
+                view = _view(actual)
+            finished = self._completion_time(frame)
+            self._completion_lifetime(frame, finished, rules, frame.prepared)
+            return finished, ctx, view, read
+        except _CompletionRefused:
+            raise
+        except Exception:
+            raise _CompletionRefused('COMMITTED_COMPLETION_AUTHORITY_REFUSED') from None
+
+    def _completion_no_send(self, frame, proof, rec, reason):
+        if reason not in _COMPLETION_CODES:
+            reason = 'COMMITTED_COMPLETION_AUTHORITY_REFUSED'
+        if (not frame.clock_usable or reason in ('COMMITTED_COMPLETION_CLOCK_INVALID',
+                'COMMITTED_COMPLETION_CLOCK_ROLLBACK', 'COMMITTED_COMPLETION_PHASE_CHANGED')):
+            raise _CompletionRefused(reason)
+        self._completion_physical(frame, proof)
+        now = self._completion_time(frame)  # Stale evidence need not recover to prove no send.
+        metadata = (('tg_local_pre_send', 'not_called'), ('tg_local_reason', reason),
+                    ('tg_dispatch_row', proof.row_sha256))
+        result = AdapterResult(status='rejected', code='local_pre_send_boundary_refused',
+                               client_id=proof.client_id, venue_order_id='', metadata=metadata)
+        frame.local_record_started = True
+        try:
+            self._result(frame.transaction, rec, 'rejected', result, now)
+            events = self._completion_physical(frame)
+            actual = _fold(events)[0][proof.client_id]
+            if (actual['status'] != 'REJECTED' or actual['metadata'] != dict(metadata)
+                    or events[-1]['kind'] != 'rejected'):
+                raise ValueError('local result')
+            return _view(actual)
+        except Exception:
+            raise _CompletionRefused('COMMITTED_COMPLETION_LOCAL_RECORD_FAILED') from None
 
     @_exact
     def states(self) -> tuple[OrderState, ...]:
@@ -392,6 +675,8 @@ class Controller:
         from execution_launch.committed_account import CommittedAccountProvider, CommittedAccountProjection
         committed = None
         if type(self.account_provider) is CommittedAccountProvider:
+            if self._completion_provider is not self.account_provider:
+                raise _CompletionRefused('COMMITTED_COMPLETION_AUTHORITY_REFUSED')
             committed = self.account_provider.read(now=now, transaction=transaction)
             if type(committed) is not CommittedAccountProjection:
                 raise ValueError('COMMITTED_ACCOUNT_PROJECTION_REQUIRED')
@@ -439,7 +724,8 @@ class Controller:
         The caller obtained ctx through owner.load_context with actual positions
         and its operation's session. Matching claims do not authenticate historical
         source coverage. now retains Controller's supplied-time contract; no
-        completion-clock or operational-readiness claim is made by this check.
+        operational-readiness claim is made by this comparison alone. The three
+        committed completion operations separately check actual clock observations.
         """
         if read.committed is None:
             return
@@ -482,7 +768,7 @@ class Controller:
         if ctx.owner.halted_floors and not read.observation.risk.halted:
             raise ValueError('COMMITTED_ACCOUNT_OWNER_HALT_NOT_RETAINED')
 
-    def _snapshot_risk(self, tx, obs, now, orders, ctx, *, committed=None):
+    def _risk_view(self, tx, obs, now, ctx, *, committed=None):
         past = [e['data'] for e in tx.events if e['kind'] == 'risk_snapshot']
         today = now.astimezone(compliance.KST).date().isoformat()
         high = max([obs.risk.prior_high_watermark] + [Decimal(e['high_watermark']) for e in past])
@@ -508,6 +794,11 @@ class Controller:
         if daily_stopped and 'PERSISTENT_DAILY_STOP' not in result.reasons:
             result = replace(result, new_entry_blocked=True,
                              reasons=result.reasons + ('PERSISTENT_DAILY_STOP',), protective_action_needed=True)
+        return result, start, daily_stopped
+
+    def _snapshot_risk(self, tx, obs, now, orders, ctx, *, committed=None):
+        result, start, daily_stopped = self._risk_view(tx, obs, now, ctx, committed=committed)
+        today = now.astimezone(compliance.KST).date().isoformat()
         if result.high_watermark is not None:
             tx.append('risk_snapshot', {'policy_digest': digest(self.policy), 'day': today,
                       'high_watermark': str(result.high_watermark), 'day_start_equity': str(start),
@@ -533,16 +824,51 @@ class Controller:
     @_exact
     def observe(self, *, now):
         """Persist risk latches independently of an order attempt; never place an exit."""
+        return self._observe_core(now=now, session_id=None, paired=False, snapshot_risk=True)
+
+    @_exact
+    def observe_committed(self, *, now, session_id=None):
+        """Pair the final actual account read with this operation's checked risk."""
+        self._require_committed_observer()
+        return self._observe_core(now=now, session_id=session_id, paired=True, snapshot_risk=True)
+
+    @_exact
+    def read_committed_account(self, *, now, session_id=None):
+        """Validate an account for explicit reducing work, without entry-risk writes.
+
+        This does not approve an exit. Existing reserve/dispatch authorization
+        still applies. owner.load_context can retain its normal snapshot effects.
+        """
+        self._require_committed_observer()
+        return self._observe_core(now=now, session_id=session_id, paired=True, snapshot_risk=False)
+
+    def _require_committed_observer(self):
+        if self._completion_provider is None or self.account_provider is not self._completion_provider:
+            raise ValueError('COMMITTED_OBSERVATION_PROVIDER_REQUIRED')
+
+    def _observe_core(self, *, now, session_id, paired, snapshot_risk):
         with self.journal.transaction() as tx:
             orders, _, halted, _ = _fold(tx.events)
+            frame, now = self._completion_start(tx, now)
             read = self._account(now, tx)
             obs = read.observation
-            ctx = owner.load_context(now, self._positions(obs, orders))
-            self._committed_context(read, ctx, now)
-            if halted:
-                obs = replace(obs, risk=replace(obs.risk, halted=True))
-            # Runner and coordinator buy checks use the snapshot this observation saw (spec section 6).
-            return replace(self._snapshot_risk(tx, obs, now, orders, ctx, committed=read.committed), universe=ctx.universe)
+            ctx = self._completion_owner(frame, read, self._positions(obs, orders), session_id, now)
+            result = None
+            if snapshot_risk:
+                if halted:
+                    obs = replace(obs, risk=replace(obs.risk, halted=True))
+                # Keep the original result/reasons; final pure comparison preserves its semantics.
+                result = replace(self._snapshot_risk(tx, obs, now, orders, ctx, committed=read.committed),
+                                 universe=ctx.universe)
+            if frame is not None:
+                frame.observed_result = result
+                finished, latest, _, final_read = self._completion_recheck(frame, session_id=session_id)
+                if result is not None:
+                    result = replace(result, universe=latest.universe)
+                if paired:
+                    return CommittedControllerObservation(account=final_read.observation, risk=result,
+                        committed=final_read.committed, completed_at=finished)
+            return result
 
     @_exact
     def approve_floor_relaxation(self, *, floor, now, session_id):
@@ -707,7 +1033,41 @@ class Controller:
             if held+promised+amount>Decimal(str(cap))*obs.risk.equity:
                 raise ValueError('exact venue cap exceeded')
 
-    def _authorize(self, tx, obj, rules, session_id, now, orders, killed, halted, exclude=None):
+    def _buy_latches(self, tx, orders, killed, halted, session_id, own_dispatch=None):
+        if halted or session_id in killed or guard_pending(tx.events):
+            raise ValueError('local no-entry latch active')
+        if any(r['status'] in ('DISPATCHING','UNKNOWN','CANCEL_REQUESTED') or r['cancel_pending']
+               for key, r in orders.items() if key != own_dispatch):
+            raise ValueError('uncertain order needs reconciliation')
+        if any(k not in self._known and r['status'] in ('ACKNOWLEDGED','PARTIAL')
+               for k,r in orders.items()):
+            raise ValueError('restart requires order reconciliation')
+
+    @staticmethod
+    def _buy_floor(obs, ctx):
+        signed_floor = ctx.owner.limits.get('total_loss_floor_krw')
+        if signed_floor is not None and obs.risk.equity < Decimal(str(signed_floor)):
+            raise ValueError('legacy signed floor conflict requires owner resolution')
+
+    def _buy_session(self, tx, obj, rules, obs, orders, ctx, session_id, now, exclude, expected=None):
+        prepared = self.session_provider(session_id)
+        if expected is not None and prepared is not expected:
+            raise ValueError('session preparation changed')
+        verify_session(prepared, session_id=session_id, policy=self.policy, instrument_rules=rules, ctx=ctx, now=now,
+                   order=obj, events=tx.events)
+        held=obs.held_exposure_krw.get((obj.venue,obj.account_scope))
+        inventory=obs.inventory_exposure_krw.get((obj.venue,obj.account_scope))
+        if held is None or inventory is None or not 0 <= inventory <= held:
+            raise ValueError('exact inventory and total venue exposure required for session capital')
+        legacy=obs.positions.exposure.get(obj.venue)
+        if (legacy is not None and (Decimal(str(legacy.held_krw))!=held or legacy.reservations)):
+            raise ValueError('session exposure sources disagree')
+        pending=self._pending_buy_krw(obj,obs,orders,exclude)
+        if inventory+pending+obj.quantity*obj.limit_price*obj.quote_krw*(1+rules.fee_fraction)>Decimal(prepared.stake_krw):
+            raise ValueError('aggregate exposure exceeds prepared session capital')
+        return prepared
+
+    def _authorize(self, tx, obj, rules, session_id, now, orders, killed, halted, exclude=None, *, completion=None):
         from execution_launch.instrument_refresh import validate_observed_order
         validate_observed_order(obj, rules, now=now)
         if not timedelta(0) <= now-rules.asof <= timedelta(minutes=5):
@@ -718,36 +1078,16 @@ class Controller:
             raise ValueError('complete reconciled account required; manual handling required')
         self._capacity(obj, rules, obs, orders, exclude)
         positions = self._positions(obs, orders, exclude)
-        ctx = owner.load_context(now, positions, session_id=session_id)
-        self._committed_context(read, ctx, now)
+        ctx = self._completion_owner(completion, read, positions, session_id, now)
         if obj.side == 'buy':
-            if halted or session_id in killed or guard_pending(tx.events):
-                raise ValueError('local no-entry latch active')
-            if any(r['status'] in ('DISPATCHING','UNKNOWN','CANCEL_REQUESTED') or r['cancel_pending']
-                   for r in orders.values()):
-                raise ValueError('uncertain order needs reconciliation')
-            if any(k not in self._known and r['status'] in ('ACKNOWLEDGED','PARTIAL')
-                   for k,r in orders.items()):
-                raise ValueError('restart requires order reconciliation')
+            self._buy_latches(tx, orders, killed, halted, session_id)
             result = self._snapshot_risk(tx, obs, now, orders, ctx, committed=read.committed)
             if result.new_entry_blocked:
                 raise ValueError('risk policy blocks new entry')
-            signed_floor = ctx.owner.limits.get('total_loss_floor_krw')
-            if signed_floor is not None and obs.risk.equity < Decimal(str(signed_floor)):
-                raise ValueError('legacy signed floor conflict requires owner resolution')
-            prepared = self.session_provider(session_id)
-            verify_session(prepared, session_id=session_id, policy=self.policy, instrument_rules=rules, ctx=ctx, now=now,
-                           order=obj, events=tx.events)
-            held=obs.held_exposure_krw.get((obj.venue,obj.account_scope))
-            inventory=obs.inventory_exposure_krw.get((obj.venue,obj.account_scope))
-            if held is None or inventory is None or not 0 <= inventory <= held:
-                raise ValueError('exact inventory and total venue exposure required for session capital')
-            legacy=obs.positions.exposure.get(obj.venue)
-            if (legacy is not None and (Decimal(str(legacy.held_krw))!=held or legacy.reservations)):
-                raise ValueError('session exposure sources disagree')
-            pending=self._pending_buy_krw(obj,obs,orders,exclude)
-            if inventory+pending+obj.quantity*obj.limit_price*obj.quote_krw*(1+rules.fee_fraction)>Decimal(prepared.stake_krw):
-                raise ValueError('aggregate exposure exceeds prepared session capital')
+            self._buy_floor(obs, ctx)
+            prepared = self._buy_session(tx, obj, rules, obs, orders, ctx, session_id, now, exclude)
+            if completion is not None:
+                completion.prepared = prepared
         intent = self._intent(obj, ctx, recorded=exclude is not None)    # dispatch: the order is in the journal
         self._exact_caps(obj,obs,orders,ctx,intent,exclude)
         issued = gate.permit(intent, ctx)
@@ -765,7 +1105,9 @@ class Controller:
                     if orders[key]['digest'] != sha:
                         raise ValueError('client identity reused with changed order')
                     return _view(orders[key])
-                obs, ctx, intent, permit = self._authorize(tx,order,rules,session_id,now,orders,killed,halted)
+                frame, now = self._completion_start(tx, now)
+                obs, ctx, intent, permit = self._authorize(tx,order,rules,session_id,now,orders,killed,halted,
+                                                         completion=frame)
                 trade_date=obs.venue_trade_dates.get((order.venue,order.account_scope,order.market),'')
                 if order.venue=='kis':
                     _trade_date(trade_date)
@@ -773,42 +1115,72 @@ class Controller:
                 validate_request(request)
                 if request.order_digest != sha or request.operation != 'create':
                     raise ValueError('adapter request identity mismatch')
-                tx.append('reserved', {'client_id':key,'order_digest':sha,'order':order_body(order),
-                          'rules':plain(rules),'session_id':session_id,'request_digest':request_digest(request),
+                request_sha = request_digest(request)
+                if frame is not None:
+                    now, _, _, _ = self._completion_recheck(frame, order, rules, session_id, permit, request, request_sha)
+                reserved = tx.append('reserved', {'client_id':key,'order_digest':sha,'order':order_body(order),
+                          'rules':plain(rules),'session_id':session_id,'request_digest':request_sha,
                           'permit_digest':digest(permit),'trade_date':trade_date}, now=now)
                 self._permits[key] = (permit,digest(permit))
                 self._known.add(key)
+                if frame is not None:
+                    _, _, view, _ = self._completion_recheck(frame, order, rules, session_id, permit, request,
+                        request_sha, exclude=key, reserved_row=reserved)
+                    return view
                 return _view(_fold(tx.events)[0][key])
 
     def dispatch(self, client_id, *, now):
-        with localcontext() as numeric:
-            numeric.prec=1024; numeric.traps[Inexact]=True
-            with self.journal.transaction() as tx:
-                orders,killed,halted,_ = _fold(tx.events)
-                rec = orders.get(client_id)
-                if rec is None:
-                    raise ValueError('unknown client identity')
-                if rec['status'] != 'RESERVED':
-                    return _view(rec)
-                obj,rules=rec['order'],rec['rules']
-                obs,ctx,intent,new_permit=self._authorize(tx,obj,rules,rec['session_id'],now,
-                                                         orders,killed,halted,client_id)
-                if obj.venue=='kis' and obs.venue_trade_dates.get((obj.venue,obj.account_scope,obj.market))!=rec['trade_date']:
-                    raise ValueError('broker trade date changed before dispatch')
-                issued,stored=self._permits.get(client_id,(new_permit,digest(new_permit)))
-                if digest(issued)!=stored or not gate.verify_permit(issued,intent,ctx)[0]:
-                    raise ValueError('issued permit changed or stale')
-                request=self.adapters[obj.venue].prepare(obj,rules)
-                validate_request(request)
-                if request_digest(request)!=rec['request_digest']:
-                    raise ValueError('prepared request changed')
-                tx.append('dispatching',{'client_id':client_id,'order_digest':rec['digest'],
-                          'request_digest':request_digest(request),'permit_digest':digest(issued)},now=now)
-                self._permits.pop(client_id,None)
-                result=self._send(obj,request,now)
-                kind='rejected' if result.status=='rejected' else 'unknown' if result.status=='unknown' else 'acknowledged'
-                self._result(tx,rec,kind,result,now)
-                return _view(_fold(tx.events)[0][client_id])
+        frame = None
+        try:
+            with localcontext() as numeric:
+                numeric.prec=1024; numeric.traps[Inexact]=True
+                with self.journal.transaction() as tx:
+                    orders,killed,halted,_ = _fold(tx.events)
+                    rec = orders.get(client_id)
+                    if rec is None:
+                        raise ValueError('unknown client identity')
+                    if rec['status'] != 'RESERVED':
+                        return _view(rec)
+                    frame, now = self._completion_start(tx, now)
+                    obj,rules=rec['order'],rec['rules']
+                    obs,ctx,intent,new_permit=self._authorize(tx,obj,rules,rec['session_id'],now,
+                                                             orders,killed,halted,client_id,completion=frame)
+                    if obj.venue=='kis' and obs.venue_trade_dates.get((obj.venue,obj.account_scope,obj.market))!=rec['trade_date']:
+                        raise ValueError('broker trade date changed before dispatch')
+                    issued,stored=self._permits.get(client_id,(new_permit,digest(new_permit)))
+                    if digest(issued)!=stored or not gate.verify_permit(issued,intent,ctx)[0]:
+                        raise ValueError('issued permit changed or stale')
+                    request=self.adapters[obj.venue].prepare(obj,rules)
+                    validate_request(request)
+                    if request_digest(request)!=rec['request_digest']:
+                        raise ValueError('prepared request changed')
+                    request_sha, permit_sha = request_digest(request), digest(issued)
+                    if frame is not None:
+                        now, _, _, _ = self._completion_recheck(frame, obj, rules, rec['session_id'], issued,
+                            request, request_sha, exclude=client_id)
+                    prior = tx.events
+                    count, size = len(prior), tx._size
+                    previous = prior[-1]['row_sha256'] if prior else '0'*64
+                    row = tx.append('dispatching',{'client_id':client_id,'order_digest':rec['digest'],
+                              'request_digest':request_sha,'permit_digest':permit_sha},now=now)
+                    self._permits.pop(client_id,None)
+                    if frame is not None:
+                        proof = self._completion_proof(frame, row, count=count, size=size, previous=previous,
+                            obj=obj, request_sha=request_sha, permit_sha=permit_sha)
+                        try:
+                            now, _, _, _ = self._completion_recheck(frame, obj, rules, rec['session_id'], issued,
+                                request, request_sha, exclude=client_id, proof=proof)
+                        except _CompletionRefused as exc:
+                            return self._completion_no_send(frame, proof, rec, str(exc))
+                    # No local rejection handler covers this call or anything after it.
+                    result=self._send(obj,request,now)
+                    kind='rejected' if result.status=='rejected' else 'unknown' if result.status=='unknown' else 'acknowledged'
+                    self._result(tx,rec,kind,result,now)
+                    return _view(_fold(tx.events)[0][client_id])
+        except Exception:
+            if frame is not None and frame.local_record_started:
+                raise _CompletionRefused('COMMITTED_COMPLETION_LOCAL_RECORD_FAILED') from None
+            raise
 
     def _send(self,obj,request,now):
         try:
