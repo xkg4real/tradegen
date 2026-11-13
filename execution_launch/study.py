@@ -43,22 +43,28 @@ import time
 from typing import Callable
 
 from core.isolation import checked_target
-from execution_launch.paper_capture import CaptureArchive, PaperCapture, _bindings, _clock_value, capture_json
+from execution_launch.paper_capture import CaptureArchive, PaperCapture, PaperCaptureV2, _bindings, _clock_value, capture_json
+from execution_launch.capture_v2 import capture_json_v2
+from execution_launch.managed_behavior import CARRY_EVALUATOR_REVISION, decision_document
 from execution_launch.private_input import _REFUSED_ATTRIBUTES
 from execution_launch.profile import (LaunchProfile, ProfileError, parse_profile_json, preflight_profile,
                                       profile_contract_digest, rule_terms_digest)
 from execution_launch.program import ProgramSpec, parameters_json, parse_program, program_digest
 from execution_launch.review_request import build_review_request, build_family_commitment, bind_review_family
-from execution_launch.strategy import (ForwardProtocol, Registration, StrategyEvidenceError, ValidationResult,
+from execution_launch.strategy import (ForwardProtocol, Registration, StrategyEvidenceError, ValidationResult, CarryValidationResult,
                                        _HASH, _ID, _date, _instant, _json, _object, _plain, assess_strategy,
                                        evaluate_capture_json, evidence_digest, parse_protocol, register_protocol)
 from execution_launch.workflow import (MAX_CAPTURE_BYTES, MAX_CONFIG_BYTES, WorkflowError, _CODE, _PRIVATE,
                                        _base, _bound_profile, _read_file, _time)
 
 SELECTION_RULE = "upbit-krw-single-asset-v1"
+CARRY_SELECTION_RULE = "upbit-krw-single-asset-carry-v2"
 CAPTURE_FILES = ("execution_launch/study.py", "execution_launch/paper_capture.py", "execution_launch/program.py",
                  "execution_launch/strategy.py", "execution_accounts/quotes.py", "execution/transport.py",
-                 "execution/upbit_inquiry.py")
+                 "execution/upbit_inquiry.py", "execution_launch/managed_behavior.py")
+CARRY_CAPTURE_FILES = CAPTURE_FILES + ("execution_launch/capture_v2.py", "execution_launch/carry_evaluator.py",
+    "execution_launch/workflow.py", "execution_launch/profile.py", "execution_control/model.py",
+    "execution_control/capability.py", "core/isolation.py", "execution_launch/review_request.py")
 PRIOR_RESEARCH = "docs/research/2026-10-31-strategy-lab/results/summary.json"
 PROGRAM_SOURCE = "execution_launch/program.py"
 # ponytail: calibration knob. The book is read this long before each slot and must arrive by the slot; it is
@@ -158,10 +164,13 @@ def _fixed_file(relative):
     return body
 
 
-def capture_source_artifact() -> bytes:
+def capture_source_artifact(protocol=None) -> bytes:
     """Canonical ASCII manifest of the installed capture code; protocol.capture_source_code_sha256 is its digest."""
-    files = {name: hashlib.sha256(_fixed_file(name)).hexdigest() for name in CAPTURE_FILES}
-    return json.dumps({"kind": "tradegen-study-capture/1", "files": files}, sort_keys=True,
+    carry = protocol is not None and protocol.evaluator_revision == CARRY_EVALUATOR_REVISION
+    files = {name: hashlib.sha256(_fixed_file(name)).hexdigest()
+             for name in (CARRY_CAPTURE_FILES if carry else CAPTURE_FILES)}
+    return json.dumps({"kind": "tradegen-study-carry-capture/2" if carry else "tradegen-study-capture/1",
+                       "files": files}, sort_keys=True,
                       separators=(",", ":"), ensure_ascii=True).encode("ascii")
 
 
@@ -169,7 +178,8 @@ def capture_source_artifact() -> bytes:
 
 def _structure(plan):
     _require(type(plan) is StudyPlan and type(plan.schema_version) is int and plan.schema_version == 1
-             and plan.selection_rule == SELECTION_RULE and type(plan.candidates) is tuple and plan.candidates
+             and plan.selection_rule in (SELECTION_RULE, CARRY_SELECTION_RULE)
+             and type(plan.candidates) is tuple and plan.candidates
              and type(plan.registry) is tuple
              and all(type(c) is StudyCandidate and type(c.program) is ProgramSpec
                      and type(c.protocol) is ForwardProtocol for c in plan.candidates),
@@ -189,6 +199,9 @@ def _structure(plan):
                  and not ntpath.isreserved(c.protocol.study_id + ".capture.json") for c in plan.candidates),
              "STUDY_PLAN_SCHEMA_INVALID")
     _require(all(c.program.kind != "cash" for c in plan.candidates), "STUDY_CASH_MEMBER_CANNOT_QUALIFY")
+    _require(all((c.protocol.evaluator_revision == CARRY_EVALUATOR_REVISION)
+                 == (plan.selection_rule == CARRY_SELECTION_RULE) for c in plan.candidates),
+             "STUDY_PLAN_SCHEMA_INVALID")
     return ids
 
 
@@ -200,7 +213,9 @@ def _feasible(protocol, candidates):
     returns = (protocol.capture_end - protocol.capture_start) // timedelta(seconds=protocol.bar_seconds)
     _require(protocol.bootstrap_replications * (returns // protocol.block_length + 1) <= _WORK_LIMIT,
              "STUDY_INFERENCE_WORK_LIMIT")
-    _require(all((returns - c.program.slow_window + 1) // 2 >= protocol.minimum_roundtrips for c in candidates),
+    _require(all((returns - c.program.slow_window
+                  + (0 if protocol.evaluator_revision == CARRY_EVALUATOR_REVISION else 1)) // 2
+                 >= protocol.minimum_roundtrips for c in candidates),
              "STUDY_ROUNDTRIPS_INFEASIBLE")
     _require(protocol.minimum_fill_delay_seconds + _SAMPLING_MARGIN <= protocol.bar_seconds,
              "STUDY_FILL_DELAY_INFEASIBLE")
@@ -214,14 +229,15 @@ def validate_study_plan(plan: StudyPlan) -> str:
     common = [{k: v for k, v in _plain(p).items() if k not in _PER_CANDIDATE} for p in protocols]
     _require(all(terms == common[0] for terms in common), "STUDY_TERMS_NOT_COMMON")
     _require(all(p.family_members == ids for p in protocols), "STUDY_FAMILY_INCOMPLETE")
-    source = capture_source_artifact()
+    source = capture_source_artifact(protocols[0])
     _require(protocols[0].capture_source_code_sha256 == hashlib.sha256(source).hexdigest(),
              "STUDY_CAPTURE_SOURCE_CHANGED")
     _require(plan.prior_research_sha256 == hashlib.sha256(_fixed_file(PRIOR_RESEARCH)).hexdigest(),
              "STUDY_PRIOR_RESEARCH_MISMATCH")
     artifact = _fixed_file(PROGRAM_SOURCE)
     for candidate in plan.candidates:
-        _bindings(candidate.protocol, plan.registry, candidate.program, artifact, source)
+        _bindings(candidate.protocol, plan.registry, candidate.program, artifact, source,
+                  schema_version=candidate.protocol.schema_version)
     _feasible(protocols[0], plan.candidates)
     return evidence_digest(plan)
 
@@ -243,7 +259,7 @@ def build_study_plan(profile: LaunchProfile, programs: tuple[ProgramSpec, ...], 
     programs = tuple(sorted(programs, key=lambda p: p.strategy_id))
     ids = tuple(p.strategy_id for p in programs)
     _require(len(set(ids)) == len(ids), "STUDY_PLAN_SCHEMA_INVALID")
-    artifact, source = _fixed_file(PROGRAM_SOURCE), capture_source_artifact()
+    artifact, source = _fixed_file(PROGRAM_SOURCE), capture_source_artifact(template)
     terms = rule_terms_digest(profile.instrument_rules, universe_rule_sha256=profile.universe_rule_sha256)
     candidates = []
     for program in programs:
@@ -260,7 +276,9 @@ def build_study_plan(profile: LaunchProfile, programs: tuple[ProgramSpec, ...], 
         _bound_profile(variant, protocol)
         registry = register_protocol(protocol, registry)
         candidates.append(StudyCandidate(program=program, protocol=protocol))
-    plan = StudyPlan(schema_version=1, plan_id=plan_id, selection_rule=SELECTION_RULE, asset=asset,
+    plan = StudyPlan(schema_version=1, plan_id=plan_id,
+                     selection_rule=CARRY_SELECTION_RULE if template.evaluator_revision == CARRY_EVALUATOR_REVISION
+                     else SELECTION_RULE, asset=asset,
                      risk_group=risk_group,
                      prior_research_sha256=hashlib.sha256(_fixed_file(PRIOR_RESEARCH)).hexdigest(),
                      candidates=tuple(candidates), registry=registry)
@@ -304,7 +322,7 @@ def commitment_json(plan: StudyPlan) -> str:
             "selection_rule": plan.selection_rule, "asset": plan.asset, "risk_group": plan.risk_group,
             "prior_research_sha256": plan.prior_research_sha256,
             "capture_source_code_sha256": protocol.capture_source_code_sha256,
-            "capture_source_manifest": json.loads(capture_source_artifact()),
+            "capture_source_manifest": json.loads(capture_source_artifact(protocol)),
             "window": {"preregistered_at": _plain(protocol.preregistered_at),
                        "capture_start": _plain(protocol.capture_start), "capture_end": _plain(protocol.capture_end),
                        "bar_seconds": protocol.bar_seconds},
@@ -360,9 +378,10 @@ def run_capture(plan: StudyPlan, *, book_source: Callable, clock: Callable[[], d
     """
     digest = validate_study_plan(plan)
     protocol = plan.candidates[0].protocol
-    artifact, source = _fixed_file(PROGRAM_SOURCE), capture_source_artifact()
+    artifact, source = _fixed_file(PROGRAM_SOURCE), capture_source_artifact(protocol)
     _require(_clock_value(clock) <= protocol.capture_start - _START_MARGIN, "STUDY_CAPTURE_START_MISSED")
-    captures = [PaperCapture(c.protocol, plan.registry, c.program, program_artifact=artifact,
+    recorder = PaperCaptureV2 if protocol.evaluator_revision == CARRY_EVALUATOR_REVISION else PaperCapture
+    captures = [recorder(c.protocol, plan.registry, c.program, program_artifact=artifact,
                              capture_source_artifact=source, clock=clock) for c in plan.candidates]
     try:
         probe = _receipt(book_source().receipt)
@@ -381,7 +400,9 @@ def run_capture(plan: StudyPlan, *, book_source: Callable, clock: Callable[[], d
             decisions = [(c.program.strategy_id, capture.append_book(book))
                          for c, capture in zip(plan.candidates, captures)]
             _record(record, {"slot": index, "observed_at": _plain(slot), "receipt": _receipt(book.receipt),
-                             "decisions": [[identifier, None if decision is None else _plain(decision.target_fraction)]
+                             "decisions": [[identifier, (decision_document(decision) if
+                                           protocol.evaluator_revision == CARRY_EVALUATOR_REVISION else
+                                           None if decision is None else _plain(decision.target_fraction))]
                                            for identifier, decision in decisions]})
             recorded += 1
         archives = tuple(capture.finish() for capture in captures)
@@ -440,7 +461,7 @@ def _row(candidate, result, profile, artifact, terms, now, review_verifier):
     protocol, program = candidate.protocol, candidate.program
     empty = dict(study_id=protocol.study_id, strategy_id=protocol.strategy_id, math_qualified=False,
                  evidence_digest=None, sharpe=None, sharpe_lower=None, worst_drawdown=None, turnover_ratio=None,
-                 evaluated_at=result.evaluated_at if type(result) is ValidationResult else None)
+                 evaluated_at=result.evaluated_at if type(result) in (ValidationResult, CarryValidationResult) else None)
     if result is None:
         return CandidateRow(**empty, status="MISSING", reasons=("STUDY_RESULT_MISSING",))
     variant = replace(profile, strategy_id=program.strategy_id, strategy_code_sha256=program_digest(program, artifact))
@@ -661,7 +682,9 @@ def main(argv: list[str] | None = None) -> int:
                 sink.close()
             suffix = ".capture.json" if outcome.complete else ".incomplete.json"
             for candidate, archive in zip(plan.candidates, outcome.archives):
-                _write_new(directory, candidate.protocol.study_id + suffix, capture_json(archive).encode("ascii"))
+                _write_new(directory, candidate.protocol.study_id + suffix,
+                           (capture_json_v2(archive) if candidate.protocol.evaluator_revision == CARRY_EVALUATOR_REVISION
+                            else capture_json(archive)).encode("ascii"))
             output.update(workflow_complete=outcome.complete, plan_sha256=outcome.plan_digest,
                           slots_recorded=outcome.slots_recorded, reasons=[] if outcome.complete else [outcome.reason])
             print(json.dumps(output, sort_keys=True))

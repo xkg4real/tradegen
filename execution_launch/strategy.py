@@ -21,6 +21,9 @@ import re
 
 from execution_control.model import InstrumentRules, rules_digest
 from execution_launch.profile import rule_terms_digest as economic_rules_digest
+from execution_launch.managed_behavior import (
+    BEHAVIOR_REVISION, CARRY_EVALUATOR_REVISION, TERMINAL_ACCOUNTING, behavior_digest, resolve_behavior,
+)
 
 _HASH = re.compile(r"[0-9a-f]{64}")
 _ID = re.compile(r"[A-Za-z][A-Za-z0-9_.:-]{0,95}")
@@ -90,7 +93,8 @@ def _plain(value):
 
 def evidence_digest(value) -> str:
     raw = json.dumps(_plain(value), sort_keys=True, separators=(',', ':'), ensure_ascii=True, allow_nan=False)
-    return hashlib.sha256(raw.encode('ascii')).hexdigest()
+    domain = b'tradegen-fixed-carry-validation/2\x00' if type(value) is CarryValidationResult else b''
+    return hashlib.sha256(domain + raw.encode('ascii')).hexdigest()
 
 
 def _rule_terms(rules, universe_rule_sha256):
@@ -137,15 +141,20 @@ class ForwardProtocol:
     # history construction; this digest is not a source receipt or a change to the evaluator's terminal policy.
     # Omission retains the original fixed and universe protocol bytes and registration digests.
     history_storage_sha256: str | None = field(default=None, metadata={"omit_none": True})
+    # Explicit fixed carry-v2 behavior. Legacy protocol encoding omits all three.
+    behavior_revision: str | None = field(default=None, metadata={"omit_none": True})
+    terminal_accounting: str | None = field(default=None, metadata={"omit_none": True})
+    management_behavior_sha256: str | None = field(default=None, metadata={"omit_none": True})
 
 
 def _protocol(protocol):
     _require(type(protocol) is ForwardProtocol and type(protocol.schema_version) is int
-             and protocol.schema_version == 1, "STRATEGY_PROTOCOL_REQUIRED")
+             and protocol.schema_version in (1, 2), "STRATEGY_PROTOCOL_REQUIRED")
     _id(protocol.study_id); _id(protocol.strategy_id); _id(protocol.capture_source_id)
-    _require(protocol.evaluator_revision in (EVALUATOR_REVISION, UNIVERSE_EVALUATOR_REVISION)
-             and (protocol.universe_rule_sha256 is None) == (protocol.evaluator_revision == EVALUATOR_REVISION),
-             'STRATEGY_EVALUATOR_UNSUPPORTED')
+    try:
+        resolve_behavior(protocol)
+    except (ValueError, TypeError, AttributeError):
+        raise StrategyEvidenceError('STRATEGY_EVALUATOR_UNSUPPORTED') from None
     for name in ('strategy_code_sha256', 'capture_source_code_sha256', 'profile_contract_digest', 'rule_terms_digest'):
         _hash(getattr(protocol, name))
     for name in ('preregistered_at', 'capture_start', 'capture_end'):
@@ -298,6 +307,20 @@ class ValidationResult:
     family_adjusted_p: float
     net_returns: tuple[float, ...]
     benchmark_returns: tuple[float, ...]
+
+
+@dataclass(frozen=True, kw_only=True)
+class CarryValidationResult(ValidationResult):
+    """Actually issued carry arithmetic; construction alone remains untrusted.
+
+    Primary/stress/benchmark metrics carry explicit mark-based terminal state
+    and separate signed realized/unrealized amounts. Legacy result bytes remain
+    unchanged; this envelope has its own digest domain and behavior binding.
+    """
+    schema_version: int
+    behavior_revision: str
+    terminal_accounting: str
+    management_behavior_sha256: str
 
 
 def _validate_capture(protocol, bars, decisions, rules):
@@ -469,6 +492,57 @@ def run_paper_validation(protocol, bars, decisions, rules, *, registry, source_k
     return result
 
 
+def run_carry_validation(protocol, archive, rules, *, now):
+    """Issue actual fixed carry-v2 arithmetic after full capture re-derivation.
+
+    Neither an imported result nor a standalone simulator return is accepted.
+    Capture hashes/labels remain claims requiring independent source review.
+    The final observation marks remaining inventory without a fabricated fill.
+    """
+    from execution_launch.capture_v2 import validate_capture_v2
+    from execution_launch.carry_evaluator import simulate_carry
+
+    sha = _protocol(protocol); _instant(now)
+    _require(protocol.evaluator_revision == CARRY_EVALUATOR_REVISION, 'STRATEGY_EVALUATOR_UNSUPPORTED')
+    try:
+        validate_capture_v2(protocol, archive)
+    except (ValueError, TypeError, AttributeError, OverflowError):
+        raise StrategyEvidenceError('STRATEGY_CARRY_CAPTURE_INVALID') from None
+    _require(type(rules) is InstrumentRules
+             and _rule_terms(rules, None) == protocol.rule_terms_digest
+             and (rules.venue, rules.market, rules.symbol) == (protocol.venue, protocol.market, protocol.symbol)
+             and protocol.fee_fraction >= rules.fee_fraction, 'STRATEGY_RULES_MISMATCH')
+    bars, decisions = archive.bars, archive.decisions
+    for row in bars:
+        _require((Fraction(row.bid) / Fraction(rules.tick_size)).denominator == 1
+                 and (Fraction(row.ask) / Fraction(rules.tick_size)).denominator == 1,
+                 'STRATEGY_QUOTE_OFF_TICK')
+    _require(now >= max(row.received_at for row in bars)
+             and now >= max(row.decided_at for row in decisions) and now >= protocol.capture_end,
+             'STRATEGY_CAPTURE_NOT_FINISHED')
+    _require(len(bars) - 1 >= protocol.minimum_observations, 'STRATEGY_OBSERVATIONS_INSUFFICIENT')
+    _require(protocol.bootstrap_replications * ((len(bars) - 1) // protocol.block_length + 1) <= 10000000,
+             'STRATEGY_INFERENCE_WORK_LIMIT')
+    primary, net = simulate_carry(protocol, bars, decisions, rules)
+    doubled, _ = simulate_carry(protocol, bars, decisions, rules, cost_multiple=2)
+    delayed, _ = simulate_carry(protocol, bars, decisions, rules, lag=2)
+    benchmark, buy_hold = simulate_carry(protocol, bars, decisions, rules, buy_hold=True)
+    differences = tuple(a - b for a, b in zip(net, buy_hold))
+    p = _block_p(differences, protocol.block_length, protocol.bootstrap_replications, protocol.seed)
+    result = CarryValidationResult(schema_version=2, behavior_revision=BEHAVIOR_REVISION,
+        terminal_accounting=TERMINAL_ACCOUNTING, management_behavior_sha256=behavior_digest(),
+        protocol_digest=sha, registry_digest=validate_registry(archive.registry),
+        inputs_digest=evidence_digest(archive), source_kind=archive.source_kind,
+        started_at=bars[0].observed_at, ended_at=bars[-1].observed_at, evaluated_at=now,
+        primary=primary, double_cost=doubled, extra_bar_delay=delayed, benchmark=benchmark,
+        benchmark_excess_mean=math.fsum(differences) / len(differences), benchmark_p=p,
+        family_adjusted_p=min(1.0, p * len(protocol.family_members)),
+        net_returns=net, benchmark_returns=buy_hold)
+    _require(len(_EVALUATED) < 128, 'STRATEGY_EVALUATION_REGISTRY_FULL')
+    _EVALUATED[id(result)] = (result, evidence_digest(result))
+    return result
+
+
 @dataclass(frozen=True, kw_only=True)
 class ReviewBinding:
     protocol_digest: str
@@ -480,6 +554,11 @@ class ReviewBinding:
     profile_contract_digest: str
     rule_terms_digest: str
     capture_end: datetime
+    evaluator_revision: str | None = field(default=None, metadata={"omit_none": True})
+    behavior_revision: str | None = field(default=None, metadata={"omit_none": True})
+    terminal_accounting: str | None = field(default=None, metadata={"omit_none": True})
+    management_behavior_sha256: str | None = field(default=None, metadata={"omit_none": True})
+    computed_summary_sha256: str | None = field(default=None, metadata={"omit_none": True})
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -517,7 +596,9 @@ def assess_strategy(protocol, result, *, profile_contract_digest, rule_terms_dig
     sha = _protocol(protocol); _instant(now)
     for value in (profile_contract_digest, rule_terms_digest, strategy_code_sha256):
         _hash(value)
-    _require(type(result) is ValidationResult, "STRATEGY_COMPUTED_RESULT_REQUIRED")
+    carry = protocol.evaluator_revision == CARRY_EVALUATOR_REVISION
+    _require(type(result) is (CarryValidationResult if carry else ValidationResult),
+             "STRATEGY_COMPUTED_RESULT_REQUIRED")
     issued = _EVALUATED.get(id(result))
     _require(issued is not None and issued[0] is result and issued[1] == evidence_digest(result),
              "STRATEGY_RESULT_NOT_ISSUED_OR_MUTATED")
@@ -545,10 +626,20 @@ def assess_strategy(protocol, result, *, profile_contract_digest, rule_terms_dig
         reasons.append('STRATEGY_PROSPECTIVE_CRITERIA_NOT_MET')
     if result.source_kind != 'prospective_paper_capture':
         reasons.append('STRATEGY_NONPROSPECTIVE_SOURCE')
+    carry_binding = {}
+    if carry:
+        # Bind the displayed signed summary to the actual issued arithmetic even
+        # on direct source-verifier/Runner paths, not only a bundle convenience API.
+        from execution_launch.review_request import computed_summary
+        summary = computed_summary(result, mathematical_criteria_met=math_ok)
+        carry_binding = dict(evaluator_revision=protocol.evaluator_revision,
+            behavior_revision=protocol.behavior_revision, terminal_accounting=protocol.terminal_accounting,
+            management_behavior_sha256=protocol.management_behavior_sha256, computed_summary_sha256=evidence_digest(summary))
     binding = ReviewBinding(protocol_digest=sha, evidence_digest=issued[1], registry_digest=result.registry_digest,
         inputs_digest=result.inputs_digest, strategy_id=protocol.strategy_id,
         strategy_code_sha256=protocol.strategy_code_sha256, profile_contract_digest=protocol.profile_contract_digest,
-        rule_terms_digest=protocol.rule_terms_digest, capture_end=result.ended_at)
+        rule_terms_digest=protocol.rule_terms_digest, capture_end=result.ended_at,
+        **carry_binding)
     if review_verifier is None:
         reasons.append('STRATEGY_TRUSTED_REVIEW_REQUIRED')
     elif reasons:
@@ -629,6 +720,14 @@ def protocol_json(protocol):
 
 def evaluate_capture_json(protocol, raw, rules, *, now):
     """Strict evidence import reruns arithmetic, never imports a precomputed PASS."""
+    if type(protocol) is ForwardProtocol and protocol.schema_version == 2:
+        from execution_launch.capture_v2 import parse_capture_v2
+        _protocol(protocol)
+        try:
+            archive = parse_capture_v2(protocol, raw)
+        except (ValueError, TypeError, AttributeError, OverflowError):
+            raise StrategyEvidenceError('STRATEGY_CARRY_CAPTURE_INVALID') from None
+        return run_carry_validation(protocol, archive, rules, now=now)
     data = _json(raw, _MAX_CAPTURE_BYTES)
     _require(type(data) is dict and set(data) == {'registry', 'source_kind', 'bars', 'decisions'},
              'STRATEGY_CAPTURE_JSON_SCHEMA_INVALID')

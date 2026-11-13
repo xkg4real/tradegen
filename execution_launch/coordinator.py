@@ -63,17 +63,20 @@ from execution_control.store import Journal, JournalError
 from execution_control.universe_odds import run_batch
 from execution_launch.baseline_head import BaselineHead
 from execution_launch.driver import (DeploymentWindow, FixedDriverError, FixedDriverIdentity, describe_fixed_driver,
-                                     make_fixed_driver)
+                                     make_fixed_driver, make_fixed_carry_driver)
 from execution_launch.live_history import HistoryChain, LiveHistory, SlotUniverse
 from execution_launch.history_storage import (HistoryStoragePolicy, MAX_POLICY_BYTES, parse_policy, policy_digest)
 from execution_launch.instrument_refresh import renew_profile
 from execution_launch.paper_capture import sample_prefetched_book
 from execution_launch.profile import LaunchProfile, parse_profile_json, risk_policy
 from execution_launch.program import ProgramSpec, parse_program
+from execution_launch.managed_behavior import resolve_behavior
+from execution_launch.protective_state import ManagementEvent, policy_digest as management_policy_digest, state_digest
+from execution_launch.protective_store import LedgerReferences, ProtectiveStore
 from execution_launch.review_auth import MAX_DOCUMENT_BYTES, ReviewVerifiers
 from execution_launch.runner import (EvidencePackage, LaunchSession, Runner, StrategyDriver, TickResult, active,
                                      dust, flat_in, prepare_launch_session)
-from execution_launch.strategy import ForwardProtocol, evaluate_capture_json, parse_protocol
+from execution_launch.strategy import ForwardProtocol, evaluate_capture_json, parse_protocol, evidence_digest
 from execution_launch.toast_queue import ToastQueue
 from execution_launch.workflow import MAX_CAPTURE_BYTES, MAX_CONFIG_BYTES, artifact, read_file
 
@@ -176,6 +179,31 @@ def slot_allow(*, snapshot, rule_sha256, n, flags, tickers, slot, blocks=()) -> 
         return frozenset(), reasons
     return frozenset(m for m in universe_top_n(snapshot, n) if flags.flags.get(m) == "unflagged"
                      and m in tickers.prices and abs(tickers.prices[m][1] - slot) <= PRICE_AGE), ()
+
+
+def _check_protective_binding(store, identity, profile, evidence, window, monitor_until):
+    """P2 context commitments only; actual current owner code/research verification stays in ReviewVerifiers.
+
+    policy.code_sha256 is this factory's source closure, not the owner's whole-code approval hash.
+    source_sha256 binds the evaluated research inputs; it is not a claim about live account provenance.
+    """
+    _require(type(store) is ProtectiveStore and type(identity) is FixedDriverIdentity,
+             "COORDINATOR_PROTECTIVE_STORE_REQUIRED")
+    policy, binding = store.policy, store.binding
+    management_policy_digest(policy)
+    binding.__post_init__()
+    _require(resolve_behavior(evidence.protocol) == "protective-carry-v2"
+             and identity.factory_id == "tradegen-fixed-carry-v2"
+             and (policy.account_scope, policy.venue, policy.market, policy.quote_currency, policy.symbol)
+             == (profile.account_scope, profile.venue, profile.market, profile.quote_currency, profile.symbol)
+             and policy.holding_deadline == window.end and policy.monitor_until == monitor_until
+             and policy.code_sha256 == identity.deployment_code_sha256
+             and policy.strategy_sha256 == evidence.protocol.strategy_code_sha256
+             and policy.risk_policy_sha256 == digest(risk_policy(profile))
+             and binding.driver_identity_sha256 == digest(identity)
+             and binding.research_sha256 == evidence_digest(evidence.result)
+             and binding.source_sha256 == evidence.result.inputs_digest,
+             "COORDINATOR_PROTECTIVE_BINDING_MISMATCH")
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -300,6 +328,9 @@ class CoordinatorStatus:
     buy_block_reasons: tuple[str, ...] = ()
     disarm_failed: bool = False         # sticky: the universe disarm recorded no system disarm
     notification_failed: bool = False   # sticky local enqueue failure, never delivery or approval evidence
+    management_deadline_recorded: bool = False  # narrow P2 deadline bridge, not reconciliation or authority
+    management_request_id: str | None = None
+    management_source: str = ""          # fixed failure code; no storage paths or unverified request success
     window_ended_missed_slot: bool = False  # sticky: a slot the history did not record ended the window
 
 
@@ -350,7 +381,8 @@ class Coordinator:
                                                      # requests, 0.2 s pace each), leaving ~1 s for the first reply
                  wait: Callable[[threading.Event, float], bool] = threading.Event.wait,
                  slot_source: object | None = None, program: object | None = None,
-                 toast: Callable[[str, str], bool] = toast) -> None:
+                 toast: Callable[[str, str], bool] = toast,
+                 protective_store: ProtectiveStore | None = None) -> None:
         _require(mode == "rehearsal", "COORDINATOR_MODE_UNSUPPORTED")
         _require(type(profile) is LaunchProfile and (profile.venue, profile.market, profile.quote_currency)
                  == ("upbit", "spot", "KRW"), "COORDINATOR_VENUE_UNSUPPORTED")
@@ -362,6 +394,7 @@ class Coordinator:
                  and (terms_source is None or callable(getattr(terms_source, "read", None))),
                  "COORDINATOR_INTEGRATIONS_REQUIRED")
         universe = profile.universe_rule_sha256 is not None    # spec section 10: a universe launch profile
+        carry = resolve_behavior(evidence.protocol) == "protective-carry-v2"
         _require(not universe or (callable(getattr(slot_source, "read_flags", None))
                                   and callable(getattr(slot_source, "read_tickers", None))
                                   and terms_source is not None
@@ -396,6 +429,11 @@ class Coordinator:
                      and bar_seconds == getattr(evidence.protocol, "bar_seconds", None),
                      "COORDINATOR_WINDOW_BINDING_MISMATCH")
         _require(window.end <= monitor_until <= window.end + timedelta(days=1), "COORDINATOR_MONITOR_SPAN_UNSUPPORTED")
+        _require(not carry or (identity is not None and type(protective_store) is ProtectiveStore),
+                 "COORDINATOR_PROTECTIVE_STORE_REQUIRED")
+        _require(carry or protective_store is None, "COORDINATOR_PROTECTIVE_BEHAVIOR_UNSUPPORTED")
+        if carry:
+            _check_protective_binding(protective_store, identity, profile, evidence, window, monitor_until)
         policy = risk_policy(profile)
         cutoff = None if policy.recovery_condition is None else policy.recovery_condition.cutoff_seconds
         if cutoff is not None:
@@ -417,7 +455,9 @@ class Coordinator:
                                       adapters=adapters, session_provider=self._session_for)
         self._runner = Runner(profile=profile, quote_provider=self._board.quote, account_provider=self._provider,
                               evidence=evidence, driver=driver, implementation_verifier=implementation_verifier,
-                              mode=mode, controller=self._controller, launch_session=None, isolated_state_root=root)
+                              mode=mode, controller=self._controller, launch_session=None, isolated_state_root=root,
+                              clock=self._now if carry else None,
+                              deadline_record=self._management_deadline if carry else None)
         self._profile, self._evidence, self._driver = profile, evidence, driver
         self._implementation_verifier, self._head = implementation_verifier, trusted_head
         self._account_source, self._account_prefetch = account_source, account_prefetch
@@ -433,6 +473,7 @@ class Coordinator:
         self._latest_frame = None
         self._status = CoordinatorStatus()
         self._universe, self._slot_source, self._program = universe, slot_source, program
+        self._carry, self._protective_store, self._driver_identity = carry, protective_store, identity
         self._toasts, self._toasted = ToastQueue(toast), set()        # spec section 15: queued, deduped here
         self._snapshot, self._held, self._extra = None, None, False   # _held None: no frame read yet
         self._vanished, self._disarmed, self._terms_unavailable = False, False, False
@@ -691,6 +732,54 @@ class Coordinator:
                              "Buys are blocked. Review its balance, order minimum and management options; "
                              "no top-up or liquidation is triggered by this notice.")
 
+    def _management_deadline(self, now) -> bool:
+        """Persist the due deadline before dependent dispatch; no fabricated authority, facts or ledger heads.
+
+        Re-delivery only reads the independently verified existing request. Opening an existing
+        writable lifecycle first records restart as P2 requires; that event is not account reconciliation.
+        This method runs outside a Controller transaction and closes P2's writer before Runner work.
+        """
+        if not self._carry or now < self._window.end:
+            return True
+        try:
+            _check_protective_binding(self._protective_store, self._driver_identity, self._profile,
+                                      self._evidence, self._window, self._monitor_until)
+            refs = LedgerReferences(account_head_sha256=None, orders_head_sha256=None, risk_head_sha256=None,
+                                    high_water_sha256=None, floor_sha256=None, halt_sha256=None,
+                                    source_evidence_sha256=None)
+            with self._protective_store.session() as writer:
+                snapshot = writer.snapshot()
+                closed = snapshot.state.phase == "closed"
+                if not closed and (not snapshot.state.deadline_seen or snapshot.state.renewal_request_id is None):
+                    if snapshot.restart_required:
+                        event = ManagementEvent(sequence=snapshot.state.sequence + 1,
+                            previous_state_sha256=state_digest(snapshot.state), at=now, kind="restart")
+                        snapshot = writer.commit(event, authority=None, observations=None, ledger_refs=refs)
+                    if not snapshot.state.deadline_seen or snapshot.state.renewal_request_id is None:
+                        event = ManagementEvent(sequence=snapshot.state.sequence + 1,
+                            previous_state_sha256=state_digest(snapshot.state), at=now, kind="deadline")
+                        snapshot = writer.commit(event, authority=None, observations=None, ledger_refs=refs)
+                request = snapshot.state.renewal_request_id
+                confirmed = (snapshot.state.deadline_seen and type(request) is str
+                             and any(item.kind == "request_management_approval" and item.intent_id == request
+                                     for item in snapshot.outbox))
+            # Leave the store's I/O boundary before raising a coordinator diagnostic.
+            # A closed lifecycle is an authoritative state, not a storage failure.
+            _require(not closed, "COORDINATOR_MANAGEMENT_CLOSED")
+            _require(confirmed, "COORDINATOR_MANAGEMENT_REQUEST_UNCONFIRMED")
+            self._update(management_deadline_recorded=True, management_request_id=request,
+                         management_source="", new_entry_blocked=True)
+            self._toast_once("management:" + request, "red", "The management deadline has been recorded. "
+                             "New management approval is required. No permission is extended automatically.")
+            return True
+        except Exception as exc:
+            code = _code(exc, "COORDINATOR_PROTECTIVE_STORE_FAILED")
+            self._update(management_deadline_recorded=False, management_request_id=None,
+                         management_source=code, new_entry_blocked=True)
+            self._toast_once("management-storage", "red", "The management event could not be confirmed. "
+                             "Dependent strategy execution is blocked; a storage failure is not a sell signal.")
+            return False
+
     # -- units -------------------------------------------------------------------------------------------------
 
     def _monitor(self, kind) -> None:
@@ -698,6 +787,8 @@ class Coordinator:
         with self._work:
             stage = "account"
             try:
+                if self._carry:
+                    self._management_deadline(self._time())
                 try:
                     self._maybe_refresh_terms()
                 except CoordinatorError:
@@ -721,7 +812,8 @@ class Coordinator:
                                  snapshot_sha256=None if risk.universe is None else risk.universe.snapshot_sha256,
                                  universe_state=universe_state(risk.universe, self._profile.universe_rule_sha256, now))
                     self._universe_monitor(now)
-                local_block = self._terms_blocked or self._terms_unavailable or self._stopping.is_set()
+                local_block = (self._terms_blocked or self._terms_unavailable or self._stopping.is_set()
+                               or (self._carry and (now >= self._window.end or bool(self.status().management_source))))
                 if self._universe:
                     local_block = (local_block or self._extra or self._remainder or self._vanished
                                    or self._pending_terms is not None or not self._within_cap
@@ -768,6 +860,12 @@ class Coordinator:
                 if self._history is not None:
                     self._update(in_flight="history")
                     self._history.record_slot(book, observation)
+                # Preserve the current original receipt before a potentially slow P2 write.
+                # The actual post-record time still confirms E synchronously before Runner work.
+                management_ready = self._management_deadline(self._time())
+                if not management_ready:
+                    self._update(last_tick=None, reasons=(self.status().management_source,))
+                    return
                 tick = self._time()
                 _require(tick <= slot + SLOT_WINDOW, "COORDINATOR_SLOT_WINDOW_MISSED")
                 self._update(in_flight="control")
@@ -1096,7 +1194,8 @@ class Coordinator:
                 _require(not self._stopping.is_set() and not self._closing.is_set(), "COORDINATOR_STOPPED")
                 _require(not self._terms_blocked, "COORDINATOR_CURRENT_TERMS_REQUIRED")
                 at = self._now()
-                _require(not self._universe or at <= self._window.end, "COORDINATOR_MANAGEMENT_RENEWAL_REQUIRED")
+                _require((not self._universe or at <= self._window.end)
+                         and (not self._carry or at < self._window.end), "COORDINATOR_MANAGEMENT_RENEWAL_REQUIRED")
                 return at
 
             observation, now, actual = self._observation, getattr(inputs, "now", None), preparation_clock()
@@ -1236,8 +1335,10 @@ def _compose_driver(*, profile, program, protocol, window, clock, head_root,
                         chain=HistoryChain(root=root, window=window, storage_policy=storage_policy))
     history = LiveHistory(program, protocol, profile, window=window, root=root, clock=clock, trusted_head=head,
                           storage_policy=storage_policy)
-    driver = make_fixed_driver(program, protocol, profile, window=window, history_provider=history.provider,
-                               history_verifier=history.verifier, program_artifact=artifact("program.py"))
+    behavior = resolve_behavior(protocol)
+    factory = make_fixed_carry_driver if behavior == "protective-carry-v2" else make_fixed_driver
+    driver = factory(program, protocol, profile, window=window, history_provider=history.provider,
+                     history_verifier=history.verifier, program_artifact=artifact("program.py"))
     identity = history.bind(driver)
     return DriverComposition(profile=profile, program=program, protocol=protocol, window=window,
                              driver=driver, identity=identity, history=history)

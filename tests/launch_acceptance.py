@@ -17,7 +17,10 @@ MODULES = ("launch_guards", "network_route", "accounts_collector", "launch_profi
            "launch_universe_history", "launch_evidence_objects", "launch_history_storage",
            "launch_lossless_history", "launch_protective_state", "launch_protective_store",
            "launch_toast_queue", "launch_runner_universe", "launch_coordinator_universe",
-           "launch_owner_universe", "launch_pr4e_regressions")
+           "launch_owner_universe", "launch_pr4e_regressions",
+           "launch_managed_behavior", "launch_driver_carry", "launch_carry_evaluator",
+           "launch_capture_v2", "launch_workflow_v2", "launch_carry_strategy",
+           "launch_carry_review", "launch_carry_coordinator")
 
 
 def tests():

@@ -111,6 +111,37 @@ class Signal:
     action: str  # hold, entry, exit
     quantity: Decimal = Decimal(0)
     limit_price: Decimal = Decimal(0)
+    decision_state: str | None = None
+    decision_cause: str | None = None
+    execution_block_reasons: tuple[str, ...] = ()
+
+
+def _signal_metadata(signal):
+    """Preserve a model verdict separately from execution availability; no grant."""
+    _require(type(signal) is Signal and type(signal.signal_id) is str
+             and _SIGNAL.fullmatch(signal.signal_id) is not None
+             and type(signal.action) is str and signal.action in ('entry', 'exit', 'hold'),
+             'RUNNER_SIGNAL_INVALID')
+    states = {'long_target': ('trend_above',), 'cash_target': ('trend_not_above', 'always_cash'),
+              'warmup': ('insufficient_history',), 'unavailable': ('input_unavailable',)}
+    blocked = signal.execution_block_reasons
+    _require(type(blocked) is tuple and len(blocked) <= 4
+             and all(type(reason) is str and reason in ('MANAGED_DEADLINE_REACHED',
+                 'MANAGED_AUTHORITY_UNAVAILABLE', 'MANAGED_DECISION_UNAVAILABLE',
+                 'MANAGED_ORDER_BELOW_MINIMUM') for reason in blocked)
+             and len(set(blocked)) == len(blocked), 'RUNNER_SIGNAL_METADATA_INVALID')
+    if signal.decision_state is None:
+        _require(signal.decision_cause is None and not blocked, 'RUNNER_SIGNAL_METADATA_INVALID')
+    else:
+        state, cause = signal.decision_state, signal.decision_cause
+        _require(type(state) is str and state in states and type(cause) is str and cause in states[state],
+                 'RUNNER_SIGNAL_METADATA_INVALID')
+        _require((signal.action != 'exit' or state == 'cash_target')
+                 and (signal.action != 'entry' or state == 'long_target')
+                 and (state != 'unavailable' or 'MANAGED_DECISION_UNAVAILABLE' in blocked),
+                 'RUNNER_SIGNAL_METADATA_INVALID')
+    return dict(decision_state=signal.decision_state, decision_cause=signal.decision_cause,
+                execution_block_reasons=blocked)
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -292,6 +323,9 @@ class TickResult:
     order_status: str = ''
     reconciled_orders: int = 0
     protective_action_needed: bool = False
+    decision_state: str | None = None
+    decision_cause: str | None = None
+    execution_block_reasons: tuple[str, ...] = ()
 
 
 class Runner:
@@ -304,7 +338,7 @@ class Runner:
     """
     def __init__(self, *, profile, quote_provider, account_provider, evidence=None,
                  driver=None, implementation_verifier=None, mode='observe', controller=None,
-                 launch_session=None, isolated_state_root=None):
+                 launch_session=None, isolated_state_root=None, clock=None, deadline_record=None):
         _require(mode in ('observe', 'rehearsal', 'controlled'), 'RUNNER_MODE_INVALID')
         _require(type(profile) is LaunchProfile, 'RUNNER_PROFILE_REQUIRED')
         _require(callable(quote_provider) and callable(account_provider), 'RUNNER_PROVIDERS_REQUIRED')
@@ -315,10 +349,16 @@ class Runner:
         self._namespace = 'lr' + profile_contract_digest(profile)[:24] + '-'
         self._lock, self._last_now, self._stopped = Lock(), None, False
         self._isolated_state_root = isolated_state_root
+        self._clock, self._deadline_record, self._last_carry_clock = clock, deadline_record, None
+        if evidence is not None and getattr(getattr(evidence, 'protocol', None), 'schema_version', None) == 2:
+            _require(callable(clock), 'RUNNER_CARRY_CLOCK_REQUIRED')
         if mode != 'observe':
             self._controller_boundary()
 
     def _controller_boundary(self):
+        _require(not (self.mode == 'controlled' and self.evidence is not None
+                      and getattr(getattr(self.evidence, 'protocol', None), 'schema_version', None) == 2),
+                 'RUNNER_CARRY_CONTROLLED_UNSUPPORTED')
         c = self.controller
         _require(type(c) is Controller and c.account_provider is self.account_provider,
                  'RUNNER_CONTROLLER_PROVIDER_MISMATCH')
@@ -398,8 +438,8 @@ class Runner:
         return quote, account
 
     def _order(self, signal, account, now=None):
-        _require(type(signal) is Signal and _SIGNAL.fullmatch(signal.signal_id) is not None
-                 and signal.action in ('entry', 'exit', 'hold'), 'RUNNER_SIGNAL_INVALID')
+        _signal_metadata(signal)
+        _require(not signal.execution_block_reasons, 'RUNNER_SIGNAL_EXECUTION_BLOCKED')
         if signal.action == 'hold':
             return None
         _require(_positive(signal.quantity) and _positive(signal.limit_price), 'RUNNER_SIGNAL_AMOUNTS_INVALID')
@@ -416,6 +456,39 @@ class Runner:
         # Dispatch always rechecks the actual current time at the controller boundary.
         validate_observed_order(order, self.profile.instrument_rules, now=account.asof if now is None else now)
         return order
+
+    def _carry_execution_time(self, now, metadata):
+        """Fresh runtime deadline gate, never a management authorization issuer.
+
+        A pre-E tick may finish after E. The clock is an explicit composition
+        dependency; the deadline comes from the actual issued factory instance,
+        not the historical study end or a caller's extra timestamp field.
+        """
+        if getattr(getattr(self.evidence, 'protocol', None), 'schema_version', None) != 2:
+            return now, ()
+        from execution_launch.driver import fixed_carry_deadline
+        deadline = fixed_carry_deadline(self.driver)
+        _require(callable(self._clock), 'RUNNER_CARRY_CLOCK_REQUIRED')
+        try:
+            fresh = self._clock()
+            _instant(fresh)
+        except Exception:
+            raise RunnerError('RUNNER_CARRY_CLOCK_UNAVAILABLE') from None
+        _require(fresh >= now and (self._last_carry_clock is None or fresh >= self._last_carry_clock),
+                 'RUNNER_CLOCK_ROLLBACK')
+        self._last_carry_clock = fresh
+        if fresh < deadline:
+            return fresh, ()
+        reasons = ('MANAGED_DEADLINE_REACHED',)
+        if metadata.get('decision_state') == 'cash_target':
+            reasons += ('MANAGED_AUTHORITY_UNAVAILABLE',)
+        try:
+            recorded = callable(self._deadline_record) and self._deadline_record(fresh) is True
+        except Exception:
+            recorded = False
+        if not recorded:
+            reasons += ('MANAGED_DEADLINE_STATE_UNAVAILABLE',)
+        return fresh, reasons
 
     def _session(self, binding, now):
         launch = self.launch_session
@@ -481,6 +554,7 @@ class Runner:
         if self._stopped:
             return TickResult(mode=self.mode, status='stopped', reasons=('RUNNER_STOPPED',))
         _require(self._lock.acquire(blocking=False), 'RUNNER_CONCURRENT_TICK_REFUSED')
+        metadata = {}
         try:
             _require(self._last_now is None or now >= self._last_now, 'RUNNER_CLOCK_ROLLBACK')
             self._last_now = now
@@ -501,10 +575,19 @@ class Runner:
                                           self.implementation_verifier, now)
             signal = self.driver.callback(DecisionInput(now=now, profile=self.profile, quote=quote, account=account),
                                           self.driver.parameters_json)
+            metadata = _signal_metadata(signal)
+            execution_now, deadline_reasons = self._carry_execution_time(now, metadata)
+            blocked = tuple(dict.fromkeys(signal.execution_block_reasons + deadline_reasons))
+            if blocked:
+                metadata['execution_block_reasons'] = blocked
+                return TickResult(mode=self.mode, status='blocked',
+                    reasons=assessment.reasons + blocked,
+                    reconciled_orders=reconciled, protective_action_needed=risk.protective_action_needed,
+                    **metadata)
             order = self._order(signal, account, now)
             if order is None:
                 return TickResult(mode=self.mode, status='hold', reasons=assessment.reasons,
-                    reconciled_orders=reconciled, protective_action_needed=risk.protective_action_needed)
+                    reconciled_orders=reconciled, protective_action_needed=risk.protective_action_needed, **metadata)
             reasons = assessment.reasons if order.side == 'buy' else ()
             if order.side == 'buy' and risk.new_entry_blocked:
                 reasons += ('RUNNER_RISK_BLOCKS_ENTRY',)
@@ -513,12 +596,12 @@ class Runner:
                 reasons += self._universe_reasons(entry_allow, risk.universe, now)
             if reasons:
                 return TickResult(mode=self.mode, status='blocked', reasons=reasons, client_id=order.client_id,
-                    reconciled_orders=reconciled, protective_action_needed=risk.protective_action_needed)
+                    reconciled_orders=reconciled, protective_action_needed=risk.protective_action_needed, **metadata)
             if self.mode == 'observe':
                 return TickResult(mode=self.mode, status='observed', reasons=('RUNNER_OBSERVATION_ONLY',),
-                    client_id=order.client_id, protective_action_needed=risk.protective_action_needed)
+                    client_id=order.client_id, protective_action_needed=risk.protective_action_needed, **metadata)
             if self.stopped:
-                return TickResult(mode=self.mode, status='stopped', reasons=('RUNNER_STOPPED',))
+                return TickResult(mode=self.mode, status='stopped', reasons=('RUNNER_STOPPED',), **metadata)
             session_id = self._session(binding, now) if order.side == 'buy' else self._exit_session_id()
             if universe_buy:
                 self._universe_batch(risk.universe)
@@ -527,31 +610,41 @@ class Runner:
             if existing is not None:
                 _require(existing.order_digest == order_digest(order), 'RUNNER_DECISION_CHANGED')
                 return TickResult(mode=self.mode, status='existing', client_id=existing.client_id,
-                    order_status=existing.status, reconciled_orders=reconciled)
+                    order_status=existing.status, reconciled_orders=reconciled, **metadata)
             if order.side == 'buy' and any(s.status in _ACTIVE for s in states):
                 return TickResult(mode=self.mode, status='blocked', reasons=('RUNNER_OUTSTANDING_ORDERS',),
-                    client_id=order.client_id, reconciled_orders=reconciled)
+                    client_id=order.client_id, reconciled_orders=reconciled, **metadata)
             if order.side == 'sell' and any(active(s) and s.side == 'sell' and s.symbol == order.symbol
                                             for s in states):
                 return TickResult(mode=self.mode, status='blocked', reasons=('RUNNER_OUTSTANDING_ORDERS',),
-                    client_id=order.client_id, reconciled_orders=reconciled)
-            self.controller.reserve(order, self.profile.instrument_rules, session_id=session_id, now=now)
+                    client_id=order.client_id, reconciled_orders=reconciled, **metadata)
+            execution_now, deadline_reasons = self._carry_execution_time(execution_now, metadata)
+            if deadline_reasons:
+                metadata['execution_block_reasons'] = deadline_reasons
+                return TickResult(mode=self.mode, status='blocked', reasons=deadline_reasons,
+                    client_id=order.client_id, reconciled_orders=reconciled, **metadata)
+            self.controller.reserve(order, self.profile.instrument_rules, session_id=session_id, now=execution_now)
             if self.stopped:
                 state = self.controller.cancel(order.client_id, now=now)
                 return TickResult(mode=self.mode, status='stopped', reasons=('RUNNER_STOPPED',),
-                                  client_id=state.client_id, order_status=state.status)
+                                  client_id=state.client_id, order_status=state.status, **metadata)
             # Controller durably writes DISPATCHING before its single send.
-            state = self.controller.dispatch(order.client_id, now=now)
+            execution_now, deadline_reasons = self._carry_execution_time(execution_now, metadata)
+            if deadline_reasons:
+                metadata['execution_block_reasons'] = deadline_reasons
+                return TickResult(mode=self.mode, status='blocked', reasons=deadline_reasons,
+                    client_id=order.client_id, order_status='RESERVED', reconciled_orders=reconciled, **metadata)
+            state = self.controller.dispatch(order.client_id, now=execution_now)
             return TickResult(mode=self.mode, status='submitted', client_id=state.client_id,
                 order_status=state.status, reconciled_orders=reconciled,
-                protective_action_needed=risk.protective_action_needed)
+                protective_action_needed=risk.protective_action_needed, **metadata)
         except RunnerError as exc:
-            return TickResult(mode=self.mode, status='blocked', reasons=(str(exc),))
+            return TickResult(mode=self.mode, status='blocked', reasons=(str(exc),), **metadata)
         except Exception:
             # Uncertain control effects must be reviewed/reconciled, not retried
             # by a catch-all scheduler. No provider/account text is exposed.
             self._stopped = self.mode != 'observe'
-            return TickResult(mode=self.mode, status='blocked', reasons=('RUNNER_DEPENDENCY_REFUSED',))
+            return TickResult(mode=self.mode, status='blocked', reasons=('RUNNER_DEPENDENCY_REFUSED',), **metadata)
         finally:
             self._lock.release()
 

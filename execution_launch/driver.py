@@ -27,6 +27,8 @@ from execution_launch.profile import (LaunchProfile, profile_contract_digest,
 from execution_launch.program import (ChooserSlot, ChooserState, ProgramSpec, choose,
     parameters_json, program_digest, target_fraction)
 from execution_launch.runner import DecisionInput, Quote, Signal, StrategyDriver
+from execution_launch.managed_behavior import (BEHAVIOR_REVISION, CARRY_FACTORY_ID, FixedDecisionV2,
+    decision_digest, derive_fixed_decision_v2, derive_fixed_intent_v2, resolve_behavior)
 from execution_launch.strategy import (ForwardProtocol, PaperBar, PaperDecision,
     evidence_digest, history_digest, parse_protocol, protocol_json)
 
@@ -39,9 +41,14 @@ _SOURCE_FILES = ("execution_launch/driver.py", "execution_launch/program.py",
     "execution_control/capability.py", "execution_control/controller.py",
     "execution_launch/evidence_objects.py", "execution_launch/history_storage.py",
     "execution_launch/live_history.py", "execution_launch/baseline_head.py",
-    "execution_control/store.py", "core/isolation.py")
-# Keep the independently maintained signer _REVIEW_SOURCES in agreement. This source closure applies to both
-# fixed and universe factories: legacy wire bytes stay compatible, not legacy approval of changed code.
+    "execution_control/store.py", "core/isolation.py",
+    "execution_launch/managed_behavior.py")
+# Keep these manifests in agreement with the independently maintained signer.
+# Legacy wire bytes stay compatible, not legacy approval of changed source code.
+_CARRY_SOURCE_FILES = _SOURCE_FILES + ("execution_launch/carry_evaluator.py", "execution_launch/capture_v2.py",
+    "execution_launch/paper_capture.py", "execution_launch/coordinator.py",
+    "execution_launch/protective_state.py", "execution_launch/protective_store.py",
+    "execution_launch/review_request.py")
 _LOCK = RLock()
 _ISSUED = {}
 _CALLBACKS = {}
@@ -130,7 +137,7 @@ class HistoryFrame:
     deployment_window_digest: str
     source_kind: str
     bars: tuple[PaperBar | UniverseBar, ...]
-    prior_decision: PaperDecision | None
+    prior_decision: PaperDecision | FixedDecisionV2 | None
     anchor: AccountAnchor
     # Universe windows only: the digest of the current slot's universe record and the prior decision's inputs.
     # strategy._plain leaves both out while None, so a fixed frame keeps today's digest byte for byte.
@@ -158,12 +165,14 @@ class FixedDriverIdentity:
     deployment_window_digest: str
 
 
-def _sources():
+def _sources(factory_id=FACTORY_ID):
     """Read bounded, fixed public code paths only, on explicit construction/check."""
+    _require(factory_id in (FACTORY_ID, CARRY_FACTORY_ID), "FIXED_DRIVER_FACTORY_UNSUPPORTED")
+    source_files = _SOURCE_FILES if factory_id == FACTORY_ID else _CARRY_SOURCE_FILES
     root = Path(__file__).resolve().parent.parent
     bodies = {}
     try:
-        for name in _SOURCE_FILES:
+        for name in source_files:
             path = root / name
             _require(not path.is_symlink() and path.is_file()
                      and 0 < path.stat().st_size <= 1048576,
@@ -175,7 +184,7 @@ def _sources():
     except OSError:
         raise FixedDriverError("FIXED_DRIVER_SOURCE_UNAVAILABLE") from None
     manifest = {name: hashlib.sha256(body).hexdigest() for name, body in bodies.items()}
-    return digest({"factory_id": FACTORY_ID, "files": manifest}), bodies["execution_launch/program.py"]
+    return digest({"factory_id": factory_id, "files": manifest}), bodies["execution_launch/program.py"]
 
 
 def _window(window, protocol):
@@ -189,10 +198,14 @@ def _window(window, protocol):
     return digest(window)
 
 
-def _identity(program, protocol, profile, window, artifact, code_sha):
+def _identity(program, protocol, profile, window, artifact, code_sha, *, factory_id=FACTORY_ID):
     _require(type(program) is ProgramSpec and type(protocol) is ForwardProtocol
              and type(profile) is LaunchProfile, "FIXED_DRIVER_INPUT_REQUIRED")
     parse_protocol(protocol_json(protocol))
+    behavior = resolve_behavior(protocol)
+    _require((factory_id == CARRY_FACTORY_ID and behavior == BEHAVIOR_REVISION)
+             or (factory_id == FACTORY_ID and behavior in ('legacy-fixed-v1', 'legacy-universe-v1')),
+             "FIXED_DRIVER_FACTORY_PROTOCOL_MISMATCH")
     code = program_digest(program, artifact)
     _require(program.strategy_id == protocol.strategy_id == profile.strategy_id
              and code == protocol.strategy_code_sha256 == profile.strategy_code_sha256,
@@ -212,7 +225,7 @@ def _identity(program, protocol, profile, window, artifact, code_sha):
              and profile.policy.initial_equity == protocol.initial_cash_quote
              and protocol.fee_fraction >= profile.instrument_rules.fee_fraction,
              "FIXED_DRIVER_CONTRACT_MISMATCH")
-    return FixedDriverIdentity(factory_id=FACTORY_ID, program_digest=code,
+    return FixedDriverIdentity(factory_id=factory_id, program_digest=code,
         deployment_code_sha256=code_sha, protocol_digest=evidence_digest(protocol),
         profile_contract_digest=contract, rule_terms_digest=terms,
         deployment_window_digest=_window(window, protocol))
@@ -309,6 +322,7 @@ def _validate_frame(callback, frame, observation):
              "FIXED_DRIVER_PROFILE_CHANGED")
     frame_sha = history_frame_digest(frame)
     universe = protocol.universe_rule_sha256 is not None
+    carry = identity.factory_id == CARRY_FACTORY_ID
     _require(frame.deployment_window_digest == identity.deployment_window_digest
              and frame.source_kind == "prospective_paper_capture"
              and (universe or (frame.universe_sha256 is None and frame.chooser_inputs is None)),
@@ -362,26 +376,37 @@ def _validate_frame(callback, frame, observation):
     if len(frame.bars) == 1:
         _require(frame.prior_decision is None and frame.chooser_inputs is None,
                  "FIXED_DRIVER_INITIAL_DECISION_INVALID")
-        target = Decimal(0)
+        target = None if carry else Decimal(0)
     else:
         prior = frame.prior_decision
-        _require(type(prior) is PaperDecision and type(prior.bar_index) is int
+        _require(type(prior) is (FixedDecisionV2 if carry else PaperDecision) and type(prior.bar_index) is int
                  and prior.bar_index == len(frame.bars)-2, "FIXED_DRIVER_PRIOR_DECISION_REQUIRED")
-        _instant(prior.decided_at); _sha(prior.history_sha256); _amount(prior.target_fraction)
+        _instant(prior.decided_at); _sha(prior.history_sha256)
+        if not carry:
+            _amount(prior.target_fraction)
         _require(prior.history_sha256 == history_digest(frame.bars[:-1])
                  and frame.bars[-2].received_at <= prior.decided_at
                  and prior.decided_at+timedelta(seconds=protocol.minimum_fill_delay_seconds)
                  <= current.observed_at, "FIXED_DRIVER_DECISION_LOOKAHEAD_OR_CHANGED")
-        if universe:
-            # Recompute only the prior decision, from the inputs the frame carries (spec section 12).
-            coin, _ = chooser_decision(callback.program, frame.chooser_inputs)
-            expected = callback.program.exposure_fraction if coin is not None else Decimal(0)
+        if carry:
+            # Recompute every typed field from the authenticated, strictly valid
+            # prefix. A caller cannot turn damaged evidence into unavailable or
+            # present a benchmark decision as the strategy's own decision.
+            decision_digest(prior)
+            expected = derive_fixed_decision_v2(callback.program, tuple(row.mark for row in frame.bars[:-1]),
+                bar_index=prior.bar_index, decided_at=prior.decided_at, history_sha256=prior.history_sha256)
+            _require(prior == expected, "FIXED_DRIVER_TARGET_MISMATCH")
+            target = prior
         else:
-            coin, expected = None, target_fraction(callback.program, tuple(row.mark for row in frame.bars[:-1]))
-        _require(prior.target_fraction == expected, "FIXED_DRIVER_TARGET_MISMATCH")
-        # The decided fraction is the target only for the coin the decision names; at the window end it is 0.
-        target = (Decimal(0) if current.observed_at == window.end or (universe and coin != profile.symbol)
-                  else expected)
+            if universe:
+                coin, _ = chooser_decision(callback.program, frame.chooser_inputs)
+                expected = callback.program.exposure_fraction if coin is not None else Decimal(0)
+            else:
+                coin, expected = None, target_fraction(callback.program, tuple(row.mark for row in frame.bars[:-1]))
+            _require(prior.target_fraction == expected, "FIXED_DRIVER_TARGET_MISMATCH")
+            # Preserve the original terminal policy only in the legacy factory.
+            target = (Decimal(0) if current.observed_at == window.end or (universe and coin != profile.symbol)
+                      else expected)
     anchor, account = frame.anchor, observation.account
     _require(type(anchor) is AccountAnchor, "FIXED_DRIVER_ACCOUNT_ANCHOR_REQUIRED")
     _amount(anchor.cash_quote); _amount(anchor.units); _instant(anchor.account_asof)
@@ -422,6 +447,28 @@ def _validate_frame(callback, frame, observation):
         _require(anchor.units == 0 and anchor.cash_quote == protocol.initial_cash_quote,
                  "FIXED_DRIVER_INITIAL_STATE_INVALID")
     return frame_sha, target
+
+
+
+def _carry_signal(identity, frame, decision, rules, protocol, *, now, deadline):
+    signal_id = "fixed:" + digest({"identity": identity, "slot": frame.bars[-1].observed_at})
+    if decision is None:
+        return Signal(signal_id=signal_id, action="hold", decision_state="warmup",
+                      decision_cause="insufficient_history")
+    intent = derive_fixed_intent_v2(decision, cash_quote=frame.anchor.cash_quote, units=frame.anchor.units,
+                                   mark=frame.bars[-1].mark, slot=now, deadline=deadline)
+    metadata = dict(decision_state=intent.decision_state, decision_cause=intent.decision_cause,
+                    execution_block_reasons=intent.execution_block_reasons)
+    if intent.execution_block_reasons or intent.action == "hold":
+        return Signal(signal_id=signal_id, action="hold", **metadata)
+    signal = _sized_signal(identity, frame, intent.target_fraction, rules, protocol)
+    _require(signal.action in (intent.action, "hold"), "FIXED_DRIVER_INTENT_SIZING_MISMATCH")
+    if signal.action == "hold":
+        # A valid model entry/exit whose lot/minimum sizing cannot execute is
+        # unavailable execution, not a model HOLD or a permission to round up.
+        metadata['execution_block_reasons'] = ('MANAGED_ORDER_BELOW_MINIMUM',)
+    return Signal(signal_id=signal.signal_id, action=signal.action, quantity=signal.quantity,
+                  limit_price=signal.limit_price, **metadata)
 
 
 @dataclass(frozen=True, eq=False)
@@ -473,9 +520,13 @@ class _FixedCallback:
                          "FIXED_DRIVER_PREFIX_REWRITTEN")
             self.seen[slot] = (frame_sha, len(frame.bars), history_digest(frame.bars))
             profile = observation.profile
-            signal = _sized_signal(identity, frame, target, profile.instrument_rules, self.protocol)
-            _require(not (slot == self.window.end and frame.anchor.units > 0 and signal.action == "hold"),
-                     "FIXED_DRIVER_TERMINAL_DUST_UNLIQUIDATED")
+            if identity.factory_id == CARRY_FACTORY_ID:
+                signal = _carry_signal(identity, frame, target, profile.instrument_rules, self.protocol,
+                                       now=observation.now, deadline=self.window.end)
+            else:
+                signal = _sized_signal(identity, frame, target, profile.instrument_rules, self.protocol)
+                _require(not (slot == self.window.end and frame.anchor.units > 0 and signal.action == "hold"),
+                         "FIXED_DRIVER_TERMINAL_DUST_UNLIQUIDATED")
             if signal.action != "hold":
                 validate_order(Order(client_id="fixedvalidation", account_scope=profile.account_scope,
                     venue=profile.venue, market=profile.market, symbol=profile.symbol,
@@ -494,12 +545,27 @@ def make_fixed_driver(program: ProgramSpec, protocol: ForwardProtocol, profile: 
     (HistoryFrame, FixedDriverIdentity, now) and must return HistoryReceipt only
     after source authentication and durable per-slot anchor verification.
     """
+    return _make_driver(program, protocol, profile, window=window, history_provider=history_provider,
+                        history_verifier=history_verifier, program_artifact=program_artifact, factory_id=FACTORY_ID)
+
+
+def make_fixed_carry_driver(program: ProgramSpec, protocol: ForwardProtocol, profile: LaunchProfile, *,
+                            window: DeploymentWindow, history_provider: Callable,
+                            history_verifier: Callable, program_artifact: bytes) -> StrategyDriver:
+    """Issue the exact carry callback, without source approval or management authority."""
+    return _make_driver(program, protocol, profile, window=window, history_provider=history_provider,
+                        history_verifier=history_verifier, program_artifact=program_artifact,
+                        factory_id=CARRY_FACTORY_ID)
+
+
+def _make_driver(program, protocol, profile, *, window, history_provider, history_verifier,
+                 program_artifact, factory_id):
     _require(callable(history_provider) and callable(history_verifier),
              "FIXED_DRIVER_AUTHENTICATED_HISTORY_REQUIRED")
-    code_sha, actual_program = _sources()
+    code_sha, actual_program = _sources(factory_id)
     _require(type(program_artifact) is bytes and program_artifact == actual_program,
              "FIXED_DRIVER_ARTIFACT_NOT_INSTALLED_PROGRAM")
-    identity = _identity(program, protocol, profile, window, program_artifact, code_sha)
+    identity = _identity(program, protocol, profile, window, program_artifact, code_sha, factory_id=factory_id)
     callback = _FixedCallback(program, protocol, profile, window, identity,
                               profile_digest(profile), history_provider, history_verifier)
     driver = StrategyDriver(callback=callback, artifact=program_artifact,
@@ -526,14 +592,31 @@ def describe_fixed_driver(driver: StrategyDriver) -> FixedDriverIdentity:
     _require(driver.callback is callback and type(callback) is _FixedCallback
              and callback.identity is identity and callback.history_provider is provider
              and callback.history_verifier is verifier, "FIXED_DRIVER_CALLBACK_CHANGED")
-    code_sha, actual_program = _sources()
+    code_sha, actual_program = _sources(identity.factory_id)
     _require(driver.artifact == actual_program and driver.parameters_json == parameters_json(callback.program)
              and profile_digest(callback.profile) == callback.profile_sha,
              "FIXED_DRIVER_REGISTERED_INPUT_CHANGED")
     rebuilt = _identity(callback.program, callback.protocol, callback.profile, callback.window,
-                        driver.artifact, code_sha)
+                        driver.artifact, code_sha, factory_id=identity.factory_id)
     _require(rebuilt == identity, "FIXED_DRIVER_DEPLOYMENT_CHANGED")
     return identity
+
+
+
+def describe_fixed_carry_driver(driver: StrategyDriver) -> FixedDriverIdentity:
+    """Strict carry-only view of an actual issued driver; no structural attestation."""
+    identity = describe_fixed_driver(driver)
+    _require(identity.factory_id == CARRY_FACTORY_ID, "FIXED_DRIVER_FACTORY_PROTOCOL_MISMATCH")
+    return identity
+
+
+
+def fixed_carry_deadline(driver: StrategyDriver) -> datetime:
+    """The actual issued deployment's E, never the old research capture end."""
+    with _LOCK:
+        describe_fixed_carry_driver(driver)
+        callback = _ISSUED[id(driver)][1]
+        return callback.window.end
 
 
 def fixed_history_dependencies(driver: StrategyDriver) -> tuple[Callable, Callable]:

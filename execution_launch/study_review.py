@@ -31,7 +31,8 @@ from execution_launch.profile import (LaunchProfile, ProfileError, parse_profile
 from execution_launch.program import parameters_json, program_digest
 from execution_launch.review_auth import (MAX_DOCUMENT_BYTES, ReviewAuthenticationError,
                                            parse_review_document, verify_source_review)
-from execution_launch.review_request import build_family_commitment
+from execution_launch.review_request import build_family_commitment, computed_summary
+from execution_launch.managed_behavior import CARRY_EVALUATOR_REVISION
 from execution_launch.strategy import (ReviewBinding, StrategyEvidenceError, _plain,
                                        evaluate_capture_json, evidence_digest)
 from execution_launch.study import (MarketSelection, PROGRAM_SOURCE, StudyError, StudyPlan,
@@ -72,7 +73,12 @@ def _binding(candidate, result):
         registry_digest=result.registry_digest, inputs_digest=result.inputs_digest,
         strategy_id=protocol.strategy_id, strategy_code_sha256=protocol.strategy_code_sha256,
         profile_contract_digest=protocol.profile_contract_digest, rule_terms_digest=protocol.rule_terms_digest,
-        capture_end=result.ended_at)
+        capture_end=result.ended_at,
+        **({"evaluator_revision": protocol.evaluator_revision, "behavior_revision": protocol.behavior_revision,
+            "terminal_accounting": protocol.terminal_accounting,
+            "management_behavior_sha256": protocol.management_behavior_sha256,
+            "computed_summary_sha256": evidence_digest(computed_summary(result, mathematical_criteria_met=True))}
+           if protocol.evaluator_revision == CARRY_EVALUATOR_REVISION else {}))
 
 
 def _request_matches(candidate, result, profile, artifact, body, evaluated_at):
@@ -102,14 +108,11 @@ def _request_matches(candidate, result, profile, artifact, body, evaluated_at):
           and request["source_kind_claim"] == result.source_kind
           and all(bindings[name] == value for name, value in expected.items()),
           "STUDY_REVIEW_COMPUTED_BINDING_MISMATCH")
-    summary = {"mathematical_criteria_met": True, "metrics": {
-        "observations": result.primary.observations,
-        "completed_roundtrips": result.primary.completed_roundtrips,
-        "total_return": result.primary.total_return, "max_drawdown": result.primary.max_drawdown,
-        "double_cost_total_return": result.double_cost.total_return,
-        "extra_delay_total_return": result.extra_bar_delay.total_return,
-        "family_adjusted_p": result.family_adjusted_p,
-    }}
+    if protocol.evaluator_revision == CARRY_EVALUATOR_REVISION:
+        _need(request["schema_version"] == 4 and all(request[name] == getattr(protocol, name) for name in
+              ("behavior_revision", "terminal_accounting", "management_behavior_sha256")),
+              "STUDY_REVIEW_COMPUTED_BINDING_MISMATCH")
+    summary = computed_summary(result, mathematical_criteria_met=True)
     _need(request["computed_summary"] == summary, "STUDY_REVIEW_COMPUTED_SUMMARY_MISMATCH")
     # runtime_profile_digest includes the observation asof. A fresh observation
     # may change asof, but the unchanged source and economics remain bound by
@@ -168,7 +171,9 @@ def authenticate_study_selection(plan: StudyPlan, *, profile: LaunchProfile,
         _need(set(report.reasons) <= {"SIGNED_CONTEXT_REQUIRED"}, "STUDY_REVIEW_PROFILE_NOT_CURRENT")
         raw = reviews[identifier]
         body = parse_review_document(raw)["body"]
-        _need(body["request"]["schema_version"] == 2, "STUDY_REVIEW_SIGNED_FAMILY_REQUIRED")
+        _need(body["request"]["schema_version"] ==
+              (4 if candidate.protocol.evaluator_revision == CARRY_EVALUATOR_REVISION else 2),
+              "STUDY_REVIEW_SIGNED_FAMILY_REQUIRED")
         _need(body["request"]["family_commitment"] == family, "STUDY_REVIEW_SIGNED_FAMILY_MISMATCH")
         _request_matches(candidate, results[identifier], profile, artifact, body, evaluated_at)
         binding = _binding(candidate, results[identifier])

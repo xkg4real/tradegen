@@ -17,12 +17,15 @@ import re
 from core.compliance import model as compliance
 from execution_control.capability import digest
 from execution_control.owner_authority import MAX_AUTHORITY_AGE_SECONDS, ReviewAuthority
-from execution_launch.driver import FACTORY_ID, FixedDriverError, describe_fixed_driver, fixed_history_dependencies
-from execution_launch.review_request import parse_review_request, review_request_json, ReviewRequestError
+from execution_launch.driver import (FACTORY_ID, CARRY_FACTORY_ID, FixedDriverError, describe_fixed_driver,
+                                     fixed_history_dependencies)
+from execution_launch.review_request import (computed_summary, parse_review_request,
+                                            review_request_json, ReviewRequestError)
 from execution_launch.runner import EvidencePackage, ImplementationBinding, ImplementationReceipt, _assess
 from execution_launch.strategy import ReviewBinding, ReviewReceipt, StrategyAssessment, evidence_digest
 
 REVIEW_DOMAIN = b"tradegen-strategy-review/1\n"
+CARRY_REVIEW_DOMAIN = b"tradegen-strategy-review/2\n"
 MAX_DOCUMENT_BYTES = 98304
 MAX_REVIEW_SECONDS = 86400
 REVIEW_CHECKS = (
@@ -76,8 +79,11 @@ def _hash(value):
 
 def _validate_body(body):
     _need(type(body) is dict and set(body) == _BODY and type(body["schema_version"]) is int
-          and body["schema_version"] == 1 and body["purpose"] == "strategy_source_and_fixed_implementation_review",
-          "REVIEW_DOCUMENT_SCHEMA_INVALID")
+          and body["schema_version"] in (1, 2), "REVIEW_DOCUMENT_SCHEMA_INVALID")
+    carry = body["schema_version"] == 2
+    expected_purpose = ("strategy_source_and_fixed_carry_implementation_review" if carry
+                        else "strategy_source_and_fixed_implementation_review")
+    _need(body["purpose"] == expected_purpose, "REVIEW_DOCUMENT_SCHEMA_INVALID")
     try:
         request = parse_review_request(_canonical(body["request"]))
     except ReviewRequestError:
@@ -86,8 +92,14 @@ def _validate_body(body):
           and request["computed_summary"]["mathematical_criteria_met"] is True
           and request["assessment_reasons"] == ["STRATEGY_TRUSTED_REVIEW_REQUIRED"]
           and set(request["profile_blockers"]) <= {"SIGNED_CONTEXT_REQUIRED"}, "REVIEW_REQUEST_NOT_ELIGIBLE")
+    # Schema 2 signs a different terminal/management contract. It cannot borrow
+    # a legacy request or factory just because their hashes have the same shape.
+    _need(request["schema_version"] in ((3, 4) if carry else (1, 2))
+          and request["evaluator_revision"] in (("forward-paper-carry-v2",) if carry
+              else ("forward-paper-v1", "forward-universe-v1")), "REVIEW_REVISION_FACTORY_MISMATCH")
     identity = body["driver_identity"]
-    _need(type(identity) is dict and set(identity) == _IDENTITY and identity["factory_id"] == FACTORY_ID
+    expected_factory = CARRY_FACTORY_ID if carry else FACTORY_ID
+    _need(type(identity) is dict and set(identity) == _IDENTITY and identity["factory_id"] == expected_factory
           and all(_hash(v) for k, v in identity.items() if k != "factory_id"), "REVIEW_DRIVER_IDENTITY_INVALID")
     _need(all(identity[key] == request["bindings"][key] for key in
           ("program_digest", "protocol_digest", "profile_contract_digest", "rule_terms_digest")),
@@ -106,8 +118,12 @@ def _validate_body(body):
 def review_body(request, driver_identity, *, deployment_code_hash, audit_sha256,
                 owner_fingerprint, issued_at, expires_at):
     """Build strictly typed unsigned signing input; this grants no review status."""
-    body = {"schema_version": 1, "purpose": "strategy_source_and_fixed_implementation_review",
-        "request": parse_review_request(review_request_json(request)), "driver_identity": dict(driver_identity),
+    parsed = parse_review_request(review_request_json(request))
+    carry = parsed["schema_version"] in (3, 4)
+    body = {"schema_version": 2 if carry else 1,
+        "purpose": ("strategy_source_and_fixed_carry_implementation_review" if carry
+                    else "strategy_source_and_fixed_implementation_review"),
+        "request": parsed, "driver_identity": dict(driver_identity),
         "deployment_code_hash": deployment_code_hash, "audit_sha256": audit_sha256,
         "owner_fingerprint": owner_fingerprint, "reviewer_id": "owner:" + owner_fingerprint[7:],
         "issued_at": _stamp(issued_at), "expires_at": _stamp(expires_at), "approved_checks": list(REVIEW_CHECKS)}
@@ -115,7 +131,9 @@ def review_body(request, driver_identity, *, deployment_code_hash, audit_sha256,
 
 
 def review_signing_bytes(body):
-    return REVIEW_DOMAIN + _canonical(_validate_body(body)).encode("ascii")
+    validated = _validate_body(body)
+    domain = CARRY_REVIEW_DOMAIN if validated["schema_version"] == 2 else REVIEW_DOMAIN
+    return domain + _canonical(validated).encode("ascii")
 
 
 def parse_review_document(raw):
@@ -181,11 +199,17 @@ def _authenticate(document, authority, now):
 
 def _source_binding(body):
     request, binding = body["request"], body["request"]["bindings"]
+    carry_binding = {}
+    if request["schema_version"] in (3, 4):
+        carry_binding = {name: request[name] for name in ("evaluator_revision", "behavior_revision",
+                                                       "terminal_accounting", "management_behavior_sha256")}
+        carry_binding["computed_summary_sha256"] = hashlib.sha256(
+            _canonical(request["computed_summary"]).encode("ascii")).hexdigest()
     return ReviewBinding(protocol_digest=binding["protocol_digest"], evidence_digest=binding["evidence_digest"],
         registry_digest=binding["registry_digest"], inputs_digest=binding["inputs_digest"],
         strategy_id=request["strategy_id"], strategy_code_sha256=binding["program_digest"],
         profile_contract_digest=binding["profile_contract_digest"], rule_terms_digest=binding["rule_terms_digest"],
-        capture_end=_time(request["capture_end"]))
+        capture_end=_time(request["capture_end"]), **carry_binding)
 
 
 def verify_source_review(binding, document, *, authority, now):
@@ -302,6 +326,12 @@ class ReviewVerifiers:
         assessment, binding = _assess(profile, replace(evidence, review_verifier=source), driver,
                                       implementation, now)
         _need(assessment.research_review_ready, "REVIEW_EVIDENCE_NOT_QUALIFIED")
+        if body["schema_version"] == 2:
+            # Only after _assess has checked actual issuance: imported display
+            # amounts must not silently differ from the result their hashes bind.
+            summary = computed_summary(evidence.result, mathematical_criteria_met=assessment.math_qualified)
+            _need(_canonical(body["request"]["computed_summary"]) == _canonical(summary),
+                  "REVIEW_COMPUTED_SUMMARY_MISMATCH")
         finished = self._clock()
         _stamp(finished)
         _need(finished >= now, "REVIEW_CLOCK_ROLLBACK")
