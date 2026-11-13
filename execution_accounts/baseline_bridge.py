@@ -9,11 +9,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import DecimalException, Inexact, localcontext
+import re
 from threading import Lock
 
 from execution_accounts.baseline import (
     BaselineAnchor, BaselineConventions, BaselineInterval, BaselineState,
-    advance_baseline, initialize_baseline, risk_baseline,
+    advance_baseline, initialize_baseline, restore_state, risk_baseline, state_json,
 )
 from execution_accounts.baseline_store import CheckpointStore
 from execution_accounts.model import AccountBundle, AccountEvidence, content_digest
@@ -118,6 +119,45 @@ def advance_account_baseline(previous: BaselineState, interval: BaselineInterval
     except BaselineBridgeError:
         raise
     except (ValueError, TypeError, AttributeError, DecimalException, OverflowError):
+        raise BaselineBridgeError("BASELINE_BRIDGE_EVIDENCE_REFUSED") from None
+
+
+def reconcile_committed_baseline(state: BaselineState, accounts: tuple[AccountEvidence, ...], *,
+                                  now: datetime, source_sha256: str,
+                                  interval_start: datetime | None = None) -> BaselineUpdate:
+    """Project an already committed state without advancing or persisting it.
+
+    The strict state codec proves internal integrity only. This pure function
+    does not prove that a state was committed, read an independent head, verify
+    a source/owner, or grant current account or trading authority. The caller
+    must bind state and source_sha256 to its actual committed package; computing
+    a fresh hash of arbitrary accounts is not that provenance proof. Optional
+    interval_start is that package's original start, not a fabricated cutoff.
+
+    The observed timestamp and all baseline counters remain unchanged. Existing
+    full-account reconciliation (including FIFO fees, source identity and half-
+    open cutoffs) is reused under exact decimal arithmetic. Guard/controller
+    latches that are outside BaselineState require a separate verified consumer.
+    No initialization, baseline reduction, store, CAS or journal call occurs.
+    """
+    try:
+        with localcontext() as numeric:
+            numeric.prec = 512; numeric.traps[Inexact] = True
+            _require(type(state) is BaselineState, "BASELINE_BRIDGE_STATE_REQUIRED")
+            _require(type(source_sha256) is str and re.fullmatch(r"[0-9a-f]{64}", source_sha256) is not None,
+                     "BASELINE_BRIDGE_SOURCE_DIGEST_REQUIRED")
+            # Snapshot strict fields without treating the self-digest as an
+            # external latest-head attestation or migrating an existing version.
+            retained = restore_state(state_json(state), expected_head=state.state_digest)
+            if interval_start is not None:
+                _require(type(interval_start) is datetime and interval_start.utcoffset() is not None
+                         and 2 <= interval_start.year <= 9998 and interval_start < retained.asof,
+                         "BASELINE_BRIDGE_INTERVAL_START_INVALID")
+            return _reconcile(retained, accounts, now=now, source_sha256=source_sha256,
+                              interval_start=interval_start)
+    except BaselineBridgeError:
+        raise
+    except (ValueError, TypeError, AttributeError, DecimalException, OverflowError, RecursionError):
         raise BaselineBridgeError("BASELINE_BRIDGE_EVIDENCE_REFUSED") from None
 
 
