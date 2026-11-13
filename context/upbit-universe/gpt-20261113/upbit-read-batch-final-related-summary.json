@@ -1,0 +1,20 @@
+{
+  "label": "upbit-read-batch-final-related",
+  "head": "95ab0e8378d66116602e1ad89485891a83be2729",
+  "source_hash": "fb36785dc8fb1e0452f48e0046284408fab0d1007f3068ffd5edab4728bf5af0",
+  "total": 485,
+  "counts": {
+    "PASS": 485,
+    "FAIL": 0,
+    "NOT_RUN": 0
+  },
+  "process_segments": 1,
+  "seconds": 146.692,
+  "current_segment_seconds": 146.692,
+  "sum_test_seconds": 143.344,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "real_homes_check_scope": "metadata before imports/discovery through completion",
+  "failures": []
+}
