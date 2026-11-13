@@ -1,0 +1,22 @@
+{
+  "label": "p0b-full",
+  "head": "a0b28d0fc0fee4a359f833f91a7c0f572777481e",
+  "source_hash": "308ff5e1097a6e3960b83bae5ab723c61d453cfdaffef1f61af7c8c4864dd98b",
+  "total": 2795,
+  "counts": {
+    "PASS": 2660,
+    "FAIL": 0,
+    "NOT_RUN": 135
+  },
+  "seconds": null,
+  "resumed_segment_seconds": 524.493,
+  "execution_mode": "complete registry across interrupted and resumed processes on identical frozen source",
+  "initial_terminal_rows": 1869,
+  "resumed_rows": 926,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": null,
+  "real_homes_check_scope": "initial process snapshot lost; resumed segment checked",
+  "resumed_real_homes_unchanged": true,
+  "failures": []
+}
