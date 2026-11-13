@@ -1,0 +1,212 @@
+[
+  {
+    "test": "cockpit/test_09_no_account_credentials_requested",
+    "status": "PASS",
+    "seconds": 0.0112,
+    "detail": ""
+  },
+  {
+    "test": "macro/macro_m0_harness/test_t_ro_01_no_order_cancel_withdrawal_or_transfer_path",
+    "status": "PASS",
+    "seconds": 2.3737,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_capture_v2/test_closed_archive_and_decision_schemas_refuse_duplicate_unknown_and_numeric_fields",
+    "status": "PASS",
+    "seconds": 0.0304,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_capture_v2/test_forged_but_correctly_rehashed_verdict_prefix_and_availability_are_rejected",
+    "status": "PASS",
+    "seconds": 0.1044,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_capture_v2/test_imported_v2_evidence_reaches_the_actual_evaluator_and_keeps_open_inventory",
+    "status": "PASS",
+    "seconds": 0.0568,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_capture_v2/test_incomplete_trial_can_be_archived_but_not_imported_as_complete_evidence",
+    "status": "PASS",
+    "seconds": 0.0037,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_capture_v2/test_legacy_capture_shape_and_numeric_final_behavior_remain_separate",
+    "status": "PASS",
+    "seconds": 0.0196,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_capture_v2/test_malformed_missing_and_late_observations_are_refused_without_unavailable_fallback",
+    "status": "PASS",
+    "seconds": 0.026,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_capture_v2/test_nonmidpoint_mark_within_the_spread_cannot_issue_even_fully_rehashed_typed_evidence",
+    "status": "PASS",
+    "seconds": 0.0348,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_capture_v2/test_program_artifact_parameters_behavior_and_registration_cannot_be_substituted",
+    "status": "PASS",
+    "seconds": 0.036,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_capture_v2/test_replay_roundtrip_rederives_warmup_and_the_final_positive_verdict",
+    "status": "PASS",
+    "seconds": 0.0488,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_capture_v2/test_same_numeric_target_does_not_erase_warmup_cash_or_strategy_sell_causes",
+    "status": "PASS",
+    "seconds": 0.0312,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_capture_v2/test_streaming_capture_records_actual_decision_times_and_keeps_the_final_bar",
+    "status": "PASS",
+    "seconds": 0.044,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_capture_v2/test_valid_prefetched_receipt_is_preserved_and_bad_book_is_not_an_unavailable_bar",
+    "status": "PASS",
+    "seconds": 0.0032,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_carry_review/test_body_schema_request_schema_and_factory_cannot_be_mixed",
+    "status": "PASS",
+    "seconds": 1.9667,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_carry_review/test_carry_signed_summary_distinguishes_valuation_inventory_and_realized_amounts",
+    "status": "PASS",
+    "seconds": 0.0003,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_carry_review/test_cloned_driver_or_wrong_history_dependency_cannot_receive_implementation_receipt",
+    "status": "PASS",
+    "seconds": 0.0789,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_carry_review/test_independent_behavior_document_hash_and_factory_source_closure_match",
+    "status": "PASS",
+    "seconds": 0.012,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_carry_review/test_independent_signer_hash_detects_every_carry_behavior_dependency",
+    "status": "PASS",
+    "seconds": 0.0355,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_carry_review/test_legacy_and_owner_log_signature_domains_cannot_authenticate_carry",
+    "status": "PASS",
+    "seconds": 0.0161,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_carry_review/test_legacy_review_bytes_domain_and_optional_binding_omission_stay_unchanged",
+    "status": "PASS",
+    "seconds": 0.0011,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_carry_review/test_legacy_source_closure_binds_its_actual_behavior_resolver_dependency",
+    "status": "PASS",
+    "seconds": 0.0158,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_carry_review/test_new_review_version_domain_and_factory_are_exactly_bound",
+    "status": "PASS",
+    "seconds": 0.001,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_carry_review/test_post_signature_summary_edit_cannot_change_the_reviewed_evidence",
+    "status": "PASS",
+    "seconds": 0.004,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_carry_review/test_real_temporary_owner_and_actual_carry_evaluation_qualify_without_arming",
+    "status": "PASS",
+    "seconds": 4.1606,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_carry_review/test_signed_changed_display_is_rejected_against_the_actual_issued_result",
+    "status": "PASS",
+    "seconds": 0.0534,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_carry_review/test_source_binding_prevents_removing_or_replacing_each_carry_semantic",
+    "status": "PASS",
+    "seconds": 0.0401,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_carry_review/test_standalone_and_runtime_signed_amount_codecs_are_strict_and_equal",
+    "status": "PASS",
+    "seconds": 0.0025,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_carry_review/test_standalone_carry_command_rechecks_new_source_closure_after_confirmation",
+    "status": "PASS",
+    "seconds": 0.0119,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_carry_review/test_standalone_carry_command_signs_exact_displayed_synthetic_document",
+    "status": "PASS",
+    "seconds": 0.0128,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_carry_review/test_standalone_carry_single_request_and_signing_bytes_match_runtime",
+    "status": "PASS",
+    "seconds": 0.0012,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_carry_review/test_standalone_signer_never_imports_runtime_app_modules",
+    "status": "PASS",
+    "seconds": 0.0152,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_carry_review/test_standalone_validator_refuses_unknown_or_cross_revision_contracts",
+    "status": "PASS",
+    "seconds": 0.001,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_carry_review/test_unsigned_carry_summary_cannot_grant_or_replace_computed_qualification",
+    "status": "PASS",
+    "seconds": 0.0018,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_carry_review/test_whole_family_carry_request_uses_schema_four_and_new_signature_domain",
+    "status": "PASS",
+    "seconds": 0.0071,
+    "detail": ""
+  }
+]

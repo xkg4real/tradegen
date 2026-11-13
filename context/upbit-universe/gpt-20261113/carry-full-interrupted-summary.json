@@ -1,0 +1,30 @@
+{
+  "label": "carry-full-interrupted",
+  "head": "0b3920498ea7d7b1d038806ac842527e5911692a",
+  "source_hash": "249f1fcb0d16897662b43274c75adc3fd8d7076b5ee20ac4ab615eb31146c715",
+  "total_registered": 3071,
+  "completed": 1108,
+  "counts": {
+    "PASS": 985,
+    "FAIL": 2,
+    "NOT_RUN": 121
+  },
+  "failures": [
+    {
+      "test": "cockpit/test_09_no_account_credentials_requested",
+      "status": "FAIL",
+      "seconds": 0.0095,
+      "detail": "AssertionError: execution_launch/capture_v2.py: CANO outside credential boundary"
+    },
+    {
+      "test": "macro/macro_m0_harness/test_t_ro_01_no_order_cancel_withdrawal_or_transfer_path",
+      "status": "FAIL",
+      "seconds": 2.601,
+      "detail": "AssertionError: order path surface present:\n  execution_launch/capture_v2.py: 'CANO'"
+    }
+  ],
+  "completion": "interrupted_after_known_lexical_guard_failures; not a complete suite",
+  "real_homes_unchanged": true,
+  "qa_restored": true,
+  "notes": "Stopped with SIGINT and finally restored QA before diagnostic-only rename. Repository was clean immediately after stop. No guards weakened; focused35 pass verifies rename."
+}

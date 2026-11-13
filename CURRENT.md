@@ -6,13 +6,13 @@ task: upbit-universe
 cycle: 2026-11-10
 done_ids: universe-pr4e, protective-hold/p2-store-integration, universe-pr5/outcome-document-contract, protective-hold/p2-store, protective-hold/p1, universe-pr4d/lossless-history, universe-pr4d, universe-pr4d/lossless-objects, design-revision-1113, upbit-universe-return-1113, universe-pr4d/original-verification, workflow-resume-1113/regression-preparation, universe-pr4d/task2-implementation, universe-pr4d/task3, universe-pr4d/task4, universe-pr4c, universe-pr4d/task1, workflow-resume-1113, workflow-resume-1113/dependencies, universe-pr4c/implementation, universe-pr0, universe-pr1, universe-pr2, universe-pr3, universe-pr4b, universe-pr4a
 next_ids: protective-hold/fixed-carry-v2, protective-hold/p2-integration, universe-pr5, universe-pr5-clock-notify, universe-code-approve, policy-loss-budget-plan-1, rules-review-1202, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, launch-private-capture-setup-1, e1-14-owner-setup, launch-prospective-study, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1
-updated_at: 2026-11-13T22:30:49+09:00
+updated_at: 2026-11-13T22:37:31+09:00
 stale_after_hours: 3
 waiting_on: no prior approval question; future PLB S1-S12 and deployment inputs only
 work_branch: gpt/protective-fixed-carry-v2
-work_commit: 0b3920498ea7d7b1d038806ac842527e5911692a
+work_commit: 2b1de13227a8985620f253260dd2ab836a498d0f
 merged_main_commit: 5217f1e7977fab170a5453ad1ac8d4fc58521dc6
-runtime_tested_commit: carry focused source8ab8e430 359PASS1fixtureFAIL2WindowsNR; corrected display fixture22PASS; full3071 running on0b39204/source249f1fcb
+runtime_tested_commit: carry focused source8ab8e430 359PASS1fixtureFAIL2WindowsNR; corrected display fixture22PASS; full3071 restarted on2b1de13/source3001278c after diagnostic35PASS
 uncommitted_changes: carry clean/pushed PR39 draft; separate gpt/research-family-preflight has active A0b helper/study/review/test changes from0b39204
 pr: PR39 draft with full suite running; PR34-38 merged
 usage_weekly_pct: unknown
@@ -124,3 +124,9 @@ PR39 gpt/protective-fixed-carry-v2 source0b3920498ea7d7b1d038806ac842527e5911692
 A0b별도작업: /workspace/tradegen-research-family-1113, gpt/research-family-preflight, base0b39204. revision_review가study_evidence.py/strategy.py/새helpertests, notion_revision이study.py/CLIloader/studytests, pr4e_owner가study_review.py/실제서명회귀소유. root는registry/guard/통합검증. 모든후보원본·등록chain·프로그램·typeddecision을검사한뒤에만실제평가발급, 누락/추가파일·malformed는전체보류, resource admission은손상과구분한다. 기존정상통계탈락원본은가족hash에서보존한다. 실제failed-evaluation발급/봉인/복구/WebAuthn은이단계범위밖이다. 아직실행검증/commit/PR없음. Carry트리는변경하지않는다.
 
 Notion 두 기존페이지에는PR36–38결과/남은범위를append하고이전내용보존및읽기검증했다. 최신carry 결과는전체검사/전달뒤추가반영한다. 사용량조회도구가없음을재확인했으므로unknown 유지하며95%라고추정하지않았다.
+
+## 전체검사 재시작 — 오류코드 문자열 충돌 수정
+
+첫carry-full은1108개(985PASS/2FAIL/121NOT_RUN)에서중단했다. 두실패는CAPTURE_V2_PROGRAM_NONCANONICAL_OR_UNSUPPORTED에포함된CANO문자열을기존cockpit/macro계좌필드guard가탐지한것이다. 실제계좌입력경로없음. guard를완화하지않고진단명만CAPTURE_V2_PROGRAM_FORMAT_OR_KIND_INVALID로바꿨다. 두guard+capture/review35개11.916초PASS,source/home불변. 중단된suite는완료로세지않고, SIGINT종료시QA복원·실제home메타데이터불변을확인했다. 새runtime2b1de13을push했고 carry-full-final label로3071개처음부터실행중(execsession95772); source3001278c9174a007be7d5531cbedf3f643a6d6dd11b5044a73316d6d7877d36b. 이전session12299는종료했다.
+
+A0b별도트리base도2b1de13으로같이올렸고이진단수정을포함한다. helper17개+study CLI7개+인증기존/추가25개준비,독립리뷰11개PASS는개발단계근거이며정식동결통합검증은아직전이다. 큰원본의자원초과분류를누락/손상과구분하는소비자수정진행중이다.
