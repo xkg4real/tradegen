@@ -1,8 +1,8 @@
 # 패스키 검증 기반 모듈 — 실행기록
 
-2026-11-13. 완료 범위는 `universe-pr5/passkey-verification-foundation`이다. 독립 환경에서 실제 등록·assertion 암호검증과 순수 계약 검사 **25 PASS / 0 FAIL / 0 NOT_RUN, 0.153초**를 확인했다. 전체 archive 승인 기능, 승인 원장, 운영 RP 또는 실거래 기능을 완료한 보고가 아니다.
+2026-11-13. 완료 범위는 `universe-pr5/passkey-verification-foundation`이다. PR58의 실제 main 변경을 통합한 최종 HEAD에서 독립 패스키 검사 **25 PASS / 0 FAIL / 0 NOT_RUN, 0.145초**와 기존 앱 호환 검사 **61 PASS / 0 FAIL / 0 NOT_RUN, 20.249초**를 확인했다. 중복 없는 86개를 서로 다른 환경의 두 최종 실행으로 검증한 결과다. 전체 archive 승인 기능, 승인 원장, 운영 RP 또는 실거래 기능을 완료한 보고가 아니다.
 
-검증 label은 `passkey-foundation1`, source commit은 `b0cb8b34a9cc2d12c421b5f308f98680091b47ac`이다. 검사 전후 Python/YAML과 독립 broker requirements를 묶은 fingerprint는 `2956cb10286869bc3cad5642458b59f9364782d72fffc4140f978451bd9c6422`로 동일했다. 이후 PR57 문서 병합을 포함한 작업 HEAD는 `4974ec3d7427cc1e398b62df5ff1f73521143485`다. 변경은 [PR #59](https://github.com/xkg4real/tradegen/pull/59)에서 추적한다. 최종 delivery commit과 실제 main 병합·tree 대조 결과는 외부 인수인계 기록에 남긴다.
+초기 검증 label은 `passkey-foundation1`, source commit은 `b0cb8b34a9cc2d12c421b5f308f98680091b47ac`이다. **25 PASS / 0 FAIL / 0 NOT_RUN, 0.153초**였으며, 검사 전후 Python/YAML과 독립 broker requirements를 묶은 fingerprint는 `2956cb10286869bc3cad5642458b59f9364782d72fffc4140f978451bd9c6422`로 동일했다. 이후 PR57 문서 병합을 포함한 작업 HEAD는 `4974ec3d7427cc1e398b62df5ff1f73521143485`다. 변경은 [PR #59](https://github.com/xkg4real/tradegen/pull/59)에서 추적한다. 최종 delivery commit과 실제 main 병합·tree 대조 결과는 외부 인수인계 기록에 남긴다.
 
 ## 실제 변경
 
@@ -38,7 +38,18 @@ none 등록은 attestation 서명이 없으므로 키 보유·제조사·특정 
 
 추가 앱 호환 검사 `passkey-app-compat1`은 종료 코드 0으로 확정됐다. HEAD `4974ec3d7427cc1e398b62df5ff1f73521143485`, source fingerprint `4489156607f87ddd4c9e3f6a382df812a31774e3080b7bc60345e5ba273244df`, **61 PASS / 0 FAIL / 0 NOT_RUN, 21.872초**다. source와 실제 홈 메타데이터, 기존 QA 파일의 불변을 확인했다. 단독 검증 fingerprint는 broker 의존성 `.txt`까지 포함하고 앱 호환 fingerprint는 기존 Python/YAML 범위이므로 두 hash의 차이를 소스 변경으로 해석하지 않는다.
 
-25개 단독 검증과 61개 기존 호환 검사는 중복 없는 총 86개 검사지만 **서로 다른 환경에서 수행한 두 실행**이다. 한 번의 86개 프로세스 실행이나 저장소 전체 검사로 표시하지 않는다. 최종 전달·병합 정보는 PR #59와 외부 인수인계 기록을 따른다.
+### 최신 main 통합 뒤 최종 재검증
+
+PR58의 실제 main을 통합한 HEAD `fa29cdf384b2ba904cce7f34cdab0b2ab42a363b`에서 아래 두 실행이 모두 종료 코드 0으로 끝났다. 두 실행 모두 source와 실제 홈 메타데이터의 전후 불변을 확인했다. 단독 검사 summary의 QA 불변과 root의 기존 tracked QA 파일 불변 확인도 유지됐다.
+
+| 최종 실행 label | 결과 | 시간 | source fingerprint 범위 |
+|---|---|---:|---|
+| `passkey-final1` | 25 PASS / 0 FAIL / 0 NOT_RUN | 0.145초 | Python/YAML + broker 의존성 `.txt` |
+| `passkey-app-final1` | 61 PASS / 0 FAIL / 0 NOT_RUN | 20.249초 | 기존 Python/YAML |
+
+최종 단독 fingerprint는 `562f5b5b30f328686a7ec18abe6a0fa2ccc2cda5816a0a72f21a65ea44b9b99c`, 최종 앱 호환 fingerprint는 `88c108dd43ac4276683d0df73155e2d1c3cbac8c2d35e400c94f58fcfec46dfe`다. 실제 근거는 `passkey-final1-{summary,rows}.json`과 `passkey-app-final1-{summary,rows}.json`이다. 설치된 독립 의존성 버전과 RECORD hashes도 최종 단독 summary에서 재확인했다.
+
+초기 두 실행과 최종 두 실행을 포함해 실행 기록은 네 건이다. 같은 검사를 다시 실행한 것이므로 **172개 고유 검사로 합산하지 않는다.** 최종 결과는 중복 없는 25개+61개=86개이며 서로 다른 환경의 두 실행이다. 한 번의 86개 프로세스 실행이나 저장소 전체 검사로 표시하지 않는다. 최종 전달·병합 정보는 PR #59와 외부 인수인계 기록을 따른다.
 
 ## 남은 경계
 
