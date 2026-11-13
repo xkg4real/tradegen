@@ -4,16 +4,16 @@ reason: owner_requested_continue_pr4e_and_protective_p2
 from: gpt
 task: upbit-universe
 cycle: 2026-11-10
-done_ids: protective-hold/p1, universe-pr4d/lossless-history, universe-pr4d, universe-pr4d/lossless-objects, design-revision-1113, upbit-universe-return-1113, universe-pr4d/original-verification, workflow-resume-1113/regression-preparation, universe-pr4d/task2-implementation, universe-pr4d/task3, universe-pr4d/task4, universe-pr4c, universe-pr4d/task1, workflow-resume-1113, workflow-resume-1113/dependencies, universe-pr4c/implementation, universe-pr0, universe-pr1, universe-pr2, universe-pr3, universe-pr4b, universe-pr4a
-next_ids: universe-pr4e, protective-hold/p2, universe-pr5, universe-pr5-clock-notify, universe-code-approve, policy-loss-budget-plan-1, rules-review-1202, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, launch-private-capture-setup-1, e1-14-owner-setup, launch-prospective-study, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1
-updated_at: 2026-11-13T21:45:40+09:00
+done_ids: protective-hold/p2-store, protective-hold/p1, universe-pr4d/lossless-history, universe-pr4d, universe-pr4d/lossless-objects, design-revision-1113, upbit-universe-return-1113, universe-pr4d/original-verification, workflow-resume-1113/regression-preparation, universe-pr4d/task2-implementation, universe-pr4d/task3, universe-pr4d/task4, universe-pr4c, universe-pr4d/task1, workflow-resume-1113, workflow-resume-1113/dependencies, universe-pr4c/implementation, universe-pr0, universe-pr1, universe-pr2, universe-pr3, universe-pr4b, universe-pr4a
+next_ids: universe-pr4e, protective-hold/p2-integration, universe-pr5, universe-pr5-clock-notify, universe-code-approve, policy-loss-budget-plan-1, rules-review-1202, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, launch-private-capture-setup-1, e1-14-owner-setup, launch-prospective-study, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1
+updated_at: 2026-11-13T21:55:37+09:00
 stale_after_hours: 3
 waiting_on: no prior approval question; future PLB S1-S12 and deployment inputs only
 work_branch: gpt/universe-pr4e-runner-coordinator
 work_commit: a772a24073ffb523ff7fa8d1e030398eaf56227a
 merged_main_commit: 6030fe3063dc6b63eeaad48b3d818577f1c1219b
 runtime_tested_commit: PR4e a772a24 fingerprint b80c7edc independent9PASS; complete KEYLESS suite running; preliminary155PASS not frozen acceptance
-uncommitted_changes: PR4e source clean and pushed; separate P2 store/tests/registry/guards in progress
+uncommitted_changes: PR4e a772a24 and P2-store530af22 clean/pushed; isolated PR5 outcome-contract implementation in progress
 pr: https://github.com/xkg4real/tradegen/pull/36 (draft, full regression running); PR34/35 merged
 usage_weekly_pct: unknown
 usage_source: unavailable
@@ -99,3 +99,9 @@ P0b는 policy→protocol→identity→contextual payload DAG, 실제 동일 잠�
 PR36 a772a24에서 유니버스 Runner/Coordinator/owner rehearsal을 연결했다. 독립 9검사(실제 v3 history/head와 1,500 합성 보유·131072바이트 정상 호가 포함)는 소스 b80c7edc에서 통과했다. 개발 단계155 PASS는 테스트/최종 수정이 겹쳐 source_unchanged=false이므로 최종 승인 근거로 사용하지 않는다. 전체 suite는 /workspace/tradegen-session/universe-pr4e-1113/verify_checkpointed.py로 실행 중이며 결과와 각 검사 checkpoint를 보존한다.
 
 별도 gpt/protective-hold-store에서 P2 영속 상태·알림 outbox를 구현 중이다. 독립검토에서 활성 session.lock/root 교체와 unavailable inode, dense journal allocation 문제를 찾아 수정·회귀를 추가했다. 최종 source 동결/검증/commit 전이며 완료 ID에 넣지 않는다. 실제 authority 발급·계좌 대조·live activation·주문은 수행하지 않았다.
+
+## P2 저장 단위 체크포인트
+
+완료ID protective-hold/p2-store: 530af22b58a5471c7e4308ad225dba6eea3d3f4e, PR37 draft. 최종178PASS/0FAIL/0NOT_RUN,15.545초,source ff0bb01a 전후불변/실제home메타데이터불변. 저장/outbox만완료이며 원P2의실제bootstrap/계좌·체결·미체결대조운용연결은 protective-hold/p2-integration 으로남긴다. PR36검증/병합뒤 통합기준대조예정.
+
+후속 PR5 outcome 문서 codec은 gpt/research-outcome-contract (/workspace/tradegen-research-outcomes-1113)에서 별도 개발중이며 기존 study/서명/선발/driver는아직이새문서를사용하지않는다. P3준비는 실제 fixed evaluator/driver에새carry버전을동시에추가하는수직단계를검토중,운용코드변경전이다.
