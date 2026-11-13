@@ -1,0 +1,2773 @@
+diff --git a/docs/research-recovery-operator-guide.md b/docs/research-recovery-operator-guide.md
+index e65d62c..feecf28 100644
+--- a/docs/research-recovery-operator-guide.md
++++ b/docs/research-recovery-operator-guide.md
+@@ -1,8 +1,8 @@
+ # TRADEGEN PR5 B2b-2 — 정확 원본 복구 운영 절차
+ 
+-2026-11-13. 실제 CLI·준비 코드와 명령 예시를 대조했고, CLI 회귀 14개를 포함한 관련 검증을 완료했습니다. **사용자 PC 배포·설정 및 native Windows 운영 확인은 별도로 필요합니다.** 아래 명령을 실제 사용자 PC에서 실행한 기록은 아닙니다.
++2026-11-13. 기존 복구 CLI는 회귀 14개를 포함한 관련 검증을 완료했습니다. 새 7절의 `select-recovered`와 core는 함께 구현·검사 동결 후 검증하며, 현재 새 명령의 런타임 결과는 대기입니다. **사용자 PC 배포·설정 및 native Windows 운영 확인은 별도로 필요합니다.** 아래 명령을 실제 사용자 PC에서 실행한 기록은 아닙니다.
+ 
+-이 절차는 미리 등록한 연구 보관물의 정확한 원본과 기존 서명 문서를 별도 목적지에 복원하고, 시도·결과·알림 대기를 기록합니다. **자료 보류 해제, 연구 선발, 전략 승인, 거래 활성화는 수행하지 않습니다.** 실패 연구의 원본도 보존되며, 복구됐다고 평가 통과 연구로 바뀌지 않습니다.
++1–6절의 기존 복구 명령은 미리 등록한 연구 보관물의 정확한 원본과 기존 서명 문서를 별도 목적지에 복원하고, 시도·결과·알림 대기를 기록합니다. 이 복구 결과 자체는 보류 해제·연구 선발·전략 승인·거래 활성화가 아닙니다. 새 7절은 현재 조건을 다시 검증하여 특정 복구 목적지의 연구용 선발과 제한된 기록만 처리합니다. 일반 보류·운영 활성화는 유지합니다. 실패 연구의 원본도 보존되며, 복구됐다고 평가 통과 연구로 바뀌지 않습니다.
+ 
+ ## 1. 준비 조건과 입력값
+ 
+@@ -75,7 +75,7 @@ $RecoveryArgs = $AttemptArgs + $IncidentArgs + @(
+ & $TradegenPython -m execution_launch.research_recovery_cli route-register @RecoveryArgs --source-head-name '<SOURCE_HEAD_NAME>' --digest '<BUNDLE_SHA256>'
+ ```
+ 
+-`RECOVERY_ROUTE_REGISTERED`와 반환된 `route_id`를 비공개 운영 기록에 보관합니다. 이때 실제 원본 전체·백업·원래 서명·현재 소유자 상태·별도 목적지를 검사합니다. 등록 자체가 복구 실행이나 자료 사용 승인은 아닙니다. `--source-head-name`과 `--digest`는 경로 등록에만 넣습니다.
++`RECOVERY_ROUTE_REGISTERED`와 반환된 `route_id`를 비공개 운영 기록에 보관합니다. 이때 실제 원본 전체·백업·원래 서명·현재 소유자 상태·별도 목적지를 검사합니다. 등록 자체가 복구 실행이나 자료 사용 승인은 아닙니다. `--source-head-name`은 경로 등록에만 넣습니다. `run-once`에는 `--digest`를 넣지 않으며, 7절의 별도 선발 명령은 대상 대조를 위해 `--digest`를 요구합니다.
+ 
+ ## 4. 실제 사건을 확인하고 사건 ID 확보
+ 
+@@ -112,9 +112,46 @@ $RecoveryArgs = $AttemptArgs + $IncidentArgs + @(
+ 
+ 각각 `RECOVERY_STORE_VERIFIED`, `RECOVERY_NOTIFICATIONS_PENDING`, `NOTIFICATIONS_PENDING` 결과를 확인합니다. 시도 저장소 검증은 목적지 자료가 지금도 정상이라는 재검증이 아닙니다. `record_semantics: historical_observation_not_current_eligibility`를 그대로 적용합니다.
+ 
+-outbox는 저장된 알림 대기 목록입니다. **이 단위는 Telegram·이메일 등 네트워크 전송을 하지 않으며**, 목록 조회나 성공 결과만으로 전송·수신 완료를 기록하지 않습니다. 자동 승인 요청·서명도 수행하지 않습니다. `quarantine_released`, `current_use_eligible`, `research_selection_ready`, `execution_ready`, `network_delivery_performed`는 모두 `false`입니다.
++outbox는 저장된 알림 대기 목록입니다. **이 단위는 Telegram·이메일 등 네트워크 전송을 하지 않으며**, 목록 조회나 성공 결과만으로 전송·수신 완료를 기록하지 않습니다. 자동 승인 요청·서명도 수행하지 않습니다. 위 복구·조회 명령의 `quarantine_released`, `current_use_eligible`, `research_selection_ready`, `execution_ready`, `network_delivery_performed`는 모두 `false`입니다.
+ 
+-## 7. 재시도·중단·소스 소실 처리
++## 7. 복구 목적지에서 현재 연구용 선발 확인
++
++실제 terminal `EXACT_ARCHIVE_RESTORED` 기록이 있고, 대상이 `VERIFIED_UNAPPROVED`이며, 현재 해당 route의 사건 한 개만 적용될 때 사용합니다. raw 실패·불완전 자료는 그대로 보존하며 이 명령으로 승인용 연구로 바꾸지 않습니다. 추가 사건이 있으면 먼저 그 거절 사유를 확인합니다.
++
++원본·원본 백업은 이미 없어도 됩니다. 아래 입력은 실제 복구 목적지, 기존 사건/시도 저장소, 원 archive 서명과 기존 source review, 현재 profile·window·독립 history head입니다. `--head-root`는 **LiveHistory의 독립 head root**이며 destination catalog head와 다릅니다. 필요한 모든 적격 후보의 기존 review 문서와 확정 graph 안 audit logical ID를 넣습니다. audit에 원본 파일 경로를 넣지 않습니다.
++
++```powershell
++$RecoveredSelectionArgs = $AttemptArgs + $IncidentArgs + @(
++  '--destination-root', '<DESTINATION_ROOT>',
++  '--destination-backup-root', '<DESTINATION_BACKUP_ROOT>',
++  '--destination-head-name', '<DESTINATION_HEAD_NAME>',
++  '--destination-limits', '<DESTINATION_LIMITS_JSON>',
++  '--digest', '<BUNDLE_SHA256>',
++  '--route-id', '<ROUTE_SHA256>',
++  '--incident-id', '<INCIDENT_SHA256>',
++  '--archive-attestation', '<ORIGINAL_ATTESTATION_JSON>',
++  '--profile', '<CURRENT_PROFILE_JSON>',
++  '--window', '<EXACT_REVIEWED_WINDOW_JSON>',
++  '--head-root', '<HISTORY_HEAD_ROOT>'
++)
++# 각 적격 후보의 실제 기존 문서/논리 ID를 추가합니다.
++$RecoveredSelectionArgs += @(
++  '--source-review', '<EXISTING_SOURCE_REVIEW_JSON>',
++  '--audit', '<STUDY_ID>=<SEALED_AUDIT_LOGICAL_ID>'
++)
++# 실제 history 구성에 policy가 있으면 --history-storage <HISTORY_POLICY_JSON>도 추가합니다.
++& $TradegenPython -m execution_launch.research_recovery_cli select-recovered @RecoveredSelectionArgs
++```
++
++이 명령은 원 source 옵션을 받지 않습니다. source 설정을 포함하는 기존 `$RecoveryArgs` 대신 위 배열을 사용합니다. 서명키·거래키·password·사용자 지정 시각·승인 bool을 보내지 않습니다. runtime은 저장소나 history head를 자동 provision하지 않습니다. 필요한 준비는 기존 명시적 운영자 절차로 먼저 수행합니다.
++
++실제 현재 owner·철회·기한·원문/backup/artifact·full family·source review·factory/history를 다시 검사합니다. `status: SELECTED`이면 `research_selection_ready: true`와 non-null `release_record_id`가 함께 있어야 합니다. 이는 해당 목적지의 연구용 검증 결과이며 거래 시작 승인이 아닙니다. 정상 미선발은 실제 status/reasons를 표시하고 ready=false·release_record_id=null입니다. `REFUSED` 또는 종료 코드 2이면 우회 호출 없이 고정 진단을 확인합니다.
++
++일반 incident-aware 선발은 보류를 계속 거절합니다. 새 명령은 일반 보류를 삭제하거나 다른 사본에 예외를 적용하지 않습니다. 같은 명령을 다시 호출해도 현재 검증을 생략하지 않으며 기존 record만 현재 허가로 표시하지 않습니다. `current_operational_use`, `execution_ready`, `automatic_operational_recovery_supported`, `network_delivery_performed`는 모두 false입니다. 원래 승인이 현재도 유효하면 복구 자체 때문에 재서명하지 않고, 만료·철회·코드/자료/규칙/window 변경의 기존 승인 조건은 유지합니다.
++
++이 명령은 scoped release/사건 기록과 기존 history binding을 쓸 수 있는 검증 작업입니다. 원 손상본을 덮어쓰거나 새 복구를 시작하지 않으며, 연구용 결과를 자동 활성화·주문·Telegram 전송에 연결하지 않습니다.
++
++## 8. 재시도·중단·소스 소실 처리
+ 
+ | 상황 | 처리 |
+ |---|---|
+@@ -134,6 +171,7 @@ outbox는 저장된 알림 대기 목록입니다. **이 단위는 Telegram·이
+ 
+ - 실제 `execution_launch/research_recovery_cli.py`, `tools/owner/research_recovery.py`, `execution_launch/research_incident_cli.py`의 명령·필수 옵션·거절·출력 형식을 대조했습니다. 위 명령에는 실행 경로에 없는 옵션을 넣지 않았습니다.
+ - 시간·횟수·terminal 조건은 `research_recovery.py`와 `research_recovery_attempts.py`를 대조했습니다. 최종 통합검사·배포 버전·실제 Windows 실행 확인은 상위 세션 결과로 확정해야 합니다.
++- 새 `select-recovered`는 기존 복구 CLI와 같은 단위에서 core·CLI를 함께 동결한 후 집중 검사와 관련 회귀로 확인합니다. 새 명령의 검증 완료 주장은 실제 결과가 확정된 뒤 추가합니다.
+ - 이 문서 작성 중 프로그램·테스트·실제 서명·복구·전송·주문을 실행하지 않았습니다. 모든 명령은 치환 전 자리표시자 예시입니다.
+ 
+ 법률, 세무, 투자 조언이 아니며 면허를 가진 자문가가 아니다
+diff --git a/execution_launch/recovered_study_selection.py b/execution_launch/recovered_study_selection.py
+new file mode 100644
+index 0000000..f2d79b2
+--- /dev/null
++++ b/execution_launch/recovered_study_selection.py
+@@ -0,0 +1,391 @@
++"""Current research selection for one exactly restored, still-held destination.
++
++Actual destination evidence, current approvals and the complete family are
++rechecked on every call. A release record is historical scoped evidence, never
++an owner signature, global incident release, trading permission or storage lease.
++The original source is not reopened. No recovery, provisioning or order occurs.
++"""
++from __future__ import annotations
++
++from dataclasses import asdict, dataclass
++from datetime import datetime
++
++from execution_control.owner_authority import CurrentOwnerAuthority
++from execution_launch import bundle_attestation as A, bundle_auth as U, bundle_recovery as B
++from execution_launch import research_bundle_format as BF, research_bundle_store as BS
++from execution_launch import research_incidents as I, research_incident_monitor as M
++from execution_launch import research_incident_store as IS
++from execution_launch import research_recovery as R, research_recovery_attempts as F
++from execution_launch import sealed_study_review as S
++from execution_launch import research_recovery_store as RS
++from execution_launch.research_recovery_store import RecoveryAttemptStore
++from execution_launch.recovery_artifact import build_recovery_artifact
++
++
++class RecoveredSelectionError(ValueError):
++    """Fixed diagnostics only; never supplied paths, keys or evidence contents."""
++
++
++def _need(ok, code):
++    if not ok:
++        raise RecoveredSelectionError('RECOVERED_SELECTION_'+code)
++
++
++@dataclass(frozen=True, kw_only=True)
++class RecoveredSelectionAssessment:
++    scope: str
++    selection_assessment: S.SealedSelectionAssessment
++    route_id: str
++    attempt_id: str
++    incident_id: str
++    outcome_event_id: str
++    recovery_artifact_digest: str
++    destination_store_binding_sha256: str
++    release_record_id: str | None
++    incident_context_sha256: str
++    incident_head: str
++    incident_sequence: int
++    attempt_head: str
++    attempt_sequence: int
++    research_selection_ready: bool
++    current_operational_use: bool = False
++    execution_ready: bool = False
++    automatic_operational_recovery_supported: bool = False
++
++
++def _destination_prefix(store, required):
++    """Observe a historical head inside the actual bounded current catalog chain."""
++    failure = None
++    with store._locked():
++        catalog = store._load()
++        try:
++            raw = store._read_catalog()
++            _need(len(raw) == catalog.size and raw.count(b'\n') == catalog.sequence,
++                  'DESTINATION_CHANGED')
++            head, found = store.genesis_digest, False
++            for number, line in enumerate(raw.split(b'\n')[:-1], 1):
++                row = BS._decode(line)
++                _need(row['sequence'] == number and row['previous_sha256'] == head
++                      and row['context_sha256'] == store.context_sha256
++                      and row['row_sha256'] == BS._digest('row', {k:v for k,v in row.items()
++                                                                if k != 'row_sha256'}),
++                      'DESTINATION_CHANGED')
++                head = row['row_sha256']
++                found = found or (number, head) == required
++            _need(found and head == catalog.head, 'DESTINATION_CHANGED')
++        except RecoveredSelectionError as exc:
++            failure = exc
++        _need_after = store._load() == catalog
++        # Owned business diagnostics must not be relabelled by store cleanup.
++        if not _need_after:
++            failure = RecoveredSelectionError('RECOVERED_SELECTION_DESTINATION_CHANGED')
++    if failure is not None:
++        raise failure
++    return catalog.sequence, catalog.head
++
++
++def _release_provenance(store, event, snapshot):
++    """The release's claimed prior head must match its actual backed Journal row."""
++    failure = None
++    with store._locked() as (pins, anchor):
++        current = store._load(pins)
++        try:
++            _need(current[0] == snapshot, 'DEPENDENCY_CHANGED')
++            raw = store._read(pins, store.root, 'journal.jsonl', store.limits.max_journal_bytes)
++            _need(len(raw) == current[1] and raw.count(b'\n') == snapshot.sequence,
++                  'RELEASE_BINDING_CHANGED')
++            head, matches = store.genesis_digest, 0
++            for number, line in enumerate(raw.split(b'\n')[:-1], 1):
++                row = IS._decode(line, store._row_max())
++                _need(row['sequence'] == number and row['previous_sha256'] == head
++                      and row['context_sha256'] == store.context_sha256
++                      and row['row_sha256'] == IS._digest('row', {k:v for k,v in row.items()
++                                                                if k != 'row_sha256'}),
++                      'RELEASE_BINDING_CHANGED')
++                if row['event']['event_id'] == event.event_id:
++                    _need(IS._canonical(row['event']) == I.event_bytes(event, limits=store.limits.format_limits)
++                          and tuple(event.payload['incident_head']) == (number-1, head),
++                          'RELEASE_BINDING_CHANGED')
++                    matches += 1
++                head = row['row_sha256']
++            _need(matches == 1 and head == snapshot.head, 'RELEASE_BINDING_CHANGED')
++        except RecoveredSelectionError as exc:
++            failure = exc
++        if store._load(pins) != current:
++            failure = RecoveredSelectionError('RECOVERED_SELECTION_DEPENDENCY_CHANGED')
++        store._check_anchor(pins, anchor)
++    if failure is not None:
++        raise failure
++
++
++
++def _attempt_prefix(store, required, snapshot):
++    """A reused record may name a genuine older global attempt-store prefix."""
++    failure = None
++    with store._locked() as (pins, anchor):
++        current = store._load(pins)
++        try:
++            _need(current[0] == snapshot, 'DEPENDENCY_CHANGED')
++            raw = store._read(pins, store.root, 'journal.jsonl', store.limits.max_journal_bytes)
++            _need(len(raw) == current[1] and raw.count(b'\n') == snapshot.sequence,
++                  'RELEASE_BINDING_CHANGED')
++            head, found = store.genesis_digest, False
++            for number, line in enumerate(raw.split(b'\n')[:-1], 1):
++                row = RS._decode(line, store._row_max())
++                _need(row['sequence'] == number and row['previous_sha256'] == head
++                      and row['context_sha256'] == store.context_sha256
++                      and row['row_sha256'] == RS._digest('row', {k:v for k,v in row.items()
++                                                                if k != 'row_sha256'}),
++                      'RELEASE_BINDING_CHANGED')
++                head = row['row_sha256']
++                found = found or (number,head) == required
++            _need(found and head == snapshot.head, 'RELEASE_BINDING_CHANGED')
++        except RecoveredSelectionError as exc:
++            failure = exc
++        if store._load(pins) != current:
++            failure = RecoveredSelectionError('RECOVERED_SELECTION_DEPENDENCY_CHANGED')
++        store._check_anchor(pins, anchor)
++    if failure is not None:
++        raise failure
++
++def _configuration(destination, incidents, attempts, route):
++    namespace, binding = M._inputs(incidents, destination, route.registration.bundle_digest)
++    attempt_namespace = R._attempt_namespace(attempts)
++    R._not_latched(attempt_namespace)
++    _need(namespace == route.incident_namespace_sha256
++          and attempt_namespace == route.attempt_namespace_sha256, 'DEPENDENCY_CHANGED')
++    destination._configuration()
++    _need(R._destination_configuration(destination) == route.destination_configuration_sha256
++          and destination.context_sha256 == route.destination_context_sha256
++          and destination._root_ids == route.destination_root_ids
++          and destination.limits.policy_sha256 == route.storage_policy_sha256
++          and destination.limits.object_limits.policy_sha256 == route.object_policy_sha256,
++          'DESTINATION_CHANGED')
++    roots = (destination.roots.sealed_root, destination.roots.backup_root,
++             *incidents._roots, *attempts._roots)
++    expected = (*route.destination_root_ids, *incidents._root_ids, *attempts._root_ids)
++    identities = tuple(B._directory(path) for path in roots)
++    _need(identities == expected, 'DESTINATION_CHANGED')
++    for index, path in enumerate(roots):
++        for other_index, other in enumerate(roots[:index]):
++            _need(not path.is_relative_to(other) and not other.is_relative_to(path)
++                  and identities[index] != identities[other_index], 'DESTINATION_CHANGED')
++    return namespace, attempt_namespace, binding
++
++
++def _selection_document(basis):
++    _need(type(basis) is S._SelectionRecordBasis, 'ACTUAL_INPUT_REQUIRED')
++    names = ('bundle_digest','input_archive_digest','attestation_sha256','revocation_target_sha256',
++        'family_sha256','selected_study_id','program_sha256','protocol_sha256','evidence_sha256',
++        'profile_contract_sha256','rule_terms_sha256','window_sha256','driver_identity_sha256')
++    result = {name:getattr(basis,name) for name in names}
++    result['source_reviews'] = [asdict(item) for item in basis.source_reviews]
++    result['evaluated_at'] = I._stamp(basis.evaluated_at)
++    result['approval_expires_at'] = I._stamp(basis.approval_expires_at)
++    return result
++
++
++def authenticate_recovered_study_selection(destination, bundle_digest, *, incident_store,
++        attempts, route_id, incident_id, archive_attestation, source_reviews,
++        audit_logical_ids, current_profile, window, history_head_root,
++        history_storage_policy=None, clock, authority_provider):
++    """Revalidate one restored research route; never accepts a caller verdict."""
++    _need(type(destination) is BS.BundleStore and type(incident_store) is IS.IncidentStore
++          and type(attempts) is RecoveryAttemptStore and type(authority_provider) is CurrentOwnerAuthority
++          and callable(clock) and authority_provider._clock is clock
++          and all(R._hash(value) for value in (bundle_digest, route_id, incident_id))
++          and type(archive_attestation) is bytes, 'ACTUAL_INPUT_REQUIRED')
++    attempt_snapshot = attempts.inspect()
++    route = R._route_in(attempt_snapshot.state, route_id)
++    _need(route is not None and route.registration.bundle_digest == bundle_digest, 'ROUTE_REQUIRED')
++    attempt = R._attempt_in(attempt_snapshot.state, route_id, incident_id)
++    _need(attempt is not None and attempt.terminal and attempt.phase == 'EXACT_ARCHIVE_RESTORED'
++          and attempt.outcomes and attempt.attempt_id == F.attempt_id(route, incident_id)
++          and attempt.artifact_incident_id == F.artifact_incident_id(incident_id), 'RESTORED_ATTEMPT_REQUIRED')
++    outcome = attempt.outcomes[-1]
++    _need(outcome.status == 'EXACT_ARCHIVE_RESTORED' and outcome.checkpoint is not None
++          and outcome.destination_head is not None and outcome.recovery_artifact_digest is not None
++          and outcome.revocation_status == 'NOT_REVOKED_AT_HEAD', 'RESTORED_ATTEMPT_REQUIRED')
++    body, request = R._document_binding(archive_attestation, route)
++    _need(route.registration.bundle_kind == request['bundle_kind'] == 'VERIFIED_UNAPPROVED',
++          'VERIFIED_TARGET_REQUIRED')
++    namespace, attempt_namespace, binding = _configuration(destination, incident_store, attempts, route)
++    # These are structural/actual graph observations only. No owner clock window
++    # is started and then reset across the potentially heavy family evaluation.
++    M.register_target(incident_store, destination, bundle_digest, clock=clock)
++    destination_head = _destination_prefix(destination, outcome.destination_head)
++    registered = M._existing(incident_store.inspect().state, binding, bundle_digest)
++    _need(registered is not None, 'DEPENDENCY_CHANGED')
++    source = route.registration
++    graph_fields = ('bundle_digest','input_archive_digest','bundle_kind','raw_manifest_sha256',
++                    'verified_manifest_sha256','graph_sha256','objects')
++    _need(all(getattr(registered, name) == getattr(source,name) for name in graph_fields),
++          'DESTINATION_CHANGED')
++    artifact, artifact_bytes, artifact_files = build_recovery_artifact(archive_attestation,
++        incident_id=attempt.artifact_incident_id, limits=destination.limits)
++    artifact_digest = BF.raw_archive_digest(artifact, limits=destination.limits.format_limits)
++    _need(artifact_digest == outcome.recovery_artifact_digest, 'DOCUMENT_CHANGED')
++    checkpoint = R._required_checkpoint(route, attempt)
++    release = None
++    final_snapshot = None
++    final_check = None
++    completion_watermark = None
++    guard_started = False
++
++    def dependencies():
++        nonlocal final_snapshot, final_check
++        _need(_configuration(destination, incident_store, attempts, route)
++              == (namespace, attempt_namespace, binding), 'DEPENDENCY_CHANGED')
++        _need(attempts.inspect() == attempt_snapshot, 'DEPENDENCY_CHANGED')
++        final_check = M._check_recovered_target(incident_store, destination, bundle_digest, clock=clock)
++        final_snapshot = incident_store.inspect()
++        _need(M._existing(final_snapshot.state, binding, bundle_digest) == registered
++              and M._existing(final_snapshot.state, source.store_binding_sha256, bundle_digest) == source,
++              'DEPENDENCY_CHANGED')
++        for registration in (registered, source):
++            _need(tuple(item.incident_id for item in I.blocked_incidents(final_snapshot.state, registration))
++                  == (incident_id,), 'ADDITIONAL_INCIDENT')
++        _need(final_check.graph_checked and final_check.incident_head == final_snapshot.head,
++              'DEPENDENCY_CHANGED')
++        _need(_destination_prefix(destination, outcome.destination_head) == destination_head,
++              'DESTINATION_CHANGED')
++
++    def artifact_check():
++        # Only an actual read/mismatch is an artifact incident. Expiry, revocation,
++        # profile/number failures and supplied-document mismatch are not damage.
++        try:
++            retained = destination.read_raw(artifact_digest, require_backup=True)
++            if retained.manifest_bytes != artifact_bytes or dict(retained.files) != dict(artifact_files):
++                raise B.BundleRecoveryError('BUNDLE_RECOVERY_SIGNATURE_BACKUP_MISMATCH')
++        except (*M._READ_ERRORS, B.BundleRecoveryError) as cause:
++            snapshot = incident_store.inspect()
++            M._record_failure(incident_store, destination, namespace, registered, snapshot,
++                M._GraphFailure('graph',cause), M._observed(clock,snapshot.state.last_trusted_at))
++            raise RecoveredSelectionError('RECOVERED_SELECTION_DEPENDENCY_CHANGED') from None
++
++    def current_restore():
++        nonlocal completion_watermark
++        artifact_check()
++        at = R._clock(clock, checkpoint.observed_at)
++        actual = authority_provider.observe_checkpoint(at, key_fingerprint=checkpoint.key_fingerprint,
++            code_hash=checkpoint.code_hash, owner_head=checkpoint.owner_head)
++        U._authority(archive_attestation, actual, at)
++        completion_watermark = U._time(authority_provider._last)
++        try:
++            verification = B.verify_restored_archive(destination, bundle_digest, archive_attestation,
++                incident_id=attempt.artifact_incident_id, authority_provider=authority_provider, clock=clock)
++        except ValueError:
++            # Attribute a new actual storage fault if present; current approval
++            # rejection alone leaves the incident set unchanged.
++            artifact_check()
++            dependencies()
++            raise
++        _need(verification.revocation_status == 'NOT_REVOKED_AT_HEAD', 'ATTESTATION_REVOKED')
++        _need(verification.recovery_artifact_digest == artifact_digest
++              and verification.attestation_sha256 == route.attestation_sha256
++              and verification.revocation_target_sha256 == route.revocation_target_sha256,
++              'DOCUMENT_CHANGED')
++        completion_watermark = max(completion_watermark, verification.verified_at)
++        return actual
++
++    dependencies()
++
++    def record(basis):
++        nonlocal release, final_snapshot, guard_started, completion_watermark
++        guard_started = True
++        dependencies()
++        authority = current_restore()
++        selection = _selection_document(basis)
++        release_binding = dict(route_id=route_id,attempt_id=attempt.attempt_id,
++            outcome_event_id=outcome.event_id,incident_id=incident_id,
++            incident_namespace_sha256=namespace,attempt_namespace_sha256=attempt_namespace,
++            source_store_binding_sha256=source.store_binding_sha256,
++            source_registration_sha256=I.registration_digest(source,limits=incident_store.limits.format_limits),
++            destination_store_binding_sha256=binding,
++            destination_registration_sha256=I.registration_digest(registered,limits=incident_store.limits.format_limits),
++            bundle_digest=bundle_digest,input_archive_digest=source.input_archive_digest,
++            graph_sha256=registered.graph_sha256,recovery_artifact_digest=artifact_digest,selection=selection)
++        digest = I.research_release_binding_digest(release_binding, limits=incident_store.limits.format_limits)
++        # Recheck dependencies after the potentially slow current-owner/graph work.
++        dependencies()
++        previous = I.research_route_releases(final_snapshot.state, route_id=route_id,
++            incident_id=incident_id,destination_store_binding_sha256=binding,
++            limits=incident_store.limits.format_limits)
++        release = next((event for event in previous if event.payload['binding_sha256'] == digest),None)
++        if release is not None:
++            _release_provenance(incident_store,release,final_snapshot)
++            _attempt_prefix(attempts,tuple(release.payload['attempt_head']),attempt_snapshot)
++            _need(_destination_prefix(destination,tuple(release.payload['destination_head'])) == destination_head,
++                  'RELEASE_BINDING_CHANGED')
++            saved = F.parse_checkpoint(I._plain(release.payload['owner_checkpoint']))
++            at = R._clock(clock,max(completion_watermark,saved.observed_at))
++            prior = authority_provider.observe_checkpoint(at,key_fingerprint=saved.key_fingerprint,
++                code_hash=saved.code_hash,owner_head=saved.owner_head)
++            U._authority(archive_attestation,prior,at)
++            completion_watermark = max(completion_watermark,U._time(authority_provider._last))
++            return
++        at = R._clock(clock, completion_watermark)
++        event = I.make_event('RESEARCH_ROUTE_RELEASE', dict(release_schema=1,
++            scope='recovered_research_selection',binding=release_binding,binding_sha256=digest,
++            incident_head=[final_snapshot.sequence,final_snapshot.head],
++            attempt_head=[attempt_snapshot.sequence,attempt_snapshot.head],
++            destination_head=list(destination_head),
++            owner_checkpoint=F.checkpoint_document(R._checkpoint(authority))),observed_at=at)
++        try:
++            final_snapshot = incident_store.commit(event, expected_head=final_snapshot.head)
++        except Exception:
++            M._latch(namespace)
++            raise RecoveredSelectionError('RECOVERED_SELECTION_RECORD_UNCONFIRMED') from None
++        _release_provenance(incident_store,event,final_snapshot)
++        release = event
++
++    def final_dependency_guard():
++        nonlocal guard_started
++        guard_started = True
++        dependencies()
++        current_restore()
++        dependencies()
++        if release is not None:
++            _release_provenance(incident_store,release,final_snapshot)
++
++    def completion_dependency_guard():
++        _need(final_snapshot is not None and completion_watermark is not None, 'DEPENDENCY_CHANGED')
++        _need(_configuration(destination,incident_store,attempts,route)
++              == (namespace,attempt_namespace,binding), 'DEPENDENCY_CHANGED')
++        with incident_store._pinned() as pins:
++            incident_matches = incident_store.head.read() == final_snapshot.head
++            pins.check()
++        _need(incident_matches, 'DEPENDENCY_CHANGED')
++        with attempts._pinned() as pins:
++            attempt_matches = attempts.head.read() == attempt_snapshot.head
++            pins.check()
++        _need(attempt_matches, 'DEPENDENCY_CHANGED')
++        with destination._locked():
++            destination_matches = destination.head.read() == destination_head[1]
++        _need(destination_matches, 'DESTINATION_CHANGED')
++        return completion_watermark
++
++    try:
++        selection = S._authenticate_sealed_study_selection(destination,bundle_digest,
++            archive_attestation=archive_attestation,source_reviews=source_reviews,
++            audit_logical_ids=audit_logical_ids,current_profile=current_profile,window=window,
++            history_head_root=history_head_root,history_storage_policy=history_storage_policy,
++            clock=clock,authority_provider=authority_provider,selection_record_guard=record,
++            final_dependency_guard=final_dependency_guard,completion_dependency_guard=completion_dependency_guard)
++    except ValueError:
++        if not guard_started:
++            # Attribute only actual storage damage, not a failed numeric/review
++            # check; preserve the original research diagnostic when graph is sound.
++            dependencies()
++        raise
++    _need(type(selection) is S.SealedSelectionAssessment and final_snapshot is not None,
++          'ACTUAL_INPUT_REQUIRED')
++    selected = selection.research_selection_ready
++    _need(not selected or release is not None, 'RECORD_UNCONFIRMED')
++    return RecoveredSelectionAssessment(scope='recovered_research_selection',selection_assessment=selection,
++        route_id=route_id,attempt_id=attempt.attempt_id,incident_id=incident_id,outcome_event_id=outcome.event_id,
++        recovery_artifact_digest=artifact_digest,destination_store_binding_sha256=binding,
++        release_record_id=None if not selected else release.event_id,
++        incident_context_sha256=incident_store.context_sha256,incident_head=final_snapshot.head,
++        incident_sequence=final_snapshot.sequence,attempt_head=attempt_snapshot.head,
++        attempt_sequence=attempt_snapshot.sequence,research_selection_ready=selected and release is not None)
+diff --git a/execution_launch/research_incident_monitor.py b/execution_launch/research_incident_monitor.py
+index 35ce0b8..66855fb 100644
+--- a/execution_launch/research_incident_monitor.py
++++ b/execution_launch/research_incident_monitor.py
+@@ -7,7 +7,7 @@ is not protected continuation. Capacity admission is not a disk reservation.
+ """
+ from __future__ import annotations
+ 
+-from dataclasses import dataclass
++from dataclasses import dataclass, replace
+ from datetime import datetime, timezone
+ import hashlib
+ import json
+@@ -322,15 +322,9 @@ def _record_failure(incident_store, bundle_store, namespace, registration, snaps
+     return _projection(committed, registration, graph_checked=False, observed=observed)
+ 
+ 
+-def check_target(incident_store, bundle_store, bundle_digest, *, clock):
+-    """Finite actual graph read plus durable restriction observation, never a lease."""
+-    namespace, binding = _inputs(incident_store, bundle_store, bundle_digest)
+-    snapshot = incident_store.inspect()
+-    registration = _existing(snapshot.state, binding, bundle_digest)
+-    _need(registration is not None, 'INCIDENT_TARGET_UNREGISTERED')
+-    observed = _observed(clock, snapshot.state.last_trusted_at)
+-    if F.blocked_incidents(snapshot.state, registration):
+-        return _projection(snapshot, registration, graph_checked=False, observed=observed)
++def _check_registered_graph(incident_store, bundle_store, bundle_digest, *,
++                            namespace, binding, snapshot, registration, observed):
++    """Actual shared graph/failure path. A healthy read never removes a hold."""
+     # This is capacity preflight, NOT a future write/disk reservation. Its
+     # proposed broad failure includes all registered dependencies, never strips
+     # normal quotes or records. Commit repeats admission under the actual lock.
+@@ -349,4 +343,34 @@ def check_target(incident_store, bundle_store, bundle_digest, *, clock):
+     # Include concurrently appended restrictions in the returned observation.
+     final = incident_store.inspect()
+     _need(_existing(final.state, binding, bundle_digest) == registration, 'INCIDENT_REGISTRATION_CHANGED')
+-    return _projection(final, registration, graph_checked=True, observed=observed)
++    return replace(_projection(final, registration, graph_checked=True, observed=observed), graph_checked=True)
++
++
++def check_target(incident_store, bundle_store, bundle_digest, *, clock):
++    """Finite actual graph read plus durable restriction observation, never a lease."""
++    namespace, binding = _inputs(incident_store, bundle_store, bundle_digest)
++    snapshot = incident_store.inspect()
++    registration = _existing(snapshot.state, binding, bundle_digest)
++    _need(registration is not None, 'INCIDENT_TARGET_UNREGISTERED')
++    observed = _observed(clock, snapshot.state.last_trusted_at)
++    if F.blocked_incidents(snapshot.state, registration):
++        return _projection(snapshot, registration, graph_checked=False, observed=observed)
++    result = _check_registered_graph(incident_store, bundle_store, bundle_digest,
++        namespace=namespace, binding=binding, snapshot=snapshot, registration=registration, observed=observed)
++    return replace(result, graph_checked=result.graph_checked and not result.held)
++
++
++def _check_recovered_target(incident_store, bundle_store, bundle_digest, *, clock):
++    """Read a held graph for recovery research without releasing any restriction.
++
++    Unlike the general monitor's early held return, this private path performs
++    the full backed read. Its descriptive result may be held and graph_checked;
++    neither the constructor nor a historical result is a current authorization.
++    """
++    namespace, binding = _inputs(incident_store, bundle_store, bundle_digest)
++    snapshot = incident_store.inspect()
++    registration = _existing(snapshot.state, binding, bundle_digest)
++    _need(registration is not None, 'INCIDENT_TARGET_UNREGISTERED')
++    observed = _observed(clock, snapshot.state.last_trusted_at)
++    return _check_registered_graph(incident_store, bundle_store, bundle_digest,
++        namespace=namespace, binding=binding, snapshot=snapshot, registration=registration, observed=observed)
+diff --git a/execution_launch/research_incidents.py b/execution_launch/research_incidents.py
+index 0731264..085d90b 100644
+--- a/execution_launch/research_incidents.py
++++ b/execution_launch/research_incidents.py
+@@ -2,10 +2,11 @@
+ 
+ An adapter must establish dependency provenance. These constructors and hashes
+ prove only internal consistency, never that a read failed or a message was sent.
+-There is deliberately no release, recovery, approval, expiry or trading event.
++A scoped research-route record is historical metadata only. General holds never
++change; no record issues source, owner, recovery, approval or trading authority.
+ """
+ from dataclasses import dataclass, fields
+-from datetime import datetime, timezone
++from datetime import datetime, timedelta, timezone
+ from functools import wraps
+ import hashlib
+ import json
+@@ -21,6 +22,23 @@ _HASH = re.compile(r'[0-9a-f]{64}\Z')
+ _REASON = re.compile(r'[A-Z][A-Z0-9_]{0,95}\Z')
+ _ATTEMPT = re.compile(r'[a-z][a-z0-9_-]{0,63}\Z')
+ _CATEGORIES = ('INTEGRITY_FAILURE', 'READ_UNAVAILABLE', 'RESOURCE_LIMIT', 'VALIDATION_REFUSED')
++_RESEARCH_RELEASE = 'RESEARCH_ROUTE_RELEASE'
++_RELEASE_REGISTRATION_DOMAIN = b'tradegen-research-release-registration/1\n'
++_RELEASE_BINDING_DOMAIN = b'tradegen-research-route-release-binding/1\n'
++_STUDY_ID = re.compile(r'[A-Za-z][A-Za-z0-9_.:-]{0,95}\Z')
++_RELEASE_BINDING_HASHES = (
++    'route_id', 'attempt_id', 'outcome_event_id', 'incident_id',
++    'incident_namespace_sha256', 'attempt_namespace_sha256',
++    'source_store_binding_sha256', 'source_registration_sha256',
++    'destination_store_binding_sha256', 'destination_registration_sha256',
++    'bundle_digest', 'input_archive_digest', 'graph_sha256', 'recovery_artifact_digest')
++_RELEASE_SELECTION_HASHES = (
++    'bundle_digest', 'input_archive_digest', 'attestation_sha256', 'revocation_target_sha256',
++    'family_sha256', 'program_sha256', 'protocol_sha256', 'evidence_sha256',
++    'profile_contract_sha256', 'rule_terms_sha256', 'window_sha256', 'driver_identity_sha256')
++_SOURCE_REVIEW_PURPOSES = (
++    'strategy_source_and_fixed_implementation_review',
++    'strategy_source_and_fixed_carry_implementation_review')
+ _MAX_DEPTH = 16
+ _MAX_NODES = 2_000_000
+ 
+@@ -266,7 +284,106 @@ def parse_registration(document, *, limits=DEFAULT_LIMITS):
+     return result
+ 
+ 
++
++def _release_identifier(value, pattern):
++    if type(value) is not str or pattern.fullmatch(value) is None:
++        _fail()
++    return value
++
++
++def _release_head(value):
++    if type(value) is not list or len(value) != 2:
++        _fail()
++    return [_integer(value[0]), _hash(value[1])]
++
++
++def _release_selection(document):
++    _keys(document, _RELEASE_SELECTION_HASHES +
++          ('selected_study_id', 'source_reviews', 'evaluated_at', 'approval_expires_at'))
++    for name in _RELEASE_SELECTION_HASHES:
++        _hash(document[name])
++    selected = _release_identifier(document['selected_study_id'], _STUDY_ID)
++    reviews = document['source_reviews']
++    if type(reviews) is not list or not reviews:
++        _fail()
++    if len(reviews) > 128:
++        _fail('INCIDENT_RESOURCE_LIMIT')
++    previous = None
++    identifiers = set()
++    for item in reviews:
++        _keys(item, ('study_id', 'document_sha256', 'purpose', 'revocation_target_sha256',
++                     'audit_logical_id', 'audit_sha256'))
++        identity = _release_identifier(item['study_id'], _STUDY_ID)
++        if previous is not None and identity <= previous:
++            _fail()
++        previous = identity
++        identifiers.add(identity)
++        for name in ('document_sha256', 'revocation_target_sha256', 'audit_sha256'):
++            _hash(item[name])
++        _enum(item['purpose'], _SOURCE_REVIEW_PURPOSES)
++        _release_identifier(item['audit_logical_id'], _ATTEMPT)
++    if selected not in identifiers:
++        _fail()
++    if _time(document['evaluated_at']) >= _time(document['approval_expires_at']):
++        _fail()
++    return document
++
++
++def _release_binding(document):
++    _keys(document, _RELEASE_BINDING_HASHES + ('selection',))
++    for name in _RELEASE_BINDING_HASHES:
++        _hash(document[name])
++    selection = _release_selection(document['selection'])
++    if (document['source_store_binding_sha256'] == document['destination_store_binding_sha256']
++            or any(document[name] != selection[name] for name in ('bundle_digest', 'input_archive_digest'))):
++        _fail()
++    return document
++
++
++@_fixed
++def registration_digest(registration, *, limits=DEFAULT_LIMITS):
++    """Bind exact registration metadata; never authenticate its dependency graph."""
++    limits = _limits(limits)
++    raw = _bounded(_registration_doc(registration, limits), limits.max_event_bytes)
++    return hashlib.sha256(_RELEASE_REGISTRATION_DOMAIN + raw).hexdigest()
++
++
++@_fixed
++def research_release_binding_digest(binding, *, limits=DEFAULT_LIMITS):
++    """Strict inert binding, not a source verification or current-use decision."""
++    limits = _limits(limits)
++    raw = _bounded(_release_binding(_plain(binding)), limits.max_event_bytes)
++    return hashlib.sha256(_RELEASE_BINDING_DOMAIN + raw).hexdigest()
++
++
++def _release_payload(document, limits):
++    _keys(document, ('release_schema', 'scope', 'binding', 'binding_sha256', 'incident_head',
++                     'attempt_head', 'destination_head', 'owner_checkpoint'))
++    if type(document['release_schema']) is not int or document['release_schema'] != 1:
++        _fail()
++    _enum(document['scope'], ('recovered_research_selection',))
++    binding = _release_binding(document['binding'])
++    _hash(document['binding_sha256'])
++    if document['binding_sha256'] != research_release_binding_digest(binding, limits=limits):
++        _fail('INCIDENT_RELEASE_BINDING_MISMATCH')
++    for name in ('incident_head', 'attempt_head', 'destination_head'):
++        _release_head(document[name])
++    checkpoint = document['owner_checkpoint']
++    _keys(checkpoint, ('key_fingerprint', 'code_hash', 'owner_head', 'observed_at'))
++    fingerprint = checkpoint['key_fingerprint']
++    if type(fingerprint) is not str or len(fingerprint) != 71 or not fingerprint.startswith('SHA256:'):
++        _fail()
++    _hash(fingerprint[7:]); _hash(checkpoint['code_hash'])
++    _release_head(checkpoint['owner_head'])
++    if not (_time(binding['selection']['evaluated_at']) <= _time(checkpoint['observed_at'])
++            < _time(binding['selection']['approval_expires_at'])):
++        _fail()
++    return document
++
++
+ def _payload(kind, document, limits):
++    if kind == _RESEARCH_RELEASE:
++        return _release_payload(document, limits)
+     if kind == 'REGISTER':
+         return _registration_doc(parse_registration(document, limits=limits), limits)
+     if kind == 'FAILURE':
+@@ -318,7 +435,7 @@ def _event_doc(value, limits):
+     if type(value) is not IncidentEvent or type(value.schema) is not int or value.schema != 1:
+         _fail()
+     _hash(value.event_id)
+-    _enum(value.kind, ('REGISTER', 'FAILURE', 'DELIVERY'))
++    _enum(value.kind, ('REGISTER', 'FAILURE', 'DELIVERY', _RESEARCH_RELEASE))
+     if value.observed_at is None:
+         if value.kind != 'FAILURE':
+             _fail()
+@@ -326,6 +443,11 @@ def _event_doc(value, limits):
+     else:
+         at = _stamp(value.observed_at)
+     payload = _payload(value.kind, _plain(value.payload), limits)
++    if value.kind == _RESEARCH_RELEASE:
++        checkpoint_at = _time(payload['owner_checkpoint']['observed_at'])
++        if (not timedelta(0) <= _time(at)-checkpoint_at <= timedelta(seconds=30)
++                or _time(at) >= _time(payload['binding']['selection']['approval_expires_at'])):
++            _fail()
+     body = dict(schema=1, kind=value.kind, observed_at=at, payload=payload)
+     if value.event_id != _digest(b'event', body):
+         _fail('INCIDENT_EVENT_ID_MISMATCH')
+@@ -336,7 +458,7 @@ def _event_doc(value, limits):
+ 
+ @_fixed
+ def make_event(kind, payload, *, observed_at):
+-    _enum(kind, ('REGISTER', 'FAILURE', 'DELIVERY'))
++    _enum(kind, ('REGISTER', 'FAILURE', 'DELIVERY', _RESEARCH_RELEASE))
+     at = None if observed_at is None else _stamp(observed_at)
+     body = dict(schema=1, kind=kind, observed_at=at, payload=_payload(kind, _plain(payload), DEFAULT_LIMITS))
+     return IncidentEvent(schema=1, event_id=_digest(b'event', body), kind=kind,
+@@ -495,6 +617,61 @@ def _affected(registrations, *, store_binding_sha256, bundle_digest, scope, fail
+     return tuple(sorted(bundles)), tuple(sorted(originals))
+ 
+ 
++def _blocked_incidents(registrations, incidents, registration):
++    blocked = []
++    for incident in incidents:
++        # Preserve historical affected IDs, and extend physical-scope membership
++        # from ALL current registrations. A late dependent's copy cannot escape.
++        bundles, originals = _affected(registrations,
++            store_binding_sha256=incident.store_binding_sha256, bundle_digest=incident.bundle_digest,
++            scope=incident.scope, failed_objects=incident.failed_objects)
++        bundles = set(bundles) | set(incident.affected_bundle_digests)
++        originals = set(originals) | set(incident.affected_raw_digests)
++        candidate_bundles, candidate_raw = _affected((registration,),
++            store_binding_sha256=incident.store_binding_sha256, bundle_digest=incident.bundle_digest,
++            scope=incident.scope, failed_objects=incident.failed_objects)
++        if (registration.bundle_digest in bundles or registration.input_archive_digest in originals
++                or candidate_bundles or candidate_raw):
++            blocked.append(incident)
++    return tuple(blocked)
++
++
++def _apply_release(state, event, body, limits):
++    """Check local references only; external provenance remains unverified here."""
++    binding = body['binding']
++    prior = tuple(item for item in state.events if item.kind == _RESEARCH_RELEASE)
++    for item in prior:
++        if item.payload['binding_sha256'] == body['binding_sha256']:
++            if event_bytes(item, limits=limits) != event_bytes(event, limits=limits):
++                _fail('INCIDENT_RELEASE_CONFLICT')
++            return False
++    if len(prior) >= limits.max_incidents:
++        _fail('INCIDENT_RESOURCE_LIMIT')
++    targets = []
++    for prefix in ('source', 'destination'):
++        target = next((item for item in state.registrations
++            if item.store_binding_sha256 == binding[prefix+'_store_binding_sha256']
++            and item.bundle_digest == binding['bundle_digest']), None)
++        if target is None:
++            _fail('INCIDENT_TARGET_UNREGISTERED')
++        if (target.bundle_kind != 'VERIFIED_UNAPPROVED'
++                or registration_digest(target, limits=limits) != binding[prefix+'_registration_sha256']
++                or target.input_archive_digest != binding['input_archive_digest']
++                or target.graph_sha256 != binding['graph_sha256']):
++            _fail('INCIDENT_RELEASE_REGISTRATION_MISMATCH')
++        targets.append(target)
++    if any(getattr(targets[0], name) != getattr(targets[1], name)
++           for name in ('raw_manifest_sha256', 'verified_manifest_sha256', 'objects')):
++        _fail('INCIDENT_RELEASE_REGISTRATION_MISMATCH')
++    if not any(item.incident_id == binding['incident_id'] for item in state.incidents):
++        _fail('INCIDENT_RELEASE_INCIDENT_MISMATCH')
++    for target in targets:
++        blocked = _blocked_incidents(state.registrations, state.incidents, target)
++        if tuple(item.incident_id for item in blocked) != (binding['incident_id'],):
++            _fail('INCIDENT_RELEASE_INCIDENT_MISMATCH')
++    return True
++
++
+ def _apply(state, event, limits):
+     """Internal deterministic fold; caller has checked the event and prior fold."""
+     if event.observed_at is not None and state.last_trusted_at is not None and event.observed_at < state.last_trusted_at:
+@@ -534,6 +711,9 @@ def _apply(state, event, limits):
+             bundle_digest=incident.bundle_digest, category=incident.category, reason_code=incident.reason_code)
+         incidents += (incident,)
+         outbox += (NotificationIntent(message_id=_digest(b'notification', intent_body), **intent_body),)
++    elif event.kind == _RESEARCH_RELEASE:
++        if not _apply_release(state, event, body, limits):
++            return state
+     else:
+         message = next((item for item in outbox if item.message_id == body['message_id']), None)
+         if message is None:
+@@ -549,6 +729,8 @@ def _apply(state, event, limits):
+         if len(receipts) >= limits.max_attempts:
+             _fail('INCIDENT_RESOURCE_LIMIT')
+         receipts += (receipt,)
++    if len(state.events) >= limits.max_targets+limits.max_incidents+limits.max_attempts:
++        _fail('INCIDENT_RESOURCE_LIMIT')
+     return IncidentState(registrations=registrations, incidents=incidents, outbox=outbox, receipts=receipts,
+         events=state.events+(event,), last_trusted_at=event.observed_at or state.last_trusted_at)
+ 
+@@ -677,19 +859,20 @@ def state_digest(state, *, limits=DEFAULT_LIMITS):
+ def blocked_incidents(state, registration):
+     _validate_state(state, DEFAULT_LIMITS)
+     _registration_doc(registration, DEFAULT_LIMITS)
+-    blocked = []
+-    for incident in state.incidents:
+-        # Preserve historical affected IDs, and extend physical-scope membership
+-        # from ALL current registrations. A late dependent's copy cannot escape.
+-        bundles, originals = _affected(state.registrations,
+-            store_binding_sha256=incident.store_binding_sha256, bundle_digest=incident.bundle_digest,
+-            scope=incident.scope, failed_objects=incident.failed_objects)
+-        bundles = set(bundles) | set(incident.affected_bundle_digests)
+-        originals = set(originals) | set(incident.affected_raw_digests)
+-        candidate_bundles, candidate_raw = _affected((registration,),
+-            store_binding_sha256=incident.store_binding_sha256, bundle_digest=incident.bundle_digest,
+-            scope=incident.scope, failed_objects=incident.failed_objects)
+-        if (registration.bundle_digest in bundles or registration.input_archive_digest in originals
+-                or candidate_bundles or candidate_raw):
+-            blocked.append(incident)
+-    return tuple(blocked)
++    return _blocked_incidents(state.registrations, state.incidents, registration)
++
++
++@_fixed
++def research_route_releases(state, *, route_id=None, incident_id=None,
++                            destination_store_binding_sha256=None, limits=DEFAULT_LIMITS):
++    """Return original validated records, never authority or a general unhold."""
++    limits = _limits(limits)
++    filters = (('route_id', route_id), ('incident_id', incident_id),
++               ('destination_store_binding_sha256', destination_store_binding_sha256))
++    for _, value in filters:
++        if value is not None:
++            _hash(value)
++    _validate_state(state, limits)
++    return tuple(event for event in state.events if event.kind == _RESEARCH_RELEASE
++                 and all(value is None or event.payload['binding'][name] == value
++                         for name, value in filters))
+diff --git a/execution_launch/research_recovery_cli.py b/execution_launch/research_recovery_cli.py
+index 0a8da9d..71ed9aa 100644
+--- a/execution_launch/research_recovery_cli.py
++++ b/execution_launch/research_recovery_cli.py
+@@ -2,17 +2,23 @@
+ 
+ python -m execution_launch.research_recovery_cli inspect --attempt-root ROOT --attempt-backup-root ROOT --attempt-head-root ROOT --attempt-head-name NAME --attempt-limits LIMITS.json
+ 
+-Commands: route-register, run-once, inspect, list-pending. Registration and run
++Commands: route-register, run-once, inspect, list-pending, select-recovered. Registration and run
+ require explicit incident, source and destination storage configuration plus the
+ original --archive-attestation file. Registration additionally requires --digest
+ and --source-head-name; run requires --route-id and --incident-id. Stores and
+ heads must already be provisioned. A completed record is historical evidence,
+ not a new check that its destination is still present or currently eligible.
+-No command signs, releases quarantine, sends a notification or activates orders.
++select-recovered uses attempt/incident/destination options, --digest, --route-id,
++--incident-id, --archive-attestation, --profile, --window, --head-root (history),
++optional --history-storage, and repeated --source-review / --audit STUDY=LOGICAL.
++It requires no source options. It records a scoped research-use observation after
++fresh verification; it does not release general holds or activate trading.
++No command signs, sends a notification or activates orders.
+ """
+ from __future__ import annotations
+ 
+ from datetime import datetime, timezone
++from datetime import datetime as _Timestamp
+ import json
+ from pathlib import Path
+ import re
+@@ -23,17 +29,24 @@ from execution_launch import bundle_attestation
+ from execution_launch.bundle_recovery import SignedBackupSource
+ from execution_launch.research_bundle import open_explicit_store, read_store_limits
+ from execution_launch.research_bundle_store import BundleRoots
+-from execution_launch.research_incident_cli import INCIDENT_OPTIONS, open_incident_store
++from execution_launch.research_incident_cli import (INCIDENT_OPTIONS, open_incident_store,
++    parse_options as parse_selection_options, _selection_inputs)
++from execution_launch.recovered_study_selection import (RecoveredSelectionAssessment,
++    authenticate_recovered_study_selection)
+ from execution_launch.research_recovery import (RecoveryRouteConfig, RecoveryRouteObservation,
+     RecoveryControllerObservation, register_recovery_route, run_recovery_once)
+ from execution_launch.research_recovery_store import RecoveryAttemptStore, parse_limits
+ from execution_launch.strategy import _plain
++from execution_launch.sealed_study_review import SealedSelectionAssessment
++from execution_launch.study import MarketSelection
+ from execution_launch.workflow import _CODE, read_file
+ 
+ ATTEMPT_OPTIONS = frozenset({'attempt-root','attempt-backup-root','attempt-head-root',
+                             'attempt-head-name','attempt-limits'})
+ _SOURCE = frozenset({'source-root','source-backup-root','source-limits'})
+ _DESTINATION = frozenset({'destination-root','destination-backup-root','destination-head-name','destination-limits'})
++_SELECTION = frozenset({'digest','route-id','incident-id','archive-attestation','profile','window','head-root'})
++_STUDY_ID = re.compile(r'[A-Za-z][A-Za-z0-9_.:-]{0,95}')
+ _HASH = re.compile(r'[0-9a-f]{64}')
+ _LIMITS_BYTES = 65536
+ 
+@@ -68,12 +81,17 @@ def _arguments(argv):
+         return 'help',{}
+     command=argv[0]
+     _need(command!='provision', 'RECOVERY_OPERATOR_PROVISION_REQUIRED')
+-    _need(command in ('route-register','run-once','inspect','list-pending'), 'RECOVERY_CLI_ARGUMENTS_INVALID')
++    _need(command in ('route-register','run-once','inspect','list-pending','select-recovered'),
++          'RECOVERY_CLI_ARGUMENTS_INVALID')
+     required=ATTEMPT_OPTIONS
+     if command in ('route-register','run-once'):
+         required=required|INCIDENT_OPTIONS|_SOURCE|_DESTINATION|{'archive-attestation'}
+         required=required|({'digest','source-head-name'} if command=='route-register' else {'route-id','incident-id'})
+-    args=parse_options(argv[1:],required=required)
++    if command=='select-recovered':
++        args=parse_selection_options(argv[1:],required=ATTEMPT_OPTIONS|INCIDENT_OPTIONS|_DESTINATION|_SELECTION,
++            optional=frozenset({'history-storage'}),repeated=frozenset({'source-review','audit'}))
++    else:
++        args=parse_options(argv[1:],required=required)
+     for name in ('digest','route-id','incident-id'):
+         if name in args:
+             _need(_HASH.fullmatch(args[name]) is not None, 'RECOVERY_CLI_IDENTIFIER_INVALID')
+@@ -112,14 +130,75 @@ def _destination(args):
+                                args['destination-head-name'],args['destination-limits'])
+ 
+ 
++def _selection_base():
++    return {'status':'REFUSED','scope':'recovered_research_selection','reasons':[],
++        'research_selection_ready':False,'release_record_id':None,'current_operational_use':False,
++        'execution_ready':False,'automatic_operational_recovery_supported':False,
++        'network_delivery_performed':False}
++
++
++def _selection_output(value,args):
++    """Closed descriptive output; never serialize raw profiles or whole graphs."""
++    code='RECOVERY_CLI_RESULT_INVALID'
++    _need(type(value) is RecoveredSelectionAssessment and value.scope=='recovered_research_selection'
++          and all(getattr(value,name) is False for name in
++              ('current_operational_use','execution_ready','automatic_operational_recovery_supported')),code)
++    nested=value.selection_assessment
++    _need(type(nested) is SealedSelectionAssessment and nested.scope=='sealed_research_selection'
++          and all(getattr(nested,name) is False for name in
++              ('current_operational_use','execution_ready','automatic_recovery_supported'))
++          and nested.archive_identity_authenticated is True
++          and nested.revocation_status=='NOT_REVOKED_AT_HEAD',code)
++    selection=nested.selection
++    _need(type(selection) is MarketSelection and type(selection.status) is str
++          and selection.execution_ready is False
++          and _CODE.fullmatch(selection.status) is not None
++          and type(selection.reasons) is tuple and len(selection.reasons)<=128
++          and all(type(item) is str and _CODE.fullmatch(item) is not None for item in selection.reasons),code)
++    identifiers=('route_id','attempt_id','incident_id','outcome_event_id','recovery_artifact_digest',
++        'destination_store_binding_sha256','incident_context_sha256','incident_head','attempt_head')
++    _need(all(type(getattr(value,name)) is str and _HASH.fullmatch(getattr(value,name)) is not None
++              for name in identifiers),code)
++    _need(value.route_id==args['route-id'] and value.incident_id==args['incident-id']
++          and nested.bundle_digest==args['digest'] and type(nested.bundle_digest) is str
++          and _HASH.fullmatch(nested.bundle_digest) is not None
++          and type(nested.input_archive_digest) is str and _HASH.fullmatch(nested.input_archive_digest) is not None
++          and all(type(getattr(value,name)) is int and 0<getattr(value,name)<2**63
++                  for name in ('incident_sequence','attempt_sequence'))
++          and type(nested.verified_at) is _Timestamp and nested.verified_at.utcoffset() is not None,code)
++    selected=selection.status=='SELECTED'
++    _need(type(value.research_selection_ready) is bool and type(nested.research_selection_ready) is bool
++          and value.research_selection_ready is selected and nested.research_selection_ready is selected,code)
++    if selected:
++        _need(type(value.release_record_id) is str and _HASH.fullmatch(value.release_record_id) is not None
++              and nested.source_reviews_authenticated is True and nested.selected_implementation_authenticated is True
++              and type(selection.selected_study_id) is str
++              and _STUDY_ID.fullmatch(selection.selected_study_id) is not None,code)
++    else:
++        _need(value.release_record_id is None and selection.selected_study_id is None,code)
++    output=_selection_base()
++    output.update({name:getattr(value,name) for name in identifiers})
++    output.update(status=selection.status,reasons=list(selection.reasons),
++        bundle_digest=nested.bundle_digest,input_archive_digest=nested.input_archive_digest,
++        selected_study_id=selection.selected_study_id,release_record_id=value.release_record_id,
++        incident_sequence=value.incident_sequence,attempt_sequence=value.attempt_sequence,
++        verified_at=nested.verified_at.astimezone(timezone.utc).isoformat(),
++        research_selection_ready=value.research_selection_ready)
++    return output
++
++
+ def main(argv=None):
++    values=sys.argv[1:] if argv is None else argv
++    selected=(type(values) in (list,tuple) and bool(values) and type(values[0]) is str
++              and values[0]=='select-recovered')
+     try:
+-        command,args=_arguments(sys.argv[1:] if argv is None else argv)
++        command,args=_arguments(values)
+         if command=='help':
+             print(__doc__)
+             return 0
+         # Original bounded document is required before any route/run work.
+         document=_archive(args) if command in ('route-register','run-once') else None
++        inputs=_selection_inputs(args) if command=='select-recovered' else None
+         attempts=open_attempt_store(args)
+         output=base_output()
+         if command in ('inspect','list-pending'):
+@@ -144,7 +223,12 @@ def main(argv=None):
+             def clock():
+                 return datetime.now(timezone.utc)
+             authority=CurrentOwnerAuthority(clock=clock)
+-            if command=='route-register':
++            if command=='select-recovered':
++                observed=authenticate_recovered_study_selection(destination,args['digest'],incident_store=incidents,
++                    attempts=attempts,route_id=args['route-id'],incident_id=args['incident-id'],
++                    **inputs,clock=clock,authority_provider=authority)
++                output=_selection_output(observed,args)
++            elif command=='route-register':
+                 source=open_explicit_store(args['source-root'],args['source-backup-root'],
+                                            args['source-head-name'],args['source-limits'])
+                 observed=register_recovery_route(incidents,attempts,source,destination,args['digest'],document,
+@@ -171,7 +255,8 @@ def main(argv=None):
+         code='RECOVERY_CLI_STOPPED'
+     except (ValueError,OSError,RuntimeError,TypeError,AttributeError,ArithmeticError,RecursionError,KeyError) as exc:
+         code=diagnostic(exc)
+-    output=base_output();output['reasons']=[code]
++    output=_selection_base() if selected else base_output()
++    output['reasons']=[code]
+     print(json.dumps(output,sort_keys=True,allow_nan=False))
+     return 2
+ 
+diff --git a/execution_launch/sealed_study_review.py b/execution_launch/sealed_study_review.py
+index a1163c9..b0a9339 100644
+--- a/execution_launch/sealed_study_review.py
++++ b/execution_launch/sealed_study_review.py
+@@ -9,14 +9,15 @@ The final owner/graph observation is finite, not a persistent storage lease.
+ from __future__ import annotations
+ 
+ from collections.abc import Mapping
+-from dataclasses import dataclass, replace
++from dataclasses import dataclass, field, replace
+ from datetime import datetime, timedelta, timezone
+ import hashlib
+ import json
+ from pathlib import Path
+ 
+ from core.compliance import model as compliance
+-from execution_control.owner_authority import CurrentOwnerAuthority, MAX_AUTHORITY_AGE_SECONDS
++from execution_control.capability import digest as control_digest
++from execution_control.owner_authority import CurrentOwnerAuthority, MAX_AUTHORITY_AGE_SECONDS, ReviewAuthority
+ from execution_launch import bundle_attestation as A, bundle_auth as U
+ from execution_launch import research_bundle as B, research_bundle_format as F, study_review as S
+ from execution_launch import coordinator as C
+@@ -71,6 +72,41 @@ class SealedSelectionAssessment:
+     automatic_recovery_supported: bool = False
+ 
+ 
++@dataclass(frozen=True, kw_only=True, slots=True)
++class _SourceReviewRecordBasis:
++    study_id: str
++    document_sha256: str
++    purpose: str
++    revocation_target_sha256: str
++    audit_logical_id: str
++    audit_sha256: str
++
++
++@dataclass(frozen=True, kw_only=True, slots=True)
++class _SelectionRecordBasis:
++    """Actual private observation for recording, never a reusable permission."""
++    bundle_digest: str
++    input_archive_digest: str
++    attestation_sha256: str
++    revocation_target_sha256: str
++    family_sha256: str
++    selected_study_id: str
++    program_sha256: str
++    protocol_sha256: str
++    evidence_sha256: str
++    profile_contract_sha256: str
++    rule_terms_sha256: str
++    window_sha256: str
++    driver_identity_sha256: str
++    source_reviews: tuple[_SourceReviewRecordBasis, ...]
++    evaluated_at: datetime
++    approval_expires_at: datetime
++    started_at: datetime
++    observed_at: datetime
++    first_authority: ReviewAuthority = field(repr=False)
++    selected_authority: ReviewAuthority = field(repr=False)
++
++
+ def _documents(source_reviews, audit_logical_ids):
+     _need(isinstance(source_reviews, Mapping) and isinstance(audit_logical_ids, Mapping),
+           'SEALED_SELECTION_DOCUMENT_FAMILY_INVALID')
+@@ -125,7 +161,7 @@ def _implementation(candidate, result, variant, composition, document, authority
+ def _authenticate_sealed_study_selection(store, bundle_digest, *, archive_attestation,
+         source_reviews, audit_logical_ids, current_profile, window, history_head_root,
+         history_storage_policy=None, clock, authority_provider, final_dependency_guard=None,
+-        completion_dependency_guard=None):
++        completion_dependency_guard=None, selection_record_guard=None):
+     """Evaluate sealed originals once and authenticate a fixed research selection.
+ 
+     Caller-created assessments/results/providers are not accepted as trust. The
+@@ -134,6 +170,8 @@ def _authenticate_sealed_study_selection(store, bundle_digest, *, archive_attest
+     all operational gates remain outside this display-only result.
+     """
+     _need(type(store) is BundleStore, 'SEALED_SELECTION_STORE_REQUIRED')
++    _need(selection_record_guard is None or callable(selection_record_guard),
++          'SEALED_SELECTION_RECORD_GUARD_INVALID')
+     _need(type(authority_provider) is CurrentOwnerAuthority and callable(clock)
+           and getattr(authority_provider, '_clock', None) is clock, 'SEALED_SELECTION_ACTUAL_PROVIDER_REQUIRED')
+     _need(type(archive_attestation) is bytes, 'SEALED_SELECTION_DOCUMENT_BYTES_REQUIRED')
+@@ -215,11 +253,53 @@ def _authenticate_sealed_study_selection(store, bundle_digest, *, archive_attest
+         # actual journal bytes additionally catches same-size legacy corruption.
+         composition.history._durable_unchanged()
+         composition.history._replay(composition.identity, install=False)
++    if composition is not None and selection_record_guard is not None:
++        _need(authenticated.source_reviews_authenticated
++              and selected in authenticated.authenticated_study_ids,
++              'SEALED_SELECTION_SELECTED_REVIEW_REQUIRED')
++        # Bind the detached documents actually checked against the entire issued
++        # family. Caller mappings and constructed result objects are not reread.
++        reviewed = tuple(_SourceReviewRecordBasis(study_id=identifier,
++            document_sha256=hashlib.sha256(documents[identifier]).hexdigest(),
++            purpose=bodies[identifier]['purpose'],
++            revocation_target_sha256=revocation_target(documents[identifier],
++                purpose=bodies[identifier]['purpose']),
++            audit_logical_id=audits[identifier], audit_sha256=bodies[identifier]['audit_sha256'])
++            for identifier in sorted(authenticated.authenticated_study_ids))
++        expires = min(_time(datetime.fromisoformat(body['expires_at'])) for body in
++                      (envelope['body'], *(bodies[item.study_id] for item in reviewed)))
++        identity = composition.identity
++        basis = _SelectionRecordBasis(bundle_digest=bundle_digest,
++            input_archive_digest=snapshot.input_archive_digest, attestation_sha256=document_digest,
++            revocation_target_sha256=target,
++            family_sha256=bodies[selected]['request']['family_commitment']['family_sha256'],
++            selected_study_id=selected, program_sha256=identity.program_digest,
++            protocol_sha256=identity.protocol_digest, evidence_sha256=evidence_digest(results[selected]),
++            profile_contract_sha256=identity.profile_contract_digest,
++            rule_terms_sha256=identity.rule_terms_digest, window_sha256=identity.deployment_window_digest,
++            driver_identity_sha256=control_digest(identity), source_reviews=reviewed,
++            evaluated_at=snapshot.evaluated_at, approval_expires_at=expires,
++            started_at=started, observed_at=last_observation,
++            first_authority=first, selected_authority=observed)
++        _need(selection_record_guard(basis) is None, 'SEALED_SELECTION_RECORD_GUARD_INVALID')
+     if final_dependency_guard is not None:
+         final_dependency_guard()
++    if composition is not None and selection_record_guard is not None:
++        # Recording and dependency checks can perform I/O. Re-read actual history
++        # after that work; callable identity alone does not authenticate its bytes.
++        composition.history._durable_unchanged()
++        composition.history._replay(composition.identity, install=False)
+     observed_at = _time(clock())
+     _need(observed_at >= last_observation, 'SEALED_SELECTION_CLOCK_ROLLBACK')
+-    latest = authority_provider(observed_at)
++    if selection_record_guard is not None:
++        # A checkpoint observation retains its actual completion watermark.
++        # The first actual owner observation supplies this restrictive prefix;
++        # no caller checkpoint or new authorization interval is introduced.
++        latest = authority_provider.observe_checkpoint(observed_at,
++            key_fingerprint=first.context.owner.fingerprint, code_hash=first.context.code_hash,
++            owner_head=first.context.owner.head)
++    else:
++        latest = authority_provider(observed_at)
+     _archive(archive_attestation, latest, observed_at, target)
+     _archive(archive_attestation, first, observed_at, target)
+     for identifier in authenticated.authenticated_study_ids:
+@@ -234,11 +314,16 @@ def _authenticate_sealed_study_selection(store, bundle_digest, *, archive_attest
+                      _time(datetime.fromisoformat(body['expires_at']))) for body in (envelope['body'], *bodies.values()))
+     rule_observed_at = _time(profile.instrument_rules.asof)
+     revocation_head = latest.context.owner.head
++    completion_bound = None
+     if completion_dependency_guard is not None:
+-        completion_dependency_guard()
++        completion_bound = completion_dependency_guard()
++        if completion_bound is not None:
++            completion_bound = _time(completion_bound)
++    owner_completed_at = _time(authority_provider._last)
+     # Only bounded primitive comparisons follow this completion clock.
+     finished = _time(clock())
+-    _need(finished >= observed_at, 'SEALED_SELECTION_CLOCK_ROLLBACK')
++    _need(finished >= observed_at and finished >= owner_completed_at
++          and (completion_bound is None or finished >= completion_bound), 'SEALED_SELECTION_CLOCK_ROLLBACK')
+     day = finished.astimezone(compliance.KST).date()
+     for original_at, original_day in observations:
+         _need(timedelta(0) <= finished-original_at <= timedelta(seconds=MAX_AUTHORITY_AGE_SECONDS),
+diff --git a/tests/launch_acceptance.py b/tests/launch_acceptance.py
+index e1e49d1..57234f9 100644
+--- a/tests/launch_acceptance.py
++++ b/tests/launch_acceptance.py
+@@ -34,7 +34,10 @@ MODULES = ("launch_guards", "network_route", "accounts_collector", "launch_profi
+            "launch_research_recovery_cli", "launch_research_recovery_integration",
+            "launch_guard_capture_format", "launch_guard_capture_archive", "launch_committed_runner",
+            "launch_upbit_read_format", "launch_upbit_read_archive", "launch_upbit_read_integration",
+-           "launch_committed_generation", "launch_committed_generation_runner")
++           "launch_committed_generation", "launch_committed_generation_runner",
++           "launch_research_route_release", "launch_recovered_selection",
++           "launch_recovered_selection_boundaries", "launch_recovered_selection_integration",
++           "launch_recovered_selection_cli")
+ 
+ 
+ def tests():
+diff --git a/tests/launch_guards.py b/tests/launch_guards.py
+index 3b3014f..ac74dae 100644
+--- a/tests/launch_guards.py
++++ b/tests/launch_guards.py
+@@ -284,7 +284,8 @@ def _incident_writer_nodes(tree, relative):
+     incident_module = Path(relative).name in {
+         "research_incident_store.py", "research_incident_monitor.py", "research_incident_cli.py",
+         "research_incidents.py", "incident_aware_selection.py", "research_recovery.py",
+-        "research_recovery_store.py", "research_recovery_attempts.py", "research_recovery_cli.py"}
++        "research_recovery_store.py", "research_recovery_attempts.py", "research_recovery_cli.py",
++        "recovered_study_selection.py"}
+     if relative in STORE_WRITE_SPECS:
+         owner, calls, opener, flag_source, setup_targets = STORE_WRITE_SPECS[relative]
+         restricted |= {"_append", "_backup", "write", "compare_and_set", "_FLAGS"}
+@@ -1192,7 +1193,8 @@ def test_incident_dynamic_helper_and_buffered_writes_cannot_gain_unreviewed_call
+     ):
+         assert problems(source.replace(before, replacement), RESEARCH_INCIDENT_STORE), replacement
+     for relative in ("execution_launch/research_incident_monitor.py", "execution_launch/research_incident_cli.py",
+-                     "execution_launch/incident_aware_selection.py", "execution_launch/research_incidents.py"):
++                     "execution_launch/incident_aware_selection.py", "execution_launch/research_incidents.py",
++                     "execution_launch/recovered_study_selection.py"):
+         for extra in snippets:
+             assert problems(extra, relative), (relative, extra)
+ 
+@@ -1210,6 +1212,7 @@ def test_incident_cas_is_exactly_one_commit_call_with_no_other_authority():
+         assert problems(source + "\n" + extra + "\n", RESEARCH_INCIDENT_STORE), extra
+     for relative in ("execution_launch/research_incident_monitor.py", "execution_launch/research_incident_cli.py",
+                      "execution_launch/incident_aware_selection.py", "execution_launch/research_incidents.py",
++                     "execution_launch/recovered_study_selection.py",
+                      "execution_launch/nested/research_incident_store.py"):
+         assert "trusted head advance outside pinned callers" in problems(exact, relative), relative
+ 
+@@ -1229,7 +1232,8 @@ def test_incident_provisioning_has_only_explicit_operator_callers_and_no_runtime
+                 'from tools.owner import research_incidents as setup')
+     for extra in snippets:
+         for relative in (RESEARCH_INCIDENT_STORE, "execution_launch/research_incident_cli.py",
+-                         "execution_launch/research_incident_monitor.py", "execution_launch/incident_aware_selection.py"):
++                         "execution_launch/research_incident_monitor.py", "execution_launch/incident_aware_selection.py",
++                         "execution_launch/recovered_study_selection.py"):
+             assert _incident_operator_problems(ast.parse(extra), relative), (relative, extra)
+         assert _incident_operator_problems(ast.parse(source + "\n" + extra + "\n"), OWNER_INCIDENT_SETUP), extra
+     for before, after in (('store.provision_empty()', 'store.provision_empty(other)'),
+diff --git a/tests/launch_recovered_selection.py b/tests/launch_recovered_selection.py
+new file mode 100644
+index 0000000..5623a58
+--- /dev/null
++++ b/tests/launch_recovered_selection.py
+@@ -0,0 +1,283 @@
++"""Actual restored research selection fixtures; invented prices, disposable keys.
++
++The recorder/evaluator/reviews, recovery controller, independent stores and owner
++loader are real. Neither synthetic prices nor local archival identity establishes
++production source authenticity. No real API, account, key or order is used.
++"""
++from contextlib import contextmanager
++from types import SimpleNamespace
++import shutil
++from unittest.mock import patch
++
++from execution_launch import bundle_recovery as B
++from execution_launch import research_recovery as R
++from execution_launch import research_incident_monitor as M
++from execution_launch import recovered_study_selection as V
++from tests import launch_research_incident_integration as IR
++from tests import launch_research_recovery_integration as RR
++
++
++@contextmanager
++def fixture(*, count=500, carry=False, restored=True, source_removed=False):
++    """Actual recorded family→registered route→source damage→exact restoration."""
++    with IR.fixture(count=count, carry=carry) as original:
++        attempts, attempt_args = RR._attempt_store(original.base)
++        destination = IR.new_store(original, 'recovered-destination')
++        e = SimpleNamespace(**vars(original), attempts=attempts, attempt_args=attempt_args,
++            destination=destination, document=original.archive,
++            source=B.SignedBackupSource(roots=original.store.roots, limits=original.store.limits),
++            route=None, incident_id=None, recovery=None)
++        M.register_target(e.incident_store, e.store, e.digest, clock=e.clock)
++        e.route = RR.register_route(e)
++        RR.damage(e)
++        if restored:
++            e.recovery = RR.run(e)
++            RR.success(e, e.recovery)
++        if source_removed:
++            assert restored
++            shutil.rmtree(e.store.roots.sealed_root)
++            shutil.rmtree(e.store.roots.backup_root)
++        yield e
++
++
++def select(e, **changes):
++    args = dict(incident_store=e.incident_store, attempts=e.attempts,
++        route_id=e.route.route_id, incident_id=e.incident_id,
++        archive_attestation=e.archive, source_reviews=e.reviews, audit_logical_ids=e.audits,
++        current_profile=e.profile, window=e.window, history_head_root=e.history_head_root,
++        clock=e.clock, authority_provider=e.provider)
++    return V.authenticate_recovered_study_selection(e.destination, e.digest, **(args | changes))
++
++
++def refused(call, code=None):
++    try:
++        call()
++    except ValueError as exc:
++        if code is not None:
++            assert str(exc) == code, (str(exc), code)
++        return str(exc)
++    raise AssertionError('recovered selection accepted unverified input')
++
++
++def releases(e):
++    from execution_launch import research_incidents as I
++    return I.research_route_releases(e.incident_store.inspect().state,
++        route_id=e.route.route_id, incident_id=e.incident_id,
++        limits=e.incident_store.limits.format_limits)
++
++
++def test_exact_actual_inputs_unknown_route_and_nonterminal_attempt_refuse_before_evaluation():
++    with fixture(count=60,restored=False) as e:
++        with patch.object(V.S,'_authenticate_sealed_study_selection',side_effect=AssertionError('unexpected evaluation')):
++            for changes in ({'authority_provider':lambda _:True}, {'attempts':object()},
++                            {'incident_store':object()}, {'archive_attestation':'text'},
++                            {'route_id':True}, {'incident_id':'F'*64}):
++                refused(lambda:select(e,**changes),'RECOVERED_SELECTION_ACTUAL_INPUT_REQUIRED')
++            refused(lambda:select(e,route_id='f'*64),'RECOVERED_SELECTION_ROUTE_REQUIRED')
++            refused(lambda:select(e),'RECOVERED_SELECTION_RESTORED_ATTEMPT_REQUIRED')
++        assert not releases(e)
++
++
++def test_restored_raw_failure_archive_does_not_become_a_verified_research_target():
++    with RR.fixture() as e:
++        RR.damage(e); RR.success(e,RR.run(e))
++        args=dict(incident_store=e.incident_store,attempts=e.attempts,route_id=e.route.route_id,
++            incident_id=e.incident_id,archive_attestation=e.document,source_reviews={},audit_logical_ids={},
++            current_profile=None,window=None,history_head_root=e.base,
++            clock=e.clock,authority_provider=e.provider)
++        with patch.object(V.S,'_authenticate_sealed_study_selection',side_effect=AssertionError('unexpected evaluation')):
++            refused(lambda:V.authenticate_recovered_study_selection(e.destination,e.digest,**args),
++                    'RECOVERED_SELECTION_VERIFIED_TARGET_REQUIRED')
++
++
++def test_different_destination_and_document_do_not_change_or_release_the_original_incident():
++    with fixture(count=60) as e:
++        before=e.incident_store.inspect()
++        other=IR.new_store(e,'wrong-destination')
++        original=e.destination
++        e.destination=other
++        refused(lambda:select(e),'RECOVERED_SELECTION_DESTINATION_CHANGED')
++        e.destination=original
++        refused(lambda:select(e,archive_attestation=e.archive+b'not-json'))
++        assert e.incident_store.inspect()==before and not releases(e)
++
++
++def test_benign_destination_catalog_extension_keeps_exact_original_success_prefix():
++    from tests import launch_research_bundle_store as SF
++    with fixture(count=60,source_removed=True) as e:
++        before=e.recovery
++        _,raw,payloads=SF.raw_archive(e.destination,{'other':b'unrelated immutable input'},run='unrelated-archive')
++        e.destination.archive_raw(raw,payloads)
++        result=select(e)
++        assert result.selection_assessment.selection.status=='NO_QUALIFIED_MARKET'
++        assert result.release_record_id is None and not result.research_selection_ready
++        assert result.outcome_event_id==before.outcome_event_id
++        assert not e.store.roots.sealed_root.exists()
++
++
++def test_additional_actual_incident_blocks_before_family_evaluation_and_preserves_all_holds():
++    from execution_launch import research_incidents as I
++    with fixture(count=60) as e:
++        registration=M.register_target(e.incident_store,e.destination,e.digest,clock=e.clock)
++        snapshot=e.incident_store.inspect()
++        event=M._failure_event(registration,observed=e.cell[0],scope='TARGET',failed_objects=(),
++            category='READ_UNAVAILABLE',reason='SECOND_ACTUAL_FIXTURE_INCIDENT')
++        e.incident_store.commit(event,expected_head=snapshot.head)
++        with patch.object(V.S,'_authenticate_sealed_study_selection',side_effect=AssertionError('unexpected evaluation')):
++            refused(lambda:select(e),'RECOVERED_SELECTION_ADDITIONAL_INCIDENT')
++        final=e.incident_store.inspect()
++        assert len(I.blocked_incidents(final.state,registration))==2 and not releases(e)
++
++
++def test_exact_release_reuse_keeps_original_row_and_historical_observation_without_new_signature():
++    from datetime import timedelta
++    from execution_control.owner_authority import CurrentOwnerAuthority
++    with fixture(source_removed=True) as e:
++        first=select(e)
++        original,=releases(e)
++        first_head=e.incident_store.inspect().head
++        e.cell[0]+=timedelta(seconds=1)
++        e.provider=CurrentOwnerAuthority(clock=e.clock)
++        second=select(e)
++        assert second.release_record_id==first.release_record_id==original.event_id
++        assert releases(e)==(original,) and e.incident_store.inspect().head==first_head
++        assert second.selection_assessment.verified_at>first.selection_assessment.verified_at
++        assert M.check_target(e.incident_store,e.destination,e.digest,clock=e.clock).held
++        observed=SimpleNamespace(**(vars(e)|{'store':e.destination}))
++        refused(lambda:IR.select(observed),'INCIDENT_SELECTION_QUARANTINED')
++
++
++def test_record_write_failure_retains_general_hold_and_latches_the_original_namespace():
++    from execution_launch import research_incident_store as IS
++    with fixture() as e:
++        actual=e.incident_store.commit
++        def failure(event,**kwargs):
++            if event.kind=='RESEARCH_ROUTE_RELEASE':
++                raise IS.IncidentStoreError('INCIDENT_STORE_NO_SPACE')
++            return actual(event,**kwargs)
++        with patch.object(e.incident_store,'commit',side_effect=failure):
++            refused(lambda:select(e),'RECOVERED_SELECTION_RECORD_UNCONFIRMED')
++        assert not releases(e)
++        refused(lambda:select(e),'INCIDENT_RECORD_UNCONFIRMED')
++
++
++def test_confirmed_release_response_loss_is_not_reported_as_success_or_silently_retried():
++    from execution_launch import research_incident_store as IS
++    with fixture() as e:
++        actual=e.incident_store.commit
++        def lost(event,**kwargs):
++            result=actual(event,**kwargs)
++            if event.kind=='RESEARCH_ROUTE_RELEASE':
++                raise IS.IncidentStoreError('INCIDENT_STORE_RESPONSE_LOST')
++            return result
++        with patch.object(e.incident_store,'commit',side_effect=lost):
++            refused(lambda:select(e),'RECOVERED_SELECTION_RECORD_UNCONFIRMED')
++        assert len(releases(e))==1
++        # Reopening actual stores in the same process must not erase its latch;
++        # this is deliberately not claimed as a new OS process.
++        e.incident_store=e.reopen_incidents()
++        refused(lambda:select(e),'INCIDENT_RECORD_UNCONFIRMED')
++
++
++def test_forged_release_claimed_prior_head_is_refused_despite_actual_current_research_validation():
++    from execution_launch import research_incidents as I
++    with fixture() as e:
++        actual=e.incident_store.commit
++        captured=[]
++        def substitute(event,**kwargs):
++            if event.kind=='RESEARCH_ROUTE_RELEASE':
++                payload=I._plain(event.payload)
++                payload['incident_head']=[1,'f'*64]
++                event=I.make_event('RESEARCH_ROUTE_RELEASE',payload,observed_at=event.observed_at)
++                captured.append(event)
++            return actual(event,**kwargs)
++        with patch.object(e.incident_store,'commit',side_effect=substitute):
++            refused(lambda:select(e),'RECOVERED_SELECTION_RELEASE_BINDING_CHANGED')
++        assert releases(e)==tuple(captured) and len(captured)==1
++        refused(lambda:select(e),'RECOVERED_SELECTION_RELEASE_BINDING_CHANGED')
++
++
++def test_forged_historical_attempt_head_cannot_be_reused_as_an_observed_recovery_fact():
++    from execution_launch import research_incidents as I
++    with fixture() as e:
++        actual=e.incident_store.commit
++        def substitute(event,**kwargs):
++            if event.kind=='RESEARCH_ROUTE_RELEASE':
++                payload=I._plain(event.payload);payload['attempt_head']=[1,'f'*64]
++                event=I.make_event('RESEARCH_ROUTE_RELEASE',payload,observed_at=event.observed_at)
++            return actual(event,**kwargs)
++        with patch.object(e.incident_store,'commit',side_effect=substitute):
++            refused(lambda:select(e),'RECOVERED_SELECTION_RELEASE_BINDING_CHANGED')
++        assert len(releases(e))==1
++        refused(lambda:select(e),'RECOVERED_SELECTION_RELEASE_BINDING_CHANGED')
++
++
++def test_false_success_outcome_destination_prefix_cannot_be_replaced_by_current_head():
++    from execution_launch import research_recovery_attempts as F, research_incidents as I
++    with fixture(count=60,restored=False) as e:
++        actual=e.attempts.commit
++        def substitute(event,**kwargs):
++            if event.kind=='ATTEMPT_OBSERVED' and event.payload['status']=='EXACT_ARCHIVE_RESTORED':
++                payload=I._plain(event.payload);payload['destination_head']=[1,'f'*64]
++                event=F.make_event(event.kind,payload,observed_at=event.observed_at)
++            return actual(event,**kwargs)
++        with patch.object(e.attempts,'commit',side_effect=substitute):
++            e.recovery=RR.run(e)
++        assert e.recovery.phase=='EXACT_ARCHIVE_RESTORED'
++        with patch.object(V.S,'_authenticate_sealed_study_selection',side_effect=AssertionError('unexpected evaluation')):
++            refused(lambda:select(e),'RECOVERED_SELECTION_DESTINATION_CHANGED')
++        assert not releases(e)
++
++
++def test_forged_release_historical_destination_or_owner_prefix_cannot_be_reused():
++    from execution_launch import research_incidents as I
++    for field in ('destination_head','owner_checkpoint'):
++        with fixture() as e:
++            actual=e.incident_store.commit
++            def substitute(event,**kwargs):
++                if event.kind=='RESEARCH_ROUTE_RELEASE':
++                    payload=I._plain(event.payload)
++                    if field=='destination_head':
++                        payload[field]=[1,'f'*64]
++                    else:
++                        payload[field]['owner_head']=[1,'f'*64]
++                    event=I.make_event(event.kind,payload,observed_at=event.observed_at)
++                return actual(event,**kwargs)
++            with patch.object(e.incident_store,'commit',side_effect=substitute):
++                refused(lambda:select(e),'RECOVERED_SELECTION_RELEASE_BINDING_CHANGED')
++            assert len(releases(e))==1
++            refused(lambda:select(e))
++            assert M.check_target(e.incident_store,e.destination,e.digest,clock=e.clock).held
++
++
++def test_fresh_provider_cannot_ignore_recovery_checkpoint_log_truncation_key_or_code_changes():
++    import base64
++    from core.compliance import owner
++    from execution_control.owner_authority import CurrentOwnerAuthority
++    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
++    from tests import compliance_fixtures as CF
++    for fault in ('truncated','key','code'):
++        with fixture(count=60,restored=False) as e:
++            before=owner.log_path().read_bytes()
++            CF.sign(e.key,'age_of_majority',{'birth_date':'2000-01-01','evidence':'fixture recovery checkpoint'},
++                    utc=e.cell[0].strftime('%Y-%m-%dT%H:%M:%SZ'))
++            e.recovery=RR.run(e)
++            assert e.recovery.phase=='EXACT_ARCHIVE_RESTORED'
++            e.provider=CurrentOwnerAuthority(clock=e.clock)
++            if fault=='truncated':
++                owner.log_path().write_bytes(before)
++            elif fault=='key':
++                other=Ed25519PrivateKey.from_private_bytes(bytes(range(1,33)))
++                encode=lambda key:base64.b64encode(key.public_key().public_bytes_raw()).decode('ascii')
++                CF.sign(e.key,'key_rotated',{'old_pubkey_b64':encode(e.key),'new_pubkey_b64':encode(other)},
++                        utc=e.cell[0].strftime('%Y-%m-%dT%H:%M:%SZ'))
++                CF.write_pubkey(owner.PUBKEY_PATH,other)
++            else:
++                alternative=e.base/'changed-code';alternative.mkdir()
++                (alternative/'module.py').write_text('VALUE = 17\n',encoding='utf-8')
++                with patch.object(owner,'REPO_ROOT',alternative):
++                    refused(lambda:select(e))
++                assert not releases(e)
++                continue
++            refused(lambda:select(e))
++            assert not releases(e)
+diff --git a/tests/launch_recovered_selection_boundaries.py b/tests/launch_recovered_selection_boundaries.py
+new file mode 100644
+index 0000000..165b0cf
+--- /dev/null
++++ b/tests/launch_recovered_selection_boundaries.py
+@@ -0,0 +1,293 @@
++"""Actual private selection/held-graph boundaries, with disposable signed homes.
++
++Research prices and minimal graph inputs are synthetic. The recorder, evaluator,
++signature checks, factory, history, stores and incident paths execute normally.
++Hook spies exercise ordering and refusal, not a fabricated release authority;
++the separate recovered consumer suite tests actual release persistence.
++"""
++from dataclasses import FrozenInstanceError
++from datetime import datetime, timedelta
++import hashlib
++from unittest.mock import patch
++
++from execution_control.capability import digest
++from execution_launch import sealed_study_review as S
++from execution_launch import research_incident_monitor as M
++from execution_launch import research_incident_store as J
++from execution_launch import research_incidents as I
++from execution_launch.live_history import LiveHistory
++from tests import launch_research_incident_monitor as MF
++from tests import launch_sealed_study_review as SF
++
++
++def recovery_check(e, *, clock=None):
++    return M._check_recovered_target(e.incident_store, e.store, e.digest, clock=clock or e.clock)
++
++
++def held_repaired(e):
++    registration = MF.register(e)
++    path, original = MF.damage(e)
++    checked = MF.check(e)
++    assert checked.held and not checked.graph_checked
++    path.write_bytes(original)
++    return registration, checked
++
++
++def private_select(e, **changes):
++    args = dict(archive_attestation=e.archive, source_reviews=e.reviews, audit_logical_ids=e.audits,
++        current_profile=e.profile, window=e.window, history_head_root=e.history_head_root,
++        clock=e.clock, authority_provider=e.provider)
++    return S._authenticate_sealed_study_selection(e.store, e.digest, **(args | changes))
++
++
++def test_recovered_actual_held_graph_is_read_without_changing_general_hold_or_any_bytes():
++    with MF.fixture(verified=True) as e:
++        registration, held = held_repaired(e)
++        before = MF.BF.files(e.base)
++        with patch.object(M, '_complete_graph', side_effect=AssertionError('general held read')):
++            general = MF.check(e)
++        assert general.held and not general.graph_checked
++        with patch.object(M, '_complete_graph', wraps=M._complete_graph) as actual:
++            checked = recovery_check(e)
++        assert actual.call_count == 1 and checked.held and checked.graph_checked
++        assert checked.incident_ids == held.incident_ids and checked.checked_at == MF.NOW
++        assert checked.store_binding_sha256 == registration.store_binding_sha256
++        assert I.blocked_incidents(e.incident_store.inspect().state, registration)
++        assert MF.check(e).held and not MF.check(e).graph_checked
++        assert MF.BF.files(e.base) == before
++
++
++def test_new_actual_backup_damage_is_recorded_even_when_registration_already_held():
++    with MF.fixture(verified=True) as e:
++        registration, first = held_repaired(e)
++        path, original = MF.damage(e, backup=True)
++        checked = recovery_check(e, clock=lambda: MF.NOW+timedelta(seconds=1))
++        state = e.incident_store.inspect().state
++        assert checked.held and not checked.graph_checked
++        assert set(first.incident_ids) < set(checked.incident_ids)
++        assert len(state.incidents) == 2 and state.incidents[-1].scope == 'OBJECTS'
++        assert state.incidents[-1].failed_objects
++        assert I.blocked_incidents(state, registration)
++        path.write_bytes(original)
++        repaired = recovery_check(e, clock=lambda: MF.NOW+timedelta(seconds=1))
++        assert repaired.held and repaired.graph_checked and repaired.incident_ids == checked.incident_ids
++
++
++def test_recovered_graph_record_failure_remains_latched_after_actual_repair_and_reopen():
++    with MF.fixture() as e:
++        held_repaired(e)
++        path, original = MF.damage(e, backup=True)
++        with patch.object(e.incident_store, 'commit',
++                          side_effect=J.IncidentStoreError('INCIDENT_STORE_WRITE_REFUSED')):
++            MF.refused(lambda: recovery_check(e, clock=lambda:MF.NOW+timedelta(seconds=1)),
++                       'INCIDENT_RECORD_UNCONFIRMED')
++        path.write_bytes(original)
++        e.incident_store = e.reopen_incidents()
++        assert e.store.read_raw(e.digest, require_backup=True).backup_verified
++        with patch.object(M, '_complete_graph', side_effect=AssertionError('latched graph read')):
++            MF.refused(lambda: recovery_check(e), 'INCIDENT_RECORD_UNCONFIRMED')
++        assert len(e.incident_store.inspect().state.incidents) == 1
++
++
++def test_unknown_clock_cannot_claim_healthy_recovered_graph_or_remove_hold():
++    with MF.fixture() as e:
++        _, first = held_repaired(e)
++        before = MF.BF.files(e.base)
++        MF.refused(lambda: recovery_check(e, clock=lambda:None), 'INCIDENT_CLOCK_INVALID')
++        assert MF.check(e).incident_ids == first.incident_ids
++        assert MF.BF.files(e.base) == before
++
++
++def test_record_hook_uses_actual_detached_family_documents_and_runs_before_final_checks():
++    with SF.fixture() as e:
++        originals, audits = dict(e.reviews), dict(e.audits)
++        events, bases, compositions, evaluations, authorities = [], [], [], {}, []
++        actual_eval, actual_compose = SF.E.evaluate_capture_json, SF.C._compose_driver
++        actual_impl, actual_graph, actual_history = S._implementation, S.U._graph, LiveHistory._replay
++        actual_authority = type(e.provider).__call__
++        def evaluate(protocol, *args, **kwargs):
++            result = actual_eval(protocol, *args, **kwargs)
++            assert protocol.study_id not in evaluations
++            evaluations[protocol.study_id] = result
++            return result
++        def compose(**kwargs):
++            result = actual_compose(**kwargs); compositions.append(result); return result
++        def implementation(*args, **kwargs):
++            result = actual_impl(*args, **kwargs); events.append('implementation'); return result
++        def graph(*args, **kwargs):
++            result = actual_graph(*args, **kwargs); events.append('graph'); return result
++        def history(self, *args, **kwargs):
++            result = actual_history(self, *args, **kwargs); events.append('history'); return result
++        def authority(self, now):
++            result = actual_authority(self, now); authorities.append(result); return result
++        def record(basis):
++            assert events.count('graph') == 2 and events[-1] == 'history'
++            assert events.count('implementation') == 1
++            bases.append(basis); events.append('record')
++            # The already checked snapshot must survive later caller mutation.
++            e.reviews.clear(); e.audits.clear()
++        def final(): events.append('final_dependency')
++        def completion(): events.append('completion'); return e.cell[0]
++        with patch.object(SF.E, 'evaluate_capture_json', evaluate), \
++             patch.object(SF.C, '_compose_driver', compose), patch.object(S, '_implementation', implementation), \
++             patch.object(S.U, '_graph', graph), patch.object(LiveHistory, '_replay', history), \
++             patch.object(type(e.provider), '__call__', authority):
++            result = private_select(e, selection_record_guard=record, final_dependency_guard=final,
++                                    completion_dependency_guard=completion)
++        assert result.research_selection_ready and not result.execution_ready
++        assert len(evaluations) == len(e.research.family.rows) == 3 and len(bases) == len(compositions) == 1
++        basis, identity = bases[0], compositions[0].identity
++        assert type(basis) is S._SelectionRecordBasis
++        assert basis.first_authority is authorities[0]
++        assert any(basis.selected_authority is value for value in authorities)
++        assert basis.bundle_digest == e.digest and basis.input_archive_digest == e.stored.manifest.input_archive_digest
++        assert basis.attestation_sha256 == S.A.attestation_document_digest(e.archive)
++        assert basis.revocation_target_sha256 == S.revocation_target(e.archive, purpose=S.A.PURPOSE)
++        assert basis.family_sha256 == e.bodies[basis.selected_study_id]['request']['family_commitment']['family_sha256']
++        assert basis.evidence_sha256 == SF.E.evidence_digest(evaluations[basis.selected_study_id])
++        assert basis.program_sha256 == identity.program_digest and basis.protocol_sha256 == identity.protocol_digest
++        assert basis.profile_contract_sha256 == identity.profile_contract_digest
++        assert basis.rule_terms_sha256 == identity.rule_terms_digest
++        assert basis.window_sha256 == identity.deployment_window_digest and basis.driver_identity_sha256 == digest(identity)
++        assert tuple(row.study_id for row in basis.source_reviews) == result.authenticated_study_ids == tuple(sorted(originals))
++        for row in basis.source_reviews:
++            body = e.bodies[row.study_id]
++            assert type(row) is S._SourceReviewRecordBasis
++            assert row.document_sha256 == hashlib.sha256(originals[row.study_id]).hexdigest()
++            assert row.purpose == body['purpose'] and row.audit_logical_id == audits[row.study_id]
++            assert row.audit_sha256 == body['audit_sha256']
++            assert row.revocation_target_sha256 == S.revocation_target(originals[row.study_id], purpose=row.purpose)
++        assert basis.evaluated_at == e.at and basis.started_at == basis.first_authority.observed_at
++        assert basis.observed_at == basis.selected_authority.observed_at
++        assert basis.approval_expires_at == min(datetime.fromisoformat(body['expires_at']) for body in e.bodies.values())
++        assert events.index('record') < events.index('final_dependency') < events.index('completion')
++        assert events[events.index('final_dependency')+1] == 'history'
++        assert events.count('implementation') == 2
++        try:
++            basis.family_sha256 = '0'*64
++        except FrozenInstanceError:
++            pass
++        else:
++            raise AssertionError('record basis was mutable')
++
++
++def test_no_selection_skips_record_hook_but_keeps_final_dependencies_and_actual_archive_checks():
++    with SF.fixture(count=60, provision=False) as e:
++        calls = []
++        with patch.object(SF.C, '_compose_driver', side_effect=AssertionError('NO_SELECTION factory')):
++            result = private_select(e,
++                selection_record_guard=lambda _: (_ for _ in ()).throw(AssertionError('NO_SELECTION release')),
++                final_dependency_guard=lambda:calls.append('final'),
++                completion_dependency_guard=lambda:calls.append('completion'))
++        assert result.selection.status == 'NO_QUALIFIED_MARKET' and not result.research_selection_ready
++        assert result.archive_identity_authenticated and calls == ['final', 'completion']
++        assert not list(e.history_head_root.iterdir())
++
++
++def test_private_record_failure_cannot_return_a_precomputed_selected_result():
++    with SF.fixture() as e:
++        called = []
++        def record(_basis):
++            called.append('record')
++            raise ValueError('RECOVERED_SELECTION_RECORD_UNCONFIRMED')
++        SF.refused(lambda: private_select(e, selection_record_guard=record,
++            final_dependency_guard=lambda:called.append('final')), 'RECOVERED_SELECTION_RECORD_UNCONFIRMED')
++        assert called == ['record']
++
++
++def test_actual_history_changed_by_record_or_final_dependency_refuses_after_recording():
++    for phase in ('record', 'final'):
++        with SF.fixture() as e:
++            head = e.history_head_root/SF.C.history_head_name(e.window)/'head.json'
++            original_head = head.read_bytes()
++            called = []
++            def damage():
++                if phase == 'record':
++                    journals = [p for p in e.home.rglob('*.jsonl') if 'history' in str(p)]
++                    assert len(journals) == 1
++                    raw = journals[0].read_bytes()
++                    changed = raw.replace(b'"', b"'", 1)
++                    assert changed != raw and len(changed) == len(raw)
++                    journals[0].write_bytes(changed)
++                else:
++                    assert head.read_bytes() != original_head
++                    head.write_bytes(original_head)
++            def record(_basis):
++                called.append('record')
++                if phase == 'record': damage()
++            def final():
++                called.append('final')
++                if phase == 'final': damage()
++            SF.refused(lambda: private_select(e, selection_record_guard=record, final_dependency_guard=final))
++            assert called == ['record', 'final']
++
++
++def test_private_completion_watermark_requires_aware_time_and_precedes_final_clock():
++    # Synthetic lower-bound values test the private callback contract, not an
++    # issued checkpoint. All archive/current-owner checks are still actual.
++    for kind in ('future', 'naive', 'boolean'):
++        with SF.fixture(count=60, provision=False) as e:
++            value = (e.cell[0]+timedelta(microseconds=1) if kind == 'future' else
++                     e.cell[0].replace(tzinfo=None) if kind == 'naive' else True)
++            code = 'SEALED_SELECTION_CLOCK_ROLLBACK' if kind == 'future' else 'SEALED_SELECTION_TIME_INVALID'
++            SF.refused(lambda: private_select(e, completion_dependency_guard=lambda:value), code)
++
++
++def test_legacy_public_selection_checks_the_actual_checkpoint_completion_watermark():
++    """Shared final-clock hardening also applies without any recovery callback."""
++    with SF.fixture() as e:
++        actual, calls, completed = S.verify_implementation_review, [], []
++        def verify(*args, **kwargs):
++            result = actual(*args, **kwargs)
++            calls.append(1)
++            if len(calls) == 2:
++                authority = kwargs['authority']
++                requested = e.cell[0]
++                e.cell[0] = requested + timedelta(seconds=1)
++                # Real current key/code/log prefix observation completes later
++                # than the caller's final clock, without a fabricated authority.
++                e.provider.observe_checkpoint(requested,
++                    key_fingerprint=authority.context.owner.fingerprint,
++                    code_hash=authority.context.code_hash, owner_head=authority.context.owner.head)
++                completed.append(e.provider._last)
++                e.cell[0] = requested
++            return result
++        with patch.object(S, 'verify_implementation_review', verify):
++            SF.refused(lambda:SF.select(e), 'SEALED_SELECTION_CLOCK_ROLLBACK')
++        assert len(calls) == 2 and completed == [e.cell[0]+timedelta(seconds=1)]
++
++
++def test_recovered_final_actual_owner_completion_cannot_be_hidden_by_a_later_clock_rollback():
++    for count in (60, 500):
++        with SF.fixture(count=count, provision=count == 500) as e:
++            initial, armed, completed = e.cell[0], [], []
++            actual_load = SF.owner.load_context
++            actual_checkpoint = type(e.provider).observe_checkpoint
++            def load(*args, **kwargs):
++                context = actual_load(*args, **kwargs)
++                if armed:
++                    e.cell[0] = initial + timedelta(seconds=5)
++                return context
++            def checkpoint(provider, now, **kwargs):
++                authority = actual_checkpoint(provider, now, **kwargs)
++                completed.append(provider._last)
++                e.cell[0] = initial + timedelta(seconds=1)
++                return authority
++            with patch.object(SF.owner, 'load_context', load), \
++                 patch.object(type(e.provider), 'observe_checkpoint', checkpoint):
++                SF.refused(lambda:private_select(e, selection_record_guard=lambda _:None,
++                    final_dependency_guard=lambda:armed.append(True)), 'SEALED_SELECTION_CLOCK_ROLLBACK')
++            assert completed == [initial+timedelta(seconds=5)]
++            assert e.cell[0] == initial+timedelta(seconds=1)
++
++
++def test_public_sealed_api_does_not_accept_any_release_callback_or_cached_basis():
++    with SF.fixture(count=60, provision=False) as e:
++        called = []
++        try:
++            SF.select(e, selection_record_guard=lambda basis:called.append(basis))
++        except TypeError:
++            pass
++        else:
++            raise AssertionError('public API accepted private release callback')
++        assert not called and not list(e.history_head_root.iterdir())
+diff --git a/tests/launch_recovered_selection_cli.py b/tests/launch_recovered_selection_cli.py
+new file mode 100644
+index 0000000..fe7b536
+--- /dev/null
++++ b/tests/launch_recovered_selection_cli.py
+@@ -0,0 +1,252 @@
++"""Actual recovered selection CLI; disposable owners, invented market data.
++
++Positive cases use the real recovery controller, signatures, full evaluator,
++factory/history and destination stores. Only CLI wall-clock reads are replaced.
++No real account, private key, network, message or order is used.
++"""
++from contextlib import redirect_stdout
++from dataclasses import asdict, replace
++from io import StringIO
++import json
++from pathlib import Path
++import tempfile
++from types import SimpleNamespace
++from unittest.mock import patch
++
++from execution_launch import bundle_attestation as A
++from execution_launch import research_incident_monitor as M, research_incidents as I
++from execution_launch import research_incident_store as IJ, research_recovery_store as RJ
++from execution_launch import research_recovery_cli as C
++from execution_launch.profile import profile_body
++from execution_launch.strategy import _plain
++from tests import launch_research_recovery_cli as OLD
++from tests import launch_recovered_selection as REAL
++from tests import launch_sealed_study_cli as SEALED
++
++
++def basic():
++    args=['select-recovered']
++    for name in sorted(C.ATTEMPT_OPTIONS|C.INCIDENT_OPTIONS|C._DESTINATION|C._SELECTION):
++        args+=['--'+name,'a'*64 if name in ('digest','route-id','incident-id') else 'fixture-'+name]
++    return args
++
++
++def replace_option(args,name,value):
++    result=list(args);result[result.index('--'+name)+1]=value
++    return result
++
++
++def invoke(args):
++    stream=StringIO()
++    with redirect_stdout(stream):
++        status=C.main(args)
++    text=stream.getvalue()
++    return status,json.loads(text),text
++
++
++def inert(value):
++    assert value['scope']=='recovered_research_selection'
++    for field in ('current_operational_use','execution_ready',
++                  'automatic_operational_recovery_supported','network_delivery_performed'):
++        assert value[field] is False,(field,value)
++    assert 'quarantine_released' not in value
++
++
++def refused(args,expected=None):
++    code,result,text=invoke(args)
++    assert code==2 and result['status']=='REFUSED',result
++    inert(result)
++    assert result['release_record_id'] is None and result['research_selection_ready'] is False
++    if expected is not None:
++        assert result['reasons']==[expected],result
++    return result,text
++
++
++def configuration(e):
++    """Explicit files outside all retained graph/journal/head roots."""
++    folder=e.base/'recovered-cli-inputs';folder.mkdir()
++    paths={name:folder/(name+'.json') for name in ('attempts','incidents','destination','archive','profile','window')}
++    paths['attempts'].write_bytes(RJ.limits_bytes(e.attempts.limits))
++    paths['incidents'].write_bytes(IJ.limits_bytes(e.incident_store.limits))
++    paths['destination'].write_text(json.dumps(asdict(e.destination.limits)),encoding='utf-8')
++    paths['archive'].write_bytes(e.archive)
++    paths['profile'].write_text(json.dumps(profile_body(e.profile)),encoding='utf-8')
++    paths['window'].write_text(json.dumps(_plain(e.window)),encoding='utf-8')
++    args=['select-recovered',*OLD.attempt_args(e.attempt_args,paths['attempts']),
++        *OLD.incident_args(e.incident_args,paths['incidents']),
++        '--destination-root',str(e.destination.roots.sealed_root),
++        '--destination-backup-root',str(e.destination.roots.backup_root),
++        '--destination-head-name',e.destination._head_name,'--destination-limits',str(paths['destination']),
++        '--digest',e.digest,'--route-id',e.route.route_id,'--incident-id',e.incident_id,
++        '--archive-attestation',str(paths['archive']),'--profile',str(paths['profile']),
++        '--window',str(paths['window']),'--head-root',str(e.history_head_root)]
++    for index,(identifier,document) in enumerate(sorted(e.reviews.items())):
++        path=folder/('source-review-'+str(index)+'.json');path.write_bytes(document)
++        args+=['--source-review',str(path),'--audit',identifier+'='+e.audits[identifier]]
++    return args,paths
++
++
++def test_new_command_has_exact_destination_only_options_and_preserves_legacy_parsing():
++    command,args=C._arguments(basic())
++    assert command=='select-recovered' and args['source-review']==args['audit']==[]
++    _,rich=C._arguments(basic()+['--source-review','r1.json','--source-review','r2.json',
++        '--audit','Study1=report','--history-storage','history.json'])
++    assert rich['source-review']==['r1.json','r2.json'] and rich['audit']==['Study1=report']
++    for original in (OLD.basic(),OLD.action_args(),OLD.action_args('run-once')):
++        command,args=C._arguments(original)
++        assert command==original[0] and 'source-review' not in args
++
++
++def test_source_authority_clock_keys_and_activation_options_refuse_before_io():
++    with patch.object(C,'_selection_inputs') as inputs,patch.object(C,'open_attempt_store') as opened, \
++         patch.object(C,'CurrentOwnerAuthority') as authority:
++        for name in ('source-root','source-backup-root','source-head-name','source-limits',
++                     'now','clock','provider','context','key','password','approved','revoked',
++                     'activate','arm','send','outcome','provision','release'):
++            refused(basic()+['--'+name,'private-input'])
++        assert not inputs.called and not opened.called and not authority.called
++
++
++def test_missing_duplicate_unknown_identifiers_and_excess_repeats_refuse_before_io():
++    original=basic()
++    cases=[original[:-2],original+original[1:3],original+['--unknown','value'],
++           original+['--profile','duplicate.json'],original+['--audit','nul\x00value'],
++           original+sum((['--source-review','r.json'] for _ in range(129)),[])]
++    cases += [replace_option(original,name,bad) for name in ('digest','route-id','incident-id')
++              for bad in ('','A'*64,'a'*63,'../private')]
++    with patch.object(C,'_selection_inputs') as inputs,patch.object(C,'open_attempt_store') as opened:
++        for args in cases:refused(args)
++        assert not inputs.called and not opened.called
++
++
++def test_help_describes_scoped_recording_without_owner_or_file_io():
++    stream=StringIO()
++    with patch.object(C,'_selection_inputs') as inputs,patch.object(C,'open_attempt_store') as opened, \
++         patch.object(C,'CurrentOwnerAuthority') as authority,redirect_stdout(stream):
++        assert C.main(['--help'])==0
++    assert 'select-recovered' in stream.getvalue() and 'requires no source options' in stream.getvalue()
++    assert not inputs.called and not opened.called and not authority.called
++
++
++def test_actual_bounded_archive_loader_refuses_bad_or_oversized_original_before_stores():
++    with tempfile.TemporaryDirectory(prefix='tradegen_recovered_cli_inputs_') as temporary:
++        path=Path(temporary)/'archive.json'
++        args=replace_option(basic(),'archive-attestation',str(path))
++        with patch.object(C,'open_attempt_store') as opened,patch.object(C,'CurrentOwnerAuthority') as authority:
++            for raw in (b'{malformed',b' '* (A.MAX_DOCUMENT_BYTES+1)):
++                path.write_bytes(raw)
++                refused(args)
++            assert not opened.called and not authority.called
++
++
++def test_duplicate_or_path_audit_mapping_is_rejected_before_original_read():
++    with patch.object(C,'open_attempt_store') as opened,patch.object(C,'CurrentOwnerAuthority') as authority:
++        for extra in (['--audit','Study1=report','--audit','Study1=other'],
++                      ['--audit','Study1=../private'],['--audit','not-a-mapping']):
++            refused(basic()+extra)
++        assert not opened.called and not authority.called
++
++
++def test_private_exception_text_and_interrupt_never_become_success_or_output():
++    for failure in (OSError('PRIVATE_FILE_VALUE'),RuntimeError('/private/example'),
++                    ValueError('PRIVATE_GENERIC_VALUE'),KeyboardInterrupt()):
++        with patch.object(C,'_selection_inputs',side_effect=failure):
++            result,text=refused(basic())
++        assert 'PRIVATE_' not in text and '/private/' not in text
++        assert result['reasons']==['RECOVERY_CLI_STOPPED' if isinstance(failure,KeyboardInterrupt)
++                                  else 'RECOVERY_CLI_INPUT_REFUSED']
++
++
++def test_untrusted_display_object_is_not_serialized_as_research_success():
++    try:
++        C._selection_output(SimpleNamespace(scope='recovered_research_selection',execution_ready=True),{})
++    except C.RecoveryCLIError as exc:
++        assert str(exc)=='RECOVERY_CLI_RESULT_INVALID'
++    else:
++        raise AssertionError('untrusted display object was serialized')
++
++
++def test_actual_fixed_and_carry_cli_use_one_real_clock_provider_without_source_or_signing():
++    for carry in (False,True):
++        with REAL.fixture(carry=carry,source_removed=True) as e:
++            args,paths=configuration(e)
++            original_document=paths['archive'].read_bytes()
++            attempts_before=e.attempts.inspect()
++            with patch.object(C,'datetime',SEALED.fixture_clock(e)), \
++                 patch.object(C,'CurrentOwnerAuthority',wraps=C.CurrentOwnerAuthority) as providers, \
++                 patch.object(C,'authenticate_recovered_study_selection',
++                              wraps=C.authenticate_recovered_study_selection) as consumer, \
++                 patch.object(C,'SignedBackupSource',side_effect=AssertionError('source reopened')), \
++                 patch.object(C,'run_recovery_once',side_effect=AssertionError('recovery repeated')):
++                status,result,text=invoke(args)
++            assert status==0 and result['status']=='SELECTED',result
++            inert(result)
++            assert result['research_selection_ready'] and result['release_record_id']
++            assert result['selected_study_id'] in e.reviews
++            assert providers.call_count==consumer.call_count==1
++            invocation=consumer.call_args.kwargs
++            assert invocation['clock'] is providers.call_args.kwargs['clock']
++            assert invocation['authority_provider']._clock is invocation['clock']
++            assert invocation['archive_attestation']==original_document==e.archive
++            assert 'source' not in invocation and e.attempts.inspect()==attempts_before
++            held=M.check_target(e.incident_store,e.destination,e.digest,clock=e.clock)
++            assert held.held and held.incident_ids==(e.incident_id,)
++            assert len(I.research_route_releases(e.incident_store.inspect().state))==1
++            assert str(e.base) not in text and 'signature_b64' not in text and 'profile' not in result
++            assert not e.store.roots.sealed_root.exists() and not e.store.roots.backup_root.exists()
++
++
++def test_actual_no_qualified_research_returns_no_release_and_preserves_hold():
++    with REAL.fixture(count=60,source_removed=True) as e:
++        args,_=configuration(e)
++        assert not e.reviews
++        with patch.object(C,'datetime',SEALED.fixture_clock(e)):
++            status,result,_=invoke(args)
++        assert status==0 and result['status']=='NO_QUALIFIED_MARKET',result
++        inert(result)
++        assert not result['research_selection_ready'] and result['release_record_id'] is None
++        assert not I.research_route_releases(e.incident_store.inspect().state)
++        assert M.check_target(e.incident_store,e.destination,e.digest,clock=e.clock).held
++
++
++def test_actual_repeat_rechecks_and_reuses_record_then_signed_revocation_refuses():
++    from tests import launch_sealed_study_review as SR
++    with REAL.fixture(source_removed=True) as e:
++        args,_=configuration(e)
++        with patch.object(C,'datetime',SEALED.fixture_clock(e)):
++            status,first,_=invoke(args)
++            assert status==0 and first['status']=='SELECTED',first
++            status,again,_=invoke(args)
++            assert status==0 and again['release_record_id']==first['release_record_id'],again
++            identifier=next(iter(e.reviews))
++            SR.revoke(e,e.reviews[identifier],e.bodies[identifier]['purpose'])
++            refused(args,'REVIEW_ATTESTATION_REVOKED')
++        assert len(I.research_route_releases(e.incident_store.inspect().state))==1
++        assert M.check_target(e.incident_store,e.destination,e.digest,clock=e.clock).held
++
++
++def test_actual_missing_restored_attempt_refuses_without_starting_recovery():
++    with REAL.fixture(restored=False) as e:
++        args,_=configuration(e)
++        before=e.attempts.inspect()
++        with patch.object(C,'datetime',SEALED.fixture_clock(e)), \
++             patch.object(C,'run_recovery_once',side_effect=AssertionError('implicit recovery')):
++            refused(args,'RECOVERED_SELECTION_RESTORED_ATTEMPT_REQUIRED')
++        assert e.attempts.inspect()==before and not I.research_route_releases(e.incident_store.inspect().state)
++
++
++def test_closed_output_refuses_inconsistent_real_result_without_echoing_private_fields():
++    with REAL.fixture() as e:
++        actual=REAL.select(e)
++        args={'route-id':e.route.route_id,'incident-id':e.incident_id,'digest':e.digest}
++        cases=(replace(actual,execution_ready=True),replace(actual,release_record_id=None),
++               replace(actual,route_id='/private/supplied-path'),
++               replace(actual,selection_assessment=replace(actual.selection_assessment,
++                   selection=replace(actual.selection_assessment.selection,reasons=('private value',)))))
++        for value in cases:
++            try:
++                C._selection_output(value,args)
++            except C.RecoveryCLIError as exc:
++                assert str(exc)=='RECOVERY_CLI_RESULT_INVALID'
++            else:
++                raise AssertionError('inconsistent display result accepted')
+diff --git a/tests/launch_recovered_selection_integration.py b/tests/launch_recovered_selection_integration.py
+new file mode 100644
+index 0000000..a43a992
+--- /dev/null
++++ b/tests/launch_recovered_selection_integration.py
+@@ -0,0 +1,294 @@
++"""Actual restored research, original signatures and current selection checks.
++
++All observations, keys and roots are disposable. Recorded invented prices pass
++through the real recorder, complete-family evaluator, registered factory, owner
++signatures, recovery controller and backed journals. They prove integration,
++not market provenance or profitability. Fault spies invoke the real operation
++before changing temporary bytes/time or appending a genuinely signed revocation.
++No positive authority/result is fabricated; no API, order or notification runs.
++"""
++from datetime import timedelta
++from unittest.mock import patch
++
++from core.compliance import owner
++from execution_control.owner_authority import CurrentOwnerAuthority
++from execution_launch import bundle_attestation as A, bundle_recovery as B
++from execution_launch import incident_aware_selection as I
++from execution_launch import research_bundle as R, research_incident_monitor as M
++from execution_launch import research_incidents as F, research_recovery as RC
++from execution_launch import sealed_study_review as S, strategy as E
++from tests import launch_recovered_selection as V
++from tests import launch_research_bundle_store as BF
++from tests import launch_research_recovery_integration as RR
++from tests import launch_sealed_study_review as SR
++from tests.launch_study_review import signed
++
++
++def releases(e):
++    return F.research_route_releases(e.incident_store.inspect().state,
++        route_id=e.route.route_id, incident_id=e.incident_id,
++        limits=e.incident_store.limits.format_limits)
++
++
++def no_operation(result):
++    assert result.scope == 'recovered_research_selection'
++    assert result.current_operational_use is False and result.execution_ready is False
++    assert result.automatic_operational_recovery_supported is False
++    nested = result.selection_assessment
++    assert nested.current_operational_use is False and nested.execution_ready is False
++    assert nested.automatic_recovery_supported is False
++
++
++def held(e):
++    checked = M.check_target(e.incident_store, e.destination, e.digest, clock=e.clock)
++    assert checked.held and e.incident_id in checked.incident_ids
++    return checked
++
++
++def ordinary_selection(e):
++    return I.authenticate_incident_aware_selection(e.destination, e.digest,
++        incident_store=e.incident_store, archive_attestation=e.archive,
++        source_reviews=e.reviews, audit_logical_ids=e.audits,
++        current_profile=e.profile, window=e.window, history_head_root=e.history_head_root,
++        clock=e.clock, authority_provider=e.provider)
++
++
++def artifact_path(e, *, backup=False):
++    artifact = e.destination.read_raw(e.recovery.recovery_artifact_digest, require_backup=True)
++    assert artifact.files['attestation'] == e.archive
++    return BF.chunk_path(e.destination, artifact.files['attestation'], backup=backup)
++
++
++def observed_evaluation(calls):
++    actual = E.evaluate_capture_json
++    def evaluate(protocol, *args, **kwargs):
++        result = actual(protocol, *args, **kwargs)
++        assert E._EVALUATED.get(id(result)) == (result, E.evidence_digest(result))
++        calls.append(protocol.study_id)
++        return result
++    return evaluate
++
++
++def after_release(e, effect):
++    actual = e.incident_store.commit
++    def commit(event, **kwargs):
++        snapshot = actual(event, **kwargs)
++        if event.kind == 'RESEARCH_ROUTE_RELEASE':
++            effect(event, snapshot)
++        return snapshot
++    return commit
++
++
++def test_actual_fixed_and_carry_source_gone_select_once_with_original_evidence_and_general_hold():
++    for carry in (False, True):
++        with V.fixture(carry=carry, source_removed=True) as e:
++            assert not e.store.roots.sealed_root.exists() and not e.store.roots.backup_root.exists()
++            original = e.archive, dict(e.reviews), RR.archive_bytes(e.destination)
++            owner_before = owner.log_path().read_bytes()
++            attempts_before = e.attempts.inspect()
++            notices = e.incident_store.inspect().state.outbox
++            calls = []
++            with (patch.object(E, 'evaluate_capture_json', side_effect=observed_evaluation(calls)),
++                  patch.object(e.store, 'read_raw', side_effect=AssertionError('lost source reopened')),
++                  patch.object(e.store, 'read_verified', side_effect=AssertionError('lost source reopened')),
++                  patch.object(B, 'restore_signed_backup', side_effect=AssertionError('second restoration')),
++                  patch.object(RC, 'run_recovery_once', side_effect=AssertionError('recovery reissued'))):
++                result = V.select(e)
++            no_operation(result)
++            nested = result.selection_assessment
++            assert result.research_selection_ready and nested.research_selection_ready
++            assert nested.selection.status == 'SELECTED' and nested.selected_implementation_authenticated
++            assert len(calls) == len(set(calls)) == len(e.research.family.rows) == 3
++            assert len(nested.selection.rows) == 3 and len(e.reviews) == 2
++            record, = releases(e)
++            assert result.release_record_id == record.event_id
++            assert record.payload['binding']['selection']['selected_study_id'] == nested.selection.selected_study_id
++            assert len(record.payload['binding']['selection']['source_reviews']) == len(e.reviews)
++            assert result.recovery_artifact_digest == e.recovery.recovery_artifact_digest
++            assert result.attempt_id == e.recovery.attempt_id and result.outcome_event_id == e.recovery.outcome_event_id
++            assert (e.archive, dict(e.reviews), RR.archive_bytes(e.destination)) == original
++            assert owner.log_path().read_bytes() == owner_before and e.attempts.inspect() == attempts_before
++            assert e.incident_store.inspect().state.outbox == notices
++            held(e)
++            with patch.object(R, '_evaluate_sealed_study_snapshot', side_effect=AssertionError('ordinary held issuance')):
++                V.refused(lambda:ordinary_selection(e), 'INCIDENT_SELECTION_QUARANTINED')
++
++
++def test_actual_numerical_no_selection_retains_all_candidates_without_release_or_new_incident():
++    with V.fixture(count=60, source_removed=True) as e:
++        assert not e.reviews
++        original = e.destination.read_verified(e.digest, require_backup=True)
++        before = e.incident_store.inspect().state
++        calls = []
++        with patch.object(E, 'evaluate_capture_json', side_effect=observed_evaluation(calls)):
++            result = V.select(e)
++        no_operation(result)
++        assert result.selection_assessment.selection.status == 'NO_QUALIFIED_MARKET'
++        assert result.release_record_id is None and result.research_selection_ready is False
++        assert not releases(e) and len(calls) == len(set(calls)) == 3
++        after = e.incident_store.inspect().state
++        assert after.incidents == before.incidents and after.outbox == before.outbox
++        saved = e.destination.read_verified(e.digest, require_backup=True)
++        assert saved.manifest_bytes == original.manifest_bytes and dict(saved.files) == dict(original.files)
++        assert len(saved.manifest.candidates) == 3
++        held(e)
++
++
++def test_late_actual_signature_artifact_damage_is_recorded_and_physical_repair_does_not_clear_hold():
++    for backup in (False, True):
++        with V.fixture(source_removed=True) as e:
++            path = artifact_path(e, backup=backup)
++            original = path.read_bytes()
++            damaged = bytes([original[0] ^ 1])+original[1:]
++            seen = []
++            def damage(event, snapshot):
++                seen.append(event.event_id)
++                path.write_bytes(damaged)
++            with patch.object(e.incident_store, 'commit', side_effect=after_release(e, damage)):
++                V.refused(lambda:V.select(e), 'RECOVERED_SELECTION_DEPENDENCY_CHANGED')
++            assert seen == [releases(e)[0].event_id] and path.read_bytes() == damaged
++            state = e.incident_store.inspect().state
++            assert len(state.incidents) == len(state.outbox) == 2
++            original_incident = next(item for item in state.incidents if item.incident_id == e.incident_id)
++            artifact_incident = next(item for item in state.incidents if item.incident_id != e.incident_id)
++            assert original_incident.scope == 'STORE' and original_incident.category == 'INTEGRITY_FAILURE'
++            assert original_incident.failed_objects == ()
++            # The separate artifact is not in the target's registered object
++            # inventory. Preserve the actual reader's ambiguous fixed diagnosis;
++            # do not invent a localized object hash or promote it to proof.
++            assert artifact_incident.scope == 'TARGET' and artifact_incident.category == 'READ_UNAVAILABLE'
++            assert artifact_incident.reason_code == 'BUNDLE_STORE_OBJECT_REFUSED'
++            assert artifact_incident.failed_objects == ()
++            path.write_bytes(original)  # Test-only repair is not an incident release.
++            with patch.object(R, '_evaluate_sealed_study_snapshot', side_effect=AssertionError('additional incident issuance')):
++                V.refused(lambda:V.select(e), 'RECOVERED_SELECTION_ADDITIONAL_INCIDENT')
++            assert len(releases(e)) == 1 and held(e).held
++
++
++def test_actual_archive_or_nonselected_source_revocation_after_record_refuses_and_keeps_evidence():
++    for archive in (True, False):
++        with V.fixture(source_removed=True) as e:
++            identifier = next(identifier for identifier, body in e.bodies.items()
++                              if body['request']['strategy_id'] == 'fixture-ma-1-2-b')
++            raw = e.archive if archive else e.reviews[identifier]
++            purpose = A.PURPOSE if archive else e.bodies[identifier]['purpose']
++            before = RR.archive_bytes(e.destination)
++            seen = []
++            def revoke(event, snapshot):
++                seen.append(event.event_id)
++                SR.revoke(e, raw, purpose)
++            with patch.object(e.incident_store, 'commit', side_effect=after_release(e, revoke)):
++                code = V.refused(lambda:V.select(e))
++            assert code in ('RECOVERED_SELECTION_ATTESTATION_REVOKED', 'SEALED_SELECTION_ARCHIVE_REVOKED',
++                            'REVIEW_ATTESTATION_REVOKED'), code
++            assert len(seen) == len(releases(e)) == 1
++            assert RR.archive_bytes(e.destination) == before
++            assert len(e.incident_store.inspect().state.incidents) == 1
++            e.provider = CurrentOwnerAuthority(clock=e.clock)
++            V.refused(lambda:V.select(e))
++            assert len(releases(e)) == 1 and held(e).held
++
++
++def test_final_crypto_delay_rejects_stale_result_then_fresh_call_rechecks_and_reuses_original_record():
++    with V.fixture(source_removed=True) as e:
++        actual = S.verify_implementation_review
++        checked = []
++        def slow(*args, **kwargs):
++            result = actual(*args, **kwargs)
++            checked.append(1)
++            if len(checked) == 2:
++                assert len(releases(e)) == 1
++                e.cell[0] += timedelta(seconds=31)
++            return result
++        with patch.object(S, 'verify_implementation_review', side_effect=slow):
++            V.refused(lambda:V.select(e), 'SEALED_SELECTION_OWNER_AUTHORITY_STALE')
++        assert len(checked) == 2
++        original, = releases(e)
++        original_bytes = F.event_bytes(original)
++        snapshot = e.incident_store.inspect()
++        e.provider = CurrentOwnerAuthority(clock=e.clock)
++        calls = []
++        with patch.object(E, 'evaluate_capture_json', side_effect=observed_evaluation(calls)):
++            result = V.select(e)
++        no_operation(result)
++        assert result.research_selection_ready and result.release_record_id == original.event_id
++        assert len(calls) == len(set(calls)) == 3
++        assert e.incident_store.inspect() == snapshot and F.event_bytes(releases(e)[0]) == original_bytes
++        assert result.selection_assessment.verified_at == e.cell[0]
++        held(e)
++
++
++def test_actual_short_source_approval_expires_during_final_crypto_after_release_commit():
++    with V.fixture(source_removed=True) as e:
++        expires = e.cell[0]+timedelta(seconds=5)
++        # Genuine disposable signatures are prepared before the selection call.
++        e.reviews = {identifier:signed(dict(body, expires_at=expires.isoformat(timespec='microseconds')),
++            e.key).encode('ascii') for identifier, body in e.bodies.items()}
++        actual, checked = S.verify_implementation_review, []
++        def slow(*args, **kwargs):
++            result = actual(*args, **kwargs)
++            checked.append(1)
++            if len(checked) == 2:
++                e.cell[0] += timedelta(seconds=6)
++            return result
++        with patch.object(S, 'verify_implementation_review', side_effect=slow):
++            V.refused(lambda:V.select(e), 'SEALED_SELECTION_EXPIRED_OR_FUTURE')
++        assert len(checked) == 2 and len(releases(e)) == 1
++        assert len(e.incident_store.inspect().state.incidents) == 1
++        held(e)
++
++
++def test_actual_incident_append_after_final_crypto_cannot_return_a_prior_head():
++    with V.fixture(source_removed=True) as e:
++        actual, checked, appended = S.verify_implementation_review, [], []
++        def append(*args, **kwargs):
++            result = actual(*args, **kwargs)
++            checked.append(1)
++            if len(checked) == 2:
++                state = e.incident_store.inspect()
++                notice = state.state.outbox[0]
++                event = F.make_event('DELIVERY', dict(message_id=notice.message_id,
++                    attempt_id='during-final-crypto', outcome='unknown'), observed_at=e.cell[0])
++                appended.append(e.incident_store.commit(event, expected_head=state.head))
++            return result
++        with patch.object(S, 'verify_implementation_review', side_effect=append):
++            V.refused(lambda:V.select(e), 'RECOVERED_SELECTION_DEPENDENCY_CHANGED')
++        assert len(checked) == 2 and len(appended) == len(releases(e)) == 1
++        assert e.incident_store.inspect().head == appended[0].head
++        assert len(e.incident_store.inspect().state.incidents) == 1
++        held(e)
++
++
++def test_final_actual_clock_rollback_after_record_does_not_return_research_readiness():
++    with V.fixture(source_removed=True) as e:
++        actual, checked = S.verify_implementation_review, []
++        def rollback(*args, **kwargs):
++            result = actual(*args, **kwargs)
++            checked.append(1)
++            if len(checked) == 2:
++                e.cell[0] -= timedelta(microseconds=1)
++            return result
++        with patch.object(S, 'verify_implementation_review', side_effect=rollback):
++            V.refused(lambda:V.select(e), 'SEALED_SELECTION_CLOCK_ROLLBACK')
++        assert len(checked) == 2 and len(releases(e)) == 1
++        assert len(e.incident_store.inspect().state.incidents) == 1
++
++
++def test_prior_record_is_not_a_permit_after_late_refusal_and_actual_current_revocation():
++    with V.fixture(source_removed=True) as e:
++        actual, checked = S.verify_implementation_review, []
++        def slow(*args, **kwargs):
++            result = actual(*args, **kwargs)
++            checked.append(1)
++            if len(checked) == 2:
++                e.cell[0] += timedelta(seconds=31)
++            return result
++        with patch.object(S, 'verify_implementation_review', side_effect=slow):
++            V.refused(lambda:V.select(e), 'SEALED_SELECTION_OWNER_AUTHORITY_STALE')
++        record, = releases(e)
++        before = RR.archive_bytes(e.destination)
++        SR.revoke(e, e.archive, A.PURPOSE)
++        e.provider = CurrentOwnerAuthority(clock=e.clock)
++        V.refused(lambda:V.select(e), 'SEALED_SELECTION_ARCHIVE_REVOKED')
++        assert releases(e) == (record,) and RR.archive_bytes(e.destination) == before
++        assert len(e.incident_store.inspect().state.incidents) == 1 and held(e).held
+diff --git a/tests/launch_research_route_release.py b/tests/launch_research_route_release.py
+new file mode 100644
+index 0000000..8eae12e
+--- /dev/null
++++ b/tests/launch_research_route_release.py
+@@ -0,0 +1,387 @@
++"""Pure invented route/registration metadata, never actual research permission.
++
++No source, signature, recovery attempt or owner verification occurs here. These
++checks establish exact records and unchanged general holds; actual consumers
++must independently establish provenance and current authority on every use.
++"""
++from copy import deepcopy
++from dataclasses import replace
++from datetime import timedelta
++import hashlib
++import json
++from types import MappingProxyType
++from unittest.mock import patch
++
++from execution_launch import research_incidents as F
++from tests import launch_research_incidents as H
++
++AT = H.AT
++KIND = 'RESEARCH_ROUTE_RELEASE'
++SOURCE_PURPOSE = 'strategy_source_and_fixed_implementation_review'
++CARRY_PURPOSE = 'strategy_source_and_fixed_carry_implementation_review'
++
++
++def stamp(at):
++    return at.isoformat(timespec='microseconds').replace('+00:00', 'Z')
++
++
++def fixture(*, scope='TARGET'):
++    source = H.registration('sealed-study', store='source-store')
++    destination = replace(source, store_binding_sha256=H.digest('destination-store'),
++        catalog_head_sha256=H.digest('destination-catalog'), catalog_sequence=2)
++    state = H.registered(source, destination)
++    event = H.failure(source, scope=scope, objects=(source.objects[0].sha256,) if scope == 'OBJECTS' else (),
++                      at=AT+timedelta(seconds=1))
++    state = F.reduce(state, event)
++    return state, source, destination
++
++
++def binding(state, source, destination, *, label='a'):
++    selection = {name:H.digest(label+'-'+name) for name in (
++        'attestation_sha256', 'revocation_target_sha256', 'family_sha256', 'program_sha256',
++        'protocol_sha256', 'evidence_sha256', 'profile_contract_sha256', 'rule_terms_sha256',
++        'window_sha256', 'driver_identity_sha256')}
++    selection.update(bundle_digest=source.bundle_digest, input_archive_digest=source.input_archive_digest,
++        selected_study_id='Study.A', evaluated_at=stamp(AT-timedelta(seconds=1)),
++        approval_expires_at=stamp(AT+timedelta(minutes=5)), source_reviews=[dict(study_id='Study.A',
++            document_sha256=H.digest('source-review'), purpose=SOURCE_PURPOSE,
++            revocation_target_sha256=H.digest('source-target'), audit_logical_id='study-a-audit',
++            audit_sha256=H.digest('audit'))])
++    result = {name:H.digest(label+'-'+name) for name in (
++        'route_id', 'attempt_id', 'outcome_event_id', 'incident_namespace_sha256',
++        'attempt_namespace_sha256', 'recovery_artifact_digest')}
++    result.update(incident_id=state.incidents[0].incident_id,
++        source_store_binding_sha256=source.store_binding_sha256,
++        source_registration_sha256=F.registration_digest(source),
++        destination_store_binding_sha256=destination.store_binding_sha256,
++        destination_registration_sha256=F.registration_digest(destination),
++        bundle_digest=source.bundle_digest, input_archive_digest=source.input_archive_digest,
++        graph_sha256=source.graph_sha256, selection=selection)
++    return result
++
++
++def payload(state, source, destination, *, label='a'):
++    value = binding(state, source, destination, label=label)
++    return dict(release_schema=1, scope='recovered_research_selection', binding=value,
++        binding_sha256=F.research_release_binding_digest(value),
++        incident_head=[len(state.events), H.digest('incident-head')],
++        attempt_head=[3, H.digest('attempt-head')], destination_head=[2, H.digest('destination-head')],
++        owner_checkpoint=dict(key_fingerprint='SHA256:'+H.digest('owner-key'), code_hash=H.digest('owner-code'),
++            owner_head=[4, H.digest('owner-head')], observed_at=stamp(AT+timedelta(seconds=2))))
++
++
++def release(state, source, destination, *, label='a', at=None):
++    return F.make_event(KIND, payload(state, source, destination, label=label),
++                        observed_at=at or AT+timedelta(seconds=3))
++
++
++def raw_payload(document, *, at=None):
++    body = dict(schema=1, kind=KIND, observed_at=stamp(at or AT+timedelta(seconds=3)), payload=document)
++    return H.encoded(H.resign(body))
++
++
++def projected(state):
++    return state.registrations, state.incidents, state.outbox, state.receipts
++
++
++def test_exact_domains_roundtrip_query_and_general_holds_remain_non_authoritative():
++    state, source, destination = fixture()
++    document = payload(state, source, destination)
++    expected = hashlib.sha256(b'tradegen-research-route-release-binding/1\n'+H.encoded(document['binding'])).hexdigest()
++    assert document['binding_sha256'] == expected
++    assert F.registration_digest(source) == hashlib.sha256(
++        b'tradegen-research-release-registration/1\n'+H.encoded(F.registration_document(source))).hexdigest()
++    event = release(state, source, destination)
++    assert F.event_bytes(event) == raw_payload(document)
++    parsed = F.parse_event(F.event_bytes(event))
++    assert parsed == event
++    after = F.reduce(state, parsed)
++    assert projected(after) == projected(state) and after.pending_notifications == state.pending_notifications
++    assert F.research_route_releases(after)[0] is after.events[-1]
++    assert F.research_route_releases(after)[0] == parsed
++    assert F.blocked_incidents(after, source) == F.blocked_incidents(state, source)
++    assert F.blocked_incidents(after, destination) == F.blocked_incidents(state, destination)
++    assert not any(name in json.loads(F.state_bytes(after)) for name in
++                   ('releases', 'approved', 'execution_ready', 'source_authenticated', 'quarantine_released'))
++
++
++def test_legacy_event_state_and_domain_bytes_are_exact_independent_wire_reference():
++    # A closed v1 history, assembled independently of the new reducer/projections.
++    reg = dict(store_binding_sha256='a'*64, bundle_digest='b'*64, input_archive_digest='c'*64,
++        bundle_kind='VERIFIED_UNAPPROVED', raw_manifest_sha256='d'*64, verified_manifest_sha256='e'*64,
++        graph_sha256='f'*64, catalog_head_sha256='1'*64, catalog_sequence=1,
++        objects=[dict(kind='chunk', sha256='2'*64, byte_count=7, from_raw=True)])
++    first = H.resign(dict(schema=1, kind='REGISTER', observed_at=stamp(AT), payload=reg))
++    failure = dict(store_binding_sha256='a'*64, bundle_digest='b'*64, scope='TARGET', failed_objects=[],
++                   category='INTEGRITY_FAILURE', reason_code='TEST_INTEGRITY')
++    second = H.resign(dict(schema=1, kind='FAILURE', observed_at=stamp(AT), payload=failure))
++    intent = dict(incident_id=second['event_id'], kind='RESEARCH_EVIDENCE_HELD', bundle_digest='b'*64,
++                  category='INTEGRITY_FAILURE', reason_code='TEST_INTEGRITY')
++    message = hashlib.sha256(b'tradegen-research-incidents/1\nnotification\n'+H.encoded(intent)).hexdigest()
++    receipt = dict(message_id=message, attempt_id='attempt-a', outcome='unknown')
++    third = H.resign(dict(schema=1, kind='DELIVERY', observed_at=stamp(AT), payload=receipt))
++    raw_events = tuple(H.encoded(item) for item in (first, second, third))
++    state = F._replay_events(raw_events)
++    expected = dict(schema=1, last_trusted_at=stamp(AT), registrations=[reg],
++        incidents=[dict(incident_id=second['event_id'], **failure, observed_at=stamp(AT),
++                        affected_bundle_digests=['b'*64], affected_raw_digests=[])],
++        outbox=[dict(message_id=message, **intent)], receipts=[dict(**receipt, observed_at=stamp(AT))],
++        events=[first, second, third])
++    raw = H.encoded(expected)
++    assert F.state_bytes(state) == raw
++    assert tuple(F.event_bytes(item) for item in state.events) == raw_events
++    assert F.state_digest(state) == hashlib.sha256(b'tradegen-research-incidents/1\nstate\n'+raw).hexdigest()
++    assert F.research_route_releases(state) == ()
++    for kind in ('RELEASE', 'APPROVE', 'SELL', 'REPAIR', 'EXPIRE', 'RESUME'):
++        H.refused(lambda:F.make_event(kind, {}, observed_at=AT))
++
++
++def test_release_documents_detach_every_nested_collection_without_changing_general_state():
++    state, source, destination = fixture()
++    document = payload(state, source, destination)
++    event = F.make_event(KIND, document, observed_at=AT+timedelta(seconds=3))
++    before = F.event_bytes(event)
++    document['binding']['selection']['source_reviews'][0]['purpose'] = 'APPROVE'
++    document['owner_checkpoint']['owner_head'][0] = 999
++    document['incident_head'].clear()
++    assert F.event_bytes(event) == before
++    assert type(event.payload) is MappingProxyType
++    assert type(event.payload['binding']['selection']['source_reviews']) is tuple
++    try:
++        event.payload['binding']['selection']['source_reviews'][0]['purpose'] = 'APPROVE'
++    except TypeError:
++        pass
++    else:
++        raise AssertionError('nested review record is mutable')
++    after = F.reduce(state, event)
++    assert projected(after) == projected(state)
++
++
++def test_every_release_object_is_closed_against_extra_and_missing_fields():
++    state, source, destination = fixture()
++    original = payload(state, source, destination)
++    paths = ((), ('binding',), ('binding','selection'), ('binding','selection','source_reviews',0),
++             ('owner_checkpoint',))
++    for path in paths:
++        for extra in (True, False):
++            document = deepcopy(original)
++            item = document
++            for name in path:
++                item = item[name]
++            if extra:
++                item['authority_granted'] = True
++            else:
++                del item[next(iter(item))]
++            H.refused(lambda:F.parse_event(raw_payload(document)))
++
++
++def test_release_exact_primitive_hash_head_and_fingerprint_constraints():
++    state, source, destination = fixture()
++    original = payload(state, source, destination)
++    for updates in ({'release_schema':True}, {'release_schema':2}, {'scope':'trade_activation'},
++                    {'binding_sha256':'A'*64}, {'incident_head':[True,'a'*64]},
++                    {'incident_head':[0,'a'*64]}, {'attempt_head':[2**63,'a'*64]},
++                    {'destination_head':[1,'a'*63]}, {'destination_head':[1,'a'*64,'extra']}):
++        H.refused(lambda:F.parse_event(raw_payload(original|updates)))
++    for updates in ({'key_fingerprint':'SHA256:'+'A'*64}, {'key_fingerprint':'a'*64},
++                    {'code_hash':False}, {'owner_head':[0,'a'*64]}, {'owner_head':[True,'a'*64]}):
++        H.refused(lambda:F.parse_event(raw_payload(original|{'owner_checkpoint':original['owner_checkpoint']|updates})))
++    for name in ('route_id','attempt_id','outcome_event_id','incident_id','incident_namespace_sha256',
++                 'attempt_namespace_sha256','source_store_binding_sha256','destination_registration_sha256'):
++        document = deepcopy(original); document['binding'][name] = False
++        H.refused(lambda:F.parse_event(raw_payload(document)))
++
++
++def test_review_ids_purposes_sort_uniqueness_membership_and_inventory_cap():
++    state, source, destination = fixture()
++    original = binding(state, source, destination)
++    review = original['selection']['source_reviews'][0]
++    bad_reviews = ([], [review, review], [review|{'study_id':'Study.Z'}, review],
++        [review|{'study_id':'1wrong'}], [review|{'audit_logical_id':'../audit'}],
++        [review|{'purpose':'research_archive_manifest_attestation'}],
++        [review|{'purpose':'owner.code'}], [review|{'document_sha256':'a'*63}])
++    for reviews in bad_reviews:
++        value = deepcopy(original); value['selection']['source_reviews'] = reviews
++        H.refused(lambda:F.research_release_binding_digest(value))
++    value = deepcopy(original); value['selection']['selected_study_id'] = 'Missing'
++    H.refused(lambda:F.research_release_binding_digest(value))
++    value = deepcopy(original)
++    value['selection']['source_reviews'] = [review|{'study_id':f'Study.{index:03d}'} for index in range(128)]
++    value['selection']['selected_study_id'] = 'Study.000'
++    assert F.research_release_binding_digest(value)
++    value['selection']['source_reviews'].append(review|{'study_id':'Study.128'})
++    H.refused(lambda:F.research_release_binding_digest(value), 'INCIDENT_RESOURCE_LIMIT')
++    value = deepcopy(original); value['selection']['source_reviews'][0]['purpose'] = CARRY_PURPOSE
++    assert F.research_release_binding_digest(value) != F.research_release_binding_digest(original)
++
++
++def test_binding_identity_and_nested_bundle_agreement_are_not_normalized():
++    state, source, destination = fixture()
++    document = payload(state, source, destination)
++    H.refused(lambda:F.parse_event(raw_payload(document|{'binding_sha256':H.digest('wrong')})),
++              'INCIDENT_RELEASE_BINDING_MISMATCH')
++    for changes in ({'bundle_digest':H.digest('other')},
++                    {'input_archive_digest':H.digest('other')},
++                    {'source_store_binding_sha256':destination.store_binding_sha256}):
++        H.refused(lambda:F.research_release_binding_digest(document['binding']|changes))
++    # Canonical shape/hashes do not establish an authentic recovery outcome.
++    value = deepcopy(document); value['binding']['outcome_event_id'] = H.digest('invented-outcome')
++    value['binding_sha256'] = F.research_release_binding_digest(value['binding'])
++    event = F.parse_event(raw_payload(value))
++    after = F.reduce(state, event)
++    assert F.blocked_incidents(after, destination) == state.incidents
++
++
++def test_release_chronology_expiry_and_exact_thirty_second_bound():
++    state, source, destination = fixture()
++    original = payload(state, source, destination)
++    boundary = AT+timedelta(seconds=32)
++    assert F.parse_event(raw_payload(original, at=boundary))
++    H.refused(lambda:F.parse_event(raw_payload(original, at=boundary+timedelta(microseconds=1))))
++    H.refused(lambda:F.parse_event(raw_payload(original, at=AT+timedelta(seconds=1))))
++    H.refused(lambda:F.parse_event(raw_payload(original, at=AT+timedelta(minutes=5))))
++    document = deepcopy(original)
++    document['binding']['selection']['evaluated_at'] = stamp(AT+timedelta(seconds=3))
++    document['binding_sha256'] = F.research_release_binding_digest(document['binding'])
++    H.refused(lambda:F.parse_event(raw_payload(document)))
++    document = deepcopy(original); document['owner_checkpoint']['observed_at'] = '2026-01-01T00:00:02+00:00'
++    H.refused(lambda:F.parse_event(raw_payload(document)))
++    H.refused(lambda:F.make_event(KIND, original, observed_at=None))
++
++
++def test_release_requires_exact_current_registered_graph_and_manifest_pair():
++    state, source, destination = fixture()
++    event = release(state, source, destination)
++    only_source = F.reduce(H.registered(source), H.failure(source, at=AT+timedelta(seconds=1)))
++    H.refused(lambda:F.reduce(only_source, event), 'INCIDENT_TARGET_UNREGISTERED')
++    for name in ('graph_sha256','raw_manifest_sha256','verified_manifest_sha256','catalog_head_sha256'):
++        changed = replace(destination, **{name:H.digest('changed-'+name)})
++        current = F.reduce(H.registered(source, changed), H.failure(source, at=AT+timedelta(seconds=1)))
++        H.refused(lambda:F.reduce(current, event), 'INCIDENT_RELEASE_REGISTRATION_MISMATCH')
++        updated = payload(current, source, changed)
++        if name == 'catalog_head_sha256':
++            assert F.research_route_releases(F.reduce(current, F.parse_event(raw_payload(updated))))
++        else:
++            H.refused(lambda:F.reduce(current, F.parse_event(raw_payload(updated))), 'INCIDENT_RELEASE_REGISTRATION_MISMATCH')
++    raw = H.registration(original='raw', raw=True, store='raw-source')
++    raw_copy = replace(raw, store_binding_sha256=H.digest('raw-copy'))
++    current = F.reduce(H.registered(raw, raw_copy), H.failure(raw, at=AT+timedelta(seconds=1)))
++    H.refused(lambda:F.reduce(current, release(current, raw, raw_copy)), 'INCIDENT_RELEASE_REGISTRATION_MISMATCH')
++
++
++def test_release_requires_one_current_incident_for_both_source_and_destination():
++    state, source, destination = fixture()
++    original = payload(state, source, destination)
++    no_incident = H.registered(source, destination)
++    H.refused(lambda:F.reduce(no_incident, F.parse_event(raw_payload(original))), 'INCIDENT_RELEASE_INCIDENT_MISMATCH')
++    additional = F.reduce(state, H.failure(destination, at=AT+timedelta(seconds=2), reason='SECOND_FAULT'))
++    H.refused(lambda:F.reduce(additional, F.parse_event(raw_payload(original))), 'INCIDENT_RELEASE_INCIDENT_MISMATCH')
++    unknown = deepcopy(original); unknown['binding']['incident_id'] = H.digest('unknown')
++    unknown['binding_sha256'] = F.research_release_binding_digest(unknown['binding'])
++    H.refused(lambda:F.reduce(state, F.parse_event(raw_payload(unknown))), 'INCIDENT_RELEASE_INCIDENT_MISMATCH')
++
++
++def test_every_scope_retains_general_copy_holds_and_unrelated_research_independence():
++    for scope in ('TARGET','OBJECTS','STORE'):
++        state, source, destination = fixture(scope=scope)
++        unrelated = H.registration('independent', store='independent-store', objects=(H.dependency('independent'),))
++        state = F.reduce(state, F.make_event('REGISTER', F.registration_document(unrelated),
++                                           observed_at=AT+timedelta(seconds=2)))
++        prior = projected(state), state.pending_notifications
++        after = F.reduce(state, release(state, source, destination))
++        assert (projected(after), after.pending_notifications) == prior
++        copy = replace(destination, store_binding_sha256=H.digest('yet-another-copy'))
++        for item in (source, destination, copy):
++            assert F.blocked_incidents(after, item) == F.blocked_incidents(state, item) == state.incidents
++        assert not F.blocked_incidents(after, unrelated)
++        # A later destination failure is retained even though an old record exists.
++        after = F.reduce(after, H.failure(destination, at=AT+timedelta(seconds=4), reason='LATER_FAULT'))
++        assert len(F.blocked_incidents(after, destination)) == 2
++        assert len(F.research_route_releases(after)) == 1
++
++
++def test_exact_retry_is_inert_but_same_binding_different_observation_conflicts():
++    state, source, destination = fixture()
++    event = release(state, source, destination)
++    state = F.reduce(state, event)
++    assert F.reduce(state, event) is state
++    delivered = H.delivery(state.outbox[0], outcome='failed', at=AT+timedelta(seconds=4))
++    later = F.reduce(state, delivered)
++    assert F.reduce(later, event) is later and len(F.research_route_releases(later)) == 1
++    document = json.loads(F.event_bytes(event))['payload']
++    document['incident_head'][1] = H.digest('another-head')
++    changed = F.parse_event(raw_payload(document, at=AT+timedelta(seconds=4)))
++    H.refused(lambda:F.reduce(later, changed), 'INCIDENT_RELEASE_CONFLICT')
++    changed_time = F.parse_event(raw_payload(json.loads(F.event_bytes(event))['payload'],
++                                           at=AT+timedelta(seconds=4)))
++    H.refused(lambda:F.reduce(later, changed_time), 'INCIDENT_RELEASE_CONFLICT')
++
++
++def test_query_filters_and_tampered_projections_cannot_hide_validation():
++    state, source, destination = fixture()
++    event = release(state, source, destination)
++    after = F.reduce(state, event); bound = event.payload['binding']
++    for name in ('route_id','incident_id','destination_store_binding_sha256'):
++        assert F.research_route_releases(after, **{name:bound[name]}) == (event,)
++        assert not F.research_route_releases(after, **{name:H.digest('absent')})
++        for value in (False, 1, b'a'*64, 'A'*64):
++            H.refused(lambda:F.research_route_releases(after, **{name:value}))
++    H.refused(lambda:F.research_route_releases(replace(after, incidents=())), 'INCIDENT_STATE_INVALID')
++    H.refused(lambda:F.research_route_releases(replace(after, outbox=())), 'INCIDENT_STATE_INVALID')
++
++
++def test_release_count_reuses_existing_incident_limit_without_truncation():
++    state, source, destination = fixture()
++    limits = replace(F.DEFAULT_LIMITS, max_incidents=1)
++    event = release(state, source, destination)
++    after = F.reduce(state, event, limits=limits)
++    before = F.state_bytes(after, limits=limits)
++    H.refused(lambda:F.reduce(after, release(state, source, destination, label='b'), limits=limits),
++              'INCIDENT_RESOURCE_LIMIT')
++    assert F.state_bytes(after, limits=limits) == before and len(F.research_route_releases(after, limits=limits)) == 1
++
++
++def test_release_consumes_original_total_event_budget_and_exact_byte_caps():
++    state, source, destination = fixture()
++    limits = replace(F.DEFAULT_LIMITS, max_targets=2, max_incidents=2, max_attempts=1)
++    state = F.reduce(state, H.delivery(state.outbox[0], at=AT+timedelta(seconds=2)), limits=limits)
++    event = release(state, source, destination)
++    after = F.reduce(state, event, limits=limits)
++    assert len(after.events) == 5
++    H.refused(lambda:F.reduce(after, release(state, source, destination, label='b'), limits=limits),
++              'INCIDENT_RESOURCE_LIMIT')
++    raw = F.event_bytes(event)
++    exact = replace(F.DEFAULT_LIMITS, max_event_bytes=len(raw))
++    assert F.event_bytes(event, limits=exact) == raw
++    H.refused(lambda:F.event_bytes(event, limits=replace(exact, max_event_bytes=len(raw)-1)), 'INCIDENT_RESOURCE_LIMIT')
++    saved = F.state_bytes(after)
++    assert F.state_bytes(after, limits=replace(F.DEFAULT_LIMITS, max_state_bytes=len(saved))) == saved
++    H.refused(lambda:F.state_bytes(after, limits=replace(F.DEFAULT_LIMITS, max_state_bytes=len(saved)-1)), 'INCIDENT_RESOURCE_LIMIT')
++
++
++def test_one_pass_streaming_replay_checks_each_release_without_recursive_public_query():
++    state, source, destination = fixture()
++    state = F.reduce(state, release(state, source, destination))
++    raw = tuple(F.event_bytes(event) for event in state.events)
++    original, calls = F._apply, []
++    def counted(*args):
++        calls.append(args[1].event_id)
++        return original(*args)
++    with patch.object(F, '_apply', counted), patch.object(F, 'blocked_incidents',
++            side_effect=AssertionError('recursive public validation')):
++        replayed = F._replay_events(raw)
++    assert len(calls) == len(raw) and replayed == state
++    H.refused(lambda:F._replay_events(raw+(raw[-1],)), 'INCIDENT_STATE_INVALID')
++    H.refused(lambda:F._replay_events(tuple(reversed(raw))))
++
++
++def test_release_frozen_mutation_and_limits_failure_have_fixed_diagnostics():
++    state, source, destination = fixture()
++    event = release(state, source, destination)
++    object.__setattr__(event, 'payload', {'release_schema':True})
++    H.refused(lambda:F.event_bytes(event))
++    bad = replace(F.DEFAULT_LIMITS); object.__delattr__(bad, 'max_event_bytes')
++    for call in (lambda:F.registration_digest(source, limits=bad),
++                 lambda:F.research_release_binding_digest(binding(state, source, destination), limits=bad),
++                 lambda:F.research_route_releases(state, limits=bad)):
++        H.refused(call, 'INCIDENT_LIMITS_INVALID')

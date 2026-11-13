@@ -5,16 +5,16 @@ from: gpt
 task: upbit-universe
 cycle: 2026-11-10
 done_ids: protective-hold/committed-generation-publication, launch-read-capture-renewal-boundaries-1, launch-upbit-read-batch-archive-1, protective-hold/committed-runner-consumer, protective-hold/committed-completion, universe-pr5/recovery-controller, protective-hold/full-capture-archive, universe-pr5/restored-archive-revalidation, protective-hold/retained-continuous-capture, universe-pr5/research-incidents, protective-hold/committed-account-consumer, universe-pr5/sealed-selection, universe-pr5/research-revocation, universe-pr5/exact-archive-recovery, universe-pr5/archive-attestation, universe-pr5/raw-verified-bundles, universe-pr5/family-preflight, protective-hold/fixed-carry-v2, universe-pr4e, protective-hold/p2-store-integration, universe-pr5/outcome-document-contract, protective-hold/p2-store, protective-hold/p1, universe-pr4d/lossless-history, universe-pr4d, universe-pr4d/lossless-objects, design-revision-1113, upbit-universe-return-1113, universe-pr4d/original-verification, workflow-resume-1113/regression-preparation, universe-pr4d/task2-implementation, universe-pr4d/task3, universe-pr4d/task4, universe-pr4c, universe-pr4d/task1, workflow-resume-1113, workflow-resume-1113/dependencies, universe-pr4c/implementation, universe-pr0, universe-pr1, universe-pr2, universe-pr3, universe-pr4b, universe-pr4a
-next_ids: universe-pr5/recovered-current-selection, universe-pr5/recovery-operations, protective-hold/p2-integration, universe-pr5, universe-pr5-clock-notify, universe-code-approve, policy-loss-budget-plan-1, rules-review-1202, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, launch-private-capture-setup-1, e1-14-owner-setup, launch-prospective-study, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1
-updated_at: 2026-11-14T03:46:23+09:00
+next_ids: universe-pr5/recovered-current-selection, protective-hold/committed-startup-retention, universe-pr5/passkey-archive-authority, universe-pr5/recovery-operations, protective-hold/p2-integration, universe-pr5, universe-pr5-clock-notify, universe-code-approve, policy-loss-budget-plan-1, rules-review-1202, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, launch-private-capture-setup-1, e1-14-owner-setup, launch-prospective-study, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1
+updated_at: 2026-11-14T04:15:22+09:00
 stale_after_hours: 3
 waiting_on: no prior approval question; future PLB S1-S12 and deployment inputs only
 work_branch: gpt/committed-generation-publication
 work_commit: 49796a67d793d869ab0ed1108579d79ed8c6d744
 merged_main_commit: 19f6775935f8d8828eed21fcaa76449507239a5b
 runtime_tested_commit: generation1e4fe9e/main55integrationa88ab96/delivery49796a6/main19f6775; finalrelated312PASS0FAIL0NR740.398s fp8e1ec8ced66cc3131bc619fa2f75b7d78c54769d945e9f6d7b37364db1b392af
-uncommitted_changes: Separate recovered selection consumer, pure event, actual helpers, CLI, 64 new tests and guide/registry/guard changes in /workspace/tradegen-recovered-selection-1113 main56base19f6775. Independent reads nearly complete; runtime0. Generation delivery clean.
-pr: PR34-56 merged; recovered current selection and CLI implementation awaiting joint verification; no live activation
+uncommitted_changes: recovered selection/CLI related368 RUNNING at main56base19f6775, source97b858e; pending source patch and intermediate evidence saved in context; startup retention implementation in separate tree, runtime0. Generation delivery clean.
+pr: PR34-56 merged; recovered selection related368 RUNNING; startup retention implementation and passkey exact contract pending; no live activation
 usage_weekly_pct: unknown
 usage_source: unavailable
 handoff_threshold_pct: 95
@@ -261,3 +261,10 @@ PR50 전체수집원문보관/실제백업/새reader역사감사: 161PASS0FAIL0N
 ## 2026-11-14T02:07:50+09:00 체크포인트 — PR51 병합 및 I3c 착수
 
 PR51 전달f52bfb0/maina2e61b3 tree일치. 최종영향범위131PASS138.115초, 세실행고유205PASS0미해결FAIL·NOT_RUN0; 원본실패/진단수정이력보존. 이전pending/PIN진단블로커는이결과로해결됐다. I3c-time은새별도트리에서구현중이며미검증. 실제활성화·주문없음,usageunknown/unavailable.
+
+## 최신 진행 중 체크포인트 2026-11-14T04:15:22+09:00
+
+- Recovered selection/CLI 관련368개 실행 중: 이 관측에서 283개 완료, {'PASS': 283, 'FAIL': 0, 'NOT_RUN': 0}. 신규64개는 모두PASS. 최종368개 결과·불변성/QA복원 판정은 아직없음. 실행 session24297, source97b858e0fa81969d2b93fc6e6971e5bdb2795c40b8256f904c91fa4ba4d39fe3, HEAD19f6775를동결유지. 완료ID/PR/병합으로표시하지않음.
+- 이 진행중 소스는 context/upbit-universe/gpt-20261113/recovered-selection-pending.patch에보존. BASE19f6775935f8d8828eed21fcaa76449507239a5b, patch SHA3ebb321e804b04308b295b3f6c1bef7281025781630feaabdedb11909c4cd282. 현재worktree있으면다시apply하지말기. workspace소실때만해당base새branch에git apply --index후sourcefingerprint대조; 완료된최종로그/후속commit이있으면그것이우선. QA생성파일은patch에포함안함. pending-checkpoint.json은중간관측이지최종성공증거아님.
+- Startup retention은별도 /workspace/tradegen-committed-startup-1113 gpt/committed-startup-retention main56base에서구현중/runtime0. 확정card+원자료의pre/post보관+readonlyhistoricalprovider+actualstartupreconcile, original evaluated_at opt-in commit제약, require_existing Journal opt-in구현을분담. 이트리도아직완료아님. Source/coverage/controlled거절유지.
+- Passkey는archive-only첫vertical exactAPI/준비안만작성, 구현·설치·runtime0. 실제RP/root/Windows격리미정. Upbit공식문서대조는외부보장미확인과미구현을구분했고실제API/WS0. 문서만으로productioncoverage발급하지않음. 해당5개문서도context에보존.
