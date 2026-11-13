@@ -1,25 +1,25 @@
 ---
-status: handoff
-reason: usage_limit_weekly
-from: claude
+status: taken
+reason: owner_requested_resume
+from: gpt
 task: upbit-universe
 cycle: 2026-11-10
 done_ids: universe-pr0, universe-pr1, universe-pr2, universe-pr3, universe-pr4b, universe-pr4a
 next_ids: universe-pr4c, universe-pr4d, universe-pr4e, universe-pr5, universe-pr5-clock-notify, universe-code-approve, policy-loss-budget-plan-1, rules-review-1202, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, launch-private-capture-setup-1, e1-14-owner-setup, launch-prospective-study, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1
-updated_at: 2026-11-12T16:53:45+09:00
+updated_at: 2026-11-13T16:52:19+09:00
 stale_after_hours: 3
 waiting_on: none
-work_branch: none (claude/universe-pr4c-terms 는 로컬에만 있고 커밋 없음, push 안 함)
-work_commit: 971a5389208c
+work_branch: gpt/universe-pr4c-terms
+work_commit: 971a5389208c85d34fdd6479c96580e9b8fcc68d
 runtime_tested_commit: 56a0b7f (PR 4a head, 전체 실행)
 uncommitted_changes: no
 pr: https://github.com/xkg4real/tradegen/pull/32 (merged)
-usage_weekly_pct: 98
-usage_source: claude-code get_usage (Weekly, all models)
+usage_weekly_pct: unknown
+usage_source: unavailable
 handoff_threshold_pct: 95
 usage_5h_pct: unknown
-usage_resets_at: 2026-11-17T17:00:00+09:00
-session: Claude Code desktop on the owner's Windows PC (universe-impl side session); separate scratch clone, TRADEGEN_PR9 venv read-only
+usage_resets_at: unknown
+session: Cloud Codex; owner Windows deployment remains separate
 ---
 
 # 인수인계: Upbit KRW 유니버스 구현 (PR 0 ~ PR 5)
@@ -157,3 +157,7 @@ OPENBLAS_NUM_THREADS=1 TRADEGEN_RUNS_DIR=<scratch> python -X utf8 -m tests.run_a
 - 이 인계는 확률을 바꾸지 않고, 주문도 내지 않습니다.
 - 유니버스 전략은 아직 백테스트되지 않았습니다. 확률은 PR 4c의 평가기와 48시간 study가 끝나야 나옵니다. 그 전까지는 기존 odds 카드의 수치가 적용됩니다.
 - 이 문서는 소프트웨어 설계 기록이며, 법률·세무·투자 조언이 아닙니다.
+
+## GPT 작업 시작 (2026-11-13 KST)
+
+소유자의 이 대화 지시로 PR 4c부터 재개합니다. 최신 main과 인계 문서를 대조했고, 작업 흐름·각 Task 검증 기록을 md와 기존 Notion 페이지에 연결합니다. 실서명·무장·주문은 수행하지 않습니다. 개발 결과가 검증되면 요청된 push/PR/병합 절차를 진행합니다. 기존 계획 밖의 별도 작업이 필요하면 구체안을 작성한 뒤 클릭형 승인 입력을 요청합니다. 현재 PR 4c 사전 점검 단계이며 새 기능 완료로 기록하지 않습니다.
