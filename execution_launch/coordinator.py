@@ -40,33 +40,41 @@ credentials or writes a file of its own.
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from datetime import datetime, time, timedelta
+from datetime import date, datetime, time, timedelta
+from fractions import Fraction
 import heapq
 import re
 import threading
+from types import MappingProxyType
 from typing import Callable, Iterable, Iterator, Mapping
 
+from core.compliance.alerts import toast
 from core.compliance.model import KST
+from core.compliance.rules import universe_top_n
 from core.isolation import state_root
 from execution_accounts.baseline_bridge import BaselineFrame, ContinuousAccountProvider
 from execution_accounts.baseline_store import CheckpointStore
+from execution_accounts.instrument_terms import within_buy_cap
+from execution_accounts.universe import TickerRead
 from execution_control.capability import digest
 from execution_control.controller import Controller, OrderState
 from execution_control.owner_authority import CurrentOwnerAuthority
 from execution_control.store import Journal, JournalError
+from execution_control.universe_odds import run_batch
 from execution_launch.baseline_head import BaselineHead
 from execution_launch.driver import (DeploymentWindow, FixedDriverError, FixedDriverIdentity, describe_fixed_driver,
                                      make_fixed_driver)
-from execution_launch.live_history import HistoryChain, LiveHistory
+from execution_launch.live_history import HistoryChain, LiveHistory, SlotUniverse
 from execution_launch.history_storage import (HistoryStoragePolicy, MAX_POLICY_BYTES, parse_policy, policy_digest)
 from execution_launch.instrument_refresh import renew_profile
 from execution_launch.paper_capture import sample_prefetched_book
 from execution_launch.profile import LaunchProfile, parse_profile_json, risk_policy
 from execution_launch.program import ProgramSpec, parse_program
 from execution_launch.review_auth import MAX_DOCUMENT_BYTES, ReviewVerifiers
-from execution_launch.runner import (EvidencePackage, LaunchSession, Runner, StrategyDriver, TickResult,
-                                     prepare_launch_session)
+from execution_launch.runner import (EvidencePackage, LaunchSession, Runner, StrategyDriver, TickResult, active,
+                                     dust, flat_in, prepare_launch_session)
 from execution_launch.strategy import ForwardProtocol, evaluate_capture_json, parse_protocol
+from execution_launch.toast_queue import ToastQueue
 from execution_launch.workflow import MAX_CAPTURE_BYTES, MAX_CONFIG_BYTES, artifact, read_file
 
 SLOT_WINDOW = timedelta(seconds=10)      # the driver's execution slot and the quote freshness bound
@@ -83,6 +91,9 @@ MAX_WAIT_SECONDS = 1.0                   # re-read the wall clock at least once 
 _CODE = re.compile(r"[A-Z][A-Z0-9_]{0,95}")
 _RANK = {"boundary": 0, "slot": 1, "monitor": 2}
 _KNOBS = {"monitor_seconds": (5, 20), "prefetch_lead_seconds": (1, 8), "boundary_lead_seconds": (1, 10)}
+UNIVERSE_KIND = "universe_top1_momentum"  # the reviewed program kind of a universe profile (PR 4b)
+UNIVERSE_WINDOW_MAX = timedelta(hours=72)  # spec section 10: the never-pruned renewal registry bounds the window
+PRICE_AGE = timedelta(seconds=60)         # a ticker price is defined within 60 s of the slot (PR 4d PRICE_WINDOW_MS)
 
 
 class CoordinatorError(ValueError):
@@ -117,6 +128,54 @@ def reconcile_orders(runner: Runner, now: datetime) -> int:
 def history_head_name(window: DeploymentWindow) -> str:
     """The live-history head's directory name for one deployment window (lowercase, one head per window)."""
     return "live-history-" + digest(window)[:16]
+
+
+
+
+def held_coins(account, minimum) -> tuple[str, ...]:
+    """The held coins of one account capture (spec section 7): non-dust holdings, the largest value at its mark
+    first, equal values by symbol."""
+    held = [p for p in account.positions if not dust(p, minimum)]
+    return tuple(p.symbol for p in sorted(held, key=lambda p: (-(Fraction(p.units) * Fraction(p.price)), p.symbol)))
+
+
+def universe_state(snapshot, rule_sha256, at) -> str:
+    """The status word for a snapshot at `at`: no_snapshot (none, or not in force), rule_mismatch or in_force."""
+    if snapshot is None or not snapshot.valid_from <= at < snapshot.valid_until:
+        return "no_snapshot"
+    return "in_force" if snapshot.rule_sha256 == rule_sha256 else "rule_mismatch"
+
+
+
+
+def choose_trade_coin(held, current, decided, flat) -> str:
+    """Spec section 7, rules 1 to 3: the one held coin; with two or more, the trade coin if held, else the largest
+    (the caller blocks buys); with none, the decided coin while flat in the trade coin, else the trade coin."""
+    if len(held) == 1:
+        return held[0]
+    if held:
+        return current if current in held else held[0]
+    return decided if decided is not None and flat else current
+
+
+
+
+def slot_allow(*, snapshot, rule_sha256, n, flags, tickers, slot, blocks=()) -> tuple[frozenset, tuple[str, ...]]:
+    """Spec section 7: the slot's buy allow-list and buy-block reasons. The list is the top-N of the snapshot in force
+    that are unflagged in this slot's flag read and priced within PRICE_AGE of the slot in its ticker read; it is
+    empty when any reason is set."""
+    reasons = tuple(blocks)
+    state = universe_state(snapshot, rule_sha256, slot)
+    if state != "in_force":
+        reasons += ("UNIVERSE_NO_SNAPSHOT" if state == "no_snapshot" else "UNIVERSE_RULE_MISMATCH",)
+    if not flags.ok:
+        reasons += ("UNIVERSE_FLAGS_UNAVAILABLE",)
+    if not tickers.ok:
+        reasons += ("UNIVERSE_TICKERS_UNAVAILABLE",)
+    if reasons:
+        return frozenset(), reasons
+    return frozenset(m for m in universe_top_n(snapshot, n) if flags.flags.get(m) == "unflagged"
+                     and m in tickers.prices and abs(tickers.prices[m][1] - slot) <= PRICE_AGE), ()
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -231,6 +290,17 @@ class CoordinatorStatus:
     data_gap_at: datetime | None = None
     orders: tuple[OrderState, ...] = ()
     reasons: tuple[str, ...] = ()       # the last slot tick's reasons, or the last refused slot or control step
+    held_symbol: str | None = None      # universe: the largest held coin of the last published frame
+    trade_symbol: str | None = None     # universe: profile.symbol, the coin whose rules are current
+    snapshot_day: date | None = None    # universe: the snapshot of the last monitor
+    snapshot_sha256: str | None = None
+    universe_state: str | None = None   # universe: in_force, no_snapshot or rule_mismatch
+    held_flag: str | None = None        # universe: the held coin's class in the last slot's flag read
+    allow_count: int = 0                # universe: the size of the last slot's buy allow-list
+    buy_block_reasons: tuple[str, ...] = ()
+    disarm_failed: bool = False         # sticky: the universe disarm recorded no system disarm
+    notification_failed: bool = False   # sticky local enqueue failure, never delivery or approval evidence
+    window_ended_missed_slot: bool = False  # sticky: a slot the history did not record ended the window
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -278,16 +348,28 @@ class Coordinator:
                  monitor_seconds: int = 10, prefetch_lead_seconds: int = 3,
                  boundary_lead_seconds: int = 1,     # calibration (R19): under the shortest capture's 1.8 s (9
                                                      # requests, 0.2 s pace each), leaving ~1 s for the first reply
-                 wait: Callable[[threading.Event, float], bool] = threading.Event.wait) -> None:
+                 wait: Callable[[threading.Event, float], bool] = threading.Event.wait,
+                 slot_source: object | None = None, program: object | None = None,
+                 toast: Callable[[str, str], bool] = toast) -> None:
         _require(mode == "rehearsal", "COORDINATOR_MODE_UNSUPPORTED")
         _require(type(profile) is LaunchProfile and (profile.venue, profile.market, profile.quote_currency)
                  == ("upbit", "spot", "KRW"), "COORDINATOR_VENUE_UNSUPPORTED")
         _require(type(evidence) is EvidencePackage and type(driver) is StrategyDriver
-                 and all(callable(f) for f in (clock, wait, account_source, implementation_verifier))
+                 and all(callable(f) for f in (clock, wait, account_source, implementation_verifier, toast))
                  and (account_prefetch is None or callable(account_prefetch))
                  and callable(getattr(quote_source, "read", None)) and callable(getattr(trusted_head, "read", None))
                  and (history is None or callable(getattr(history, "record_slot", None)))
                  and (terms_source is None or callable(getattr(terms_source, "read", None))),
+                 "COORDINATOR_INTEGRATIONS_REQUIRED")
+        universe = profile.universe_rule_sha256 is not None    # spec section 10: a universe launch profile
+        _require(not universe or (callable(getattr(slot_source, "read_flags", None))
+                                  and callable(getattr(slot_source, "read_tickers", None))
+                                  and terms_source is not None
+                                  and callable(getattr(history, "decided_symbol", None))
+                                  and getattr(program, "kind", None) == UNIVERSE_KIND
+                                  and getattr(program, "universe_rule_sha256", None) == profile.universe_rule_sha256
+                                  and type(getattr(program, "max_candidates", None)) is int
+                                  and program.max_candidates >= 1),
                  "COORDINATOR_INTEGRATIONS_REQUIRED")
         knobs = {"monitor_seconds": monitor_seconds, "prefetch_lead_seconds": prefetch_lead_seconds,
                  "boundary_lead_seconds": boundary_lead_seconds}
@@ -299,6 +381,7 @@ class Coordinator:
         step, span = timedelta(seconds=bar_seconds), window.end - window.start
         _require(span > timedelta(0) and span % step == timedelta(0) and 2 <= span // step + 1 <= 20000,
                  "COORDINATOR_WINDOW_INVALID")
+        _require(not universe or span <= UNIVERSE_WINDOW_MAX, "COORDINATOR_WINDOW_INVALID")
         _require(bar_seconds % monitor_seconds == 0 and monitor_seconds - prefetch_lead_seconds >= MONITOR_UNIT_SECONDS,
                  "COORDINATOR_SCHEDULE_INVALID")              # monitors on the slot grid; one monitor unit per lead
         try:
@@ -349,6 +432,12 @@ class Coordinator:
         self._last_time, self._observation, self._launch, self._published = None, None, None, 0
         self._latest_frame = None
         self._status = CoordinatorStatus()
+        self._universe, self._slot_source, self._program = universe, slot_source, program
+        self._toasts, self._toasted = ToastQueue(toast), set()        # spec section 15: queued, deduped here
+        self._snapshot, self._held, self._extra = None, None, False   # _held None: no frame read yet
+        self._vanished, self._disarmed, self._terms_unavailable = False, False, False
+        self._remainder_ticks, self._remainder = 0, False
+        self._within_cap = True                 # PR 4c: the trade coin's last terms read is within its v2 buy cap
 
     # -- status ------------------------------------------------------------------------------------------------
 
@@ -359,7 +448,9 @@ class Coordinator:
     def _update(self, **changes) -> None:
         with self._status_lock:
             self._status = replace(self._status, phase=self._phase,
-                                   strategy_stopped=self._stopping.is_set() or self._runner.stopped, **changes)
+                                   strategy_stopped=self._stopping.is_set() or self._runner.stopped
+                                   or changes.get("window_ended_missed_slot", self._status.window_ended_missed_slot),
+                                   **changes)
 
     def _refused(self, stage, code, *, slot) -> None:
         """An account-step failure is kept apart from risk and order state; a slot's outcome is in `reasons`."""
@@ -371,6 +462,23 @@ class Coordinator:
         if slot or stage == "control":
             changes["reasons"] = (code,)
         self._update(**changes)
+
+
+    def _toast_once(self, key, level, body) -> None:
+        """Queue one coordinator toast (spec section 15) unless `key` was already toasted in this window; keys carry
+        the Seoul date where the dedupe is once per day."""
+        if key not in self._toasted:
+            self._toasted.add(key)
+            try:
+                self._toasts.put("TRADEGEN universe " + level, body)
+            except Exception:
+                # A notification channel cannot veto evidence, reconciliation or a durable disarm.
+                # Keep failure visible without copying transport text, inferring delivery, or retrying an action.
+                self._update(notification_failed=True)
+
+    def _holding(self) -> bool:
+        """True while a coin is held or the holdings are not known yet (no frame read): exits need fresh rules."""
+        return self._held is None or bool(self._held)
 
     # -- the clock and the account step shared by every unit ---------------------------------------------------
 
@@ -409,7 +517,7 @@ class Coordinator:
     def _read_book(self):
         self._update(in_flight="quote_source")
         try:
-            return self._quote_source.read()
+            return self._quote_source.read(self._profile.symbol) if self._universe else self._quote_source.read()
         except Exception as exc:
             raise CoordinatorError(_code(exc, "COORDINATOR_QUOTE_SOURCE_FAILED")) from None
 
@@ -437,27 +545,43 @@ class Coordinator:
                 return
             self._wait(self._stopping, min(remaining, MAX_WAIT_SECONDS))
 
-    def _refresh_terms(self):
-        """Called under the work lock, before account/quote timing for a unit."""
+    def _refresh_terms(self, symbol=None):
+        """Called under the work lock, before account/quote timing for a unit. A universe profile reads the terms of
+        `symbol` (another coin, after _universe_monitor's flat check) or of its trade coin (spec section 10)."""
         _require(self._terms_source is not None, "COORDINATOR_TERMS_SOURCE_REQUIRED")
+        target = symbol or self._profile.symbol
         try:
             if self._pending_terms is None:
-                observation = self._terms_source.read()
+                observation = self._terms_source.read(target) if self._universe else self._terms_source.read()
+                if self._universe:
+                    # ponytail: follows the last read even if its renewal fails; buys are blocked while one is pending
+                    self._within_cap = within_buy_cap(observation)
                 now = self._time()             # actual receipt completes before the clock is chosen
-                self._pending_terms = renew_profile(self._profile, observation, now=now)
+                self._pending_terms = renew_profile(self._profile, observation, now=now,
+                                                    allow_symbol_change=target != self._profile.symbol)
             else:
+                target = self._pending_terms.profile.symbol
                 now = self._time()             # retry the issued object; never fork from the old snapshot
             renewal = self._pending_terms
-            self._runner.refresh_instrument_rules(renewal, now=now)
+            frame = self._latest_frame
+            self._runner.refresh_instrument_rules(renewal, now=now,
+                                                  account=None if frame is None else frame.accounts[0])
             self._profile = renewal.profile
             self._pending_terms = None
             self._launch = self._runner.launch_session  # same actual PreparedSession, updated wrapper only
-            self._terms_blocked = False
+            self._terms_blocked = self._terms_unavailable = False
             self._update(instrument_source="", instrument_asof=self._profile.instrument_rules.asof)
             return self._profile.instrument_rules.asof
         except Exception as exc:
-            self._terms_blocked = True
             code = _code(exc, "COORDINATOR_TERMS_SOURCE_FAILED")
+            if not self._universe or self._held is None:
+                self._terms_blocked = True     # unknown holdings require current rules
+            elif code == "TERMS_MARKET_INACTIVE" and target in self._held:
+                self._vanished = True          # only the actual inquiry target can establish this event
+            elif self._held:
+                self._terms_blocked = True     # another market's failure is not evidence this holding vanished
+            else:
+                self._terms_unavailable = True  # no coin held: buys blocked only (TERMS_TARGET_UNAVAILABLE)
             self._update(instrument_source=code, new_entry_blocked=True)
             raise CoordinatorError(code) from None
 
@@ -466,9 +590,106 @@ class Coordinator:
             return
         rules = self._profile.instrument_rules
         now = self._now()
-        if (self._terms_blocked or rules is None or rules.asof > now
-                or now - rules.asof >= TERMS_REFRESH_AGE):
+        if (self._terms_blocked or self._terms_unavailable or self._pending_terms is not None or rules is None
+                or rules.asof > now or now - rules.asof >= TERMS_REFRESH_AGE):
             self._refresh_terms()
+
+
+    def _holdings(self, now) -> None:
+        """After each universe _publish (spec section 7): the held coins of the new frame, the vanish latch (a coin
+        held in the previous frame now marked unlisted at 0), the extra-holding block and its toast, and the
+        unsellable-remainder reset once the trade coin is no longer held."""
+        account = self._latest_frame.accounts[0]
+        held = held_coins(account, self._profile.instrument_rules.min_notional_krw)
+        if any(p.symbol in (self._held or ()) and p.price == 0 for p in account.positions):
+            self._vanished = True
+        self._held, self._extra = held, len(held) > 1
+        if self._extra:
+            self._toast_once("extra:" + now.astimezone(KST).date().isoformat(), "red",
+                             "Two or more coins are held. Buys are blocked. Review management of the extra holding.")
+        if self._profile.symbol not in held:
+            self._remainder_ticks, self._remainder = 0, False
+        self._update(held_symbol=held[0] if held else None, trade_symbol=self._profile.symbol)
+
+
+    def _universe_monitor(self, now) -> None:
+        """Spec section 7, in each monitor unit after _publish and the observe: choose the trade coin; for another
+        coin, renew only while flat in the trade coin with no renewal pending (not flat is a normal outcome). Also
+        the management-renewal notice at the window end; a deadline alone never submits an exit."""
+        account, current = self._latest_frame.accounts[0], self._profile.symbol
+        states = self._controller.states()
+        flat = flat_in(current, account.positions, states, asof=account.observed_at,
+                       minimum=self._profile.instrument_rules.min_notional_krw)
+        choice = choose_trade_coin(self._held, current, self._history.decided_symbol(), flat)
+        if not self._vanished and choice != current and flat and self._pending_terms is None:
+            try:
+                self._refresh_terms(choice)
+            except CoordinatorError:
+                pass                    # buys stay blocked (TERMS_TARGET_UNAVAILABLE); retried at the next monitor
+        if now > self._window.end + SLOT_WINDOW and self._held and not any(active(s) for s in states):
+            self._toast_once("window-end", "red",
+                             "The management window ended with a holding. Request new management approval. "
+                             "Existing permissions and loss protection remain in force; nothing is extended automatically.")
+        self._update(trade_symbol=self._profile.symbol)
+
+
+    def _events(self, flags, account, day) -> list:
+        """Spec section 7, step 8: the (code, action) pairs this slot raises, in the table's order. Codes are
+        recorded with the slot; the actions run after record_slot, each in its own try."""
+        events = []
+        if self._vanished:
+            events.append(("UNIVERSE_MARKET_VANISHED", self._vanish))
+        held = set(self._held or ())
+        if flags.ok:
+            warned = [p.symbol for p in account.positions
+                      if p.symbol not in held and p.units > 0 and flags.flags.get(p.symbol) == "warning"]
+            if warned:
+                def warn():
+                    for coin in warned:
+                        self._toast_once("warning:" + coin + ":" + day, "red", coin + " has a market warning. Check the remaining balance, "
+                                         "order minimum and available management options. No automatic top-up is performed.")
+                events.append(("UNIVERSE_OTHER_COIN_WARNING", warn))
+            if any(flags.flags.get(coin, "absent") in ("unknown", "absent") for coin in held):
+                events.append(("UNIVERSE_HELD_FLAG_UNCERTAIN", lambda: self._toast_once(
+                    "held-flag:" + day, "amber", "The held coin's flag is unknown or absent. No buy at this slot.")))
+        return events
+
+    def _vanish(self) -> tuple[str, ...]:
+        """The vanish event (spec section 7): stop, then the lock-free disarm with reason market_vanished, once per
+        window. A kill that records no system disarm counts as failed: sticky disarm_failed and a red toast."""
+        if self._disarmed:
+            return ()
+        self._disarmed = True
+        self.stop()
+        try:
+            result = self._disarm_locked(reason="market_vanished", code="COORDINATOR_UNIVERSE_DISARM",
+                                         republish=False)
+            failed = result.session_prepared and not result.owner_disarm_recorded
+        except CoordinatorError:
+            failed = True
+        if failed:
+            self._update(disarm_failed=True)
+            self._toast_once("disarm-failed", "red", "The universe disarm did not complete. Disarm the session by "
+                             "hand and handle the coin in the Upbit app.")
+        else:
+            self._toast_once("vanished", "red", "The held coin left the Upbit KRW market. The strategy is stopped. "
+                             "Check the reported session disarm status and management options for the holding.")
+        return ("COORDINATOR_UNIVERSE_DISARM",)
+
+    def _after_tick(self, last, acted, day) -> None:
+        """The unsellable-remainder event (spec section 7): the trade coin held, the decision the tick acted on
+        another coin or cash, and a hold result (the whole sell under the minimum at its limit price), two ticks in a
+        row. The block stays until the trade coin is no longer held (_holdings)."""
+        if (last is not None and last.status == "hold" and acted != self._profile.symbol
+                and self._profile.symbol in (self._held or ())):
+            self._remainder_ticks += 1
+        else:
+            self._remainder_ticks = 0
+        if self._remainder_ticks >= 2 and not self._remainder:
+            self._remainder = True
+            self._toast_once("remainder:" + day, "red", "The held coin's remainder is below the Upbit minimum. "
+                             "Buys are blocked. Review its balance, order minimum and management options; "
+                             "no top-up or liquidation is triggered by this notice.")
 
     # -- units -------------------------------------------------------------------------------------------------
 
@@ -487,14 +708,27 @@ class Coordinator:
                     return
                 now = self._time()
                 self._publish(previous, now, None)
+                if self._universe:
+                    self._holdings(now)
                 stage = "control"
                 self._update(in_flight="control")
                 risk = self._controller.observe(now=now)
                 self._ready = True
                 reconcile_orders(self._runner, now)
-                self._update(new_entry_blocked=risk.new_entry_blocked or self._terms_blocked, risk_reasons=risk.reasons,
-                             recovery_status=risk.recovery_status, recovery_deadline=risk.recovery_deadline,
-                             orders=self._controller.states())
+                if self._universe:
+                    self._snapshot = risk.universe
+                    self._update(snapshot_day=None if risk.universe is None else risk.universe.day,
+                                 snapshot_sha256=None if risk.universe is None else risk.universe.snapshot_sha256,
+                                 universe_state=universe_state(risk.universe, self._profile.universe_rule_sha256, now))
+                    self._universe_monitor(now)
+                local_block = self._terms_blocked or self._terms_unavailable or self._stopping.is_set()
+                if self._universe:
+                    local_block = (local_block or self._extra or self._remainder or self._vanished
+                                   or self._pending_terms is not None or not self._within_cap
+                                   or self.status().window_ended_missed_slot or now > self._window.end)
+                self._update(new_entry_blocked=risk.new_entry_blocked or local_block,
+                             risk_reasons=risk.reasons, recovery_status=risk.recovery_status,
+                             recovery_deadline=risk.recovery_deadline, orders=self._controller.states())
             except Exception as exc:
                 self._refused(stage, _code(exc, "COORDINATOR_DEPENDENCY_REFUSED"), slot=False)
             finally:
@@ -504,6 +738,8 @@ class Coordinator:
     def _slot(self, slot) -> None:
         """One strategy slot: the book at the prefetch lead, then the account capture (it may end inside the slot
         window), the sample at or after the slot, the record, one Runner tick."""
+        if self._universe:
+            return self._universe_slot(slot)
         with self._work:
             stage = "gate"                                  # the gate is no account step: `reasons` only
             try:
@@ -545,6 +781,134 @@ class Coordinator:
                 self._board.clear()
                 self._update(in_flight="")
 
+
+    def _universe_slot(self, slot) -> None:
+        """Spec section 7's slot unit for a universe profile: the gate, the trade coin's book at the prefetch lead
+        (None when unavailable, never a refusal), the account prefetch, the flag and ticker reads, the sample,
+        _publish, record_slot in its own try, then one tick with the recorded allow-list, only when the slot is
+        recorded, the strategy is not stopping and the book is available."""
+        with self._work:
+            if self._stopping.is_set() or self.status().window_ended_missed_slot:
+                return
+            stage, recorded = "gate", False
+            try:
+                _require(self._ready, "COORDINATOR_STARTUP_RECONCILE_REQUIRED")
+                _require(not (self._terms_blocked and self._holding() and not self._vanished),
+                         "COORDINATOR_CURRENT_TERMS_REQUIRED")
+                stage = "account"
+                previous = self._load_previous()
+                try:
+                    book = self._read_book()
+                except CoordinatorError:
+                    book = None                              # step 2: unavailable, never a refusal
+                if self._stopping.is_set():
+                    return
+                self._prefetch(previous)
+                if self._stopping.is_set():
+                    return
+                flags = self._slot_source.read_flags()
+                in_force = universe_state(self._snapshot, self._profile.universe_rule_sha256, slot) == "in_force"
+                markets = tuple(m for m in self._snapshot.listed if m in flags.flags) if flags.ok and in_force else ()
+                if markets:
+                    tickers = self._slot_source.read_tickers(markets)
+                else:                                        # no ticker read (step 5)
+                    tickers = TickerRead(ok=False, received_at=None, sha256=None, prices=MappingProxyType({}))
+                stage = "quote"
+                self._await(slot)
+                if self._stopping.is_set():
+                    return
+                now = self._time()
+                _require(slot <= now <= slot + SLOT_WINDOW, "COORDINATOR_SLOT_WINDOW_MISSED")
+                if book is not None:
+                    try:
+                        sample_prefetched_book(book, slot=slot, sampled_at=now)
+                    except Exception:
+                        book = None                          # a stale book is unavailable, never a refusal
+                stage = "account"
+                observation = self._publish(previous, now, book)
+                self._holdings(now)
+                stage = "control"
+                day = now.astimezone(KST).date().isoformat()
+                events = self._events(flags, self._latest_frame.accounts[0], day)
+                codes = tuple(code for code, _ in events)
+                blocks = ()
+                if self._extra:
+                    blocks += ("UNIVERSE_EXTRA_HOLDING",)
+                if self._remainder:
+                    blocks += ("UNIVERSE_REMAINDER_UNSELLABLE",)
+                if self._terms_unavailable or self._terms_blocked or self._pending_terms is not None:
+                    blocks += ("TERMS_TARGET_UNAVAILABLE",)
+                if "UNIVERSE_HELD_FLAG_UNCERTAIN" in codes:
+                    blocks += ("UNIVERSE_HELD_FLAG_UNCERTAIN",)         # spec section 7: no buy at this slot
+                allow, reasons = slot_allow(snapshot=self._snapshot, rule_sha256=self._profile.universe_rule_sha256,
+                                            n=self._program.max_candidates, flags=flags, tickers=tickers, slot=slot,
+                                            blocks=blocks)
+                if not self._within_cap:
+                    allow -= {self._profile.symbol}
+                held = self._held[0] if self._held else None
+                self._update(in_flight="history", allow_count=len(allow), buy_block_reasons=reasons,
+                             held_flag=flags.flags.get(held, "absent") if flags.ok and held else None)
+                acted = None
+                options = dict(trade_symbol=self._profile.symbol,
+                               universe=SlotUniverse(snapshot=self._snapshot, flags=flags, tickers=tickers,
+                                                     allow=allow, reasons=reasons, events=codes),
+                               tick_size=self._profile.instrument_rules.tick_size,
+                               positions=self._latest_frame.accounts[0].positions)
+                try:
+                    acted = self._history.decided_symbol()   # before the record, inside its failure boundary
+                    try:
+                        self._history.record_slot(book, observation, **options)
+                    except Exception as exc:
+                        if book is None or _code(exc, "") not in ("HISTORY_BOOK_OFF_TICK",
+                                                                  "HISTORY_BOOK_MARKET_MISMATCH"):
+                            raise
+                        book = None                          # PR 4d: refused before any write; record without it
+                        self._history.record_slot(None, observation, **options)
+                    recorded = True
+                except Exception as exc:
+                    reasons += (_code(exc, "COORDINATOR_HISTORY_REFUSED"),)
+                    self._slot_missed()
+                for code, action in events:                  # step 8: each event in its own try
+                    try:
+                        reasons += action() or ()
+                    except Exception:
+                        reasons += ("COORDINATOR_EVENT_FAILED",)
+                        try:
+                            self._toast_once("event-failed:" + code + ":" + day, "red",
+                                             code + " did not complete. Check the console status.")
+                        except Exception:
+                            self._update(notification_failed=True)
+                if not recorded or self._stopping.is_set() or self._vanished:
+                    self._update(reasons=reasons)
+                    return
+                if book is None:
+                    self._update(reasons=reasons + ("COORDINATOR_NO_TRADE_BOOK",))
+                    return
+                tick = self._time()
+                _require(tick <= slot + SLOT_WINDOW, "COORDINATOR_SLOT_WINDOW_MISSED")
+                self._update(in_flight="control")
+                results = self._runner.run((tick,), max_steps=1, should_stop=self._stopping.is_set,
+                                           entry_allow=self._history.recorded_allow)
+                last = results[0] if results else None
+                self._after_tick(last, acted, day)
+                self._update(last_tick=last, orders=self._controller.states(),
+                             reasons=reasons + (() if last is None else last.reasons))
+            except Exception as exc:
+                self._refused(stage, _code(exc, "COORDINATOR_DEPENDENCY_REFUSED"), slot=True)
+                if not recorded:
+                    self._slot_missed()
+            finally:
+                self._board.clear()
+                self._update(in_flight="")
+
+    def _slot_missed(self) -> None:
+        """Spec section 12: a slot the history did not record ends the window. Sticky status and, while a coin is
+        held, one red toast. No later slot is synthesized or executed from this incomplete window."""
+        self._update(window_ended_missed_slot=True, new_entry_blocked=True)
+        if self._held:
+            self._toast_once("missed", "red", "A missed slot ended strategy execution while a coin is held. Monitoring continues. "
+                             "Review the data failure and request management approval if needed; this is not a sell signal.")
+
     def _explicit(self, action, *, with_book):
         """An operator unit (allowed after stop and after close): account step, then the action at that time."""
         with self._work:
@@ -554,6 +918,8 @@ class Coordinator:
                 book = self._read_book() if with_book else None
                 now = self._time()
                 self._publish(previous, now, book)
+                if self._universe:
+                    self._holdings(now)
                 self._update(in_flight="control")
                 state = action(now)
                 self._update(orders=self._controller.states())
@@ -571,6 +937,8 @@ class Coordinator:
         if total != seen:
             self._update(missed_slots=missed["slot"], missed_boundaries=missed["boundary"], data_gap_at=self._now())
             self._monitor("gap")
+            if self._universe and missed["slot"] and not self._stopping.is_set():
+                self._slot_missed()          # spec section 12: a missed slot ends the history window
         return total
 
     def _session_for(self, session_id):
@@ -619,7 +987,8 @@ class Coordinator:
                     self._slot(due.slot)
             else:
                 self._monitor(due.kind)
-            strategy_done = self._stopping.is_set() or self._runner.stopped or due.at > self._window.end
+            strategy_done = (self._stopping.is_set() or self._runner.stopped or due.at > self._window.end
+                             or self.status().window_ended_missed_slot)
             self._phase = "monitoring" if strategy_done else "running"
             self._update()
         if not self._closing.is_set():
@@ -677,6 +1046,17 @@ class Coordinator:
             return DisarmResult(session_prepared=self._launch is not None, journal_kill_written=False,
                                 owner_disarm_recorded=False, pending=True)
         try:
+            return self._disarm_locked(reason="owner_requested", code=None, republish=True)
+        finally:
+            self._board.clear()
+            self._update(in_flight="")
+            self._work.release()
+
+    def _disarm_locked(self, *, reason, code, republish) -> DisarmResult:
+        """The durable kill under a work lock the caller holds (spec section 7). `republish` re-publishes the last
+        genuine frame for the owner's disarm; the universe disarm runs inside a slot unit right after its own
+        _publish, so the board already holds that unit's frame. `code` replaces the owner codes in `reasons`."""
+        try:
             launch = self._launch
             if launch is None:
                 self._update(new_entry_blocked=True)
@@ -691,33 +1071,33 @@ class Coordinator:
                 if now is None:
                     from datetime import timezone
                     now = datetime(1970, 1, 1, tzinfo=timezone.utc)
-            if clock_valid and self._latest_frame is not None:
+            if republish and clock_valid and self._latest_frame is not None:
                 self._board.publish(self._latest_frame, None)
-            owner_recorded = self._controller.kill(launch.prepared.session_id,
-                reason="owner_requested", now=now)
+            owner_recorded = self._controller.kill(launch.prepared.session_id, reason=reason, now=now)
             self._update(new_entry_blocked=True, orders=self._controller.states(),
-                reasons=("COORDINATOR_OWNER_DISARM_RECORDED" if owner_recorded
-                         else "COORDINATOR_DISARM_JOURNAL_ONLY",))
+                reasons=(code or ("COORDINATOR_OWNER_DISARM_RECORDED" if owner_recorded
+                                  else "COORDINATOR_DISARM_JOURNAL_ONLY"),))
             return DisarmResult(session_prepared=True, journal_kill_written=True,
                                 owner_disarm_recorded=owner_recorded)
         except Exception as exc:
             self._update(new_entry_blocked=True, reasons=("COORDINATOR_DISARM_RECORD_REFUSED",))
             raise CoordinatorError(_code(exc, "COORDINATOR_DISARM_RECORD_REFUSED")) from None
-        finally:
-            self._board.clear()
-            self._update(in_flight="")
-            self._work.release()
 
-    def prepare(self, *, selected_plan, inputs, selection_seed_hex: str, expires_at: datetime | None = None):
+    def prepare(self, *, selected_plan, inputs, selection_seed_hex: str, expires_at: datetime | None = None,
+                universe_batch=None):
         """prepare_launch_session over the last unit's observation; the actual PreparedSession is kept here and
         served to the Controller by identity. Nothing is signed or armed."""
         with self._work:
             _require(not self._stopping.is_set(), "COORDINATOR_STOPPED")
             _require(not self._terms_blocked, "COORDINATOR_CURRENT_TERMS_REQUIRED")
+            _require(not (self._universe and self.status().window_ended_missed_slot),
+                     "COORDINATOR_HISTORY_WINDOW_ENDED")
             def preparation_clock():
                 _require(not self._stopping.is_set() and not self._closing.is_set(), "COORDINATOR_STOPPED")
                 _require(not self._terms_blocked, "COORDINATOR_CURRENT_TERMS_REQUIRED")
-                return self._now()
+                at = self._now()
+                _require(not self._universe or at <= self._window.end, "COORDINATOR_MANAGEMENT_RENEWAL_REQUIRED")
+                return at
 
             observation, now, actual = self._observation, getattr(inputs, "now", None), preparation_clock()
             _require(observation is not None and _aware(now) and observation.asof <= now <= actual
@@ -727,13 +1107,40 @@ class Coordinator:
                 launch = prepare_launch_session(profile=self._profile, evidence=self._evidence, driver=self._driver,
                     implementation_verifier=self._implementation_verifier, journal=self._journal,
                     selected_plan=selected_plan, inputs=inputs, positions=observation.positions, now=now,
-                    selection_seed_hex=selection_seed_hex, expires_at=expires_at,
+                    selection_seed_hex=selection_seed_hex, expires_at=expires_at, universe_batch=universe_batch,
                     clock=preparation_clock, positions_asof=observation.asof)
             except Exception as exc:
                 raise CoordinatorError(_code(exc, "COORDINATOR_DEPENDENCY_REFUSED")) from None
             self._launch = launch
             self._runner.launch_session = launch
             return launch.prepared
+
+
+    def odds_batch(self, template, read_bars):
+        """Spec section 9: the per-coin odds batch on the caller's (console) thread, never under the work lock and
+        never inside a unit. `read_bars(markets, now=, clock=)` reads the daily bars of the top-N of the last
+        monitor's snapshot; run_batch reloads the snapshot in force from its own context and journals the batch."""
+        _require(self._universe, "COORDINATOR_UNIVERSE_REQUIRED")
+        snapshot = self._snapshot
+        _require(snapshot is not None, "UNIVERSE_NO_SNAPSHOT")
+        try:
+            bars_at = self._now()
+            day = bars_at.astimezone(KST).date()
+            _require(universe_state(snapshot, self._profile.universe_rule_sha256, bars_at) == "in_force",
+                     "UNIVERSE_NO_SNAPSHOT")
+            n = self._program.max_candidates
+            bars = read_bars(universe_top_n(snapshot, n), now=bars_at, clock=self._clock)
+            observation = self._observation                 # exactly one read, after the potentially slow I/O
+            now = self._now()                                # validity is measured after bars and observation
+            _require(now >= bars_at, "COORDINATOR_CLOCK_ROLLBACK")
+            _require(now.astimezone(KST).date() == day, "COORDINATOR_ODDS_DAY_CHANGED")
+            _require(observation is not None and _aware(observation.asof)
+                     and observation.asof <= now and now - observation.asof <= ACCOUNT_AGE,
+                     "COORDINATOR_ODDS_ACCOUNT_NOT_CURRENT")
+            return run_batch(self._controller, template, bars, n=n, now=now, clock=self._clock,
+                             positions=observation.positions, positions_asof=observation.asof)
+        except Exception as exc:
+            raise CoordinatorError(_code(exc, "COORDINATOR_ODDS_BATCH_FAILED")) from None
 
     def cancel(self, client_id: str) -> OrderState:
         """A cancel request through the Runner; an acknowledgement, not a confirmed cancellation."""
@@ -818,6 +1225,12 @@ def read_history_storage(protocol: ForwardProtocol, path: str | None) -> History
 
 def _compose_driver(*, profile, program, protocol, window, clock, head_root,
                     storage_policy: HistoryStoragePolicy | None = None) -> DriverComposition:
+    # Re-check the actual loaded profile after configuration reads: a caller's universe
+    # flag cannot widen a fixed-profile window if an artifact changes between reads.
+    _require(type(profile) is LaunchProfile and type(window) is DeploymentWindow
+             and _aware(window.start) and _aware(window.end), "COORDINATOR_WINDOW_INVALID")
+    maximum = UNIVERSE_WINDOW_MAX if profile.universe_rule_sha256 is not None else timedelta(hours=24)
+    _require(timedelta(0) < window.end - window.start <= maximum, "COORDINATOR_WINDOW_SPAN_UNSUPPORTED")
     root = state_root().absolute()
     head = BaselineHead(root=head_root, name=history_head_name(window),
                         chain=HistoryChain(root=root, window=window, storage_policy=storage_policy))

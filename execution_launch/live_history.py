@@ -955,6 +955,15 @@ class LiveHistory:
         self.recorded_allow = frozenset(record["allow"])
         return head
 
+    def decided_symbol(self) -> str | None:
+        """The coin the latest recorded decision targets (spec section 7, rule 3): None for cash, for the window-end
+        slot (no decision), before any slot and for a fixed window. Before a slot's record_slot it is the decision
+        that slot's tick acts on; after it, the one the next tick acts on."""
+        with _LOCK:
+            if not self._universe or not self._slots or self._slots[-1].decision is None:
+                return None
+            return self._state.held
+
     def _provide(self, observation):
         with _LOCK:
             self._ready()

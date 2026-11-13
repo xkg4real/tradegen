@@ -701,6 +701,16 @@ def test_toast_seam_passes_text_by_env_only():
         assert alerts._toast("t", "b") is False
 
 
+def test_toast_wrapper_calls_the_seam_and_never_powershell_itself():
+    calls = []
+    with _patched(alerts, "_toast", lambda title, body: calls.append((title, body)) or True), \
+            _patched(subprocess, "run", _boom):
+        assert alerts.toast("TITLE-1", "BODY-2") is True
+    assert calls == [("TITLE-1", "BODY-2")]
+    with _patched(alerts, "_toast", lambda title, body: False), _patched(subprocess, "run", _boom):
+        assert alerts.toast("t", "b") is False
+
+
 def test_alerts_main_send_toasts_once_and_logs():
     calls = []
 

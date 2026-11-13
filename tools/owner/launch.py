@@ -32,6 +32,7 @@ from typing import Callable
 from core.isolation import state_root
 from execution_accounts.baseline import restore_state
 from execution_accounts.baseline_store import CheckpointStore
+from execution_accounts.universe import daily_bars
 from execution_control.store import GENESIS
 from execution_launch.baseline_head import BaselineHead, BaselineHeadError, CheckpointChain
 from execution_launch.coordinator import Coordinator, compose_driver, history_head_name, read_history_storage
@@ -100,7 +101,8 @@ def _object(raw):
         raise OwnerOperationError("OWNER_JSON_INVALID") from None
 
 
-def read_window(path: str) -> DeploymentWindow:
+def read_window(path: str, *, universe: bool = False) -> DeploymentWindow:
+    _require(type(universe) is bool, "OWNER_WINDOW_SCOPE_INVALID")
     body = _object(read_file(path, MAX_CONFIG_BYTES))
     _require(set(body) == {"deployment_id", "start", "end"}, "OWNER_WINDOW_SCHEMA_INVALID")
     _require(type(body["deployment_id"]) is str and
@@ -108,7 +110,7 @@ def read_window(path: str) -> DeploymentWindow:
              "OWNER_WINDOW_SCHEMA_INVALID")
     window = DeploymentWindow(deployment_id=body["deployment_id"], start=_time(body["start"]),
                               end=_time(body["end"]))
-    _require(window.start < window.end <= window.start + timedelta(days=1), "OWNER_WINDOW_INVALID")
+    _require(window.start < window.end <= window.start + timedelta(hours=72 if universe else 24), "OWNER_WINDOW_INVALID")
     return window
 
 
@@ -171,7 +173,9 @@ def setup_history(*, window: DeploymentWindow, state_directory: Path,
                  and policy_digest(storage_policy) == protocol.history_storage_sha256,
                  "OWNER_HISTORY_STORAGE_MISMATCH")
     _require(type(window) is DeploymentWindow and _aware(now) and _aware(window.start)
-             and _aware(window.end) and now < window.start < window.end,
+             and _aware(window.end) and now < window.start < window.end
+             and window.end - window.start <= timedelta(hours=72 if protocol is not None
+                 and protocol.universe_rule_sha256 is not None else 24),
              "OWNER_HISTORY_WINDOW_ALREADY_STARTED_OR_INVALID")
     root = _root(state_directory)
     head = BaselineHead(root=head_directory, name=history_head_name(window),
@@ -205,6 +209,7 @@ class OwnerRuntime:
                  (preparation_provider is None or callable(preparation_provider)), "OWNER_RUNTIME_REQUIRED")
         self._coordinator, self._preparation_provider = coordinator, preparation_provider
         self._lock, self._thread, self._failure = Lock(), None, ""
+        self._batch = None  # preparation input only; never review, activation or order authority
 
     def _run(self):
         try:
@@ -230,6 +235,13 @@ class OwnerRuntime:
                                          "CANCEL_REQUESTED") for order in status.orders),
                 "missed_slots": status.missed_slots, "missed_boundaries": status.missed_boundaries,
                 "reasons": list(status.reasons), "risk_reasons": list(status.risk_reasons),
+                "held_symbol": status.held_symbol, "trade_symbol": status.trade_symbol,
+                "snapshot_day": None if status.snapshot_day is None else status.snapshot_day.isoformat(),
+                "snapshot_sha256": status.snapshot_sha256, "universe_state": status.universe_state,
+                "held_flag": status.held_flag, "allow_count": status.allow_count,
+                "buy_block_reasons": list(status.buy_block_reasons), "disarm_failed": status.disarm_failed,
+                "window_ended_missed_slot": status.window_ended_missed_slot,
+                "notification_failed": status.notification_failed,
                 "worker_failure": failure, "execution_ready": False}
 
     def bootstrap(self) -> dict:
@@ -240,12 +252,31 @@ class OwnerRuntime:
         _require(self._preparation_provider is not None, "OWNER_CURRENT_PREPARATION_INPUTS_REQUIRED")
         value = self._preparation_provider()
         _require(type(value) is PreparationInputs, "OWNER_CURRENT_PREPARATION_INPUTS_REQUIRED")
+        with self._lock:
+            batch = self._batch
         prepared = self._coordinator.prepare(selected_plan=value.selected_plan, inputs=value.inputs,
-            selection_seed_hex=value.selection_seed_hex, expires_at=value.expires_at)
+            selection_seed_hex=value.selection_seed_hex, expires_at=value.expires_at, universe_batch=batch)
         return {"command": "prepare", "session_id": prepared.session_id,
                 "prepared_at": prepared.prepared_at.isoformat(), "expires_at": prepared.expires_at.isoformat(),
                 "record_digest": prepared.record_digest, "owner_activation_performed": False,
                 "execution_ready": False}
+
+    def odds(self) -> dict:
+        """Run current per-coin research on the caller thread and retain only its preparation input.
+
+        No approval or activation is conferred. A failed replacement attempt leaves
+        no previous batch selected; the session boundary authenticates any result.
+        """
+        with self._lock:
+            self._batch = None
+        _require(self._preparation_provider is not None, "OWNER_CURRENT_PREPARATION_INPUTS_REQUIRED")
+        value = self._preparation_provider()
+        _require(type(value) is PreparationInputs, "OWNER_CURRENT_PREPARATION_INPUTS_REQUIRED")
+        batch = self._coordinator.odds_batch(value.selected_plan, daily_bars)
+        with self._lock:
+            self._batch = batch
+        return {"command": "odds", "batch_digest": batch.batch_digest, "coins": len(batch.coins),
+                "passed": sum(coin.passed is True for coin in batch.coins), "execution_ready": False}
 
     def start(self) -> dict:
         with self._lock:
@@ -271,10 +302,10 @@ class OwnerRuntime:
         return {**self.status(), "command": "close", "closed": closed, "venue_orders_cancelled": False}
 
     def command(self, name: str) -> dict:
-        _require(type(name) is str and name in {"status", "bootstrap", "prepare", "run", "stop", "disarm", "close",
+        _require(type(name) is str and name in {"status", "bootstrap", "odds", "prepare", "run", "stop", "disarm", "close",
                                               "refresh-terms"},
                  "OWNER_COMMAND_INVALID")
-        methods = {"status": self.status, "bootstrap": self.bootstrap, "prepare": self.prepare,
+        methods = {"status": self.status, "bootstrap": self.bootstrap, "odds": self.odds, "prepare": self.prepare,
                    "run": self.start, "stop": self.stop, "disarm": self.disarm, "close": self.close,
                    "refresh-terms": self.refresh_terms}
         return methods[name]()
@@ -348,10 +379,11 @@ def main(argv=None) -> int:
                 report = setup_account(state_path=args["state"], reviewed_head=args["reviewed-head"],
                     state_directory=root, head_directory=head_root, now=datetime.now(timezone.utc))
             else:
-                window = read_window(args["window"])
+                protocol = (parse_protocol(read_file(args["protocol"], MAX_CONFIG_BYTES))
+                            if "protocol" in args else None)
+                window = read_window(args["window"], universe=protocol is not None
+                                     and protocol.universe_rule_sha256 is not None)
                 if command == "setup-history":
-                    protocol = (parse_protocol(read_file(args["protocol"], MAX_CONFIG_BYTES))
-                                if "protocol" in args else None)
                     storage_policy = (read_history_storage(protocol, args["history-storage"])
                                       if protocol is not None else None)
                     report = setup_history(window=window, state_directory=root, head_directory=head_root,

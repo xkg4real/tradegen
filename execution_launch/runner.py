@@ -11,7 +11,7 @@ import base64
 from contextlib import contextmanager
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
-from decimal import Decimal
+from decimal import Decimal, Inexact, localcontext
 import hashlib
 import json
 from pathlib import Path
@@ -20,12 +20,15 @@ from threading import Lock
 from typing import Callable
 
 from core.isolation import checked_target, state_root
+from core.compliance.model import Universe
+from execution_accounts.model import AccountEvidence
 from execution_control.capability import digest
 from execution_control.controller import AccountObservation, Controller
 from execution_control.dry_run import DryRunAdapter
 from execution_control.model import Order, order_digest, rules_digest, validate_order
 from execution_control.risk import evaluate
 from execution_control.session import PreparedSession, prepare_session
+from execution_control.universe_odds import registered_batch
 from execution_launch.profile import (LaunchProfile, preflight_profile, profile_digest,
     profile_contract_digest, rule_terms_digest, risk_policy)
 from execution_launch.strategy import assess_strategy
@@ -33,6 +36,7 @@ from execution_launch.instrument_refresh import (validate_renewal, rules_binding
                                                   validate_observed_order)
 
 _ACTIVE = frozenset({'RESERVED', 'UNKNOWN', 'ACKNOWLEDGED', 'PARTIAL', 'CANCEL_REQUESTED'})
+_LIVE = _ACTIVE | {'DISPATCHING'}
 _HASH = re.compile(r'[0-9a-f]{64}')
 _SIGNAL = re.compile(r'[A-Za-z0-9_.:/-]{1,128}')
 
@@ -52,6 +56,41 @@ def _instant(value):
 
 def _positive(value):
     return type(value) is Decimal and value.is_finite() and value > 0
+
+
+
+def active(state) -> bool:
+    """True while an order can still fill, including an interrupted dispatch."""
+    return state.status in _LIVE
+
+
+def dust(position, minimum) -> bool:
+    """An exact nonnegative marked holding below the market minimum; zero marks are dust.
+
+    This classifies already validated account evidence; it does not authorize a
+    sale, remove the position, or prove an unavailable mark is really zero.
+    """
+    _require(_positive(minimum) and type(position.units) is Decimal and position.units.is_finite()
+             and position.units >= 0 and type(position.price) is Decimal and position.price.is_finite()
+             and position.price >= 0, 'RUNNER_HOLDING_INVALID')
+    with localcontext() as numeric:
+        numeric.prec = 2048
+        numeric.traps[Inexact] = True
+        return position.units * position.price < minimum
+
+
+def flat_in(symbol, positions, states, *, asof, minimum) -> bool:
+    """No non-dust holding or unsettled order in this symbol at account time.
+
+    Unknown-symbol live orders block switching too. A terminal order updated at
+    or after the account snapshot might contain a fill that snapshot has not
+    observed, so it also prevents declaring the account flat.
+    """
+    _instant(asof)
+    return (not any(p.symbol == symbol and not dust(p, minimum) for p in positions)
+            and not any((active(s) and s.symbol in (symbol, None))
+                        or (s.symbol == symbol and s.updated_at is not None and s.updated_at >= asof)
+                        for s in states))
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -185,7 +224,8 @@ class LaunchSession:
 
 def prepare_launch_session(*, profile, evidence, driver, implementation_verifier,
                            journal, selected_plan, inputs, positions, now,
-                           selection_seed_hex, clock, positions_asof, expires_at=None) -> LaunchSession:
+                           selection_seed_hex, clock, positions_asof, expires_at=None,
+                           universe_batch=None) -> LaunchSession:
     """Prepare fresh odds with a derived label BEFORE the owner signs its ID.
 
     This writes only the existing preparation event. It does not sign, arm, fetch
@@ -201,8 +241,14 @@ def prepare_launch_session(*, profile, evidence, driver, implementation_verifier
     _require(assessment.research_review_ready, 'RUNNER_STRATEGY_NOT_QUALIFIED')
     symbol = (profile.symbol.split('-')[1] if profile.venue == 'upbit' else
               profile.symbol.split('-')[0] if profile.venue == 'okx' else profile.symbol)
-    _require((selected_plan.leg.venue, selected_plan.leg.symbol) == (profile.venue, symbol),
-             'RUNNER_SELECTED_PLAN_SCOPE_MISMATCH')
+    if profile.universe_rule_sha256 is None:
+        scoped = universe_batch is None and (selected_plan.leg.venue, selected_plan.leg.symbol) == (profile.venue, symbol)
+    else:
+        # The reviewed template may be any coin in this batch, not only the
+        # currently selected trade coin. prepare_session verifies actual issuance.
+        scoped = (universe_batch is not None and selected_plan.leg.venue == 'upbit'
+                  and 'KRW-' + selected_plan.leg.symbol in {coin.market for coin in universe_batch.coins})
+    _require(scoped, 'RUNNER_SELECTED_PLAN_SCOPE_MISMATCH')
     _require(0 < selected_plan.stake_krw <= profile.policy.initial_equity,
              'RUNNER_SELECTED_STAKE_EXCEEDS_RESEARCH_CAPITAL')
     def completion_check(stamp):
@@ -232,6 +278,7 @@ def prepare_launch_session(*, profile, evidence, driver, implementation_verifier
         inputs=inputs, positions=positions, policy=risk_policy(profile), instrument_rules=profile.instrument_rules,
         now=now, selection_seed_hex=selection_seed_hex, account_scope=profile.account_scope,
         market=profile.market, quote_currency=profile.quote_currency, expires_at=expires_at,
+        universe_batch=universe_batch,
         clock=clock, positions_asof=positions_asof, completion_check=completion_check)
     return LaunchSession(prepared=prepared, profile_digest=profile_digest(profile), binding=binding)
 
@@ -284,7 +331,7 @@ class Runner:
             _require(not root.is_relative_to(Path.home() / '.tradegen') and state_root().absolute() == root
                      and c.journal._base == root, 'RUNNER_REHEARSAL_STATE_MISMATCH')
 
-    def refresh_instrument_rules(self, renewal, *, now):
+    def refresh_instrument_rules(self, renewal, *, now, account=None):
         """Apply an issued same-contract snapshot without changing owner authority.
 
         Coordinator callers serialize this with account/quote work. This lock
@@ -297,6 +344,19 @@ class Runner:
             _require(self._last_now is None or now >= self._last_now, 'RUNNER_CLOCK_ROLLBACK')
             _require(profile_digest(self.profile) == self._profile_digest, 'RUNNER_PROFILE_MUTATED')
             current = validate_renewal(renewal, previous_profile=self.profile, now=now)
+            if current.symbol != self.profile.symbol:
+                # A renewal's source authority cannot prove this account flat.
+                # Recheck the coordinator's current account and durable orders
+                # under the same runner lock immediately before applying it.
+                _require(type(account) is AccountEvidence and type(self.controller) is Controller
+                         and (account.venue, account.account_scope, account.execution_quote) ==
+                             (self.profile.venue, self.profile.account_scope, self.profile.quote_currency)
+                         and type(account.observed_at) is datetime and account.observed_at.utcoffset() is not None
+                         and timedelta(0) <= now-account.observed_at <= timedelta(seconds=30)
+                         and flat_in(self.profile.symbol, account.positions, self.controller.states(),
+                                     asof=account.observed_at,
+                                     minimum=self.profile.instrument_rules.min_notional_krw),
+                         'RUNNER_UNIVERSE_NOT_FLAT')
             launch = self.launch_session
             if launch is not None:
                 _require(type(launch) is LaunchSession
@@ -374,6 +434,27 @@ class Runner:
                  'RUNNER_SESSION_BINDING_MISMATCH')
         return p.session_id  # E2 verifies registry, object integrity, signed owner and journal next.
 
+    def _universe_reasons(self, entry_allow, universe, now):
+        """Ordinary unavailable entry inputs block this tick without latching stop."""
+        reasons = ()
+        if type(entry_allow) is not frozenset or self.profile.symbol not in entry_allow:
+            reasons += ('RUNNER_UNIVERSE_ENTRY_NOT_ALLOWED',)
+        if (type(universe) is not Universe or type(universe.valid_from) is not datetime
+                or universe.valid_from.utcoffset() is None or type(universe.valid_until) is not datetime
+                or universe.valid_until.utcoffset() is None
+                or not universe.valid_from <= now < universe.valid_until
+                or universe.rule_sha256 != self.profile.universe_rule_sha256):
+            reasons += ('RUNNER_UNIVERSE_SNAPSHOT_MISMATCH',)
+        return reasons
+
+    def _universe_batch(self, universe):
+        """Called after _session: use its issued batch for this snapshot and coin."""
+        bound = self.launch_session.prepared.universe_batch_digest
+        batch = registered_batch(bound) if type(bound) is str else None
+        _require(batch is not None and batch.snapshot_sha256 == universe.snapshot_sha256,
+                 'RUNNER_UNIVERSE_SNAPSHOT_MISMATCH')
+        _require(self.profile.symbol in {coin.market for coin in batch.coins}, 'RUNNER_UNIVERSE_COIN_NOT_IN_BATCH')
+
     def _exit_session_id(self):
         # The owner context requires a nonempty label even for reducing sells.
         # An exit needs no fresh preparation/arm; retain an available session's
@@ -395,7 +476,7 @@ class Runner:
                 count += 1
         return count
 
-    def tick(self, *, now) -> TickResult:
+    def tick(self, *, now, entry_allow=None) -> TickResult:
         _instant(now)
         if self._stopped:
             return TickResult(mode=self.mode, status='stopped', reasons=('RUNNER_STOPPED',))
@@ -427,6 +508,9 @@ class Runner:
             reasons = assessment.reasons if order.side == 'buy' else ()
             if order.side == 'buy' and risk.new_entry_blocked:
                 reasons += ('RUNNER_RISK_BLOCKS_ENTRY',)
+            universe_buy = order.side == 'buy' and self.profile.universe_rule_sha256 is not None
+            if universe_buy:
+                reasons += self._universe_reasons(entry_allow, risk.universe, now)
             if reasons:
                 return TickResult(mode=self.mode, status='blocked', reasons=reasons, client_id=order.client_id,
                     reconciled_orders=reconciled, protective_action_needed=risk.protective_action_needed)
@@ -436,6 +520,8 @@ class Runner:
             if self.stopped:
                 return TickResult(mode=self.mode, status='stopped', reasons=('RUNNER_STOPPED',))
             session_id = self._session(binding, now) if order.side == 'buy' else self._exit_session_id()
+            if universe_buy:
+                self._universe_batch(risk.universe)
             states = self.controller.states()
             existing = next((s for s in states if s.client_id == order.client_id), None)
             if existing is not None:
@@ -443,6 +529,10 @@ class Runner:
                 return TickResult(mode=self.mode, status='existing', client_id=existing.client_id,
                     order_status=existing.status, reconciled_orders=reconciled)
             if order.side == 'buy' and any(s.status in _ACTIVE for s in states):
+                return TickResult(mode=self.mode, status='blocked', reasons=('RUNNER_OUTSTANDING_ORDERS',),
+                    client_id=order.client_id, reconciled_orders=reconciled)
+            if order.side == 'sell' and any(active(s) and s.side == 'sell' and s.symbol == order.symbol
+                                            for s in states):
                 return TickResult(mode=self.mode, status='blocked', reasons=('RUNNER_OUTSTANDING_ORDERS',),
                     client_id=order.client_id, reconciled_orders=reconciled)
             self.controller.reserve(order, self.profile.instrument_rules, session_id=session_id, now=now)
@@ -495,15 +585,18 @@ class Runner:
             _require(type(signal) is Signal and signal.action == 'exit', 'RUNNER_EXIT_REQUIRED')
             _, account = self._observations(now)
             order = self._order(signal, account, now)
-            existing = next((s for s in self.controller.states() if s.client_id == order.client_id), None)
+            states = self.controller.states()
+            existing = next((s for s in states if s.client_id == order.client_id), None)
             if existing is not None:
                 _require(existing.order_digest == order_digest(order), 'RUNNER_DECISION_CHANGED')
                 return existing
+            _require(not any(active(s) and s.side == 'sell' and s.symbol == order.symbol for s in states),
+                     'RUNNER_OUTSTANDING_ORDERS')
             self.controller.reserve(order, self.profile.instrument_rules,
                                     session_id=self._exit_session_id(), now=now)
             return self.controller.dispatch(order.client_id, now=now)
 
-    def run(self, timestamps, *, max_steps, should_stop=None) -> tuple[TickResult, ...]:
+    def run(self, timestamps, *, max_steps, should_stop=None, entry_allow=None) -> tuple[TickResult, ...]:
         """Bounded synchronous adapter over an external clock/scheduler iterable.
 
         The caller owns timer delivery; this function never sleeps or starts a
@@ -519,5 +612,5 @@ class Runner:
                 now = next(iterator)
             except StopIteration:
                 break
-            results.append(self.tick(now=now))
+            results.append(self.tick(now=now, entry_allow=entry_allow))
         return tuple(results)
