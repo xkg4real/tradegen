@@ -1,0 +1,3 @@
+# The repository's keyless test functions use stdlib unittest.mock.
+# No web/RP/browser/Telegram dependency is installed by this foundation.
+-r requirements.txt

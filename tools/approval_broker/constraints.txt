@@ -1,0 +1,5 @@
+# Independent environment only; do not install into the shared app environment.
+fido2==2.2.1
+cryptography==49.0.0
+cffi==2.0.0
+pycparser==3.0
