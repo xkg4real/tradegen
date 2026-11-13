@@ -1,0 +1,25 @@
+{
+  "positions": 1500,
+  "collector_requests": 1522,
+  "book_raw_bytes": 131072,
+  "actual_fallback_row_bytes": 279312,
+  "cap": 262144,
+  "refusal": "HISTORY_STORE_RECORD_INVALID",
+  "journal_unchanged": true,
+  "independent_head_unchanged": true,
+  "memory_unchanged": true,
+  "memory_fields": [
+    "_slots",
+    "_chain",
+    "_marks",
+    "_prices",
+    "_state",
+    "_inputs",
+    "recorded_allow",
+    "_head",
+    "_size",
+    "_seq",
+    "_failed"
+  ],
+  "second_fallback_implemented": false
+}

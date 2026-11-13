@@ -1,0 +1,84 @@
+{
+  "scope": "offline scratch prototype; production source unmodified; no actual account/venue query",
+  "original_probe_refusal_reproduced": true,
+  "positions": 1500,
+  "book_raw_bytes": 131072,
+  "original_full_row_bytes": 279531,
+  "original_fallback_row_bytes": 279312,
+  "original_logical_row_sha256": "edcba18f8f3a2f4b6bc26936573019b541981f177971b7f555986940a390e6ae",
+  "prototype_chunk_bytes": 65536,
+  "prototype_admission_bytes": 16777216,
+  "tests": [
+    {
+      "test": "actual_full_original_row_lossless",
+      "status": "PASS"
+    },
+    {
+      "test": "byte_boundary_65535",
+      "status": "PASS"
+    },
+    {
+      "test": "byte_boundary_65536",
+      "status": "PASS"
+    },
+    {
+      "test": "byte_boundary_65537",
+      "status": "PASS"
+    },
+    {
+      "test": "byte_boundary_262143",
+      "status": "PASS"
+    },
+    {
+      "test": "byte_boundary_262144",
+      "status": "PASS"
+    },
+    {
+      "test": "byte_boundary_262145",
+      "status": "PASS"
+    },
+    {
+      "test": "byte_boundary_16777216",
+      "status": "PASS"
+    },
+    {
+      "test": "over_admission_no_files_or_state",
+      "status": "PASS"
+    },
+    {
+      "test": "crash_model_after_chunks",
+      "status": "PASS"
+    },
+    {
+      "test": "crash_model_after_manifest",
+      "status": "PASS"
+    },
+    {
+      "test": "crash_model_after_journal",
+      "status": "PASS"
+    },
+    {
+      "test": "crash_model_after_head",
+      "status": "PASS"
+    },
+    {
+      "test": "missing_chunk_refuses_whole_slot",
+      "status": "PASS"
+    },
+    {
+      "test": "corrupt_chunk_refuses_whole_slot",
+      "status": "PASS"
+    }
+  ],
+  "pass": 15,
+  "fail": 0,
+  "source_unchanged": true,
+  "not_tested": [
+    "production v3 integration",
+    "BaselineHead CAS integration",
+    "Windows durability",
+    "kill/power-loss",
+    "replay chooser integration",
+    "real account failure"
+  ]
+}
