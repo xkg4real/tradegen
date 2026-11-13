@@ -340,10 +340,12 @@ class _TermsSource:
 
 def load_config(raw: bytes) -> dict:
     _need(type(raw) is bytes and 0 < len(raw) <= MAX_CONFIG_BYTES, "REHEARSAL_CONFIG_TOO_LARGE")
-    body = _schema(_object(raw), _CONFIG_FIELDS, "REHEARSAL_CONFIG_SCHEMA_INVALID")
+    body = _object(raw)
+    optional = {"history_storage"} if "history_storage" in body else set()
+    _schema(body, _CONFIG_FIELDS | optional, "REHEARSAL_CONFIG_SCHEMA_INVALID")
     _need(type(body["schema_version"]) is int and body["schema_version"] == 1
           and body["kind"] == "tradegen-flat-account-rehearsal/1", "REHEARSAL_CONFIG_KIND_INVALID")
-    for name in _CONFIG_FIELDS - {"schema_version", "kind", "evaluated_at", "monitor_until"}:
+    for name in (_CONFIG_FIELDS | optional) - {"schema_version", "kind", "evaluated_at", "monitor_until"}:
         _path(body[name])
     _time(body["evaluated_at"]); _time(body["monitor_until"])
     return body
@@ -379,7 +381,7 @@ def build_rehearsal(config_path: str, *, clock: Callable) -> OwnerRuntime:
     _need(timedelta(0) <= now - state.asof <= timedelta(seconds=30), "REHEARSAL_BASELINE_STALE_OR_FUTURE")
     comp = compose(profile_path=config["profile"], program_path=config["program"], protocol_path=config["protocol"],
         capture_path=config["capture"], review_path=config["review"], evaluated_at=_time(config["evaluated_at"]),
-        window=window, clock=clock, head_root=hroot)
+        window=window, clock=clock, head_root=hroot, history_storage_path=config.get("history_storage"))
     _need((comp.profile.venue, comp.profile.market, comp.profile.quote_currency) == ("upbit", "spot", "KRW")
           and comp.profile.account_scope == audit.account_scope, "REHEARSAL_PROFILE_SCOPE_MISMATCH")
     _need(preflight_profile(comp.profile, now=clock()).profile_complete, "REHEARSAL_PROFILE_INCOMPLETE")

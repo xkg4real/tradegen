@@ -35,6 +35,7 @@ HISTORY = "execution_launch/live_history.py"
 STUDY = "execution_launch/study.py"
 CONTINUOUS_ARCHIVE = "execution_launch/continuous_archive.py"
 UNIVERSE_STORE = "execution_launch/universe_store.py"
+EVIDENCE_OBJECTS = "execution_launch/evidence_objects.py"
 PINNED_WRITES: dict[str, tuple[str, ...]] = {
     HEAD: (
         'checked_target(self._dir, "baseline head directory", within=self._root).mkdir(mode=0o700, exist_ok=True)',
@@ -72,6 +73,18 @@ PINNED_WRITES: dict[str, tuple[str, ...]] = {
         'os.rename(checked_target(directory / name, "universe temporary file", within=directory), '
         'checked_target(target, "universe snapshot", within=directory))',
         'os.unlink(checked_target(directory / name, "universe temporary file", within=directory))',
+    ),
+    EVIDENCE_OBJECTS: (
+        'self.root.mkdir(mode=0o700, exist_ok=True)',
+        'self._objects.mkdir(mode=0o700, exist_ok=True)',
+        'os.open(lock, os.O_RDWR | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0) '
+        '| os.O_CREAT | os.O_EXCL, 0o600)',
+        'os.open(lock, os.O_RDWR | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0))',
+        'os.fdopen(descriptor, "r+b")',
+        'os.open(pending, os.O_RDWR | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0), 0o600)',
+        'os.fdopen(descriptor, "w+b")',
+        'os.open(target, os.O_RDWR | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0), 0o600)',
+        'pending.unlink()',
     ),
 }
 # The head's initialization is an explicit reviewed operator step: no runtime module may reference it.
@@ -560,6 +573,38 @@ def test_universe_store_writes_are_exact_and_cannot_migrate():
         assert write in problems(altered, UNIVERSE_STORE), altered
     for extra in ("import requests", "owner.load_context(now)", "os.environ['TRADEGEN_HOME']", 'P = "/v1/ticker"'):
         assert problems(extra, UNIVERSE_STORE), extra
+
+
+def test_evidence_object_writes_are_exact_and_cannot_gain_head_or_order_authority():
+    source = (ROOT / EVIDENCE_OBJECTS).read_text(encoding="utf-8")
+    assert not problems(source, EVIDENCE_OBJECTS), problems(source, EVIDENCE_OBJECTS)
+    calls = {ast.dump(node) for node in ast.walk(ast.parse(source)) if isinstance(node, ast.Call)}
+    assert _PINNED_WRITE_TREES[EVIDENCE_OBJECTS] <= calls, "a pinned evidence-object write shape is unused"
+    write = "write outside pinned writer"
+    for shape in PINNED_WRITES[EVIDENCE_OBJECTS]:
+        assert not problems(shape, EVIDENCE_OBJECTS), shape
+        for relative in ("", "execution_launch/driver.py", "execution_launch/nested/evidence_objects.py",
+                         "execution_network/evidence_objects.py", HISTORY, STUDY):
+            # Some other reviewed writers share fdopen shapes; file-local calls
+            # unique to this store must not migrate to any other runtime file.
+            if ast.dump(ast.parse(shape, mode="eval").body) not in _PINNED_WRITE_TREES.get(relative, ()):
+                assert write in problems(shape, relative), (shape, relative)
+    for altered in (
+        PINNED_WRITES[EVIDENCE_OBJECTS][0].replace("self.root", "other_root"),
+        PINNED_WRITES[EVIDENCE_OBJECTS][1].replace("0o700", "0o777"),
+        PINNED_WRITES[EVIDENCE_OBJECTS][2].replace("os.O_EXCL", "os.O_TRUNC"),
+        PINNED_WRITES[EVIDENCE_OBJECTS][2].replace("0o600", "0o666"),
+        PINNED_WRITES[EVIDENCE_OBJECTS][5].replace("pending", "untrusted_path"),
+        PINNED_WRITES[EVIDENCE_OBJECTS][5].replace(" | os.O_EXCL", ""),
+        PINNED_WRITES[EVIDENCE_OBJECTS][7].replace("os.O_EXCL", "os.O_TRUNC"),
+        PINNED_WRITES[EVIDENCE_OBJECTS][8].replace("pending", "target"),
+        "os.replace(pending, target)", "os.rename(pending, target)", "os.link(pending, target)",
+        "path.write_bytes(raw)",
+    ):
+        assert write in problems(altered, EVIDENCE_OBJECTS), altered
+    for extra in ("import requests", "owner.load_context(now)", "os.environ['UPBIT_SECRET_KEY']",
+                  "head.compare_and_set(old, new)", "head.initialize_reviewed_head(old)", "controller.arm(x)"):
+        assert problems(extra, EVIDENCE_OBJECTS), extra
 
 
 def test_trusted_head_is_advanced_only_by_pinned_callers():

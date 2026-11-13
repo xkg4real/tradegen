@@ -133,6 +133,10 @@ class ForwardProtocol:
     # Universe protocol only (evaluator forward-universe-v1): the signed rule's sha256. Its symbol is then the
     # KRW-BTC benchmark, never a trading pin (spec section 12). None is left out of every encoding.
     universe_rule_sha256: str | None = field(default=None, metadata={"omit_none": True})
+    # New universe windows may bind a lossless history-storage policy. Its explicit document is validated at
+    # history construction; this digest is not a source receipt or a change to the evaluator's terminal policy.
+    # Omission retains the original fixed and universe protocol bytes and registration digests.
+    history_storage_sha256: str | None = field(default=None, metadata={"omit_none": True})
 
 
 def _protocol(protocol):
@@ -155,6 +159,10 @@ def _protocol(protocol):
     if protocol.universe_rule_sha256 is not None:
         _hash(protocol.universe_rule_sha256)
         _require(protocol.symbol == 'KRW-BTC', 'STRATEGY_EVALUATOR_SCOPE_UNSUPPORTED')
+    if protocol.history_storage_sha256 is not None:
+        _hash(protocol.history_storage_sha256)
+        _require(protocol.universe_rule_sha256 is not None,
+                 'STRATEGY_HISTORY_STORAGE_SCOPE_UNSUPPORTED')
     for name in ('initial_cash_quote', 'fee_fraction', 'slippage_bps', 'alpha', 'max_drawdown'):
         _amount(getattr(protocol, name), positive=name in ('initial_cash_quote', 'alpha'))
     _require(protocol.fee_fraction <= Decimal('0.1') and protocol.slippage_bps <= 1000

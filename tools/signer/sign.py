@@ -1282,7 +1282,11 @@ def _rv_review_signing_bytes(body):
 
 _REVIEW_SOURCES = ("execution_launch/driver.py", "execution_launch/program.py",
     "execution_launch/strategy.py", "execution_launch/runner.py", "execution_launch/profile.py",
-    "execution_control/model.py", "execution_control/capability.py", "execution_control/controller.py")
+    "execution_control/model.py", "execution_control/capability.py", "execution_control/controller.py",
+    "execution_launch/evidence_objects.py", "execution_launch/history_storage.py",
+    "execution_launch/live_history.py", "execution_launch/baseline_head.py",
+    "execution_control/store.py", "core/isolation.py")
+# Independent copy of the fixed factory's reviewed source closure; never import repository code here.
 
 
 def _review_path(path):

@@ -1434,3 +1434,31 @@ def test_default_boundary_lead_leaves_20_s_monitors_about_1_s_of_the_30_s_freshn
                 assert not any(c.previous.asof >= b for c in env.captures)
                 assert later == ["ACCOUNT_INTERVAL_BOUNDARY_MISSED"] * 2, later
                 assert status.account_source == "ACCOUNT_INTERVAL_BOUNDARY_MISSED" and status.new_entry_blocked
+
+
+def test_composition_storage_binding_refuses_before_history_or_capture_effects():
+    from execution_launch.history_storage import policy_bytes
+    from tests.launch_owner_ops import history_storage_fixture
+    env, policy = history_storage_fixture()
+    files = {"profile.json": json.dumps(profile_body(env.profile)),
+             "program.json": program_json(env.program), "protocol.json": protocol_json(env.protocol),
+             "storage.json": policy_bytes(policy).decode("ascii"),
+             "other-storage.json": policy_bytes(replace(policy, max_window_objects=policy.max_window_objects + 1)).decode("ascii")}
+    with F.temp_home() as home, head_root() as hroot, private_inputs(files) as paths:
+        args = dict(profile_path=paths["profile.json"], program_path=paths["program.json"],
+                    protocol_path=paths["protocol.json"], window=env.window,
+                    clock=lambda: env.window.start - seconds(1), head_root=hroot)
+        with patch.object(C, "_compose_driver", side_effect=AssertionError("history constructed")), \
+                patch.object(C, "evaluate_capture_json", side_effect=AssertionError("capture evaluated")):
+            refused(lambda: C.compose_driver(**args), "COORDINATOR_HISTORY_STORAGE_REQUIRED")
+            refused(lambda: C.compose_driver(**args, history_storage_path=paths["other-storage.json"]),
+                    "COORDINATOR_HISTORY_STORAGE_MISMATCH")
+            review_args = args | dict(capture_path="unread-capture.json", review_path="unread-review.json",
+                                      evaluated_at=env.protocol.capture_end)
+            refused(lambda: C.compose(**review_args), "COORDINATOR_HISTORY_STORAGE_REQUIRED")
+            refused(lambda: C.compose(**review_args, history_storage_path=paths["other-storage.json"]),
+                    "COORDINATOR_HISTORY_STORAGE_MISMATCH")
+        assert list(home.iterdir()) == [] and list(hroot.iterdir()) == []
+        assert C.read_history_storage(LD.fixture().protocol, None) is None
+        refused(lambda: C.read_history_storage(LD.fixture().protocol, paths["storage.json"]),
+                "COORDINATOR_HISTORY_STORAGE_MISMATCH")

@@ -511,3 +511,21 @@ def test_the_audit_carries_a_v1_or_a_v2_terms_authority_and_the_profile_picks_it
         refused(lambda: R._terms_authority(profile(rule, "KRW-BTC", v1), fixed), "REHEARSAL_TERMS_PROFILE_MISMATCH")
         refused(lambda: R._terms_authority(profile(None, "KRW-ETH", v1), fixed), "REHEARSAL_TERMS_PROFILE_MISMATCH")
         assert R._terms_authority(profile(None, "KRW-BTC", v1), R.parse_account_audit(e.raw_audit)) is None
+
+
+def test_rehearsal_storage_artifact_is_explicit_path_and_forwarded_without_defaults():
+    with fixture() as env:
+        for value in (None, "", [], True):
+            refused(lambda: R.load_config(json.dumps(env.config | {"history_storage": value}).encode()),
+                    "REHEARSAL_PATH_REQUIRED")
+        assert "history_storage" not in R.load_config(json.dumps(env.config).encode())
+        selected = str(env.folder / "explicit-storage-policy.json")
+        config = env.config | {"history_storage": selected}
+        assert R.load_config(json.dumps(config).encode())["history_storage"] == selected
+        env.path.write_text(json.dumps(config))
+        with patch.object(R, "compose", side_effect=R.RehearsalError("SYNTHETIC_STOP_BEFORE_COMPOSITION")) as compose_call:
+            refused(lambda: R.build_rehearsal(str(env.path), clock=env.fake.clock),
+                    "SYNTHETIC_STOP_BEFORE_COMPOSITION")
+        assert compose_call.call_count == 1
+        assert compose_call.call_args.kwargs["history_storage_path"] == selected
+        assert env.calls == []
