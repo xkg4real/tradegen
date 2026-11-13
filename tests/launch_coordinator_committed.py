@@ -235,7 +235,7 @@ def test_issued_terms_wait_for_runtime_then_use_retained_endpoint_without_a_lega
             valid_from=rules.asof-timedelta(days=1), valid_until=rules.asof+timedelta(days=1))
         holder['authority'] = authority
         return replace(profile, instrument_rules=replace(rules, source_digest=T.authority_digest(authority)))
-    with F.fixture(bind_startup=False, held=True, profile_transform=profile_transform) as e:
+    with F.fixture(bind_startup=False, held=True, profile_transform=profile_transform) as e, TF.registries():
         class Terms:
             def read(self):
                 return TF.observed(now=e.clock_cell[0], auth=holder['authority'])
