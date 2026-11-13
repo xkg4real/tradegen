@@ -428,100 +428,155 @@ class CommittedStartup:
         return tuple(sorted(unresolved)), tuple(sorted(external)), tuple(sorted(opened))
 
     @_exact
-    def reconcile(self, input_archive_digest, completion_archive_digest):
+    def reconcile(self, input_archive_digest, completion_archive_digest, *, session_id=None):
         _need(self._work.acquire(blocking=False), 'STARTUP_DEPENDENCY_CHANGED')
         try:
             inspection, retained, completed = self._inspect(input_archive_digest, completion_archive_digest)
             if inspection.durable_status != CONSISTENT or inspection.current_status != 'FRESH':
-                return StartupResult(inspection=inspection, status='BLOCKED',
-                    reason=inspection.reason or 'STARTUP_DURABLE_REFUSED', attempted_reconciliations=0,
-                    unresolved_client_ids=(), external_order_ids=(), open_client_ids=(), holdings=(),
-                    final_control_head=inspection.observed_control_head, completed_at=inspection.inspected_at)
+                return self._blocked(inspection)
             self._runtime(retained, completed)
-            _need((self.provider, self.controller, self.runner) == self._runtime_pins,
-                  'STARTUP_DEPENDENCY_CHANGED')
-            self._configuration()
-            first = Controller.read_committed_account(self.controller, now=self._now())
-            self._completed(first)
-            _need(first.committed.transaction_id == inspection.transaction_id, 'STARTUP_BINDING_CHANGED')
-            account, broker_rows = self._rows(retained)
-            with self.journal.transaction() as tx:
-                before = tx.events
-                orders = _fold(before)[0]
-                _need(len(orders) <= MAX_STARTUP_ORDERS, 'STARTUP_RESOURCE_LIMIT')
-                start_sequence = len(before)
-                # Local never-sent reservations cannot be released against actual contrary evidence.
-                conflicting = {row.client_id for row in broker_rows if row.client_id in orders
-                    and (orders[row.client_id]['status'] == 'RESERVED'
-                         or self._mismatch(orders[row.client_id], row))}
-                conflicting.update(client for client, rec in orders.items()
-                    if rec['order'].account_scope != self.profile.account_scope or rec['order'].venue != 'upbit')
-                foreign = {row.order_id for row in broker_rows if row.status in ('open', 'partial')
-                    and (not row.client_id or row.client_id not in orders)}
-                self._physical(tx, before)
-            attempted = set()
-            if not conflicting and not foreign:
-                for client, rec in sorted(orders.items()):
-                    self._configuration()
-                    now = self._now()
-                    if rec['status'] == 'RESERVED' and client.startswith(self.runner._namespace):
-                        Controller.cancel(self.controller, client, now=now)
-                    elif _view(rec).status in _ACTIVE and rec['status'] != 'RESERVED':
-                        Controller.reconcile(self.controller, client, now=now)
-                        attempted.add(client)
-            # Revalidate original dependency bytes after status work, outside the Journal lock.
-            checked_input = self._input(input_archive_digest)
-            checked_completion = self._completion(completion_archive_digest, input_archive_digest)
-            _need(checked_input.record_sha256 == retained.record_sha256
-                  and checked_completion.record_sha256 == completed.record_sha256,
-                  'STARTUP_DEPENDENCY_CHANGED')
-            # Actual owner/account check after status work; no stale observation is restamped.
-            final = Controller.read_committed_account(self.controller, now=self._now())
-            self._completed(final)
-            _need(final.committed.transaction_id == inspection.transaction_id, 'STARTUP_BINDING_CHANGED')
-            with self.journal.transaction() as tx:
-                actual = CommittedAccountProvider.inspect_committed(self.provider, now=self._now(), transaction=tx)
-                events = tx.events
-                self._completion_binding(completed.record, actual, events, self._last)
-                final_baseline = self.baseline_store.load(expected_head=actual.baseline_head)
-                current = _fold(events)[0]
-                _need(len(current) <= MAX_STARTUP_ORDERS, 'STARTUP_RESOURCE_LIMIT')
-                unresolved, external, opened = self._assess_orders(current, broker_rows, attempted, events, start_sequence)
-                unresolved = tuple(sorted(set(unresolved) | conflicting))
-                external = tuple(sorted(set(external) | foreign))
-                self._physical(tx, events)
-                head = events[-1]['row_sha256'] if events else GENESIS
-            self._configuration()
-            finished = self._now()
-            _need(finished >= final.completed_at, 'STARTUP_CLOCK_ROLLBACK')
-            # Reuse actual completion lifetime at the current clock via another real read,
-            # rather than treating a successful historical inspection as fresh authority.
-            last = Controller.read_committed_account(self.controller, now=finished)
-            self._completed(last)
-            _need(last.committed.transaction_id == inspection.transaction_id
-                  and last.committed.observed_control_head == head, 'STARTUP_DEPENDENCY_CHANGED')
-            self._configuration()
-            finished = self._now()
-            _need(finished >= last.completed_at, 'STARTUP_CLOCK_ROLLBACK')
-            final_status, final_reason = self._time_status(final_baseline, finished)
-            _need(final_status == 'FRESH', final_reason)
-            _need(timedelta(0) <= finished-last.committed.owner_claim.observed_at <= timedelta(seconds=30)
-                  and abs(finished-last.account.server_time) <= timedelta(seconds=60)
-                  and finished.astimezone(KST).date() == last.account.server_time.astimezone(KST).date(),
-                  'STARTUP_STALE')
-            holdings = tuple(sorted((account.venue, row.base_currency, row.units)
-                for row in account.positions))
-            blocked = bool(unresolved or external)
-            return StartupResult(inspection=replace(inspection, inspected_at=finished),
-                status='BLOCKED' if blocked else 'RECONCILED_OPEN' if opened else 'RECONCILED',
-                reason='STARTUP_ORDER_CONFLICT' if conflicting or external else
-                       'STARTUP_RECONCILIATION_REQUIRED' if unresolved else '',
-                attempted_reconciliations=len(attempted), unresolved_client_ids=unresolved,
-                external_order_ids=external, open_client_ids=opened, holdings=holdings,
-                final_control_head=head, completed_at=finished)
+            return self._reconcile_locked(inspection, retained, completed, session_id=session_id)
         except CommittedStartupError:
             raise
         except _ERRORS:
             raise CommittedStartupError('STARTUP_CURRENT_AUTHORITY_REFUSED') from None
         finally:
             self._work.release()
+
+    @staticmethod
+    def _blocked(inspection):
+        return StartupResult(inspection=inspection, status='BLOCKED',
+            reason=inspection.reason or 'STARTUP_DURABLE_REFUSED', attempted_reconciliations=0,
+            unresolved_client_ids=(), external_order_ids=(), open_client_ids=(), holdings=(),
+            final_control_head=inspection.observed_control_head, completed_at=inspection.inspected_at)
+
+    @_exact
+    def _reconcile_runtime(self, inspection, retained, completed, *, session_id=None):
+        """Recheck the existing runtime after actual same-provider publication.
+
+        This entry owns startup serialization, independently of a producer's lock.
+        Supplied records are only archive selectors and restrictive hashes; their
+        claimed currentness/account/authority is never consumed. The initial
+        runtime binding and quote-disabled Runner remain unchanged.
+        """
+        _need(self._work.acquire(blocking=False), 'STARTUP_DEPENDENCY_CHANGED')
+        try:
+            return self._reconcile_locked(inspection, retained, completed, session_id=session_id)
+        except CommittedStartupError:
+            raise
+        except _ERRORS:
+            raise CommittedStartupError('STARTUP_CURRENT_AUTHORITY_REFUSED') from None
+        finally:
+            self._work.release()
+
+    def _reconcile_locked(self, inspection, retained, completed, *, session_id):
+        _need(self._binding is not None and type(self.provider) is CommittedAccountProvider
+              and type(self.controller) is Controller and type(self.runner) is Runner,
+              'STARTUP_DEPENDENCY_CHANGED')
+        self._configuration()
+        _need(type(inspection) is StartupInspection and type(retained) is A.RetainedGuardInput
+              and type(completed) is A.RetainedGuardCompletion, 'STARTUP_INPUT_INVALID')
+        _need(session_id is None or (type(session_id) is str and 0 < len(session_id) <= 128),
+              'STARTUP_INPUT_INVALID')
+        _need(all(type(value) is str for value in (retained.archive_digest, retained.record_sha256,
+              completed.archive_digest, completed.record_sha256, inspection.input_archive_digest,
+              inspection.completion_archive_digest, inspection.transaction_id)), 'STARTUP_INPUT_INVALID')
+        _need((inspection.input_archive_digest, inspection.completion_archive_digest)
+              == (retained.archive_digest, completed.archive_digest), 'STARTUP_BINDING_CHANGED')
+        input_archive_digest, completion_archive_digest = retained.archive_digest, completed.archive_digest
+        # Reload all three actual graphs and durable/current facts. Ignore caller
+        # package/record content and freshness flags, even on exact dataclasses.
+        actual, checked_input, checked_completion = self._inspect(input_archive_digest, completion_archive_digest)
+        _need(checked_completion is not None and checked_input.record_sha256 == retained.record_sha256
+              and checked_completion.record_sha256 == completed.record_sha256
+              and actual.transaction_id == inspection.transaction_id, 'STARTUP_BINDING_CHANGED')
+        inspection, retained, completed = actual, checked_input, checked_completion
+        if inspection.durable_status != CONSISTENT or inspection.current_status != 'FRESH':
+            return self._blocked(inspection)
+        _need((self.provider, self.controller, self.runner) == self._runtime_pins,
+              'STARTUP_DEPENDENCY_CHANGED')
+        self._configuration()
+        # Bind the already-published runtime before local cancellation or status work.
+        # A freshly restored candidate is not a substitute for this exact provider.
+        with self.journal.transaction() as tx:
+            actual = CommittedAccountProvider.inspect_committed(self.provider, now=self._now(), transaction=tx)
+            self._completion_binding(completed.record, actual, tx.events, self._last)
+            self._physical(tx, tx.events)
+        first = Controller.read_committed_account(self.controller, now=self._now(), session_id=session_id)
+        self._completed(first)
+        _need(first.committed.transaction_id == inspection.transaction_id, 'STARTUP_BINDING_CHANGED')
+        account, broker_rows = self._rows(retained)
+        with self.journal.transaction() as tx:
+            before = tx.events
+            orders = _fold(before)[0]
+            _need(len(orders) <= MAX_STARTUP_ORDERS, 'STARTUP_RESOURCE_LIMIT')
+            start_sequence = len(before)
+            # Local never-sent reservations cannot be released against actual contrary evidence.
+            conflicting = {row.client_id for row in broker_rows if row.client_id in orders
+                and (orders[row.client_id]['status'] == 'RESERVED'
+                     or self._mismatch(orders[row.client_id], row))}
+            conflicting.update(client for client, rec in orders.items()
+                if rec['order'].account_scope != self.profile.account_scope or rec['order'].venue != 'upbit')
+            foreign = {row.order_id for row in broker_rows if row.status in ('open', 'partial')
+                and (not row.client_id or row.client_id not in orders)}
+            self._physical(tx, before)
+        attempted = set()
+        if not conflicting and not foreign:
+            for client, rec in sorted(orders.items()):
+                self._configuration()
+                now = self._now()
+                if rec['status'] == 'RESERVED' and client.startswith(self.runner._namespace):
+                    Controller.cancel(self.controller, client, now=now)
+                elif _view(rec).status in _ACTIVE and rec['status'] != 'RESERVED':
+                    Controller.reconcile(self.controller, client, now=now)
+                    attempted.add(client)
+        # Revalidate original dependency bytes after status work, outside the Journal lock.
+        checked_input = self._input(input_archive_digest)
+        checked_completion = self._completion(completion_archive_digest, input_archive_digest)
+        _need(checked_input.record_sha256 == retained.record_sha256
+              and checked_completion.record_sha256 == completed.record_sha256,
+              'STARTUP_DEPENDENCY_CHANGED')
+        # Actual owner/account check after status work; no stale observation is restamped.
+        final = Controller.read_committed_account(self.controller, now=self._now(), session_id=session_id)
+        self._completed(final)
+        _need(final.committed.transaction_id == inspection.transaction_id, 'STARTUP_BINDING_CHANGED')
+        with self.journal.transaction() as tx:
+            actual = CommittedAccountProvider.inspect_committed(self.provider, now=self._now(), transaction=tx)
+            events = tx.events
+            self._completion_binding(completed.record, actual, events, self._last)
+            final_baseline = self.baseline_store.load(expected_head=actual.baseline_head)
+            current = _fold(events)[0]
+            _need(len(current) <= MAX_STARTUP_ORDERS, 'STARTUP_RESOURCE_LIMIT')
+            unresolved, external, opened = self._assess_orders(current, broker_rows, attempted, events, start_sequence)
+            unresolved = tuple(sorted(set(unresolved) | conflicting))
+            external = tuple(sorted(set(external) | foreign))
+            self._physical(tx, events)
+            head = events[-1]['row_sha256'] if events else GENESIS
+        self._configuration()
+        finished = self._now()
+        _need(finished >= final.completed_at, 'STARTUP_CLOCK_ROLLBACK')
+        # Reuse actual completion lifetime at the current clock via another real read,
+        # rather than treating a successful historical inspection as fresh authority.
+        last = Controller.read_committed_account(self.controller, now=finished, session_id=session_id)
+        self._completed(last)
+        _need(last.committed.transaction_id == inspection.transaction_id
+              and last.committed.observed_control_head == head, 'STARTUP_DEPENDENCY_CHANGED')
+        self._configuration()
+        finished = self._now()
+        _need(finished >= last.completed_at, 'STARTUP_CLOCK_ROLLBACK')
+        final_status, final_reason = self._time_status(final_baseline, finished)
+        _need(final_status == 'FRESH', final_reason)
+        _need(timedelta(0) <= finished-last.committed.owner_claim.observed_at <= timedelta(seconds=30)
+              and abs(finished-last.account.server_time) <= timedelta(seconds=60)
+              and finished.astimezone(KST).date() == last.account.server_time.astimezone(KST).date(),
+              'STARTUP_STALE')
+        holdings = tuple(sorted((account.venue, row.base_currency, row.units)
+            for row in account.positions))
+        blocked = bool(unresolved or external)
+        return StartupResult(inspection=replace(inspection, inspected_at=finished),
+            status='BLOCKED' if blocked else 'RECONCILED_OPEN' if opened else 'RECONCILED',
+            reason='STARTUP_ORDER_CONFLICT' if conflicting or external else
+                   'STARTUP_RECONCILIATION_REQUIRED' if unresolved else '',
+            attempted_reconciliations=len(attempted), unresolved_client_ids=unresolved,
+            external_order_ids=external, open_client_ids=opened, holdings=holdings,
+            final_control_head=head, completed_at=finished)
