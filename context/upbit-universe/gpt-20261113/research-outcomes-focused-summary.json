@@ -1,0 +1,16 @@
+{
+  "label": "research-outcomes-focused",
+  "head": "59e15cb12b822597c2296afda3649eaca3dcb3ad",
+  "source_hash": "b31638936b1fc446d1b0cc9e2fa02d6ce07e503d18a906c0179af9191c3d2feb",
+  "total": 155,
+  "counts": {
+    "PASS": 154,
+    "FAIL": 0,
+    "NOT_RUN": 1
+  },
+  "seconds": 43.321,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "failures": []
+}

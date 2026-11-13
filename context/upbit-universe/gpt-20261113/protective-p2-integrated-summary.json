@@ -1,0 +1,16 @@
+{
+  "label": "protective-p2-integrated",
+  "head": "59e15cb12b822597c2296afda3649eaca3dcb3ad",
+  "source_hash": "7878c4902e3f11682474d697f8ac250089403ab13b52adee6d436f7299db9e13",
+  "total": 187,
+  "counts": {
+    "PASS": 187,
+    "FAIL": 0,
+    "NOT_RUN": 0
+  },
+  "seconds": 31.198,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "failures": []
+}

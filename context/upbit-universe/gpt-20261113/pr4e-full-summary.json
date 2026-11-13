@@ -1,0 +1,20 @@
+{
+  "label": "pr4e-full",
+  "head": "a772a24073ffb523ff7fa8d1e030398eaf56227a",
+  "source_hash": "b80c7edc057f9288a3b41507c7dfeeef29a0706c7f642b7482a43407b4d6b33b",
+  "total": 2907,
+  "counts": {
+    "PASS": 2772,
+    "FAIL": 0,
+    "NOT_RUN": 135
+  },
+  "process_segments": 1,
+  "seconds": 1240.435,
+  "current_segment_seconds": 1240.435,
+  "sum_test_seconds": 1223.7,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "real_homes_check_scope": "metadata before imports/discovery through completion",
+  "failures": []
+}

@@ -4,17 +4,17 @@ reason: owner_requested_continue_pr4e_and_protective_p2
 from: gpt
 task: upbit-universe
 cycle: 2026-11-10
-done_ids: protective-hold/p2-store, protective-hold/p1, universe-pr4d/lossless-history, universe-pr4d, universe-pr4d/lossless-objects, design-revision-1113, upbit-universe-return-1113, universe-pr4d/original-verification, workflow-resume-1113/regression-preparation, universe-pr4d/task2-implementation, universe-pr4d/task3, universe-pr4d/task4, universe-pr4c, universe-pr4d/task1, workflow-resume-1113, workflow-resume-1113/dependencies, universe-pr4c/implementation, universe-pr0, universe-pr1, universe-pr2, universe-pr3, universe-pr4b, universe-pr4a
-next_ids: universe-pr4e, protective-hold/p2-integration, universe-pr5, universe-pr5-clock-notify, universe-code-approve, policy-loss-budget-plan-1, rules-review-1202, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, launch-private-capture-setup-1, e1-14-owner-setup, launch-prospective-study, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1
-updated_at: 2026-11-13T21:55:37+09:00
+done_ids: universe-pr4e, protective-hold/p2-store-integration, universe-pr5/outcome-document-contract, protective-hold/p2-store, protective-hold/p1, universe-pr4d/lossless-history, universe-pr4d, universe-pr4d/lossless-objects, design-revision-1113, upbit-universe-return-1113, universe-pr4d/original-verification, workflow-resume-1113/regression-preparation, universe-pr4d/task2-implementation, universe-pr4d/task3, universe-pr4d/task4, universe-pr4c, universe-pr4d/task1, workflow-resume-1113, workflow-resume-1113/dependencies, universe-pr4c/implementation, universe-pr0, universe-pr1, universe-pr2, universe-pr3, universe-pr4b, universe-pr4a
+next_ids: protective-hold/fixed-carry-v2, protective-hold/p2-integration, universe-pr5, universe-pr5-clock-notify, universe-code-approve, policy-loss-budget-plan-1, rules-review-1202, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, launch-private-capture-setup-1, e1-14-owner-setup, launch-prospective-study, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1
+updated_at: 2026-11-13T22:12:37+09:00
 stale_after_hours: 3
 waiting_on: no prior approval question; future PLB S1-S12 and deployment inputs only
-work_branch: gpt/universe-pr4e-runner-coordinator
-work_commit: a772a24073ffb523ff7fa8d1e030398eaf56227a
-merged_main_commit: 6030fe3063dc6b63eeaad48b3d818577f1c1219b
-runtime_tested_commit: PR4e a772a24 fingerprint b80c7edc independent9PASS; complete KEYLESS suite running; preliminary155PASS not frozen acceptance
-uncommitted_changes: PR4e a772a24 and P2-store530af22 clean/pushed; isolated PR5 outcome-contract implementation in progress
-pr: https://github.com/xkg4real/tradegen/pull/36 (draft, full regression running); PR34/35 merged
+work_branch: gpt/research-outcome-contract
+work_commit: 34b4a3b7e40bcebaf5cd06f1b6f360cdeafeb27c
+merged_main_commit: 5217f1e7977fab170a5453ad1ac8d4fc58521dc6
+runtime_tested_commit: PR36 a772a24 full2772PASS0FAIL135NR; PR37 integrated59e15cb187PASS; PR38 samefpb3163893 154PASS0FAIL1NR
+uncommitted_changes: active carry-v2 at gpt/protective-fixed-carry-v2 /workspace/tradegen-protective-carry-1113; owners writing distinct files; not tested complete or committed
+pr: PR36/37/38 merged; carry-v2 active implementation, no PR yet
 usage_weekly_pct: unknown
 usage_source: unavailable
 handoff_threshold_pct: 95
@@ -105,3 +105,12 @@ PR36 a772a24에서 유니버스 Runner/Coordinator/owner rehearsal을 연결했�
 완료ID protective-hold/p2-store: 530af22b58a5471c7e4308ad225dba6eea3d3f4e, PR37 draft. 최종178PASS/0FAIL/0NOT_RUN,15.545초,source ff0bb01a 전후불변/실제home메타데이터불변. 저장/outbox만완료이며 원P2의실제bootstrap/계좌·체결·미체결대조운용연결은 protective-hold/p2-integration 으로남긴다. PR36검증/병합뒤 통합기준대조예정.
 
 후속 PR5 outcome 문서 codec은 gpt/research-outcome-contract (/workspace/tradegen-research-outcomes-1113)에서 별도 개발중이며 기존 study/서명/선발/driver는아직이새문서를사용하지않는다. P3준비는 실제 fixed evaluator/driver에새carry버전을동시에추가하는수직단계를검토중,운용코드변경전이다.
+
+## 22:12 KST 체크포인트 — PR36/37/38 병합, carry-v2 개발 계속
+
+- PR36 head ee5c3ac, main dc34c1a. 전체2,907=2,772PASS/0FAIL/135NOT_RUN, 한 프로세스1240.435초. 이전2819 ID/status 유지·신규88PASS. source b80c7edc와 실제home메타데이터 import 전부터 종료까지불변. 병합tree=검증head tree. 위 과거 ‘full running’은 이 완료결과로 대체한다.
+- PR37 head7b751cb, mainf41501f. P2-store를 PR4e와통합해187PASS/0FAIL/0NR31.198초,fp7878c490 불변. 실제P2 account/bootstrap/reconciliation완료아님. 기존p2-store완료ID를반복하지않고통합배달ID를추가한다.
+- PR38 head34b4a3b, main5217f1e. A0a strict outcome문서codec만완료,154PASS/0FAIL/1WindowsNOT_RUN43.321초 fpb3163893. 실제실패발급·전체입력검증·전략선발·승인에는아직소비하지않는다. 병합tree=검증head tree.
+- 현재 gpt/protective-fixed-carry-v2는59e15cb 기반 별도트리에서6명파일소유분리개발중. fixed Upbit KRW GTC만 새protocol/evaluator/typeddecision/capture/factory/review/domain/서명/Coordinator/P2deadline을연결한다. legacy종단의미와wirebytes는기존버전에유지. 새carry는E에서평가잔량을유지하고새주문차단·새관리요청하며 기존GTC의뒤늦은체결과구별한다.
+- carry의정식통합검증은아직미실행. 독립검토가찾은 최소금액SELL표시, 무체결E/HOLD의가상bid0, capture중간가일치, callback지연중E초과경합을수정중. 각부품의개별PASS/AST를전체완료로세지않는다. ownerfiles/API는새 CARRY_V2_API_CARD참조.
+- 실제productionauthority/continuousaccount/controlledlauncher/연구전체semantic검증/봉인·백업·복구/WebAuthn/Windows·iPhone/사용자서명·활성화는남는다. 실제주문없음. 사용자결정E/하한은재질문하지않는다.

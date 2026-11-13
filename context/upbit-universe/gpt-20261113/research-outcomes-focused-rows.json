@@ -1,0 +1,933 @@
+[
+  {
+    "test": "launch/launch_research_outcomes/test_byte_limit_is_checked_before_decoder_at_exact_boundary_and_one_over",
+    "status": "PASS",
+    "seconds": 0.0267,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_outcomes/test_current_candidate_set_preserves_failure_members_and_uses_declared_order",
+    "status": "PASS",
+    "seconds": 0.0003,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_outcomes/test_deleted_frozen_fields_are_refused_with_fixed_diagnostics_not_attribute_errors",
+    "status": "PASS",
+    "seconds": 0.0002,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_outcomes/test_documents_are_frozen_and_encoding_revalidates_deliberately_mutated_fields",
+    "status": "PASS",
+    "seconds": 0.0002,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_outcomes/test_duplicate_json_keys_are_rejected_in_root_and_nested_failure_even_if_equal",
+    "status": "PASS",
+    "seconds": 0.0003,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_outcomes/test_evaluated_document_has_a_fixed_canonical_wire_contract_and_separate_digest_domain",
+    "status": "PASS",
+    "seconds": 0.0002,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_outcomes/test_every_metadata_binding_and_failure_location_participates_in_document_digest",
+    "status": "PASS",
+    "seconds": 0.0004,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_outcomes/test_expected_set_requires_exact_sorted_unique_bounded_ids_and_tuple_documents",
+    "status": "PASS",
+    "seconds": 0.0013,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_outcomes/test_failed_document_preserves_location_and_has_no_metrics_or_approval_fields",
+    "status": "PASS",
+    "seconds": 0.0003,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_outcomes/test_failure_slot_boundaries_refuse_booleans_floats_strings_and_out_of_range",
+    "status": "PASS",
+    "seconds": 0.0002,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_outcomes/test_failure_vocabulary_is_revision_specific_and_benchmark_phase_is_consistent",
+    "status": "PASS",
+    "seconds": 0.0009,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_outcomes/test_invalid_json_numeric_forms_and_nonfinite_constants_never_become_integer_fields",
+    "status": "PASS",
+    "seconds": 0.0005,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_outcomes/test_invalid_provider_text_is_not_in_diagnostics",
+    "status": "PASS",
+    "seconds": 0.0003,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_outcomes/test_known_revision_and_source_labels_remain_claims_not_verification",
+    "status": "PASS",
+    "seconds": 0.0004,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_outcomes/test_nested_input_is_refused_before_decoder_and_braces_inside_strings_do_not_count",
+    "status": "PASS",
+    "seconds": 0.0005,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_outcomes/test_no_constructor_or_parser_result_is_an_issued_strategy_evaluation",
+    "status": "PASS",
+    "seconds": 0.0343,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_outcomes/test_outcome_documents_cannot_be_imported_as_legacy_review_requests_or_signed_reviews",
+    "status": "PASS",
+    "seconds": 0.0004,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_outcomes/test_raw_capture_byte_changes_require_a_different_claim_without_rehashing_as_json",
+    "status": "PASS",
+    "seconds": 0.0004,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_outcomes/test_result_and_failure_are_disjoint_and_cannot_be_coerced_into_each_other",
+    "status": "PASS",
+    "seconds": 0.0003,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_outcomes/test_schema_and_bindings_use_exact_types_and_bounded_ascii_identifiers",
+    "status": "PASS",
+    "seconds": 0.0002,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_outcomes/test_unknown_missing_and_approval_or_metrics_fields_are_rejected_at_every_object_level",
+    "status": "PASS",
+    "seconds": 0.0018,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_research_outcomes/test_utc_wire_time_is_canonical_and_in_memory_offsets_normalize_to_same_instant",
+    "status": "PASS",
+    "seconds": 0.0005,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_strategy/test_capture_json_recomputes_results_and_refuses_a_supplied_summary",
+    "status": "PASS",
+    "seconds": 0.0884,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_strategy/test_capture_rejects_gaps_duplicate_times_incomplete_window_and_future_availability",
+    "status": "PASS",
+    "seconds": 0.0469,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_strategy/test_costs_are_nonnegative_cash_is_exact_and_ambient_decimal_precision_has_no_effect",
+    "status": "PASS",
+    "seconds": 0.0557,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_strategy/test_decision_history_and_timing_are_causal_and_no_leverage_is_accepted",
+    "status": "PASS",
+    "seconds": 0.0582,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_strategy/test_fee_floor_rule_changes_off_tick_and_too_small_cash_are_not_hidden",
+    "status": "PASS",
+    "seconds": 0.059,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_strategy/test_fixed_evaluator_refuses_a_universe_protocol_and_capture_rules_use_its_selector",
+    "status": "PASS",
+    "seconds": 0.0505,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_strategy/test_fixed_protocol_digest_and_json_are_byte_identical_to_the_pre_universe_encoding",
+    "status": "PASS",
+    "seconds": 0.0501,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_strategy/test_history_storage_binding_refuses_null_malformed_hash_and_nonuniverse_scope",
+    "status": "PASS",
+    "seconds": 0.0501,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_strategy/test_history_storage_policy_digest_round_trips_and_changes_registration_binding",
+    "status": "PASS",
+    "seconds": 0.0344,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_strategy/test_legacy_universe_protocol_encoding_is_unchanged_without_a_storage_binding",
+    "status": "PASS",
+    "seconds": 0.0332,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_strategy/test_multiplicity_counts_the_frozen_family_and_p_values_are_nonzero",
+    "status": "PASS",
+    "seconds": 0.0668,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_strategy/test_one_roundtrip_matches_independent_cash_fee_tick_and_lot_arithmetic",
+    "status": "PASS",
+    "seconds": 0.0558,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_strategy/test_planted_future_paper_edge_requires_explicit_review_and_never_grants_permission",
+    "status": "PASS",
+    "seconds": 0.0365,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_strategy/test_profile_code_window_and_evidence_expiry_bindings_are_enforced",
+    "status": "PASS",
+    "seconds": 0.032,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_strategy/test_protocol_json_is_strict_canonical_and_does_not_import_claimed_pass",
+    "status": "PASS",
+    "seconds": 0.03,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_strategy/test_registration_is_append_only_and_capture_cannot_precede_the_protocol",
+    "status": "PASS",
+    "seconds": 0.0311,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_strategy/test_retrospective_and_synthetic_sources_are_never_promoted_by_hash_or_review",
+    "status": "PASS",
+    "seconds": 0.1005,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_strategy/test_review_receipt_cannot_be_boolean_wrong_digest_future_expired_or_raw_exception",
+    "status": "PASS",
+    "seconds": 0.034,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_strategy/test_summary_forgery_and_mutation_do_not_replace_replayed_arithmetic",
+    "status": "PASS",
+    "seconds": 0.0328,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_strategy/test_unchanged_current_rule_refresh_preserves_research_terms_but_not_execution_digest",
+    "status": "PASS",
+    "seconds": 0.0336,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_strategy/test_universe_protocol_round_trips_and_binds_its_rule_and_the_btc_benchmark",
+    "status": "PASS",
+    "seconds": 0.0313,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_strategy/test_unsupported_fx_market_and_source_or_evaluator_versions_are_refused",
+    "status": "PASS",
+    "seconds": 0.0313,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_review_request/test_actual_program_parameters_profile_and_capital_must_match_computed_study",
+    "status": "PASS",
+    "seconds": 0.0638,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_review_request/test_changed_protocol_cannot_relabel_a_previously_computed_result",
+    "status": "PASS",
+    "seconds": 0.0008,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_review_request/test_computed_request_binds_actual_inputs_and_leaves_all_review_authority_pending",
+    "status": "PASS",
+    "seconds": 0.001,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_review_request/test_duplicate_nonfinite_unknown_and_oversized_json_is_refused_without_echo",
+    "status": "PASS",
+    "seconds": 0.001,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_review_request/test_import_is_only_unsigned_integrity_and_cannot_be_used_as_strategy_evidence",
+    "status": "PASS",
+    "seconds": 0.0011,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_review_request/test_imported_summary_or_rebuilt_result_is_not_computed_evidence_for_a_request",
+    "status": "PASS",
+    "seconds": 0.0006,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_review_request/test_replay_claim_and_expired_evidence_remain_visible_without_any_authority",
+    "status": "PASS",
+    "seconds": 0.034,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_review_request/test_request_preparation_reads_no_owner_state_key_environment_or_network",
+    "status": "PASS",
+    "seconds": 0.0023,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_review_request/test_request_roundtrip_never_accepts_approval_fields_even_with_a_recomputed_hash",
+    "status": "PASS",
+    "seconds": 0.0022,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_review_request/test_schema2_family_commitment_is_unsigned_but_covers_every_member_and_candidate_result",
+    "status": "PASS",
+    "seconds": 0.0018,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_review_auth/test_authenticated_body_is_fresh_verified_detached_and_not_a_mutable_document_alias",
+    "status": "PASS",
+    "seconds": 0.1162,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_review_auth/test_bundle_completion_rejects_rollback_stale_observation_expiry_and_seoul_midnight",
+    "status": "PASS",
+    "seconds": 0.0288,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_review_auth/test_bundle_never_caches_current_owner_or_leaks_its_mutable_signed_body",
+    "status": "PASS",
+    "seconds": 0.0215,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_review_auth/test_bundle_rejects_a_valid_signature_with_a_different_source_binding",
+    "status": "PASS",
+    "seconds": 0.0064,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_review_auth/test_bundle_still_rejects_unissued_result_and_unregistered_driver_or_history",
+    "status": "PASS",
+    "seconds": 0.0151,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_review_auth/test_bundle_uses_one_fresh_observation_for_audit_source_and_actual_driver",
+    "status": "PASS",
+    "seconds": 0.0082,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_review_auth/test_callback_wrapper_refreshes_owner_authority_on_every_verification",
+    "status": "PASS",
+    "seconds": 0.0074,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_review_auth/test_deployment_window_and_explicit_trusted_history_selection_are_bound",
+    "status": "PASS",
+    "seconds": 0.0178,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_review_auth/test_genuine_synthetic_signature_roundtrip_qualifies_only_exact_computed_research",
+    "status": "PASS",
+    "seconds": 0.0082,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_review_auth/test_registered_fixed_callback_succeeds_but_cloned_or_substituted_callback_refuses",
+    "status": "PASS",
+    "seconds": 0.0129,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_review_auth/test_rotation_expiry_stale_authority_and_changed_signed_deployment_refuse",
+    "status": "PASS",
+    "seconds": 0.0326,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_review_auth/test_signed_review_cannot_be_replayed_for_different_evidence_or_program",
+    "status": "PASS",
+    "seconds": 0.0294,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_review_auth/test_strict_document_rejects_booleans_unknown_fields_duplicates_and_invalid_times",
+    "status": "PASS",
+    "seconds": 0.0011,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_review_auth/test_wrong_signature_key_and_owner_log_domain_do_not_authenticate",
+    "status": "PASS",
+    "seconds": 0.011,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_study_review/test_authority_expiry_current_key_code_and_seal_are_authenticated",
+    "status": "PASS",
+    "seconds": 2.485,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_study_review/test_bad_signature_refuses_entire_selection_instead_of_dropping_a_row",
+    "status": "PASS",
+    "seconds": 1.2898,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_study_review/test_cli_invalid_time_and_private_path_fail_before_owner_loading",
+    "status": "PASS",
+    "seconds": 1.0462,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_study_review/test_cli_uses_real_clock_boundary_and_explicit_review_files_only",
+    "status": "PASS",
+    "seconds": 1.4795,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_study_review/test_clock_rollback_or_unsigned_document_refuses",
+    "status": "PASS",
+    "seconds": 1.6721,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_study_review/test_current_profile_must_be_fresh_and_preserve_frozen_contract",
+    "status": "PASS",
+    "seconds": 2.1836,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_study_review/test_each_review_refreshes_authority_and_mid_selection_change_refuses",
+    "status": "PASS",
+    "seconds": 1.7122,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_study_review/test_failed_candidate_raw_bytes_are_also_in_every_signed_family_commitment",
+    "status": "PASS",
+    "seconds": 1.3594,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_study_review/test_legacy_candidate_only_signature_never_upgrades_into_a_family_review",
+    "status": "PASS",
+    "seconds": 1.2709,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_study_review/test_missing_capture_extra_capture_and_imported_metrics_refuse",
+    "status": "PASS",
+    "seconds": 1.0553,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_study_review/test_missing_review_cannot_cherry_pick_a_lower_ranked_candidate",
+    "status": "PASS",
+    "seconds": 1.7822,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_study_review/test_module_has_no_write_network_sign_or_arm_path",
+    "status": "PASS",
+    "seconds": 0.0052,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_study_review/test_mutating_winner_to_cash_and_omitting_its_review_cannot_select_another_candidate",
+    "status": "PASS",
+    "seconds": 1.8755,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_study_review/test_numerically_failed_complete_family_stays_unqualified_without_owner_access",
+    "status": "PASS",
+    "seconds": 0.1196,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_study_review/test_schema2_standalone_signer_matches_runtime_signing_bytes",
+    "status": "PASS",
+    "seconds": 1.1165,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_study_review/test_signed_but_inconsistent_metric_summary_is_not_accepted",
+    "status": "PASS",
+    "seconds": 1.5515,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_study_review/test_signed_complete_family_selects_the_frozen_winner_without_execution_authority",
+    "status": "PASS",
+    "seconds": 1.5103,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_study_review/test_signed_other_candidate_and_changed_evaluation_time_cannot_replay",
+    "status": "PASS",
+    "seconds": 1.7659,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_study_review/test_source_program_or_statistic_mutation_never_qualifies",
+    "status": "PASS",
+    "seconds": 1.4541,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_study_review/test_study_request_generation_commits_every_evaluated_candidate_including_failure",
+    "status": "PASS",
+    "seconds": 1.4901,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guards/test_continuous_archive_writes_are_exact_and_cannot_migrate_into_pure_modules",
+    "status": "PASS",
+    "seconds": 0.0547,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guards/test_evidence_object_writes_are_exact_and_cannot_gain_head_or_order_authority",
+    "status": "PASS",
+    "seconds": 0.0396,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guards/test_guard_reads_pin_utf8",
+    "status": "PASS",
+    "seconds": 0.0455,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guards/test_head_authority_writes_are_exact_and_operator_steps_have_no_runtime_caller",
+    "status": "PASS",
+    "seconds": 1.3669,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guards/test_launch_and_account_tests_start_no_process",
+    "status": "PASS",
+    "seconds": 0.2675,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guards/test_launch_and_network_do_not_directly_sign_arm_or_open_http",
+    "status": "PASS",
+    "seconds": 0.4137,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guards/test_launch_guard_names_the_effect_behind_bare_names_aliases_and_constant_getattr",
+    "status": "PASS",
+    "seconds": 0.0012,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guards/test_launch_guard_negative_controls",
+    "status": "PASS",
+    "seconds": 0.0011,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guards/test_launch_guard_pins_transport_routes_and_process_effects",
+    "status": "PASS",
+    "seconds": 0.0042,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guards/test_launch_suite_is_complete_registered_and_import_errors_fail",
+    "status": "PASS",
+    "seconds": 0.9331,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guards/test_launch_write_ban_covers_every_shape_and_pins_writers_by_file_and_exact_call",
+    "status": "PASS",
+    "seconds": 0.0343,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guards/test_live_history_writes_are_exact_and_only_through_pinned_checked_targets",
+    "status": "PASS",
+    "seconds": 0.0907,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guards/test_new_packages_are_in_runtime_and_acting_graph",
+    "status": "PASS",
+    "seconds": 0.0059,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guards/test_new_runtime_packages_are_signed_recursively_by_owner_and_signer",
+    "status": "PASS",
+    "seconds": 0.0141,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guards/test_protective_store_writes_stay_exact_and_cannot_self_initialize_authority",
+    "status": "PASS",
+    "seconds": 0.038,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guards/test_study_writes_are_exact_and_only_through_pinned_checked_targets",
+    "status": "PASS",
+    "seconds": 0.0367,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guards/test_trusted_head_is_advanced_only_by_pinned_callers",
+    "status": "PASS",
+    "seconds": 0.9693,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guards/test_universe_store_writes_are_exact_and_cannot_migrate",
+    "status": "PASS",
+    "seconds": 0.0089,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guards/test_wrapper_flags_a_change_to_the_real_baseline_history_and_head_homes",
+    "status": "PASS",
+    "seconds": 0.0013,
+    "detail": ""
+  },
+  {
+    "test": "launch/owner_guards/test_owner_and_execution_helpers_cannot_hide_transitive_narrative_imports",
+    "status": "PASS",
+    "seconds": 0.0003,
+    "detail": ""
+  },
+  {
+    "test": "launch/owner_guards/test_owner_commands_are_in_runtime_and_acting_graphs",
+    "status": "PASS",
+    "seconds": 0.0105,
+    "detail": ""
+  },
+  {
+    "test": "launch/owner_guards/test_owner_commands_cannot_turn_narrative_context_into_an_action_input",
+    "status": "PASS",
+    "seconds": 0.0003,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_a_command_with_the_wrong_key_stores_nothing",
+    "status": "PASS",
+    "seconds": 0.0058,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_a_null_device_is_not_a_terminal",
+    "status": "PASS",
+    "seconds": 0.0002,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_approve_refuses_an_empty_calendar_folder_before_any_prompt",
+    "status": "PASS",
+    "seconds": 0.0007,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_calendar_refuses_links_like_rules",
+    "status": "PASS",
+    "seconds": 0.0004,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_calendar_store_and_hash_match_rules",
+    "status": "PASS",
+    "seconds": 0.0044,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_check_data_is_never_looser_than_owner",
+    "status": "PASS",
+    "seconds": 0.0045,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_check_data_refuses_bad_events",
+    "status": "PASS",
+    "seconds": 0.0007,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_claude_ancestor_check_fails_closed",
+    "status": "PASS",
+    "seconds": 0.0001,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_claude_ancestor_walk",
+    "status": "PASS",
+    "seconds": 0.0001,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_closure_scan_helpers_are_identical_in_owner_and_signer",
+    "status": "PASS",
+    "seconds": 0.0015,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_code_files_match_owner",
+    "status": "PASS",
+    "seconds": 2.4612,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_commands_sign_exactly_what_was_shown",
+    "status": "PASS",
+    "seconds": 1.0719,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_commit_refuses_an_approval_whose_bytes_are_not_stored",
+    "status": "PASS",
+    "seconds": 0.0026,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_detached_review_command_rechecks_audit_bytes_after_confirmation",
+    "status": "PASS",
+    "seconds": 0.0022,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_detached_review_command_retains_process_refusal_and_typed_confirmation",
+    "status": "PASS",
+    "seconds": 0.0001,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_detached_review_command_signs_exact_displayed_synthetic_document_without_owner_event",
+    "status": "PASS",
+    "seconds": 0.0027,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_detached_review_reader_refuses_links_oversize_directories_and_fifo_before_open",
+    "status": "PASS",
+    "seconds": 0.001,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_detached_review_schema_and_signing_bytes_match_runtime_without_repo_imports",
+    "status": "PASS",
+    "seconds": 0.0036,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_detached_review_source_closure_covers_each_lossless_history_dependency",
+    "status": "PASS",
+    "seconds": 0.0223,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_entry_line_matches_the_fixture_and_verifies",
+    "status": "PASS",
+    "seconds": 0.0003,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_every_event_the_signer_accepts_verifies",
+    "status": "PASS",
+    "seconds": 0.0017,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_head_refuses_a_log_the_gate_calls_broken",
+    "status": "PASS",
+    "seconds": 0.0029,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_help_names_owner_acts_1_and_2",
+    "status": "PASS",
+    "seconds": 0.0017,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_key_file_round_trip_with_spec_parameters",
+    "status": "PASS",
+    "seconds": 0.8495,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_key_file_tampering_fails",
+    "status": "PASS",
+    "seconds": 1.0888,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_key_rotated_must_name_the_key_that_signs_it",
+    "status": "PASS",
+    "seconds": 0.0021,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_keygen_with_an_explicit_key_path_writes_beside_it",
+    "status": "PASS",
+    "seconds": 0.4226,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_keygen_writes_key_and_public_key",
+    "status": "PASS",
+    "seconds": 0.4153,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_main_refuses_claude_parent_and_non_tty_stdin",
+    "status": "PASS",
+    "seconds": 0.0003,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_main_refuses_under_claude_env_and_writes_nothing",
+    "status": "PASS",
+    "seconds": 0.0002,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_main_refuses_without_isolated_mode",
+    "status": "PASS",
+    "seconds": 0.0001,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_only_the_key_in_force_can_extend_the_log",
+    "status": "PASS",
+    "seconds": 0.0076,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_passphrase_rule",
+    "status": "PASS",
+    "seconds": 0.0001,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_pem_reader_maps_the_errors_read_pubkey_maps",
+    "status": "PASS",
+    "seconds": 0.0023,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_quantgen_refusal_and_link_targets",
+    "status": "PASS",
+    "seconds": 0.0005,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_signer_and_system_entries_share_one_chain",
+    "status": "PASS",
+    "seconds": 0.0034,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_signer_copies_match_the_repo",
+    "status": "PASS",
+    "seconds": 0.0003,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_signer_is_standalone",
+    "status": "PASS",
+    "seconds": 0.0253,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_stdin_terminal_check_follows_getconsolemode",
+    "status": "NOT_RUN",
+    "seconds": 0.0001,
+    "detail": "",
+    "reason": "REFDATA: GetConsoleMode needs Windows"
+  },
+  {
+    "test": "compliance/compliance_signer/test_store_layout_matches_owner_store_put",
+    "status": "PASS",
+    "seconds": 0.0039,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_store_writes_are_atomic",
+    "status": "PASS",
+    "seconds": 0.0037,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_typed_code_rejects_a_burst",
+    "status": "PASS",
+    "seconds": 0.0002,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_unimported_owner_commands_and_their_dependencies_are_signed",
+    "status": "PASS",
+    "seconds": 0.0139,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_writes_refuse_a_junctioned_folder",
+    "status": "PASS",
+    "seconds": 0.0005,
+    "detail": ""
+  },
+  {
+    "test": "compliance/compliance_signer/test_wrong_code_signs_nothing",
+    "status": "PASS",
+    "seconds": 0.0015,
+    "detail": ""
+  }
+]
