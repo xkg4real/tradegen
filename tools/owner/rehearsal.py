@@ -7,6 +7,7 @@ constructs only exact DryRunAdapters; there is no live mode, order credential
 loader, signer, arming operation, import path or callback in the JSON schema.
 Preparation from a serialized plan is not implemented: prepare reports the
 existing missing-current-planner-input refusal rather than fabricating inputs.
+The odds command has the same missing-provider refusal in this launcher.
 
 Account evidence is not made complete by parsing JSON. The account-audit bytes
 must be bound by an actually authenticated current detached owner review, and
@@ -17,7 +18,7 @@ the flat interval producer. No setup/re-anchor is performed by this launcher.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, fields
+from dataclasses import dataclass, fields, replace
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 import hashlib
@@ -34,6 +35,7 @@ from execution_accounts.collector import CoverageEvidence, OpeningAnchor, TradeF
 from execution_accounts.instrument_terms import (E1UpbitTermsSource, TermsAuthority, UniverseTermsAuthority,
                                                  authority_digest)
 from execution_accounts.quotes import E1UpbitQuoteSource
+from execution_accounts.universe import UniverseSlotSource
 from execution_accounts.upbit_collector import E1UpbitSource
 from execution_control.capability import digest
 from execution_control.dry_run import DryRunAdapter
@@ -41,6 +43,7 @@ from execution_launch.account_interval import UpbitIntervalSource
 from execution_launch.baseline_head import BaselineHead, CheckpointChain
 from execution_launch.coordinator import Composition, Coordinator, compose
 from execution_launch.profile import preflight_profile
+from execution_launch.strategy import parse_protocol
 from execution_launch.workflow import MAX_CONFIG_BYTES, read_file
 from execution_orders import upbit
 from tools.owner.launch import OwnerRuntime, _object, _root, _time, read_window, serve
@@ -317,10 +320,11 @@ class _QuoteSource:
         _need(type(source) is E1UpbitQuoteSource and type(guard) is _ReadGuard, "REHEARSAL_FIXED_SOURCE_REQUIRED")
         self._source, self._guard = source, guard
 
-    def read(self):
+    def read(self, symbol=None):
+        source = self._source if symbol is None else replace(self._source, symbol=symbol)
         self._guard.time_check()
         with inquiry_guard(self._guard.transport_check):
-            result = self._source.read()
+            result = source.read()
         self._guard.time_check()
         return result
 
@@ -330,10 +334,31 @@ class _TermsSource:
         _need(type(source) is E1UpbitTermsSource and type(guard) is _ReadGuard, "REHEARSAL_FIXED_SOURCE_REQUIRED")
         self._source, self._guard = source, guard
 
-    def read(self):
+    def read(self, symbol=None):
         self._guard.time_check()
         with inquiry_guard(self._guard.transport_check):
-            result = self._source.read()
+            result = self._source.read() if symbol is None else self._source.read(symbol)
+        self._guard.time_check()
+        return result
+
+
+class _SlotSource:
+    """Guard each public flag/ticker read with the same current signed read authority."""
+    def __init__(self, source: UniverseSlotSource, guard: _ReadGuard):
+        _need(type(source) is UniverseSlotSource and type(guard) is _ReadGuard, "REHEARSAL_FIXED_SOURCE_REQUIRED")
+        self._source, self._guard = source, guard
+
+    def read_flags(self):
+        self._guard.time_check()
+        with inquiry_guard(self._guard.transport_check):
+            result = self._source.read_flags()
+        self._guard.time_check()
+        return result
+
+    def read_tickers(self, markets):
+        self._guard.time_check()
+        with inquiry_guard(self._guard.transport_check):
+            result = self._source.read_tickers(markets)
         self._guard.time_check()
         return result
 
@@ -363,7 +388,8 @@ def build_rehearsal(config_path: str, *, clock: Callable) -> OwnerRuntime:
     root = _root(Path(config["state_root"]))
     _need(not root.is_relative_to(Path.home() / ".tradegen"), "REHEARSAL_ISOLATED_STATE_REQUIRED")
     hroot = Path(config["head_root"])
-    window = read_window(config["window"])
+    protocol = parse_protocol(read_file(config["protocol"], MAX_CONFIG_BYTES))
+    window = read_window(config["window"], universe=protocol.universe_rule_sha256 is not None)
     until = _time(config["monitor_until"])
     _need(window.end <= until <= window.end + timedelta(days=1), "REHEARSAL_MONITOR_SPAN_INVALID")
     raw_audit = read_file(config["account_audit"], MAX_AUDIT_BYTES)
@@ -402,12 +428,15 @@ def build_rehearsal(config_path: str, *, clock: Callable) -> OwnerRuntime:
     authority = _terms_authority(comp.profile, audit)
     if authority is not None:
         terms = _TermsSource(E1UpbitTermsSource(authority=authority, clock=clock), guard)
+    universe = comp.profile.universe_rule_sha256 is not None
     coordinator = Coordinator(mode="rehearsal", profile=comp.profile, evidence=comp.evidence, driver=comp.driver,
         implementation_verifier=comp.verifiers.implementation, adapters={"upbit": DryRunAdapter(upbit)},
         account_source=intervals, account_prefetch=prefetch, trusted_head=head,
         quote_source=_QuoteSource(E1UpbitQuoteSource(symbol=comp.profile.symbol, clock=clock), guard),
         window=window, bar_seconds=comp.protocol.bar_seconds, monitor_until=until, clock=clock,
-        history=comp.history, terms_source=terms)
+        history=comp.history, terms_source=terms,
+        slot_source=_SlotSource(UniverseSlotSource(clock=clock), guard) if universe else None,
+        program=comp.program if universe else None)
     return OwnerRuntime(coordinator)
 
 

@@ -420,6 +420,7 @@ CLEAN = (
     "getattr(quote_source, 'read', None)", "getattr(chain, 'seed', None)", "getattr(chain, 'successor', None)",
     "getattr(exc, 'code', None)", "getattr(inputs, 'now', None)", "getattr(source, 'account_scope', None)",
     "getattr(protocol, 'bar_seconds', None)", "getattr(history, 'record_slot', None)",
+    "from core.compliance.alerts import toast",
     # Negative controls for the binding rule: a pure local, and parameters, loops and imports that are not the flags.
     "def f(p):\n    flags = os.O_RDONLY\n    os.open(p, flags)",
     "def f(p, mode):\n    flags = os.O_RDONLY | os.O_NOFOLLOW\n    os.open(p, flags)",

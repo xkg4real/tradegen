@@ -226,6 +226,14 @@ def _toast(title: str, body: str) -> bool:
     return done.returncode == 0
 
 
+def toast(title: str, body: str) -> bool:
+    """Public synchronous toast seam; callers queue it outside coordinator work units.
+
+    `_toast` is resolved at call time so fake notification seams remain effective.
+    """
+    return _toast(title, body)
+
+
 def _in_log(seq: int, sha: str) -> bool:
     """True when owner.jsonl line `seq` records row_sha256 `sha`; seq 0 anchors nothing. An alerts.jsonl anchor
     the log does not have leaves it BROKEN for good (Task 11), so log() writes only anchors that hold."""

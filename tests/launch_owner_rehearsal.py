@@ -529,3 +529,76 @@ def test_rehearsal_storage_artifact_is_explicit_path_and_forwarded_without_defau
         assert compose_call.call_count == 1
         assert compose_call.call_args.kwargs["history_storage_path"] == selected
         assert env.calls == []
+
+
+def test_universe_adapters_name_the_coin_and_guard_every_read():
+    from execution import transport as T
+    from execution_accounts.instrument_terms import E1UpbitTermsSource
+    from execution_accounts.quotes import E1UpbitQuoteSource
+    from execution_accounts.universe import UniverseSlotSource
+    seen, checks, stages = [], [], []
+    guard = object.__new__(R._ReadGuard)
+    guard.time_check = lambda: checks.append(1)
+    guard.transport_check = lambda stage: stages.append(stage)
+    clock = lambda: datetime(2030, 1, 1, tzinfo=timezone.utc)
+    quote_source = E1UpbitQuoteSource(symbol="KRW-BTC", clock=clock)
+
+    def record(*value):
+        T._check_inquiry_guard("before_headers")
+        seen.append(value)
+        return value
+
+    def book_read(source):
+        assert source.clock is clock and source.route is quote_source.route
+        return record("book", source.symbol)
+    with patch.object(E1UpbitQuoteSource, "read", book_read), \
+            patch.object(E1UpbitTermsSource, "read", lambda self, symbol=None: record("terms", symbol)), \
+            patch.object(UniverseSlotSource, "read_flags", lambda self: record("flags")), \
+            patch.object(UniverseSlotSource, "read_tickers", lambda self, markets: record("tickers", markets)):
+        quotes = R._QuoteSource(quote_source, guard)
+        terms = R._TermsSource(object.__new__(E1UpbitTermsSource), guard)
+        slots = R._SlotSource(UniverseSlotSource(clock=clock), guard)
+        assert quotes.read() == ("book", "KRW-BTC")
+        assert quotes.read("KRW-XRP") == ("book", "KRW-XRP")
+        assert terms.read() == ("terms", None)
+        assert terms.read("KRW-XRP") == ("terms", "KRW-XRP")
+        assert slots.read_flags() == ("flags",)
+        assert slots.read_tickers(("KRW-BTC",)) == ("tickers", ("KRW-BTC",))
+    assert quote_source.symbol == "KRW-BTC"
+    assert seen == [("book", "KRW-BTC"), ("book", "KRW-XRP"), ("terms", None), ("terms", "KRW-XRP"),
+                    ("flags",), ("tickers", ("KRW-BTC",))]
+    assert len(checks) == 12 and stages == ["before_headers"] * 6
+    T._check_inquiry_guard("before_headers")  # wrapper restored the context; no leaked authority callback
+    assert len(stages) == 6
+    refused(lambda: R._SlotSource(object(), guard), "REHEARSAL_FIXED_SOURCE_REQUIRED")
+    refused(lambda: R._SlotSource(UniverseSlotSource(clock=clock), object()), "REHEARSAL_FIXED_SOURCE_REQUIRED")
+
+
+def test_universe_adapter_guard_refusals_block_before_read_and_after_changed_authority():
+    from execution_accounts.instrument_terms import E1UpbitTermsSource
+    from execution_accounts.quotes import E1UpbitQuoteSource
+    from execution_accounts.universe import UniverseSlotSource
+    clock = lambda: datetime(2030, 1, 1, tzinfo=timezone.utc)
+    guard = object.__new__(R._ReadGuard)
+    guard.transport_check = lambda stage: None
+    quotes = R._QuoteSource(E1UpbitQuoteSource(symbol="KRW-BTC", clock=clock), guard)
+    terms = R._TermsSource(object.__new__(E1UpbitTermsSource), guard)
+    slots = R._SlotSource(UniverseSlotSource(clock=clock), guard)
+    calls = []
+    with patch.object(E1UpbitQuoteSource, "read", lambda self: calls.append("book") or object()), \
+            patch.object(E1UpbitTermsSource, "read", lambda self, symbol=None: calls.append("terms") or object()), \
+            patch.object(UniverseSlotSource, "read_flags", lambda self: calls.append("flags") or object()), \
+            patch.object(UniverseSlotSource, "read_tickers", lambda self, markets: calls.append("tickers") or object()):
+        reads = (quotes.read, lambda: quotes.read("KRW-XRP"), terms.read, lambda: terms.read("KRW-XRP"),
+                 slots.read_flags, lambda: slots.read_tickers(("KRW-BTC",)))
+        for read in reads:
+            with patch.object(guard, "time_check", create=True,
+                              side_effect=R.RehearsalError("SYNTHETIC_AUTHORITY_REFUSED")):
+                refused(read, "SYNTHETIC_AUTHORITY_REFUSED")
+        assert calls == []
+        for read in reads:
+            with patch.object(guard, "time_check", create=True,
+                              side_effect=[None, R.RehearsalError("SYNTHETIC_AUTHORITY_CHANGED")]) as checks:
+                refused(read, "SYNTHETIC_AUTHORITY_CHANGED")
+                assert checks.call_count == 2
+    assert calls == ["book", "book", "terms", "terms", "flags", "tickers"]
