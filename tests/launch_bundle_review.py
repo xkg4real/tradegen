@@ -128,7 +128,7 @@ def test_actual_fixed_and_carry_verified_graph_exports_then_authenticates_only_a
             assessment = AUTH.authenticate_bundle_attestation(e.store, e.digest, document,
                 authority_provider=CurrentOwnerAuthority(clock=clock), clock=clock)
             assert assessment.archive_identity_authenticated and assessment.bundle_kind == 'VERIFIED_UNAPPROVED'
-            assert assessment.revocation_status == 'UNSUPPORTED'
+            assert assessment.revocation_status == 'NOT_REVOKED_AT_HEAD'
             assert not any((assessment.source_authenticated, assessment.current_use_eligible,
                 assessment.execution_ready, assessment.research_selection_ready,
                 assessment.automatic_recovery_supported, assessment.signature_backup_verified))
@@ -293,7 +293,7 @@ def test_cli_export_uses_actual_code_and_authenticate_uses_actual_provider_with_
         with patch.object(R, 'datetime', Clock):
             code, output = invoke('authenticate', *common, '--document', str(signed))
         assert code == 0 and output['status'] == 'ARCHIVE_IDENTITY_AUTHENTICATED', output
-        assert output['archive_identity_authenticated'] and output['revocation_status'] == 'UNSUPPORTED'
+        assert output['archive_identity_authenticated'] and output['revocation_status'] == 'NOT_REVOKED_AT_HEAD'
         assert not output['current_use_eligible'] and not output['execution_ready']
         with patch.object(R, 'CurrentOwnerAuthority', side_effect=AssertionError('no owner loading')):
             code, output = invoke('authenticate', *common, '--document', str(signed), '--now', e.at.isoformat())

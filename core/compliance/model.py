@@ -147,6 +147,7 @@ class OwnerState:
     session_acks: frozenset = frozenset()             # {(session_id, row_id, warning_sha256)}
     transfer_acks: frozenset = frozenset()            # {(intent_hash, warning_sha256)}
     fingerprint: str = ""
+    revoked_research_attestations: frozenset = frozenset()   # {(exact purpose, signed-body target SHA256)}
 
     @classmethod
     def broken(cls, reason: str, *, head=(0, ""), fingerprint="") -> OwnerState:
@@ -246,9 +247,23 @@ _SEALED: weakref.WeakValueDictionary = weakref.WeakValueDictionary()     # id(ct
 
 def context_hash(ctx) -> str:
     """sha256 of every Context field but ctx_hash. `universe` counts only when set, so a context without one keeps
-    the hash it had before the field existed (upbit KRW universe spec 8); its Decimal medians hash as exact text."""
+    the hash it had before the field existed (upbit KRW universe spec 8); its Decimal medians hash as exact text.
+    The new owner revocation field is omitted only for its exact empty frozenset, preserving earlier context
+    hashes. Nonempty strict target pairs are deterministically hashed with the same owner head."""
     body = {f.name: getattr(ctx, f.name) for f in dataclasses.fields(Context)
             if f.name not in ("ctx_hash", "universe")}
+    if type(ctx.owner) is OwnerState:
+        if "revoked_research_attestations" not in vars(ctx.owner):
+            raise ValueError("missing research attestation revocation state")
+        revoked = ctx.owner.revoked_research_attestations
+        purposes = {"research_archive_manifest_attestation", "strategy_source_and_fixed_implementation_review",
+                    "strategy_source_and_fixed_carry_implementation_review"}
+        if not (type(revoked) is frozenset and all(type(row) is tuple and len(row) == 2
+                and type(row[0]) is str and row[0] in purposes and type(row[1]) is str and len(row[1]) == 64
+                and all(char in "0123456789abcdef" for char in row[1]) for row in revoked)):
+            raise ValueError("invalid research attestation revocation state")
+        body["owner"] = {f.name: getattr(ctx.owner, f.name) for f in dataclasses.fields(OwnerState)
+                         if f.name != "revoked_research_attestations" or revoked}
     if ctx.universe is not None:
         u = ctx.universe
         body["universe"] = {**{f.name: getattr(u, f.name) for f in dataclasses.fields(u)},

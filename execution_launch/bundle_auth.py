@@ -4,7 +4,8 @@ Only the actual BundleStore and CurrentOwnerAuthority deployment dependencies
 are accepted. A signed raw archive remains raw, including recorded failures.
 The returned assessment describes this observation only: it is not a reusable
 token, provenance review, strategy selection, recovery permit or order gate.
-Individual-document revocation and signature-envelope backup are not implemented.
+Individual revocation is reported at the final verified owner head. Signature
+envelope backup and current operational use remain unsupported.
 The existing owner loader may write its usual verified-state snapshot; this
 module does not initialize, repair, sign or activate anything.
 """
@@ -21,6 +22,8 @@ from execution_control.owner_authority import (
 from execution_launch import bundle_attestation as A
 from execution_launch import research_bundle_format as F
 from execution_launch.research_bundle_store import BundleStore
+from execution_launch.research_revocation import (ResearchRevocationError, revocation_target,
+    validate_revoked_targets, target_is_revoked)
 
 
 class BundleAuthenticationError(ValueError):
@@ -48,7 +51,7 @@ class ArchiveAttestationAssessment:
     attestation_sha256: str
     verified_at: datetime
     archive_identity_authenticated: bool
-    revocation_status: str = 'UNSUPPORTED'
+    revocation_status: str = 'UNOBSERVED'
     source_authenticated: bool = False
     research_selection_ready: bool = False
     execution_ready: bool = False
@@ -56,9 +59,20 @@ class ArchiveAttestationAssessment:
     current_use_eligible: bool = False
     signature_backup_verified: bool = False
     reasons: tuple[str, ...] = (
-        'ARCHIVE_AUTH_IDENTITY_ONLY', 'ARCHIVE_AUTH_INDIVIDUAL_REVOCATION_UNSUPPORTED',
+        'ARCHIVE_AUTH_IDENTITY_ONLY', 'ARCHIVE_AUTH_REVOCATION_NOT_OBSERVED',
         'ARCHIVE_AUTH_CURRENT_OPERATIONAL_USE_UNSUPPORTED', 'ARCHIVE_AUTH_SIGNATURE_BACKUP_UNVERIFIED',
     )
+    revocation_target_sha256: str | None = None
+    revocation_owner_head: tuple[int, str] | None = None
+
+
+def _revocations(context):
+    try:
+        if "revoked_research_attestations" not in vars(context.owner):
+            raise ResearchRevocationError("RESEARCH_REVOCATION_STATE_INVALID")
+        return validate_revoked_targets(context.owner.revoked_research_attestations)
+    except (ResearchRevocationError, AttributeError, TypeError):
+        raise BundleAuthenticationError('ARCHIVE_AUTH_REVOCATION_STATE_INVALID') from None
 
 
 def _authority(document, authority, now):
@@ -69,6 +83,8 @@ def _authority(document, authority, now):
     _need(timedelta(0) <= now-observed <= timedelta(seconds=MAX_AUTHORITY_AGE_SECONDS),
           'ARCHIVE_AUTH_OWNER_AUTHORITY_STALE')
     context = authority.context
+    if type(context) is compliance.Context and type(context.owner) is compliance.OwnerState:
+        _revocations(context)
     try:
         intact = (type(context) is compliance.Context and compliance.is_sealed(context)
             and type(context.owner) is compliance.OwnerState
@@ -162,6 +178,15 @@ def authenticate_bundle_attestation(store, bundle_digest, document_bytes, *, aut
     for authority in (first, second, latest):
         _authority(document_bytes, authority, observed)
     document_digest = A.attestation_document_digest(document_bytes)
+    # Final status belongs to this actual sealed owner observation, not an
+    # earlier head or a caller-supplied revocation boolean. Expensive target
+    # parsing stays before the completion clock.
+    target = revocation_target(document_bytes, purpose=A.PURPOSE)
+    revoked = target_is_revoked(_revocations(latest.context), purpose=A.PURPOSE, target_sha256=target)
+    revocation_head = latest.context.owner.head
+    revocation_status = 'REVOKED' if revoked else 'NOT_REVOKED_AT_HEAD'
+    revocation_reason = ('ARCHIVE_AUTH_ATTESTATION_REVOKED' if revoked
+                         else 'ARCHIVE_AUTH_NOT_REVOKED_AT_VERIFIED_HEAD')
     issued = datetime.fromisoformat(envelope['body']['issued_at'])
     expires = datetime.fromisoformat(envelope['body']['expires_at'])
     observations = tuple((_time(authority.observed_at), authority.context.date)
@@ -179,4 +204,7 @@ def authenticate_bundle_attestation(store, bundle_digest, document_bytes, *, aut
     return ArchiveAttestationAssessment(scope=A.SCOPE, bundle_kind=request['bundle_kind'],
         bundle_digest=bundle_digest, input_archive_digest=request['input_archive_digest'],
         request_sha256=request['request_sha256'], attestation_sha256=document_digest, verified_at=finished,
-        archive_identity_authenticated=True)
+        archive_identity_authenticated=True, revocation_status=revocation_status,
+        revocation_target_sha256=target, revocation_owner_head=revocation_head,
+        reasons=('ARCHIVE_AUTH_IDENTITY_ONLY', revocation_reason,
+                 'ARCHIVE_AUTH_CURRENT_OPERATIONAL_USE_UNSUPPORTED', 'ARCHIVE_AUTH_SIGNATURE_BACKUP_UNVERIFIED'))

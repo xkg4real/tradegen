@@ -33,6 +33,8 @@ _FILES = [["core/__init__.py", "b" * 64]]
 _VALID = {                                          # one valid data object per owner and system kind
     "approved": {"kind": "rules", "sha256": "a" * 64},
     "code_approved": {"sha256": model.sha256_hex(model.canonical_json(_FILES)), "files": _FILES},
+    "research_attestation_revoked": {'purpose':'research_archive_manifest_attestation',
+        'target_sha256':'a'*64, 'reason_code':'OWNER_WITHDRAWN'},
     "course_completed": {"course": "kofia_leveraged_1h", "evidence": "certificate 2026-10-20"},
     "broker_approval": {"item": "broker_eligibility", "evidence": "KIS letter"},
     "age_of_majority": {"birth_date": "2000-01-01", "evidence": "ID checked"},
@@ -1476,7 +1478,7 @@ def test_archive_actual_export_signer_and_current_owner_auth_preserve_nonoperati
             assert (e.home/'compliance'/'owner.jsonl').read_bytes()==before
             result=authenticate_bundle_attestation(e.store,e.digest,encoded,
                 authority_provider=CurrentOwnerAuthority(clock=e.clock),clock=e.clock)
-            assert result.archive_identity_authenticated and result.revocation_status=='UNSUPPORTED'
+            assert result.archive_identity_authenticated and result.revocation_status=='NOT_REVOKED_AT_HEAD'
             assert not result.source_authenticated and not result.research_selection_ready and not result.execution_ready
             assert not result.current_use_eligible and not result.automatic_recovery_supported
             if aborted:assert shown[0]['request']['bundle_kind']=='RAW_ARCHIVED'
@@ -1670,3 +1672,283 @@ def test_archive_posix_pin_closes_remaining_ancestors_after_one_close_failure():
     with _patched(signer.os,'close',close):
         _raises(lambda:pin.__exit__(None,None,None),ValueError)
     assert called==[102,101] and pin.rows==[] and pin.descriptor is None
+
+
+@contextlib.contextmanager
+def _research_revoke_env(*, document=None, purpose='research_archive_manifest_attestation'):
+    """No code approval or trading tables; actual temporary owner key and chain."""
+    import tempfile
+    from types import SimpleNamespace
+    from tests.launch_bundle_attestation import signed
+    with fx.temp_home(), tempfile.TemporaryDirectory(prefix='research_revoke_fixture_') as temp:
+        base=Path(temp);repo=base/'deployment';pem=repo/'core/compliance/owner_pubkey.pem'
+        (repo/'.venv').mkdir(parents=True)
+        key=fx.test_key();fx.write_pubkey(pem,key)
+        doc=base/'detached.json';doc.write_bytes(signed()[-1] if document is None else document)
+        fx.write_log(_home(),[('course_completed',_VALID['course_completed']),('cap_set',_VALID['cap_set'])],key)
+        cell=[datetime(2026,11,13,tzinfo=timezone.utc)]
+        args=signer._parser().parse_args(['research-revoke','--repo',str(repo),'--document',str(doc),
+            '--purpose',purpose,'--reason-code','OWNER_WITHDRAWN'])
+        with fx.pubkey_at(pem),_patched(owner,'REPO_ROOT',repo):
+            yield SimpleNamespace(base=base,repo=repo,pem=pem,document=doc,key=key,cell=cell,args=args,
+                log=_home()/'compliance/owner.jsonl',calls=[],shown=[],purpose=purpose)
+
+
+def _research_revoke_run(e, *, confirm=None, key=None, locked=None):
+    class ActualKey:
+        def public_key(self):return (key or e.key).public_key()
+        def sign(self,raw):e.calls.append(raw);return (key or e.key).sign(raw)
+    def confirmation(kind,data,head,utc):
+        e.shown.append((kind,dict(data),head,utc))
+        if confirm:confirm()
+    original=signer._exclusive
+    @contextlib.contextmanager
+    def exclusive(path):
+        with original(path):
+            if locked:locked()
+            yield
+    with _patched(signer,'_utc_now',lambda:e.cell[0].strftime('%Y-%m-%dT%H:%M:%SZ')),\
+         _patched(signer,'_confirm',confirmation),_patched(signer,'_unlock',lambda _:ActualKey()),\
+         _patched(signer,'_exclusive',exclusive),_patched(sys,'prefix',str(e.repo/'.venv')):
+        return _quiet(e.args.run,e.args)[0]
+
+
+def test_research_revocation_actual_command_appends_only_restriction_and_preserves_original():
+    from execution_launch import research_revocation as R
+    with _research_revoke_env() as e:
+        original=e.document.read_bytes();before=e.log.read_bytes()
+        assert _research_revoke_run(e)==0 and len(e.calls)==1 and len(e.shown)==1
+        lines=e.log.read_bytes().splitlines(keepends=True)
+        check=owner.verify_log(lines,e.key.public_key().public_bytes_raw(),[])
+        assert check.ok,check.reason
+        expected=R.revocation_target(original,purpose=e.purpose)
+        event=json.loads(lines[-1])
+        assert e.log.read_bytes().startswith(before) and len(lines)==3
+        assert event['kind']=='research_attestation_revoked'
+        assert event['data']=={'purpose':e.purpose,'target_sha256':expected,'reason_code':'OWNER_WITHDRAWN'}
+        assert e.shown[0]==(event['kind'],event['data'],signer._head(lines[:-1]),event['utc'])
+        assert e.calls==[signer.SIG_DOMAIN+event['row_sha256'].encode('ascii')]
+        assert e.document.read_bytes()==original
+        context=owner.load_context(e.cell[0],model.Positions(equity_krw=1))
+        assert context.owner.ok and not context.code_signed
+        assert context.owner.revoked_research_attestations==frozenset({(e.purpose,expected)})
+        anchor=e.log.parent/'approved/research-attestations'/f"{event['row_sha256']}.anchor.json"
+        assert anchor.read_bytes()==signer.canonical_json({'seq':event['seq'],
+            'row_sha256':event['row_sha256']}).encode('utf-8')
+        # Exact last-row retry durably reconfirms the same event, without another signature.
+        committed=e.log.read_bytes()
+        assert _research_revoke_run(e)==0
+        check=owner.verify_log(e.log.read_bytes().splitlines(keepends=True),e.key.public_key().public_bytes_raw(),[])
+        assert check.ok and len(e.calls)==1 and e.log.read_bytes()==committed
+
+
+def test_research_revocation_command_can_restrict_expired_or_unverified_signature_body():
+    from tests.launch_bundle_attestation import signed
+    body=json.loads(signed()[-1]);body['signature_b64']=_SIG64
+    raw=signer.canonical_json(body).encode('ascii')
+    with _research_revoke_env(document=raw) as e:
+        assert datetime.fromisoformat(body['body']['expires_at'])<e.cell[0]
+        assert _research_revoke_run(e)==0 and len(e.calls)==1
+        assert signer._bundle_verified_head(e.log.read_bytes().splitlines(keepends=True),
+            e.key.public_key().public_bytes_raw())[0]==3
+
+
+def test_research_revocation_command_accepts_all_existing_source_schema_identities_only():
+    from tests.launch_research_revocation import codec_source_document,SOURCE,CARRY
+    from execution_launch.research_revocation import revocation_target
+    for schema in (1,2,3,4):
+        purpose=CARRY if schema in (3,4) else SOURCE
+        # Deliberately unissued codec claims: revoking them grants no research trust.
+        raw=codec_source_document(schema)
+        with _research_revoke_env(document=raw,purpose=purpose) as e:
+            assert _research_revoke_run(e)==0 and len(e.calls)==1
+            event=json.loads(e.log.read_bytes().splitlines()[-1])
+            assert event['data']['target_sha256']==revocation_target(raw,purpose=purpose)
+            assert event['data']['purpose']==purpose and e.document.read_bytes()==raw
+
+
+def test_research_revocation_rotated_current_key_appends_and_prior_signature_corruption_refuses():
+    for corrupt in (False,True):
+        with _research_revoke_env() as e:
+            first=e.key;second=_second_key()
+            line1,h1=signer.entry_line(first,1,signer.GENESIS_PREV,'cap_set',_VALID['cap_set'],UTC)
+            rotation={'old_pubkey_b64':_b64(first),'new_pubkey_b64':_b64(second)}
+            line2,h2=signer.entry_line(first,2,h1,'key_rotated',rotation,UTC)
+            line3,_=signer.entry_line(second,3,h2,'cap_set',_VALID['cap_set'],UTC)
+            if corrupt:
+                row=json.loads(line1);row['sig']=_SIG64;line1=(signer.canonical_json(row)+'\n').encode('ascii')
+            e.log.write_bytes(line1+line2+line3);fx.write_pubkey(e.pem,second);e.key=second
+            before=e.log.read_bytes()
+            if corrupt:
+                _raises(lambda:_research_revoke_run(e),ValueError)
+                assert e.calls==[] and e.log.read_bytes()==before
+            else:
+                assert _research_revoke_run(e)==0 and len(e.calls)==1
+                assert owner.verify_log(e.log.read_bytes().splitlines(keepends=True),
+                    second.public_key().public_bytes_raw(),[]).ok
+
+
+def test_research_revocation_generic_event_and_direct_sign_or_commit_bypasses_refuse():
+    from types import SimpleNamespace
+    kind='research_attestation_revoked';data=_VALID[kind]
+    with _patched(signer,'_unlock',_never),_patched(signer,'_read_lines',_never):
+        _raises(lambda:_quiet(signer._parser().parse_args,['event',kind,'--data',json.dumps(data)]),SystemExit)
+        _raises(lambda:signer._cmd_event(SimpleNamespace(kind=kind,data=json.dumps(data))),ValueError)
+        _raises(lambda:signer._sign(SimpleNamespace(),kind,data),ValueError)
+        _raises(lambda:signer._commit(fx.test_key(),kind,data,utc=UTC),ValueError)
+
+
+def test_research_revocation_confirmation_changes_document_key_and_head_never_append():
+    for change in ('document','identity','pem','head','unlocked-key'):
+        with _research_revoke_env() as e:
+            before=e.log.read_bytes()
+            def mutate():
+                if change=='document':e.document.write_bytes(e.document.read_bytes()+b' ')
+                elif change=='identity':
+                    raw=e.document.read_bytes();old=e.document.with_suffix('.old')
+                    e.document.rename(old);e.document.write_bytes(raw);old.unlink()
+                elif change=='pem':fx.write_pubkey(e.pem,_second_key())
+                elif change=='head':
+                    lines=before.splitlines(keepends=True);head=signer._head(lines)
+                    row,_=signer.entry_line(e.key,head[0]+1,head[1],'cap_set',_VALID['cap_set'],UTC)
+                    e.log.write_bytes(before+row)
+            expected=[]
+            def changed():mutate();expected.append(e.log.read_bytes())
+            _raises(lambda:_research_revoke_run(e,confirm=changed,
+                key=_second_key() if change=='unlocked-key' else None),(ValueError,RuntimeError,OSError))
+            assert e.calls==[] and e.log.read_bytes()==expected[0]
+
+
+def test_research_revocation_commit_reverifies_all_signatures_under_the_existing_lock():
+    with _research_revoke_env() as e:
+        before=e.log.read_bytes();head=signer._head(before.splitlines(keepends=True));changed=[]
+        def corrupt_prior_signature():
+            lines=before.splitlines(keepends=True);row=json.loads(lines[0]);row['sig']=_SIG64
+            lines[0]=(signer.canonical_json(row)+'\n').encode('ascii')
+            assert signer._head(lines)==head
+            e.log.write_bytes(b''.join(lines));changed.append(e.log.read_bytes())
+        _raises(lambda:_research_revoke_run(e,locked=corrupt_prior_signature),ValueError)
+        assert e.calls==[] and e.log.read_bytes()==changed[0]
+
+
+def test_research_revocation_confirmation_time_is_fixed_and_rechecked_after_heavy_target_parse():
+    from datetime import timedelta
+    for delta in (-1,300):
+        with _research_revoke_env() as e:
+            before=e.log.read_bytes();original=signer._research_revocation_target;calls=[]
+            def delayed(raw,*,purpose):
+                value=original(raw,purpose=purpose);calls.append(value)
+                if len(calls)==2:e.cell[0]+=timedelta(seconds=delta)
+                return value
+            with _patched(signer,'_research_revocation_target',delayed):
+                _raises(lambda:_research_revoke_run(e),ValueError)
+            assert e.calls==[] and e.log.read_bytes()==before
+
+
+def test_research_revocation_standalone_process_and_typed_confirmation_remain_required():
+    with _patched(signer,'_refusal',lambda:'synthetic parent process refusal'),_patched(signer,'_unlock',_never):
+        assert _quiet(signer.main,['research-revoke'])[0]==2
+    with _patched(signer,'_read_typed',lambda _:('wrong',HUMAN)):
+        _raises(lambda:_quiet(signer._confirm,'research_attestation_revoked',
+            _VALID['research_attestation_revoked'],(0,''),UTC),ValueError)
+    with _research_revoke_env() as e,_patched(signer,'__file__',str(e.repo/'sign.py')):
+        before=e.log.read_bytes()
+        _raises(lambda:_research_revoke_run(e),ValueError)
+        assert not e.calls and e.log.read_bytes()==before
+
+
+def test_research_revocation_failed_anchor_preserves_appended_row_and_exact_retry_finishes_without_signing():
+    with _research_revoke_env() as e:
+        original=signer._bundle_write_new;before=e.log.read_bytes()
+        def fail(path,data):
+            if path.parent.name=='research-attestations':raise OSError('synthetic anchor interruption')
+            return original(path,data)
+        with _patched(signer,'_bundle_write_new',fail):
+            try:_research_revoke_run(e)
+            except RuntimeError as exc:assert 'appended' in str(exc) and 'unconfirmed' in str(exc)
+            else:raise AssertionError('failed anchor reported success')
+        appended=e.log.read_bytes();assert appended.startswith(before) and appended!=before and len(e.calls)==1
+        row=json.loads(appended.splitlines()[-1]);anchor=e.log.parent/'approved/research-attestations'/f"{row['row_sha256']}.anchor.json"
+        assert not anchor.exists()
+        assert _research_revoke_run(e)==0 and e.log.read_bytes()==appended and len(e.calls)==1
+        assert json.loads(anchor.read_bytes())=={'seq':row['seq'],'row_sha256':row['row_sha256']}
+
+
+def test_research_revocation_partial_or_mismatched_anchor_is_retained_and_never_overwritten():
+    for change in ('partial','different','link','unknown'):
+        with _research_revoke_env() as e:
+            assert _research_revoke_run(e)==0
+            row=json.loads(e.log.read_bytes().splitlines()[-1]);folder=e.log.parent/'approved/research-attestations'
+            anchor=folder/f"{row['row_sha256']}.anchor.json"
+            if change=='partial':anchor.write_bytes(b'{')
+            elif change=='different':anchor.write_bytes(b'{"seq":1,"row_sha256":"wrong"}')
+            elif change=='link':os.link(anchor,e.base/'external-anchor-alias')
+            else:(folder/'unrecognized.txt').write_bytes(b'evidence must not disappear')
+            contents={path.name:path.read_bytes() for path in folder.iterdir()}
+            before=e.log.read_bytes();call_count=len(e.calls)
+            _raises(lambda:_research_revoke_run(e),(ValueError,RuntimeError,OSError))
+            assert e.log.read_bytes()==before and len(e.calls)==call_count
+            assert {path.name:path.read_bytes() for path in folder.iterdir()}==contents
+
+
+def test_research_revocation_persisted_anchor_rejects_log_only_rollback_after_signer_restart():
+    with _research_revoke_env() as e:
+        prefix=e.log.read_bytes();assert _research_revoke_run(e)==0
+        row=json.loads(e.log.read_bytes().splitlines()[-1]);anchor=e.log.parent/'approved/research-attestations'/f"{row['row_sha256']}.anchor.json"
+        exact=anchor.read_bytes();e.log.write_bytes(prefix)
+        restarted=_load_signer()
+        with _patched(sys.modules[__name__],'signer',restarted):
+            e.args.run=restarted._cmd_research_revoke
+            _raises(lambda:_research_revoke_run(e),(ValueError,RuntimeError))
+        assert len(e.calls)==1 and e.log.read_bytes()==prefix and anchor.read_bytes()==exact
+
+
+def test_research_revocation_anchor_work_cannot_outlive_document_or_confirmation_check():
+    from datetime import timedelta
+    for change in ('time','document'):
+        with _research_revoke_env() as e:
+            before=e.log.read_bytes();original=signer._research_ensure_anchors
+            def delayed(entries):
+                original(entries)
+                if change=='time':e.cell[0]+=timedelta(minutes=5)
+                else:e.document.write_bytes(e.document.read_bytes()+b' ')
+            with _patched(signer,'_research_ensure_anchors',delayed):
+                _raises(lambda:_research_revoke_run(e),ValueError)
+            assert e.calls==[] and e.log.read_bytes()==before
+
+
+def test_research_revocation_exact_retry_pins_all_previously_observed_restrictions():
+    with _research_revoke_env() as e:
+        target=signer._research_revocation_target(e.document.read_bytes(),purpose=e.purpose)
+        rows=e.log.read_bytes().splitlines(keepends=True);head=signer._head(rows)
+        for reason in ('REVIEW_ERROR','OWNER_WITHDRAWN'):
+            data={'purpose':e.purpose,'target_sha256':target,'reason_code':reason}
+            row,digest=signer.entry_line(e.key,head[0]+1,head[1],'research_attestation_revoked',data,UTC)
+            rows.append(row);head=(head[0]+1,digest)
+        e.log.write_bytes(b''.join(rows));before=e.log.read_bytes()
+        assert _research_revoke_run(e)==0 and e.calls==[] and e.log.read_bytes()==before
+        folder=e.log.parent/'approved/research-attestations'
+        assert sorted(path.name for path in folder.iterdir())==sorted(
+            json.loads(row)['row_sha256']+'.anchor.json' for row in rows[-2:])
+
+
+def test_research_revocation_parent_swap_cannot_create_anchor_directory_outside_retained_root():
+    if os.name=='nt':raise NotRun('POSIX directory-fd race; native Windows requires separate execution')
+    with _research_revoke_env() as e:
+        approved=e.log.parent/'approved';approved.mkdir()
+        moved=e.log.parent/'approved-retained';outside=e.base/'outside';outside.mkdir()
+        original=signer.os.mkdir;swapped=[]
+        def changing(path,mode=0o777,*,dir_fd=None):
+            if Path(path).name=='research-attestations' and not swapped:
+                approved.rename(moved);approved.symlink_to(outside,target_is_directory=True);swapped.append(True)
+            return original(path,mode,**({} if dir_fd is None else {'dir_fd':dir_fd}))
+        try:
+            with _patched(signer.os,'mkdir',changing),\
+                 _patched(signer.os,'supports_dir_fd',set(os.supports_dir_fd)|{changing}):
+                _raises(lambda:_research_revoke_run(e),(ValueError,RuntimeError,OSError))
+            assert swapped and list(outside.iterdir())==[]
+            assert len(e.calls)==1, 'the failed anchor must preserve the already signed restriction'
+            assert json.loads(e.log.read_bytes().splitlines()[-1])['kind']=='research_attestation_revoked'
+        finally:
+            if approved.is_symlink():approved.unlink()
+            if moved.exists():moved.rename(approved)

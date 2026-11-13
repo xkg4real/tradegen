@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import ast
 import contextlib
+import hashlib
 import io
 import os
 import re
@@ -76,6 +77,11 @@ CLOCKS = {"datetime": {"now", "utcnow", "today"}, "date": {"today"},
                    "thread_time_ns"}}
 CLOCK_IN_MAIN = ("core/compliance/rules.py", "core/compliance/alerts.py")   # their CLI main() may read the clock
 SEAL_USER = "core/compliance/owner.py"                                     # P5: the only caller of seal_context
+REVOCATION_NATIVE_PATH = "core/compliance/revocation_paths.py"
+# The sole native seam can inspect/pin directories and create two fixed anchor
+# children under retained parents. Any changed native implementation needs fresh
+# review; this does not allow ctypes imports throughout core/compliance.
+REVOCATION_NATIVE_AST_SHA256 = "e0e4cce0ff3f27552524f8554c4f7fe0775bd8244898da29c2d1435bc7479f6d"
 
 
 # --------------------------------------------------------------------------- #
@@ -187,6 +193,26 @@ def _dynamic_hits(rel: str, src: str) -> list[str]:
     return hits
 
 
+def test_revocation_native_seam_cannot_expand_to_other_loaders_or_paths():
+    source = (ROOT / REVOCATION_NATIVE_PATH).read_text(encoding="utf-8")
+    assert not _allowlist_hits(REVOCATION_NATIVE_PATH, source)
+    assert _allowlist_hits(X, source)
+    for extra in ("import ctypes", "from ctypes import wintypes",
+                  "NativeDirectoryAPI()._kernel.DeleteFileW('unreviewed')"):
+        assert _allowlist_hits(REVOCATION_NATIVE_PATH, source + "\n" + extra + "\n")
+    for before, after in (("import ctypes", "import ctypes as native"),
+                          ("path, 0x80, 0x1", "path, 0x80, 0x7"),
+                          ("None, 3, 0x02000000", "None, 2, 0x02000000"),
+                          ("'kernel32'", "'unreviewed'"),
+                          ("('approved', 'research-attestations')", "('unreviewed', 'research-attestations')")):
+        assert before in source
+        assert _allowlist_hits(REVOCATION_NATIVE_PATH, source.replace(before, after)), (before, after)
+    for extra in ("ctypes.CDLL('unreviewed')", "ctypes.windll.kernel32.DeleteFileW('unreviewed')",
+                  "alias = self._kernel; alias.DeleteFileW('unreviewed')"):
+        altered = source.replace("        import ctypes\n", "        import ctypes\n        " + extra + "\n")
+        assert _allowlist_hits(REVOCATION_NATIVE_PATH, altered), extra
+
+
 def _allowed(name: str) -> bool:
     top = name.split(".")[0]
     return (top in sys.stdlib_module_names or top in ("yaml", "cryptography")
@@ -195,10 +221,16 @@ def _allowed(name: str) -> bool:
 
 def _allowlist_hits(rel: str, src: str) -> list[str]:
     hits = []
+    native = (rel == REVOCATION_NATIVE_PATH
+              and hashlib.sha256(ast.unparse(ast.parse(src)).encode("utf-8")).hexdigest()
+              == REVOCATION_NATIVE_AST_SHA256)
     for node, module, names, funcs in _imports(rel, ast.parse(src)):
         net = [t for t in [module] + [f"{module}.{n}" for n in names]
                for m in NETWORK_MODULES if t == m or t.startswith(m + ".")]
-        if net:                                         # stdlib, so the allowlist alone would pass it
+        native_import = (native and funcs == ("__init__",) and module == "ctypes"
+                         and ast.dump(node) in {ast.dump(ast.parse(text).body[0])
+                                               for text in ("import ctypes", "from ctypes import wintypes")})
+        if net and not native_import:                   # stdlib, so the allowlist alone would pass it
             hits.append(f"{rel}:{node.lineno}: imports {net[0]}: a network module; core/compliance never needs one")
         elif not (_allowed(module) or (names and all(_allowed(f"{module}.{n}") for n in names))):
             hits.append(f"{rel}:{node.lineno}: imports {module}: not stdlib, yaml, cryptography, core.isolation "
