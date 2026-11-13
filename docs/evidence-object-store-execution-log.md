@@ -1,5 +1,7 @@
 # Lossless evidence objects: P0a execution record
 
+Historical checkpoint: this document describes its recorded revision. The later v3 integration and current validation are in [lossless-history-execution-log.md](lossless-history-execution-log.md).
+
 The owner rejected replacing valid quotes with unavailable values to resolve record size. This step implements an isolated content-addressed byte store, without connecting it to live history or changing order decisions.
 
 ## Implemented

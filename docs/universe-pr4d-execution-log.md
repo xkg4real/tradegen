@@ -1,5 +1,7 @@
 # Upbit universe PR 4d execution record
 
+Historical checkpoint: this document describes its recorded revision. The later v3 integration and current validation are in [lossless-history-execution-log.md](lossless-history-execution-log.md).
+
 Date: 2026-11-13 (Asia/Seoul). Base: merged PR33, `7d256f9090bb4de593bf496b010a9753ae5508fd`.
 Scope: the existing approved PR4d plan, Tasks 1–4. The additional capacity amendment has not been approved or implemented.
 
