@@ -28,7 +28,8 @@ _ACTIVE = frozenset({'RESERVED', 'DISPATCHING', 'ACKNOWLEDGED', 'UNKNOWN', 'PART
 _TERMINAL = frozenset({'REJECTED', 'EXPIRED', 'CANCELLED_LOCAL', 'FILLED', 'CANCELED'})
 _COMPLETION_CODES = frozenset('COMMITTED_COMPLETION_' + name for name in (
     'CLOCK_REQUIRED', 'CLOCK_INVALID', 'CLOCK_ROLLBACK', 'REQUEST_FUTURE', 'STALE',
-    'POLICY_BOUNDARY', 'PHASE_CHANGED', 'AUTHORITY_REFUSED', 'LOCAL_RECORD_FAILED'))
+    'POLICY_BOUNDARY', 'PHASE_CHANGED', 'AUTHORITY_REFUSED', 'LOCAL_RECORD_FAILED',
+    'GENERATION_REQUIRED', 'GENERATION_CHANGED'))
 
 
 class _CompletionRefused(ValueError):
@@ -99,6 +100,7 @@ class _Completion:
     provider: object
     started: datetime
     read: _AccountRead | None = None
+    expected_committed_transaction_id: str | None = None
     owner_fingerprint: str | None = None
     prepared: PreparedSession | None = None
     terms_deadline: datetime | None = None
@@ -459,14 +461,23 @@ class Controller:
         self._completion_last = actual
         return actual
 
-    def _completion_start(self, tx, requested):
+    def _completion_start(self, tx, requested, expected_committed_transaction_id=None):
+        # A caller's generation is an extra restriction, never a permit. Existing
+        # terminal/idempotent views bypass new-operation admission as before.
+        if expected_committed_transaction_id is not None:
+            if (type(expected_committed_transaction_id) is not str
+                    or re.fullmatch('[0-9a-f]{64}', expected_committed_transaction_id) is None
+                    or self._completion_provider is None
+                    or self.account_provider is not self._completion_provider):
+                raise _CompletionRefused('COMMITTED_COMPLETION_GENERATION_REQUIRED')
         if self._completion_provider is None:
             return None, requested
         try:
             _instant(requested)
         except Exception:
             raise _CompletionRefused('COMMITTED_COMPLETION_CLOCK_INVALID') from None
-        frame = _Completion(transaction=tx, provider=self._completion_provider, started=requested)
+        frame = _Completion(transaction=tx, provider=self._completion_provider, started=requested,
+                            expected_committed_transaction_id=expected_committed_transaction_id)
         actual = self._completion_time(frame)
         if actual < requested:
             raise _CompletionRefused('COMMITTED_COMPLETION_REQUEST_FUTURE')
@@ -506,6 +517,10 @@ class Controller:
 
     def _completion_owner(self, frame, read, positions, session_id, now):
         if frame is not None:
+            if (frame.expected_committed_transaction_id is not None
+                    and (read.committed is None or read.committed.transaction_id
+                         != frame.expected_committed_transaction_id)):
+                raise _CompletionRefused('COMMITTED_COMPLETION_GENERATION_CHANGED')
             if frame.read is None:
                 frame.read = read
             if (self.account_provider is not frame.provider or read.committed is None
@@ -1095,7 +1110,7 @@ class Controller:
             raise ValueError('compliance gate refused order')
         return obs, ctx, intent, issued
 
-    def reserve(self, order, rules, *, session_id, now):
+    def reserve(self, order, rules, *, session_id, now, expected_committed_transaction_id=None):
         with localcontext() as numeric:
             numeric.prec = 1024; numeric.traps[Inexact] = True
             with self.journal.transaction() as tx:
@@ -1105,7 +1120,7 @@ class Controller:
                     if orders[key]['digest'] != sha:
                         raise ValueError('client identity reused with changed order')
                     return _view(orders[key])
-                frame, now = self._completion_start(tx, now)
+                frame, now = self._completion_start(tx, now, expected_committed_transaction_id)
                 obs, ctx, intent, permit = self._authorize(tx,order,rules,session_id,now,orders,killed,halted,
                                                          completion=frame)
                 trade_date=obs.venue_trade_dates.get((order.venue,order.account_scope,order.market),'')
@@ -1129,7 +1144,7 @@ class Controller:
                     return view
                 return _view(_fold(tx.events)[0][key])
 
-    def dispatch(self, client_id, *, now):
+    def dispatch(self, client_id, *, now, expected_committed_transaction_id=None):
         frame = None
         try:
             with localcontext() as numeric:
@@ -1141,7 +1156,7 @@ class Controller:
                         raise ValueError('unknown client identity')
                     if rec['status'] != 'RESERVED':
                         return _view(rec)
-                    frame, now = self._completion_start(tx, now)
+                    frame, now = self._completion_start(tx, now, expected_committed_transaction_id)
                     obj,rules=rec['order'],rec['rules']
                     obs,ctx,intent,new_permit=self._authorize(tx,obj,rules,rec['session_id'],now,
                                                              orders,killed,halted,client_id,completion=frame)
