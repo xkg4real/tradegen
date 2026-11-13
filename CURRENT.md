@@ -4,16 +4,16 @@ reason: owner_requested_resume
 from: gpt
 task: upbit-universe
 cycle: 2026-11-10
-done_ids: workflow-resume-1113, workflow-resume-1113/dependencies, universe-pr4c/implementation, universe-pr0, universe-pr1, universe-pr2, universe-pr3, universe-pr4b, universe-pr4a
-next_ids: universe-pr4c, universe-pr4d, universe-pr4e, universe-pr5, universe-pr5-clock-notify, universe-code-approve, policy-loss-budget-plan-1, rules-review-1202, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, launch-private-capture-setup-1, e1-14-owner-setup, launch-prospective-study, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1
-updated_at: 2026-11-13T17:39:16+09:00
+done_ids: universe-pr4c, universe-pr4d/task1, workflow-resume-1113, workflow-resume-1113/dependencies, universe-pr4c/implementation, universe-pr0, universe-pr1, universe-pr2, universe-pr3, universe-pr4b, universe-pr4a
+next_ids: universe-pr4d, universe-pr4e, universe-pr5, universe-pr5-clock-notify, universe-code-approve, policy-loss-budget-plan-1, rules-review-1202, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, launch-private-capture-setup-1, e1-14-owner-setup, launch-prospective-study, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1
+updated_at: 2026-11-13T17:52:40+09:00
 stale_after_hours: 3
-waiting_on: PR4d and PR5 design decisions; owner floor-state evidence; PR4c regression continues
-work_branch: gpt/universe-pr4c-terms
-work_commit: c80c56cdab946a80ae40be31432b41c881dcd5a2
-runtime_tested_commit: 8137c47 full PASS; c80c56c focused40 PASS and corrected full running
-uncommitted_changes: no
-pr: https://github.com/xkg4real/tradegen/pull/33 (draft; not merged)
+waiting_on: PR4d and PR5 design decisions; owner floor-state evidence; original PR4d Tasks2-4 continue
+work_branch: gpt/universe-pr4d-driver-history
+work_commit: d34395bd27e0ea30e7a23eed7f626a2ca350bf56
+runtime_tested_commit: d34395b Task1 31PASS; PR33 c80c56c full2570PASS0FAIL135NR
+uncommitted_changes: yes (PR4d Task2 in progress; checkpoint is Task1)
+pr: PR33 merged7d256f9; PR4d not opened
 usage_weekly_pct: unknown
 usage_source: unavailable
 handoff_threshold_pct: 95
@@ -26,9 +26,11 @@ session: Cloud Codex; owner Windows deployment remains separate
 
 ## 0. 한 줄 요약
 
-Claude의 최신 인계(`1a957fe`, 2026-11-12)를 이어받아 PR4c Tasks1~9를 구현·검토하고 PR33을 열었습니다.
-현재 소스는 원격 `c80c56c`, draft·미병합입니다. 수정 커밋의 전체 검사가 진행 중이므로 먼저 결과를 확인하세요.
-main은 `971a538`(#32)이며 PR4d는 PR4c 병합 뒤 시작합니다.
+PR4c 구현·전체 검증을 마치고 PR33을 main `7d256f9`로 병합했습니다.
+수정 runtime `c80c56c`의 전체 결과는2705개 중2570 PASS / 0 FAIL /135 NOT_RUN입니다.
+PR4d Task1도 구현·독립 검토·31개 검사 통과 후 원격 `d34395b`에 저장했습니다.
+현재 원래 승인된 PR4d Task2~4를 작업 브랜치에서 이어갑니다. 추가 용량 보완은 미승인·미구현이며
+기존 크기 한도 거부를 유지하고, 미해결 용량 계약 문제 때문에 PR4d 최종 병합은 보류합니다.
 
 ## 1. 목표와 완료 조건
 
@@ -77,33 +79,37 @@ main은 `971a538`(#32)이며 PR4d는 PR4c 병합 뒤 시작합니다.
 - [x] workflow-resume-1113: 기존 Notion2페이지와 md 정정; LEDGER 기록.
 - [x] universe-pr4c/implementation: Tasks1~9 구현과 독립검토; LEDGER 기록. 최종 검증·병합과 구분.
 - [x] workflow-resume-1113/dependencies: PLB·운영 연결 사전분석과 사용자 상태 점검 안내. 구현 완료 아님.
-- [ ] universe-pr4c: PR33 수정 head의 전체 검사 중.
-- [ ] universe-pr4d / universe-pr4e / universe-pr5: 사전 대조 기록 있음, 런타임 미구현.
+- [x] universe-pr4c: PR33 병합7d256f9, 최종full2570PASS/0FAIL/135NR.
+- [x] universe-pr4d/task1: d34395b, immutable bars/chooser/frame fields,31PASS·독립검토 완료.
+- [ ] universe-pr4d: 원래 승인된Task2~4 구현 중. 추가용량설계·최종병합은 대기.
+- [ ] universe-pr4e / universe-pr5: 사전 대조 기록 있음, 런타임 미구현.
 - [ ] PR5 완료 알림 / PLB 계획·코드 / 시계 코드 / 운영 연결 / 소유자 최종 승인 / 실제48h연구·검토.
 
-검증: 첫 full은 `8137c47`에서 2704 total / 2569 PASS / 0 FAIL / 135 NOT_RUN, 1094.567초.
-135건은 macro 자료·소유자·freeze 전제121건, Windows 전용14건. 경계 검사는81/81 PASS.
-이후 decoder 수정 `c80c56c`는 집중40/40 PASS·독립검토 완료, 새 full은 아직 진행 중입니다.
-첫 full 결과를 나중 수정의 검증으로 쓰지 마세요. 두 run의 겹치는 테스트 수를 합산하지 마세요.
+검증: PR4c 수정 head `c80c56c`에서2705 total /2570 PASS /0 FAIL /135 NOT_RUN,1093.970초.
+NOT_RUN은 macro 자료·owner·freeze 전제121개와 Windows 전용14개. 소스·실제홈 메타데이터 불변.
+PR head `b21439c`는 검증 후 문서만 수정했고 merge7d256f9의 트리는 그 head와 동일합니다.
+PR4d Task1은 커밋 `d34395b`에서31 PASS /0 FAIL /0 NR,3.427초. 기존 두 golden digest 유지.
 
 ## 5. 현재 작업 지점
 
-- 원격 코드: `gpt/universe-pr4c-terms` / `c80c56cdab946a80ae40be31432b41c881dcd5a2`.
-- PR: https://github.com/xkg4real/tradegen/pull/33 (draft, 미병합).
-- corrected-head full은 `pr4c-final` 라벨. session scratch의 verify.py는19개 KEYLESS 변수,
-  가짜 transport, 격리 상태, source fingerprint 전후 비교, 실제 home 메타데이터 비교를 적용.
-- 테스트 실행 중 소스/테스트 수정 금지. 중단 복구 시 프로세스·로그·summary 존재부터 확인하고 중복 실행 금지.
-- 소스 작업 트리에 미커밋 변경 없음. 이전 병렬 작업 중 signed-source 거부는 진단 기록이며 최종 결과와 분리.
-- 두 추가 설계안은 제안·미구현·승인 대기. 답변 대기를 승인으로 간주하지 않음.
+- 코드: `gpt/universe-pr4d-driver-history` / 원격체크포인트 `d34395bd27e0ea30e7a23eed7f626a2ca350bf56`.
+- PR33: https://github.com/xkg4real/tradegen/pull/33 ; 2026-11-13 17:46:10 KST 병합, SHA7d256f9.
+- PR4d Task2는 미커밋 작업 중. 원래 첫 fallback만 구현하며 새secondfallback/admission계약은 미구현.
+- Task3(driver)·Task4(replay)는 Task2 기초 완료 후 병렬 진행. 공유 tests/launch_universe_history.py는
+  한 번에 한 작성자만 수정. live_history.py와 tests/launch_live_history.py 모두CRLF 유지.
+- 테스트는19 KEYLESS·격리상태. Task1을 PR4d 전체 검증으로 표기하지 않음.
+- 자료: 같은context의 PR4c_COMPLETION, pr4c-final-summary, pr4d-task1, pr4d-task1-review,
+  pr4d-task1-final-summary. 앞선8137full은 역사적 기록이고 최종결과를 대체하지 않음.
+- 추가 설계2건 및 owner상태 질문은 답변 대기. 무응답을 승인으로 간주하지 않음.
 
 ## 6. 다음 할 일
 
-1. PR4c final 결과·실패·NOT_RUN·source/home 불변 확인, 실제 결과로 실행 md와 PR본문 갱신.
-   기존 baseline test ID 누락은 문서화한 stale-book 테스트 rename 한 건뿐인지 재확인.
-2. 원격 PR head/base·열린 공유파일 PR 확인 후 이 대화의 병합 권한 범위에 따라 PR33 전달·병합.
-   실제 merge SHA를 확인한 뒤 완료 알림, md/Notion/LEDGER 기록. 거절된 자동승인 절차를 우회하지 않음.
-3. PR4c 병합 main에서 PR4d 새 브랜치. Task1은 용량 보완 승인과 독립. Task2의 보완 계약은 승인 전 구현 금지.
-   이후 Task3 driver와 Task4 replay는 파일 소유권을 나눠 진행. CRLF live_history 보존.
+1. PR4d 원래 승인된 Task2의 v2기록·계좌anchor·선택상태·첫fallback을 구현·검토·집중검사.
+   추가용량설계는 건드리지 않음. 원래코드가 잔여대형행을 거부하는 알려진P2는 그대로 미해결로 기록.
+2. Task2 기초를 고정하고 Task3(driver)와 Task4(replay)를 파일별 분리. 공유테스트는 root가 순차통합.
+   approvedmissing-book 처리와 unavailable replay는 추가secondfallback 승인에 의존하지 않음.
+3. 새 용량 보완 승인을 받으면 그 계약만 구현·검증; 원래Tasks2~4 개발은 기다리지 않아도 됨.
+   수정사항 모두 고정 후 guard/full·독립검토. 알려진§12 크기보장 미충족을 해결하기 전 최종PR4d병합 금지.
 4. PR4e: 3절의 필수 수정2개 및 preflight의 terms-blocked→market-vanished 경합 회귀 반영.
 5. PR5: 사전 검토의 시간 인과성·입력 검증 이슈 확인. failed-trial 인증 결과 보완은 승인 후에만 구현.
 6. PR5 병합 시 owner에게 PR번호와 merge SHA를 알림. GPT는 Claude 로컬 세션으로 메시지를 보낼 수 없음.
@@ -142,6 +148,6 @@ main은 `971a538`(#32)이며 PR4d는 PR4c 병합 뒤 시작합니다.
 ## 9. 이어받는 에이전트에게
 
 CURRENT/AGENTS/LEDGER와 이 대화의 사용자 정정을 먼저 읽으세요. taken 상태의 다른 실행이 있는지 확인하세요.
-완료 ID는 반복하지 마세요. PR33 실제 원격 상태와 pr4c-final 결과부터 확인하고, 실행 중이면 소스를 바꾸지 마세요.
+완료 ID는 반복하지 마세요. PR33 병합과 PR4d 원격checkpoint를 확인하고, 현재 Task2 작성자와 중복 편집하지 마세요.
 검증·병합·실제연구·서명·무장을 서로 구분하세요. 8절의 미승인 보완을 답변 없이 구현하지 마세요.
 작업별 증거와 원격 SHA를 남기고, 중단할 때만 returned로 전환해 복구 가능한 로그를 제공하세요.

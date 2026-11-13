@@ -1,0 +1,16 @@
+{
+  "label": "task1-final",
+  "head": "d34395bd27e0ea30e7a23eed7f626a2ca350bf56",
+  "source_hash": "1cde06245cec00250c1c0276fbc6d5c98bff7f29c18cc9b28b1937d01df50858",
+  "total": 31,
+  "counts": {
+    "PASS": 31,
+    "FAIL": 0,
+    "NOT_RUN": 0
+  },
+  "seconds": 3.427,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "failures": []
+}

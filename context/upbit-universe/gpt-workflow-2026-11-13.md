@@ -1,6 +1,6 @@
 # TRADEGEN 업무처리 워크플로우
 
-기준: 2026-11-13 17:37 KST. PR 4c 수정 후 재검증과 기존 업무 의존성 확인 기록이며 최종 검증·병합·실거래 준비 완료 판정은 아니다.
+기준: 2026-11-13 17:52 KST. PR 4c 병합·PR 4d Task 1 완료 기록이며 전체 실거래 준비 완료 판정은 아니다.
 
 ## 1. 근거와 현재 상태
 
@@ -8,29 +8,45 @@
 - [구현 계획 index](https://github.com/xkg4real/tradegen/blob/971a5389208c85d34fdd6479c96580e9b8fcc68d/docs/superpowers/plans/2026-11-11-upbit-krw-universe-index.md): 승인된 유니버스 rev 3의 의존성과 계약.
 - [진행 기록](https://github.com/xkg4real/tradegen/blob/handoff/context/upbit-universe/universe-impl-status.md), [완료 원장](https://github.com/xkg4real/tradegen/blob/handoff/LEDGER.md).
 - [업무 기록 Notion](https://app.notion.com/p/40f5c916fe0c80b49d10fec810a95cbb), [승인 전 정리 Notion](https://app.notion.com/p/40d5c916fe0c80e49e2bd9f3fc1c2145).
-- GitHub 조회 기준 main: `971a5389208c85d34fdd6479c96580e9b8fcc68d` (PR #32 병합).
+- GitHub 확인 기준 PR33 병합 main: `7d256f9090bb4de593bf496b010a9753ae5508fd`.
 - PR 4c는 Claude가 사전 점검 중 중단한 뒤 GPT가 최신 main에서 대조·구현했다. 아래 최신 체크포인트를 따른다.
 - Claude의 마지막 실행 기록: PR 4a head `56a0b7f`, 2,547 PASS / 2 FAIL / 123 NOT_RUN, 총 2,672개.
   실패 2건은 인계문서상 checkout의 가상환경 위치 문제다. 이번 Cloud 실행 결과로 취급하지 않는다.
 - 유니버스 전략의 실제 수익성과 목표 달성 확률은 아직 검증되지 않았다. 연구 도구 구현과 실제 연구 통과를 구분한다.
 
-### 최신 체크포인트: PR 4c 첫 전체 검사 완료, 추가 수정 후 전체 재검증 중
+### 최신 완료: universe-pr4c 구현·검증·병합
 
-- ~~PR 4c Tasks 1–9 구현과 독립 리뷰~~: 첫 소스는 `8137c4712b164c120ec8063e50dc3e05b741c23f`다.
-- 첫 소스의 전체 검사는 **총 2,704개 / 2,569 PASS / 0 FAIL / 135 NOT_RUN**으로 완료됐다.
-  그 뒤 로컬 점검에서 발견한 `RecursionError`를 수정했고 관련 40개 검사 PASS와 독립 리뷰를 마쳤다.
-- 현재 검증 소스는 `c80c56cdab946a80ae40be31432b41c881dcd5a2`다.
-  [초안 PR #33](https://github.com/xkg4real/tradegen/pull/33)의 원격 head에 반영됐으며 **open / draft / 미병합**이다.
-- **수정 후 `pr4c-final` 전체 회귀 검사는 실행 중**이다. 실행 중 코드·테스트는 동결한다.
-  첫 소스의 통과 결과를 현재 소스의 최종 통과로 옮겨 적지 않으며 Task 10은 미완료다.
+- ~~PR 4c Tasks 1–10 구현·독립 리뷰·전체 검증·병합~~ 완료.
+- [PR #33](https://github.com/xkg4real/tradegen/pull/33)은 2026-11-13 **17:46:10 KST**에 병합됐다.
+  병합 커밋은 `7d256f9090bb4de593bf496b010a9753ae5508fd`, 최종 head는 `b21439ca4b97151028ac3ba9659c1c5fbc69dd27`이다.
+- 최종 실행 소스 `c80c56cdab946a80ae40be31432b41c881dcd5a2`의 전체 검사:
+  **총 2,705개 / 2,570 PASS / 0 FAIL / 135 NOT_RUN**, 소요 **1,093.970초**.
+  이후 최종 head의 변경은 문서뿐이며 검증한 런타임·테스트는 동일하다.
+- 미실행은 매크로 선행 조건 121건과 Windows 전용 14건이다. 통과로 합산하지 않았다.
+  검사 전후 소스와 실제 홈 메타데이터가 동일했다. 기준 2,672개 ID는 stale-book 검사 이름 정정 1건 외에 유지했고,
+  새 ID 34개는 모두 PASS다(이름 정정 포함, 순증 33개).
+- 앞선 `8137c47`의 전체 2,569/0/135와 이후 `RecursionError` 수정 40 PASS 기록은 이력으로 보존한다.
+  이 수치를 최종 실행 결과에 합산하지 않는다.
 - 앞선 고정 소스 경계 검사: **81 PASS / 0 FAIL / 0 NOT_RUN**. 당시 검사 전후 소스와 실제 홈 메타데이터가 동일했다.
 - 앞선 집중 검사: IOC 56 PASS, collector/provider 106 PASS, E1 119 PASS, readiness 18 PASS,
   비유한 보유량 방어 16 PASS. 범위가 겹치므로 이 수치를 합산하지 않는다.
-- [소스 실행 기록](https://github.com/xkg4real/tradegen/blob/c80c56cdab946a80ae40be31432b41c881dcd5a2/docs/universe-pr4c-execution-log.md).
-  handoff `7e16536`의 push는 확인됐으며 최신 체크포인트 `650d3fb`도 원격 게시됐다.
+- [최종 소스 실행 기록](https://github.com/xkg4real/tradegen/blob/b21439ca4b97151028ac3ba9659c1c5fbc69dd27/docs/universe-pr4c-execution-log.md).
+  앞선 handoff `7e16536`·`650d3fb`의 push는 확인됐다. 최종 인계 commit/push는 주 작업 세션에서 별도로 기록한다.
 - **추가 설계 2건의 사용자 클릭 승인은 대기 중**이다: PR 4d capacity 처리, PR 5 실패한 연구의 인증된 결과 기록.
-  이 승인에 의존하는 변경은 승인 완료로 간주하지 않는다. PR 4c 재검증은 계속한다.
+  PR 4d capacity 승인 대기는 Task 2의 최종 대체 경로 변경에 한정된다. 기존 승인된 Tasks 2–4는 아래 범위 안에서 진행한다.
+  소유자 `floor_state_check` 고정 결과 코드 답변도 별도로 대기 중이다. 최종 전자서명은 전체 필수 코드가 정리된 뒤다.
 - 실제 API 호출·전자서명·무장·주문·실제 전략 통과를 수행하거나 완료로 표시하지 않았다.
+
+### PR 4d Task 1 완료와 다음 진행 범위
+
+- ~~PR 4d Task 1 구현·검증·독립 리뷰~~ 완료. 커밋은 `d34395bd27e0ea30e7a23eed7f626a2ca350bf56`이다.
+  [작업 브랜치](https://github.com/xkg4real/tradegen/tree/gpt/universe-pr4d-driver-history)에 push됐고 원격 head를 확인했다.
+- 커밋한 소스에서 **31/31 PASS, 3.427초**. 소스·실제 홈 메타데이터 불변, 독립 리뷰 지적 없음.
+  PR 4d 전체 완료·병합을 뜻하지 않는다.
+- 기존 승인 범위의 **Tasks 2–4는 미병합 브랜치에서 계속 진행 가능**하다. 현재 Task 2 기반 구현 중, Tasks 3·4 준비 중이다.
+  기존 첫 번째 fallback과 크기 오류 시 실행 거부 동작을 유지한다.
+- 승인 전에는 두 번째 fallback이나 새로운 capacity 계약을 넣지 않는다. 알려진 size 처리 공백이 해소되기 전 **PR 4d 최종 병합은 보류**한다.
+  설계 승인 2건과 소유자 상태 결과 답변은 계속 대기 중이며, 승인과 무관한 구현을 전부 멈추지는 않는다.
 
 ### 기존 잔여 업무의 의존성 사전분석 완료
 
@@ -45,7 +61,7 @@
 - **별도의 소유자 상태 증거가 대기 중**이다. PLB §9.3 step 0 / O14에 따라 실제 운영 home의 `floor_state_check` S1–S12 결과가 있어야 조건부 구현 범위를 확정한다.
   실행 여부와 고정 결과 코드만 이미 요청했고 답변을 기다린다. 금액·키·실제 로그를 요청하지 않는다. 단순 exit 0이나 과거 `--check OK`는 이 증거를 대신하지 않는다.
 - 위 상태 증거 요청은 PR 4d capacity / PR 5 실패 연구 인증 결과의 **새 설계 승인 2건과 구분**한다.
-  승인됐던 PLB 선택지를 다시 승인받는 요청이 아니다. PR 4c의 수정 후 전체 검사는 계속 실행 중이다.
+  승인됐던 PLB 선택지를 다시 승인받는 요청이 아니다. PR 4c의 최종 전체 검증·병합 완료와도 별개다.
 
 근거: [L1/L2 설계](https://github.com/xkg4real/tradegen/blob/c80c56cdab946a80ae40be31432b41c881dcd5a2/docs/superpowers/specs/2026-11-12-controlled-launch-and-planner-design.md),
 [L3 설계](https://github.com/xkg4real/tradegen/blob/c80c56cdab946a80ae40be31432b41c881dcd5a2/docs/superpowers/specs/2026-11-12-standing-deployment-design.md),
@@ -63,13 +79,14 @@
 | 완료 | ~~PR 3: 게이트·read-back·조회~~ | [PR #25](https://github.com/xkg4real/tradegen/pull/25), `249cc3d` |
 | 완료 | ~~PR 4b: 프로필·프로토콜·로테이션 프로그램~~ | [PR #30](https://github.com/xkg4real/tradegen/pull/30), `3868cde` |
 | 완료 | ~~PR 4a: odds 배치·세션 바인딩~~ | [PR #32](https://github.com/xkg4real/tradegen/pull/32), `971a538` |
+| 완료 | ~~PR 4c: 상품 조건·IOC 주문·계좌·E1 경고~~ | [PR #33](https://github.com/xkg4real/tradegen/pull/33), `7d256f9`, 최종 전체 2570/0/135 |
 
 ## 3. 구현 순서와 완료 조건
 
 | 순서·ID | 작업 | 선행 조건 | 완료를 판정할 근거 | 현재 상태 |
 |---|---|---|---|---|
-| 1 / universe-pr4c | 상품 조건 authority v2, 종목 교체 갱신, IOC 주문, 상장폐지·저유동성 보유 코인 평가, E1 경고 | PR 2·3·4b 병합 | 계획 Task 1–10 충족, 고정 BTC 호환성, 경계 검사, 전체 검사·리뷰·PR·병합 커밋 | Tasks 1–9 구현·독립 리뷰 완료 / 추가 수정 후 전체 재검증 중 / PR33 초안·미병합 |
-| 2 / universe-pr4d | 종목 전환 드라이버, 거래 코인을 따르는 이력, history v2와 프레임 입력 | PR 4c 병합 | 계획별 검사와 재시작·이력 일관성 검증, PR·병합 근거 | 대기 |
+| 1 / universe-pr4c | ~~상품 조건 authority v2, 종목 교체 갱신, IOC 주문, 상장폐지·저유동성 보유 코인 평가, E1 경고~~ | PR 2·3·4b 병합 | Tasks 1–10·독립 리뷰 완료, 최종 전체 2570/0/135, PR33 merge 7d256f9 | 완료 |
+| 2 / universe-pr4d | 종목 전환 드라이버, 거래 코인을 따르는 이력, history v2와 프레임 입력 | PR 4c 병합 완료 | 계획별 검사와 재시작·이력 일관성 검증, PR·병합 근거 | Task 1 완료(31 PASS) / 승인된 Task 2 구현·3/4 준비 / capacity 변경·최종 병합 대기 |
 | 3 / universe-pr4e | runner·coordinator·준비·console odds·리허설 연결 | PR 4a·4d 병합 | 아래 계약 정정 2건, 오래된 관측 거부, 취소·청산·중지 흐름 검사, PR·병합 근거 | 대기 |
 | 4 / universe-pr5 | forward-universe-v1 평가기·수집·후보군 검증·48시간 연구 도구 | PR 4e 병합 | 전체 후보와 실패 시도 보존, 자료 크기·종목별 파서·평가기 검사, PR·병합 근거 | 대기 |
 | 5 / universe-pr5-clock-notify | PR 5 병합 번호·커밋 통지와 담당 세션 조율 | PR 5 실제 병합 | 전달 가능한 채널의 실제 통지 기록. Claude 로컬 세션에 직접 전달할 수 없으면 사용자에게 전달 요청 | 대기 |
@@ -121,11 +138,14 @@
 | 2026-11-13 17:06 | universe-pr4c/tasks1-9 | 8137c4712b164c120ec8063e50dc3e05b741c23f | 고정 경계 81/0/0, 전체 회귀 실행 중, 집중 검사는 위 개별 기록 | 완료 | PR33 open/draft/미병합, 원격 head 확인 | Task 10 전체 회귀·최종 전달·병합 |
 | 2026-11-13 17:30 | universe-pr4c/regression-checkpoint | 첫 실행 8137c47 / 현재 c80c56c | 첫 전체 2569/0/135, 이후 재귀오류 수정 40 PASS, 수정 후 전체 재검증 실행 중 | 수정 독립 리뷰 완료 | PR33 head c80c56c, open/draft/미병합 | 최종 전체 결과·Task 10·병합, 별도 설계 승인 2건 대기 |
 | 2026-11-13 17:37 | existing-task-dependency-evidence | c80c56c 읽기 전용 분석 | 테스트·앱 실행 없음, 최신 승인 설계와 런타임 부재 대조 | production/PLB 의존성 기록 확인 | 문서 기록만 | 새 설계 승인 2건과 별개인 소유자 S1–S12 상태 증거 대기 |
+| 2026-11-13 17:46:10 | universe-pr4c | runtime c80c56c / final head b21439c | 최종 전체 2570/0/135 of 2705, 1093.970초, 소스·실제 홈 메타데이터 불변 | 완료 | PR33 merge 7d256f9090bb4de593bf496b010a9753ae5508fd, GitHub 재확인 | 다음 PR4d Task1, 추가 설계 승인 2건·소유자 상태 증거 별도 대기 |
+| 2026-11-13 17:52 | universe-pr4d/task1 | d34395bd27e0ea30e7a23eed7f626a2ca350bf56 | 31/31 PASS, 3.427초, 소스·실제 홈 메타데이터 불변 | 지적 없음 | gpt/universe-pr4d-driver-history push·원격 head 확인, 미병합 | 기존 Tasks2–4 진행, capacity 최종 fallback 변경은 승인 대기, 알려진 size 공백으로 최종 병합 보류 |
 
 ## 5. 사용자 업무와 승인 경계
 
 - 현재 클릭 승인 대기: **PR 4d capacity 처리**, **PR 5 실패한 연구의 인증된 결과 기록** 추가 설계 2건.
   승인 여부가 확인되기 전에는 해당 변경을 승인된 작업으로 처리하지 않는다.
+  PR 4d의 승인 대기는 Task 2 최종 fallback 변경에 국한한다. 기존 fallback·크기 오류 거부를 유지하는 Tasks 2–4는 계속 진행하되 최종 병합은 공백 해소 뒤로 남긴다.
 - 현재 상태 증거 대기: 소유자 `floor_state_check` 실행 여부와 **S1–S12 고정 결과 코드** 답변.
   PLB §9.3 step 0 / O14의 조건부 범위 확인용이며, 이미 승인된 O1–O16 결정을 재질문하는 절차가 아니다.
 - 기존 승인 명세 안의 개발·검사·PR 전달과 사용자가 요청한 push·merge 절차는 계속 진행한다.
