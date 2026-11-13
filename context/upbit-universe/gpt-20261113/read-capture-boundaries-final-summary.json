@@ -1,0 +1,20 @@
+{
+  "label": "read-capture-boundaries-final",
+  "head": "61b2b20bb4ae48ed063fb6007205cecf2f30fe02",
+  "source_hash": "683b75224c112203cebefdd3c2a446d2f605184b8476a2e5d53bb5035222bb12",
+  "total": 105,
+  "counts": {
+    "PASS": 105,
+    "FAIL": 0,
+    "NOT_RUN": 0
+  },
+  "process_segments": 1,
+  "seconds": 35.472,
+  "current_segment_seconds": 35.472,
+  "sum_test_seconds": 31.637,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "real_homes_check_scope": "metadata before imports/discovery through completion",
+  "failures": []
+}
