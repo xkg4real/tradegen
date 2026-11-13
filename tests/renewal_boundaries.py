@@ -21,8 +21,8 @@ import json
 INITIALIZERS = {
     "execution/__init__.py": "dbbe3001d9d0d1bf6393b4d823b997e9ae163f45f8eb26860474cd6ec902f380",
     "execution/keys.py": "4e5c674aad9265edb21eb1ac71c4795bb1ae7d89aa7fb880e86131bae44c644a",
-    "execution/transport.py": "0aeec926859748a0321aa03da988ee69a8425f12a9dfe608d78990a1f0229104",
-    "execution/upbit_inquiry.py": "b84e2b291939c70ce20572f18cdf6c962a5054dbcb39f438fc0bc9be1a9d72f0",
+    "execution/transport.py": "f2442925ddb7d0e441f9dbde5de99be1b81c546689a70ec6308172a979922953",
+    "execution/upbit_inquiry.py": "fa6685de28aa9defa281681442071ff3d46368404afacd24276da85b8506a99f",
     "execution_accounts/__init__.py": "dbbe3001d9d0d1bf6393b4d823b997e9ae163f45f8eb26860474cd6ec902f380",
     "execution_accounts/collector.py": "7c2dd003297d051d3248b0c3ad30d105bf8e59037a4e2b2b347217d877b44d9d",
     "execution_accounts/instrument_terms.py": "debf4f2f2e095214adf60a193bac5252b4c402373bf3d5e8e039182a74e6a9d0",
@@ -304,3 +304,26 @@ def check_negative_controls(root):
         changed = dict(original)
         changed[relative] += "\n" + statement + "\n"
         assert problems(changed), (relative, statement)
+
+
+    # The reviewed read-capture declarations are import-time dependencies of
+    # renewal validation, not new reachable pure-call targets. Keep their inert
+    # defaults, immutable metadata and exact import/capture scope pinned too.
+    for relative, before, after in (
+        ("execution/transport.py", "max_body_bytes: int = 8 * 1024 * 1024",
+         "max_body_bytes: int = request('upbit', 'GET', '/v1/accounts')"),
+        ("execution/transport.py", 'ContextVar("tradegen_upbit_read_capture", default=None)',
+         'ContextVar("tradegen_upbit_read_capture", default=open(path))'),
+        ("execution/transport.py", "from threading import get_ident",
+         "from threading import get_ident as request"),
+        ("execution/transport.py", "@dataclass(frozen=True, kw_only=True)\nclass UpbitReadEvent:",
+         "@dataclass(frozen=False, kw_only=True)\nclass UpbitReadEvent:"),
+        ("execution/upbit_inquiry.py", "READ_CAPTURE_ENDPOINTS = frozenset({",
+         'READ_CAPTURE_ENDPOINTS = frozenset({("GET", "/v1/api_keys"),'),
+        ("execution/upbit_inquiry.py", "READ_CAPTURE_ENDPOINTS = frozenset({",
+         'READ_CAPTURE_ENDPOINTS = frozenset({("POST", "/v1/orders"),'),
+    ):
+        assert original[relative].count(before) == 1, (relative, before)
+        changed = dict(original)
+        changed[relative] = original[relative].replace(before, after, 1)
+        assert relative + ": initialization surface changed" in problems(changed), (relative, after)
