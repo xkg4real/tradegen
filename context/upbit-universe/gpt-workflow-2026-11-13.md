@@ -1,6 +1,6 @@
 # TRADEGEN 업무처리 워크플로우
 
-기준: 2026-11-13 16:52 KST. 문서 정리와 개발 착수 기록이며 실거래 준비 완료 판정은 아니다.
+기준: 2026-11-13 17:06 KST. PR 4c 구현 체크포인트이며 전체 검증·병합·실거래 준비 완료 판정은 아니다.
 
 ## 1. 근거와 현재 상태
 
@@ -9,10 +9,22 @@
 - [진행 기록](https://github.com/xkg4real/tradegen/blob/handoff/context/upbit-universe/universe-impl-status.md), [완료 원장](https://github.com/xkg4real/tradegen/blob/handoff/LEDGER.md).
 - [업무 기록 Notion](https://app.notion.com/p/40f5c916fe0c80b49d10fec810a95cbb), [승인 전 정리 Notion](https://app.notion.com/p/40d5c916fe0c80e49e2bd9f3fc1c2145).
 - GitHub 조회 기준 main: `971a5389208c85d34fdd6479c96580e9b8fcc68d` (PR #32 병합).
-- PR 4c는 Claude가 사전 점검 중 중단했다. 저장한 코드나 커밋이 없으므로 최신 main에서 다시 대조한다.
+- PR 4c는 Claude가 사전 점검 중 중단한 뒤 GPT가 최신 main에서 대조·구현했다. 아래 최신 체크포인트를 따른다.
 - Claude의 마지막 실행 기록: PR 4a head `56a0b7f`, 2,547 PASS / 2 FAIL / 123 NOT_RUN, 총 2,672개.
   실패 2건은 인계문서상 checkout의 가상환경 위치 문제다. 이번 Cloud 실행 결과로 취급하지 않는다.
 - 유니버스 전략의 실제 수익성과 목표 달성 확률은 아직 검증되지 않았다. 연구 도구 구현과 실제 연구 통과를 구분한다.
+
+### 최신 체크포인트: PR 4c Tasks 1–9 구현·독립 리뷰 완료
+
+- ~~PR 4c Tasks 1–9 구현과 독립 리뷰~~: `8137c4712b164c120ec8063e50dc3e05b741c23f`를 push했다.
+- [초안 PR #33](https://github.com/xkg4real/tradegen/pull/33)은 **open / draft / 미병합**이며 원격 head를 확인했다.
+- 고정 소스 경계 검사는 **81 PASS / 0 FAIL / 0 NOT_RUN**이다. 검사 전후 소스와 실제 홈 메타데이터가 동일했다.
+- 집중 검사: IOC 56 PASS, collector/provider 106 PASS, E1 119 PASS, readiness 18 PASS,
+  비유한 보유량 방어 16 PASS. 범위가 겹치므로 이 수치를 합산하지 않는다.
+- **전체 회귀 검사는 실행 중**이다. 전체 PASS와 Task 10 완료는 아직 선언하지 않는다.
+- [소스 실행 기록](https://github.com/xkg4real/tradegen/blob/8137c4712b164c120ec8063e50dc3e05b741c23f/docs/universe-pr4c-execution-log.md).
+  handoff 체크포인트 `7e16536`은 이 보고 시점에 원격 게시 확인 대기다.
+- 실제 API 호출·전자서명·무장·주문·실제 전략 통과를 수행하거나 완료로 표시하지 않았다.
 
 ## 2. 완료가 확인된 개발
 
@@ -30,7 +42,7 @@
 
 | 순서·ID | 작업 | 선행 조건 | 완료를 판정할 근거 | 현재 상태 |
 |---|---|---|---|---|
-| 1 / universe-pr4c | 상품 조건 authority v2, 종목 교체 갱신, IOC 주문, 상장폐지·저유동성 보유 코인 평가, E1 경고 | PR 2·3·4b 병합 | 계획 Task 1–10 충족, 고정 BTC 호환성, 경계 검사, 전체 검사·리뷰·PR·병합 커밋 | 재개 준비 |
+| 1 / universe-pr4c | 상품 조건 authority v2, 종목 교체 갱신, IOC 주문, 상장폐지·저유동성 보유 코인 평가, E1 경고 | PR 2·3·4b 병합 | 계획 Task 1–10 충족, 고정 BTC 호환성, 경계 검사, 전체 검사·리뷰·PR·병합 커밋 | Tasks 1–9 구현·독립 리뷰 완료 / 전체 검증 중 / PR33 초안·미병합 |
 | 2 / universe-pr4d | 종목 전환 드라이버, 거래 코인을 따르는 이력, history v2와 프레임 입력 | PR 4c 병합 | 계획별 검사와 재시작·이력 일관성 검증, PR·병합 근거 | 대기 |
 | 3 / universe-pr4e | runner·coordinator·준비·console odds·리허설 연결 | PR 4a·4d 병합 | 아래 계약 정정 2건, 오래된 관측 거부, 취소·청산·중지 흐름 검사, PR·병합 근거 | 대기 |
 | 4 / universe-pr5 | forward-universe-v1 평가기·수집·후보군 검증·48시간 연구 도구 | PR 4e 병합 | 전체 후보와 실패 시도 보존, 자료 크기·종목별 파서·평가기 검사, PR·병합 근거 | 대기 |
@@ -80,6 +92,7 @@
 |---|---|---|---|---|---|---|
 | 2026-11-13 16:52 | workflow-resume-1113 | 문서만 | 원격 main·handoff·Notion 대조, 코드 테스트 미실행 | 출처·상태·개인정보·권한 구분 자체 점검 | 코드 PR 없음 | PR 4c 사전 점검부터 구현 |
 | 2026-11-13 16:54 | workflow-resume-1113/notion | 문서만 | 기존 Notion 2페이지 갱신·저장 내용 재조회 확인, 과거 절 보존 | 공개 정보·완료 범위·서명 경계 확인 | 새 페이지·코드 PR 없음 | 후속 Task별 실제 근거 추가 |
+| 2026-11-13 17:06 | universe-pr4c/tasks1-9 | 8137c4712b164c120ec8063e50dc3e05b741c23f | 고정 경계 81/0/0, 전체 회귀 실행 중, 집중 검사는 위 개별 기록 | 완료 | PR33 open/draft/미병합, 원격 head 확인 | Task 10 전체 회귀·최종 전달·병합 |
 
 ## 5. 사용자 업무와 승인 경계
 

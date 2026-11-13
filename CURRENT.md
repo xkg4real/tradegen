@@ -4,11 +4,11 @@ reason: owner_requested_resume
 from: gpt
 task: upbit-universe
 cycle: 2026-11-10
-done_ids: workflow-resume-1113, universe-pr0, universe-pr1, universe-pr2, universe-pr3, universe-pr4b, universe-pr4a
+done_ids: workflow-resume-1113, universe-pr4c/implementation, universe-pr0, universe-pr1, universe-pr2, universe-pr3, universe-pr4b, universe-pr4a
 next_ids: universe-pr4c, universe-pr4d, universe-pr4e, universe-pr5, universe-pr5-clock-notify, universe-code-approve, policy-loss-budget-plan-1, rules-review-1202, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, launch-private-capture-setup-1, e1-14-owner-setup, launch-prospective-study, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1
-updated_at: 2026-11-13T17:05:14+09:00
+updated_at: 2026-11-13T17:19:18+09:00
 stale_after_hours: 3
-waiting_on: none
+waiting_on: owner decisions on PR4d capacity and PR5 authenticated failed-trial amendments; PR4c regression continues
 work_branch: gpt/universe-pr4c-terms
 work_commit: 8137c4712b164c120ec8063e50dc3e05b741c23f
 runtime_tested_commit: 8137c47 (81 guard checks PASS; full regression running)
@@ -169,3 +169,7 @@ OPENBLAS_NUM_THREADS=1 TRADEGEN_RUNS_DIR=<scratch> python -X utf8 -m tests.run_a
 ### PR 4c 코드 체크포인트
 
 8137c47을 push하고 draft PR33을 열었습니다. Tasks1~9의 구현·독립 검토가 끝났으며, 고정 소스의 경계 검사81개 PASS/0FAIL/0NOT_RUN입니다. 전체 회귀는 진행 중이며 아직 병합하지 않았습니다. context/upbit-universe/gpt-20261113/에 Task별 집중 검사와 검토 기록을 저장했습니다. 과거 병렬 수정 중 오류는 진단 기록이며 최종 통과로 표시하지 않습니다. 추가 보완: 무한대 등 비정상 보유 수량이 상장폐지 0평가 경로로 숨겨지지 않도록 거부하고16개 평가검사를 통과했습니다.
+
+### 추가 설계 승인 대기 (기존 작업 계속)
+
+사용자의 최신 지침5에 따라 두 보완 설계안을 이 대화의 클릭형 입력으로 요청했습니다. PR4d: 검증된 대용량 계좌·호가 조합이 기록 한도를 초과하는 경우의 2차 대체 처리와 명시적 용량 거부. PR5: 정상 탈락 후보를 전체 원본 서명 묶음에 포함하면서 통과 후보를 계속 검토할 수 있는 결과 처리. 두 설계는 제안·미구현이며 답변 대기입니다. 문서는 context/upbit-universe/gpt-20261113/의 AMENDMENT 파일에 있습니다. 기존 PR4c 검증과 PR4d Task1 같은 독립 작업은 계속할 수 있습니다.
