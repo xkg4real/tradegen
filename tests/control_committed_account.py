@@ -35,7 +35,8 @@ D=Decimal
 
 @contextmanager
 def fixture(*, prices=('101',), start=GF.START, end=None, floor='100', daily='10',
-            configure=None, pol=None, daily_stopped=False, halted=False, spare_cash=False):
+            configure=None, pol=None, daily_stopped=False, halted=False, spare_cash=False, clock=None,
+            control_prefix=False):
     with memoized_pure_inputs(), CF.temp_home() as home, head_root() as hroot, CF.pubkey_at(home/'fixture-owner.pem'):
         key=CF.full_home(home,limits={'total_loss_floor_krw':float(floor),'daily_loss_krw':float(daily)})
         if configure is not None:
@@ -66,17 +67,24 @@ def fixture(*, prices=('101',), start=GF.START, end=None, floor='100', daily='10
             package=GF.build(state,policy,claim,prices,end=end)
         if spare_cash:
             package=with_spare_cash(package)
-        receipt=GC.commit(s,package)
-        provider=PF.provider(s,package,receipt)
+        control=GENESIS
+        if control_prefix:
+            prior=s.journal.snapshot()  # verified actual prefix, outside the guard transaction
+            control=prior[-1]['row_sha256'] if prior else GENESIS
+        receipt=GC.commit(s,package,control=control)
+        provider=PF.provider(s,package,receipt,expected_control_head=control)
         adapter=DryRunAdapter(upbit)
+        clock_cell=[package['now']]
+        fixture_clock=(lambda:clock_cell[0]) if clock is None else clock
         controller=Controller(journal=s.journal,account_provider=provider,policy=policy,
-                              adapters={'upbit':adapter},session_provider=lambda _:None)
+                              adapters={'upbit':adapter},session_provider=lambda _:None,clock=fixture_clock)
         rules=InstrumentRules(venue='upbit',market='spot',symbol='KRW-BTC',lot_size=D('0.1'),tick_size=D(1),
             min_quantity=D('0.1'),min_notional_krw=D(1),fee_fraction=D(0),asof=package['now'],source_digest='a'*64)
         order=Order(client_id='fixture-reducing-order',account_scope=GF.SCOPE,venue='upbit',market='spot',
             symbol='KRW-BTC',side='sell',quantity=D('0.1'),limit_price=D(100),quote_krw=D(1))
         yield SimpleNamespace(s=s,package=package,receipt=receipt,provider=provider,controller=controller,
-            home=home,key=key,adapter=adapter,rules=rules,order=order,now=package['now'],contexts=contexts)
+            home=home,key=key,adapter=adapter,rules=rules,order=order,now=package['now'],contexts=contexts,
+            clock=fixture_clock,clock_cell=clock_cell)
 
 
 
@@ -314,7 +322,8 @@ def test_kill_and_halt_remain_durable_when_new_provider_is_unavailable():
 def test_legacy_cancel_and_reconcile_do_not_gain_new_committed_owner_requirements():
     with fixture() as e:
         obs=PF.read(e.s,e.provider,e.now).observation
-        e.controller.account_provider=lambda _:obs
+        e.controller=Controller(journal=e.s.journal,account_provider=lambda _:obs,policy=e.s.policy,
+                                adapters={'upbit':e.adapter},session_provider=lambda _:None)
         e.controller.reserve(e.order,e.rules,session_id='fixture',now=e.now)
         e.controller.dispatch(e.order.client_id,now=e.now)
         with patch.object(owner,'load_context',side_effect=AssertionError('legacy reconciliation has no owner read')):
