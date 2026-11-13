@@ -1,12 +1,12 @@
 ---
-status: taken
-reason: owner_requested_resume
+status: returned
+reason: owner_input_required
 from: gpt
 task: upbit-universe
 cycle: 2026-11-10
-done_ids: universe-pr4d/original-verification, workflow-resume-1113/regression-preparation, universe-pr4d/task2-implementation, universe-pr4d/task3, universe-pr4d/task4, universe-pr4c, universe-pr4d/task1, workflow-resume-1113, workflow-resume-1113/dependencies, universe-pr4c/implementation, universe-pr0, universe-pr1, universe-pr2, universe-pr3, universe-pr4b, universe-pr4a
+done_ids: upbit-universe-return-1113, universe-pr4d/original-verification, workflow-resume-1113/regression-preparation, universe-pr4d/task2-implementation, universe-pr4d/task3, universe-pr4d/task4, universe-pr4c, universe-pr4d/task1, workflow-resume-1113, workflow-resume-1113/dependencies, universe-pr4c/implementation, universe-pr0, universe-pr1, universe-pr2, universe-pr3, universe-pr4b, universe-pr4a
 next_ids: universe-pr4d, universe-pr4e, universe-pr5, universe-pr5-clock-notify, universe-code-approve, policy-loss-budget-plan-1, rules-review-1202, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, launch-private-capture-setup-1, e1-14-owner-setup, launch-prospective-study, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1
-updated_at: 2026-11-13T18:28:39+09:00
+updated_at: 2026-11-13T18:36:20+09:00
 stale_after_hours: 3
 waiting_on: PR4d capacity and PR5 authenticated failed-trial decisions; owner floor-state evidence
 work_branch: gpt/universe-pr4d-driver-history
@@ -25,6 +25,8 @@ session: Cloud Codex; owner Windows deployment remains separate
 # 인수인계: Upbit KRW 유니버스 구현
 
 ## 0. 한 줄 요약
+
+**승인·상태 증거 대기로 반환합니다.** 이미 제시한 두 설계 승인과 PC 상태 점검 답변을 받으면 이 체크포인트에서 재개하세요. 전체 목표나 실전 준비가 완료됐다는 뜻은 아닙니다.
 
 PR4c는 PR33/main7d256f9로 병합됐으며 수정 runtime 전체검사는2570 PASS /0 FAIL /135 NOT_RUN입니다.
 PR4d 원래 Tasks1~4 구현·독립 검토를 마쳐 draft PR34를 열었습니다. 원격 head는 `a54a390`이며 마지막 변경은 전체검사 기록 문서뿐입니다.
@@ -161,7 +163,8 @@ PR4d Task1은 커밋 `d34395b`에서31 PASS /0 FAIL /0 NR,3.427초. 기존 두 g
 
 ## 9. 이어받는 에이전트에게
 
-CURRENT/AGENTS/LEDGER와 이 대화의 사용자 정정을 먼저 읽으세요. taken 상태의 다른 실행이 있는지 확인하세요.
+CURRENT/AGENTS/LEDGER와 이 대화의 사용자 정정을 먼저 읽으세요. 현재는 승인·입력 대기로 returned입니다.
+답변이 도착하면 그 승인 범위를 확인하고 원격 head를 재조회한 뒤 taken으로 전환하여 이어가세요.
 완료 ID는 반복하지 마세요. PR33 병합과 draft PR34 원격head를 확인하세요. 현재 소스는고정·push완료이고 미승인설계가남았습니다.
 검증·병합·실제연구·서명·무장을 서로 구분하세요. 8절의 미승인 보완을 답변 없이 구현하지 마세요.
 작업별 증거와 원격 SHA를 남기고, 중단할 때만 returned로 전환해 복구 가능한 로그를 제공하세요.
