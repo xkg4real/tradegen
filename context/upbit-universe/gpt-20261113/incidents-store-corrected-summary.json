@@ -1,0 +1,20 @@
+{
+  "label": "incidents-store-corrected",
+  "head": "f96420bcd4730cdfde474f4d1578188ef971f0e7",
+  "source_hash": "3b3f9f47fa8a8368410e03b4afb99c13edb22ea54f12adac6c3889adf10dad09",
+  "total": 27,
+  "counts": {
+    "PASS": 27,
+    "FAIL": 0,
+    "NOT_RUN": 0
+  },
+  "process_segments": 1,
+  "seconds": 8.903,
+  "current_segment_seconds": 8.903,
+  "sum_test_seconds": 6.414,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "real_homes_check_scope": "metadata before imports/discovery through completion",
+  "failures": []
+}

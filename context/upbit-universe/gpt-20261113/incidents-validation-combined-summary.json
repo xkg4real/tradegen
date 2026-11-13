@@ -1,0 +1,15 @@
+{
+  "kind": "distinct related registry reconciliation across initial331 and corrected27; not a single all-green331 run",
+  "total": 331,
+  "counts": {
+    "PASS": 331,
+    "FAIL": 0,
+    "NOT_RUN": 0
+  },
+  "base": "incidents-integration-final2",
+  "test_only_correction": "incidents-store-corrected",
+  "runtime_commit": "f96420bcd4730cdfde474f4d1578188ef971f0e7",
+  "runtime_unchanged": true,
+  "final_source_hash": "3b3f9f47fa8a8368410e03b4afb99c13edb22ea54f12adac6c3889adf10dad09",
+  "native_windows": "not established by selected Linux tests"
+}

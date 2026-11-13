@@ -4,17 +4,17 @@ reason: owner_requested_continue_pr4e_and_protective_p2
 from: gpt
 task: upbit-universe
 cycle: 2026-11-10
-done_ids: protective-hold/committed-account-consumer, universe-pr5/sealed-selection, universe-pr5/research-revocation, universe-pr5/exact-archive-recovery, universe-pr5/archive-attestation, universe-pr5/raw-verified-bundles, universe-pr5/family-preflight, protective-hold/fixed-carry-v2, universe-pr4e, protective-hold/p2-store-integration, universe-pr5/outcome-document-contract, protective-hold/p2-store, protective-hold/p1, universe-pr4d/lossless-history, universe-pr4d, universe-pr4d/lossless-objects, design-revision-1113, upbit-universe-return-1113, universe-pr4d/original-verification, workflow-resume-1113/regression-preparation, universe-pr4d/task2-implementation, universe-pr4d/task3, universe-pr4d/task4, universe-pr4c, universe-pr4d/task1, workflow-resume-1113, workflow-resume-1113/dependencies, universe-pr4c/implementation, universe-pr0, universe-pr1, universe-pr2, universe-pr3, universe-pr4b, universe-pr4a
+done_ids: universe-pr5/research-incidents, protective-hold/committed-account-consumer, universe-pr5/sealed-selection, universe-pr5/research-revocation, universe-pr5/exact-archive-recovery, universe-pr5/archive-attestation, universe-pr5/raw-verified-bundles, universe-pr5/family-preflight, protective-hold/fixed-carry-v2, universe-pr4e, protective-hold/p2-store-integration, universe-pr5/outcome-document-contract, protective-hold/p2-store, protective-hold/p1, universe-pr4d/lossless-history, universe-pr4d, universe-pr4d/lossless-objects, design-revision-1113, upbit-universe-return-1113, universe-pr4d/original-verification, workflow-resume-1113/regression-preparation, universe-pr4d/task2-implementation, universe-pr4d/task3, universe-pr4d/task4, universe-pr4c, universe-pr4d/task1, workflow-resume-1113, workflow-resume-1113/dependencies, universe-pr4c/implementation, universe-pr0, universe-pr1, universe-pr2, universe-pr3, universe-pr4b, universe-pr4a
 next_ids: universe-pr5/recovery-operations, protective-hold/p2-integration, universe-pr5, universe-pr5-clock-notify, universe-code-approve, policy-loss-budget-plan-1, rules-review-1202, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, launch-private-capture-setup-1, e1-14-owner-setup, launch-prospective-study, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1
-updated_at: 2026-11-14T01:07:07+09:00
+updated_at: 2026-11-14T01:24:03+09:00
 stale_after_hours: 3
 waiting_on: no prior approval question; future PLB S1-S12 and deployment inputs only
-work_branch: gpt/research-incident-quarantine
-work_commit: 9944e6aa38209acf3ae48ce144d6da14de3ab7c4 (B2 base; PR46 integration pending)
-merged_main_commit: ed1b4567fbd8161f1998a56241993880afccbb71
-runtime_tested_commit: P2 runtime9944e6a unchanged through95cc59c; distinct709=708PASS/0outstandingFAIL/1WindowsNR across broad+70focused
-uncommitted_changes: B2b-1 runtime and tests implemented in /workspace/tradegen-incidents-1113; guards under review; final related regression pending
-pr: PR34-46 merged; incident/quarantine B2b-1 final validation pending; no live activation
+work_branch: gpt/continuous-capture-material
+work_commit: 933a7bc8c38c9eff0a5bd08f29e95ac8794dc172
+merged_main_commit: b143ced925e4473b876b5fb6071a2c968789bd30
+runtime_tested_commit: B2b-1 f96420b unchanged througha8bc9d5; distinct331PASS across initial331+corrected27; finalfp3b3f9f47
+uncommitted_changes: I3a committed933a7bc after PR47 merge, final related regression running; B2b2a source/test frozen in separate recovery-revalidation tree with21 dev running
+pr: PR34-47 merged; I3a final validation and B2b2a dev ongoing; no live activation
 usage_weekly_pct: unknown
 usage_source: unavailable
 handoff_threshold_pct: 95
@@ -81,11 +81,13 @@ P0b는 policy→protocol→identity→contextual payload DAG, 실제 동일 잠�
 
 ## 9. 이어받는 에이전트에게
 
-최신 front matter와 맨 아래 체크포인트를 우선한다. PR34–46 완료 ID는 반복 구현하지 않는다. mained1b456는 PR46 전달95cc59c tree와 일치한다. 실제 키·홈 내용·거래소 API·주문·활성화는 금지이며 E 비청산과 기존 하한을 유지한다.
+최신 front matter와 맨 아래 체크포인트를 우선한다. PR34–47 완료 ID는 반복 구현하지 않는다. mainb143ced는 PR47 전달a8bc9d5 tree와 일치한다. 실제 키·홈 내용·거래소 API·주문·활성화는 금지이며 E 비청산과 기존 하한을 유지한다.
 
 1. PR46 I1/I2는 전달95cc59c, 병합main ed1b456이며 tree 일치 확인. 최초709=706PASS2testFAIL1WindowsNR 후 test-only count25/32·UTF8 지정 교정, 관련70PASS로 고유709=708PASS0미해결FAIL1NR 대조. 단일 all-green709가 아니다. 중간 괄호 오타 실행57=54PASS3SyntaxError FAIL도 보존했다. runtime 변경 없음. 완료 연결을 반복 구현하지 않는다.
 2. I1 read-only projection과 I2 actual Controller tx 소비 완료. 실제 임시 owner/stores/head 경로, source coverage는 합성 fixture이며 운영 issuer가 아니다. 실제 Coordinator/Runner는 아직 legacy callable 경로이고 controlled/source 거절을 유지한다. 완료시각 freshness, 진짜 coverage 발급, 원본 capture receipts 보존, 실제 보유/미체결 대조가 남는다.
-3. B2b-1 새 incidents tree에는 실제 등록·장애 감지·독립 incident+outbox·의존 연구 보류·2중 최종 검사 구현. 순수26/store27/monitor18/CLI14/integration14 테스트, launch_guards 보완 및 최종 통합 전. 원본 삭제·덮어쓰기, 오류 매도, 보류 해제·자동 복원·실거래 권한 없음. current runtime source 동결; guard owner 완료 후 PR46의 test/doc-only 변경을 통합한다. API카드와 실행 초안 참조.
+3. PR47 B2b-1 완료. runtime f96420b, 전달a8bc9d5, mainb143ced tree 일치. 최초331=330PASS1fixtureFAIL756.288초 후 malformed event 생성자/저장 경계를 각각 검사하도록 테스트만 수정해27PASS8.903초. 고유331PASS across2runs이며 단일 all-green331 아님. 원본보존/사건+outbox/의존보류/incident-aware선발까지이며 자동복구·release·실거래 아님.
+3a. I3a /workspace/tradegen-capture-material-1113, gpt/continuous-capture-material, runtime b18a2bc/통합933a7bc. 실제 원본 receipt+수집clock 보존과 actual collector replay로 guard자료 생성. dev56=55PASS1테스트오류(정상 EVIDENCE_STALE_OR_FUTURE 코드 누락) 수정. PR47 test registry 병합은 모든5incident+I3a module 보존. capture-material-integration-final 실행 중; source/HEAD 변경 금지. 아직 완료ID/PR없음.
+3b. B2b2a /workspace/tradegen-recovery-revalidation-1113, gpt/recovered-archive-revalidation baseed1b456. 목적지만 실제 전체자료·서명artifact·최종owner철회 확인하는 작은helper. 소스/독립21tests 동결, recovery-revalidation-dev1 진행중. 완료 후 PR47 main 통합·관련final 필요. 기존restore sourcepostcheck/UNSUPPORTED표시 그대로, 새결과도운영권한false. 전체자동복구controller/attemptstore는 아직설계만.
 4. PR45는 original315=313PASS1testexpectationFAIL1WindowsNR 후 CLI17PASS로 정확대조한 고유315=314PASS0outstandingFAIL1NR이다. 단일 all-green run이 아니다. runtime은 변하지 않았고 오류 기대값만 수정됐다. 재구현/불필요한 전체반복 금지.
 5. 각 작업 단위별 원격 checkpoint를 남긴다. 사용량unknown/unavailable이며95%를 추측하지 않는다. 실제 S1~S12 미실행과 사용자 Windows/서명/계좌 설정을 가정으로 대체하지 않는다.
 
@@ -223,3 +225,7 @@ PR40은PR39브랜치를base로한stacked draft이며39병합후main으로retarge
 ## PR46 완료 및 B2b-1 검증 준비 — 2026-11-14T01:07:07+09:00
 
 PR46 병합 main ed1b4567fbd8161f1998a56241993880afccbb71와 전달95cc59c tree 일치. 관련709 최초706PASS2FAIL1NR965.710초, 수정70PASS18.659초; 고유708PASS0outstandingFAIL1NR across two runs. 최종 source93e81aef848c209139c6d8c41b03976e0cf58f65886a85edd87139ac5a52b670. 원본실패·중간syntax실패·중단225PASS 모두 보존하며 합산하지 않는다. source/home metadata 불변·QA 복원·19KEYLESS. 실제 활성화 없음.
+
+## PR47 완료 및 후속 두 단위 — 2026-11-14T01:24:03+09:00
+
+최신 mainb143ced. B2b-1 최종331대조 및 미실행Windows범위는 실행로그와 원본 summary를 따른다. 후속 I3a와B2b2a source는 별도트리동결검사중. 완료한작업재구현금지; 현재실행종료·결과확인전편집/HEAD변경금지. 실제키/홈내용/API/주문/활성화없음. 사용량unknown/unavailable.

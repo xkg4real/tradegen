@@ -1,0 +1,27 @@
+{
+  "label": "incidents-integration-final2",
+  "head": "ed1b4567fbd8161f1998a56241993880afccbb71",
+  "source_hash": "b3a8c4225dcb2576da62027969af573a0c6a3b71e2f656c5393089e45ac59e1c",
+  "total": 331,
+  "counts": {
+    "PASS": 330,
+    "FAIL": 1,
+    "NOT_RUN": 0
+  },
+  "process_segments": 1,
+  "seconds": 756.288,
+  "current_segment_seconds": 756.288,
+  "sum_test_seconds": 753.251,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "real_homes_check_scope": "metadata before imports/discovery through completion",
+  "failures": [
+    {
+      "test": "launch/launch_research_incident_store/test_changed_event_or_stale_unrelated_head_refuses_without_writes",
+      "status": "FAIL",
+      "seconds": 0.0268,
+      "detail": "IncidentFormatError: INCIDENT_EVENT_ID_MISMATCH"
+    }
+  ]
+}
