@@ -132,10 +132,18 @@ def test_changed_event_or_stale_unrelated_head_refuses_without_writes():
     with stack() as s:
         first = s.store.commit(register_event(), expected_head=s.store.genesis_digest)
         event = failure_event()
-        malformed = replace(event, event_id="a" * 64)
+        try:
+            replace(event, event_id="a" * 64)
+        except F.IncidentFormatError as exc:
+            assert str(exc) == "INCIDENT_EVENT_ID_MISMATCH"
+        else:
+            raise AssertionError("constructor accepted an invalid event identity")
+        # Simulate corruption after construction to reach the actual store boundary.
+        malformed = replace(event)
+        object.__setattr__(malformed, "event_id", "a" * 64)
         before = files(s)
-        refused(lambda: s.store.commit(malformed, expected_head=first.head))
-        refused(lambda: s.store.commit(event, expected_head=s.store.genesis_digest))
+        refused(lambda: s.store.commit(malformed, expected_head=first.head), "INCIDENT_STORE_COMMIT_REFUSED")
+        refused(lambda: s.store.commit(event, expected_head=s.store.genesis_digest), "INCIDENT_STORE_EXPECTED_HEAD_CHANGED")
         assert files(s) == before
 
 
