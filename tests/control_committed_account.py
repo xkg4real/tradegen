@@ -36,14 +36,17 @@ D=Decimal
 @contextmanager
 def fixture(*, prices=('101',), start=GF.START, end=None, floor='100', daily='10',
             configure=None, pol=None, daily_stopped=False, halted=False, spare_cash=False, clock=None,
-            control_prefix=False):
+            control_prefix=False, flat_cash=False):
+    if spare_cash and flat_cash:
+        raise ValueError('fixture cash allocations are mutually exclusive')
     with memoized_pure_inputs(), CF.temp_home() as home, head_root() as hroot, CF.pubkey_at(home/'fixture-owner.pem'):
         key=CF.full_home(home,limits={'total_loss_floor_krw':float(floor),'daily_loss_krw':float(daily)})
         if configure is not None:
             configure(home,key,start)
         contexts=[]
         def current_claim(at,**_):
-            ctx=owner.load_context(at,M.Positions(equity_krw=100.0,holdings={('upbit','BTC'):1.0}))
+            ctx=owner.load_context(at,M.Positions(equity_krw=100.0,
+                holdings={} if flat_cash else {('upbit','BTC'):1.0}))
             assert M.is_sealed(ctx) and ctx.owner.ok and ctx.code_signed
             contexts.append(ctx)
             return OwnerContextClaim(owner_head_sha256=ctx.owner.head[1],code_sha256=ctx.code_hash,
@@ -67,6 +70,8 @@ def fixture(*, prices=('101',), start=GF.START, end=None, floor='100', daily='10
             package=GF.build(state,policy,claim,prices,end=end)
         if spare_cash:
             package=with_spare_cash(package)
+        elif flat_cash:
+            package=with_flat_cash(package)
         control=GENESIS
         if control_prefix:
             prior=s.journal.snapshot()  # verified actual prefix, outside the guard transaction
@@ -110,6 +115,41 @@ def with_spare_cash(package):
     capture=replace(capture,captured_accounts=(account,),endpoint_accounts=(account,))
     inputs=replace(package['valuation_inputs'],opening_cash_krw=D(50),
                    opening_units=(('KRW-BTC',D('0.5')),),historical_fills=fills)
+    path=package['path']
+    def synthetic(request, supplied_path):
+        return VerifiedCoverage(request_sha256=content_digest(request),contract=COVERAGE_CONTRACT,
+            authority_sha256='b'*64,source_proof_sha256='c'*64,verified_at=supplied_path.watermark_received_at)
+    coverage=verify_coverage(path,account_capture_sha256=content_digest((capture.manifest_sha256,
+        capture.captured_accounts,capture.endpoint_accounts)),verifier=synthetic,now=package['now'])
+    valuation=value_path(path,opening_cash_krw=inputs.opening_cash_krw,opening_units=inputs.opening_units,
+        historical_fills=inputs.historical_fills,interval_fills=inputs.interval_fills,
+        previous_equity_krw=package['baseline_before'].equity_krw,
+        previous_realized_net_krw=package['baseline_before'].realized_net_total_krw)
+    interval=replace(package['interval'],equity_krw=valuation.equity_krw,
+        minimum_equity_krw=valuation.minimum_equity_krw,maximum_equity_krw=valuation.maximum_equity_krw,
+        realized_net_total_krw=valuation.realized_net_total_krw,source_sha256=content_digest((account,)),
+        coverage_sha256=content_digest((path,coverage)))
+    return package|{'account_capture':capture,'valuation_inputs':inputs,'coverage':coverage,'interval':interval}
+
+
+def with_flat_cash(package):
+    """Recompute a synthetic all-cash input packet before the actual guard commit.
+
+    The existing fixture coverage contract remains explicitly invented. Actual
+    account reconciliation, path valuation, guard planning and publication run
+    normally; no returned projection, result or source-authority verdict changes.
+    """
+    from execution_accounts.continuous import COVERAGE_CONTRACT, VerifiedCoverage, verify_coverage, value_path
+    from execution_accounts.model import CashBalance
+    capture=package['account_capture']
+    original=capture.endpoint_accounts[0]
+    pages=tuple(replace(page,rows=() if page.kind in ('fills','orders') else page.rows,
+                        page_sha256='') for page in original.pages)
+    account=replace(original,balances=(CashBalance(currency='KRW',total=D(100),settled=D(100)),),
+                    positions=(),pages=pages)
+    capture=replace(capture,captured_accounts=(account,),endpoint_accounts=(account,))
+    inputs=replace(package['valuation_inputs'],opening_cash_krw=D(100),opening_units=(),
+                   historical_fills=(),interval_fills=())
     path=package['path']
     def synthetic(request, supplied_path):
         return VerifiedCoverage(request_sha256=content_digest(request),contract=COVERAGE_CONTRACT,

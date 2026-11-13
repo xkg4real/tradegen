@@ -23,12 +23,13 @@ from core.isolation import checked_target, state_root
 from core.compliance.model import Universe
 from execution_accounts.model import AccountEvidence
 from execution_control.capability import digest
-from execution_control.controller import AccountObservation, Controller
+from execution_control.controller import AccountObservation, CommittedControllerObservation, Controller
 from execution_control.dry_run import DryRunAdapter
 from execution_control.model import Order, order_digest, rules_digest, validate_order
-from execution_control.risk import evaluate
+from execution_control.risk import RiskResult, evaluate
 from execution_control.session import PreparedSession, prepare_session
 from execution_control.universe_odds import registered_batch
+from execution_launch.committed_account import CommittedAccountProvider, CommittedAccountProjection
 from execution_launch.profile import (LaunchProfile, preflight_profile, profile_digest,
     profile_contract_digest, rule_terms_digest, risk_policy)
 from execution_launch.strategy import assess_strategy
@@ -341,8 +342,13 @@ class Runner:
                  launch_session=None, isolated_state_root=None, clock=None, deadline_record=None):
         _require(mode in ('observe', 'rehearsal', 'controlled'), 'RUNNER_MODE_INVALID')
         _require(type(profile) is LaunchProfile, 'RUNNER_PROFILE_REQUIRED')
-        _require(callable(quote_provider) and callable(account_provider), 'RUNNER_PROVIDERS_REQUIRED')
+        committed = type(account_provider) is CommittedAccountProvider
+        _require(callable(quote_provider) and (callable(account_provider) or committed),
+                 'RUNNER_PROVIDERS_REQUIRED')
+        _require(not committed or mode == 'rehearsal', 'RUNNER_COMMITTED_REHEARSAL_REQUIRED')
         self.profile, self.quote_provider, self.account_provider = profile, quote_provider, account_provider
+        self._committed_provider = account_provider if committed else None
+        self._committed_controller = controller if committed else None
         self.evidence, self.driver, self.implementation_verifier = evidence, driver, implementation_verifier
         self.mode, self.controller, self.launch_session = mode, controller, launch_session
         self._profile_digest = profile_digest(profile)
@@ -356,6 +362,14 @@ class Runner:
             self._controller_boundary()
 
     def _controller_boundary(self):
+        if self._committed_provider is not None:
+            _require(self.mode == 'rehearsal', 'RUNNER_COMMITTED_REHEARSAL_REQUIRED')
+            _require(self.account_provider is self._committed_provider
+                     and self.controller is self._committed_controller,
+                     'RUNNER_CONTROLLER_PROVIDER_MISMATCH')
+        else:
+            _require(type(self.account_provider) is not CommittedAccountProvider,
+                     'RUNNER_CONTROLLER_PROVIDER_MISMATCH')
         _require(not (self.mode == 'controlled' and self.evidence is not None
                       and getattr(getattr(self.evidence, 'protocol', None), 'schema_version', None) == 2),
                  'RUNNER_CARRY_CONTROLLED_UNSUPPORTED')
@@ -419,8 +433,23 @@ class Runner:
         """Prevent future tick work; this does not pretend to cancel venue orders."""
         self._stopped = True
 
-    def _observations(self, now):
-        quote, account = self.quote_provider(now), self.account_provider(now)
+    def _observations(self, now, *, committed=None):
+        quote = self.quote_provider(now)
+        observed_at = now
+        if self._committed_provider is not None:
+            # Only the current actual Controller call supplies this private
+            # view. Its original account time is never refreshed to completion.
+            _require(type(committed) is CommittedControllerObservation
+                     and type(committed.committed) is CommittedAccountProjection
+                     and committed.account is committed.committed.observation,
+                     'RUNNER_COMMITTED_OBSERVATION_REQUIRED')
+            _instant(committed.completed_at)
+            _require(committed.completed_at >= now, 'RUNNER_COMMITTED_OBSERVATION_REQUIRED')
+            account = committed.account
+            observed_at = committed.completed_at
+        else:
+            _require(committed is None, 'RUNNER_COMMITTED_OBSERVATION_REQUIRED')
+            account = self.account_provider(now)
         _require(type(quote) is Quote and type(account) is AccountObservation, 'RUNNER_OBSERVATIONS_REQUIRED')
         _instant(quote.asof); _instant(account.asof); _instant(account.server_time)
         _require((quote.venue, quote.market, quote.symbol) ==
@@ -428,9 +457,9 @@ class Runner:
         _require(_positive(quote.bid) and _positive(quote.ask) and quote.bid <= quote.ask
                  and type(quote.source_sha256) is str and _HASH.fullmatch(quote.source_sha256) is not None,
                  'RUNNER_QUOTE_INVALID')
-        _require(timedelta(0) <= now-quote.asof <= timedelta(seconds=10), 'RUNNER_QUOTE_STALE_OR_FUTURE')
-        _require(timedelta(0) <= now-account.asof <= timedelta(seconds=30)
-                 and abs(now-account.server_time) <= timedelta(seconds=60)
+        _require(timedelta(0) <= observed_at-quote.asof <= timedelta(seconds=10), 'RUNNER_QUOTE_STALE_OR_FUTURE')
+        _require(timedelta(0) <= observed_at-account.asof <= timedelta(seconds=30)
+                 and abs(observed_at-account.server_time) <= timedelta(seconds=60)
                  and account.risk.asof == account.asof, 'RUNNER_ACCOUNT_STALE_OR_FUTURE')
         _require(account.account_scopes.get(self.profile.venue) == self.profile.account_scope
                  and account.no_credit is True and account.risk.data_complete is True
@@ -549,6 +578,25 @@ class Runner:
                 count += 1
         return count
 
+    def _cancel_stopped_reservation(self, reserved, *, requested_now, execution_now):
+        """Cancel actual reserved state; this private cleanup issues no authority."""
+        cancel_at = requested_now
+        if self._committed_provider is not None:
+            # reserve may finish later than the paired observation. Its returned
+            # timestamp is an actual journaled event, not a new clock reading or
+            # permission to ignore concurrent later rows in Controller.cancel.
+            _instant(reserved.updated_at)
+            cancel_at = max(execution_now, reserved.updated_at)
+        return self.controller.cancel(reserved.client_id, now=cancel_at)
+
+    def _dispatch_tick_result(self, state, *, reconciled_orders, protective_action_needed, metadata):
+        """Display a completed control result without inferring its rejection cause."""
+        rejected = self._committed_provider is not None and state.status == 'REJECTED'
+        return TickResult(mode=self.mode, status='blocked' if rejected else 'submitted',
+            reasons=('RUNNER_ORDER_REJECTED',) if rejected else (),
+            client_id=state.client_id, order_status=state.status, reconciled_orders=reconciled_orders,
+            protective_action_needed=protective_action_needed, **metadata)
+
     def tick(self, *, now, entry_allow=None) -> TickResult:
         _instant(now)
         if self._stopped:
@@ -561,22 +609,37 @@ class Runner:
             _require(profile_digest(self.profile) == self._profile_digest, 'RUNNER_PROFILE_MUTATED')
             reconciled = 0
             risk = None
-            if self.mode != 'observe':
+            committed = None
+            observed_at = now
+            if self.mode != 'observe' or self._committed_provider is not None:
                 self._controller_boundary()
                 # A failed account/quote/research refresh must never cause a new
                 # create retry; reconcile durable orders first on every tick.
                 reconciled = self._reconcile(now)
-                risk = self.controller.observe(now=now)
-            report = preflight_profile(self.profile, now=now)
+                if self._committed_provider is not None:
+                    committed = Controller.observe_committed(self.controller, now=now)
+                    _require(type(committed) is CommittedControllerObservation
+                             and type(committed.risk) is RiskResult,
+                             'RUNNER_COMMITTED_OBSERVATION_REQUIRED')
+                    _instant(committed.completed_at)
+                    _require(committed.completed_at >= now, 'RUNNER_COMMITTED_OBSERVATION_REQUIRED')
+                    observed_at = committed.completed_at
+                    risk = committed.risk
+                else:
+                    risk = self.controller.observe(now=now)
+            # The actual Controller has already observed this finite instant.
+            # Use it for this decision, without rewriting any evidence timestamp
+            # or claiming that later quote/driver work extends freshness.
+            report = preflight_profile(self.profile, now=observed_at)
             _require(report.profile_complete, 'RUNNER_PROFILE_INCOMPLETE')
-            quote, account = self._observations(now)
-            risk = risk if risk is not None else evaluate(risk_policy(self.profile), account.risk, now=now)
+            quote, account = self._observations(now, committed=committed)
+            risk = risk if risk is not None else evaluate(risk_policy(self.profile), account.risk, now=observed_at)
             assessment, binding = _assess(self.profile, self.evidence, self.driver,
-                                          self.implementation_verifier, now)
-            signal = self.driver.callback(DecisionInput(now=now, profile=self.profile, quote=quote, account=account),
+                                          self.implementation_verifier, observed_at)
+            signal = self.driver.callback(DecisionInput(now=observed_at, profile=self.profile, quote=quote, account=account),
                                           self.driver.parameters_json)
             metadata = _signal_metadata(signal)
-            execution_now, deadline_reasons = self._carry_execution_time(now, metadata)
+            execution_now, deadline_reasons = self._carry_execution_time(observed_at, metadata)
             blocked = tuple(dict.fromkeys(signal.execution_block_reasons + deadline_reasons))
             if blocked:
                 metadata['execution_block_reasons'] = blocked
@@ -584,7 +647,7 @@ class Runner:
                     reasons=assessment.reasons + blocked,
                     reconciled_orders=reconciled, protective_action_needed=risk.protective_action_needed,
                     **metadata)
-            order = self._order(signal, account, now)
+            order = self._order(signal, account, observed_at)
             if order is None:
                 return TickResult(mode=self.mode, status='hold', reasons=assessment.reasons,
                     reconciled_orders=reconciled, protective_action_needed=risk.protective_action_needed, **metadata)
@@ -593,7 +656,7 @@ class Runner:
                 reasons += ('RUNNER_RISK_BLOCKS_ENTRY',)
             universe_buy = order.side == 'buy' and self.profile.universe_rule_sha256 is not None
             if universe_buy:
-                reasons += self._universe_reasons(entry_allow, risk.universe, now)
+                reasons += self._universe_reasons(entry_allow, risk.universe, observed_at)
             if reasons:
                 return TickResult(mode=self.mode, status='blocked', reasons=reasons, client_id=order.client_id,
                     reconciled_orders=reconciled, protective_action_needed=risk.protective_action_needed, **metadata)
@@ -602,7 +665,7 @@ class Runner:
                     client_id=order.client_id, protective_action_needed=risk.protective_action_needed, **metadata)
             if self.stopped:
                 return TickResult(mode=self.mode, status='stopped', reasons=('RUNNER_STOPPED',), **metadata)
-            session_id = self._session(binding, now) if order.side == 'buy' else self._exit_session_id()
+            session_id = self._session(binding, observed_at) if order.side == 'buy' else self._exit_session_id()
             if universe_buy:
                 self._universe_batch(risk.universe)
             states = self.controller.states()
@@ -623,9 +686,13 @@ class Runner:
                 metadata['execution_block_reasons'] = deadline_reasons
                 return TickResult(mode=self.mode, status='blocked', reasons=deadline_reasons,
                     client_id=order.client_id, reconciled_orders=reconciled, **metadata)
-            self.controller.reserve(order, self.profile.instrument_rules, session_id=session_id, now=execution_now)
+            if self._committed_provider is not None:
+                self._controller_boundary()
+            reserved = self.controller.reserve(order, self.profile.instrument_rules,
+                                               session_id=session_id, now=execution_now)
             if self.stopped:
-                state = self.controller.cancel(order.client_id, now=now)
+                state = self._cancel_stopped_reservation(reserved, requested_now=now,
+                                                         execution_now=execution_now)
                 return TickResult(mode=self.mode, status='stopped', reasons=('RUNNER_STOPPED',),
                                   client_id=state.client_id, order_status=state.status, **metadata)
             # Controller durably writes DISPATCHING before its single send.
@@ -634,10 +701,11 @@ class Runner:
                 metadata['execution_block_reasons'] = deadline_reasons
                 return TickResult(mode=self.mode, status='blocked', reasons=deadline_reasons,
                     client_id=order.client_id, order_status='RESERVED', reconciled_orders=reconciled, **metadata)
+            if self._committed_provider is not None:
+                self._controller_boundary()
             state = self.controller.dispatch(order.client_id, now=execution_now)
-            return TickResult(mode=self.mode, status='submitted', client_id=state.client_id,
-                order_status=state.status, reconciled_orders=reconciled,
-                protective_action_needed=risk.protective_action_needed, **metadata)
+            return self._dispatch_tick_result(state, reconciled_orders=reconciled,
+                protective_action_needed=risk.protective_action_needed, metadata=metadata)
         except RunnerError as exc:
             return TickResult(mode=self.mode, status='blocked', reasons=(str(exc),), **metadata)
         except Exception:
@@ -676,8 +744,16 @@ class Runner:
         """
         with self._protective_action(now):
             _require(type(signal) is Signal and signal.action == 'exit', 'RUNNER_EXIT_REQUIRED')
-            _, account = self._observations(now)
-            order = self._order(signal, account, now)
+            committed = None
+            session_id = None
+            if self._committed_provider is not None:
+                session_id = self._exit_session_id()
+                committed = Controller.read_committed_account(self.controller, now=now, session_id=session_id)
+                _require(type(committed) is CommittedControllerObservation and committed.risk is None,
+                         'RUNNER_COMMITTED_OBSERVATION_REQUIRED')
+            _, account = self._observations(now, committed=committed)
+            observed_at = committed.completed_at if committed is not None else now
+            order = self._order(signal, account, observed_at)
             states = self.controller.states()
             existing = next((s for s in states if s.client_id == order.client_id), None)
             if existing is not None:
@@ -685,9 +761,14 @@ class Runner:
                 return existing
             _require(not any(active(s) and s.side == 'sell' and s.symbol == order.symbol for s in states),
                      'RUNNER_OUTSTANDING_ORDERS')
+            if self._committed_provider is not None:
+                self._controller_boundary()
             self.controller.reserve(order, self.profile.instrument_rules,
-                                    session_id=self._exit_session_id(), now=now)
-            return self.controller.dispatch(order.client_id, now=now)
+                                    session_id=session_id if committed is not None else self._exit_session_id(),
+                                    now=observed_at)
+            if self._committed_provider is not None:
+                self._controller_boundary()
+            return self.controller.dispatch(order.client_id, now=observed_at)
 
     def run(self, timestamps, *, max_steps, should_stop=None, entry_allow=None) -> tuple[TickResult, ...]:
         """Bounded synchronous adapter over an external clock/scheduler iterable.

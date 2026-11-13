@@ -67,6 +67,25 @@ class AccountObservation:
 
 
 @dataclass(frozen=True, kw_only=True)
+class CommittedControllerObservation:
+    """Finite actual observations, not source authentication or execution authority.
+
+    committed is the exact CommittedAccountProjection returned by _account. Its
+    annotation stays opaque to avoid the reader/AccountObservation import cycle.
+    risk is None on the separate account-only path for explicit reducing work.
+    Constructing or copying this value never issues a permit or source proof.
+    """
+    account: AccountObservation = field(repr=False)
+    risk: risk.RiskResult | None = field(repr=False)
+    committed: object = field(repr=False)
+    completed_at: datetime
+
+    @property
+    def execution_ready(self):
+        return False
+
+
+@dataclass(frozen=True, kw_only=True)
 class _AccountRead:
     """Private per-call pair; committed metadata never becomes an order permit."""
     observation: AccountObservation
@@ -611,7 +630,7 @@ class Controller:
                 view = _view(actual)
             finished = self._completion_time(frame)
             self._completion_lifetime(frame, finished, rules, frame.prepared)
-            return finished, ctx, view
+            return finished, ctx, view, read
         except _CompletionRefused:
             raise
         except Exception:
@@ -656,6 +675,8 @@ class Controller:
         from execution_launch.committed_account import CommittedAccountProvider, CommittedAccountProjection
         committed = None
         if type(self.account_provider) is CommittedAccountProvider:
+            if self._completion_provider is not self.account_provider:
+                raise _CompletionRefused('COMMITTED_COMPLETION_AUTHORITY_REFUSED')
             committed = self.account_provider.read(now=now, transaction=transaction)
             if type(committed) is not CommittedAccountProjection:
                 raise ValueError('COMMITTED_ACCOUNT_PROJECTION_REQUIRED')
@@ -803,20 +824,50 @@ class Controller:
     @_exact
     def observe(self, *, now):
         """Persist risk latches independently of an order attempt; never place an exit."""
+        return self._observe_core(now=now, session_id=None, paired=False, snapshot_risk=True)
+
+    @_exact
+    def observe_committed(self, *, now, session_id=None):
+        """Pair the final actual account read with this operation's checked risk."""
+        self._require_committed_observer()
+        return self._observe_core(now=now, session_id=session_id, paired=True, snapshot_risk=True)
+
+    @_exact
+    def read_committed_account(self, *, now, session_id=None):
+        """Validate an account for explicit reducing work, without entry-risk writes.
+
+        This does not approve an exit. Existing reserve/dispatch authorization
+        still applies. owner.load_context can retain its normal snapshot effects.
+        """
+        self._require_committed_observer()
+        return self._observe_core(now=now, session_id=session_id, paired=True, snapshot_risk=False)
+
+    def _require_committed_observer(self):
+        if self._completion_provider is None or self.account_provider is not self._completion_provider:
+            raise ValueError('COMMITTED_OBSERVATION_PROVIDER_REQUIRED')
+
+    def _observe_core(self, *, now, session_id, paired, snapshot_risk):
         with self.journal.transaction() as tx:
             orders, _, halted, _ = _fold(tx.events)
             frame, now = self._completion_start(tx, now)
             read = self._account(now, tx)
             obs = read.observation
-            ctx = self._completion_owner(frame, read, self._positions(obs, orders), None, now)
-            if halted:
-                obs = replace(obs, risk=replace(obs.risk, halted=True))
-            # Runner and coordinator buy checks use the snapshot this observation saw (spec section 6).
-            result = replace(self._snapshot_risk(tx, obs, now, orders, ctx, committed=read.committed), universe=ctx.universe)
+            ctx = self._completion_owner(frame, read, self._positions(obs, orders), session_id, now)
+            result = None
+            if snapshot_risk:
+                if halted:
+                    obs = replace(obs, risk=replace(obs.risk, halted=True))
+                # Keep the original result/reasons; final pure comparison preserves its semantics.
+                result = replace(self._snapshot_risk(tx, obs, now, orders, ctx, committed=read.committed),
+                                 universe=ctx.universe)
             if frame is not None:
                 frame.observed_result = result
-                _, latest, _ = self._completion_recheck(frame)
-                result = replace(result, universe=latest.universe)
+                finished, latest, _, final_read = self._completion_recheck(frame, session_id=session_id)
+                if result is not None:
+                    result = replace(result, universe=latest.universe)
+                if paired:
+                    return CommittedControllerObservation(account=final_read.observation, risk=result,
+                        committed=final_read.committed, completed_at=finished)
             return result
 
     @_exact
@@ -1066,14 +1117,14 @@ class Controller:
                     raise ValueError('adapter request identity mismatch')
                 request_sha = request_digest(request)
                 if frame is not None:
-                    now, _, _ = self._completion_recheck(frame, order, rules, session_id, permit, request, request_sha)
+                    now, _, _, _ = self._completion_recheck(frame, order, rules, session_id, permit, request, request_sha)
                 reserved = tx.append('reserved', {'client_id':key,'order_digest':sha,'order':order_body(order),
                           'rules':plain(rules),'session_id':session_id,'request_digest':request_sha,
                           'permit_digest':digest(permit),'trade_date':trade_date}, now=now)
                 self._permits[key] = (permit,digest(permit))
                 self._known.add(key)
                 if frame is not None:
-                    _, _, view = self._completion_recheck(frame, order, rules, session_id, permit, request,
+                    _, _, view, _ = self._completion_recheck(frame, order, rules, session_id, permit, request,
                         request_sha, exclude=key, reserved_row=reserved)
                     return view
                 return _view(_fold(tx.events)[0][key])
@@ -1105,7 +1156,7 @@ class Controller:
                         raise ValueError('prepared request changed')
                     request_sha, permit_sha = request_digest(request), digest(issued)
                     if frame is not None:
-                        now, _, _ = self._completion_recheck(frame, obj, rules, rec['session_id'], issued,
+                        now, _, _, _ = self._completion_recheck(frame, obj, rules, rec['session_id'], issued,
                             request, request_sha, exclude=client_id)
                     prior = tx.events
                     count, size = len(prior), tx._size
@@ -1117,7 +1168,7 @@ class Controller:
                         proof = self._completion_proof(frame, row, count=count, size=size, previous=previous,
                             obj=obj, request_sha=request_sha, permit_sha=permit_sha)
                         try:
-                            now, _, _ = self._completion_recheck(frame, obj, rules, rec['session_id'], issued,
+                            now, _, _, _ = self._completion_recheck(frame, obj, rules, rec['session_id'], issued,
                                 request, request_sha, exclude=client_id, proof=proof)
                         except _CompletionRefused as exc:
                             return self._completion_no_send(frame, proof, rec, str(exc))
