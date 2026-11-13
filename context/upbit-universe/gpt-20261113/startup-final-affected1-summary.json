@@ -1,0 +1,27 @@
+{
+  "label": "startup-final-affected1",
+  "head": "ae3f3c3909781a8017a602a70b1501ac6ed4b756",
+  "source_hash": "41f92e4b72dd5488f01f221d4cccc20f290d4756a10ac10b841cd09b9dbeddf8",
+  "total": 83,
+  "counts": {
+    "PASS": 82,
+    "FAIL": 1,
+    "NOT_RUN": 0
+  },
+  "process_segments": 1,
+  "seconds": 507.93,
+  "current_segment_seconds": 507.93,
+  "sum_test_seconds": 505.552,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "real_homes_check_scope": "metadata before imports/discovery through completion",
+  "failures": [
+    {
+      "test": "launch/launch_committed_startup_integration/test_required_cutoff_and_new_seoul_day_are_policy_refusals_not_fresh_or_generic_stale",
+      "status": "FAIL",
+      "seconds": 0.0124,
+      "detail": "AccountIntervalError: ACCOUNT_INTERVAL_BOUNDARY_NOT_BRACKETED"
+    }
+  ]
+}

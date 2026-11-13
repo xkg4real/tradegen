@@ -1,0 +1,36 @@
+{
+  "kind": "public_dependency_artifact_hashes",
+  "source_report_sha256": "9c2d575002cd8bc7ba9fc55016651ca92b9042b468ca89dd297924431ee21c8b",
+  "python_full_version": "3.13.16",
+  "dependencies": [
+    {
+      "name": "fido2",
+      "version": "2.2.1",
+      "public_artifact_url": "https://files.pythonhosted.org/packages/71/84/198d99c3312557ef6121cf78c38281efe9b3bc88cba0e2c05446f38a024d/fido2-2.2.1-py3-none-any.whl",
+      "artifact_sha256": "ed397da981b9ab133da6ead7309e41f924b566b749956129efe286fae097749f",
+      "installed_record_sha256": "ae8699467e558c46b46f2eadf065b911fc6133453b48bce7404e4fc73aaf12ec"
+    },
+    {
+      "name": "cryptography",
+      "version": "49.0.0",
+      "public_artifact_url": "https://files.pythonhosted.org/packages/a9/3c/f3ad17eecc1a57b0ba236dc01f90e783c51f4a2f35f64777cc4f47a184b2/cryptography-49.0.0-cp311-abi3-manylinux_2_34_x86_64.whl",
+      "artifact_sha256": "cbc77da8c523d5abd028635ba850a6966fcee2c82e2bf65a41d1d8afe0f98be9",
+      "installed_record_sha256": "2b5dff08091860d8d82784bc200900b0a6477719fc6f7808b97066998f063106"
+    },
+    {
+      "name": "cffi",
+      "version": "2.0.0",
+      "public_artifact_url": "https://files.pythonhosted.org/packages/98/df/0a1755e750013a2081e863e7cd37e0cdd02664372c754e5560099eb7aa44/cffi-2.0.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl",
+      "artifact_sha256": "c8d3b5532fc71b7a77c09192b4a5a200ea992702734a2e9279a37f2478236f26",
+      "installed_record_sha256": "1de4b9d004282b97d2963460ee5b9ede20b5dcbd19e3b54c6f92c88df63f6a08"
+    },
+    {
+      "name": "pycparser",
+      "version": "3.0",
+      "public_artifact_url": "https://files.pythonhosted.org/packages/0c/c3/44f3fbbfa403ea2a7c779186dc20772604442dde72947e7d01069cbe98e3/pycparser-3.0-py3-none-any.whl",
+      "artifact_sha256": "b727414169a36b7d524c1c3e31839a521725078d7b2ff038656844266160a992",
+      "installed_record_sha256": "1c80d41d88b3a2f631204f3fb255703c46d67b55d8fe4f31d38a9757b5f1a8ac"
+    }
+  ],
+  "scope": "Independent Cloud broker environment only; not the application shared environment or owner PC."
+}

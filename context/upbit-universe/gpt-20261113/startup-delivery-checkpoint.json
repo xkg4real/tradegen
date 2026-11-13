@@ -1,0 +1,21 @@
+{
+  "recorded_at": "2026-11-14T04:47:08+09:00",
+  "id": "protective-hold/committed-startup-retention",
+  "pr": "https://github.com/xkg4real/tradegen/pull/58",
+  "state": "MERGED",
+  "main": "847b66a7fd1db93611ea2d1f1a042d1311e1c918",
+  "delivery": "de547f10375e1b30e2757c8c32c057c32a749138",
+  "main_tree": "dad2ccced3e956d9ee8288b10b5ca29281eb1abb",
+  "delivery_tree": "dad2ccced3e956d9ee8288b10b5ca29281eb1abb",
+  "tree_identical": true,
+  "source_commit": "811c780f304f47f239d6e11a5cea1c272c6f970d",
+  "final_test_head": "a616fb06319e023ea1518afc078858a4d52e30ce",
+  "coverage_file": "startup-final-coverage.json",
+  "source_authenticated": false,
+  "execution_ready": false,
+  "live_api_or_orders": 0,
+  "windows_iphone_native": "NOT_RUN",
+  "usage_weekly_pct": "unknown",
+  "usage_source": "unavailable",
+  "next_gap": "same-provider producer/Coordinator link and production source coverage"
+}

@@ -1,0 +1,121 @@
+{"label": "startup-final-affected1", "total": 83, "completed": 0, "source_hash": "41f92e4b72dd5488f01f221d4cccc20f290d4756a10ac10b841cd09b9dbeddf8", "segments": 1}
+Traceback (most recent call last):
+  File "/workspace/tradegen-committed-startup-1113/tests/run_all.py", line 112, in run
+    fn()
+    ~~^^
+  File "/workspace/tradegen-committed-startup-1113/tests/execution_acceptance.py", line 98, in run
+    fn()
+    ~~^^
+  File "/workspace/tradegen-committed-startup-1113/tests/control_acceptance.py", line 56, in inner
+    fn()
+    ~~^^
+  File "/workspace/tradegen-committed-startup-1113/tests/launch_committed_startup_integration.py", line 601, in test_required_cutoff_and_new_seoul_day_are_policy_refusals_not_fresh_or_generic_stale
+    with flat(start=start) as e:
+         ~~~~^^^^^^^^^^^^^
+  File "/workspace/.python/cpython-3.13.16-linux-x86_64-gnu/lib/python3.13/contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "/workspace/tradegen-committed-startup-1113/tests/launch_committed_startup_integration.py", line 123, in flat
+    with F.fixture(env_options=env_options, **options) as e:
+         ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/.python/cpython-3.13.16-linux-x86_64-gnu/lib/python3.13/contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "/workspace/tradegen-committed-startup-1113/tests/launch_guard_generation_archive.py", line 73, in fixture
+    with CA.fixture(held=held, start=start, env_options=options, capture_options=capture_options) as (storage, env, captured):
+         ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/.python/cpython-3.13.16-linux-x86_64-gnu/lib/python3.13/contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "/workspace/tradegen-committed-startup-1113/tests/launch_guard_capture_archive.py", line 59, in fixture
+    captured=I.capture(env, **(capture_options or {}))
+  File "/workspace/tradegen-committed-startup-1113/tests/launch_guard_capture_material.py", line 92, in capture
+    staged = source.collect(RecordingSource(), previous=previous, anchor=anchor, coverage=coverage,
+                            clock=clock, trade_fees=fee_inputs)
+  File "/workspace/tradegen-committed-startup-1113/execution_launch/account_interval.py", line 458, in collect
+    _require(not in_window or preview.interval.end == boundary, "ACCOUNT_INTERVAL_BOUNDARY_NOT_BRACKETED")
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/tradegen-committed-startup-1113/execution_launch/account_interval.py", line 54, in _require
+    raise AccountIntervalError(code)
+execution_launch.account_interval.AccountIntervalError: ACCOUNT_INTERVAL_BOUNDARY_NOT_BRACKETED
+PASS launch/launch_guard_generation_format/test_bool_is_not_int_or_decimal_and_receipt_flags_are_exact_bool
+PASS launch/launch_guard_generation_format/test_bounded_integer_parse_and_overlong_typed_scalars_are_fixed_refusals
+PASS launch/launch_guard_generation_format/test_capture_registry_is_unchanged_and_returned_records_are_not_shared_cached_instances
+PASS launch/launch_guard_generation_format/test_closed_revision_kind_and_every_hash_field_are_enforced
+PASS launch/launch_guard_generation_format/test_decimal_sign_scale_and_positive_exponent_survive_all_nested_paths
+PASS launch/launch_guard_generation_format/test_exact_completion_golden_preserves_receipt_complete_and_observed_prefix_roles
+PASS launch/launch_guard_generation_format/test_exact_input_golden_document_and_domain_digest
+PASS launch/launch_guard_generation_format/test_exact_record_and_structure_budget_boundaries_are_symmetric
+PASS launch/launch_guard_generation_format/test_finite_decimal_bounds_precede_any_expanding_formatting
+PASS launch/launch_guard_generation_format/test_limits_cannot_expand_hard_ceilings_accept_bool_or_hide_deleted_slots
+PASS launch/launch_guard_generation_format/test_missing_nested_attributes_deleted_slots_and_replaced_types_are_fixed_refusals
+PASS launch/launch_guard_generation_format/test_naive_invalid_and_subclass_datetimes_are_refused
+PASS launch/launch_guard_generation_format/test_noncanonical_duplicate_unknown_and_missing_json_fields_refuse
+PASS launch/launch_guard_generation_format/test_optional_values_are_explicit_and_supported_recovery_condition_is_lossless
+PASS launch/launch_guard_generation_format/test_original_instants_normalize_to_utc_without_becoming_recording_time
+PASS launch/launch_guard_generation_format/test_owner_claim_amount_semantics_are_preserved_without_authenticating_it
+PASS launch/launch_guard_generation_format/test_receipt_replay_flag_and_each_record_observation_have_distinct_identity
+PASS launch/launch_guard_generation_format/test_record_byte_depth_node_and_text_preflight_happens_before_json_allocation
+PASS launch/launch_guard_generation_format/test_record_construction_detaches_nested_objects_without_arbitrary_copy_hooks
+PASS launch/launch_guard_generation_format/test_supported_condition_and_optional_budget_rules_are_not_relaxed
+PASS launch/launch_guard_generation_format/test_unknown_nested_attributes_and_subclasses_are_rejected_before_copying
+PASS launch/launch_guard_generation_format/test_unknown_scalar_tags_noncanonical_scalars_and_raw_json_numbers_refuse
+PASS launch/launch_committed_startup_integration/test_actual_controller_completion_clock_is_retained_before_cancel_or_status
+PASS launch/launch_committed_startup_integration/test_actual_endpoint_partial_fill_fee_and_open_residual_are_reconciled_not_counted_as_flat
+PASS launch/launch_committed_startup_integration/test_actual_endpoint_terminal_fill_reconciles_exact_quantity_and_cumulative_fee
+PASS launch/launch_committed_startup_integration/test_actual_hidden_trough_halt_and_floors_survive_restore_without_liquidation
+PASS launch/launch_committed_startup_integration/test_actual_open_zero_fill_status_requires_new_reconciled_row_and_keeps_residual
+PASS launch/launch_committed_startup_integration/test_actual_owner_epoch_or_code_change_blocks_before_any_adapter_operation
+PASS launch/launch_committed_startup_integration/test_actual_reducing_reserve_dispatch_unknown_then_restart_status_never_retransmits
+PASS launch/launch_committed_startup_integration/test_actual_reserved_namespace_cancel_has_no_remote_request_or_risk_snapshot
+PASS launch/launch_committed_startup_integration/test_actual_status_then_heavy_final_durable_read_expiry_or_clock_rollback_refuses_success
+PASS launch/launch_committed_startup_integration/test_captured_broker_evidence_conflicts_with_own_never_sent_reservation
+PASS launch/launch_committed_startup_integration/test_complete_without_retained_result_is_read_only_until_explicit_actual_replay_receipt
+PASS launch/launch_committed_startup_integration/test_current_owner_mutation_after_actual_status_is_rechecked_before_success
+PASS launch/launch_committed_startup_integration/test_each_pending_durable_phase_is_inspected_without_resuming_then_exactly_retried
+PASS launch/launch_committed_startup_integration/test_empty_local_orders_do_not_hide_external_open_broker_order
+PASS launch/launch_committed_startup_integration/test_foreign_reserved_namespace_remains_unresolved_without_remote_or_local_cancel
+PASS launch/launch_committed_startup_integration/test_heavy_final_durable_read_expiry_never_returns_success_or_changes_original_checkpoint
+PASS launch/launch_committed_startup_integration/test_last_inspection_and_reconciliation_clock_follows_actual_heavy_dependency_work
+PASS launch/launch_committed_startup_integration/test_local_order_limit_is_preflighted_before_any_cancellation_or_status_dispatch
+PASS launch/launch_committed_startup_integration/test_mismatched_cumulative_status_fee_or_broker_identity_cannot_claim_reconciliation
+PASS launch/launch_committed_startup_integration/test_old_uncommitted_source_interval_cannot_be_backfilled_by_relabeling_startup_time
+PASS launch/launch_committed_startup_integration/test_original_source_gap_refusal_and_controlled_runner_boundary_remain_closed
+FAIL launch/launch_committed_startup_integration/test_required_cutoff_and_new_seoul_day_are_policy_refusals_not_fresh_or_generic_stale AccountIntervalError: ACCOUNT_INTERVAL_BOUNDARY_NOT_BRACKETED
+PASS launch/launch_committed_startup_integration/test_retained_input_actual_commit_new_integrations_and_true_empty_reconciliation
+PASS launch/launch_committed_startup_integration/test_same_actual_owner_head_does_not_override_changed_session_effective_limits
+PASS launch/launch_committed_startup_integration/test_stale_boundary_preserves_original_times_and_never_calls_status_cancel_or_strategy
+PASS launch/launch_committed_startup_integration/test_startup_missing_strict_journal_refuses_without_creating_an_empty_replacement
+PASS launch/launch_committed_startup_integration/test_status_fill_missing_from_retained_endpoint_needs_next_real_generation
+PASS launch/launch_committed_startup_integration/test_unknown_and_interrupted_dispatch_remain_uncertain_and_never_resend
+PASS launch/launch_guards/test_archive_packet_native_directory_pins_do_not_gain_write_or_delete_sharing
+PASS launch/launch_guards/test_archive_packet_writes_remain_exclusive_explicit_and_outside_authority
+PASS launch/launch_guards/test_continuous_archive_writes_are_exact_and_cannot_migrate_into_pure_modules
+PASS launch/launch_guards/test_evidence_object_writes_are_exact_and_cannot_gain_head_or_order_authority
+PASS launch/launch_guards/test_guard_reads_pin_utf8
+PASS launch/launch_guards/test_head_authority_writes_are_exact_and_operator_steps_have_no_runtime_caller
+PASS launch/launch_guards/test_incident_cas_is_exactly_one_commit_call_with_no_other_authority
+PASS launch/launch_guards/test_incident_dynamic_helper_and_buffered_writes_cannot_gain_unreviewed_callers
+PASS launch/launch_guards/test_incident_provisioning_has_only_explicit_operator_callers_and_no_runtime_imports
+PASS launch/launch_guards/test_incident_store_writes_are_exact_and_owned_by_their_original_methods
+PASS launch/launch_guards/test_launch_and_account_tests_start_no_process
+PASS launch/launch_guards/test_launch_and_network_do_not_directly_sign_arm_or_open_http
+PASS launch/launch_guards/test_launch_guard_names_the_effect_behind_bare_names_aliases_and_constant_getattr
+PASS launch/launch_guards/test_launch_guard_negative_controls
+PASS launch/launch_guards/test_launch_guard_pins_transport_routes_and_process_effects
+PASS launch/launch_guards/test_launch_suite_is_complete_registered_and_import_errors_fail
+PASS launch/launch_guards/test_launch_write_ban_covers_every_shape_and_pins_writers_by_file_and_exact_call
+PASS launch/launch_guards/test_live_history_writes_are_exact_and_only_through_pinned_checked_targets
+PASS launch/launch_guards/test_new_packages_are_in_runtime_and_acting_graph
+PASS launch/launch_guards/test_new_runtime_packages_are_signed_recursively_by_owner_and_signer
+PASS launch/launch_guards/test_protective_store_writes_stay_exact_and_cannot_self_initialize_authority
+PASS launch/launch_guards/test_recovery_cas_remains_one_exact_commit_call_and_never_moves_to_operation
+PASS launch/launch_guards/test_recovery_provisioning_is_only_the_exact_owner_function_and_never_runtime_imported
+PASS launch/launch_guards/test_recovery_retained_helpers_flags_and_buffered_writes_cannot_gain_aliases_or_callers
+PASS launch/launch_guards/test_recovery_store_writes_and_singleflight_lock_are_exact_and_method_scoped
+PASS launch/launch_guards/test_research_bundle_store_writes_and_operator_provisioning_stay_narrow
+PASS launch/launch_guards/test_study_writes_are_exact_and_only_through_pinned_checked_targets
+PASS launch/launch_guards/test_trusted_head_is_advanced_only_by_pinned_callers
+PASS launch/launch_guards/test_universe_store_writes_are_exact_and_cannot_migrate
+PASS launch/launch_guards/test_upbit_read_archive_has_only_its_exact_capture_transport_import
+PASS launch/launch_guards/test_wrapper_flags_a_change_to_the_real_baseline_history_and_head_homes
+PASS launch/launch_carry_review/test_independent_behavior_document_hash_and_factory_source_closure_match
+PASS launch/launch_carry_review/test_both_factories_and_independent_signer_detect_each_committed_account_dependency
+{"label": "startup-final-affected1", "head": "ae3f3c3909781a8017a602a70b1501ac6ed4b756", "source_hash": "41f92e4b72dd5488f01f221d4cccc20f290d4756a10ac10b841cd09b9dbeddf8", "total": 83, "counts": {"PASS": 82, "FAIL": 1, "NOT_RUN": 0}, "process_segments": 1, "seconds": 507.93, "current_segment_seconds": 507.93, "sum_test_seconds": 505.552, "keyless_names": 19, "source_unchanged": true, "real_homes_unchanged": true, "real_homes_check_scope": "metadata before imports/discovery through completion", "failures": [{"test": "launch/launch_committed_startup_integration/test_required_cutoff_and_new_seoul_day_are_policy_refusals_not_fresh_or_generic_stale", "status": "FAIL", "seconds": 0.0124, "detail": "AccountIntervalError: ACCOUNT_INTERVAL_BOUNDARY_NOT_BRACKETED"}]}

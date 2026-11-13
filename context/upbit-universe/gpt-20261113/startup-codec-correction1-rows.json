@@ -1,0 +1,134 @@
+[
+  {
+    "test": "launch/launch_guard_generation_format/test_bool_is_not_int_or_decimal_and_receipt_flags_are_exact_bool",
+    "status": "PASS",
+    "seconds": 0.024,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_format/test_bounded_integer_parse_and_overlong_typed_scalars_are_fixed_refusals",
+    "status": "PASS",
+    "seconds": 0.0032,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_format/test_capture_registry_is_unchanged_and_returned_records_are_not_shared_cached_instances",
+    "status": "PASS",
+    "seconds": 0.004,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_format/test_closed_revision_kind_and_every_hash_field_are_enforced",
+    "status": "PASS",
+    "seconds": 0.0012,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_format/test_decimal_sign_scale_and_positive_exponent_survive_all_nested_paths",
+    "status": "PASS",
+    "seconds": 0.0125,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_format/test_exact_completion_golden_preserves_receipt_complete_and_observed_prefix_roles",
+    "status": "PASS",
+    "seconds": 0.0007,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_format/test_exact_input_golden_document_and_domain_digest",
+    "status": "PASS",
+    "seconds": 0.0038,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_format/test_exact_record_and_structure_budget_boundaries_are_symmetric",
+    "status": "PASS",
+    "seconds": 0.0057,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_format/test_finite_decimal_bounds_precede_any_expanding_formatting",
+    "status": "PASS",
+    "seconds": 0.0078,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_format/test_limits_cannot_expand_hard_ceilings_accept_bool_or_hide_deleted_slots",
+    "status": "PASS",
+    "seconds": 0.0015,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_format/test_missing_nested_attributes_deleted_slots_and_replaced_types_are_fixed_refusals",
+    "status": "PASS",
+    "seconds": 0.0013,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_format/test_naive_invalid_and_subclass_datetimes_are_refused",
+    "status": "PASS",
+    "seconds": 0.0032,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_format/test_noncanonical_duplicate_unknown_and_missing_json_fields_refuse",
+    "status": "PASS",
+    "seconds": 0.0061,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_format/test_optional_values_are_explicit_and_supported_recovery_condition_is_lossless",
+    "status": "PASS",
+    "seconds": 0.0064,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_format/test_original_instants_normalize_to_utc_without_becoming_recording_time",
+    "status": "PASS",
+    "seconds": 0.0026,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_format/test_owner_claim_amount_semantics_are_preserved_without_authenticating_it",
+    "status": "PASS",
+    "seconds": 0.0025,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_format/test_receipt_replay_flag_and_each_record_observation_have_distinct_identity",
+    "status": "PASS",
+    "seconds": 0.0026,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_format/test_record_byte_depth_node_and_text_preflight_happens_before_json_allocation",
+    "status": "PASS",
+    "seconds": 0.0026,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_format/test_record_construction_detaches_nested_objects_without_arbitrary_copy_hooks",
+    "status": "PASS",
+    "seconds": 0.0017,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_format/test_supported_condition_and_optional_budget_rules_are_not_relaxed",
+    "status": "PASS",
+    "seconds": 0.0012,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_format/test_unknown_nested_attributes_and_subclasses_are_rejected_before_copying",
+    "status": "PASS",
+    "seconds": 0.0066,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_format/test_unknown_scalar_tags_noncanonical_scalars_and_raw_json_numbers_refuse",
+    "status": "PASS",
+    "seconds": 0.0123,
+    "detail": ""
+  }
+]

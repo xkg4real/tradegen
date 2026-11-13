@@ -1,0 +1,20 @@
+{
+  "label": "startup-related1",
+  "head": "811c780f304f47f239d6e11a5cea1c272c6f970d",
+  "source_hash": "cbe4ebe714df6c4eef523a08ce716d7d346545dc1b53521e6f85dd437cc79a9e",
+  "total": 321,
+  "counts": {
+    "PASS": 321,
+    "FAIL": 0,
+    "NOT_RUN": 0
+  },
+  "process_segments": 1,
+  "seconds": 735.895,
+  "current_segment_seconds": 735.895,
+  "sum_test_seconds": 731.949,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "real_homes_check_scope": "metadata before imports/discovery through completion",
+  "failures": []
+}

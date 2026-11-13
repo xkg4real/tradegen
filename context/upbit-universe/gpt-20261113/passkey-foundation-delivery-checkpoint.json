@@ -1,0 +1,21 @@
+{
+  "recorded_at": "2026-11-14T04:47:08+09:00",
+  "id": "universe-pr5/passkey-verification-foundation",
+  "pr": "https://github.com/xkg4real/tradegen/pull/59",
+  "state": "MERGED",
+  "main": "5bb4d7d8bdf65fbd6a3048530947b72b563406a7",
+  "delivery": "3af901e076f050febbd20f0252b3ad78e78108d4",
+  "main_tree": "a502e5b5654fb482082a627bb20453390c295932",
+  "delivery_tree": "a502e5b5654fb482082a627bb20453390c295932",
+  "tree_identical": true,
+  "source_commit": "b0cb8b34a9cc2d12c421b5f308f98680091b47ac",
+  "final_test_head": "fa29cdf384b2ba904cce7f34cdab0b2ab42a363b",
+  "coverage_file": "passkey-final-coverage.json",
+  "source_authenticated": false,
+  "execution_ready": false,
+  "live_api_or_orders": 0,
+  "windows_iphone_native": "NOT_RUN",
+  "usage_weekly_pct": "unknown",
+  "usage_source": "unavailable",
+  "next_gap": "independent grant, credential ledger, one-time challenge, HTTPS RP, Telegram and real archive consumers"
+}

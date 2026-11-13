@@ -1,0 +1,152 @@
+[
+  {
+    "test": "launch_passkey_contract/test_enrollment_and_proof_wire_roundtrip_and_domains_are_distinct",
+    "status": "PASS",
+    "seconds": 0.000975,
+    "detail": ""
+  },
+  {
+    "test": "launch_passkey_contract/test_envelope_roundtrip_preserves_original_raw_bytes_and_null_user_handle",
+    "status": "PASS",
+    "seconds": 0.000236,
+    "detail": ""
+  },
+  {
+    "test": "launch_passkey_contract/test_every_target_time_nonce_and_request_change_rebinds_challenge",
+    "status": "PASS",
+    "seconds": 0.000677,
+    "detail": ""
+  },
+  {
+    "test": "launch_passkey_contract/test_exact_types_deleted_slots_and_mutation_refuse_on_encode",
+    "status": "PASS",
+    "seconds": 8.7e-05,
+    "detail": ""
+  },
+  {
+    "test": "launch_passkey_contract/test_id_digest_is_not_full_material_binding_and_only_proof_request_has_codec",
+    "status": "PASS",
+    "seconds": 0.000198,
+    "detail": ""
+  },
+  {
+    "test": "launch_passkey_contract/test_origin_rp_policy_rejects_parent_domain_ip_userinfo_and_nonhttps",
+    "status": "PASS",
+    "seconds": 7.2e-05,
+    "detail": ""
+  },
+  {
+    "test": "launch_passkey_contract/test_preallocation_limits_reject_before_json_loader",
+    "status": "PASS",
+    "seconds": 0.011908,
+    "detail": ""
+  },
+  {
+    "test": "launch_passkey_contract/test_time_boundaries_timezone_roundtrip_and_bootstrap_not_active_grant",
+    "status": "PASS",
+    "seconds": 0.000273,
+    "detail": ""
+  },
+  {
+    "test": "launch_passkey_contract/test_unknown_fields_bool_integer_changed_derived_digest_and_noncanonical_wire_refuse",
+    "status": "PASS",
+    "seconds": 0.001502,
+    "detail": ""
+  },
+  {
+    "test": "launch_passkey_webauthn/test_actual_none_registration_then_real_enroll_proof_grants_no_authority",
+    "status": "PASS",
+    "seconds": 0.031769,
+    "detail": ""
+  },
+  {
+    "test": "launch_passkey_webauthn/test_backup_eligibility_cannot_change_and_backed_up_requires_eligible",
+    "status": "PASS",
+    "seconds": 0.003793,
+    "detail": ""
+  },
+  {
+    "test": "launch_passkey_webauthn/test_cbor_duplicate_keys_bool_integer_alias_depth_and_oversize_admission",
+    "status": "PASS",
+    "seconds": 0.004383,
+    "detail": ""
+  },
+  {
+    "test": "launch_passkey_webauthn/test_cose_unknown_algorithm_extra_key_and_duplicate_integer_key_refuse",
+    "status": "PASS",
+    "seconds": 0.001578,
+    "detail": ""
+  },
+  {
+    "test": "launch_passkey_webauthn/test_counter_rules_preserve_synced_zero_nonmonotone_and_device_bound_protection",
+    "status": "PASS",
+    "seconds": 0.020297,
+    "detail": ""
+  },
+  {
+    "test": "launch_passkey_webauthn/test_different_private_key_and_changed_signature_fail_real_library_verification",
+    "status": "PASS",
+    "seconds": 0.00298,
+    "detail": ""
+  },
+  {
+    "test": "launch_passkey_webauthn/test_duplicate_cross_origin_top_origin_and_trailing_client_json_refuse_before_library",
+    "status": "PASS",
+    "seconds": 0.001866,
+    "detail": ""
+  },
+  {
+    "test": "launch_passkey_webauthn/test_exact_origin_challenge_and_client_type_are_checked_with_valid_signatures",
+    "status": "PASS",
+    "seconds": 0.001501,
+    "detail": ""
+  },
+  {
+    "test": "launch_passkey_webauthn/test_expiry_future_and_mutated_context_types_refuse_before_library",
+    "status": "PASS",
+    "seconds": 0.002191,
+    "detail": ""
+  },
+  {
+    "test": "launch_passkey_webauthn/test_none_attestation_is_strict_and_entire_authdata_cose_is_consumed",
+    "status": "PASS",
+    "seconds": 0.001684,
+    "detail": ""
+  },
+  {
+    "test": "launch_passkey_webauthn/test_none_registration_rejects_off_curve_and_field_range_public_keys",
+    "status": "PASS",
+    "seconds": 0.002116,
+    "detail": ""
+  },
+  {
+    "test": "launch_passkey_webauthn/test_pure_reverification_is_not_a_one_time_ledger_or_archive_semantic_validator",
+    "status": "PASS",
+    "seconds": 0.003745,
+    "detail": ""
+  },
+  {
+    "test": "launch_passkey_webauthn/test_raw_json_whitespace_survives_evidence_and_real_signature_input",
+    "status": "PASS",
+    "seconds": 0.003094,
+    "detail": ""
+  },
+  {
+    "test": "launch_passkey_webauthn/test_rp_hash_is_verified_by_real_library_not_just_browser_origin",
+    "status": "PASS",
+    "seconds": 0.002717,
+    "detail": ""
+  },
+  {
+    "test": "launch_passkey_webauthn/test_user_handle_credential_id_and_request_id_mismatch_refuse",
+    "status": "PASS",
+    "seconds": 0.002175,
+    "detail": ""
+  },
+  {
+    "test": "launch_passkey_webauthn/test_uv_up_missing_flags_reserved_flags_and_extensions_refuse",
+    "status": "PASS",
+    "seconds": 0.001725,
+    "detail": ""
+  }
+]

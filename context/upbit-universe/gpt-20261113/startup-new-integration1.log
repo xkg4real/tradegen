@@ -1,0 +1,292 @@
+{"label": "startup-new-integration1", "total": 64, "completed": 0, "source_hash": "cbe4ebe714df6c4eef523a08ce716d7d346545dc1b53521e6f85dd437cc79a9e", "segments": 1}
+Traceback (most recent call last):
+  File "/workspace/tradegen-startup-validation-b-1113/tests/run_all.py", line 112, in run
+    fn()
+    ~~^^
+  File "/workspace/tradegen-startup-validation-b-1113/tests/execution_acceptance.py", line 98, in run
+    fn()
+    ~~^^
+  File "/workspace/tradegen-startup-validation-b-1113/tests/control_acceptance.py", line 56, in inner
+    fn()
+    ~~^^
+  File "/workspace/tradegen-startup-validation-b-1113/tests/launch_committed_startup_integration.py", line 419, in test_actual_endpoint_partial_fill_fee_and_open_residual_are_reconciled_not_counted_as_flat
+    dry = DryRunAdapter(upbit, results=(status_result(e), status_result(e)))
+                                        ~~~~~~~~~~~~~^^^
+  File "/workspace/tradegen-startup-validation-b-1113/tests/launch_committed_startup_integration.py", line 183, in status_result
+    return AdapterResult(**(dict(status='filled' if filled == 2 else 'partial' if filled else 'open',
+        code='synthetic-status', venue_order_id='integration-broker', client_id='integration-sent',
+        filled_quantity=filled, average_price=D('10000') if filled else None,
+        fee=e.expected_fee, fee_currency='KRW') | changes))
+  File "<string>", line 12, in __init__
+  File "/workspace/tradegen-startup-validation-b-1113/execution_orders/model.py", line 72, in __post_init__
+    raise ValueError("invalid adapter code")
+ValueError: invalid adapter code
+Traceback (most recent call last):
+  File "/workspace/tradegen-startup-validation-b-1113/tests/run_all.py", line 112, in run
+    fn()
+    ~~^^
+  File "/workspace/tradegen-startup-validation-b-1113/tests/execution_acceptance.py", line 98, in run
+    fn()
+    ~~^^
+  File "/workspace/tradegen-startup-validation-b-1113/tests/control_acceptance.py", line 56, in inner
+    fn()
+    ~~^^
+  File "/workspace/tradegen-startup-validation-b-1113/tests/launch_committed_startup_integration.py", line 458, in test_actual_endpoint_terminal_fill_reconciles_exact_quantity_and_cumulative_fee
+    dry = DryRunAdapter(upbit, results=(status_result(e),))
+                                        ~~~~~~~~~~~~~^^^
+  File "/workspace/tradegen-startup-validation-b-1113/tests/launch_committed_startup_integration.py", line 183, in status_result
+    return AdapterResult(**(dict(status='filled' if filled == 2 else 'partial' if filled else 'open',
+        code='synthetic-status', venue_order_id='integration-broker', client_id='integration-sent',
+        filled_quantity=filled, average_price=D('10000') if filled else None,
+        fee=e.expected_fee, fee_currency='KRW') | changes))
+  File "<string>", line 12, in __init__
+  File "/workspace/tradegen-startup-validation-b-1113/execution_orders/model.py", line 72, in __post_init__
+    raise ValueError("invalid adapter code")
+ValueError: invalid adapter code
+Traceback (most recent call last):
+  File "/workspace/tradegen-startup-validation-b-1113/tests/run_all.py", line 112, in run
+    fn()
+    ~~^^
+  File "/workspace/tradegen-startup-validation-b-1113/tests/execution_acceptance.py", line 98, in run
+    fn()
+    ~~^^
+  File "/workspace/tradegen-startup-validation-b-1113/tests/control_acceptance.py", line 56, in inner
+    fn()
+    ~~^^
+  File "/workspace/tradegen-startup-validation-b-1113/tests/launch_committed_startup_integration.py", line 441, in test_actual_open_zero_fill_status_requires_new_reconciled_row_and_keeps_residual
+    dry = DryRunAdapter(upbit, results=(status_result(e),))
+                                        ~~~~~~~~~~~~~^^^
+  File "/workspace/tradegen-startup-validation-b-1113/tests/launch_committed_startup_integration.py", line 183, in status_result
+    return AdapterResult(**(dict(status='filled' if filled == 2 else 'partial' if filled else 'open',
+        code='synthetic-status', venue_order_id='integration-broker', client_id='integration-sent',
+        filled_quantity=filled, average_price=D('10000') if filled else None,
+        fee=e.expected_fee, fee_currency='KRW') | changes))
+  File "<string>", line 12, in __init__
+  File "/workspace/tradegen-startup-validation-b-1113/execution_orders/model.py", line 72, in __post_init__
+    raise ValueError("invalid adapter code")
+ValueError: invalid adapter code
+Traceback (most recent call last):
+  File "/workspace/tradegen-startup-validation-b-1113/tests/run_all.py", line 112, in run
+    fn()
+    ~~^^
+  File "/workspace/tradegen-startup-validation-b-1113/tests/execution_acceptance.py", line 98, in run
+    fn()
+    ~~^^
+  File "/workspace/tradegen-startup-validation-b-1113/tests/control_acceptance.py", line 56, in inner
+    fn()
+    ~~^^
+  File "/workspace/tradegen-startup-validation-b-1113/tests/launch_committed_startup_integration.py", line 581, in test_actual_reducing_reserve_dispatch_unknown_then_restart_status_never_retransmits
+    dry = DryRunAdapter(upbit, results=(AdapterResult(status='unknown', code='synthetic-timeout'),
+                                        ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<string>", line 12, in __init__
+  File "/workspace/tradegen-startup-validation-b-1113/execution_orders/model.py", line 72, in __post_init__
+    raise ValueError("invalid adapter code")
+ValueError: invalid adapter code
+Traceback (most recent call last):
+  File "/workspace/tradegen-startup-validation-b-1113/tests/run_all.py", line 112, in run
+    fn()
+    ~~^^
+  File "/workspace/tradegen-startup-validation-b-1113/tests/execution_acceptance.py", line 98, in run
+    fn()
+    ~~^^
+  File "/workspace/tradegen-startup-validation-b-1113/tests/control_acceptance.py", line 56, in inner
+    fn()
+    ~~^^
+  File "/workspace/tradegen-startup-validation-b-1113/tests/launch_committed_startup_integration.py", line 629, in test_actual_status_then_heavy_final_durable_read_expiry_or_clock_rollback_refuses_success
+    dry = DryRunAdapter(upbit, results=(status_result(e),))
+                                        ~~~~~~~~~~~~~^^^
+  File "/workspace/tradegen-startup-validation-b-1113/tests/launch_committed_startup_integration.py", line 183, in status_result
+    return AdapterResult(**(dict(status='filled' if filled == 2 else 'partial' if filled else 'open',
+        code='synthetic-status', venue_order_id='integration-broker', client_id='integration-sent',
+        filled_quantity=filled, average_price=D('10000') if filled else None,
+        fee=e.expected_fee, fee_currency='KRW') | changes))
+  File "<string>", line 12, in __init__
+  File "/workspace/tradegen-startup-validation-b-1113/execution_orders/model.py", line 72, in __post_init__
+    raise ValueError("invalid adapter code")
+ValueError: invalid adapter code
+Traceback (most recent call last):
+  File "/workspace/tradegen-startup-validation-b-1113/tests/run_all.py", line 112, in run
+    fn()
+    ~~^^
+  File "/workspace/tradegen-startup-validation-b-1113/tests/execution_acceptance.py", line 98, in run
+    fn()
+    ~~^^
+  File "/workspace/tradegen-startup-validation-b-1113/tests/control_acceptance.py", line 56, in inner
+    fn()
+    ~~^^
+  File "/workspace/tradegen-startup-validation-b-1113/tests/launch_committed_startup_integration.py", line 529, in test_current_owner_mutation_after_actual_status_is_rechecked_before_success
+    dry = DryRunAdapter(upbit, results=(status_result(e),))
+                                        ~~~~~~~~~~~~~^^^
+  File "/workspace/tradegen-startup-validation-b-1113/tests/launch_committed_startup_integration.py", line 183, in status_result
+    return AdapterResult(**(dict(status='filled' if filled == 2 else 'partial' if filled else 'open',
+        code='synthetic-status', venue_order_id='integration-broker', client_id='integration-sent',
+        filled_quantity=filled, average_price=D('10000') if filled else None,
+        fee=e.expected_fee, fee_currency='KRW') | changes))
+  File "<string>", line 12, in __init__
+  File "/workspace/tradegen-startup-validation-b-1113/execution_orders/model.py", line 72, in __post_init__
+    raise ValueError("invalid adapter code")
+ValueError: invalid adapter code
+Traceback (most recent call last):
+  File "/workspace/tradegen-startup-validation-b-1113/tests/run_all.py", line 112, in run
+    fn()
+    ~~^^
+  File "/workspace/tradegen-startup-validation-b-1113/tests/execution_acceptance.py", line 98, in run
+    fn()
+    ~~^^
+  File "/workspace/tradegen-startup-validation-b-1113/tests/control_acceptance.py", line 56, in inner
+    fn()
+    ~~^^
+  File "/workspace/tradegen-startup-validation-b-1113/tests/launch_committed_startup_integration.py", line 475, in test_mismatched_cumulative_status_fee_or_broker_identity_cannot_claim_reconciliation
+    dry = DryRunAdapter(upbit, results=(status_result(e, **changes),))
+                                        ~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "/workspace/tradegen-startup-validation-b-1113/tests/launch_committed_startup_integration.py", line 183, in status_result
+    return AdapterResult(**(dict(status='filled' if filled == 2 else 'partial' if filled else 'open',
+        code='synthetic-status', venue_order_id='integration-broker', client_id='integration-sent',
+        filled_quantity=filled, average_price=D('10000') if filled else None,
+        fee=e.expected_fee, fee_currency='KRW') | changes))
+  File "<string>", line 12, in __init__
+  File "/workspace/tradegen-startup-validation-b-1113/execution_orders/model.py", line 72, in __post_init__
+    raise ValueError("invalid adapter code")
+ValueError: invalid adapter code
+Traceback (most recent call last):
+  File "/workspace/tradegen-startup-validation-b-1113/tests/run_all.py", line 112, in run
+    fn()
+    ~~^^
+  File "/workspace/tradegen-startup-validation-b-1113/tests/execution_acceptance.py", line 98, in run
+    fn()
+    ~~^^
+  File "/workspace/tradegen-startup-validation-b-1113/tests/control_acceptance.py", line 56, in inner
+    fn()
+    ~~^^
+  File "/workspace/tradegen-startup-validation-b-1113/tests/launch_committed_startup_integration.py", line 601, in test_required_cutoff_and_new_seoul_day_are_policy_refusals_not_fresh_or_generic_stale
+    with flat(start=start) as e:
+         ~~~~^^^^^^^^^^^^^
+  File "/workspace/.python/cpython-3.13.16-linux-x86_64-gnu/lib/python3.13/contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "/workspace/tradegen-startup-validation-b-1113/tests/launch_committed_startup_integration.py", line 123, in flat
+    with F.fixture(env_options=env_options, **options) as e:
+         ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/.python/cpython-3.13.16-linux-x86_64-gnu/lib/python3.13/contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "/workspace/tradegen-startup-validation-b-1113/tests/launch_guard_generation_archive.py", line 73, in fixture
+    with CA.fixture(held=held, start=start, env_options=options, capture_options=capture_options) as (storage, env, captured):
+         ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/.python/cpython-3.13.16-linux-x86_64-gnu/lib/python3.13/contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "/workspace/tradegen-startup-validation-b-1113/tests/launch_guard_capture_archive.py", line 59, in fixture
+    captured=I.capture(env, **(capture_options or {}))
+  File "/workspace/tradegen-startup-validation-b-1113/tests/launch_guard_capture_material.py", line 92, in capture
+    staged = source.collect(RecordingSource(), previous=previous, anchor=anchor, coverage=coverage,
+                            clock=clock, trade_fees=fee_inputs)
+  File "/workspace/tradegen-startup-validation-b-1113/execution_launch/account_interval.py", line 458, in collect
+    _require(not in_window or preview.interval.end == boundary, "ACCOUNT_INTERVAL_BOUNDARY_NOT_BRACKETED")
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/tradegen-startup-validation-b-1113/execution_launch/account_interval.py", line 54, in _require
+    raise AccountIntervalError(code)
+execution_launch.account_interval.AccountIntervalError: ACCOUNT_INTERVAL_BOUNDARY_NOT_BRACKETED
+Traceback (most recent call last):
+  File "/workspace/tradegen-startup-validation-b-1113/tests/run_all.py", line 112, in run
+    fn()
+    ~~^^
+  File "/workspace/tradegen-startup-validation-b-1113/tests/execution_acceptance.py", line 98, in run
+    fn()
+    ~~^^
+  File "/workspace/tradegen-startup-validation-b-1113/tests/control_acceptance.py", line 56, in inner
+    fn()
+    ~~^^
+  File "/workspace/tradegen-startup-validation-b-1113/tests/launch_committed_startup_integration.py", line 496, in test_status_fill_missing_from_retained_endpoint_needs_next_real_generation
+    dry = DryRunAdapter(upbit, results=(status_result(e, status='partial', filled_quantity=D(1),
+                                        ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        average_price=D('10000'), fee=D(5)),))
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/tradegen-startup-validation-b-1113/tests/launch_committed_startup_integration.py", line 183, in status_result
+    return AdapterResult(**(dict(status='filled' if filled == 2 else 'partial' if filled else 'open',
+        code='synthetic-status', venue_order_id='integration-broker', client_id='integration-sent',
+        filled_quantity=filled, average_price=D('10000') if filled else None,
+        fee=e.expected_fee, fee_currency='KRW') | changes))
+  File "<string>", line 12, in __init__
+  File "/workspace/tradegen-startup-validation-b-1113/execution_orders/model.py", line 72, in __post_init__
+    raise ValueError("invalid adapter code")
+ValueError: invalid adapter code
+Traceback (most recent call last):
+  File "/workspace/tradegen-startup-validation-b-1113/tests/run_all.py", line 112, in run
+    fn()
+    ~~^^
+  File "/workspace/tradegen-startup-validation-b-1113/tests/execution_acceptance.py", line 98, in run
+    fn()
+    ~~^^
+  File "/workspace/tradegen-startup-validation-b-1113/tests/control_acceptance.py", line 56, in inner
+    fn()
+    ~~^^
+  File "/workspace/tradegen-startup-validation-b-1113/tests/launch_committed_startup_integration.py", line 405, in test_unknown_and_interrupted_dispatch_remain_uncertain_and_never_resend
+    dry = DryRunAdapter(upbit, results=(AdapterResult(status='unknown', code='synthetic-unavailable'),)*2)
+                                        ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<string>", line 12, in __init__
+  File "/workspace/tradegen-startup-validation-b-1113/execution_orders/model.py", line 72, in __post_init__
+    raise ValueError("invalid adapter code")
+ValueError: invalid adapter code
+PASS launch/launch_guard_generation_archive/test_actual_archive_and_journal_locks_never_overlap_in_completion_recording
+PASS launch/launch_guard_generation_archive/test_actual_input_commit_completion_and_new_objects_preserve_exact_originals
+PASS launch/launch_guard_generation_archive/test_actual_write_failure_retains_input_and_never_performs_guard_commit
+PASS launch/launch_guard_generation_archive/test_arbitrary_oversized_bundle_is_refused_before_full_payload_read
+PASS launch/launch_guard_generation_archive/test_bad_saved_completion_metadata_is_archive_claim_not_actual_durable_proof
+PASS launch/launch_guard_generation_archive/test_caller_hidden_attributes_and_huge_decimal_refuse_before_deepcopy
+PASS launch/launch_guard_generation_archive/test_clock_rollback_during_last_actual_inspection_never_returns_success
+PASS launch/launch_guard_generation_archive/test_completion_clock_failures_refuse_without_claiming_success
+PASS launch/launch_guard_generation_archive/test_completion_requires_actual_complete_and_receipt_correspondence
+PASS launch/launch_guard_generation_archive/test_completion_response_loss_preserves_actual_backed_record_for_exact_retry
+PASS launch/launch_guard_generation_archive/test_existing_only_journal_is_mandatory_before_any_completion_inspection
+PASS launch/launch_guard_generation_archive/test_final_real_store_recheck_refuses_after_actual_result_publication
+PASS launch/launch_guard_generation_archive/test_input_and_completion_are_exact_singleton_raw_wrappers_without_authority
+PASS launch/launch_guard_generation_archive/test_input_idempotency_and_original_evaluation_time_are_distinct_from_commit_input_hash
+PASS launch/launch_guard_generation_archive/test_input_predecessor_mismatch_never_commits_or_invents_heads
+PASS launch/launch_guard_generation_archive/test_missing_capture_backup_refuses_entire_three_graph_read
+PASS launch/launch_guard_generation_archive/test_missing_or_torn_actual_journal_is_never_reinitialized_by_completion_retention
+PASS launch/launch_guard_generation_archive/test_partial_primary_publications_require_backup_and_exact_retry_preserves_identity
+PASS launch/launch_guard_generation_archive/test_replay_receipt_new_prefix_is_new_record_and_original_is_preserved
+PASS launch/launch_guard_generation_archive/test_same_bytes_retry_is_idempotent_but_new_recording_observation_is_versioned
+PASS launch/launch_guard_generation_archive/test_stale_archived_completion_keeps_original_times_and_durable_inspection_only
+PASS launch/launch_guard_generation_archive/test_typed_equal_values_cannot_substitute_retained_path_or_material
+PASS launch/launch_committed_startup/test_benign_actual_suffix_does_not_require_saved_tail_equal_current_tail
+PASS launch/launch_committed_startup/test_changed_actual_store_head_during_inspection_refuses_without_adoption
+PASS launch/launch_committed_startup/test_clock_rollback_and_invalid_clock_do_not_mutate_archived_or_control_state
+PASS launch/launch_committed_startup/test_completed_historical_inspection_does_not_authenticate_current_owner
+PASS launch/launch_committed_startup/test_constructor_rejects_non_dry_adapter_before_any_adapter_operation
+PASS launch/launch_committed_startup/test_constructor_rejects_nonactual_archive_before_its_configuration_hook
+PASS launch/launch_committed_startup/test_exact_missing_control_history_is_not_initialized_by_inspection
+PASS launch/launch_committed_startup/test_mutated_runtime_tuple_and_new_result_binding_are_not_accepted_as_same_startup
+PASS launch/launch_committed_startup/test_removal_between_snapshot_and_actual_transaction_cannot_bootstrap_new_history
+PASS launch/launch_committed_startup/test_saved_recording_time_cannot_be_a_future_current_observation
+PASS launch/launch_committed_startup/test_saved_recording_time_cannot_precede_its_real_observed_prefix
+PASS launch/launch_committed_startup/test_saved_tail_must_be_an_actual_post_receipt_prefix
+PASS launch/launch_committed_startup/test_startup_requires_actual_existing_only_journal_configuration
+PASS launch/launch_committed_startup/test_valid_receipt_does_not_authenticate_forged_completion_row_hash
+PASS launch/launch_committed_startup_integration/test_actual_controller_completion_clock_is_retained_before_cancel_or_status
+FAIL launch/launch_committed_startup_integration/test_actual_endpoint_partial_fill_fee_and_open_residual_are_reconciled_not_counted_as_flat ValueError: invalid adapter code
+FAIL launch/launch_committed_startup_integration/test_actual_endpoint_terminal_fill_reconciles_exact_quantity_and_cumulative_fee ValueError: invalid adapter code
+PASS launch/launch_committed_startup_integration/test_actual_hidden_trough_halt_and_floors_survive_restore_without_liquidation
+FAIL launch/launch_committed_startup_integration/test_actual_open_zero_fill_status_requires_new_reconciled_row_and_keeps_residual ValueError: invalid adapter code
+PASS launch/launch_committed_startup_integration/test_actual_owner_epoch_or_code_change_blocks_before_any_adapter_operation
+FAIL launch/launch_committed_startup_integration/test_actual_reducing_reserve_dispatch_unknown_then_restart_status_never_retransmits ValueError: invalid adapter code
+PASS launch/launch_committed_startup_integration/test_actual_reserved_namespace_cancel_has_no_remote_request_or_risk_snapshot
+FAIL launch/launch_committed_startup_integration/test_actual_status_then_heavy_final_durable_read_expiry_or_clock_rollback_refuses_success ValueError: invalid adapter code
+PASS launch/launch_committed_startup_integration/test_captured_broker_evidence_conflicts_with_own_never_sent_reservation
+PASS launch/launch_committed_startup_integration/test_complete_without_retained_result_is_read_only_until_explicit_actual_replay_receipt
+FAIL launch/launch_committed_startup_integration/test_current_owner_mutation_after_actual_status_is_rechecked_before_success ValueError: invalid adapter code
+PASS launch/launch_committed_startup_integration/test_each_pending_durable_phase_is_inspected_without_resuming_then_exactly_retried
+PASS launch/launch_committed_startup_integration/test_empty_local_orders_do_not_hide_external_open_broker_order
+PASS launch/launch_committed_startup_integration/test_foreign_reserved_namespace_remains_unresolved_without_remote_or_local_cancel
+PASS launch/launch_committed_startup_integration/test_heavy_final_durable_read_expiry_never_returns_success_or_changes_original_checkpoint
+PASS launch/launch_committed_startup_integration/test_last_inspection_and_reconciliation_clock_follows_actual_heavy_dependency_work
+PASS launch/launch_committed_startup_integration/test_local_order_limit_is_preflighted_before_any_cancellation_or_status_dispatch
+FAIL launch/launch_committed_startup_integration/test_mismatched_cumulative_status_fee_or_broker_identity_cannot_claim_reconciliation ValueError: invalid adapter code
+PASS launch/launch_committed_startup_integration/test_old_uncommitted_source_interval_cannot_be_backfilled_by_relabeling_startup_time
+PASS launch/launch_committed_startup_integration/test_original_source_gap_refusal_and_controlled_runner_boundary_remain_closed
+FAIL launch/launch_committed_startup_integration/test_required_cutoff_and_new_seoul_day_are_policy_refusals_not_fresh_or_generic_stale AccountIntervalError: ACCOUNT_INTERVAL_BOUNDARY_NOT_BRACKETED
+PASS launch/launch_committed_startup_integration/test_retained_input_actual_commit_new_integrations_and_true_empty_reconciliation
+PASS launch/launch_committed_startup_integration/test_same_actual_owner_head_does_not_override_changed_session_effective_limits
+PASS launch/launch_committed_startup_integration/test_stale_boundary_preserves_original_times_and_never_calls_status_cancel_or_strategy
+PASS launch/launch_committed_startup_integration/test_startup_missing_strict_journal_refuses_without_creating_an_empty_replacement
+FAIL launch/launch_committed_startup_integration/test_status_fill_missing_from_retained_endpoint_needs_next_real_generation ValueError: invalid adapter code
+FAIL launch/launch_committed_startup_integration/test_unknown_and_interrupted_dispatch_remain_uncertain_and_never_resend ValueError: invalid adapter code
+{"label": "startup-new-integration1", "head": "811c780f304f47f239d6e11a5cea1c272c6f970d", "source_hash": "cbe4ebe714df6c4eef523a08ce716d7d346545dc1b53521e6f85dd437cc79a9e", "total": 64, "counts": {"PASS": 54, "FAIL": 10, "NOT_RUN": 0}, "process_segments": 1, "seconds": 529.748, "current_segment_seconds": 529.748, "sum_test_seconds": 526.686, "keyless_names": 19, "source_unchanged": true, "real_homes_unchanged": true, "real_homes_check_scope": "metadata before imports/discovery through completion", "failures": [{"test": "launch/launch_committed_startup_integration/test_actual_endpoint_partial_fill_fee_and_open_residual_are_reconciled_not_counted_as_flat", "status": "FAIL", "seconds": 5.4347, "detail": "ValueError: invalid adapter code"}, {"test": "launch/launch_committed_startup_integration/test_actual_endpoint_terminal_fill_reconciles_exact_quantity_and_cumulative_fee", "status": "FAIL", "seconds": 5.1296, "detail": "ValueError: invalid adapter code"}, {"test": "launch/launch_committed_startup_integration/test_actual_open_zero_fill_status_requires_new_reconciled_row_and_keeps_residual", "status": "FAIL", "seconds": 5.2409, "detail": "ValueError: invalid adapter code"}, {"test": "launch/launch_committed_startup_integration/test_actual_reducing_reserve_dispatch_unknown_then_restart_status_never_retransmits", "status": "FAIL", "seconds": 5.4282, "detail": "ValueError: invalid adapter code"}, {"test": "launch/launch_committed_startup_integration/test_actual_status_then_heavy_final_durable_read_expiry_or_clock_rollback_refuses_success", "status": "FAIL", "seconds": 5.7109, "detail": "ValueError: invalid adapter code"}, {"test": "launch/launch_committed_startup_integration/test_current_owner_mutation_after_actual_status_is_rechecked_before_success", "status": "FAIL", "seconds": 5.4363, "detail": "ValueError: invalid adapter code"}, {"test": "launch/launch_committed_startup_integration/test_mismatched_cumulative_status_fee_or_broker_identity_cannot_claim_reconciliation", "status": "FAIL", "seconds": 5.5867, "detail": "ValueError: invalid adapter code"}, {"test": "launch/launch_committed_startup_integration/test_required_cutoff_and_new_seoul_day_are_policy_refusals_not_fresh_or_generic_stale", "status": "FAIL", "seconds": 0.0122, "detail": "AccountIntervalError: ACCOUNT_INTERVAL_BOUNDARY_NOT_BRACKETED"}, {"test": "launch/launch_committed_startup_integration/test_status_fill_missing_from_retained_endpoint_needs_next_real_generation", "status": "FAIL", "seconds": 5.3537, "detail": "ValueError: invalid adapter code"}, {"test": "launch/launch_committed_startup_integration/test_unknown_and_interrupted_dispatch_remain_uncertain_and_never_resend", "status": "FAIL", "seconds": 5.0861, "detail": "ValueError: invalid adapter code"}]}

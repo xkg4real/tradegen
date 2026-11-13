@@ -1,0 +1,36 @@
+{
+  "label": "startup-codec-correction1",
+  "head": "894552cdc08603afad77fb4726daf8b018aa35b4",
+  "source_hash": "3f0cafbe0c05927d7798516cbaa589861ff40b12499e1ec93d227e501ce61e8d",
+  "real_home_metadata_sha256": "643d5437104296e21d906ecb15b2c96ad278f20cfc4af53b12bb6069bd853726",
+  "selectors": [
+    "launch:launch_guard_generation_format/"
+  ],
+  "full": false,
+  "process_segments": 1,
+  "start_unix": 1794597952.8479037,
+  "registry": [
+    "launch/launch_guard_generation_format/test_bool_is_not_int_or_decimal_and_receipt_flags_are_exact_bool",
+    "launch/launch_guard_generation_format/test_bounded_integer_parse_and_overlong_typed_scalars_are_fixed_refusals",
+    "launch/launch_guard_generation_format/test_capture_registry_is_unchanged_and_returned_records_are_not_shared_cached_instances",
+    "launch/launch_guard_generation_format/test_closed_revision_kind_and_every_hash_field_are_enforced",
+    "launch/launch_guard_generation_format/test_decimal_sign_scale_and_positive_exponent_survive_all_nested_paths",
+    "launch/launch_guard_generation_format/test_exact_completion_golden_preserves_receipt_complete_and_observed_prefix_roles",
+    "launch/launch_guard_generation_format/test_exact_input_golden_document_and_domain_digest",
+    "launch/launch_guard_generation_format/test_exact_record_and_structure_budget_boundaries_are_symmetric",
+    "launch/launch_guard_generation_format/test_finite_decimal_bounds_precede_any_expanding_formatting",
+    "launch/launch_guard_generation_format/test_limits_cannot_expand_hard_ceilings_accept_bool_or_hide_deleted_slots",
+    "launch/launch_guard_generation_format/test_missing_nested_attributes_deleted_slots_and_replaced_types_are_fixed_refusals",
+    "launch/launch_guard_generation_format/test_naive_invalid_and_subclass_datetimes_are_refused",
+    "launch/launch_guard_generation_format/test_noncanonical_duplicate_unknown_and_missing_json_fields_refuse",
+    "launch/launch_guard_generation_format/test_optional_values_are_explicit_and_supported_recovery_condition_is_lossless",
+    "launch/launch_guard_generation_format/test_original_instants_normalize_to_utc_without_becoming_recording_time",
+    "launch/launch_guard_generation_format/test_owner_claim_amount_semantics_are_preserved_without_authenticating_it",
+    "launch/launch_guard_generation_format/test_receipt_replay_flag_and_each_record_observation_have_distinct_identity",
+    "launch/launch_guard_generation_format/test_record_byte_depth_node_and_text_preflight_happens_before_json_allocation",
+    "launch/launch_guard_generation_format/test_record_construction_detaches_nested_objects_without_arbitrary_copy_hooks",
+    "launch/launch_guard_generation_format/test_supported_condition_and_optional_budget_rules_are_not_relaxed",
+    "launch/launch_guard_generation_format/test_unknown_nested_attributes_and_subclasses_are_rejected_before_copying",
+    "launch/launch_guard_generation_format/test_unknown_scalar_tags_noncanonical_scalars_and_raw_json_numbers_refuse"
+  ]
+}

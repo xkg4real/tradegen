@@ -1,0 +1,428 @@
+[
+  {
+    "test": "launch/launch_guard_generation_format/test_bool_is_not_int_or_decimal_and_receipt_flags_are_exact_bool",
+    "status": "PASS",
+    "seconds": 0.0207,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_format/test_bounded_integer_parse_and_overlong_typed_scalars_are_fixed_refusals",
+    "status": "PASS",
+    "seconds": 0.0036,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_format/test_capture_registry_is_unchanged_and_returned_records_are_not_shared_cached_instances",
+    "status": "FAIL",
+    "seconds": 0.0047,
+    "detail": "AssertionError: "
+  },
+  {
+    "test": "launch/launch_guard_generation_format/test_closed_revision_kind_and_every_hash_field_are_enforced",
+    "status": "PASS",
+    "seconds": 0.0013,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_format/test_decimal_sign_scale_and_positive_exponent_survive_all_nested_paths",
+    "status": "PASS",
+    "seconds": 0.0123,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_format/test_exact_completion_golden_preserves_receipt_complete_and_observed_prefix_roles",
+    "status": "PASS",
+    "seconds": 0.0007,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_format/test_exact_input_golden_document_and_domain_digest",
+    "status": "PASS",
+    "seconds": 0.0037,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_format/test_exact_record_and_structure_budget_boundaries_are_symmetric",
+    "status": "PASS",
+    "seconds": 0.0055,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_format/test_finite_decimal_bounds_precede_any_expanding_formatting",
+    "status": "PASS",
+    "seconds": 0.0077,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_format/test_limits_cannot_expand_hard_ceilings_accept_bool_or_hide_deleted_slots",
+    "status": "PASS",
+    "seconds": 0.0015,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_format/test_missing_nested_attributes_deleted_slots_and_replaced_types_are_fixed_refusals",
+    "status": "PASS",
+    "seconds": 0.0013,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_format/test_naive_invalid_and_subclass_datetimes_are_refused",
+    "status": "PASS",
+    "seconds": 0.0031,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_format/test_noncanonical_duplicate_unknown_and_missing_json_fields_refuse",
+    "status": "PASS",
+    "seconds": 0.0061,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_format/test_optional_values_are_explicit_and_supported_recovery_condition_is_lossless",
+    "status": "PASS",
+    "seconds": 0.0073,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_format/test_original_instants_normalize_to_utc_without_becoming_recording_time",
+    "status": "PASS",
+    "seconds": 0.0025,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_format/test_owner_claim_amount_semantics_are_preserved_without_authenticating_it",
+    "status": "PASS",
+    "seconds": 0.0024,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_format/test_receipt_replay_flag_and_each_record_observation_have_distinct_identity",
+    "status": "PASS",
+    "seconds": 0.0026,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_format/test_record_byte_depth_node_and_text_preflight_happens_before_json_allocation",
+    "status": "PASS",
+    "seconds": 0.0027,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_format/test_record_construction_detaches_nested_objects_without_arbitrary_copy_hooks",
+    "status": "PASS",
+    "seconds": 0.0017,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_format/test_supported_condition_and_optional_budget_rules_are_not_relaxed",
+    "status": "PASS",
+    "seconds": 0.0012,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_format/test_unknown_nested_attributes_and_subclasses_are_rejected_before_copying",
+    "status": "PASS",
+    "seconds": 0.0067,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_format/test_unknown_scalar_tags_noncanonical_scalars_and_raw_json_numbers_refuse",
+    "status": "PASS",
+    "seconds": 0.0126,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_inspection/test_actual_journal_damage_is_not_hidden_by_transaction_cached_rows",
+    "status": "PASS",
+    "seconds": 0.0319,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_inspection/test_actual_successor_requires_publication_then_inspects_latest_original_bindings",
+    "status": "PASS",
+    "seconds": 1.0329,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_inspection/test_advanced_head_with_rolled_back_checkpoint_refuses_without_repair",
+    "status": "PASS",
+    "seconds": 0.0685,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_inspection/test_changed_receipt_predecessors_or_rehashed_endpoint_never_become_historical_proof",
+    "status": "PASS",
+    "seconds": 0.0818,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_inspection/test_completion_receipt_prefix_and_later_observed_tail_remain_distinct",
+    "status": "PASS",
+    "seconds": 0.0553,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_inspection/test_final_still_rejects_captured_package_mutation_after_actual_final_event_read",
+    "status": "PASS",
+    "seconds": 0.0423,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_inspection/test_fresh_account_read_still_returns_original_projection_and_same_durable_bindings",
+    "status": "PASS",
+    "seconds": 0.0636,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_inspection/test_head_replacement_during_final_store_load_is_detected_after_the_load",
+    "status": "PASS",
+    "seconds": 0.0406,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_inspection/test_incomplete_actual_commit_is_not_repaired_by_inspection_or_an_invented_receipt",
+    "status": "PASS",
+    "seconds": 0.038,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_inspection/test_integrations_changed_after_history_cannot_return_old_valid_metadata",
+    "status": "PASS",
+    "seconds": 0.0416,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_inspection/test_invalid_or_rolled_back_clock_and_future_journal_prefix_are_refused",
+    "status": "PASS",
+    "seconds": 0.0558,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_inspection/test_later_invalid_lifecycle_and_foreign_policy_remain_rejected_historically",
+    "status": "PASS",
+    "seconds": 0.084,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_inspection/test_one_private_generation_is_pinned_even_if_equivalent_generation_replaces_it",
+    "status": "PASS",
+    "seconds": 0.0474,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_inspection/test_only_actual_active_exact_same_journal_thread_bound_transaction_is_accepted",
+    "status": "PASS",
+    "seconds": 0.0346,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_inspection/test_real_journal_append_after_history_is_refused_by_final_event_recheck",
+    "status": "PASS",
+    "seconds": 0.0477,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_inspection/test_rehashed_package_time_cannot_replace_actual_guard_recorded_at",
+    "status": "PASS",
+    "seconds": 0.0657,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_inspection/test_restart_new_store_and_head_objects_inspect_without_refreshing_original_time",
+    "status": "PASS",
+    "seconds": 0.0674,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_inspection/test_stale_actual_commit_returns_only_original_metadata_without_reconciliation_or_writes",
+    "status": "PASS",
+    "seconds": 0.0769,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_inspection/test_stale_inspection_runs_final_store_verification_after_actual_history_check",
+    "status": "PASS",
+    "seconds": 0.0849,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_startup_commit/test_actual_competing_commit_between_preflight_and_journal_lock_cannot_rebind_retained_time",
+    "status": "PASS",
+    "seconds": 0.0494,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_startup_commit/test_changed_evaluation_duplicate_is_refused_but_legacy_omitted_and_none_still_replay",
+    "status": "PASS",
+    "seconds": 0.0752,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_startup_commit/test_consistent_same_time_retry_keeps_original_checkpoint_and_all_durable_bytes",
+    "status": "PASS",
+    "seconds": 0.0473,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_startup_commit/test_fresh_commit_binds_original_instant_and_keeps_receipt_time_and_halt_distinct",
+    "status": "PASS",
+    "seconds": 0.0734,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_startup_commit/test_optional_and_package_times_require_exact_aware_datetime_before_journal",
+    "status": "PASS",
+    "seconds": 0.0162,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_startup_commit/test_package_now_mutation_after_admission_is_not_hidden_by_duplicate_checkpoint",
+    "status": "PASS",
+    "seconds": 0.0458,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_startup_commit/test_pending_changed_now_legacy_none_preserves_existing_completion_semantics",
+    "status": "PASS",
+    "seconds": 0.1031,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_startup_commit/test_pending_stored_successor_time_mismatch_refuses_before_further_commit_then_exact_resumes",
+    "status": "PASS",
+    "seconds": 0.1213,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_startup_commit/test_retained_time_different_from_supplied_package_refuses_before_journal",
+    "status": "PASS",
+    "seconds": 0.0164,
+    "detail": ""
+  },
+  {
+    "test": "control/control_existing_journal/test_anchor_deletion_after_durable_row_keeps_uncertain_tail_without_reseeding",
+    "status": "PASS",
+    "seconds": 0.0065,
+    "detail": ""
+  },
+  {
+    "test": "control/control_existing_journal/test_anchor_deletion_during_temporary_checkpoint_write_is_not_adopted_or_cleaned",
+    "status": "PASS",
+    "seconds": 0.0072,
+    "detail": ""
+  },
+  {
+    "test": "control/control_existing_journal/test_both_missing_files_cannot_be_seeded_by_private_load_or_transaction",
+    "status": "PASS",
+    "seconds": 0.0037,
+    "detail": ""
+  },
+  {
+    "test": "control/control_existing_journal/test_business_exception_does_not_roll_back_already_durable_strict_row",
+    "status": "PASS",
+    "seconds": 0.0069,
+    "detail": ""
+  },
+  {
+    "test": "control/control_existing_journal/test_checkpoint_same_size_replacement_before_anchor_is_not_silently_overwritten",
+    "status": "PASS",
+    "seconds": 0.0067,
+    "detail": ""
+  },
+  {
+    "test": "control/control_existing_journal/test_default_and_explicit_false_still_initialize_missing_state_and_append",
+    "status": "PASS",
+    "seconds": 0.0075,
+    "detail": ""
+  },
+  {
+    "test": "control/control_existing_journal/test_deleted_checkpoint_after_load_before_write_preserves_original_journal",
+    "status": "PASS",
+    "seconds": 0.0053,
+    "detail": ""
+  },
+  {
+    "test": "control/control_existing_journal/test_deleted_journal_after_load_before_existing_open_is_not_recreated",
+    "status": "PASS",
+    "seconds": 0.0047,
+    "detail": ""
+  },
+  {
+    "test": "control/control_existing_journal/test_deleted_pair_or_lock_during_transaction_poison_append_without_recreation",
+    "status": "PASS",
+    "seconds": 0.0175,
+    "detail": ""
+  },
+  {
+    "test": "control/control_existing_journal/test_durable_checkpoint_response_failure_is_preserved_for_fresh_replay",
+    "status": "PASS",
+    "seconds": 0.0116,
+    "detail": ""
+  },
+  {
+    "test": "control/control_existing_journal/test_existing_mode_flag_and_property_reject_normal_reassignment_and_deletion",
+    "status": "PASS",
+    "seconds": 0.0014,
+    "detail": ""
+  },
+  {
+    "test": "control/control_existing_journal/test_existing_mode_is_exact_bool_and_invalid_admission_has_no_filesystem_effect",
+    "status": "PASS",
+    "seconds": 0.0007,
+    "detail": ""
+  },
+  {
+    "test": "control/control_existing_journal/test_existing_only_append_matches_legacy_exact_journal_and_checkpoint_bytes",
+    "status": "PASS",
+    "seconds": 0.0142,
+    "detail": ""
+  },
+  {
+    "test": "control/control_existing_journal/test_lock_release_failure_does_not_revive_transaction_or_rollback_durable_row",
+    "status": "PASS",
+    "seconds": 0.0061,
+    "detail": ""
+  },
+  {
+    "test": "control/control_existing_journal/test_missing_existing_lock_never_recreates_it_or_changes_the_valid_pair",
+    "status": "PASS",
+    "seconds": 0.0039,
+    "detail": ""
+  },
+  {
+    "test": "control/control_existing_journal/test_missing_root_refuses_transaction_snapshot_load_and_anchor_without_creating_files",
+    "status": "PASS",
+    "seconds": 0.0023,
+    "detail": ""
+  },
+  {
+    "test": "control/control_existing_journal/test_partial_pair_empty_checkpoint_and_torn_tail_are_preserved_without_repair",
+    "status": "PASS",
+    "seconds": 0.0165,
+    "detail": ""
+  },
+  {
+    "test": "control/control_existing_journal/test_size_and_same_size_byte_changes_before_write_are_not_overwritten",
+    "status": "PASS",
+    "seconds": 0.0114,
+    "detail": ""
+  },
+  {
+    "test": "control/control_existing_journal/test_snapshot_then_deleted_root_does_not_authorize_transaction_recreation",
+    "status": "PASS",
+    "seconds": 0.0043,
+    "detail": ""
+  },
+  {
+    "test": "control/control_existing_journal/test_strict_transactions_remain_thread_bound_non_nested_and_cleanup_after_failure",
+    "status": "PASS",
+    "seconds": 0.0038,
+    "detail": ""
+  },
+  {
+    "test": "control/control_existing_journal/test_truncated_earlier_valid_prefix_remains_blocked_by_existing_checkpoint",
+    "status": "PASS",
+    "seconds": 0.0082,
+    "detail": ""
+  }
+]

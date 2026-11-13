@@ -1,0 +1,386 @@
+[
+  {
+    "test": "launch/launch_guard_generation_archive/test_actual_archive_and_journal_locks_never_overlap_in_completion_recording",
+    "status": "PASS",
+    "seconds": 5.1515,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_archive/test_actual_input_commit_completion_and_new_objects_preserve_exact_originals",
+    "status": "PASS",
+    "seconds": 5.5185,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_archive/test_actual_write_failure_retains_input_and_never_performs_guard_commit",
+    "status": "PASS",
+    "seconds": 4.3055,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_archive/test_arbitrary_oversized_bundle_is_refused_before_full_payload_read",
+    "status": "PASS",
+    "seconds": 4.4636,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_archive/test_bad_saved_completion_metadata_is_archive_claim_not_actual_durable_proof",
+    "status": "PASS",
+    "seconds": 6.901,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_archive/test_caller_hidden_attributes_and_huge_decimal_refuse_before_deepcopy",
+    "status": "PASS",
+    "seconds": 3.9061,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_archive/test_clock_rollback_during_last_actual_inspection_never_returns_success",
+    "status": "PASS",
+    "seconds": 5.3193,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_archive/test_completion_clock_failures_refuse_without_claiming_success",
+    "status": "PASS",
+    "seconds": 4.6683,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_archive/test_completion_requires_actual_complete_and_receipt_correspondence",
+    "status": "PASS",
+    "seconds": 5.7352,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_archive/test_completion_response_loss_preserves_actual_backed_record_for_exact_retry",
+    "status": "PASS",
+    "seconds": 5.3907,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_archive/test_existing_only_journal_is_mandatory_before_any_completion_inspection",
+    "status": "PASS",
+    "seconds": 5.0367,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_archive/test_final_real_store_recheck_refuses_after_actual_result_publication",
+    "status": "PASS",
+    "seconds": 5.05,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_archive/test_input_and_completion_are_exact_singleton_raw_wrappers_without_authority",
+    "status": "PASS",
+    "seconds": 5.1251,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_archive/test_input_idempotency_and_original_evaluation_time_are_distinct_from_commit_input_hash",
+    "status": "PASS",
+    "seconds": 5.6505,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_archive/test_input_predecessor_mismatch_never_commits_or_invents_heads",
+    "status": "PASS",
+    "seconds": 4.1978,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_archive/test_missing_capture_backup_refuses_entire_three_graph_read",
+    "status": "PASS",
+    "seconds": 5.0998,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_archive/test_missing_or_torn_actual_journal_is_never_reinitialized_by_completion_retention",
+    "status": "PASS",
+    "seconds": 14.4763,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_archive/test_partial_primary_publications_require_backup_and_exact_retry_preserves_identity",
+    "status": "PASS",
+    "seconds": 10.4079,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_archive/test_replay_receipt_new_prefix_is_new_record_and_original_is_preserved",
+    "status": "PASS",
+    "seconds": 6.0197,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_archive/test_same_bytes_retry_is_idempotent_but_new_recording_observation_is_versioned",
+    "status": "PASS",
+    "seconds": 6.5215,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_archive/test_stale_archived_completion_keeps_original_times_and_durable_inspection_only",
+    "status": "PASS",
+    "seconds": 5.1174,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_guard_generation_archive/test_typed_equal_values_cannot_substitute_retained_path_or_material",
+    "status": "PASS",
+    "seconds": 4.9754,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_startup/test_benign_actual_suffix_does_not_require_saved_tail_equal_current_tail",
+    "status": "PASS",
+    "seconds": 6.1203,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_startup/test_changed_actual_store_head_during_inspection_refuses_without_adoption",
+    "status": "PASS",
+    "seconds": 5.4596,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_startup/test_clock_rollback_and_invalid_clock_do_not_mutate_archived_or_control_state",
+    "status": "PASS",
+    "seconds": 6.9946,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_startup/test_completed_historical_inspection_does_not_authenticate_current_owner",
+    "status": "PASS",
+    "seconds": 6.138,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_startup/test_constructor_rejects_non_dry_adapter_before_any_adapter_operation",
+    "status": "PASS",
+    "seconds": 4.6194,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_startup/test_constructor_rejects_nonactual_archive_before_its_configuration_hook",
+    "status": "PASS",
+    "seconds": 4.4134,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_startup/test_exact_missing_control_history_is_not_initialized_by_inspection",
+    "status": "PASS",
+    "seconds": 6.1331,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_startup/test_mutated_runtime_tuple_and_new_result_binding_are_not_accepted_as_same_startup",
+    "status": "PASS",
+    "seconds": 13.7234,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_startup/test_removal_between_snapshot_and_actual_transaction_cannot_bootstrap_new_history",
+    "status": "PASS",
+    "seconds": 5.5908,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_startup/test_saved_recording_time_cannot_be_a_future_current_observation",
+    "status": "PASS",
+    "seconds": 5.5613,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_startup/test_saved_recording_time_cannot_precede_its_real_observed_prefix",
+    "status": "PASS",
+    "seconds": 5.8823,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_startup/test_saved_tail_must_be_an_actual_post_receipt_prefix",
+    "status": "PASS",
+    "seconds": 5.7037,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_startup/test_startup_requires_actual_existing_only_journal_configuration",
+    "status": "PASS",
+    "seconds": 4.3227,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_startup/test_valid_receipt_does_not_authenticate_forged_completion_row_hash",
+    "status": "PASS",
+    "seconds": 5.5478,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_startup_integration/test_actual_controller_completion_clock_is_retained_before_cancel_or_status",
+    "status": "PASS",
+    "seconds": 16.2278,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_startup_integration/test_actual_endpoint_partial_fill_fee_and_open_residual_are_reconciled_not_counted_as_flat",
+    "status": "FAIL",
+    "seconds": 5.4347,
+    "detail": "ValueError: invalid adapter code"
+  },
+  {
+    "test": "launch/launch_committed_startup_integration/test_actual_endpoint_terminal_fill_reconciles_exact_quantity_and_cumulative_fee",
+    "status": "FAIL",
+    "seconds": 5.1296,
+    "detail": "ValueError: invalid adapter code"
+  },
+  {
+    "test": "launch/launch_committed_startup_integration/test_actual_hidden_trough_halt_and_floors_survive_restore_without_liquidation",
+    "status": "PASS",
+    "seconds": 13.2322,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_startup_integration/test_actual_open_zero_fill_status_requires_new_reconciled_row_and_keeps_residual",
+    "status": "FAIL",
+    "seconds": 5.2409,
+    "detail": "ValueError: invalid adapter code"
+  },
+  {
+    "test": "launch/launch_committed_startup_integration/test_actual_owner_epoch_or_code_change_blocks_before_any_adapter_operation",
+    "status": "PASS",
+    "seconds": 16.8739,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_startup_integration/test_actual_reducing_reserve_dispatch_unknown_then_restart_status_never_retransmits",
+    "status": "FAIL",
+    "seconds": 5.4282,
+    "detail": "ValueError: invalid adapter code"
+  },
+  {
+    "test": "launch/launch_committed_startup_integration/test_actual_reserved_namespace_cancel_has_no_remote_request_or_risk_snapshot",
+    "status": "PASS",
+    "seconds": 15.5357,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_startup_integration/test_actual_status_then_heavy_final_durable_read_expiry_or_clock_rollback_refuses_success",
+    "status": "FAIL",
+    "seconds": 5.7109,
+    "detail": "ValueError: invalid adapter code"
+  },
+  {
+    "test": "launch/launch_committed_startup_integration/test_captured_broker_evidence_conflicts_with_own_never_sent_reservation",
+    "status": "PASS",
+    "seconds": 17.2124,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_startup_integration/test_complete_without_retained_result_is_read_only_until_explicit_actual_replay_receipt",
+    "status": "PASS",
+    "seconds": 6.5549,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_startup_integration/test_current_owner_mutation_after_actual_status_is_rechecked_before_success",
+    "status": "FAIL",
+    "seconds": 5.4363,
+    "detail": "ValueError: invalid adapter code"
+  },
+  {
+    "test": "launch/launch_committed_startup_integration/test_each_pending_durable_phase_is_inspected_without_resuming_then_exactly_retried",
+    "status": "PASS",
+    "seconds": 40.4235,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_startup_integration/test_empty_local_orders_do_not_hide_external_open_broker_order",
+    "status": "PASS",
+    "seconds": 12.976,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_startup_integration/test_foreign_reserved_namespace_remains_unresolved_without_remote_or_local_cancel",
+    "status": "PASS",
+    "seconds": 12.9914,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_startup_integration/test_heavy_final_durable_read_expiry_never_returns_success_or_changes_original_checkpoint",
+    "status": "PASS",
+    "seconds": 6.0181,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_startup_integration/test_last_inspection_and_reconciliation_clock_follows_actual_heavy_dependency_work",
+    "status": "PASS",
+    "seconds": 13.1775,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_startup_integration/test_local_order_limit_is_preflighted_before_any_cancellation_or_status_dispatch",
+    "status": "PASS",
+    "seconds": 37.5411,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_startup_integration/test_mismatched_cumulative_status_fee_or_broker_identity_cannot_claim_reconciliation",
+    "status": "FAIL",
+    "seconds": 5.5867,
+    "detail": "ValueError: invalid adapter code"
+  },
+  {
+    "test": "launch/launch_committed_startup_integration/test_old_uncommitted_source_interval_cannot_be_backfilled_by_relabeling_startup_time",
+    "status": "PASS",
+    "seconds": 5.0875,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_startup_integration/test_original_source_gap_refusal_and_controlled_runner_boundary_remain_closed",
+    "status": "PASS",
+    "seconds": 5.1068,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_startup_integration/test_required_cutoff_and_new_seoul_day_are_policy_refusals_not_fresh_or_generic_stale",
+    "status": "FAIL",
+    "seconds": 0.0122,
+    "detail": "AccountIntervalError: ACCOUNT_INTERVAL_BOUNDARY_NOT_BRACKETED"
+  },
+  {
+    "test": "launch/launch_committed_startup_integration/test_retained_input_actual_commit_new_integrations_and_true_empty_reconciliation",
+    "status": "PASS",
+    "seconds": 20.4703,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_startup_integration/test_same_actual_owner_head_does_not_override_changed_session_effective_limits",
+    "status": "PASS",
+    "seconds": 11.6427,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_startup_integration/test_stale_boundary_preserves_original_times_and_never_calls_status_cancel_or_strategy",
+    "status": "PASS",
+    "seconds": 7.0566,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_startup_integration/test_startup_missing_strict_journal_refuses_without_creating_an_empty_replacement",
+    "status": "PASS",
+    "seconds": 4.8903,
+    "detail": ""
+  },
+  {
+    "test": "launch/launch_committed_startup_integration/test_status_fill_missing_from_retained_endpoint_needs_next_real_generation",
+    "status": "FAIL",
+    "seconds": 5.3537,
+    "detail": "ValueError: invalid adapter code"
+  },
+  {
+    "test": "launch/launch_committed_startup_integration/test_unknown_and_interrupted_dispatch_remain_uncertain_and_never_resend",
+    "status": "FAIL",
+    "seconds": 5.0861,
+    "detail": "ValueError: invalid adapter code"
+  }
+]

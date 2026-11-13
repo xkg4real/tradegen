@@ -1,0 +1,8 @@
+[
+  {
+    "test": "launch/launch_committed_startup_integration/test_required_cutoff_and_new_seoul_day_are_policy_refusals_not_fresh_or_generic_stale",
+    "status": "PASS",
+    "seconds": 12.2744,
+    "detail": ""
+  }
+]

@@ -1,0 +1,15 @@
+{
+  "label": "startup-cutoff-correction1",
+  "head": "a616fb06319e023ea1518afc078858a4d52e30ce",
+  "source_hash": "75a3b5bc1d920941fe81dc09c53ee2e2aae22a6e7c0c65161054ea27ca412074",
+  "real_home_metadata_sha256": "643d5437104296e21d906ecb15b2c96ad278f20cfc4af53b12bb6069bd853726",
+  "selectors": [
+    "launch:launch_committed_startup_integration/test_required_cutoff_and_new_seoul_day_are_policy_refusals_not_fresh_or_generic_stale"
+  ],
+  "full": false,
+  "process_segments": 1,
+  "start_unix": 1794598690.8611581,
+  "registry": [
+    "launch/launch_committed_startup_integration/test_required_cutoff_and_new_seoul_day_are_policy_refusals_not_fresh_or_generic_stale"
+  ]
+}

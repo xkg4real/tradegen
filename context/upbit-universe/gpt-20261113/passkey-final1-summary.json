@@ -1,0 +1,40 @@
+{
+  "label": "passkey-final1",
+  "head": "fa29cdf384b2ba904cce7f34cdab0b2ab42a363b",
+  "source_hash": "562f5b5b30f328686a7ec18abe6a0fa2ccc2cda5816a0a72f21a65ea44b9b99c",
+  "total": 25,
+  "counts": {
+    "PASS": 25,
+    "FAIL": 0,
+    "NOT_RUN": 0
+  },
+  "seconds": 0.145,
+  "source_unchanged": true,
+  "real_home_metadata_unchanged": true,
+  "real_home_check_scope": "metadata before test imports/discovery through completion",
+  "qa_unchanged": true,
+  "keyless_names": 19,
+  "dependency_inventory": [
+    {
+      "name": "fido2",
+      "version": "2.2.1",
+      "record_sha256": "ae8699467e558c46b46f2eadf065b911fc6133453b48bce7404e4fc73aaf12ec"
+    },
+    {
+      "name": "cryptography",
+      "version": "49.0.0",
+      "record_sha256": "2b5dff08091860d8d82784bc200900b0a6477719fc6f7808b97066998f063106"
+    },
+    {
+      "name": "cffi",
+      "version": "2.0.0",
+      "record_sha256": "1de4b9d004282b97d2963460ee5b9ede20b5dcbd19e3b54c6f92c88df63f6a08"
+    },
+    {
+      "name": "pycparser",
+      "version": "3.0",
+      "record_sha256": "1c80d41d88b3a2f631204f3fb255703c46d67b55d8fe4f31d38a9757b5f1a8ac"
+    }
+  ],
+  "failures": []
+}
