@@ -47,3 +47,15 @@ No remaining blocking code finding in the reviewed runtime diff. All four findin
 - execution_accounts/readiness.py:284 — canonical snapshot reconstruction and unchanged hash comparison.
 - execution/checks.py:210 — complete positive-holding coverage before alert clearing.
 - execution/positions.py:35 — finite/nonnegative unit check before absent-coin zero valuation.
+
+## Late PR4c correction — deeply nested listing response (2026-11-13)
+
+**P2 resolved in source; updated full regression pending.** Independently reviewed the two-file correction from `8137c4712b164c120ec8063e50dc3e05b741c23f` to `c80c56cdab946a80ae40be31432b41c881dcd5a2`. A valid JSON listing with 10,000 nested arrays in an ignored field exceeds the decoder's recursion depth while remaining about 20 KiB. `execution/transport.py:342` decodes the HTTP response before `market_all()` returns; its handler catches ValueError, not RecursionError. Thus this failure previously escaped the new optional listing-read boundary and aborted the snapshot/poll instead of producing the spec §15 unknown-flag amber alert.
+
+The approved correction at `execution/upbit_inquiry.py:187` adds only RecursionError to the local `_held_flags` exception tuple. The existing global `_CONTAINED` tuple, outer snapshot handler and transport behavior are unchanged. The local try covers both the initial HTTP decoding and the subsequent listing parse/classification. Failure returns unknown for every held coin, does not retain the unsuccessful listing receipt, and allows the existing ticker/valuation path to continue. It does not manufacture absence, zero values, successful listing evidence or order authority.
+
+The new `tests/execution_upbit.py:330` regression returns actual nested raw bytes through the fake HTTP fixture rather than injecting an exception. It asserts a successful snapshot, unknown BTC flag, retained BTC price and portfolio value, the normal BTC/USDT ticker request, exclusion of the listing response hash and exactly the held-flag unknown amber alert. No new test or test execution was performed by this reviewer.
+
+Independent AST inspection confirms `_held_flags` is the only changed runtime function body and the initializer surface remains `b84e2b291939c70ce20572f18cdf6c962a5054dbcb39f438fc0bc9be1a9d72f0` on both versions. No initializer or pure E2 call pin change is warranted; the helper remains outside the E2 renewal validation graph. No remaining blocker was found in this correction.
+
+Parent reports that the earlier `8137c471...` full run completed with 2,569 PASS / 0 FAIL / 135 NOT_RUN (2,704 total), and the correction's focused run passed 40/40. Those results are attributed to the parent and were not repeated here. The earlier full result must not be presented as a full run of `c80c56cd...`; the parent will rerun the complete suite against the corrected frozen source before the final delivery verdict.

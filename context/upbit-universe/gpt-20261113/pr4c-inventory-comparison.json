@@ -1,0 +1,53 @@
+{
+  "base_commit": "971a5389208c85d34fdd6479c96580e9b8fcc68d",
+  "tested_commit": "8137c4712b164c120ec8063e50dc3e05b741c23f",
+  "baseline_test_count": 2672,
+  "current_test_count": 2704,
+  "removed_ids": [
+    "execution_launch/accounts_collector/test_fresh_ticker_metadata_cannot_hide_a_stale_last_trade"
+  ],
+  "added_ids": [
+    "execution/execution_checks/test_held_coin_flags_raise_counts_and_clear_only_after_a_full_listing_read",
+    "execution/execution_checks/test_market_flag_alert_counts_ignore_unheld_or_zero_balances_and_cover_missing_flags",
+    "execution/execution_checks/test_prior_held_coin_red_alerts_survive_missing_or_incomplete_flags_until_a_full_read",
+    "execution/execution_checks/test_universe_no_snapshot_is_amber_from_0945_kst_and_only_with_an_approved_rule",
+    "execution/execution_poll/test_every_poll_raises_and_clears_what_the_universe_check_returns",
+    "execution/execution_positions/test_absent_coin_zero_valuation_rejects_nonfinite_or_negative_mutated_units",
+    "execution/execution_positions/test_an_absent_coin_is_worth_zero_and_every_other_class_keeps_the_price_rule",
+    "execution/execution_positions/test_upbit_absent_markers_never_override_other_venues_price_requirements",
+    "execution/execution_snapshot/test_market_flags_are_left_out_while_none_and_round_trip_when_set",
+    "execution/execution_upbit/test_held_coin_flags_come_from_one_listing_read_and_an_unlisted_coin_is_not_asked_or_priced",
+    "execution/execution_upbit/test_malformed_listing_never_turns_held_coins_into_zero_valued_absence",
+    "execution_accounts/accounts_provider/test_price_zero_needs_the_unlisted_marker_and_the_canonical_body_omits_an_absent_marker",
+    "execution_accounts/accounts_readiness/test_inquiry_roundtrip_accepts_legacy_and_flagged_rows_but_refuses_nested_flag_mutation",
+    "execution_control/orders_codecs/test_upbit_ioc_body_is_additive_bound_and_its_end_comes_from_status",
+    "execution_launch/accounts_collector/test_a_failed_listing_read_inside_the_capture_fails_closed",
+    "execution_launch/accounts_collector/test_a_listed_coin_keeps_its_ticker_mark_after_one_listing_read",
+    "execution_launch/accounts_collector/test_a_thin_coin_with_a_stale_last_trade_is_marked_at_a_fresh_best_bid",
+    "execution_launch/accounts_collector/test_an_unlisted_coin_is_left_out_of_the_ticker_and_recorded_at_price_zero_with_its_read_time",
+    "execution_launch/accounts_collector/test_e1_binding_fetches_the_listing_and_the_book_as_fixed_gets",
+    "execution_launch/accounts_collector/test_fresh_ticker_metadata_cannot_hide_a_stale_last_trade_or_a_stale_book",
+    "execution_launch/accounts_collector/test_malformed_or_duplicate_market_listing_never_proves_a_holding_is_unlisted",
+    "execution_launch/accounts_collector/test_valid_non_krw_listing_groups_and_empty_listing_keep_the_marking_contract",
+    "execution_launch/launch_instrument_refresh/test_a_coin_below_the_cap_is_not_buyable_but_a_held_coin_still_renews_and_sells",
+    "execution_launch/launch_instrument_refresh/test_a_fixed_profile_refuses_the_symbol_change_flag_itself",
+    "execution_launch/launch_instrument_refresh/test_order_validation_refuses_an_inflated_issued_or_renewed_observed_maximum",
+    "execution_launch/launch_instrument_refresh/test_universe_renewal_moves_to_another_coin_only_with_the_flag_and_keeps_its_contract",
+    "execution_launch/launch_instrument_refresh/test_v1_authority_digest_is_byte_identical_and_v2_is_a_separate_form",
+    "execution_launch/launch_instrument_refresh/test_v2_parse_takes_its_symbol_only_from_one_exact_chance_query",
+    "execution_launch/launch_instrument_refresh/test_v2_reads_the_symbol_named_at_read_time_and_v1_keeps_its_own",
+    "execution_launch/launch_instrument_refresh/test_v2_records_the_observed_maximum_caps_buys_and_lets_a_held_coin_sell_above_the_cap",
+    "execution_launch/launch_owner_rehearsal/test_the_audit_carries_a_v1_or_a_v2_terms_authority_and_the_profile_picks_its_own",
+    "execution_launch/launch_profile/test_a_universe_profile_requires_ioc_and_a_fixed_upbit_profile_keeps_gtc",
+    "execution_launch/launch_runner/test_unlisted_dust_next_to_the_held_coin_leaves_exit_cancel_and_ticks_working"
+  ],
+  "all_added_pass": true,
+  "not_run_by_scope": {
+    "macro": 121,
+    "windows_specific": 14
+  },
+  "approved_rename": {
+    "old": "execution_launch/accounts_collector/test_fresh_ticker_metadata_cannot_hide_a_stale_last_trade",
+    "new": "execution_launch/accounts_collector/test_fresh_ticker_metadata_cannot_hide_a_stale_last_trade_or_a_stale_book"
+  }
+}
