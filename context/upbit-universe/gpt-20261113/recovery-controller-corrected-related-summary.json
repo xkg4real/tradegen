@@ -1,0 +1,27 @@
+{
+  "label": "recovery-controller-corrected-related",
+  "head": "e789223bc1909a4a9546be12a2f66f4cfb921f64",
+  "source_hash": "a3849ce43c0232cb47543f47fa519c49b2335b3f68c581f558f68ec61f27fe65",
+  "total": 153,
+  "counts": {
+    "PASS": 152,
+    "FAIL": 1,
+    "NOT_RUN": 0
+  },
+  "process_segments": 1,
+  "seconds": 96.241,
+  "current_segment_seconds": 96.241,
+  "sum_test_seconds": 93.389,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "real_homes_check_scope": "metadata before imports/discovery through completion",
+  "failures": [
+    {
+      "test": "launch/launch_research_recovery_store/test_restart_preserves_same_attempt_resume_budget_and_due_time",
+      "status": "FAIL",
+      "seconds": 0.2012,
+      "detail": "AssertionError: ('RECOVERY_STORE_PIN_REFUSED', 'RECOVERY_STORE_COMMIT_REFUSED')"
+    }
+  ]
+}

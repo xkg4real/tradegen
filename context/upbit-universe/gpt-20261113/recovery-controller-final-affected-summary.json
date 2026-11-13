@@ -1,0 +1,20 @@
+{
+  "label": "recovery-controller-final-affected",
+  "head": "e789223bc1909a4a9546be12a2f66f4cfb921f64",
+  "source_hash": "1dec546fe298a31f8b2635c3ec37ed46c0c542ea8bf558343c7567722a00120d",
+  "total": 131,
+  "counts": {
+    "PASS": 131,
+    "FAIL": 0,
+    "NOT_RUN": 0
+  },
+  "process_segments": 1,
+  "seconds": 138.115,
+  "current_segment_seconds": 138.115,
+  "sum_test_seconds": 135.31,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "real_homes_check_scope": "metadata before imports/discovery through completion",
+  "failures": []
+}

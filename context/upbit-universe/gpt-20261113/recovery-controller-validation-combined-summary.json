@@ -1,0 +1,48 @@
+{
+  "scope": "distinct registry coverage across three runs; not one full-suite all-green run",
+  "runs": [
+    {
+      "label": "recovery-controller-dev1",
+      "head": "24c51f62023c5c6c932411c75fae6d1c607be004",
+      "source_hash": "af1345f467944da14c5a8c4d9bf2aa4e57af53b730ffcd572520c6191043d551",
+      "total": 142,
+      "counts": {
+        "PASS": 140,
+        "FAIL": 2,
+        "NOT_RUN": 0
+      },
+      "seconds": 752.628
+    },
+    {
+      "label": "recovery-controller-corrected-related",
+      "head": "e789223bc1909a4a9546be12a2f66f4cfb921f64",
+      "source_hash": "a3849ce43c0232cb47543f47fa519c49b2335b3f68c581f558f68ec61f27fe65",
+      "total": 153,
+      "counts": {
+        "PASS": 152,
+        "FAIL": 1,
+        "NOT_RUN": 0
+      },
+      "seconds": 96.241
+    },
+    {
+      "label": "recovery-controller-final-affected",
+      "head": "e789223bc1909a4a9546be12a2f66f4cfb921f64",
+      "source_hash": "1dec546fe298a31f8b2635c3ec37ed46c0c542ea8bf558343c7567722a00120d",
+      "total": 131,
+      "counts": {
+        "PASS": 131,
+        "FAIL": 0,
+        "NOT_RUN": 0
+      },
+      "seconds": 138.115
+    }
+  ],
+  "total": 205,
+  "counts": {
+    "PASS": 205,
+    "FAIL": 0,
+    "NOT_RUN": 0
+  },
+  "failures": []
+}
