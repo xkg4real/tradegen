@@ -1,0 +1,57 @@
+{
+  "label": "upbit-read-batch-dev1",
+  "head": "a2e61b30daea8f4d4095ca2fc3ffeda776197df6",
+  "source_hash": "4ed267180d6a83801c21546a2613ea67c8d5d9ad9d75d253723342cba1f35051",
+  "total": 144,
+  "counts": {
+    "PASS": 138,
+    "FAIL": 6,
+    "NOT_RUN": 0
+  },
+  "process_segments": 1,
+  "seconds": 83.795,
+  "current_segment_seconds": 83.795,
+  "sum_test_seconds": 79.868,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "real_homes_check_scope": "metadata before imports/discovery through completion",
+  "failures": [
+    {
+      "test": "execution/execution_guards/test_capture_state_rebinding_is_owned_by_the_exact_reviewed_ast",
+      "status": "FAIL",
+      "seconds": 0.0049,
+      "detail": "AssertionError: "
+    },
+    {
+      "test": "execution/execution_guards/test_send_is_pinned",
+      "status": "FAIL",
+      "seconds": 0.0296,
+      "detail": "AssertionError: ['240: requests used outside its three allowed forms', '242: requests used outside its three allowed forms']"
+    },
+    {
+      "test": "execution/execution_guards/test_transport_is_the_only_path",
+      "status": "FAIL",
+      "seconds": 0.0483,
+      "detail": "AssertionError: ['reviewed read capture definitions changed or incomplete', 'execution/transport.py:132: rebinds current.failed', 'execution/transport.py:135: rebinds self.entered', 'execution/transport.py:136: rebinds self.token', 'execution/transport.py:148: rebinds self.closed', 'execution/transport.py:148: rebinds self.entered', 'execution/transport.py:179: rebinds state.failed', 'execution/transport.py:196: rebinds state.used', 'execution/transport.py:233: rebinds state.last', 'execution/transport.py:274: rebinds state.in_callback', 'execution/transport.py:282: rebinds state.in_callback']"
+    },
+    {
+      "test": "launch/launch_upbit_read_format/test_lying_containers_large_hidden_values_and_huge_ints_refuse_before_canonical_allocation",
+      "status": "FAIL",
+      "seconds": 0.002,
+      "detail": "AssertionError: encoder called"
+    },
+    {
+      "test": "launch/launch_upbit_read_integration/test_body_limit_records_unretained_response_without_truncating_or_collecting",
+      "status": "FAIL",
+      "seconds": 0.2218,
+      "detail": "AssertionError: "
+    },
+    {
+      "test": "launch/launch_upbit_read_integration/test_invalid_json_duplicate_json_keys_and_invalid_account_semantics_keep_exact_raw",
+      "status": "FAIL",
+      "seconds": 2.8923,
+      "detail": "AssertionError: "
+    }
+  ]
+}

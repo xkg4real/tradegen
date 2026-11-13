@@ -1,0 +1,12 @@
+{
+  "runs": [
+    "committed-runner-final-related",
+    "committed-runner-final-correction"
+  ],
+  "distinct_tests": 399,
+  "counts": {
+    "PASS": 399
+  },
+  "single_run": false,
+  "rationale": "Runtime code unchanged; second run corrects one persisted-metadata test assertion and repeats all 22 committed Runner cases. Initial failures remain preserved."
+}

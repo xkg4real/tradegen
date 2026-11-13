@@ -1,0 +1,20 @@
+{
+  "label": "committed-runner-final-correction",
+  "head": "2a6cc2cd67dc93363b95aa9a3cdda2a18ee6d1be",
+  "source_hash": "cc5665045337852c116c09240fbe7d20960e0b033a53783110469382167102e1",
+  "total": 22,
+  "counts": {
+    "PASS": 22,
+    "FAIL": 0,
+    "NOT_RUN": 0
+  },
+  "process_segments": 1,
+  "seconds": 39.567,
+  "current_segment_seconds": 39.567,
+  "sum_test_seconds": 37.358,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "real_homes_check_scope": "metadata before imports/discovery through completion",
+  "failures": []
+}
