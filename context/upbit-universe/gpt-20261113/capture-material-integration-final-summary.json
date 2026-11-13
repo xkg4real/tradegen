@@ -1,0 +1,20 @@
+{
+  "label": "capture-material-integration-final",
+  "head": "933a7bc8c38c9eff0a5bd08f29e95ac8794dc172",
+  "source_hash": "ebc44cbcf7089a23b348ec6db57d7e1cd2aa16eb84cb2156e873dfcf70f6a409",
+  "total": 274,
+  "counts": {
+    "PASS": 274,
+    "FAIL": 0,
+    "NOT_RUN": 0
+  },
+  "process_segments": 1,
+  "seconds": 216.983,
+  "current_segment_seconds": 216.983,
+  "sum_test_seconds": 213.918,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "real_homes_check_scope": "metadata before imports/discovery through completion",
+  "failures": []
+}

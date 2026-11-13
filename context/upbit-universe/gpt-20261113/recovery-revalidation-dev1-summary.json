@@ -1,0 +1,20 @@
+{
+  "label": "recovery-revalidation-dev1",
+  "head": "ed1b4567fbd8161f1998a56241993880afccbb71",
+  "source_hash": "9285dac270efafec1d74ebef6af976ffe593808d5ff2c995ffddfe68d82cc5c6",
+  "total": 21,
+  "counts": {
+    "PASS": 21,
+    "FAIL": 0,
+    "NOT_RUN": 0
+  },
+  "process_segments": 1,
+  "seconds": 406.028,
+  "current_segment_seconds": 406.028,
+  "sum_test_seconds": 402.945,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "real_homes_check_scope": "metadata before imports/discovery through completion",
+  "failures": []
+}

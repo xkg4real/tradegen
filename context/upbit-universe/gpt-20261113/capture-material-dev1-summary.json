@@ -1,0 +1,27 @@
+{
+  "label": "capture-material-dev1",
+  "head": "ed1b4567fbd8161f1998a56241993880afccbb71",
+  "source_hash": "5a1227f72587849b09fdc90a8237225c5523b095a10a990cba01468ebad632e3",
+  "total": 56,
+  "counts": {
+    "PASS": 55,
+    "FAIL": 1,
+    "NOT_RUN": 0
+  },
+  "process_segments": 1,
+  "seconds": 10.057,
+  "current_segment_seconds": 10.057,
+  "sum_test_seconds": 7.201,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "real_homes_check_scope": "metadata before imports/discovery through completion",
+  "failures": [
+    {
+      "test": "launch/launch_guard_capture_material/test_real_capture_gap_late_boundary_and_half_open_fill_fail_before_stage_or_material",
+      "status": "FAIL",
+      "seconds": 0.0077,
+      "detail": "AssertionError: EVIDENCE_STALE_OR_FUTURE"
+    }
+  ]
+}
