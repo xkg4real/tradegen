@@ -1,18 +1,18 @@
 ---
-status: returned
-reason: revised_design_and_p0a_checkpoint
+status: taken
+reason: continue_authorized_p0b_integration
 from: gpt
 task: upbit-universe
 cycle: 2026-11-10
 done_ids: universe-pr4d/lossless-objects, design-revision-1113, upbit-universe-return-1113, universe-pr4d/original-verification, workflow-resume-1113/regression-preparation, universe-pr4d/task2-implementation, universe-pr4d/task3, universe-pr4d/task4, universe-pr4c, universe-pr4d/task1, workflow-resume-1113, workflow-resume-1113/dependencies, universe-pr4c/implementation, universe-pr0, universe-pr1, universe-pr2, universe-pr3, universe-pr4b, universe-pr4a
 next_ids: universe-pr4d/lossless-history, universe-pr4d, universe-pr4e, universe-pr5, universe-pr5-clock-notify, universe-code-approve, policy-loss-budget-plan-1, rules-review-1202, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, launch-private-capture-setup-1, e1-14-owner-setup, launch-prospective-study, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1
-updated_at: 2026-11-13T20:05:22+09:00
+updated_at: 2026-11-13T20:12:15+09:00
 stale_after_hours: 3
 waiting_on: no prior approval question; future PLB S1-S12 and deployment inputs only
 work_branch: gpt/universe-pr4d-driver-history
 work_commit: 6be78659b164ba08334111f592a0bbbede32428b
 runtime_tested_commit: 6be7865 matches frozen fingerprint08098dd8; P0a24PASS and regression125PASS; new full not run
-uncommitted_changes: no
+uncommitted_changes: P0b implementation in progress; source/test freeze pending
 pr: https://github.com/xkg4real/tradegen/pull/34 (draft; lossless revision, unmerged)
 usage_weekly_pct: unknown
 usage_source: unavailable
@@ -24,7 +24,7 @@ session: Cloud Codex; owner Windows deployment remains separate
 
 ## 0. 현재 상태
 
-**개정 설계 두 문서와 P0a 저장 모듈 구현·검증을 완료하여 체크포인트를 반환합니다.** 전체 목표·실전 준비 완료가 아닙니다. 이전 포괄 승인은 정상 호가 폐기 승인으로 해석하지 않습니다. 종전 두 승인 질문과 floor checker 실행 여부 및 E 질문은 모두 답변 완료입니다.
+**전체 작업이나 실전 준비는 끝나지 않았다고 사용자에게 명확히 알렸으며, 승인된 P0b 실제 이력 연결 구현을 재개합니다.** 전체 목표·실전 준비 완료가 아닙니다. 이전 포괄 승인은 정상 호가 폐기 승인으로 해석하지 않습니다. 종전 두 승인 질문과 floor checker 실행 여부 및 E 질문은 모두 답변 완료입니다.
 
 ## 1. 확정된 최신 요구
 
@@ -83,4 +83,4 @@ PR5 종전 “서명기 변경 없음” 제안은 확대된 최신 요구로 �
 
 ## 9. 이어받는 에이전트에게
 
-AGENTS/CURRENT/LEDGER 및 최신 개정2 문서를 읽고 원격상태부터 확인한다. 원래 호가 폐기안이나 A1 오류→매도/기한→매도를 구현하지 않는다. 완료ID 반복금지. 현재는 작업단위 완료 returned이며 실제 코드트리는 clean/pushed다. 후속 작업을 재개할 때는 최신원격을 확인하고 taken으로 전환한다. P0a 부품과 P0b 앱통합을 구분하고 사용자에게 최신 검증 결과만 보고한다. 끝내거나 중단 시 실제 코드/테스트/다음 단계가 복구 가능한지 확인하고 반환한다.
+AGENTS/CURRENT/LEDGER 및 최신 개정2 문서를 읽고 원격상태부터 확인한다. 원래 호가 폐기안이나 A1 오류→매도/기한→매도를 구현하지 않는다. 완료ID 반복금지. P0b 구현 중 taken이다. 다른 에이전트는 활성 작업의 소유권을 확인하고 협업한다. P0a 부품과 P0b 앱통합을 구분하고 사용자에게 최신 검증 결과만 보고한다. 끝내거나 중단 시 실제 코드/테스트/다음 단계가 복구 가능한지 확인하고 반환한다.
