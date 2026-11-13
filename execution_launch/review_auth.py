@@ -23,6 +23,8 @@ from execution_launch.review_request import (computed_summary, parse_review_requ
                                             review_request_json, ReviewRequestError)
 from execution_launch.runner import EvidencePackage, ImplementationBinding, ImplementationReceipt, _assess
 from execution_launch.strategy import ReviewBinding, ReviewReceipt, StrategyAssessment, evidence_digest
+from execution_launch.research_revocation import (ResearchRevocationError, revocation_target,
+    validate_revoked_targets, target_is_revoked)
 
 REVIEW_DOMAIN = b"tradegen-strategy-review/1\n"
 CARRY_REVIEW_DOMAIN = b"tradegen-strategy-review/2\n"
@@ -171,6 +173,14 @@ def _authenticate(document, authority, now):
     _need(timedelta(0) <= now - authority.observed_at <= timedelta(seconds=MAX_AUTHORITY_AGE_SECONDS),
           "REVIEW_OWNER_AUTHORITY_STALE")
     context = authority.context
+    revoked = None
+    if type(context) is compliance.Context and type(context.owner) is compliance.OwnerState:
+        try:
+            if "revoked_research_attestations" not in vars(context.owner):
+                raise ResearchRevocationError("RESEARCH_REVOCATION_STATE_INVALID")
+            revoked = validate_revoked_targets(context.owner.revoked_research_attestations)
+        except (ResearchRevocationError, AttributeError, TypeError):
+            raise ReviewAuthenticationError("REVIEW_REVOCATION_STATE_INVALID") from None
     try:
         intact = (type(context) is compliance.Context and compliance.is_sealed(context)
             and type(context.owner) is compliance.OwnerState and type(context.active) is compliance.ApprovedState
@@ -194,6 +204,15 @@ def _authenticate(document, authority, now):
             base64.b64decode(parse_review_document(document)["signature_b64"]), review_signing_bytes(body))
     except (InvalidSignature, ValueError, TypeError):
         raise ReviewAuthenticationError("REVIEW_SIGNATURE_UNVERIFIED") from None
+    # Preserve existing review signing bytes and purpose. Cosmetic source-envelope
+    # JSON changes cannot evade a restriction on the same signed body.
+    try:
+        encoded = document if type(document) is bytes else document.encode("utf-8")
+        target = revocation_target(encoded, purpose=body["purpose"])
+        restricted = target_is_revoked(revoked, purpose=body["purpose"], target_sha256=target)
+    except (ResearchRevocationError, UnicodeError, AttributeError, TypeError):
+        raise ReviewAuthenticationError("REVIEW_DOCUMENT_INVALID") from None
+    _need(not restricted, "REVIEW_ATTESTATION_REVOKED")
     return body
 
 

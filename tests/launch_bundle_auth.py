@@ -87,7 +87,7 @@ def refused(call, code=None):
 
 def no_operation(result):
     assert result.archive_identity_authenticated
-    assert result.scope == 'archive_manifest_identity' and result.revocation_status == 'UNSUPPORTED'
+    assert result.scope == 'archive_manifest_identity' and result.revocation_status == 'NOT_REVOKED_AT_HEAD'
     assert not result.source_authenticated and not result.research_selection_ready
     assert not result.execution_ready and not result.current_use_eligible
     assert not result.automatic_recovery_supported and not result.signature_backup_verified

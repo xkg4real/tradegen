@@ -1,8 +1,9 @@
 """Current owner authority for detached review verification; grants no session or order capability.
 
 Each call runs the trusted owner.load_context and reads the current owner_pubkey.pem. This module has no
-signer, network, environment read or file write of its own; load_context's snapshot of a valid state is the
-only effect. Review contexts use a fixed placeholder Positions (P19, as execution/poll.py E24) and no session
+signer, network, environment read or file write of its own. The actual owner loader may snapshot a valid
+state and durably anchor verified research restrictions. Review contexts use a fixed placeholder Positions
+(P19, as execution/poll.py E24) and no session
 id, so they are never gate, odds or session evidence.
 """
 from __future__ import annotations

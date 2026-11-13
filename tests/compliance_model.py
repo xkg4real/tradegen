@@ -110,6 +110,10 @@ def test_context_universe_is_sealed_only_when_set():
     plain = F.ctx()
     old = {f.name: getattr(plain, f.name) for f in dataclasses.fields(model.Context)
            if f.name not in ("ctx_hash", "universe")}
+    # Reconstruct the historical owner schema too; the new exact empty set has
+    # no effect on the pre-revocation context digest.
+    old["owner"] = {f.name: getattr(plain.owner, f.name) for f in dataclasses.fields(model.OwnerState)
+                    if f.name != "revoked_research_attestations"}
     assert plain.universe is None and plain.ctx_hash == model.sha256_hex(model.canonical_json(old))
     u = F.universe()
     held = F.ctx(universe=u)

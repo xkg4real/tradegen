@@ -42,6 +42,7 @@ Other commands
                             armed on or before the day you set it, and never after a system_halt
   review-approve            detached source/fixed implementation review; see docs/strategy-review-signing.md
   bundle-attest             exact archived-file identity only; no source, selection, trading or recovery approval
+  research-revoke           restrict use of one exact signed research body; no deletion, order or liquidation
   fingerprint               print the key file's fingerprint (no passphrase needed)
 
 Key rotation, only when the key must change (the old key signs the change, the log stays one chain)
@@ -74,7 +75,7 @@ import secrets
 import stat
 import sys
 import time
-from contextlib import contextmanager
+from contextlib import contextmanager, ExitStack
 from collections.abc import Mapping
 from dataclasses import dataclass, fields
 import unicodedata
@@ -93,6 +94,11 @@ QUANTGEN_REPO = Path.home() / "OneDrive" / "Desktop" / "QUANTGEN"
 TYPED_MIN_GAP_S = 0.030                                                 # P27: the average gap between keystrokes
 TYPED_BURST_S = 0.010                                                   # three gaps in a row below this: a paste
 CODE_ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789"
+_RESEARCH_REVOKED = 'research_attestation_revoked'
+_RESEARCH_TARGET_DOMAIN = b'tradegen-research-attestation-revocation-target/1\n'
+_RESEARCH_PURPOSES = frozenset({'research_archive_manifest_attestation',
+    'strategy_source_and_fixed_implementation_review', 'strategy_source_and_fixed_carry_implementation_review'})
+_RESEARCH_REASONS = frozenset({'OWNER_WITHDRAWN', 'EVIDENCE_UNTRUSTED', 'REVIEW_ERROR'})
 # Copies of core.compliance.rules vocabularies the owner log checks; a test keeps them equal to the repo's.
 VENUES = frozenset({"kis", "upbit", "bithumb", "coinone", "korbit", "gopax", "okx", "binance", "bybit", "bitget",
     "hyperliquid", "pumpfun", "jupiter", "uniswap", "drift", "polymarket", "kalshi", "limitless", "myriad", "opinion",
@@ -216,6 +222,9 @@ SCHEMAS = {
     "session_ack": {"session_id": _text, "row_id": _text, "warning_sha256": _hex64},
     "transfer_ack": {"intent_hash": _hex64, "warning_sha256": _hex64},
     "key_rotated": {"old_pubkey_b64": _b64_of(32), "new_pubkey_b64": _b64_of(32)},   # P20: signed by the old key
+    _RESEARCH_REVOKED: {'purpose': lambda v: type(v) is str and v in _RESEARCH_PURPOSES,
+        'target_sha256': lambda v: type(v) is str and _hex64(v),
+        'reason_code': lambda v: type(v) is str and v in _RESEARCH_REASONS},
 }
 SYSTEM_SCHEMAS = {                                     # never signed here; _head checks them in the log
     "system_halt": {"floor_krw": lambda v: _number(v) and v >= 0},
@@ -227,6 +236,8 @@ _DATA = {**SCHEMAS, **SYSTEM_SCHEMAS}
 def _data_problem(kind: str, data) -> str:
     """owner._data_problem: "" when `data` has exactly the keys of `kind` with valid values, else what is wrong."""
     schema = _DATA[kind]
+    if kind == _RESEARCH_REVOKED and type(data) is not dict:
+        return 'is not an object'
     if not isinstance(data, dict):
         return "is not an object"
     if set(data) != set(schema):
@@ -952,12 +963,15 @@ def _wrong_key(signing_key, kind: str, data: dict, lines: list[bytes]) -> str:
     return ""
 
 
-def _commit(signing_key, kind: str, data: dict, *, utc: str, expect_head: tuple[int, str] | None = None
+def _commit(signing_key, kind: str, data: dict, *, utc: str, expect_head: tuple[int, str] | None = None,
+            research_input=None
             ) -> tuple[int, str]:
     """Append one signed entry stamped `utc` under the sidecar lock and return (seq, row_sha256). The chain must
     still end at `expect_head` (what the owner was shown), `utc` may not be earlier than the last line's, and
     `signing_key` must be the key in force (_wrong_key); an approval's anchor is written after the line."""
     check_data(kind, data)
+    if kind == _RESEARCH_REVOKED and type(research_input) is not _ResearchRevocationInput:
+        raise ValueError('research revocation requires its independently reviewed document')
     if not _utc(utc):
         raise ValueError(f"utc {utc!r} is not YYYY-MM-DDTHH:MM:SSZ; nothing was signed")
     if kind == "approved":
@@ -977,11 +991,28 @@ def _commit(signing_key, kind: str, data: dict, *, utc: str, expect_head: tuple[
         why = _wrong_key(signing_key, kind, data, lines)
         if why:
             raise ValueError(f"{why}; nothing was signed")
+        if kind == _RESEARCH_REVOKED:
+            _research_recheck(research_input, data, signing_key, lines, utc)
+            entries = tuple(json.loads(row) for row in lines)
+            _research_anchor_inventory(entries)
+            try:
+                _research_flush_log(lines)
+                _research_ensure_anchors(entries)
+            except (OSError, ValueError, RuntimeError):
+                raise RuntimeError('research restriction anchor is incomplete; existing log restrictions remain; retry exact input') from None
+            _research_recheck(research_input, data, signing_key, lines, utc)
+            if entries and entries[-1]['kind'] == kind and entries[-1]['data'] == data:
+                return head
         line, row = entry_line(signing_key, head[0] + 1, head[1] or GENESIS_PREV, kind, data, utc)
         with open(_checked(path, state_root()), "ab") as fh:
             fh.write(line)
             fh.flush()
             os.fsync(fh.fileno())
+        if kind == _RESEARCH_REVOKED:
+            try:
+                _research_ensure_anchors(entries + (json.loads(line),))
+            except (OSError, ValueError, RuntimeError):
+                raise RuntimeError('research restriction was appended but its anchor is unconfirmed; preserve the log and retry exact input') from None
     if kind == "approved":
         _put_anchor(data["kind"], data["sha256"], (head[0] + 1, row))
     return head[0] + 1, row
@@ -994,6 +1025,8 @@ def _key_path(args) -> Path:
 def _sign(args, kind: str, data: dict, before=None) -> int:
     """Validate, stamp and show, take the typed code and the passphrase, run `before` (store writes), sign and
     append with exactly the stamp that was shown."""
+    if kind == _RESEARCH_REVOKED:
+        raise ValueError('use research-revoke with the original detached document')
     check_data(kind, data)
     lines = _read_lines(_log_path())
     head = _head(lines)
@@ -1345,6 +1378,33 @@ def _rv_review_signing_bytes(body):
     validated = _rv_validate_body(body)
     domain = _rv_CARRY_REVIEW_DOMAIN if validated['schema_version'] == 2 else _rv_REVIEW_DOMAIN
     return domain + _rv_canonical(validated).encode('ascii')
+
+
+def _rv_parse_review_document(raw):
+    """Independent existing source-envelope parser; parsing is not authentication."""
+    _rv_need(type(raw) in (str, bytes) and len(raw) <= _rv_MAX_DOCUMENT_BYTES, 'REVIEW_DOCUMENT_TOO_LARGE')
+    def pairs(items):
+        result = {}
+        for key, value in items:
+            _rv_need(key not in result, 'REVIEW_DOCUMENT_DUPLICATE_KEY')
+            result[key] = value
+        return result
+    def invalid(_):
+        raise _rv_ReviewAuthenticationError('REVIEW_DOCUMENT_INVALID')
+    try:
+        envelope = json.loads(raw, object_pairs_hook=pairs, parse_constant=invalid)
+        _rv_need(type(envelope) is dict and set(envelope) == {'body', 'signature_b64'}, 'REVIEW_ENVELOPE_INVALID')
+        _rv_validate_body(envelope['body'])
+        signature = envelope['signature_b64']
+        _rv_need(type(signature) is str and len(signature) == 88, 'REVIEW_SIGNATURE_INVALID')
+        decoded = base64.b64decode(signature, validate=True)
+        _rv_need(len(decoded) == 64 and base64.b64encode(decoded).decode('ascii') == signature,
+                 'REVIEW_SIGNATURE_INVALID')
+        return envelope
+    except _rv_ReviewAuthenticationError:
+        raise
+    except (TypeError, ValueError, UnicodeError, OverflowError, RecursionError, binascii.Error):
+        raise _rv_ReviewAuthenticationError('REVIEW_DOCUMENT_INVALID') from None
 
 _REVIEW_SOURCES = ("execution_launch/driver.py", "execution_launch/program.py",
     "execution_launch/strategy.py", "execution_launch/runner.py", "execution_launch/profile.py",
@@ -2812,7 +2872,231 @@ def _bundle_attest_pinned(args, repo, packet, pins):
     return 0
 
 
+def _research_revocation_data(value):
+    """Strict independent event data; no target trust or signing authority."""
+    if (type(value) is not dict or set(value) != {'purpose', 'target_sha256', 'reason_code'}
+            or type(value['purpose']) is not str or value['purpose'] not in _RESEARCH_PURPOSES
+            or type(value['target_sha256']) is not str or not _hex64(value['target_sha256'])
+            or type(value['reason_code']) is not str or value['reason_code'] not in _RESEARCH_REASONS):
+        raise ValueError('RESEARCH_REVOCATION_DATA_INVALID')
+    return dict(value)
+
+
+def _research_revocation_target(document, *, purpose):
+    """Identity of the existing signed body, never of its signature or raw file."""
+    if type(purpose) is not str or purpose not in _RESEARCH_PURPOSES:
+        raise ValueError('RESEARCH_REVOCATION_PURPOSE_INVALID')
+    if type(document) is not bytes:
+        raise ValueError('RESEARCH_REVOCATION_DOCUMENT_INVALID')
+    try:
+        if purpose == 'research_archive_manifest_attestation':
+            body = _ba_parse_attestation_document(document)['body']
+            signed = _ba_attestation_signing_bytes(body)
+        else:
+            body = _rv_parse_review_document(document)['body']
+            signed = _rv_review_signing_bytes(body)
+    except (ValueError, TypeError, AttributeError, OverflowError, RecursionError):
+        raise ValueError('RESEARCH_REVOCATION_DOCUMENT_INVALID') from None
+    if body['purpose'] != purpose:
+        raise ValueError('RESEARCH_REVOCATION_PURPOSE_INVALID')
+    return sha256_hex(_RESEARCH_TARGET_DOMAIN + signed)
+
+
+@dataclass(frozen=True, kw_only=True)
+class _ResearchRevocationInput:
+    """Displayed input snapshot with retained directory pins; not a grant of trust."""
+    document_path: Path
+    document_identity: tuple
+    document_sha256: str
+    document_pin: _BundlePin
+    pem_path: Path
+    pem_identity: tuple
+    public_pem: bytes
+    public_raw: bytes
+    pem_pin: _BundlePin
+    purpose: str
+    target_sha256: str
+    reason_code: str
+
+
+def _research_anchor_directory():
+    return _checked(_store_dir() / 'research-attestations', state_root())
+
+
+def _research_anchor_rows(entries):
+    return {entry['row_sha256'] + '.anchor.json': canonical_json({
+        'seq': entry['seq'], 'row_sha256': entry['row_sha256']}).encode('utf-8')
+        for entry in entries if entry['kind'] == _RESEARCH_REVOKED}
+
+
+def _research_anchor_inventory(entries):
+    """Existing restrictive anchors must belong to this fully verified chain."""
+    directory = _research_anchor_directory()
+    if not directory.exists():
+        return
+    expected = _research_anchor_rows(entries)
+    with _BundlePin(directory) as pin:
+        names = pin.names(len(expected))
+        if not set(names) <= set(expected):
+            raise ValueError('research restriction anchor inventory is not part of the verified log')
+        for name in names:
+            raw, _ = _bundle_read(directory / name, 256, parent_pin=pin)
+            if raw != expected[name]:
+                raise ValueError('research restriction anchor differs from the verified log')
+
+
+def _research_flush_file(pin, name, identity):
+    flags = os.O_RDWR | getattr(os, 'O_BINARY', 0) | getattr(os, 'O_NOFOLLOW', 0) | getattr(os, 'O_NONBLOCK', 0)
+    descriptor = pin.open(name, flags)
+    try:
+        if _bundle_identity(os.fstat(descriptor), regular=True) != identity:
+            raise ValueError('research restriction file changed before durable flush')
+        os.fsync(descriptor)
+        if _bundle_identity(os.fstat(descriptor), regular=True) != identity:
+            raise ValueError('research restriction file changed during durable flush')
+    finally:
+        os.close(descriptor)
+
+
+def _research_flush_log(lines):
+    if not lines:
+        return
+    expected = hashlib.sha256()
+    for line in lines:
+        expected.update(line)
+    reference = sum(map(len, lines)), expected.hexdigest()
+    path = _log_path()
+    with _BundlePin(path.parent) as pin:
+        actual, identity = _bundle_read(path, reference[0], hash_only=True, parent_pin=pin)
+        if actual != reference:
+            raise ValueError('research restriction log changed before durable retry')
+        _research_flush_file(pin, path.name, identity)
+        reread, after = _bundle_read(path, reference[0], hash_only=True, parent_pin=pin)
+        if reread != reference or after != identity:
+            raise ValueError('research restriction log changed after durable retry')
+
+
+@contextmanager
+def _research_anchor_pin():
+    """Create only beneath retained parents, then keep every child pinned."""
+    with ExitStack() as stack:
+        parent = stack.enter_context(_BundlePin(_home()))
+        for name in ('approved', 'research-attestations'):
+            parent.check()
+            try:
+                if parent.native is not None:
+                    # Native retained handles deny write/delete sharing for each
+                    # ancestor. No unpinned Windows fallback is supported.
+                    os.mkdir(parent.path / name, mode=0o700)
+                else:
+                    if os.mkdir not in os.supports_dir_fd:
+                        raise ValueError('research anchor platform cannot create beneath a retained parent')
+                    os.mkdir(name, mode=0o700, dir_fd=parent.descriptor)
+            except FileExistsError:
+                pass
+            parent.check()
+            expected = _bundle_identity(parent.stat(name))[:2]
+            child = stack.enter_context(_BundlePin(parent.path / name))
+            if _bundle_directory(child.path)[1][:2] != expected:
+                raise ValueError('research restriction directory identity changed')
+            parent = child
+        yield parent
+
+
+def _research_ensure_anchors(entries):
+    """Under the existing log lock: exact no-overwrite files and durable retry.
+
+    POSIX fsync includes the newly created ancestor directories through the
+    explicit state root. Windows file flush and retained directory handles are
+    checked; this does not establish native Windows power-loss durability.
+    """
+    expected = _research_anchor_rows(entries)
+    if not expected:
+        return
+    directory = _research_anchor_directory()
+    with _research_anchor_pin() as pin:
+        if pin.path != directory:
+            raise ValueError('research restriction directory differs from the pinned path')
+        for name, encoded in expected.items():
+            target = directory / name
+            if not target.exists():
+                _bundle_write_new(target, encoded)
+            raw, identity = _bundle_read(target, 256, parent_pin=pin)
+            if raw != encoded:
+                raise ValueError('research restriction anchor exists with different bytes')
+            _research_flush_file(pin, name, identity)
+            reread, after = _bundle_read(target, 256, parent_pin=pin)
+            if reread != encoded or after != identity:
+                raise ValueError('research restriction anchor changed after durable flush')
+        if pin.descriptor is not None:
+            root = state_root().absolute()
+            for path, descriptor, _ in reversed(pin.rows):
+                if path == root.parent or path == root or path.is_relative_to(root):
+                    os.fsync(descriptor)
+        pin.check()
+    _research_anchor_inventory(entries)
+
+
+def _research_recheck(snapshot, data, key, lines, utc):
+    """Called inside the existing append lock immediately before entry signing."""
+    if type(snapshot) is not _ResearchRevocationInput:
+        raise ValueError('research revocation input required')
+    expected = _research_revocation_data({'purpose': snapshot.purpose,
+        'target_sha256': snapshot.target_sha256, 'reason_code': snapshot.reason_code})
+    if _research_revocation_data(data) != expected or key.public_key().public_bytes_raw() != snapshot.public_raw:
+        raise ValueError('research revocation target or current signing key changed')
+    _bundle_verified_head(lines, snapshot.public_raw)
+    pem, pem_identity = _bundle_read(snapshot.pem_path, 4096, parent_pin=snapshot.pem_pin)
+    raw, identity = _bundle_read(snapshot.document_path,
+        _ba_MAX_DOCUMENT_BYTES if snapshot.purpose == 'research_archive_manifest_attestation' else _rv_MAX_DOCUMENT_BYTES,
+        parent_pin=snapshot.document_pin)
+    if (pem != snapshot.public_pem or pem_identity != snapshot.pem_identity
+            or identity != snapshot.document_identity or sha256_hex(raw) != snapshot.document_sha256
+            or _research_revocation_target(raw, purpose=snapshot.purpose) != snapshot.target_sha256):
+        raise ValueError('research revocation document or deployment key changed; review again')
+    shown = datetime.fromisoformat(utc.replace('Z', '+00:00'))
+    now = datetime.fromisoformat(_utc_now().replace('Z', '+00:00'))
+    if not shown <= now < shown + timedelta(minutes=5):
+        raise ValueError('research revocation confirmation expired or clock moved; review again')
+
+
+def _cmd_research_revoke(args):
+    repo, _ = _bundle_directory(args.repo)
+    if Path(sys.prefix).resolve() != (repo / '.venv').resolve():
+        raise ValueError('run research-revoke with the deployment .venv Python and -I')
+    if Path(__file__).resolve().is_relative_to(repo):
+        raise ValueError('run your separately reviewed signer copy outside the repository')
+    document = _review_path(args.document)
+    pem_path = repo / 'core' / 'compliance' / 'owner_pubkey.pem'
+    with _BundlePin(document.parent) as document_pin, _BundlePin(pem_path.parent) as pem_pin:
+        maximum = _ba_MAX_DOCUMENT_BYTES if args.purpose == 'research_archive_manifest_attestation' else _rv_MAX_DOCUMENT_BYTES
+        raw, identity = _bundle_read(document, maximum, parent_pin=document_pin)
+        target = _research_revocation_target(raw, purpose=args.purpose)
+        data = _research_revocation_data({'purpose': args.purpose, 'target_sha256': target,
+                                         'reason_code': args.reason_code})
+        pem, pem_identity = _bundle_read(pem_path, 4096, parent_pin=pem_pin)
+        public = _pem_raw(pem)
+        snapshot = _ResearchRevocationInput(document_path=document, document_identity=identity,
+            document_sha256=sha256_hex(raw), document_pin=document_pin, pem_path=pem_path,
+            pem_identity=pem_identity, public_pem=pem, public_raw=public, pem_pin=pem_pin, **data)
+        lines = _read_lines(_log_path())
+        head = _bundle_verified_head(lines, public)
+        _research_anchor_inventory(tuple(json.loads(row) for row in lines))
+        utc = _utc_now()
+        print('Restrict use of this exact research approval; preserve all original evidence.')
+        print('This does not authenticate its past approval, delete data, place orders or liquidate holdings.')
+        _confirm(_RESEARCH_REVOKED, data, head, utc)
+        key = _unlock(_key_path(args))
+        if key.public_key().public_bytes_raw() != public:
+            raise ValueError('unlocked key does not match the current deployment PEM')
+        seq, row = _commit(key, _RESEARCH_REVOKED, data, utc=utc, expect_head=head, research_input=snapshot)
+    print(f'research approval restricted at owner entry #{seq}; target {target}; row {row}')
+    return 0
+
+
 def _cmd_event(args) -> int:
+    if args.kind == _RESEARCH_REVOKED:
+        raise ValueError('use research-revoke with the original detached document')
     data = json.loads(args.data)
     if args.kind in ("cap_set", "limit_set") and isinstance(data, dict):
         data = {k: float(v) if _number(v) else v for k, v in data.items()}     # caps and limits are floats
@@ -2829,6 +3113,7 @@ def _parser() -> argparse.ArgumentParser:
                             ("code-approve", _cmd_code_approve, "sign the code hash of the repo"),
                             ("review-approve", _cmd_review_approve, "attest a prospective source and fixed implementation review"),
                             ("bundle-attest", _cmd_bundle_attest, "attest exact archived manifests and available file bytes only"),
+                            ("research-revoke", _cmd_research_revoke, "restrict use of one exact research approval body"),
                             ("event", _cmd_event, "sign one owner event")):
         p = sub.add_parser(name, help=text)
         p.set_defaults(run=run)
@@ -2844,8 +3129,13 @@ def _parser() -> argparse.ArgumentParser:
         elif name == "bundle-attest":
             for flag in ("repo", "packet", "expires-at", "output"):
                 p.add_argument("--" + flag, required=True)
+        elif name == 'research-revoke':
+            p.add_argument('--repo', required=True)
+            p.add_argument('--document', required=True)
+            p.add_argument('--purpose', required=True, choices=sorted(_RESEARCH_PURPOSES))
+            p.add_argument('--reason-code', required=True, choices=sorted(_RESEARCH_REASONS))
         elif name == "event":
-            p.add_argument("kind", choices=sorted(set(SCHEMAS) - {"approved", "code_approved"}))
+            p.add_argument("kind", choices=sorted(set(SCHEMAS) - {"approved", "code_approved", _RESEARCH_REVOKED}))
             p.add_argument("--data", required=True, help="the event data as one JSON object")
     return parser
 
