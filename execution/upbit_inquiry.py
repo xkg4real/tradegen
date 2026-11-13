@@ -184,7 +184,7 @@ def _held_flags(holdings: dict, answers: dict) -> dict[str, str]:
                 raise FieldError("market/all")
             seen.add(market)
         classes = market_flags(answer.raw_body)
-    except _CONTAINED:
+    except (*_CONTAINED, RecursionError):
         return dict.fromkeys(holdings, "unknown")
     answers[MARKET_ALL_PATH] = answer
     return {coin: classes.get(f"KRW-{coin}", "absent" if UNIVERSE_MARKET.fullmatch(f"KRW-{coin}") else "unknown")

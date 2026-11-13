@@ -54,7 +54,11 @@ The root agent owns the shared renewal boundary pins and final integration. No d
    dump, retaining hash checks and nested-mutation rejection. This necessary compatibility fix adds
    `execution_accounts/readiness.py` to the plan's production file list.
 5. A mutable nested holding could replace a valid quantity with positive infinity, which the new zero-value
-   skip would otherwise hide. The unlisted branch must retain finite, nonnegative quantity validation.
+   skip would otherwise hide. The unlisted branch retains finite, nonnegative quantity validation.
+6. A deeply nested but small JSON market-list response raised `RecursionError` before the ticker read and
+   escaped the listing-only failure path. The held-flag reader now contains this decoder failure locally,
+   preserving ticker valuation and reporting unknown flags. The global transport exception policy is unchanged.
+   An actual fake-HTTP regression reproduces the failure and verifies the retained prices and amber alert.
 
 ## Verification protocol
 
@@ -65,7 +69,15 @@ are preserved as diagnostic runs, not final regression evidence. Final verificat
 tests, checks source fingerprints before/after, compares actual-home metadata without reading its contents,
 and preserves the original tracked acceptance-results file. PASS, FAIL and NOT_RUN remain separate.
 
-Final results will be appended after the frozen-source run; none are claimed here yet.
+First frozen run at `8137c4712b164c120ec8063e50dc3e05b741c23f`: 2,704 tests, 2,569 PASS, 0 FAIL,
+135 NOT_RUN in 1,094.567 seconds. The source fingerprint and actual-home metadata stayed unchanged. The 135
+NOT_RUN entries comprise 121 macro reference/owner/freeze prerequisites and 14 Windows-specific checks.
+The 2,672 baseline IDs are retained apart from the documented stale-book test rename; 32 new tests plus that
+renamed test all pass. The separate guard run passed 81/81.
+
+The decoder-isolation issue above was reproduced after that run. Its narrow fix and new regression passed the
+40-test Upbit/guard check. A new frozen full run is required before delivery; the first full result is not
+presented as validation of the later runtime change.
 
 ## Remaining after this PR
 

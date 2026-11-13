@@ -325,3 +325,22 @@ def test_malformed_listing_never_turns_held_coins_into_zero_valued_absence():
     snap, calls = _run(EF.upbit_routes(market_all=[]))
     assert snap.ok and dict(snap.market_flags) == {"BTC": "absent"}, snap.error
     assert positions.venue_value_krw(snap) == 20_000.0 and _query(calls[-1]) == "markets=KRW-USDT"
+
+
+def test_deep_listing_json_keeps_the_snapshot_prices_and_amber_status():
+    from core.compliance import model
+    from execution import checks
+
+    # Valid JSON below ordinary body caps, but beyond the decoder's nesting limit.
+    raw = b'[{"market":"KRW-BTC","ignored":' + b'[' * 10_000 + b'0' + b']' * 10_000 + b'}]'
+    routes = EF.upbit_routes(market_all=lambda call: (200, {"Date": EF.DATE_HEADER}, raw))
+    snap, calls = _run(routes)
+    assert snap.ok and dict(snap.market_flags) == {"BTC": "unknown"}, snap.error
+    assert snap.prices_krw["BTC"] == 100_000_000.0 and positions.venue_value_krw(snap) == 30_000.0
+    assert PATH["market_all"] not in snap.response_sha256
+    assert _path(calls[-1]) == PATH["ticker"] and _query(calls[-1]) == "markets=KRW-BTC,KRW-USDT"
+    owner = model.OwnerState.broken("fixture")
+    alerts = checks.run_checks({}, {"upbit": snap}, owner, checks.limits_from(owner, None), EF.NOW)
+    market_alerts = [a for a in alerts if a.kind == "MARKET_FLAGS"]
+    assert [(a.text_key, a.level, dict(a.slots)) for a in market_alerts] == [
+        ("HELD_FLAGS_UNKNOWN", "amber", {"n": 1})]
