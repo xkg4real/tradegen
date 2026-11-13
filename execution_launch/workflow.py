@@ -28,7 +28,7 @@ from execution_launch.profile import (
 from execution_launch.strategy import (
     StrategyEvidenceError, assess_strategy, evaluate_capture_json, parse_protocol,
 )
-from execution_launch import program, paper_capture, review_request, private_input
+from execution_launch import program, paper_capture, review_request, private_input, capture_v2, managed_behavior
 
 MAX_CONFIG_BYTES = 65536
 MAX_CAPTURE_BYTES = 16 * 1024 * 1024
@@ -39,6 +39,13 @@ _WINDOWS_CODES = {'PRIVATE_INPUT_PLATFORM_UNSUPPORTED': 'WORKFLOW_FILE_PLATFORM_
                   'PRIVATE_INPUT_FILE_REFUSED': 'WORKFLOW_FILE_REFUSED',
                   'PRIVATE_INPUT_TOO_LARGE': 'WORKFLOW_FILE_TOO_LARGE'}
 _CODE = re.compile(r"[A-Z][A-Z0-9_]{0,95}")
+CARRY_CAPTURE_FILES = (
+    'execution_launch/workflow.py', 'execution_launch/paper_capture.py',
+    'execution_launch/capture_v2.py', 'execution_launch/managed_behavior.py',
+    'execution_launch/program.py', 'execution_launch/strategy.py',
+    'execution_launch/review_request.py',
+    'execution_control/capability.py',
+)
 
 
 class WorkflowError(ValueError):
@@ -155,6 +162,15 @@ read_file = _read_file      # the public names other modules in the closure use 
 artifact = _artifact
 
 
+def carry_capture_source_artifact() -> bytes:
+    """Actual bounded producer manifest for v2; legacy single-file artifacts stay separate."""
+    root = Path(__file__).absolute().parent.parent
+    files = {name: hashlib.sha256(_read_file(str(root / name), MAX_ARTIFACT_BYTES, suffix='.py')).hexdigest()
+             for name in CARRY_CAPTURE_FILES}
+    return json.dumps({'schema_version': 2, 'capture_revision': 'fixed-carry-capture-v2', 'files': files},
+                      sort_keys=True, separators=(',', ':'), ensure_ascii=True).encode('ascii')
+
+
 def _json(raw):
     def pairs(rows):
         output = {}
@@ -224,6 +240,11 @@ def evaluate_files(profile, protocol, capture_raw, *, now):
         extra_bar_delay=_metrics(result.extra_bar_delay),
         benchmark=_metrics(result.benchmark), benchmark_excess_mean=result.benchmark_excess_mean,
         family_adjusted_p=result.family_adjusted_p)
+    if managed_behavior.resolve_behavior(protocol) == managed_behavior.BEHAVIOR_REVISION:
+        output.update(terminal_accounting=managed_behavior.TERMINAL_ACCOUNTING,
+                      valuation_is_realized_profit=False)
+        for name in ('primary', 'double_cost', 'extra_bar_delay', 'benchmark'):
+            output[name]['valuation_return'] = output[name].pop('total_return')
     return output
 
 
@@ -242,6 +263,7 @@ def main(argv=None):
             output.update(workflow_complete=True, program_digest=program.program_digest(spec, artifact),
                 program_artifact_sha256=hashlib.sha256(artifact).hexdigest(),
                 capture_source_code_sha256=hashlib.sha256(capture_artifact).hexdigest(),
+                carry_capture_source_code_sha256=hashlib.sha256(carry_capture_source_artifact()).hexdigest(),
                 reasons=['WORKFLOW_HASHES_ARE_NOT_SOURCE_AUTHENTICATION'])
         else:
             now = _time(args['now'])  # Refuse invalid/missing time before any file is read.
@@ -269,10 +291,13 @@ def main(argv=None):
                 spec = program.parse_program(_read_file(args['program'], MAX_CONFIG_BYTES))
                 registry, bars, source_kind = paper_capture.parse_replay_input(
                     _read_file(args['bars'], MAX_CAPTURE_BYTES))
-                archive = paper_capture.replay_capture(protocol, registry, spec, bars,
+                carry = managed_behavior.resolve_behavior(protocol) == managed_behavior.BEHAVIOR_REVISION
+                replay = paper_capture.replay_capture_v2 if carry else paper_capture.replay_capture
+                archive = replay(protocol, registry, spec, bars,
                     program_artifact=_artifact('program.py'),
-                    capture_source_artifact=_artifact('paper_capture.py'), source_kind=source_kind, now=now)
-                raw = paper_capture.capture_json(archive)
+                    capture_source_artifact=carry_capture_source_artifact() if carry else _artifact('paper_capture.py'),
+                    source_kind=source_kind, now=now)
+                raw = capture_v2.capture_json_v2(archive) if carry else paper_capture.capture_json(archive)
                 if args.get('emit-capture'):
                     print(raw, end='' if raw.endswith('\n') else '\n')
                     return 0
@@ -284,7 +309,8 @@ def main(argv=None):
         print(json.dumps(output, sort_keys=True, allow_nan=False))
         return 0  # Completed an offline operation, not permission to trade.
     except (WorkflowError, ProfileError, StrategyEvidenceError, program.ProgramError,
-            paper_capture.CaptureError, review_request.ReviewRequestError) as exc:
+            paper_capture.CaptureError, capture_v2.CaptureV2Error, managed_behavior.ManagedBehaviorError,
+            review_request.ReviewRequestError) as exc:
         code = exc.code if type(exc) is ProfileError else str(exc)
         if _CODE.fullmatch(code) is None:
             code = 'WORKFLOW_EVIDENCE_REFUSED'

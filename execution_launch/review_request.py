@@ -7,6 +7,7 @@ source authentication, a callback verifier, an owner approval or permission.
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 import hashlib
 import json
 import math
@@ -17,6 +18,9 @@ from execution_launch.profile import (
 )
 from execution_launch.program import parse_program, parameters_json as canonical_parameters, program_digest
 from execution_launch.strategy import assess_strategy
+from execution_launch.managed_behavior import (
+    BEHAVIOR_REVISION, CARRY_EVALUATOR_REVISION, TERMINAL_ACCOUNTING, behavior_digest,
+)
 
 MAX_REQUEST_BYTES = 65536
 _HASH = re.compile(r"[0-9a-f]{64}")
@@ -40,6 +44,13 @@ _CHECKS = (
 )
 _METRICS = frozenset({"observations", "completed_roundtrips", "total_return", "max_drawdown",
                      "double_cost_total_return", "extra_delay_total_return", "family_adjusted_p"})
+_CARRY_NUMERIC = frozenset({"observations", "completed_roundtrips", "valuation_total_return", "max_drawdown",
+    "double_cost_valuation_total_return", "extra_delay_valuation_total_return", "family_adjusted_p"})
+_CARRY_AMOUNTS = frozenset({"terminal_units", "terminal_cash_quote", "terminal_mark_quote",
+    "terminal_marked_equity_quote", "terminal_inventory_cost_quote", "realized_net_profit_quote",
+    "unrealized_net_profit_quote", "total_fees_quote_exact", "turnover_quote_exact"})
+_CARRY_METRICS = _CARRY_NUMERIC | _CARRY_AMOUNTS | {"terminal_observed_at", "terminal_source_sha256"}
+_CARRY_FIELDS = frozenset({"behavior_revision", "terminal_accounting", "management_behavior_sha256"})
 _TOP = frozenset({"schema_version", "artifact_kind", "requested_at", "capture_start", "capture_end",
     "evaluated_at", "review_deadline", "study_id", "strategy_id", "capture_source_id",
     "evaluator_revision", "source_kind_claim", "bindings", "computed_summary", "profile_blockers",
@@ -127,21 +138,74 @@ def build_family_commitment(*, plan_digest, capture_digests, result_digests):
 def bind_review_family(request, commitment):
     """Create a new unsigned schema-2 request; never upgrade an existing signature."""
     _validate(request)
-    _require(request["schema_version"] == 1, "REVIEW_FAMILY_ALREADY_BOUND")
+    _require(request["schema_version"] in (1, 3), "REVIEW_FAMILY_ALREADY_BOUND")
     _validate_family(commitment)
     body = {name: value for name, value in request.items() if name != "request_sha256"}
-    body.update(schema_version=2, family_commitment=json.loads(_canonical(commitment)))
+    body.update(schema_version=2 if request["schema_version"] == 1 else 4,
+                family_commitment=json.loads(_canonical(commitment)))
     result = body | {"request_sha256": hashlib.sha256(_canonical(body).encode("ascii")).hexdigest()}
     _validate(result)
     return result
 
 
+def _carry_amount(value, *, signed=False):
+    """Independent-review-friendly strict signed string codec, no app imports."""
+    _require(type(value) is str and 0 < len(value) <= 4096
+             and re.fullmatch(r'-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?', value) is not None,
+             "REVIEW_REQUEST_SUMMARY_INVALID")
+    amount = Decimal(value)
+    _require(len(amount.as_tuple().digits) <= 2048 and abs(amount.as_tuple().exponent) <= 2048
+             and amount.copy_abs() <= Decimal('1e100') and (signed or amount >= 0),
+             "REVIEW_REQUEST_SUMMARY_INVALID")
+    text = format(amount, 'f')
+    text = text.rstrip('0').rstrip('.') if '.' in text else text
+    _require(value == (text if amount else '0'), "REVIEW_REQUEST_SUMMARY_INVALID")
+
+
+def _validate_metrics(metrics, *, carry):
+    expected = _CARRY_METRICS if carry else _METRICS
+    _require(type(metrics) is dict and set(metrics) == expected, "REVIEW_REQUEST_SUMMARY_INVALID")
+    for name in (_CARRY_NUMERIC if carry else _METRICS):
+        value = metrics[name]
+        _require(type(value) is int and 0 <= value <= 100000 if name in ("observations", "completed_roundtrips")
+                 else type(value) in (float, int) and math.isfinite(value), "REVIEW_REQUEST_SUMMARY_INVALID")
+    _require(0 < metrics["family_adjusted_p"] <= 1 and 0 <= metrics["max_drawdown"] <= 1,
+             "REVIEW_REQUEST_SUMMARY_INVALID")
+    if carry:
+        for name in _CARRY_AMOUNTS:
+            _carry_amount(metrics[name], signed=name in ("realized_net_profit_quote", "unrealized_net_profit_quote"))
+        _time(metrics["terminal_observed_at"])
+        _require(_hash(metrics["terminal_source_sha256"]), "REVIEW_REQUEST_SUMMARY_INVALID")
+
+
+def computed_summary(result, *, mathematical_criteria_met):
+    """Present actual result fields; caller must separately verify issuance."""
+    carry = getattr(result, "schema_version", None) == 2
+    metrics = {"observations": result.primary.observations,
+               "completed_roundtrips": result.primary.completed_roundtrips,
+               "max_drawdown": result.primary.max_drawdown, "family_adjusted_p": result.family_adjusted_p}
+    if carry:
+        metrics.update(valuation_total_return=result.primary.total_return,
+                       double_cost_valuation_total_return=result.double_cost.total_return,
+                       extra_delay_valuation_total_return=result.extra_bar_delay.total_return,
+                       terminal_observed_at=_stamp(result.primary.terminal_observed_at),
+                       terminal_source_sha256=result.primary.terminal_source_sha256)
+        metrics.update({name: getattr(result.primary, name) for name in _CARRY_AMOUNTS})
+    else:
+        metrics.update(total_return=result.primary.total_return, double_cost_total_return=result.double_cost.total_return,
+                       extra_delay_total_return=result.extra_bar_delay.total_return)
+    _validate_metrics(metrics, carry=carry)
+    return {"mathematical_criteria_met": mathematical_criteria_met, "metrics": metrics}
+
+
 def _validate(request):
     _require(type(request) is dict and type(request.get("schema_version")) is int
-             and request["schema_version"] in (1, 2), "REVIEW_REQUEST_SCHEMA_INVALID")
-    expected = _TOP if request["schema_version"] == 1 else _TOP | {"family_commitment"}
+             and request["schema_version"] in (1, 2, 3, 4), "REVIEW_REQUEST_SCHEMA_INVALID")
+    carry = request["schema_version"] in (3, 4)
+    family_bound = request["schema_version"] in (2, 4)
+    expected = _TOP | (_CARRY_FIELDS if carry else set()) | ({"family_commitment"} if family_bound else set())
     _require(set(request) == expected, "REVIEW_REQUEST_SCHEMA_INVALID")
-    _require(type(request["schema_version"]) is int and request["schema_version"] in (1, 2)
+    _require(type(request["schema_version"]) is int and request["schema_version"] in (1, 2, 3, 4)
              and request["artifact_kind"] == "unsigned_strategy_review_request",
              "REVIEW_REQUEST_SCHEMA_INVALID")
     stamps = {name: _time(request[name]) for name in
@@ -151,12 +215,19 @@ def _validate(request):
              "REVIEW_REQUEST_CHRONOLOGY_INVALID")
     for name in ("study_id", "strategy_id", "capture_source_id", "evaluator_revision"):
         _require(_identifier(request[name]), "REVIEW_REQUEST_IDENTIFIER_INVALID")
+    _require((request["evaluator_revision"] == CARRY_EVALUATOR_REVISION) == carry,
+             "REVIEW_REQUEST_REVISION_MISMATCH")
+    if carry:
+        _require(request["behavior_revision"] == BEHAVIOR_REVISION
+                 and request["terminal_accounting"] == TERMINAL_ACCOUNTING
+                 and request["management_behavior_sha256"] == behavior_digest(),
+                 "REVIEW_REQUEST_BEHAVIOR_MISMATCH")
     _require(type(request["source_kind_claim"]) is str and request["source_kind_claim"] in _KINDS,
              "REVIEW_SOURCE_KIND_INVALID")
     bindings = request["bindings"]
     _require(type(bindings) is dict and set(bindings) == _BINDINGS and all(_hash(v) for v in bindings.values()),
              "REVIEW_REQUEST_BINDING_INVALID")
-    if request["schema_version"] == 2:
+    if family_bound:
         family = request["family_commitment"]
         _validate_family(family)
         member = next((row for row in family["members"] if row["study_id"] == request["study_id"]), None)
@@ -166,13 +237,7 @@ def _validate(request):
     _require(type(summary) is dict and set(summary) == {"mathematical_criteria_met", "metrics"}
              and type(summary["mathematical_criteria_met"]) is bool,
              "REVIEW_REQUEST_SUMMARY_INVALID")
-    metrics = summary["metrics"]
-    _require(type(metrics) is dict and set(metrics) == _METRICS, "REVIEW_REQUEST_SUMMARY_INVALID")
-    for name, value in metrics.items():
-        _require(type(value) is int and 0 <= value <= 100000 if name in ("observations", "completed_roundtrips")
-                 else type(value) in (float, int) and math.isfinite(value), "REVIEW_REQUEST_SUMMARY_INVALID")
-    _require(0 < metrics["family_adjusted_p"] <= 1 and 0 <= metrics["max_drawdown"] <= 1,
-             "REVIEW_REQUEST_SUMMARY_INVALID")
+    _validate_metrics(summary["metrics"], carry=carry)
     for name in ("profile_blockers", "assessment_reasons"):
         values = request[name]
         _require(type(values) is list and len(values) <= 100
@@ -270,19 +335,16 @@ def build_review_request(profile, protocol, result, *, now, program_artifact: by
                 "canonical_parameters_sha256": hashlib.sha256(parameters_json.encode("ascii")).hexdigest(),
                 "capture_source_code_sha256": protocol.capture_source_code_sha256,
             },
-            "computed_summary": {"mathematical_criteria_met": assessment.math_qualified, "metrics": {
-                "observations": result.primary.observations,
-                "completed_roundtrips": result.primary.completed_roundtrips,
-                "total_return": result.primary.total_return, "max_drawdown": result.primary.max_drawdown,
-                "double_cost_total_return": result.double_cost.total_return,
-                "extra_delay_total_return": result.extra_bar_delay.total_return,
-                "family_adjusted_p": result.family_adjusted_p,
-            }},
+            "computed_summary": computed_summary(result, mathematical_criteria_met=assessment.math_qualified),
             "profile_blockers": list(report.reasons), "assessment_reasons": list(assessment.reasons),
             "required_checks": [{"id": name, "reviewed": None, "evidence_sha256": None} for name in _CHECKS],
             "reviewer_id": None, "review_public_key": None, "review_signature": None,
             "deployment_code_hash": None, "authority": {name: False for name in sorted(_AUTH_FLAGS)},
         }
+        if protocol.evaluator_revision == CARRY_EVALUATOR_REVISION:
+            body.update(schema_version=3, behavior_revision=protocol.behavior_revision,
+                        terminal_accounting=protocol.terminal_accounting,
+                        management_behavior_sha256=protocol.management_behavior_sha256)
         request = body | {"request_sha256": hashlib.sha256(_canonical(body).encode("ascii")).hexdigest()}
         review_request_json(request)
         return request

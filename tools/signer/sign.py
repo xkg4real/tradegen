@@ -74,6 +74,7 @@ import sys
 import time
 from contextlib import contextmanager
 from datetime import date, datetime, timedelta, timezone
+from decimal import Decimal
 from pathlib import Path
 
 KEY_FORMAT = "tradegen-owner-key/1"
@@ -1070,16 +1071,38 @@ def _cmd_code_approve(args) -> int:
 
 # Detached review validators: standalone copies, checked against runtime contract.
 _REVIEW_FACTORY_ID = "tradegen-fixed-cash-trend-v1"
+_REVIEW_CARRY_FACTORY_ID = "tradegen-fixed-carry-v2"
+_REVIEW_BEHAVIOR_REVISION = "protective-carry-v2"
+_REVIEW_CARRY_EVALUATOR_REVISION = "forward-paper-carry-v2"
+_REVIEW_TERMINAL_ACCOUNTING = "mark_open_positions"
 _rr_MAX_REQUEST_BYTES = 65536
+
 _rr_HASH = re.compile('[0-9a-f]{64}')
+
 _rr_ID = re.compile('[A-Za-z][A-Za-z0-9_.:-]{0,95}')
+
 _rr_KINDS = frozenset({'prospective_paper_capture', 'synthetic', 'retrospective_replay'})
+
 _rr_BINDINGS = frozenset({'protocol_digest', 'evidence_digest', 'registry_digest', 'inputs_digest', 'profile_contract_digest', 'runtime_profile_digest', 'rule_terms_digest', 'program_digest', 'program_artifact_sha256', 'canonical_parameters_sha256', 'capture_source_code_sha256'})
+
 _rr_AUTH_FLAGS = frozenset({'source_authenticated', 'implementation_authenticated', 'signature_verified', 'owner_context_verified', 'research_review_ready', 'execution_ready'})
+
 _rr_CHECKS = ('original_source_identity_and_records', 'publication_before_capture', 'independent_capture_window', 'complete_candidate_and_retry_family', 'causal_decisions_match_frozen_program', 'fixed_runtime_driver_matches_reviewed_program', 'deployment_source_and_dependency_closure', 'capital_fees_rules_and_account_risk_applicability', 'effective_owner_limits_and_actual_session')
+
 _rr_METRICS = frozenset({'observations', 'completed_roundtrips', 'total_return', 'max_drawdown', 'double_cost_total_return', 'extra_delay_total_return', 'family_adjusted_p'})
+
+_rr_CARRY_NUMERIC = frozenset({'observations', 'completed_roundtrips', 'valuation_total_return', 'max_drawdown', 'double_cost_valuation_total_return', 'extra_delay_valuation_total_return', 'family_adjusted_p'})
+
+_rr_CARRY_AMOUNTS = frozenset({'terminal_units', 'terminal_cash_quote', 'terminal_mark_quote', 'terminal_marked_equity_quote', 'terminal_inventory_cost_quote', 'realized_net_profit_quote', 'unrealized_net_profit_quote', 'total_fees_quote_exact', 'turnover_quote_exact'})
+
+_rr_CARRY_METRICS = _rr_CARRY_NUMERIC | _rr_CARRY_AMOUNTS | {'terminal_observed_at', 'terminal_source_sha256'}
+
+_rr_CARRY_FIELDS = frozenset({'behavior_revision', 'terminal_accounting', 'management_behavior_sha256'})
+
 _rr_TOP = frozenset({'schema_version', 'artifact_kind', 'requested_at', 'capture_start', 'capture_end', 'evaluated_at', 'review_deadline', 'study_id', 'strategy_id', 'capture_source_id', 'evaluator_revision', 'source_kind_claim', 'bindings', 'computed_summary', 'profile_blockers', 'assessment_reasons', 'required_checks', 'reviewer_id', 'review_public_key', 'review_signature', 'deployment_code_hash', 'authority', 'request_sha256'})
+
 _rr_FAMILY = frozenset({'plan_digest', 'members', 'family_sha256'})
+
 _rr_MEMBER = frozenset({'study_id', 'capture_sha256', 'evidence_digest'})
 
 class _rr_ReviewRequestError(ValueError):
@@ -1142,38 +1165,61 @@ def _rr_build_family_commitment(*, plan_digest, capture_digests, result_digests)
 def _rr_bind_review_family(request, commitment):
     """Create a new unsigned schema-2 request; never upgrade an existing signature."""
     _rr_validate(request)
-    _rr_require(request['schema_version'] == 1, 'REVIEW_FAMILY_ALREADY_BOUND')
+    _rr_require(request['schema_version'] in (1, 3), 'REVIEW_FAMILY_ALREADY_BOUND')
     _rr_validate_family(commitment)
     body = {name: value for name, value in request.items() if name != 'request_sha256'}
-    body.update(schema_version=2, family_commitment=json.loads(_rr_canonical(commitment)))
+    body.update(schema_version=2 if request['schema_version'] == 1 else 4, family_commitment=json.loads(_rr_canonical(commitment)))
     result = body | {'request_sha256': hashlib.sha256(_rr_canonical(body).encode('ascii')).hexdigest()}
     _rr_validate(result)
     return result
 
+def _rr_carry_amount(value, *, signed=False):
+    """Independent-review-friendly strict signed string codec, no app imports."""
+    _rr_require(type(value) is str and 0 < len(value) <= 4096 and (re.fullmatch('-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?', value) is not None), 'REVIEW_REQUEST_SUMMARY_INVALID')
+    amount = Decimal(value)
+    _rr_require(len(amount.as_tuple().digits) <= 2048 and abs(amount.as_tuple().exponent) <= 2048 and (amount.copy_abs() <= Decimal('1e100')) and (signed or amount >= 0), 'REVIEW_REQUEST_SUMMARY_INVALID')
+    text = format(amount, 'f')
+    text = text.rstrip('0').rstrip('.') if '.' in text else text
+    _rr_require(value == (text if amount else '0'), 'REVIEW_REQUEST_SUMMARY_INVALID')
+
+def _rr_validate_metrics(metrics, *, carry):
+    expected = _rr_CARRY_METRICS if carry else _rr_METRICS
+    _rr_require(type(metrics) is dict and set(metrics) == expected, 'REVIEW_REQUEST_SUMMARY_INVALID')
+    for name in _rr_CARRY_NUMERIC if carry else _rr_METRICS:
+        value = metrics[name]
+        _rr_require(type(value) is int and 0 <= value <= 100000 if name in ('observations', 'completed_roundtrips') else type(value) in (float, int) and math.isfinite(value), 'REVIEW_REQUEST_SUMMARY_INVALID')
+    _rr_require(0 < metrics['family_adjusted_p'] <= 1 and 0 <= metrics['max_drawdown'] <= 1, 'REVIEW_REQUEST_SUMMARY_INVALID')
+    if carry:
+        for name in _rr_CARRY_AMOUNTS:
+            _rr_carry_amount(metrics[name], signed=name in ('realized_net_profit_quote', 'unrealized_net_profit_quote'))
+        _rr_time(metrics['terminal_observed_at'])
+        _rr_require(_rr_hash(metrics['terminal_source_sha256']), 'REVIEW_REQUEST_SUMMARY_INVALID')
+
 def _rr_validate(request):
-    _rr_require(type(request) is dict and type(request.get('schema_version')) is int and (request['schema_version'] in (1, 2)), 'REVIEW_REQUEST_SCHEMA_INVALID')
-    expected = _rr_TOP if request['schema_version'] == 1 else _rr_TOP | {'family_commitment'}
+    _rr_require(type(request) is dict and type(request.get('schema_version')) is int and (request['schema_version'] in (1, 2, 3, 4)), 'REVIEW_REQUEST_SCHEMA_INVALID')
+    carry = request['schema_version'] in (3, 4)
+    family_bound = request['schema_version'] in (2, 4)
+    expected = _rr_TOP | (_rr_CARRY_FIELDS if carry else set()) | ({'family_commitment'} if family_bound else set())
     _rr_require(set(request) == expected, 'REVIEW_REQUEST_SCHEMA_INVALID')
-    _rr_require(type(request['schema_version']) is int and request['schema_version'] in (1, 2) and (request['artifact_kind'] == 'unsigned_strategy_review_request'), 'REVIEW_REQUEST_SCHEMA_INVALID')
+    _rr_require(type(request['schema_version']) is int and request['schema_version'] in (1, 2, 3, 4) and (request['artifact_kind'] == 'unsigned_strategy_review_request'), 'REVIEW_REQUEST_SCHEMA_INVALID')
     stamps = {name: _rr_time(request[name]) for name in ('requested_at', 'capture_start', 'capture_end', 'evaluated_at', 'review_deadline')}
     _rr_require(stamps['capture_start'] < stamps['capture_end'] <= stamps['evaluated_at'] <= stamps['requested_at'] and stamps['review_deadline'] > stamps['capture_end'], 'REVIEW_REQUEST_CHRONOLOGY_INVALID')
     for name in ('study_id', 'strategy_id', 'capture_source_id', 'evaluator_revision'):
         _rr_require(_rr_identifier(request[name]), 'REVIEW_REQUEST_IDENTIFIER_INVALID')
+    _rr_require((request['evaluator_revision'] == _REVIEW_CARRY_EVALUATOR_REVISION) == carry, 'REVIEW_REQUEST_REVISION_MISMATCH')
+    if carry:
+        _rr_require(request['behavior_revision'] == _REVIEW_BEHAVIOR_REVISION and request['terminal_accounting'] == _REVIEW_TERMINAL_ACCOUNTING and (request['management_behavior_sha256'] == _review_carry_behavior_digest()), 'REVIEW_REQUEST_BEHAVIOR_MISMATCH')
     _rr_require(type(request['source_kind_claim']) is str and request['source_kind_claim'] in _rr_KINDS, 'REVIEW_SOURCE_KIND_INVALID')
     bindings = request['bindings']
     _rr_require(type(bindings) is dict and set(bindings) == _rr_BINDINGS and all((_rr_hash(v) for v in bindings.values())), 'REVIEW_REQUEST_BINDING_INVALID')
-    if request['schema_version'] == 2:
+    if family_bound:
         family = request['family_commitment']
         _rr_validate_family(family)
         member = next((row for row in family['members'] if row['study_id'] == request['study_id']), None)
         _rr_require(member is not None and member['evidence_digest'] == bindings['evidence_digest'], 'REVIEW_FAMILY_CANDIDATE_MISMATCH')
     summary = request['computed_summary']
     _rr_require(type(summary) is dict and set(summary) == {'mathematical_criteria_met', 'metrics'} and (type(summary['mathematical_criteria_met']) is bool), 'REVIEW_REQUEST_SUMMARY_INVALID')
-    metrics = summary['metrics']
-    _rr_require(type(metrics) is dict and set(metrics) == _rr_METRICS, 'REVIEW_REQUEST_SUMMARY_INVALID')
-    for name, value in metrics.items():
-        _rr_require(type(value) is int and 0 <= value <= 100000 if name in ('observations', 'completed_roundtrips') else type(value) in (float, int) and math.isfinite(value), 'REVIEW_REQUEST_SUMMARY_INVALID')
-    _rr_require(0 < metrics['family_adjusted_p'] <= 1 and 0 <= metrics['max_drawdown'] <= 1, 'REVIEW_REQUEST_SUMMARY_INVALID')
+    _rr_validate_metrics(summary['metrics'], carry=carry)
     for name in ('profile_blockers', 'assessment_reasons'):
         values = request[name]
         _rr_require(type(values) is list and len(values) <= 100 and all((type(v) is str and re.fullmatch('[A-Z][A-Z0-9_]{0,95}', v) for v in values)), 'REVIEW_REQUEST_REASONS_INVALID')
@@ -1216,12 +1262,19 @@ def _rr_parse_review_request(raw: str | bytes) -> dict:
         raise _rr_ReviewRequestError('REVIEW_REQUEST_JSON_INVALID') from None
 
 _rv_REVIEW_DOMAIN = b'tradegen-strategy-review/1\n'
+
+_rv_CARRY_REVIEW_DOMAIN = b'tradegen-strategy-review/2\n'
+
 _rv_MAX_DOCUMENT_BYTES = 98304
+
 _rv_MAX_REVIEW_SECONDS = 86400
-_rv_MAX_AUTHORITY_AGE_SECONDS = 30
+
 _rv_REVIEW_CHECKS = ('original_source_identity_and_records', 'publication_before_capture', 'independent_capture_window', 'complete_candidate_and_retry_family', 'causal_decisions_match_frozen_program', 'fixed_runtime_driver_matches_reviewed_program', 'deployment_source_and_dependency_closure', 'capital_fees_rules_and_account_risk_applicability')
+
 _rv_BODY = frozenset({'schema_version', 'purpose', 'request', 'driver_identity', 'deployment_code_hash', 'audit_sha256', 'owner_fingerprint', 'reviewer_id', 'issued_at', 'expires_at', 'approved_checks'})
+
 _rv_IDENTITY = frozenset({'factory_id', 'program_digest', 'deployment_code_sha256', 'protocol_digest', 'profile_contract_digest', 'rule_terms_digest', 'deployment_window_digest'})
+
 _rv_HASH = re.compile('[0-9a-f]{64}')
 
 class _rv_ReviewAuthenticationError(ValueError):
@@ -1254,14 +1307,19 @@ def _rv_hash(value):
     return type(value) is str and _rv_HASH.fullmatch(value) is not None
 
 def _rv_validate_body(body):
-    _rv_need(type(body) is dict and set(body) == _rv_BODY and (type(body['schema_version']) is int) and (body['schema_version'] == 1) and (body['purpose'] == 'strategy_source_and_fixed_implementation_review'), 'REVIEW_DOCUMENT_SCHEMA_INVALID')
+    _rv_need(type(body) is dict and set(body) == _rv_BODY and (type(body['schema_version']) is int) and (body['schema_version'] in (1, 2)), 'REVIEW_DOCUMENT_SCHEMA_INVALID')
+    carry = body['schema_version'] == 2
+    expected_purpose = 'strategy_source_and_fixed_carry_implementation_review' if carry else 'strategy_source_and_fixed_implementation_review'
+    _rv_need(body['purpose'] == expected_purpose, 'REVIEW_DOCUMENT_SCHEMA_INVALID')
     try:
         request = _rr_parse_review_request(_rv_canonical(body['request']))
     except _rr_ReviewRequestError:
         raise _rv_ReviewAuthenticationError('REVIEW_UNSIGNED_REQUEST_INVALID') from None
     _rv_need(request['source_kind_claim'] == 'prospective_paper_capture' and request['computed_summary']['mathematical_criteria_met'] is True and (request['assessment_reasons'] == ['STRATEGY_TRUSTED_REVIEW_REQUIRED']) and (set(request['profile_blockers']) <= {'SIGNED_CONTEXT_REQUIRED'}), 'REVIEW_REQUEST_NOT_ELIGIBLE')
+    _rv_need(request['schema_version'] in ((3, 4) if carry else (1, 2)) and request['evaluator_revision'] in (('forward-paper-carry-v2',) if carry else ('forward-paper-v1', 'forward-universe-v1')), 'REVIEW_REVISION_FACTORY_MISMATCH')
     identity = body['driver_identity']
-    _rv_need(type(identity) is dict and set(identity) == _rv_IDENTITY and (identity['factory_id'] == _REVIEW_FACTORY_ID) and all((_rv_hash(v) for k, v in identity.items() if k != 'factory_id')), 'REVIEW_DRIVER_IDENTITY_INVALID')
+    expected_factory = _REVIEW_CARRY_FACTORY_ID if carry else _REVIEW_FACTORY_ID
+    _rv_need(type(identity) is dict and set(identity) == _rv_IDENTITY and (identity['factory_id'] == expected_factory) and all((_rv_hash(v) for k, v in identity.items() if k != 'factory_id')), 'REVIEW_DRIVER_IDENTITY_INVALID')
     _rv_need(all((identity[key] == request['bindings'][key] for key in ('program_digest', 'protocol_digest', 'profile_contract_digest', 'rule_terms_digest'))), 'REVIEW_DRIVER_REQUEST_MISMATCH')
     _rv_need(_rv_hash(body['deployment_code_hash']) and _rv_hash(body['audit_sha256']), 'REVIEW_DIGEST_INVALID')
     fp = body['owner_fingerprint']
@@ -1273,20 +1331,45 @@ def _rv_validate_body(body):
 
 def _rv_review_body(request, driver_identity, *, deployment_code_hash, audit_sha256, owner_fingerprint, issued_at, expires_at):
     """Build strictly typed unsigned signing input; this grants no review status."""
-    body = {'schema_version': 1, 'purpose': 'strategy_source_and_fixed_implementation_review', 'request': _rr_parse_review_request(_rr_review_request_json(request)), 'driver_identity': dict(driver_identity), 'deployment_code_hash': deployment_code_hash, 'audit_sha256': audit_sha256, 'owner_fingerprint': owner_fingerprint, 'reviewer_id': 'owner:' + owner_fingerprint[7:], 'issued_at': _rv_stamp(issued_at), 'expires_at': _rv_stamp(expires_at), 'approved_checks': list(_rv_REVIEW_CHECKS)}
+    parsed = _rr_parse_review_request(_rr_review_request_json(request))
+    carry = parsed['schema_version'] in (3, 4)
+    body = {'schema_version': 2 if carry else 1, 'purpose': 'strategy_source_and_fixed_carry_implementation_review' if carry else 'strategy_source_and_fixed_implementation_review', 'request': parsed, 'driver_identity': dict(driver_identity), 'deployment_code_hash': deployment_code_hash, 'audit_sha256': audit_sha256, 'owner_fingerprint': owner_fingerprint, 'reviewer_id': 'owner:' + owner_fingerprint[7:], 'issued_at': _rv_stamp(issued_at), 'expires_at': _rv_stamp(expires_at), 'approved_checks': list(_rv_REVIEW_CHECKS)}
     return _rv_validate_body(body)
 
 def _rv_review_signing_bytes(body):
-    return _rv_REVIEW_DOMAIN + _rv_canonical(_rv_validate_body(body)).encode('ascii')
-
+    validated = _rv_validate_body(body)
+    domain = _rv_CARRY_REVIEW_DOMAIN if validated['schema_version'] == 2 else _rv_REVIEW_DOMAIN
+    return domain + _rv_canonical(validated).encode('ascii')
 
 _REVIEW_SOURCES = ("execution_launch/driver.py", "execution_launch/program.py",
     "execution_launch/strategy.py", "execution_launch/runner.py", "execution_launch/profile.py",
     "execution_control/model.py", "execution_control/capability.py", "execution_control/controller.py",
     "execution_launch/evidence_objects.py", "execution_launch/history_storage.py",
     "execution_launch/live_history.py", "execution_launch/baseline_head.py",
-    "execution_control/store.py", "core/isolation.py")
-# Independent copy of the fixed factory's reviewed source closure; never import repository code here.
+    "execution_control/store.py", "core/isolation.py", "execution_launch/managed_behavior.py")
+# Independent copies of the reviewed source closures; never import repository code here.
+_REVIEW_CARRY_SOURCES = _REVIEW_SOURCES + (
+    "execution_launch/carry_evaluator.py",
+    "execution_launch/capture_v2.py", "execution_launch/paper_capture.py",
+    "execution_launch/coordinator.py", "execution_launch/protective_state.py",
+    "execution_launch/protective_store.py", "execution_launch/review_request.py")
+
+
+def _review_carry_behavior_document():
+    """Independent closed behavior contract; this signer never loads an app-defined policy."""
+    return {"schema_version": 2, "behavior_revision": "protective-carry-v2",
+        "evaluator_revision": "forward-paper-carry-v2", "factory_id": _REVIEW_CARRY_FACTORY_ID,
+        "scope": ["upbit", "spot", "KRW", "fixed", "gtc"], "initial_condition": "flat_start",
+        "entry_interval": "[start,deadline)", "deadline_action": "request_management_approval",
+        "post_deadline_automatic_action": "blocked_without_separate_authority",
+        "hold_rebalance_reduction": False, "failure_action": "block_dependent_action",
+        "terminal_accounting": "mark_open_positions",
+        "fifo_cost_allocation": "18dp_down_final_residual", "buy_fees": "included_in_cost",
+        "sell_fees": "deducted_from_proceeds"}
+
+
+def _review_carry_behavior_digest():
+    return sha256_hex(canonical_json(_review_carry_behavior_document()))
 
 
 def _review_path(path):
@@ -1330,21 +1413,33 @@ def _review_identity(raw):
     except (UnicodeError, ValueError, TypeError, RecursionError):
         raise ValueError("invalid fixed-driver manifest") from None
     if (type(value) is not dict or set(value) != _rv_IDENTITY
-            or value["factory_id"] != _REVIEW_FACTORY_ID
+            or value["factory_id"] not in (_REVIEW_FACTORY_ID, _REVIEW_CARRY_FACTORY_ID)
             or not all(_rv_hash(v) for k, v in value.items() if k != "factory_id")):
         raise ValueError("invalid fixed-driver manifest")
     return value
 
 
-def _review_source_hash(repo):
-    files = {name: sha256_hex(_review_read(repo / name, 1048576)) for name in _REVIEW_SOURCES}
-    return sha256_hex(canonical_json({"factory_id": _REVIEW_FACTORY_ID, "files": files}))
+def _review_source_hash(repo, *, factory_id=_REVIEW_FACTORY_ID):
+    if factory_id not in (_REVIEW_FACTORY_ID, _REVIEW_CARRY_FACTORY_ID):
+        raise ValueError("unsupported review factory")
+    names = _REVIEW_CARRY_SOURCES if factory_id == _REVIEW_CARRY_FACTORY_ID else _REVIEW_SOURCES
+    files = {name: sha256_hex(_review_read(repo / name, 1048576)) for name in names}
+    return sha256_hex(canonical_json({"factory_id": factory_id, "files": files}))
+
+
+def _review_identity_source_hash(repo, identity):
+    # Preserve the legacy one-argument seam; carry uses its explicit closed closure.
+    return (_review_source_hash(repo) if identity["factory_id"] == _REVIEW_FACTORY_ID
+            else _review_source_hash(repo, factory_id=identity["factory_id"]))
 
 
 def _confirm_review(body):
     print("About to attest source and fixed implementation review. This does not arm a session or place an order.")
     print("The live-history provider/verifier and fresh account integration require separate deployment review.")
     print("Verify every approved_checks item against your actual audit. No profitability is guaranteed.")
+    if body["schema_version"] == 2:
+        print("Carry-v2 valuation includes unrealized holdings; it is not realized net profit.")
+        print("This review grants no separate post-deadline management or order authority.")
     print(json.dumps(body, indent=2, sort_keys=True, ensure_ascii=True))
     code = "".join(secrets.choice(CODE_ALPHABET) for _ in range(8))
     typed, stamps = _read_typed(f"Type this code to sign the review (do not paste): {code}\n> ")
@@ -1369,7 +1464,7 @@ def _cmd_review_approve(args):
     pem_path = repo / "core" / "compliance" / "owner_pubkey.pem"
     public = _pem_raw(_review_read(pem_path, 4096))
     closure = code_hash(repo)
-    if identity["deployment_code_sha256"] != _review_source_hash(repo):
+    if identity["deployment_code_sha256"] != _review_identity_source_hash(repo, identity):
         raise ValueError("fixed-driver manifest does not match deployment source bytes")
     now = datetime.fromisoformat(_utc_now().replace("Z", "+00:00"))
     expires = _rv_time(args.expires_at)
@@ -1392,7 +1487,7 @@ def _cmd_review_approve(args):
         if not now <= current_time < min(expires, now + timedelta(minutes=5)):
             raise ValueError("review confirmation expired or clock moved; review again")
         if (_pem_raw(_review_read(pem_path, 4096)) != public or code_hash(repo) != closure
-                or _review_source_hash(repo) != identity["deployment_code_sha256"]
+                or _review_identity_source_hash(repo, identity) != identity["deployment_code_sha256"]
                 or sha256_hex(_review_read(audit_path, 1048576)) != body["audit_sha256"]):
             raise ValueError("review deployment, public key or audit changed; review again")
         if (_rr_parse_review_request(_review_read(args.request, _rr_MAX_REQUEST_BYTES)) != request

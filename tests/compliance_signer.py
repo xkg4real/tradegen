@@ -1329,4 +1329,7 @@ def test_detached_review_command_retains_process_refusal_and_typed_confirmation(
     with _patched(signer,'_refusal',lambda:'synthetic process refusal'),_patched(signer,'_unlock',_never):
         assert _quiet(signer.main,['review-approve'])[0]==2
     with _patched(signer,'_read_typed',lambda _:('wrong',HUMAN)):
-        _raises(lambda:_quiet(signer._confirm_review,{'synthetic':True}),ValueError)
+        # The display-only helper now distinguishes the already-validated legacy/carry body versions.
+        # Wrong typed confirmation must still refuse both; this fixture does not validate or sign a body.
+        for version in (1, 2):
+            _raises(lambda:_quiet(signer._confirm_review,{'schema_version':version,'synthetic':True}),ValueError)

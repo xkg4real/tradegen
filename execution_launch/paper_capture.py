@@ -64,12 +64,14 @@ class CaptureArchive:
     decisions: tuple[PaperDecision, ...]
 
 
-def _bindings(protocol, registry, program, program_artifact, capture_source_artifact):
+def _bindings(protocol, registry, program, program_artifact, capture_source_artifact, *, schema_version=1):
     _require(type(protocol) is ForwardProtocol and type(program) is ProgramSpec,
              "CAPTURE_PROTOCOL_OR_PROGRAM_REQUIRED")
     # Reuse the public strict protocol boundary instead of accepting an unchecked
     # dataclass or a caller's claimed protocol digest.
     parse_protocol(protocol_json(protocol))
+    _require(type(protocol.schema_version) is int and protocol.schema_version == schema_version,
+             "CAPTURE_PROTOCOL_REVISION_MISMATCH")
     span = protocol.capture_end-protocol.capture_start
     spacing = timedelta(seconds=protocol.bar_seconds)
     _require(span % spacing == timedelta(0) and 2 <= span // spacing + 1 <= _MAX_ROWS,
@@ -271,6 +273,96 @@ def replay_capture(protocol, registry, program, bars, *, program_artifact,
             decisions.append(decision)
     _require(bars[-1].observed_at == protocol.capture_end, "CAPTURE_WINDOW_INCOMPLETE")
     return CaptureArchive(registry=registry, source_kind=source_kind, bars=bars, decisions=tuple(decisions))
+
+
+class PaperCaptureV2(PaperCapture):
+    """Explicit carry-v2 streaming capture; final strategy verdict remains recorded.
+
+    Only validated observations enter this recorder. Source failure receipts stay
+    with their original collection path; malformed evidence is never converted
+    into a synthetic unavailable bar or a strategy sell.
+    """
+    def __init__(self, protocol, registry, program, *, program_artifact, capture_source_artifact, clock):
+        from execution_launch import managed_behavior as M
+
+        _bindings(protocol, registry, program, program_artifact, capture_source_artifact, schema_version=2)
+        _require(M.resolve_behavior(protocol) == M.BEHAVIOR_REVISION, "CAPTURE_PROTOCOL_REVISION_MISMATCH")
+        _require(callable(clock), "CAPTURE_CLOCK_REQUIRED")
+        now = _clock_value(clock)
+        _require(protocol.preregistered_at <= now < protocol.capture_start, "CAPTURE_MUST_START_BEFORE_WINDOW")
+        self._protocol, self._registry, self._program = protocol, registry, program
+        self._program_artifact, self._source_artifact = program_artifact, capture_source_artifact
+        self._clock = clock
+        self._binding = evidence_digest((protocol, registry, program_digest(program, program_artifact)))
+        self._last_clock, self._closed = now, False
+        self._bars, self._decisions, self._marks = (), (), ()
+        self._chain = self._decision_chain = ""
+        self._sampled_receipts = ()
+
+    def _intact(self):
+        from execution_launch import managed_behavior as M
+
+        _bindings(self._protocol, self._registry, self._program, self._program_artifact,
+                  self._source_artifact, schema_version=2)
+        _require(M.resolve_behavior(self._protocol) == M.BEHAVIOR_REVISION,
+                 "CAPTURE_PROTOCOL_REVISION_MISMATCH")
+        _require(evidence_digest((self._protocol, self._registry,
+                 program_digest(self._program, self._program_artifact))) == self._binding,
+                 "CAPTURE_CONFIGURATION_CHANGED")
+
+    def _append(self, bar, now):
+        from execution_launch import capture_v2, managed_behavior as M
+
+        index = len(self._bars)
+        _require(index < _MAX_ROWS, "CAPTURE_ROW_LIMIT")
+        capture_v2.validate_bar_v2(self._protocol, bar, index, now)
+        marks = self._marks + (bar.mark,)
+        chain = evidence_digest((self._chain, bar))
+        decision = M.derive_fixed_decision_v2(self._program, marks, bar_index=index,
+            decided_at=now, history_sha256=chain, input_status="available")
+        self._bars += (bar,)
+        self._decisions += (decision,)
+        self._decision_chain = evidence_digest((self._decision_chain, M.decision_document(decision)))
+        self._marks, self._chain, self._last_clock = marks, chain, now
+        return decision
+
+    def snapshot(self):
+        from execution_launch import capture_v2, managed_behavior as M
+
+        self._intact()
+        chain = decisions = ""
+        for row in self._bars:
+            chain = evidence_digest((chain, row))
+        for row in self._decisions:
+            decisions = evidence_digest((decisions, M.decision_document(row)))
+        _require(chain == self._chain and decisions == self._decision_chain, "CAPTURE_HISTORY_CHANGED")
+        return capture_v2.make_archive_v2(self._registry, "prospective_paper_capture", self._program,
+            program_artifact=self._program_artifact, bars=self._bars, decisions=self._decisions)
+
+
+def replay_capture_v2(protocol, registry, program, bars, *, program_artifact,
+                      capture_source_artifact, source_kind, now):
+    """Causal carry replay, explicitly nonprospective, with every final verdict retained."""
+    from execution_launch import capture_v2, managed_behavior as M
+
+    _require(source_kind in ("retrospective_replay", "synthetic"), "CAPTURE_BATCH_NOT_PROSPECTIVE")
+    _bindings(protocol, registry, program, program_artifact, capture_source_artifact, schema_version=2)
+    _require(M.resolve_behavior(protocol) == M.BEHAVIOR_REVISION, "CAPTURE_PROTOCOL_REVISION_MISMATCH")
+    _instant(now)
+    _require(type(bars) is tuple and 2 <= len(bars) <= _MAX_ROWS, "CAPTURE_ROWS_INVALID")
+    decisions, marks, chain = [], (), ""
+    for index, bar in enumerate(bars):
+        _require(type(bar) is PaperBar, "CAPTURE_BAR_REQUIRED")
+        capture_v2.validate_bar_v2(protocol, bar, index, bar.received_at)
+        _require(bar.received_at <= now, "CAPTURE_FUTURE_RECEIPT")
+        marks += (bar.mark,)
+        chain = evidence_digest((chain, bar))
+        decisions.append(M.derive_fixed_decision_v2(program, marks, bar_index=index,
+            decided_at=bar.received_at, history_sha256=chain, input_status="available"))
+    archive = capture_v2.make_archive_v2(registry, source_kind, program, program_artifact=program_artifact,
+                                       bars=bars, decisions=tuple(decisions))
+    capture_v2.validate_capture_v2(protocol, archive)
+    return archive
 
 
 def _plain(value):

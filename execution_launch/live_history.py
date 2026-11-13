@@ -67,6 +67,7 @@ from execution_launch.evidence_objects import EvidenceObjectError, EvidenceObjec
 from execution_launch.history_storage import (HistoryStorageError, HistoryStoragePolicy, SlotContext,
     admit_journal_row, decode_slot_payload, encode_slot_payload, parse_policy, policy_bytes, policy_digest)
 from execution_launch.paper_capture import sample_prefetched_book
+from execution_launch.managed_behavior import FixedDecisionV2, derive_fixed_decision_v2, resolve_behavior
 from execution_launch.profile import LaunchProfile, profile_contract_digest
 from execution_launch.program import ChooserState, ProgramSpec, program_digest, target_fraction
 from execution_launch.runner import DecisionInput, StrategyDriver
@@ -438,7 +439,7 @@ class _Slot:
     """In-memory, verified and derived; never serialized."""
     bar: PaperBar | UniverseBar
     anchor: AccountAnchor
-    decision: PaperDecision | None       # None only at the window end
+    decision: PaperDecision | FixedDecisionV2 | None  # carry-v2 retains the final observed decision too
     sampled_at: datetime
     row_sha256: str
     universe_sha256: str | None = None   # universe windows: evidence_digest of the slot's stored universe record
@@ -463,6 +464,7 @@ class LiveHistory:
         self._base = root
         self._program, self._protocol, self._profile, self._window = program, protocol, profile, window
         self._universe = protocol.universe_rule_sha256 is not None
+        self._carry = resolve_behavior(protocol) == "protective-carry-v2"
         self._storage_policy = storage_policy
         try:
             _require((storage_policy is None) == (protocol.history_storage_sha256 is None),
@@ -586,11 +588,18 @@ class LiveHistory:
         _require(book.symbol == self._protocol.symbol, "HISTORY_BOOK_MARKET_MISMATCH")
         _require(timedelta(0) <= sampled_at - anchor.account_asof <= ACCOUNT_MAX_AGE, "HISTORY_ACCOUNT_STALE_OR_FUTURE")
         chain = evidence_digest((chain, bar))
-        marks = (marks + (bar.mark,))[-self._program.slow_window:] if self._program.kind != "cash" else (bar.mark,)
+        marks = (marks + (bar.mark,)) if self._carry else (
+            (marks + (bar.mark,))[-self._program.slow_window:] if self._program.kind != "cash" else (bar.mark,))
         decision = None
         if slot < self._window.end:
             _require(sampled_at + timedelta(seconds=self._protocol.minimum_fill_delay_seconds) <= slot + self._step,
                      "HISTORY_DECISION_TOO_LATE")
+        if self._carry:
+            # Retain the last actual model observation. _frame still supplies only the prior
+            # slot's decision, so recording the final verdict does not remove execution lag.
+            decision = derive_fixed_decision_v2(self._program, marks, bar_index=index,
+                                                decided_at=sampled_at, history_sha256=chain)
+        elif slot < self._window.end:
             decision = PaperDecision(bar_index=index, decided_at=sampled_at, history_sha256=chain,
                                      target_fraction=target_fraction(self._program, marks))
         return bar, decision, chain, marks
