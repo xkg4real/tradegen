@@ -512,3 +512,21 @@ def test_store_paths_are_isolated_and_link_free():
         refused(lambda: HistoryChain(root=root, window=env.window), "HISTORY_STORE_PATH_REFUSED")
         refused(lambda: env.h.bind(env.d), "HISTORY_STORE_PATH_REFUSED")
         assert not any((home / "elsewhere").iterdir())
+
+
+# Computed at fd85850 (before universe windows) from build() and record() of slots 0-4, frame at slot 4 + 2 s.
+FIXED_FRAME_SHA256 = "59a151ab1b66133c71c030384df91a391178417f9249ec8a34a00558d4e16587"
+FIXED_SLOT_DATA_SHA256 = "1354351db76d3a43b7e7ed508ae77fd98e3c22698cc70fefa1168c2b80c8bde8"
+
+
+def test_fixed_window_frames_and_rows_are_byte_identical_to_fd85850():
+    with head_root() as hroot:
+        env = build(hroot)
+        for i in range(5):
+            record(env, i)
+        frame = env.h.provider(obs(env, env.T(4) + seconds(2)))
+        assert frame.universe_sha256 is None and frame.chooser_inputs is None
+        assert history_frame_digest(frame) == FIXED_FRAME_SHA256
+        data = [row["data"] for row in rows(env)[1:]]
+        assert all(set(item) == {"index", "receipt", "anchor"} for item in data)
+        assert hashlib.sha256(b"".join(_canonical(item) for item in data)).hexdigest() == FIXED_SLOT_DATA_SHA256

@@ -23,8 +23,8 @@ from execution_control.controller import AccountObservation
 from execution_control.model import Order, decimal_text, validate_order
 from execution_launch.profile import (LaunchProfile, profile_contract_digest,
     profile_digest, rule_terms_digest)
-from execution_launch.program import (ProgramSpec, parameters_json,
-    program_digest, target_fraction)
+from execution_launch.program import (ChooserSlot, ChooserState, ProgramSpec, choose,
+    parameters_json, program_digest, target_fraction)
 from execution_launch.runner import DecisionInput, Quote, Signal, StrategyDriver
 from execution_launch.strategy import (ForwardProtocol, PaperBar, PaperDecision,
     evidence_digest, history_digest, parse_protocol, protocol_json)
@@ -86,6 +86,34 @@ class AccountAnchor:
 
 
 @dataclass(frozen=True, kw_only=True)
+class UniverseBar:
+    """One slot of a universe window (spec section 12): the trade coin the coordinator chose and its tick, with
+    that coin's book, or no book fields (None) when its book was unavailable. A bar without a book has no price
+    check and never anchors a quote."""
+    observed_at: datetime
+    received_at: datetime
+    symbol: str
+    tick_size: Decimal
+    bid: Decimal | None
+    ask: Decimal | None
+    mark: Decimal | None
+    source_sha256: str | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class ChooserInputs:
+    """Everything one universe decision reads (spec sections 12 and 14): the chooser state before it, the slot's
+    top-N, flag classes and defined prices, and the defined prices lookback_slots earlier (None before that slot
+    exists). Pairs are sorted by market."""
+    held: str | None
+    hold_count: int
+    top_n: tuple[str, ...]
+    flags: tuple[tuple[str, str], ...]
+    prices: tuple[tuple[str, Decimal], ...]
+    lag_prices: tuple[tuple[str, Decimal], ...] | None
+
+
+@dataclass(frozen=True, kw_only=True)
 class HistoryFrame:
     """Complete prefix including this slot, and the decision from the prior slot.
 
@@ -95,9 +123,13 @@ class HistoryFrame:
     """
     deployment_window_digest: str
     source_kind: str
-    bars: tuple[PaperBar, ...]
+    bars: tuple[PaperBar | UniverseBar, ...]
     prior_decision: PaperDecision | None
     anchor: AccountAnchor
+    # Universe windows only: the digest of the current slot's universe record and the prior decision's inputs.
+    # strategy._plain leaves both out while None, so a fixed frame keeps today's digest byte for byte.
+    universe_sha256: str | None = field(default=None, metadata={"omit_none": True})
+    chooser_inputs: ChooserInputs | None = field(default=None, metadata={"omit_none": True})
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -179,6 +211,19 @@ def history_frame_digest(frame: HistoryFrame) -> str:
     _require(type(frame) is HistoryFrame and type(frame.bars) is tuple
              and 1 <= len(frame.bars) <= 20000, "FIXED_DRIVER_HISTORY_REQUIRED")
     return evidence_digest(frame)
+
+
+def chooser_decision(program: ProgramSpec, inputs: ChooserInputs) -> tuple[str | None, ChooserState]:
+    """Recompute one universe decision from its carried inputs only (spec section 12), never the whole history."""
+    _require(type(inputs) is ChooserInputs and type(inputs.top_n) is tuple and type(inputs.flags) is tuple
+             and type(inputs.prices) is tuple and (inputs.lag_prices is None or type(inputs.lag_prices) is tuple),
+             "FIXED_DRIVER_CHOOSER_INPUTS_REQUIRED")
+    try:
+        lag = None if inputs.lag_prices is None else ChooserSlot(top_n=(), flags={}, prices=dict(inputs.lag_prices))
+        return choose(program, ChooserState(held=inputs.held, hold_count=inputs.hold_count),
+                      ChooserSlot(top_n=inputs.top_n, flags=dict(inputs.flags), prices=dict(inputs.prices)), lag)
+    except (TypeError, ValueError):
+        raise FixedDriverError("FIXED_DRIVER_CHOOSER_INPUTS_REQUIRED") from None
 
 
 def _finite_decimal(value: Fraction) -> Decimal:
