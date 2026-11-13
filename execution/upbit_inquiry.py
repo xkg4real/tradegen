@@ -3,12 +3,14 @@ for the owner's main pocket. Transport signs every call but public quotation end
 covers the exact query sent. The wallet status stays on the allowlist but nothing reads it (E22)."""
 from __future__ import annotations
 
+import json
 import math
 import re
 from collections.abc import Sequence
 from datetime import datetime, timezone
 
 from core.compliance import model
+from core.compliance.rules import UNIVERSE_MARKET, market_flags
 from execution.snapshot import Address, FieldError, Holding, Move, Order, Snapshot, failed
 from execution.transport import Answer, AuthError, InquiryError, InquiryRefused, KeyMissing, request
 
@@ -145,7 +147,9 @@ def snapshot(now: datetime) -> Snapshot:
         path = _KEYS                                        # every key of the account: E1 never sees its own (E21)
         expiries = [_when(r, "expire_at") for r in _rows(answers[path].body)]
         path = _TICKER
-        markets = sorted({f"KRW-{c}" for c in holdings} | {"KRW-USDT"})     # KRW-USDT values OKX too (E32)
+        flags = _held_flags(holdings, answers) if holdings else {}
+        markets = sorted({f"KRW-{c}" for c in holdings if flags[c] != "absent"}   # unlisted: not asked (spec 11)
+                         | {"KRW-USDT"})                                         # KRW-USDT values OKX too (E32)
         answers[path] = request("upbit", "GET", path, [("markets", ",".join(markets))])
         prices = {}
         for row in _rows(answers[path].body):
@@ -158,9 +162,33 @@ def snapshot(now: datetime) -> Snapshot:
                         holdings=holdings, cash=cash, open_orders=orders, fills=tuple(fills), deposits=deposits,
                         withdrawals=withdrawals, withdrawal_addresses=addresses,
                         key_expiry=model.iso_utc(min(expiries)) if expiries else None, prices_krw=prices,
-                        response_sha256={p: a.sha256 for p, a in answers.items()})
+                        response_sha256={p: a.sha256 for p, a in answers.items()}, market_flags=flags or None)
     except _CONTAINED as exc:
         return _failed(utc, path, exc, answers)
+
+
+def _held_flags(holdings: dict, answers: dict) -> dict[str, str]:
+    """Each held coin's flag class from one market/all read, outside the snapshot's fail-whole path (universe spec
+    15): a failed or malformed read makes every held coin "unknown" (an amber alert), never a failed snapshot. A coin
+    missing from a good read is "absent"; one whose market id the universe pattern cannot hold stays "unknown"."""
+    try:
+        answer = market_all()
+        rows = json.loads(answer.raw_body)
+        if not isinstance(rows, list):
+            raise FieldError("market/all")
+        seen = set()
+        for row in rows:
+            market = row.get("market") if isinstance(row, dict) else None
+            if (not isinstance(market, str) or re.fullmatch(r"[A-Z0-9]+-[A-Z0-9]+", market) is None
+                    or market in seen):
+                raise FieldError("market/all")
+            seen.add(market)
+        classes = market_flags(answer.raw_body)
+    except _CONTAINED:
+        return dict.fromkeys(holdings, "unknown")
+    answers[MARKET_ALL_PATH] = answer
+    return {coin: classes.get(f"KRW-{coin}", "absent" if UNIVERSE_MARKET.fullmatch(f"KRW-{coin}") else "unknown")
+            for coin in holdings}
 
 
 def _failed(utc: str, path: str, exc: Exception, answers: dict) -> Snapshot:

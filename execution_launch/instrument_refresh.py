@@ -11,8 +11,8 @@ from datetime import datetime, timedelta
 from fractions import Fraction
 from threading import RLock
 
-from execution_accounts.instrument_terms import (TermsObservation, validate_issued_observation,
-                                                  observation_for_rules)
+from execution_accounts.instrument_terms import (TermsObservation, UniverseTermsAuthority,
+                                                  validate_issued_observation, observation_for_rules)
 from execution_control.model import Order, InstrumentRules, rules_digest, validate_order
 from execution_launch.profile import LaunchProfile, profile_digest, profile_contract_digest, rule_terms_digest
 
@@ -51,26 +51,31 @@ class RulesRenewal:
     issued_at: datetime
 
 
-def renew_profile(profile, observation, *, now):
+def renew_profile(profile, observation, *, now, allow_symbol_change=False):
     with _LOCK:
-        return _renew_profile(profile, observation, now=now)
+        return _renew_profile(profile, observation, now=now, allow_symbol_change=allow_symbol_change)
 
 
-def _renew_profile(profile, observation, *, now):
+def _renew_profile(profile, observation, *, now, allow_symbol_change):
     """Create a fresh snapshot only for identical reviewed terms and scope.
 
     Initial stale profile snapshots can be replaced by a genuinely new read.
     Once a contract has a process-local head, forks and old snapshots refuse.
     A receipt cannot be reused to refresh another profile/strategy in this process.
+    Only a universe profile may move to another coin, and only with allow_symbol_change
+    (spec section 10); every refusing check below still runs before the head moves.
     """
     _time(now)
     _require(type(profile) is LaunchProfile and type(profile.instrument_rules) is InstrumentRules,
              "RENEWAL_PROFILE_RULES_REQUIRED")
+    _require(type(allow_symbol_change) is bool
+             and (not allow_symbol_change or profile.universe_rule_sha256 is not None),
+             "RENEWAL_SYMBOL_CHANGE_REFUSED")
     _require((profile.venue, profile.market, profile.quote_currency) == ("upbit", "spot", "KRW"),
              "RENEWAL_VENUE_UNSUPPORTED")
     verified = validate_issued_observation(observation, now=now)
     _require(profile.account_scope == verified.authority.account_scope
-             and profile.symbol == verified.rules.symbol,
+             and (profile.symbol == verified.rules.symbol or allow_symbol_change),
              "RENEWAL_ACCOUNT_OR_SYMBOL_MISMATCH")
     # Both sides use the old profile's selector (spec section 10).
     _require(rule_terms_digest(profile.instrument_rules, universe_rule_sha256=profile.universe_rule_sha256)
@@ -93,7 +98,7 @@ def _renew_profile(profile, observation, *, now):
                  "RENEWAL_RECEIPT_REPLAY_OR_CLOCK_ROLLBACK")
     _require(observation.evidence_digest not in _USED, "RENEWAL_OBSERVATION_REPLAY")
     _require(len(_ISSUED) < _MAX_ISSUED, "RENEWAL_PROCESS_CAPACITY_REACHED")
-    current = replace(profile, instrument_rules=verified.rules)
+    current = replace(profile, symbol=verified.rules.symbol, instrument_rules=verified.rules)
     _require(profile_contract_digest(current) == contract, "RENEWAL_CONTRACT_CHANGED")
     roots = frozenset({old_rules}) if head is None else head.original_rule_digests | {old_rules}
     renewal = RulesRenewal(previous_profile_digest=old_hash, profile=current,
@@ -157,7 +162,7 @@ def rules_binding_matches(original_digest, current_rules, *, account_scope, now)
 
 
 def validate_observed_order(order, rules, *, now):
-    """Enforce the observed maximum too, when using a refreshed rule snapshot."""
+    """Every order against the observed maximum; a v2 buy also against the cap (spec section 10)."""
     validate_order(order, rules)
     renewal = _BOUND.get((order.account_scope, rules_digest(rules)))
     if renewal is None:
@@ -167,6 +172,7 @@ def validate_observed_order(order, rules, *, now):
     else:
         validate_renewal(renewal, now=now)
         observation = renewal.observation
-    maximum = observation.authority.maximum_notional_krw
-    _require(Fraction(order.quantity) * Fraction(order.limit_price) * Fraction(order.quote_krw)
-             <= Fraction(maximum), "RENEWAL_ORDER_ABOVE_OBSERVED_MAXIMUM")
+    notional = Fraction(order.quantity) * Fraction(order.limit_price) * Fraction(order.quote_krw)
+    _require(notional <= Fraction(observation.observed_maximum_krw), "RENEWAL_ORDER_ABOVE_OBSERVED_MAXIMUM")
+    _require(order.side != "buy" or type(observation.authority) is not UniverseTermsAuthority
+             or notional <= Fraction(observation.authority.maximum_notional_krw), "RENEWAL_BUY_ABOVE_UNIVERSE_CAP")

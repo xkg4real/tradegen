@@ -86,6 +86,7 @@ _T4_ALT = {
     "withdrawal_addresses": (S.Address(currency="BTC", net_type="BTC", address=_T4_ADDRESS, secondary_address="m"),),
     "key_expiry": None, "loans": {"loan_amt": 1.0}, "earn": {}, "flags": frozenset({"EVENTS", "okx_perm"}),
     "prices_krw": {"BTC": 100_000_001.0, "USDT": 1_400.0}, "response_sha256": {"/v1/accounts": "b" * 64},
+    "market_flags": {"BTC": "warning"},
 }
 
 
@@ -181,7 +182,9 @@ def test_dump_is_canonical_json_with_sorted_keys_and_one_newline():
     for s in (_t4_full(), S.failed("kis", "2026-10-24T00:00:00Z", "code not signed", flags={"code_unsigned"})):
         line = S.dump(s)
         assert isinstance(line, bytes) and line.endswith(b"\n") and line.count(b"\n") == 1
-        assert line == (model.canonical_json(s) + "\n").encode("utf-8")
+        body = model.jsonable(s)
+        del body["market_flags"]                                             # left out while None
+        assert line == (model.canonical_json(body) + "\n").encode("utf-8")
         obj = json.loads(line)
         assert tuple(obj) == _T4_KEYS                                          # every field, keys sorted
         again = json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False) + "\n"
@@ -413,3 +416,19 @@ def test_snap_fixture_is_an_ok_snapshot_stamped_now():
     assert s.utc == s.server_utc == model.iso_utc(F.NOW) == "2026-10-24T00:00:00Z"
     later = F.snap("okx", utc="2026-10-24T00:15:01Z", ok=False)
     assert (later.venue, later.utc, later.ok) == ("okx", "2026-10-24T00:15:01Z", False)
+
+
+def test_market_flags_are_left_out_while_none_and_round_trip_when_set():
+    old = _t4_full()
+    assert "market_flags" not in json.loads(S.dump(old))
+    flagged = dataclasses.replace(old, market_flags={"BTC": "warning", "XYZ": "absent"})
+    obj = json.loads(S.dump(flagged))
+    assert obj["market_flags"] == {"BTC": "warning", "XYZ": "absent"} and S.load(obj) == flagged
+    assert flagged.snapshot_sha256 != old.snapshot_sha256
+    for bad in ({"BTC": "listed"}, {"BTC": None}, {1: "absent"}, ["BTC"]):
+        try:
+            dataclasses.replace(old, market_flags=bad)
+        except ValueError:
+            continue
+        raise AssertionError(bad)
+    assert _t4_raises(lambda: S.load(dict(obj, market_flags=None))).startswith("snapshot row:")

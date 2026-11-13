@@ -100,20 +100,42 @@ class TermsAuthority:
     valid_until: datetime
 
 
+@dataclass(frozen=True, kw_only=True)
+class UniverseTermsAuthority:
+    """Version 2 for universe profiles (spec section 10): the signed rule's sha256 instead of one symbol.
+
+    The symbol is chosen at read time. maximum_notional_krw is a buy cap, not an expected API value: the parser
+    records the observed maximum and never fails on it. Review obligations are those of TermsAuthority.
+    """
+    account_scope: str
+    universe_sha256: str
+    lot_size: Decimal
+    min_quantity: Decimal
+    maximum_notional_krw: Decimal
+    provenance_sha256: str
+    identity_binding_sha256: str
+    valid_from: datetime
+    valid_until: datetime
+
+
 def authority_digest(authority):
-    _require(type(authority) is TermsAuthority, "TERMS_AUTHORITY_REQUIRED")
+    _require(type(authority) in (TermsAuthority, UniverseTermsAuthority), "TERMS_AUTHORITY_REQUIRED")
     _require(type(authority.account_scope) is str and
              _SCOPE.fullmatch(authority.account_scope) is not None, "TERMS_SCOPE_INVALID")
-    _require(type(authority.symbol) is str and _SYMBOL.fullmatch(authority.symbol) is not None
-             and authority.symbol != "KRW-KRW", "TERMS_KRW_SYMBOL_REQUIRED")
+    if type(authority) is TermsAuthority:
+        _require(type(authority.symbol) is str and _SYMBOL.fullmatch(authority.symbol) is not None
+                 and authority.symbol != "KRW-KRW", "TERMS_KRW_SYMBOL_REQUIRED")
+        identity = {"version": "upbit-terms-authority-v1", "symbol": authority.symbol}
+    else:
+        identity = {"version": "upbit-terms-authority-v2", "universe_sha256": _sha(authority.universe_sha256)}
     for name in ("lot_size", "min_quantity", "maximum_notional_krw"):
         value = getattr(authority, name)
         _require(type(value) is Decimal, "TERMS_EXACT_NUMBER_REQUIRED")
         _number(value, positive=name != "min_quantity")
     start, end = _time(authority.valid_from), _time(authority.valid_until)
     _require(start < end, "TERMS_AUTHORITY_WINDOW_INVALID")
-    return _digest({"version": "upbit-terms-authority-v1", "venue": "upbit", "market": "spot",
-        "account_scope": authority.account_scope, "symbol": authority.symbol,
+    return _digest(identity | {"venue": "upbit", "market": "spot",
+        "account_scope": authority.account_scope,
         "lot_size": decimal_text(authority.lot_size), "min_quantity": decimal_text(authority.min_quantity),
         "maximum_notional_krw": decimal_text(authority.maximum_notional_krw),
         "provenance_sha256": _sha(authority.provenance_sha256),
@@ -125,12 +147,13 @@ def authority_digest(authority):
 @dataclass(frozen=True, kw_only=True)
 class TermsObservation:
     rules: InstrumentRules
-    authority: TermsAuthority = field(repr=False)
+    authority: TermsAuthority | UniverseTermsAuthority = field(repr=False)
     requested_at: datetime
     checked_at: datetime
     chance_receipt: SourceReceipt = field(repr=False)
     instruments_receipt: SourceReceipt = field(repr=False)
     evidence_digest: str
+    observed_maximum_krw: Decimal
 
 
 def _receipt(receipt, *, path, params, scope, before, checked):
@@ -157,7 +180,14 @@ def parse_term_receipts(*, authority, chance_receipt, instruments_receipt, reque
              "TERMS_REQUEST_WINDOW_INVALID")
     _require(authority.valid_from <= before <= checked <= current < authority.valid_until,
              "TERMS_AUTHORITY_EXPIRED_OR_FUTURE")
-    symbol = authority.symbol
+    # v1 binds one symbol; v2 (spec section 10) takes the symbol of its one reviewed chance query.
+    universe = type(authority) is UniverseTermsAuthority
+    params = chance_receipt.params if type(chance_receipt) is SourceReceipt else None
+    _require(not universe or (type(params) is tuple and len(params) == 1 and type(params[0]) is tuple
+                              and len(params[0]) == 2 and params[0][0] == "market" and type(params[0][1]) is str
+                              and _SYMBOL.fullmatch(params[0][1]) is not None and params[0][1] != "KRW-KRW"),
+             "TERMS_RECEIPT_SCOPE_MISMATCH")
+    symbol = params[0][1] if universe else authority.symbol
     chance = _receipt(chance_receipt, path=TERMS_CHANCE_PATH, params=(("market", symbol),),
         scope=authority.account_scope, before=before, checked=checked)
     instruments = _receipt(instruments_receipt, path=TERMS_INSTRUMENTS_PATH,
@@ -169,8 +199,8 @@ def parse_term_receipts(*, authority, chance_receipt, instruments_receipt, reque
     _require(type(chance) is dict and type(chance.get("market")) is dict,
              "TERMS_MARKET_RECORD_REQUIRED")
     market = chance["market"]
-    _require(market.get("id") == symbol and market.get("state") == "active",
-             "TERMS_MARKET_INACTIVE_OR_MISMATCHED")
+    _require(market.get("id") == symbol, "TERMS_MARKET_MISMATCHED")
+    _require(market.get("state") == "active", "TERMS_MARKET_INACTIVE")
     for field_name, required in (("order_sides", ("bid", "ask")),
                                  ("bid_types", ("limit",)), ("ask_types", ("limit",))):
         items = market.get(field_name)
@@ -183,7 +213,8 @@ def parse_term_receipts(*, authority, chance_receipt, instruments_receipt, reque
     _require(_number(ask.get("min_total"), positive=True) == minimum,
              "TERMS_ASYMMETRIC_MINIMUM_UNSUPPORTED")
     maximum = _number(market.get("max_total"), positive=True)
-    _require(maximum >= minimum and maximum == authority.maximum_notional_krw,
+    # v2: the cap is a buy limit, so the observed maximum is recorded and never fails the parse (spec section 10).
+    _require(maximum >= minimum and (universe or maximum == authority.maximum_notional_krw),
              "TERMS_MAXIMUM_CHANGED")
     fees = tuple(_number(chance.get(name)) for name in
                  ("bid_fee", "ask_fee", "maker_bid_fee", "maker_ask_fee"))
@@ -211,7 +242,7 @@ def parse_term_receipts(*, authority, chance_receipt, instruments_receipt, reque
                      for r in (chance_receipt, instruments_receipt)]})
     return TermsObservation(rules=rules, authority=authority, requested_at=before,
         checked_at=checked, chance_receipt=chance_receipt, instruments_receipt=instruments_receipt,
-        evidence_digest=evidence)
+        evidence_digest=evidence, observed_maximum_krw=maximum)
 
 
 def validate_issued_observation(observation, *, now):
@@ -223,10 +254,20 @@ def validate_issued_observation(observation, *, now):
         chance_receipt=observation.chance_receipt, instruments_receipt=observation.instruments_receipt,
         requested_at=observation.requested_at, checked_at=observation.checked_at, now=now)
     _require(parsed.evidence_digest == observation.evidence_digest == saved[1]
-             and rules_digest(parsed.rules) == rules_digest(observation.rules),
+             and rules_digest(parsed.rules) == rules_digest(observation.rules)
+             and parsed.observed_maximum_krw == observation.observed_maximum_krw,
              "TERMS_OBSERVATION_CHANGED")
     return parsed
 
+
+def within_buy_cap(observation):
+    """Spec section 10: a v2 coin is buyable only while its observed maximum is at least the reviewed cap.
+
+    A v1 observation is always within its cap: the parse refused any other maximum.
+    """
+    _require(type(observation) is TermsObservation, "TERMS_OBSERVATION_REQUIRED")
+    return (type(observation.authority) is not UniverseTermsAuthority
+            or observation.observed_maximum_krw >= observation.authority.maximum_notional_krw)
 
 def observation_for_rules(rules, *, account_scope, now):
     """Resolve initial or renewed issued rules; known sources cannot be restamped.
@@ -246,7 +287,7 @@ def observation_for_rules(rules, *, account_scope, now):
 
 @dataclass(frozen=True, kw_only=True)
 class E1UpbitTermsSource:
-    authority: TermsAuthority = field(repr=False)
+    authority: TermsAuthority | UniverseTermsAuthority = field(repr=False)
     clock: Callable = field(repr=False)
     route: ManagedRoute | None = None
 
@@ -257,16 +298,25 @@ class E1UpbitTermsSource:
         with _LOCK:
             _AUTHORITIES.add(source)
 
-    def read(self):
-        """Issue one bounded observation; no arbitrary path or method parameters."""
+    def read(self, symbol=None):
+        """Issue one bounded observation; no arbitrary path or method parameters.
+
+        A v1 authority reads its own symbol (``symbol`` is None or that symbol). A v2 authority reads the KRW market
+        named here, chosen at read time (spec section 10).
+        """
         authority_digest(self.authority)
+        if type(self.authority) is TermsAuthority:
+            _require(symbol is None or symbol == self.authority.symbol, "TERMS_SYMBOL_MISMATCH")
+            symbol = self.authority.symbol
+        else:
+            _require(type(symbol) is str and _SYMBOL.fullmatch(symbol) is not None and symbol != "KRW-KRW",
+                     "TERMS_KRW_SYMBOL_REQUIRED")
         _require(callable(self.clock), "TERMS_CLOCK_REQUIRED")
         _require(len(_ISSUED) < _MAX_ISSUED, "TERMS_PROCESS_CAPACITY_REACHED")
         # Names only: E1 reads values; a removed environment binding must not
         # select the legacy .env fallback and silently change account identity.
         _require(all(name in os.environ for name in ("UPBIT_ACCESS_KEY", "UPBIT_SECRET_KEY")),
                  "TERMS_ENV_CREDENTIAL_NAMES_REQUIRED")
-        symbol = self.authority.symbol
         before = _time(self.clock())
         _require(self.authority.valid_from <= before < self.authority.valid_until,
                  "TERMS_AUTHORITY_EXPIRED_OR_FUTURE")

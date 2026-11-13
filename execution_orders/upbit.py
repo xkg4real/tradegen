@@ -24,6 +24,8 @@ def _build(order: Order, operation: str, venue_order_id: str = "") -> PreparedRe
         body = (("market", order.symbol), ("side", "bid" if order.side == "buy" else "ask"),
                 ("volume", decimal_text(order.quantity)), ("price", decimal_text(order.limit_price)),
                 ("ord_type", "limit"), ("identifier", order.client_id))
+        if order.time_in_force == "ioc":                # spec 11: only IOC adds a key; the gtc body is unchanged
+            body += (("time_in_force", "ioc"),)
         return make_request(order, operation=operation, method="POST", path="/v1/orders", body=body)
     identity(venue_order_id, optional=operation == "status")
     params = (("uuid", venue_order_id),) if venue_order_id else (("identifier", order.client_id),)
@@ -71,7 +73,9 @@ def parse(response: Mapping, request: PreparedRequest) -> AdapterResult:
         if (data.get("identifier") != order.client_id or data.get("market") != order.symbol
                 or data.get("side") != ("bid" if order.side == "buy" else "ask")
                 or data.get("ord_type") != "limit" or number(data["price"], positive=True) != order.limit_price
-                or number(data["volume"], positive=True) != order.quantity):
+                or number(data["volume"], positive=True) != order.quantity
+                or (request.operation == "create" and order.time_in_force == "ioc"
+                    and data.get("time_in_force") != "ioc")):
             return unknown(request, "identity_mismatch")
         filled = number(data["executed_volume"])
         remaining = number(data["remaining_volume"])

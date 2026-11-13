@@ -92,8 +92,9 @@ def _order_fields(order: Order) -> None:
     _identity(order.venue, order.market, order.symbol)
     if type(order.side) is not str or order.side not in ("buy", "sell"):
         raise ValueError("unsupported side")
-    expected_tif = "day" if order.venue == "kis" else "gtc"
-    if type(order.time_in_force) is not str or order.time_in_force != expected_tif:
+    # Spec 11: Upbit takes gtc or ioc; KIS stays day and OKX gtc.
+    expected_tif = ("day",) if order.venue == "kis" else ("gtc", "ioc") if order.venue == "upbit" else ("gtc",)
+    if type(order.time_in_force) is not str or order.time_in_force not in expected_tif:
         raise ValueError("unsupported time_in_force")
     for name in ("quantity", "limit_price", "quote_krw"):
         _decimal(getattr(order, name), name, positive=True)

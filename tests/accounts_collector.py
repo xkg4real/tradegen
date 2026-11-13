@@ -62,6 +62,8 @@ class SyntheticSource:
             self.balances.append(dict(currency="BTC", balance="1", locked="0"))
         self.deposits = []; self.withdrawals = []
         self.change_balances = False
+        self.listed = ["KRW-BTC"]                                       # market/all
+        self.trade_at = NOW; self.book_at = NOW                         # ticker last trade, book time
 
     def fetch(self, path, params):
         self.calls.append((path, params))
@@ -81,7 +83,12 @@ class SyntheticSource:
             body = self.withdrawals
         elif path == "/v1/ticker":
             body = [dict(market="KRW-BTC", trade_price=10000, timestamp=int(NOW.timestamp()*1000),
-                         trade_timestamp=int(NOW.timestamp()*1000))]
+                         trade_timestamp=int(self.trade_at.timestamp()*1000))]
+        elif path == "/v1/orderbook":
+            body = [dict(market=dict(params)["markets"], level=0, timestamp=int(self.book_at.timestamp()*1000),
+                         orderbook_units=[dict(ask_price=10100, bid_price=9900, ask_size=1, bid_size=1)])]
+        elif path == "/v1/market/all":
+            body = None if self.listed is None else [dict(market=market) for market in self.listed]
         else:
             raise AssertionError("unexpected synthetic route")
         return receipt(path, params, deepcopy(body))
@@ -326,11 +333,114 @@ def test_prior_day_realized_loss_cannot_be_relabeled_as_first_trading_day():
     assert observation.risk.prior_day_realized_net_profit == D("-100")
 
 
-def test_fresh_ticker_metadata_cannot_hide_a_stale_last_trade():
-    class StaleTrade(SyntheticSource):
-        def fetch(self,path,params):
-            if path == "/v1/ticker":
-                return receipt(path,params,[dict(market="KRW-BTC",trade_price=10000,
-                    timestamp=int(NOW.timestamp()*1000),trade_timestamp=int((NOW-timedelta(minutes=1)).timestamp()*1000))])
-            return super().fetch(path,params)
-    refusal(lambda: collect(StaleTrade(with_order=True)), "COLLECTOR_TICKER_STALE_OR_FUTURE")
+def test_fresh_ticker_metadata_cannot_hide_a_stale_last_trade_or_a_stale_book():
+    for book_at in (NOW-timedelta(minutes=1), NOW-timedelta(seconds=11), NOW+timedelta(seconds=1)):
+        source = SyntheticSource(with_order=True)
+        source.trade_at, source.book_at = NOW-timedelta(minutes=1), book_at
+        refusal(lambda: collect(source), "COLLECTOR_BOOK_STALE_OR_FUTURE")
+
+    class EmptyBook(SyntheticSource):
+        def fetch(self, path, params):
+            if path == "/v1/orderbook":
+                self.calls.append((path, params))
+                return receipt(path, params, [])
+            return super().fetch(path, params)
+    source = EmptyBook(with_order=True)
+    source.trade_at = NOW-timedelta(minutes=1)
+    refusal(lambda: collect(source), "COLLECTOR_BOOK_INVALID")
+
+
+def test_a_listed_coin_keeps_its_ticker_mark_after_one_listing_read():
+    source = SyntheticSource(with_order=True)
+    result = collect(source)
+    paths = [path for path, _ in source.calls]
+    assert paths.count("/v1/market/all") == 1 and paths.index("/v1/market/all") < paths.index("/v1/ticker")
+    assert (("is_details", "true"),) in [params for path, params in source.calls if path == "/v1/market/all"]
+    position = result.bundle.accounts[0].positions[0]
+    assert (position.price, position.unlisted) == (D("10000"), None)
+
+
+def test_an_unlisted_coin_is_left_out_of_the_ticker_and_recorded_at_price_zero_with_its_read_time():
+    source = SyntheticSource(with_order=True)
+    source.listed = ["KRW-ETH"]
+    result = collect(source)
+    assert not any(path == "/v1/ticker" for path, _ in source.calls)
+    position = result.bundle.accounts[0].positions[0]
+    listing = next(r for r in result.receipts if r.path == "/v1/market/all")
+    assert (position.symbol, position.units, position.price, position.unlisted) == ("KRW-BTC", D("1"), D("0"), True)
+    assert position.asof == listing.received_at
+    observation = build_observation(result.bundle, now=NOW)
+    assert observation.risk.equity == D("89995")                    # cash only: the unlisted coin is worth 0
+    assert observation.holdings[("upbit", SCOPE, "spot", "KRW-BTC")] == D("1")
+
+
+def test_a_failed_listing_read_inside_the_capture_fails_closed():
+    class NoListing(SyntheticSource):
+        def fetch(self, path, params):
+            if path == "/v1/market/all":
+                raise EvidenceError("COLLECTOR_AUTHENTICATED_READ_FAILED")
+            return super().fetch(path, params)
+    refusal(lambda: collect(NoListing(with_order=True)), "COLLECTOR_AUTHENTICATED_READ_FAILED")
+    source = SyntheticSource(with_order=True)
+    source.listed = None                                               # a JSON null is not a listing
+    refusal(lambda: collect(source), "COLLECTOR_ROWS_INVALID")
+
+
+def test_e1_binding_fetches_the_listing_and_the_book_as_fixed_gets():
+    raw = b'[]'
+    answer = Answer(body=[], server_utc=NOW, received_utc=NOW, sha256=hashlib.sha256(raw).hexdigest(), raw_body=raw)
+    with tempfile.TemporaryDirectory() as temporary:
+        with patch.dict(os.environ, {"TRADEGEN_HOME":temporary,"UPBIT_ACCESS_KEY":"","UPBIT_SECRET_KEY":""}, clear=True):
+            with patch("execution_accounts.upbit_collector.request", return_value=answer) as stub:
+                source = E1UpbitSource(account_scope=SCOPE, state_directory=Path(temporary), clock=lambda: NOW)
+                source.fetch("/v1/market/all", (("is_details", "true"),))
+                source.fetch("/v1/orderbook", (("markets", "KRW-BTC"), ("level", "0")))
+                assert [c.args for c in stub.call_args_list] == [
+                    ("upbit", "GET", "/v1/market/all", (("is_details", "true"),)),
+                    ("upbit", "GET", "/v1/orderbook", (("markets", "KRW-BTC"), ("level", "0")))]
+
+
+def test_a_thin_coin_with_a_stale_last_trade_is_marked_at_a_fresh_best_bid():
+    source = SyntheticSource(with_order=True)
+    source.trade_at = NOW-timedelta(minutes=1)
+    result = collect(source)
+    assert [params for path, params in source.calls if path == "/v1/orderbook"] == [(("markets", "KRW-BTC"),
+                                                                                     ("level", "0"))]
+    paths = [path for path, _ in source.calls]
+    assert paths.index("/v1/orderbook") > max(i for i, path in enumerate(paths) if path == "/v1/withdraws")
+    position = result.bundle.accounts[0].positions[0]
+    assert (position.price, position.asof, position.unlisted) == (D("9900"), NOW, None)
+    assert build_observation(result.bundle, now=NOW).risk.equity == D("99895")     # 89995 + 9900
+    fresh = SyntheticSource(with_order=True)
+    collect(fresh)
+    assert not any(path == "/v1/orderbook" for path, _ in fresh.calls)
+
+
+def test_malformed_or_duplicate_market_listing_never_proves_a_holding_is_unlisted():
+    payloads = ([{}], [{"market": None}], [{"market": "KRW-"}], [{"market": "KRW-BTC?"}],
+                [{"market": "krw-BTC"}], [{"market": "KRW-BTC"}, {"market": "KRW-BTC"}])
+    for payload in payloads:
+        class MalformedListing(SyntheticSource):
+            def fetch(self, path, params):
+                if path == "/v1/market/all":
+                    self.calls.append((path, params))
+                    return receipt(path, params, payload)
+                return super().fetch(path, params)
+        source = MalformedListing(with_order=True)
+        refusal(lambda: collect(source), "COLLECTOR_MARKET_LIST_INVALID")
+        assert not any(path == "/v1/ticker" for path, _ in source.calls)
+
+
+def test_valid_non_krw_listing_groups_and_empty_listing_keep_the_marking_contract():
+    source = SyntheticSource(with_order=True)
+    source.listed = ["KRW-BTC", "BTC-ETH", "USDT-ETH"]
+    result = collect(source)
+    position = result.bundle.accounts[0].positions[0]
+    assert (position.price, position.unlisted) == (D("10000"), None)
+    assert [params for path, params in source.calls if path == "/v1/ticker"] == [(("markets", "KRW-BTC"),)]
+    source = SyntheticSource(with_order=True)
+    source.listed = []
+    result = collect(source)
+    position = result.bundle.accounts[0].positions[0]
+    assert (position.price, position.unlisted) == (D("0"), True)
+    assert not any(path == "/v1/ticker" for path, _ in source.calls)

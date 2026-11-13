@@ -703,3 +703,24 @@ def test_main_sets_the_transport_clock_and_is_the_only_clock_reader():
     source = (EG.EXECUTION / "poll.py").read_text(encoding="utf-8")
     assert EG._clock_hits(EG.CLOCK_MAIN, source) == [], EG._clock_hits(EG.CLOCK_MAIN, source)
     assert EG._clock_hits(EG.X, source), "poll.main() reads no clock"
+
+
+def test_every_poll_raises_and_clears_what_the_universe_check_returns():
+    """Universe spec 15: poll_once records the universe check's alert and passes its evaluated pair to due()."""
+    alert = checks.Alert(venue="upbit", kind="UNIVERSE", level="amber", text_key="UNIVERSE_NO_SNAPSHOT")
+    seen, real = [], vars(checks)["universe_check"]
+
+    def fake(ctx, now):
+        seen.append(now)
+        return ([alert] if len(seen) == 1 else []), frozenset({("upbit", "UNIVERSE")})
+    checks.universe_check = fake
+    try:
+        with _signed(limits=LIMITS, cap=0.10), EF.fake_keys(), EF.serve(_routes()):
+            poll.poll_once(NOW)
+            poll.poll_once(NOW + 5 * MINUTE)
+            rows = _rows()
+    finally:
+        checks.universe_check = real
+    clear = checks.Alert(venue="upbit", kind="UNIVERSE", level="clear", text_key="UNIVERSE_NO_SNAPSHOT")
+    assert seen == [NOW, NOW + 5 * MINUTE] and checks.row(alert, UTC) in rows, rows
+    assert checks.row(clear, model.iso_utc(NOW + 5 * MINUTE)) in rows, rows

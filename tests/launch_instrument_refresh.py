@@ -13,9 +13,9 @@ from execution import transport, upbit_inquiry
 from execution_accounts import instrument_terms as T
 from execution_control.model import Order, rules_digest
 from execution_launch import instrument_refresh as R
-from execution_launch.profile import profile_contract_digest, profile_digest, rule_terms_digest
+from execution_launch.profile import preflight_profile, profile_contract_digest, profile_digest, rule_terms_digest
 from execution_launch.runner import Runner
-from tests.launch_profile import fixture_profile
+from tests.launch_profile import RULE, fixture_profile
 
 D = Decimal
 NOW = datetime(2026, 10, 23, 1, tzinfo=timezone.utc)
@@ -86,6 +86,29 @@ def refused(call, code=None):
         return
     raise AssertionError("expected current-terms refusal")
 
+
+def universe_authority(**changes):
+    values = dict(account_scope="test-scope", universe_sha256=RULE, lot_size=D("0.01"),
+        min_quantity=D("0.01"), maximum_notional_krw=D("2000000"),
+        provenance_sha256="d"*64, identity_binding_sha256="e"*64,
+        valid_from=NOW-timedelta(days=1), valid_until=NOW+timedelta(days=1))
+    return T.UniverseTermsAuthority(**(values | changes))
+
+
+def universe_bodies(symbol, max_total="2000000", tick="1"):
+    chance, instruments = bodies()
+    chance["market"].update(id=symbol, max_total=max_total)
+    chance["market"]["ask"]["currency"] = symbol.split("-")[1]
+    instruments[0].update(market=symbol, tick_size=tick)
+    return chance, instruments
+
+
+def universe_observed(symbol="KRW-BTC", now=NOW+timedelta(seconds=10), *, auth=None, max_total="2000000", tick="1"):
+    chance, instruments = universe_bodies(symbol, max_total, tick)
+    with patch.object(T, "current_terms", return_value=(answer(chance, now), answer(instruments, now))) as call:
+        observation = T.E1UpbitTermsSource(authority=auth or universe_authority(), clock=lambda: now).read(symbol)
+    call.assert_called_once_with(symbol)
+    return observation
 
 def test_same_terms_refresh_is_new_observation_and_preserves_contract_and_policy():
     with registries():
@@ -174,8 +197,8 @@ def test_scope_identity_source_and_economic_changes_never_become_a_renewal():
 def test_terms_parser_rejects_halted_missing_asymmetric_and_changed_maximum():
     with registries():
         for transform, code in (
-            (lambda c: c["market"].update(state="halted"), "TERMS_MARKET_INACTIVE_OR_MISMATCHED"),
-            (lambda c: c["market"].update(id="KRW-ETH"), "TERMS_MARKET_INACTIVE_OR_MISMATCHED"),
+            (lambda c: c["market"].update(state="halted"), "TERMS_MARKET_INACTIVE"),
+            (lambda c: c["market"].update(id="KRW-ETH"), "TERMS_MARKET_MISMATCHED"),
             (lambda c: c["market"].update(ask_types=["market"]), "TERMS_LIMIT_ORDERS_UNSUPPORTED"),
             (lambda c: c["market"]["bid"].update(currency="USDT"), "TERMS_CURRENCY_MISMATCH"),
             (lambda c: c["market"]["ask"].update(min_total="21"), "TERMS_ASYMMETRIC_MINIMUM_UNSUPPORTED"),
@@ -431,3 +454,144 @@ def test_universe_profile_renews_across_a_tick_change_and_keeps_its_contract():
         assert R.validate_renewal(r, previous_profile=stale, now=o.checked_at) == r.profile
         fee = replace(p, instrument_rules=replace(p.instrument_rules, fee_fraction=D("0.002")))
         refused(lambda: R.renew_profile(fee, o, now=o.checked_at), "RENEWAL_ECONOMIC_OR_SOURCE_CHANGE")
+
+
+def test_v1_authority_digest_is_byte_identical_and_v2_is_a_separate_form():
+    assert T.authority_digest(authority()) == "728bd2d73418bcd1211500b20934924a28e468648419be126f73ecec3b1e2b04"
+    v2 = T.authority_digest(universe_authority())
+    assert v2 != T.authority_digest(authority())
+    assert T.authority_digest(universe_authority(universe_sha256="f"*64)) != v2
+    assert T.authority_digest(universe_authority(maximum_notional_krw=D("1000000"))) != v2
+    refused(lambda: T.authority_digest(universe_authority(universe_sha256="KRW-BTC")), "TERMS_SOURCE_DIGEST_REQUIRED")
+    refused(lambda: T.authority_digest(universe_authority(account_scope="bad scope")), "TERMS_SCOPE_INVALID")
+    refused(lambda: T.authority_digest(object()), "TERMS_AUTHORITY_REQUIRED")
+
+
+def test_v2_reads_the_symbol_named_at_read_time_and_v1_keeps_its_own():
+    with registries():
+        o = universe_observed("KRW-ETH")
+        assert (o.rules.symbol, o.rules.source_digest) == ("KRW-ETH", T.authority_digest(universe_authority()))
+        assert o.chance_receipt.params == (("market", "KRW-ETH"),)
+        assert o.instruments_receipt.params == (("markets", "KRW-ETH"),)
+        source = T.E1UpbitTermsSource(authority=universe_authority(), clock=lambda: NOW)
+        for bad in (None, "BTC", "KRW-KRW", "KRW-eth"):
+            refused(lambda bad=bad: source.read(bad), "TERMS_KRW_SYMBOL_REQUIRED")
+        refused(lambda: T.E1UpbitTermsSource(authority=authority(), clock=lambda: NOW).read("KRW-ETH"),
+                "TERMS_SYMBOL_MISMATCH")
+        later = NOW+timedelta(seconds=20)
+        c, i = bodies()
+        with patch.object(T, "current_terms", return_value=(answer(c, later), answer(i, later))):
+            assert T.E1UpbitTermsSource(authority=authority(), clock=lambda: later).read("KRW-BTC").rules.symbol == "KRW-BTC"
+        assert observed(NOW+timedelta(seconds=30)).rules.symbol == "KRW-BTC"
+
+
+def test_v2_parse_takes_its_symbol_only_from_one_exact_chance_query():
+    with registries():
+        o = universe_observed("KRW-ETH")
+        for params in ((), (("market", "KRW-KRW"),), (("markets", "KRW-ETH"),), (("market", "KRW-BTC"),),
+                       (("market", "KRW-ETH"), ("market", "KRW-BTC"))):
+            refused(lambda params=params: T.parse_term_receipts(authority=o.authority,
+                chance_receipt=replace(o.chance_receipt, params=params), instruments_receipt=o.instruments_receipt,
+                requested_at=o.requested_at, checked_at=o.checked_at, now=o.checked_at),
+                "TERMS_RECEIPT_SCOPE_MISMATCH")
+        later = NOW+timedelta(seconds=20)
+        c, i = universe_bodies("KRW-ETH")
+        c["market"]["id"] = "KRW-XRP"
+        with patch.object(T, "current_terms", return_value=(answer(c, later), answer(i, later))):
+            refused(lambda: T.E1UpbitTermsSource(authority=universe_authority(), clock=lambda: later).read("KRW-ETH"),
+                    "TERMS_MARKET_MISMATCHED")
+
+
+def test_v2_records_the_observed_maximum_caps_buys_and_lets_a_held_coin_sell_above_the_cap():
+    with registries():
+        auth = universe_authority()                                    # buy cap 2,000,000
+        o = universe_observed("KRW-ETH", auth=auth, max_total="3000000")
+        assert o.observed_maximum_krw == D("3000000") and T.within_buy_cap(o)
+        sell = Order(client_id="synthetic-sell", account_scope="test-scope", venue="upbit", market="spot",
+                     symbol="KRW-ETH", side="sell", quantity=D("2500"), limit_price=D("1000"), quote_krw=D("1"))
+        R.validate_observed_order(sell, o.rules, now=o.checked_at)      # 2,500,000: above the cap, a sell
+        refused(lambda: R.validate_observed_order(replace(sell, side="buy"), o.rules, now=o.checked_at),
+                "RENEWAL_BUY_ABOVE_UNIVERSE_CAP")
+        R.validate_observed_order(replace(sell, side="buy", quantity=D("2000")), o.rules, now=o.checked_at)
+        refused(lambda: R.validate_observed_order(replace(sell, quantity=D("3000.01")), o.rules, now=o.checked_at),
+                "RENEWAL_ORDER_ABOVE_OBSERVED_MAXIMUM")
+        low = universe_observed("KRW-XRP", o.checked_at+timedelta(seconds=10), auth=auth, max_total="1000000")
+        assert low.observed_maximum_krw == D("1000000") and not T.within_buy_cap(low)
+        v1 = observed(o.checked_at+timedelta(seconds=20))
+        assert v1.observed_maximum_krw == D("2000000") and T.within_buy_cap(v1)
+        refused(lambda: T.within_buy_cap(None), "TERMS_OBSERVATION_REQUIRED")
+        copy = T.parse_term_receipts(authority=o.authority, chance_receipt=o.chance_receipt,
+            instruments_receipt=o.instruments_receipt, requested_at=o.requested_at,
+            checked_at=o.checked_at, now=o.checked_at)
+        assert copy == o
+
+
+def universe_profile(auth=None, symbol="KRW-BTC"):
+    auth = auth or universe_authority()
+    base = fixture_profile(NOW)
+    return replace(base, account_scope=auth.account_scope, symbol=symbol, time_in_force="ioc",
+        universe_rule_sha256=RULE, instrument_rules=replace(base.instrument_rules, symbol=symbol,
+            lot_size=auth.lot_size, min_quantity=auth.min_quantity, source_digest=T.authority_digest(auth)))
+
+
+def test_universe_renewal_moves_to_another_coin_only_with_the_flag_and_keeps_its_contract():
+    with registries():
+        auth = universe_authority()
+        p = universe_profile(auth)
+        o = universe_observed("KRW-ETH", auth=auth, tick="5")
+        refused(lambda: R.renew_profile(p, o, now=o.checked_at), "RENEWAL_ACCOUNT_OR_SYMBOL_MISMATCH")
+        refused(lambda: R.renew_profile(p, o, now=o.checked_at, allow_symbol_change=1),
+                "RENEWAL_SYMBOL_CHANGE_REFUSED")
+        r = R.renew_profile(p, o, now=o.checked_at, allow_symbol_change=True)
+        assert (r.profile.symbol, r.profile.instrument_rules.symbol) == ("KRW-ETH", "KRW-ETH")
+        assert r.profile.instrument_rules.tick_size == D("5") and r.profile.time_in_force == "ioc"
+        assert profile_contract_digest(r.profile) == profile_contract_digest(p) == r.contract_digest
+        assert R.validate_renewal(r, previous_profile=p, now=o.checked_at) == r.profile
+        assert preflight_profile(r.profile, now=o.checked_at).profile_complete
+        back = universe_observed("KRW-BTC", o.checked_at+timedelta(seconds=10), auth=auth)
+        again = R.renew_profile(r.profile, back, now=back.checked_at, allow_symbol_change=True)
+        assert again.profile.symbol == "KRW-BTC" and again.contract_digest == r.contract_digest
+
+
+def test_a_fixed_profile_refuses_the_symbol_change_flag_itself():
+    with registries():
+        p = profile(); o = observed()
+        refused(lambda: R.renew_profile(p, o, now=o.checked_at, allow_symbol_change=True),
+                "RENEWAL_SYMBOL_CHANGE_REFUSED")
+        assert R.renew_profile(p, o, now=o.checked_at, allow_symbol_change=False).profile.symbol == "KRW-BTC"
+
+
+def test_a_coin_below_the_cap_is_not_buyable_but_a_held_coin_still_renews_and_sells():
+    with registries():
+        auth = universe_authority()
+        p = universe_profile(auth)
+        o = universe_observed("KRW-BTC", auth=auth, max_total="1000000")
+        assert not T.within_buy_cap(o)                                 # left out of the allow-list (PR 4e)
+        r = R.renew_profile(p, o, now=o.checked_at)
+        sell = Order(client_id="synthetic-exit", account_scope="test-scope", venue="upbit", market="spot",
+                     symbol="KRW-BTC", side="sell", quantity=D("900"), limit_price=D("1000"), quote_krw=D("1"),
+                     time_in_force="ioc")
+        R.validate_observed_order(sell, r.profile.instrument_rules, now=o.checked_at)
+        refused(lambda: R.validate_observed_order(replace(sell, side="buy", quantity=D("1500")),
+            r.profile.instrument_rules, now=o.checked_at), "RENEWAL_ORDER_ABOVE_OBSERVED_MAXIMUM")
+
+
+def test_order_validation_refuses_an_inflated_issued_or_renewed_observed_maximum():
+    for renewed in (False, True):
+        with registries():
+            auth = universe_authority()
+            observation = universe_observed("KRW-ETH", auth=auth, max_total="3000000")
+            rules = observation.rules
+            if renewed:
+                renewal = R.renew_profile(universe_profile(auth), observation,
+                    now=observation.checked_at, allow_symbol_change=True)
+                rules = renewal.profile.instrument_rules
+            sell = Order(client_id="synthetic-tamper-sell", account_scope="test-scope",
+                venue="upbit", market="spot", symbol="KRW-ETH", side="sell",
+                quantity=D("3500"), limit_price=D("1000"), quote_krw=D("1"), time_in_force="ioc")
+            refused(lambda: R.validate_observed_order(sell, rules, now=observation.checked_at),
+                    "RENEWAL_ORDER_ABOVE_OBSERVED_MAXIMUM")
+            # Bypass frozen dataclass assignment as an adversarial mutation of an issued object.
+            object.__setattr__(observation, "observed_maximum_krw", D("4000000"))
+            refused(lambda: R.validate_observed_order(sell, rules, now=observation.checked_at),
+                    "TERMS_OBSERVATION_CHANGED")

@@ -274,6 +274,7 @@ UPBIT_ROUTES = {
     "api_keys": ("GET", "/v1/api_keys"),
     "status_wallet": ("GET", "/v1/status/wallet"),          # allowlisted, never called (E22): routed so a test sees it
     "ticker": ("GET", "/v1/ticker"),
+    "market_all": ("GET", "/v1/market/all"),                # held-coin flags (universe spec 15)
 }
 UPBIT_BODIES = {
     "accounts": [{"currency": "KRW", "balance": "20000.0", "locked": "0", "avg_buy_price": "0",
@@ -296,6 +297,11 @@ UPBIT_BODIES = {
     "api_keys": [{"access_key": "test-upbit-access", "expire_at": "2027-05-27T15:17:51+09:00"}],
     "status_wallet": [],
     "ticker": [{"market": "KRW-BTC", "trade_price": 100000000.0}, {"market": "KRW-USDT", "trade_price": 1400.0}],
+    "market_all": [{"market": m, "korean_name": "fixture", "english_name": "fixture",
+                    "market_event": {"warning": False, "caution": dict.fromkeys(
+                        ("PRICE_FLUCTUATIONS", "TRADING_VOLUME_SOARING", "DEPOSIT_AMOUNT_SOARING",
+                         "GLOBAL_PRICE_DIFFERENCES", "CONCENTRATION_OF_SMALL_ACCOUNTS"), False)}}
+                   for m in ("KRW-BTC", "KRW-ETH", "KRW-USDT", "KRW-XRP")],   # unflagged
 }
 UPBIT_ROWS = {   # rows for the lists the defaults leave empty, the offset-less key variant and the error body
     "orders_open": {"uuid": "u-open-1", "side": "bid", "ord_type": "limit", "price": "90000000", "state": "wait",

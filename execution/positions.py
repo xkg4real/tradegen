@@ -7,7 +7,8 @@ total that is not a finite number gives None for the whole set, never partial po
 snapshot's own `prices_krw`, set by its venue parser (spec 6): KIS domestic at `prpr`, KIS overseas at `now_pric2`
 times the inquire-present-balance rate, Upbit at its ticker, OKX BTC at OKX BTC-USDT times Upbit KRW-USDT, and OKX
 USDT at Upbit KRW-USDT. The current OKX reader has no independent USDC mark: retained USDC holdings refuse live
-valuation rather than inheriting USDT's price.
+valuation rather than inheriting USDT's price. Upbit coins explicitly marked absent by its listing read are valued
+at zero; this exception does not apply to any other venue.
 """
 from __future__ import annotations
 
@@ -21,14 +22,20 @@ from execution.snapshot import STALE_AFTER, VENUES, Snapshot
 
 def venue_value_krw(snap: Snapshot) -> float | None:
     """Cash plus holdings at `snap.prices_krw` (KRW cash at 1.0); None when a currency or symbol has no price above 0
-    or a holding has fewer than 0 units."""
+    or a holding has fewer than 0 units. A held Upbit coin marked absent by its listing read is valued at zero."""
     total = 0.0
     for currency, amount in snap.cash.items():
         price = 1.0 if currency == "KRW" else snap.prices_krw.get(currency)
         if price is None or not price > 0:          # a 0 price is an empty field (`_num` reads "" as 0.0): no price
             return None
         total += amount * price
+    flags = snap.market_flags if snap.venue == "upbit" else None
+    absent = {coin for coin, cls in (flags or {}).items() if cls == "absent"}
     for symbol, holding in snap.holdings.items():
+        if symbol in absent:
+            if not math.isfinite(holding.units) or holding.units < 0:
+                return None
+            continue                                # universe spec 11: an unlisted coin is worth 0, not unpriced
         price = snap.prices_krw.get(symbol)
         if price is None or not price > 0 or holding.units < 0:
             return None

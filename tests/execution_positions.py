@@ -220,3 +220,35 @@ def test_snapshots_read_back_from_the_inquiry_log_give_the_same_positions():
 def test_live_positions_pass_the_gate_positions_check():
     live = positions.live_positions(_three(), EF.NOW)
     assert owner._positions_problem(live) == "", owner._positions_problem(live)
+
+
+def test_an_absent_coin_is_worth_zero_and_every_other_class_keeps_the_price_rule():
+    held = dict(_upbit().holdings, XYZ=S.Holding(units=5.0))
+    assert _close(positions.venue_value_krw(_upbit(holdings=held, market_flags={"BTC": "unflagged",
+                                                                                "XYZ": "absent"})), UPBIT_KRW)
+    for cls in ("warning", "caution", "unknown", "unflagged"):
+        assert positions.venue_value_krw(_upbit(holdings=held, market_flags={"BTC": "unflagged", "XYZ": cls})) is None
+    assert positions.venue_value_krw(_upbit(holdings=held)) is None              # no listing read: unpriced
+
+
+def test_upbit_absent_markers_never_override_other_venues_price_requirements():
+    for make, coin in ((_kis, "AAPL"), (_okx, "USDC")):
+        base = make()
+        flagged = make(market_flags={coin: "absent"})
+        assert positions.venue_value_krw(flagged) == positions.venue_value_krw(base)
+        unpriced = make(prices_krw=_drop(base.prices_krw, coin), market_flags={coin: "absent"})
+        assert positions.venue_value_krw(unpriced) is None, (base.venue, coin)
+
+
+def test_absent_coin_zero_valuation_rejects_nonfinite_or_negative_mutated_units():
+    for units in (float("inf"), float("nan"), -1.0, 0.0, 5.0):
+        held = dict(_upbit().holdings, XYZ=S.Holding(units=1.0))
+        snap = _upbit(holdings=held, prices_krw=dict(_upbit().prices_krw, XYZ=1.0),
+                      market_flags={"BTC": "unflagged", "XYZ": "absent"})
+        snap.holdings["XYZ"] = S.Holding(units=units)  # nested records can change after snapshot validation
+        if not math.isfinite(units) or units < 0:
+            assert positions.venue_value_krw(snap) is None, units
+            assert positions.live_positions(_three(upbit=snap), EF.NOW) is None, units
+        else:
+            assert _close(positions.venue_value_krw(snap), UPBIT_KRW), units
+            assert positions.live_positions(_three(upbit=snap), EF.NOW) is not None, units

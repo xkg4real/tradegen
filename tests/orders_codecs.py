@@ -431,3 +431,25 @@ def test_adapter_result_rejects_arbitrary_codes_mutable_metadata_and_bad_numbers
     _refused(lambda: AdapterResult(status="unknown", code="bad", metadata=[]))
     _refused(lambda: AdapterResult(status="open", code="ok", filled_quantity=True))
     _refused(lambda: AdapterResult(status="open", code="ok", fee=D("NaN")))
+
+
+def test_upbit_ioc_body_is_additive_bound_and_its_end_comes_from_status():
+    order = _order(time_in_force="ioc")
+    request = upbit.prepare(order, _rules(order))
+    assert request.body == (("market", "KRW-BTC"), ("side", "bid"), ("volume", "2"), ("price", "100"),
+                            ("ord_type", "limit"), ("identifier", "fixtureOrderA"), ("time_in_force", "ioc"))
+    gtc = _order()
+    assert upbit.prepare(gtc, _rules(gtc)).body == (("market", "KRW-BTC"), ("side", "bid"), ("volume", "2"),
+        ("price", "100"), ("ord_type", "limit"), ("identifier", "fixtureOrderA"))   # byte-identical gtc body
+    validate_request(request)
+    _refused(lambda: validate_request(replace(request, body=request.body[:-1])))
+    assert upbit.parse(_upbit_response(time_in_force="ioc"), request).status == "accepted"
+    for response in (_upbit_response(), _upbit_response(time_in_force="gtc")):
+        result = upbit.parse(response, request)
+        assert (result.status, result.code) == ("unknown", "identity_mismatch"), result
+    cancel = upbit.prepare_cancel(order, UUID)
+    result = upbit.parse(_upbit_response(state="cancel", executed_volume="1", remaining_volume="1"), cancel)
+    assert (result.status, result.filled_quantity) == ("accepted", D("1"))
+    status = upbit.prepare_status(order, UUID)
+    result = upbit.parse(_upbit_response(state="cancel", executed_volume="1", remaining_volume="1"), status)
+    assert (result.status, result.filled_quantity) == ("canceled", D("1"))

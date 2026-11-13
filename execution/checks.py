@@ -11,7 +11,7 @@ from __future__ import annotations
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 from types import MappingProxyType
 
 from core.compliance import model
@@ -19,11 +19,13 @@ from execution import positions, snapshot
 
 KINDS = ("KEY_HEALTH", "FOREIGN_ORDER", "HOLDINGS_CHANGED", "OKX_CAP", "ADDRESS_LIST", "D15_LIVE",
          "HARD_BLOCK_LIVE", "FLOOR", "DAILY_LOSS", "OUTAGE", "CLOCK_SKEW",     # spec 7's eleven checks
-         "EVIDENCE", "NOT_SET")                                              # the poller's own (E33, E43)
+         "EVIDENCE", "NOT_SET",                                              # the poller's own (E33, E43)
+         "MARKET_FLAGS", "UNIVERSE")                                         # universe spec 15
 VENUE_NAMES = MappingProxyType({"kis": "KIS", "upbit": "Upbit", "okx": "OKX", "all": "TRADEGEN"})
 KEY_EXPIRY_WARN = timedelta(days=30)
 OUTAGE_POLLS = 3
 CLOCK_SKEW_S = 60
+UNIVERSE_DEADLINE = time(9, 45)        # universe spec 15: a snapshot must be in force by 09:45 KST
 STAMP = re.compile(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ")            # model.iso_utc's form
 INT_SLOTS = frozenset({"n", "k", "added", "removed", "days", "seconds", "fills", "deposits", "withdrawals"})
 TIME_SLOTS = frozenset({"expires", "when", "since"})
@@ -82,6 +84,14 @@ TEXT = MappingProxyType({                 # text_key -> (kind, level, template);
     "CLOCK_SKEW": ("CLOCK_SKEW", "amber", "This PC's clock is {seconds} seconds away from {venue}'s server time. "
                    "Fix the Windows clock."),
     "NOT_SET": ("NOT_SET", "info", "Checks skipped (not set): {skipped}."),
+    "HELD_UNLISTED": ("MARKET_FLAGS", "red", "{n} coin(s) held at {venue} are no longer listed in its KRW market, so E1 "
+                      "values them at 0. Check the {venue} app now."),
+    "HELD_WARNING": ("MARKET_FLAGS", "red", "{n} coin(s) held at {venue} carry its investment warning. Check the "
+                     "{venue} app now."),
+    "HELD_FLAGS_UNKNOWN": ("MARKET_FLAGS", "amber", "E1 could not read {venue}'s market list for {n} held coin(s) this "
+                           "poll, so their listing and warning checks were skipped."),
+    "UNIVERSE_NO_SNAPSHOT": ("UNIVERSE", "amber", "No universe snapshot is in force at 09:45 KST today. Universe buys "
+                             "stay blocked until the snapshot task writes one."),
 })
 _FIELDS = MappingProxyType({key: frozenset(re.findall(r"\{(\w+)\}", template)) - {"venue"}
                             for key, (_kind, _level, template) in TEXT.items()})     # slot names per text_key
@@ -198,6 +208,9 @@ def evaluated(prev: Mapping[str, Prior], new: Mapping[str, snapshot.Snapshot], o
             continue
         if snap.ok:
             done.update((venue, kind) for kind in _OK_KINDS)
+            if venue == "upbit" and all((snap.market_flags or {}).get(coin, "unknown") != "unknown"
+                                       for coin, holding in snap.holdings.items() if holding.units > 0):
+                done.add((venue, "MARKET_FLAGS"))          # every held coin has a class from a good read
             if (prev.get(venue) or _NO_PRIOR).last_ok is not None:
                 done.add((venue, "HOLDINGS_CHANGED"))
                 if venue == "upbit" and owner.ok:
@@ -212,6 +225,17 @@ def evaluated(prev: Mapping[str, Prior], new: Mapping[str, snapshot.Snapshot], o
         if limits.okx_equity_share is not None:
             done.add(("okx", "OKX_CAP"))
     return frozenset(done)
+
+
+def universe_check(ctx: model.Context, now: datetime) -> tuple[list[Alert], frozenset[tuple[str, str]]]:
+    """UNIVERSE_NO_SNAPSHOT (universe spec 15) and whether it was evaluated: only from 09:45 KST and only while the
+    approved venues carry an Upbit universe rule; amber when no snapshot is in force (ctx.universe is None)."""
+    venues = ctx.active.venues if ctx.active.valid else None
+    upbit = venues.venues.get("upbit") if venues is not None else None
+    if upbit is None or upbit.universe_rule is None or now.astimezone(model.KST).time() < UNIVERSE_DEADLINE:
+        return [], frozenset()
+    alerts = [] if ctx.universe is not None else [_alert("upbit", "UNIVERSE_NO_SNAPSHOT")]
+    return alerts, frozenset({("upbit", "UNIVERSE")})
 
 
 def not_set(new: Mapping[str, snapshot.Snapshot], owner: model.OwnerState, limits: Limits,
@@ -348,6 +372,13 @@ def _venue_alerts(venue: str, snap: snapshot.Snapshot, prior: Prior, owner: mode
         out.append(_alert(venue, "OUTAGE", n=prior.fails + 1, when=snap.utc))
     if snap.clock_offset_s is not None and abs(snap.clock_offset_s) > CLOCK_SKEW_S:
         out.append(_alert(venue, "CLOCK_SKEW", seconds=round(abs(snap.clock_offset_s))))
+    if venue == "upbit" and snap.ok and snap.market_flags is not None:  # legacy None means no listing read
+        classes = [snap.market_flags.get(coin, "unknown")
+                   for coin, holding in snap.holdings.items() if holding.units > 0]
+        for text_key, cls in (("HELD_UNLISTED", "absent"), ("HELD_WARNING", "warning"),
+                              ("HELD_FLAGS_UNKNOWN", "unknown")):
+            if cls in classes:
+                out.append(_alert(venue, text_key, n=classes.count(cls)))
     return out
 
 

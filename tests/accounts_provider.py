@@ -342,3 +342,21 @@ def test_prior_realized_loss_cannot_be_hidden_by_a_new_first_trading_day():
     assert build_observation(value,now=NOW).risk.prior_day_realized_net_profit == D('-12')
     forged = replace(value,risk_baseline=replace(value.risk_baseline,first_trading_day=NOW.date()))
     refused(forged,'FIRST_TRADING_DAY_CONTRADICTS_HISTORY')
+
+
+def test_price_zero_needs_the_unlisted_marker_and_the_canonical_body_omits_an_absent_marker():
+    from execution_accounts.model import canonical
+    value = bundle(fills=(fill(),), opening=D("1000"), cash=D("798"), units=D("2"), orders=(order(),))
+    assert build_observation(value, now=NOW).risk.equity == D("1038")          # 798 + 2 x 120
+    position = value.accounts[0].positions[0]
+    unlisted = change_account(value, positions=(replace(position, price=D("0"), unlisted=True),))
+    observation = build_observation(unlisted, now=NOW)
+    assert observation.risk.equity == D("798")
+    assert observation.holdings[("upbit", SCOPE, "spot", "KRW-BTC")] == D("2")
+    refused(change_account(value, positions=(replace(position, price=D("0")),)), "AMOUNT_OUT_OF_RANGE")
+    refused(change_account(value, positions=(replace(position, unlisted=True),)), "POSITION_UNLISTED_PRICE_INVALID")
+    for marker in (False, 1, "true"):
+        refused(change_account(value, positions=(replace(position, price=D("0"), unlisted=marker),)),
+                "POSITION_UNLISTED_MARKER_INVALID")
+    assert "unlisted" not in canonical(position)
+    assert canonical(replace(position, price=D("0"), unlisted=True))["unlisted"] is True

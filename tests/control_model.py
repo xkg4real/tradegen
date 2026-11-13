@@ -41,7 +41,12 @@ def test_every_order_field_binds_its_digest_and_scope():
                     dict(venue="kis", market="nasd", symbol="AAPL", quantity=D("1"), quote_krw=D("1300"),
                          time_in_force="day")):
         assert order_digest(replace(order, **changes)) != order_digest(order)
-    _raises(lambda: replace(order, time_in_force="ioc"))
+    ioc = replace(order, time_in_force="ioc")                         # Upbit takes gtc or ioc (spec 11)
+    assert ioc.time_in_force == "ioc" and order_digest(ioc) != order_digest(order)
+    _raises(lambda: replace(order, time_in_force="fok"))
+    _raises(lambda: replace(order, venue="okx", symbol="BTC-USDT", quote_krw=D("1300"), time_in_force="ioc"))
+    _raises(lambda: replace(order, venue="kis", market="nasd", symbol="AAPL", quantity=D("1"), quote_krw=D("1300"),
+                            time_in_force="ioc"))
 
 
 def test_equivalent_decimal_spellings_have_one_digest_and_no_context_rounding():
