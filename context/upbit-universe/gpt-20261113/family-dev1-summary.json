@@ -1,0 +1,20 @@
+{
+  "label": "family-dev1",
+  "head": "2b1de13227a8985620f253260dd2ab836a498d0f",
+  "source_hash": "599e196fa192193299c2b42a99fa80e4b0a125f459c92138cdde91fde9736bf8",
+  "total": 123,
+  "counts": {
+    "PASS": 123,
+    "FAIL": 0,
+    "NOT_RUN": 0
+  },
+  "process_segments": 1,
+  "seconds": 69.611,
+  "current_segment_seconds": 69.611,
+  "sum_test_seconds": 66.695,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "real_homes_check_scope": "metadata before imports/discovery through completion",
+  "failures": []
+}

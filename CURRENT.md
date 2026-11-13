@@ -5,16 +5,16 @@ from: gpt
 task: upbit-universe
 cycle: 2026-11-10
 done_ids: universe-pr4e, protective-hold/p2-store-integration, universe-pr5/outcome-document-contract, protective-hold/p2-store, protective-hold/p1, universe-pr4d/lossless-history, universe-pr4d, universe-pr4d/lossless-objects, design-revision-1113, upbit-universe-return-1113, universe-pr4d/original-verification, workflow-resume-1113/regression-preparation, universe-pr4d/task2-implementation, universe-pr4d/task3, universe-pr4d/task4, universe-pr4c, universe-pr4d/task1, workflow-resume-1113, workflow-resume-1113/dependencies, universe-pr4c/implementation, universe-pr0, universe-pr1, universe-pr2, universe-pr3, universe-pr4b, universe-pr4a
-next_ids: protective-hold/fixed-carry-v2, protective-hold/p2-integration, universe-pr5, universe-pr5-clock-notify, universe-code-approve, policy-loss-budget-plan-1, rules-review-1202, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, launch-private-capture-setup-1, e1-14-owner-setup, launch-prospective-study, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1
-updated_at: 2026-11-13T22:37:31+09:00
+next_ids: protective-hold/fixed-carry-v2, universe-pr5/family-preflight, protective-hold/p2-integration, universe-pr5, universe-pr5-clock-notify, universe-code-approve, policy-loss-budget-plan-1, rules-review-1202, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, launch-private-capture-setup-1, e1-14-owner-setup, launch-prospective-study, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1
+updated_at: 2026-11-13T22:46:57+09:00
 stale_after_hours: 3
 waiting_on: no prior approval question; future PLB S1-S12 and deployment inputs only
-work_branch: gpt/protective-fixed-carry-v2
-work_commit: 2b1de13227a8985620f253260dd2ab836a498d0f
+work_branch: gpt/research-family-preflight
+work_commit: 2879b536d883d42206c827fc6f650ee2ca135d8f
 merged_main_commit: 5217f1e7977fab170a5453ad1ac8d4fc58521dc6
-runtime_tested_commit: carry focused source8ab8e430 359PASS1fixtureFAIL2WindowsNR; corrected display fixture22PASS; full3071 restarted on2b1de13/source3001278c after diagnostic35PASS
-uncommitted_changes: carry clean/pushed PR39 draft; separate gpt/research-family-preflight has active A0b helper/study/review/test changes from0b39204
-pr: PR39 draft with full suite running; PR34-38 merged
+runtime_tested_commit: A0b123PASS source599e196f; carry final full3071 running on2b1de13/source3001278c; A0b full3103 running on2879b53
+uncommitted_changes: carry and A0b source clean/pushed; sealed-bundle readiness is documentation only, no implementation yet
+pr: PR39 and stacked PR40 draft with complete regressions running; PR34-38 merged
 usage_weekly_pct: unknown
 usage_source: unavailable
 handoff_threshold_pct: 95
@@ -130,3 +130,11 @@ Notion 두 기존페이지에는PR36–38결과/남은범위를append하고이�
 첫carry-full은1108개(985PASS/2FAIL/121NOT_RUN)에서중단했다. 두실패는CAPTURE_V2_PROGRAM_NONCANONICAL_OR_UNSUPPORTED에포함된CANO문자열을기존cockpit/macro계좌필드guard가탐지한것이다. 실제계좌입력경로없음. guard를완화하지않고진단명만CAPTURE_V2_PROGRAM_FORMAT_OR_KIND_INVALID로바꿨다. 두guard+capture/review35개11.916초PASS,source/home불변. 중단된suite는완료로세지않고, SIGINT종료시QA복원·실제home메타데이터불변을확인했다. 새runtime2b1de13을push했고 carry-full-final label로3071개처음부터실행중(execsession95772); source3001278c9174a007be7d5531cbedf3f643a6d6dd11b5044a73316d6d7877d36b. 이전session12299는종료했다.
 
 A0b별도트리base도2b1de13으로같이올렸고이진단수정을포함한다. helper17개+study CLI7개+인증기존/추가25개준비,독립리뷰11개PASS는개발단계근거이며정식동결통합검증은아직전이다. 큰원본의자원초과분류를누락/손상과구분하는소비자수정진행중이다.
+
+## A0b 123 PASS·PR40 저장, 두 전체검사 병행
+
+A0b runtime2879b536d883d42206c827fc6f650ee2ca135d8f/source599e196fa192193299c2b42a99fa80e4b0a125f459c92138cdde91fde9736bf8:123PASS/0FAIL/0NOT_RUN69.611초,동결소스/실제home메타데이터불변/QA복원. 19KEYLESS·격리home·합성연구·실제임시Ed25519검증. 뒤후보손상·누락·추가·casealias에서평가/서명0, 모든rawsnapshot과등록chain일치, 실제16MiB+1의RESOURCE_LIMIT과link/readfailure분리, 정상탈락원본보존·actualresult수치동일. CLI loader는원자적sealed disk snapshot이라는주장을하지않는다.
+
+PR40은PR39브랜치를base로한stacked draft이며39병합후main으로retarget한다. 새helper/strategy검증분리와study/select-reviewed소비경로를실제로연결했으나기존승인형식/통계임계/위험한도는그대로다. full3103은family-full label,execsession20430,/workspace/tradegen-session/research-family-1113에서진행중. Carry full-final3071은execsession95772에서계속진행중이며이둘의실행중트리는수정하지않는다.
+
+후속sealedbundle은protective_hold_design이readiness문서만작성중이다. 성공연구만보관하지않고실패/불완전원본의미검증보관과승인·선발제외까지검토한다. 아직코드작업/PR/완료아님. 실제서명된manifest·독립trust·정확원본자동복구를미구현상태에서완료라고부르지않는다.
