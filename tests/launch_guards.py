@@ -42,6 +42,8 @@ RESEARCH_BUNDLE_STORE = "execution_launch/research_bundle_store.py"
 RESEARCH_INCIDENT_STORE = "execution_launch/research_incident_store.py"
 RESEARCH_RECOVERY_STORE = "execution_launch/research_recovery_store.py"
 BUNDLE_REVIEW = "execution_launch/bundle_review.py"
+UPBIT_READ_ARCHIVE = "execution_launch/upbit_read_archive.py"
+CAPTURE_PUBLIC_IMPORTS = ("UpbitReadEvent", "capture_upbit_reads")
 NATIVE_DIRECTORY_CALLS = {
     "__init__": 'ctypes.WinDLL("kernel32", use_last_error=True)',
     "open_directory": 'self._kernel.CreateFileW(path, 0x80, 0x1, None, 3, 0x02000000 | 0x00200000, None)',
@@ -505,10 +507,21 @@ def _native_directory_imports(tree, relative):
     return {id(node) for node in initializer.body if ast.dump(node) in shapes}
 
 
+def _capture_transport_imports(tree, relative):
+    if relative != UPBIT_READ_ARCHIVE:
+        return set()
+    matches = [node for node in tree.body if isinstance(node, ast.ImportFrom)
+        and node.module == "execution.transport" and node.level == 0
+        and tuple(alias.name for alias in node.names) == CAPTURE_PUBLIC_IMPORTS
+        and all(alias.asname is None for alias in node.names)]
+    return {id(matches[0])} if len(matches) == 1 else set()
+
+
 def problems(source, relative=""):
     tree, failures = ast.parse(source), []
     assigned = _assignments(tree)
     native_imports = _native_directory_imports(tree, relative)
+    capture_imports = _capture_transport_imports(tree, relative)
     pinned = {id(inner) for node in ast.walk(tree) if isinstance(node, ast.Call)
               and ast.dump(node) in _PINNED_WRITE_TREES.get(relative, frozenset()) for inner in ast.walk(node)}
     incident_pins, incident_failures = _incident_writer_nodes(tree, relative)
@@ -521,10 +534,14 @@ def problems(source, relative=""):
                        else [node.module or ""])
             for module in modules:
                 if any(module == prefix or module.startswith(prefix + ".") for prefix in TRANSPORT_PREFIXES):
-                    failures.append("inquiry or order transport import")
+                    if id(node) not in capture_imports:
+                        failures.append("inquiry or order transport import")
                 elif (id(node) not in native_imports
                       and any(module == prefix or module.startswith(prefix + ".") for prefix in EFFECT_PREFIXES)):
                     failures.append("direct effect import")
+            if (isinstance(node, ast.ImportFrom) and id(node) not in capture_imports
+                    and any(alias.name in CAPTURE_PUBLIC_IMPORTS for alias in node.names)):
+                failures.append("capture import outside exact archive boundary")
             if isinstance(node, ast.ImportFrom) and any(
                     alias.name in TRANSPORT_FROM.get(node.module, frozenset()) for alias in node.names):
                 failures.append("inquiry or order transport import")
@@ -1411,3 +1428,33 @@ def test_archive_packet_native_directory_pins_do_not_gain_write_or_delete_sharin
     for extra in ("NativeDirectoryAPI()._kernel.DeleteFileW('unreviewed')",
                   "NativeDirectoryAPI()._ctypes.CDLL('unreviewed')"):
         assert "direct effect import" in problems(source + "\n" + extra + "\n", BUNDLE_REVIEW), extra
+
+
+def test_upbit_read_archive_has_only_its_exact_capture_transport_import():
+    exact = 'from execution.transport import UpbitReadEvent, capture_upbit_reads\n'
+    assert not problems(exact, UPBIT_READ_ARCHIVE)
+    for relative in ('', 'execution_launch/driver.py', 'execution_launch/upbit_read_format.py',
+                     'execution_network/upbit_read_archive.py'):
+        assert problems(exact, relative), relative
+    for source in (
+        'from execution.transport import capture_upbit_reads, UpbitReadEvent\n',
+        'from execution.transport import UpbitReadEvent\n',
+        'from execution.transport import capture_upbit_reads\n',
+        'from execution.transport import UpbitReadEvent, capture_upbit_reads, request\n',
+        'from execution.transport import UpbitReadEvent as E, capture_upbit_reads\n',
+        'from execution.transport import UpbitReadEvent, capture_upbit_reads as C\n',
+        'from execution.transport import *\n',
+        'from .transport import UpbitReadEvent, capture_upbit_reads\n',
+        'from other import UpbitReadEvent, capture_upbit_reads\n',
+        'import execution.transport\n', 'from execution import transport\n',
+        'def other():\n    ' + exact,
+        'class Other:\n    ' + exact,
+        'if flag:\n    ' + exact,
+        exact + exact,
+    ):
+        assert problems(source, UPBIT_READ_ARCHIVE), source
+    for forbidden in HITS + WRITES:
+        assert problems(exact + forbidden, UPBIT_READ_ARCHIVE), forbidden
+    source = (ROOT / UPBIT_READ_ARCHIVE).read_text(encoding='utf-8')
+    assert len(_capture_transport_imports(ast.parse(source), UPBIT_READ_ARCHIVE)) == 1
+    assert not problems(source, UPBIT_READ_ARCHIVE), problems(source, UPBIT_READ_ARCHIVE)

@@ -25,6 +25,7 @@ import math
 import os
 import re
 import time
+from threading import get_ident
 import uuid
 from collections.abc import Callable, Sequence
 from contextlib import contextmanager
@@ -95,6 +96,200 @@ class Answer:
     raw_body: bytes = field(default=b"", repr=False)  # lossless JSON tokens for exact accounting codecs
 
 
+@dataclass(frozen=True, kw_only=True)
+class UpbitReadEvent:
+    """One local inquiry observation; never remote completeness or request authority."""
+    call_ordinal: int
+    attempt: int
+    phase: str
+    path: str
+    params: tuple[tuple[str, str], ...] = field(repr=False)
+    observed_at: datetime | None
+    clock_status: str
+    status_code: int | None
+    body_status: str
+    body_bytes: int | None
+    body_sha256: str | None
+    raw_body: bytes | None = field(repr=False)
+    error_code: str | None
+
+
+_UPBIT_READ_CAPTURE: ContextVar[object | None] = ContextVar("tradegen_upbit_read_capture", default=None)
+
+
+class _ReadCapture:
+    def __init__(self, observer, ordinal, not_before, maximum):
+        self.observer, self.ordinal = observer, ordinal
+        self.not_before, self.maximum = not_before, maximum
+        self.thread = get_ident()
+        self.last = not_before
+        self.used = self.failed = self.in_callback = self.entered = self.closed = False
+        self.token = None
+
+    def __enter__(self):
+        current = _UPBIT_READ_CAPTURE.get()
+        if current is not None:
+            current.failed = True
+        if current is not None or self.entered or self.closed or self.thread != get_ident():
+            _capture_fail(self, "READ_CAPTURE_CONTEXT_REFUSED")
+        self.entered = True
+        self.token = _UPBIT_READ_CAPTURE.set(self)
+        return None
+
+    def __exit__(self, exc_type, exc, tb):
+        if (self.thread != get_ident() or not self.entered or self.closed
+                or _UPBIT_READ_CAPTURE.get() is not self):
+            _capture_fail(self, "READ_CAPTURE_CONTEXT_REFUSED")
+        try:
+            _UPBIT_READ_CAPTURE.reset(self.token)
+        except (ValueError, RuntimeError):
+            _capture_fail(self, "READ_CAPTURE_CONTEXT_REFUSED")
+        finally:
+            self.entered, self.closed = False, True
+        return False
+
+
+def capture_upbit_reads(observer, *, call_ordinal: int, not_before: datetime,
+                       max_body_bytes: int = 8 * 1024 * 1024):
+    """Capture one allowlisted inquiry and its retries in this explicit context.
+
+    The sink must finish before work continues. It receives no headers or
+    authentication material. Its return value never grants permission. Contexts
+    are single-use and thread-bound; no process-wide network isolation is claimed.
+    """
+    current = _UPBIT_READ_CAPTURE.get()
+    if current is not None:
+        _capture_fail(current, "READ_CAPTURE_CONTEXT_REFUSED")
+    try:
+        valid = (callable(observer) and type(call_ordinal) is int and 1 <= call_ordinal <= 2000
+            and type(max_body_bytes) is int and 1 <= max_body_bytes <= 8 * 1024 * 1024
+            and type(not_before) is datetime and 2 <= not_before.year <= 9998
+            and not_before.utcoffset() is not None)
+        if not valid:
+            raise ValueError()
+        start = not_before.astimezone(timezone.utc)
+        if not 2 <= start.year <= 9998:
+            raise ValueError()
+    except Exception:
+        raise InquiryRefused("READ_CAPTURE_CONTEXT_REFUSED") from None
+    return _ReadCapture(observer, call_ordinal, start, max_body_bytes)
+
+
+def _capture_fail(state, code):
+    state.failed = True
+    raise InquiryRefused(code) from None
+
+
+def _capture_check(state):
+    if (state.failed or state.closed or not state.entered or state.in_callback
+            or state.thread != get_ident() or _UPBIT_READ_CAPTURE.get() is not state):
+        _capture_fail(state, "READ_CAPTURE_CONTEXT_REFUSED")
+
+
+def _capture_begin(venue, method, path, params):
+    state = _UPBIT_READ_CAPTURE.get()
+    if state is None:
+        return None, params
+    _capture_check(state)
+    if state.used:
+        _capture_fail(state, "READ_CAPTURE_CONTEXT_REFUSED")
+    state.used = True
+    from execution.upbit_inquiry import READ_CAPTURE_ENDPOINTS
+    if (type(venue) is not str or venue != "upbit" or type(method) is not str or method != "GET"
+            or type(path) is not str or len(path) > 128 or (method, path) not in READ_CAPTURE_ENDPOINTS):
+        _capture_fail(state, "READ_CAPTURE_SCOPE_REFUSED")
+    if params is None:
+        return state, ()
+    if type(params) not in (tuple, list) or len(params) > 16:
+        _capture_fail(state, "READ_CAPTURE_SCOPE_REFUSED")
+    snapshot = []
+    for pair in params:
+        if (type(pair) is not tuple or len(pair) != 2 or type(pair[0]) is not str
+                or type(pair[1]) is not str or len(pair[0]) > 128 or len(pair[1]) > 65536):
+            _capture_fail(state, "READ_CAPTURE_SCOPE_REFUSED")
+        snapshot.append(pair)
+    return state, tuple(snapshot)
+
+
+def _capture_stamp(state):
+    # Same explicit clock precedence and one response observation as _now. Read
+    # the callable before validating, distinguishing a raised clock from bad data.
+    clock = _INQUIRY_CLOCK.get()
+    reader = _clock if clock is None else clock
+    try:
+        raw = reader()
+    except Exception:
+        return None, "RAISED"
+    try:
+        if type(raw) is not datetime or raw.utcoffset() is None or not 2 <= raw.year <= 9998:
+            return None, "INVALID"
+        actual = raw.astimezone(timezone.utc)
+        if not 2 <= actual.year <= 9998:
+            return None, "INVALID"
+    except Exception:
+        return None, "INVALID"
+    if actual < state.not_before or actual < state.last:
+        return None, "ROLLBACK"
+    state.last = actual
+    return actual, "OK"
+
+
+def _capture_error_code(exc):
+    if isinstance(exc, requests.exceptions.ConnectionError):
+        return "CONNECTION_ERROR"
+    if isinstance(exc, requests.exceptions.ReadTimeout):
+        return "READ_TIMEOUT"
+    if isinstance(exc, requests.exceptions.Timeout):
+        return "TIMEOUT"
+    if isinstance(exc, OSError):
+        return "OS_ERROR"
+    if isinstance(exc, ValueError):
+        return "VALUE_ERROR"
+    return "OTHER_EXCEPTION"
+
+
+def _capture_event(state, attempt, phase, path, params, *, status=None, body=None, error=None):
+    _capture_check(state)
+    stamp, clock_status = _capture_stamp(state)
+    body_status, body_bytes, body_sha, raw = "NOT_RECEIVED", None, None, None
+    status_code = None
+    if phase == "RESPONSE":
+        valid_status = type(status) is int and 100 <= status <= 999
+        status_code = status if valid_status else None
+        if type(body) is not bytes:
+            body_status, error = "INVALID", "INVALID_RESPONSE"
+        else:
+            body_bytes = len(body)
+            if body_bytes > state.maximum:
+                body_status = "LIMIT_EXCEEDED"
+            else:
+                body_status, raw = "PRESENT", body
+                body_sha = hashlib.sha256(body).hexdigest()
+        if not valid_status:
+            error = "INVALID_RESPONSE"
+    event = UpbitReadEvent(call_ordinal=state.ordinal, attempt=attempt, phase=phase,
+        path=path, params=params, observed_at=stamp, clock_status=clock_status,
+        status_code=status_code, body_status=body_status, body_bytes=body_bytes,
+        body_sha256=body_sha, raw_body=raw, error_code=error)
+    state.in_callback = True
+    try:
+        answer = state.observer(event)
+        if answer is not None:
+            raise ValueError()
+    except Exception:
+        _capture_fail(state, "READ_CAPTURE_SINK_REFUSED")
+    finally:
+        state.in_callback = False
+    _capture_check(state)  # A swallowed recursive/nested refusal remains a refusal.
+    if clock_status != "OK":
+        _capture_fail(state, "READ_CAPTURE_CLOCK_REFUSED")
+    if body_status == "LIMIT_EXCEEDED":
+        _capture_fail(state, "READ_CAPTURE_RESOURCE_LIMIT")
+    if error == "INVALID_RESPONSE":
+        _capture_fail(state, "READ_CAPTURE_RESPONSE_INVALID")
+    return stamp
+
+
 def request(venue: str, method: str, path: str, params: Sequence[tuple[str, str]] | None = None, *,
             tr_id: str | None = None) -> Answer:
     """One allowlisted request (spec 5). Steps 1-6 of contract section 6 run first, in order, and each refusal is
@@ -107,6 +302,7 @@ def request(venue: str, method: str, path: str, params: Sequence[tuple[str, str]
     token the venue calls invalid or expired goes into `_bad_tokens`; a good OKX public/time answer sets
     `_okx_offset_s` (its `ts` minus `received_utc`)."""
     global _okx_offset_s
+    capture, params = _capture_begin(venue, method, path, params)
     if venue not in HOSTS:
         raise InquiryRefused(f"unknown venue {venue!r}")
     endpoints, tr_ids, public = _rules(venue)
@@ -131,18 +327,32 @@ def request(venue: str, method: str, path: str, params: Sequence[tuple[str, str]
         _check_inquiry_guard("before_headers")
         headers, json_body, token = _headers(venue, method, path, query, tr_id, path in public)
         _check_inquiry_guard("before_send")
+        if capture is not None:
+            _capture_event(capture, attempt, "BEFORE_SEND", path, params)
+            # Archival I/O may be slow; retain the existing refusal guard at send.
+            _check_inquiry_guard("before_send")
         try:
             status, answer_headers, content = _send(method, url, headers=headers, params=None, json_body=json_body,
                                                     timeout=TIMEOUT_S)
         except (ValueError, OSError) as exc:
+            if capture is not None:
+                _capture_event(capture, attempt, "TRANSPORT_ERROR", path, params, error=_capture_error_code(exc))
             _sleep(PACE_S)
             _check_inquiry_guard("after_wait")
             if attempt == 1 and method == "GET" and isinstance(exc, requests.exceptions.ConnectionError):
                 _sleep(RETRY_AFTER_S)
                 _check_inquiry_guard("after_wait")
                 continue
+            if capture is not None:
+                raise InquiryError("READ_CAPTURE_TRANSPORT_ERROR") from None
             raise InquiryError(f"{venue} {path}: {type(exc).__name__}") from None
-        received_utc = _now()
+        except Exception as exc:
+            if capture is None:
+                raise
+            _capture_event(capture, attempt, "TRANSPORT_ERROR", path, params, error=_capture_error_code(exc))
+            raise InquiryError("READ_CAPTURE_TRANSPORT_ERROR") from None
+        received_utc = (_now() if capture is None else
+                        _capture_event(capture, attempt, "RESPONSE", path, params, status=status, body=content))
         _check_inquiry_guard("after_response")
         _sleep(PACE_S)
         _check_inquiry_guard("after_wait")

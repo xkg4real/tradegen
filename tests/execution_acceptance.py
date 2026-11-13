@@ -30,7 +30,7 @@ from tests.macro_acceptance import hermetic
 TESTS = Path(__file__).resolve().parent
 MODULES = ("execution_guards", "execution_keys", "execution_transport", "execution_snapshot", "execution_kis",
            "execution_upbit", "execution_okx", "execution_positions", "execution_evidence", "execution_checks",
-           "execution_poll")
+           "execution_poll", "execution_read_capture")
 _REAL = (Path.home() / ".tradegen" / "execution", Path.home() / ".tradegen" / "compliance",
          Path.home() / ".tradegen" / "kis_token.json")      # fixed at import: a test's TRADEGEN_HOME never moves it
 _DAILY = re.compile(r"inquiry-\d{8}\.jsonl")                    # the poller starts one each Seoul midnight (E30)

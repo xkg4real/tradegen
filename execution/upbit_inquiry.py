@@ -21,6 +21,12 @@ ENDPOINTS = frozenset({
     ("GET", "/v1/orders/chance"), ("GET", "/v1/orderbook/instruments"), ("GET", "/v1/market/all"),
     ("GET", "/v1/candles/days"),
 })
+# Archival capture is narrower than inquiry permission; this adds no allowed request.
+READ_CAPTURE_ENDPOINTS = frozenset({
+    ("GET", "/v1/accounts"), ("GET", "/v1/orders/open"), ("GET", "/v1/orders/closed"),
+    ("GET", "/v1/order"), ("GET", "/v1/deposits"), ("GET", "/v1/withdraws"),
+    ("GET", "/v1/ticker"), ("GET", "/v1/market/all"), ("GET", "/v1/orderbook"),
+})
 PUBLIC = frozenset({"/v1/ticker", "/v1/orderbook", "/v1/orderbook/instruments", "/v1/market/all",
                     "/v1/candles/days"})
 

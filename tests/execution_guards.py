@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import ast
 import contextlib
+import hashlib
 import io
 import os
 import re
@@ -777,7 +778,7 @@ TR_SHAPE = re.compile(r"(?i)(?<![A-Za-z0-9])[A-Z]{4}[0-9]{4}[A-Z](?![A-Za-z0-9])
 ORDER_TR = re.compile(r"(?i)[A-Z]{4}[0-9]{4}U")
 OKX_ORDER_PATH = "/api/v5/trade/order"     # the GET also serves the order POST: never a string constant (spec 5)
 TRANSPORT_NAMES = frozenset({"request", "require_keys", "Answer", "InquiryRefused", "InquiryError", "AuthError",
-                             "KeyMissing", "inquiry_clock", "inquiry_guard"})  # public standalone inquiry clock, no implicit time
+                             "KeyMissing", "inquiry_clock", "inquiry_guard", "UpbitReadEvent", "capture_upbit_reads"})  # public standalone inquiry clock, no implicit time
 CREDENTIAL_NAMES = ("KIS_APP_KEY", "KIS_APP_SECRET", "UPBIT_ACCESS_KEY", "UPBIT_SECRET_KEY", "OKX_API_KEY",
                     "OKX_API_SECRET", "OKX_API_PASSPHRASE")
 SEND_SOURCE = ("def _send(method, url, *, headers, params, json_body, timeout):\n"     # ast.unparse of the whole
@@ -792,7 +793,9 @@ TRANSPORT_ONLY = frozenset({"requests", "HOSTS", "CREDENTIALS", "_send", "_rules
                             "_okx_timestamp", "_okx_sign", "_kis_token", "_read_token", "_write_token",
                             "_check_answer", "_next_issue_at", "_okx_offset_s", "_bad_tokens", "_headers",
                             "_TokenRejected", "_now", "_context_clock", "_INQUIRY_CLOCK",
-                            "_INQUIRY_GUARDS", "_check_inquiry_guard"})
+                            "_INQUIRY_GUARDS", "_check_inquiry_guard", "_ReadCapture", "_UPBIT_READ_CAPTURE",
+                            "_capture_begin", "_capture_check", "_capture_fail", "_capture_stamp",
+                            "_capture_event", "_capture_error_code"})
 # attributes no module but transport.py reads or writes (poll.py's one `transport._clock = ...` aside): the two
 # send-time seams, the modules a getattr chain would reach, and request (so it is always called by its own name)
 SEAM_ATTRS = frozenset({"_clock", "_sleep", "transport", "keys", "request"})
@@ -842,6 +845,107 @@ def _tr_hits(rel: str, src: str) -> list[str]:
 def _token_hits(rel: str, src: str) -> list[str]:
     """The Upbit, KIS-path, TR and order-TR rules of contract 0.5, docstrings and comments included."""
     return _upbit_token_hits(rel, src) + _kis_token_hits(rel, src) + _tr_hits(rel, src)
+
+
+# Only this reviewed lifecycle may mutate its own capture state. Full normalized
+# definitions, context variable and thread-reader import are pinned; a changed
+# method, field, alias or helper loses the exception, even if its name is kept.
+READ_CAPTURE_BINDINGS = ('get_ident', 'UpbitReadEvent', '_UPBIT_READ_CAPTURE', '_ReadCapture', 'capture_upbit_reads', '_capture_fail', '_capture_check', '_capture_begin', '_capture_stamp', '_capture_error_code', '_capture_event')
+READ_CAPTURE_AST_SHA256 = "961f545b640653172598d7ab14c3cb823f6c2d069971a42c8999486f234da7f9"
+READ_CAPTURE_ENDPOINTS_PIN = frozenset({
+    ("GET", "/v1/accounts"), ("GET", "/v1/orders/open"), ("GET", "/v1/orders/closed"),
+    ("GET", "/v1/order"), ("GET", "/v1/deposits"), ("GET", "/v1/withdraws"),
+    ("GET", "/v1/ticker"), ("GET", "/v1/market/all"), ("GET", "/v1/orderbook"),
+})
+
+
+def _capture_binding(node):
+    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+        return node.name
+    if isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+        return node.target.id
+    if (isinstance(node, ast.Assign) and len(node.targets) == 1
+            and isinstance(node.targets[0], ast.Name)):
+        return node.targets[0].id
+    if (isinstance(node, ast.ImportFrom) and node.module == "threading"
+            and any(alias.name == "get_ident" for alias in node.names)):
+        return "get_ident"
+    return None
+
+
+def _capture_nodes(tree):
+    parts = [node for node in tree.body if _capture_binding(node) in READ_CAPTURE_BINDINGS]
+    if tuple(_capture_binding(node) for node in parts) != READ_CAPTURE_BINDINGS:
+        return set()
+    normalized = ast.unparse(ast.Module(body=parts, type_ignores=[]))
+    if hashlib.sha256(normalized.encode("utf-8")).hexdigest() != READ_CAPTURE_AST_SHA256:
+        return set()
+    return {id(node) for part in parts for node in ast.walk(part)}
+
+
+def _capture_boundary_hits(tree):
+    present = any((isinstance(node, ast.Name) and node.id in READ_CAPTURE_BINDINGS)
+                  or _capture_binding(node) in READ_CAPTURE_BINDINGS for node in ast.walk(tree))
+    if not present:
+        return []
+    pinned = _capture_nodes(tree)
+    if not pinned:
+        return ["reviewed read capture definitions changed or incomplete"]
+    hits = []
+    for node in ast.walk(tree):
+        if id(node) in pinned:
+            continue
+        bound = (_capture_binding(node) in READ_CAPTURE_BINDINGS
+                 or isinstance(node, ast.Name) and node.id in READ_CAPTURE_BINDINGS
+                    and isinstance(node.ctx, (ast.Store, ast.Del))
+                 or isinstance(node, ast.arg) and node.arg in READ_CAPTURE_BINDINGS)
+        if isinstance(node, (ast.Import, ast.ImportFrom)):
+            bound = bound or any((alias.asname or alias.name.split(".")[0]) in READ_CAPTURE_BINDINGS
+                                 for alias in node.names)
+        if isinstance(node, (ast.ExceptHandler, ast.MatchAs, ast.MatchStar)):
+            bound = bound or node.name in READ_CAPTURE_BINDINGS
+        if isinstance(node, ast.MatchMapping):
+            bound = bound or node.rest in READ_CAPTURE_BINDINGS
+        if bound:
+            hits.append("read capture binding outside pinned definitions")
+    return hits
+
+
+def _capture_endpoint_hits(source):
+    tree = ast.parse(source)
+    definitions = [node for node in tree.body if _capture_binding(node) == "READ_CAPTURE_ENDPOINTS"]
+    if len(definitions) != 1:
+        return ["capture endpoint definition missing or repeated"]
+    node = definitions[0]
+    if (not isinstance(node, ast.Assign) or len(node.targets) != 1
+            or not isinstance(node.value, ast.Call) or not isinstance(node.value.func, ast.Name)
+            or node.value.func.id != "frozenset" or len(node.value.args) != 1 or node.value.keywords
+            or not isinstance(node.value.args[0], ast.Set)):
+        return ["capture endpoints must be one frozen literal set"]
+    try:
+        pairs = [ast.literal_eval(item) for item in node.value.args[0].elts]
+    except (ValueError, TypeError):
+        return ["capture endpoint literal invalid"]
+    if (any(type(pair) is not tuple or len(pair) != 2
+            or any(type(value) is not str for value in pair) for pair in pairs)
+            or len(pairs) != len(READ_CAPTURE_ENDPOINTS_PIN) or frozenset(pairs) != READ_CAPTURE_ENDPOINTS_PIN):
+        return ["capture endpoint subset changed"]
+    allowed = {id(node.targets[0])}
+    for item in ast.walk(tree):
+        rebound = (isinstance(item, ast.Name) and item.id == "READ_CAPTURE_ENDPOINTS"
+                   and isinstance(item.ctx, (ast.Store, ast.Del)) and id(item) not in allowed)
+        if isinstance(item, (ast.Import, ast.ImportFrom)):
+            rebound = rebound or any((alias.asname or alias.name.split(".")[0]) == "READ_CAPTURE_ENDPOINTS"
+                                     for alias in item.names)
+        if isinstance(item, ast.arg):
+            rebound = rebound or item.arg == "READ_CAPTURE_ENDPOINTS"
+        if isinstance(item, (ast.ExceptHandler, ast.MatchAs, ast.MatchStar)):
+            rebound = rebound or item.name == "READ_CAPTURE_ENDPOINTS"
+        if isinstance(item, ast.MatchMapping):
+            rebound = rebound or item.rest == "READ_CAPTURE_ENDPOINTS"
+        if rebound:
+            return ["capture endpoint rebinding"]
+    return []
 
 
 def _targets(node: ast.AST) -> list[ast.expr]:
@@ -918,6 +1022,9 @@ def _path_hits(rel: str, src: str) -> list[str]:
     docstring or comment."""
     tree, hits, ok = ast.parse(src), [], set()     # ok: id() of the nodes an allowed form covers
     outside = rel != TRANSPORT
+    capture_nodes = _capture_nodes(tree) if not outside else set()
+    if not outside:
+        hits += _capture_boundary_hits(tree)
     if rel == KIS_FILE:
         reads = [n for n in ast.walk(tree) if isinstance(n, ast.Call) and ast.unparse(n.func) == "keys.read"
                  and [ast.unparse(a) for a in n.args] == ["ACCOUNT_NAMES"] and not n.keywords]
@@ -927,7 +1034,8 @@ def _path_hits(rel: str, src: str) -> list[str]:
             hits.append(f"{rel}:{node.lineno}: global {', '.join(node.names)}")
         elif isinstance(node, BINDERS):
             for target in _targets(node):
-                if isinstance(target, ast.Attribute) and _rebind_ok(rel, node, target, funcs):
+                if isinstance(target, ast.Attribute) and (id(node) in capture_nodes
+                                                         or _rebind_ok(rel, node, target, funcs)):
                     ok.update({id(target), id(target.value)})
                 elif isinstance(target, ast.Attribute):
                     hits.append(f"{rel}:{target.lineno}: rebinds {ast.unparse(target)}")
@@ -981,6 +1089,7 @@ def _requests_hits(src: str) -> list[str]:
     """Every `requests` in transport.py is its plain `import requests`, the requests.Session in _send or
     requests.exceptions.ConnectionError (E1R2-11)."""
     tree, hits, allowed = ast.parse(src), [], set()
+    capture_nodes = _capture_nodes(tree)
     for node, funcs in CG._walk(tree):
         if isinstance(node, ast.Import):
             hits += [f"{node.lineno}: import {a.name}" + (f" as {a.asname}" if a.asname else "")
@@ -992,6 +1101,9 @@ def _requests_hits(src: str) -> list[str]:
             if text == "requests.Session" and funcs == ("_send",):
                 allowed.add(id(node.value))
             elif text == "requests.exceptions.ConnectionError":
+                allowed.add(id(node.value.value))
+            elif (text in ("requests.exceptions.ReadTimeout", "requests.exceptions.Timeout")
+                  and id(node) in capture_nodes):
                 allowed.add(id(node.value.value))
         elif isinstance(node, ast.Name) and node.id == "requests" and id(node) not in allowed:
             hits.append(f"{node.lineno}: requests used outside its three allowed forms")
@@ -1028,13 +1140,16 @@ def test_allowlists_are_pinned():
                      ("GET", "/api/v5/public/time"), ("GET", "/api/v5/market/ticker")})
     assert {p for p, _t in kis_tr_ids} == KIS_GET_PATHS and {t for _p, t in kis_tr_ids} == KIS_TRS
     sets = (kis_inquiry.ENDPOINTS, kis_inquiry.TR_IDS, kis_inquiry.PUBLIC, upbit_inquiry.ENDPOINTS,
-            upbit_inquiry.PUBLIC, okx_inquiry.ENDPOINTS, okx_inquiry.PUBLIC)
+            upbit_inquiry.PUBLIC, upbit_inquiry.READ_CAPTURE_ENDPOINTS, okx_inquiry.ENDPOINTS, okx_inquiry.PUBLIC)
     assert all(type(s) is frozenset for s in sets), [type(s).__name__ for s in sets]
     kis = frozenset({("POST", "/oauth2/tokenP")} | {("GET", p) for p in KIS_GET_PATHS})
     assert kis_inquiry.ENDPOINTS == kis, sorted(kis_inquiry.ENDPOINTS ^ kis)
     assert kis_inquiry.TR_IDS == kis_tr_ids, sorted(kis_inquiry.TR_IDS ^ kis_tr_ids)
     assert kis_inquiry.PUBLIC == frozenset() and kis_inquiry.ACCOUNT_NAMES == ("KIS_ACCOUNT_8", "KIS_ACCOUNT_PD")
     assert upbit_inquiry.ENDPOINTS == upbit, sorted(upbit_inquiry.ENDPOINTS ^ upbit)
+    assert upbit_inquiry.READ_CAPTURE_ENDPOINTS == READ_CAPTURE_ENDPOINTS_PIN
+    assert upbit_inquiry.READ_CAPTURE_ENDPOINTS < upbit_inquiry.ENDPOINTS
+    assert not _capture_endpoint_hits((ROOT / UPBIT_FILE).read_text(encoding="utf-8"))
     assert upbit_inquiry.PUBLIC == frozenset({"/v1/ticker", "/v1/orderbook", "/v1/orderbook/instruments",
                                               "/v1/market/all", "/v1/candles/days"})
     assert "/v1/orders/chance" not in upbit_inquiry.PUBLIC
@@ -1229,3 +1344,62 @@ def test_send_is_pinned():
     src = (EXECUTION / "transport.py").read_text(encoding="utf-8")
     assert _send_def(src) == SEND_SOURCE, _send_def(src)
     assert not _requests_hits(src), _requests_hits(src)
+
+
+def test_read_capture_public_and_private_names_remain_exact():
+    assert {'UpbitReadEvent', 'capture_upbit_reads'} <= TRANSPORT_NAMES
+    assert not (set(READ_CAPTURE_BINDINGS) - {'UpbitReadEvent', 'capture_upbit_reads', 'get_ident'}) & TRANSPORT_NAMES
+    assert not _path_hits(X, 'from execution.transport import UpbitReadEvent, capture_upbit_reads\n')
+    for name in ('_ReadCapture', '_UPBIT_READ_CAPTURE', '_capture_begin', '_capture_check', '_capture_fail',
+                 '_capture_stamp', '_capture_event', '_capture_error_code'):
+        for source in (f'from execution.transport import {name}\n', f'from execution.other import {name}\n',
+                       f'x = obj.{name}\n', f'x = "{name}"\n'):
+            assert _path_hits(X, source), source
+    for source in ('from execution.transport import capture_upbit_reads as capture\n',
+                   'from execution.transport import *\n', 'import execution.transport as wire\n'):
+        assert _path_hits(X, source), source
+
+
+def test_capture_state_rebinding_is_owned_by_the_exact_reviewed_ast():
+    source = (ROOT / TRANSPORT).read_text(encoding='utf-8')
+    assert _capture_nodes(ast.parse(source)) and not _capture_boundary_hits(ast.parse(source))
+    assert not _path_hits(TRANSPORT, source) and not _requests_hits(source)
+    mutations = (
+        ('state.failed = True', 'state.failed = False'),
+        ('self.thread = get_ident()', 'self.thread = 0'),
+        ('self.used = self.failed = self.in_callback = self.entered = self.closed = False',
+         'self.used = self.failed = self.in_callback = self.entered = self.closed = True'),
+        ('from threading import get_ident', 'from threading import get_ident as identity'),
+        ('class _ReadCapture:', 'class OtherCapture:'),
+        ('requests.exceptions.ReadTimeout', 'requests.exceptions.RequestException'),
+        ('def _capture_check(state):', 'def _capture_check(state, bypass=True):'),
+    )
+    for old, new in mutations:
+        assert old in source
+        changed = source.replace(old, new, 1)
+        assert _capture_boundary_hits(ast.parse(changed)) and _path_hits(TRANSPORT, changed), old
+    for extra in ('\n_capture_event = replacement\n', '\ndef f(_capture_stamp):\n    pass\n',
+                  '\nfrom another import _ReadCapture\n',
+                  '\ndef extra(state):\n    state.failed = False\n'):
+        assert _path_hits(TRANSPORT, source + extra), extra
+    fragments = ast.unparse(ast.Module(body=[node for node in ast.parse(source).body
+        if _capture_binding(node) in READ_CAPTURE_BINDINGS], type_ignores=[]))
+    assert _path_hits(X, fragments)
+    assert _requests_hits('def other():\n    return requests.exceptions.ReadTimeout\n')
+    assert _requests_hits('def other():\n    return requests.exceptions.Timeout\n')
+
+
+def test_capture_endpoint_pin_does_not_expand_inquiry_permission():
+    source = (ROOT / UPBIT_FILE).read_text(encoding='utf-8')
+    assert not _capture_endpoint_hits(source)
+    for changed in (source.replace('READ_CAPTURE_ENDPOINTS = frozenset({',
+                    'READ_CAPTURE_ENDPOINTS = frozenset({("GET", "/v1/api_keys"),', 1),
+                    source.replace('READ_CAPTURE_ENDPOINTS = frozenset({',
+                    'READ_CAPTURE_ENDPOINTS = frozenset({("POST", "/v1/orders"),', 1),
+                    source.replace('READ_CAPTURE_ENDPOINTS = frozenset({',
+                    'READ_CAPTURE_ENDPOINTS = set({', 1),
+                    source + '\nREAD_CAPTURE_ENDPOINTS = ENDPOINTS\n',
+                    source + '\ndef other():\n    READ_CAPTURE_ENDPOINTS = x\n',
+                    source + '\nfrom other import READ_CAPTURE_ENDPOINTS\n',
+                    source + '\nimport other as READ_CAPTURE_ENDPOINTS\n'):
+        assert _capture_endpoint_hits(changed)
