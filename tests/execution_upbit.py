@@ -13,7 +13,7 @@ import re
 from datetime import timedelta, timezone
 from urllib.parse import urlsplit
 
-from execution import upbit_inquiry
+from execution import positions, upbit_inquiry
 from execution.snapshot import Address, Holding, Move, Order
 from tests import execution_fixtures as EF
 
@@ -65,10 +65,10 @@ def _dated(name: str, date: str | None):
 def test_every_private_call_carries_a_jwt_over_the_exact_query():
     snap, calls = _run(EF.upbit_routes())
     assert snap.ok, snap.error
-    assert [_path(c) for c in calls] == [PATH[n] for n in SIGNED] + [PATH["ticker"]]   # contract C10's order
+    assert [_path(c) for c in calls] == [PATH[n] for n in SIGNED] + [PATH["market_all"], PATH["ticker"]]
     assert all(c["method"] == "GET" for c in calls)
     nonces = []
-    for call in calls[:-1]:
+    for call in calls[:len(SIGNED)]:                             # market/all and the ticker are public
         claims = _jwt(call)
         nonces.append(claims["nonce"])
         assert claims["access_key"] == EF.FAKE_KEYS["UPBIT_ACCESS_KEY"] and "exp" not in claims, claims
@@ -120,7 +120,8 @@ def test_the_full_fixture_gives_every_field():
     assert snap.key_expiry == "2027-05-27T06:17:51Z"             # 15:17:51 KST
     assert dict(snap.prices_krw) == {"BTC": 100000000.0, "USDT": 1400.0}
     assert snap.deposit_krw is None and dict(snap.loans) == {} and dict(snap.earn) == {}
-    assert set(snap.response_sha256) == {PATH[n] for n in SIGNED + ("ticker",)}
+    assert set(snap.response_sha256) == {PATH[n] for n in SIGNED + ("market_all", "ticker")}
+    assert dict(snap.market_flags) == {"BTC": "unflagged"}
     assert all(re.fullmatch(r"[0-9a-f]{64}", v) for v in snap.response_sha256.values())
     assert PATH["status_wallet"] not in {_path(c) for c in calls}    # allowlisted, routed, never asked (E22)
 
@@ -289,3 +290,57 @@ def test_public_universe_helpers_refuse_bad_input_before_any_send():
                       (EF.NOW, True), (EF.NOW, "1")):
         _refused(lambda: upbit_inquiry.daily_candles("KRW-BTC", to, count))
     assert not EF.STRAYS, EF.STRAYS
+
+
+def test_held_coin_flags_come_from_one_listing_read_and_an_unlisted_coin_is_not_asked_or_priced():
+    routes = EF.upbit_routes()
+    routes[EF.UPBIT_ROUTES["accounts"]].append({"currency": "XYZ", "balance": "5", "locked": "0",
+        "avg_buy_price": "0", "avg_buy_price_modified": False, "unit_currency": "KRW"})
+    snap, calls = _run(routes)
+    assert snap.ok, snap.error
+    assert _query(calls[-1]) == "markets=KRW-BTC,KRW-USDT"                 # XYZ is not listed: not asked
+    assert dict(snap.market_flags) == {"BTC": "unflagged", "XYZ": "absent"}
+    assert positions.venue_value_krw(snap) == 20000.0 + 0.0001 * 100000000.0  # XYZ is worth 0, not unpriced
+    bad = {"error": {"name": "validation_error", "message": "fixture: bad"}}
+    snap, calls = _run(EF.upbit_routes(market_all=(400, bad)))
+    assert snap.ok and dict(snap.market_flags) == {"BTC": "unknown"}, snap.error   # never a failed snapshot
+    assert PATH["market_all"] not in snap.response_sha256 and _path(calls[-1]) == PATH["ticker"]
+    snap, calls = _run(EF.upbit_routes(accounts=[dict(EF.UPBIT_BODIES["accounts"][0])]))
+    assert snap.ok and snap.market_flags is None and PATH["market_all"] not in {_path(c) for c in calls}
+
+
+def test_malformed_listing_never_turns_held_coins_into_zero_valued_absence():
+    good = EF.UPBIT_BODIES["market_all"][0]
+    malformed = ({}, [{}], [{"market": None}], [{"market": "KRW"}], [{"market": "KRW-"}],
+                 [{"market": "KRW-BTC-EXTRA"}], [good, dict(good)], ["KRW-BTC"])
+    for listing in malformed:
+        snap, calls = _run(EF.upbit_routes(market_all=listing))
+        assert snap.ok and dict(snap.market_flags) == {"BTC": "unknown"}, (listing, snap.error)
+        assert positions.venue_value_krw(snap) == 30_000.0, listing
+        assert PATH["market_all"] not in snap.response_sha256
+        assert _query(calls[-1]) == "markets=KRW-BTC,KRW-USDT"
+    extra = [{"market": market} for market in ("BTC-ETH", "USDT-ETH", "KRW-1LONGCOINIDENTIFIER")]
+    snap, _calls = _run(EF.upbit_routes(market_all=EF.UPBIT_BODIES["market_all"] + extra))
+    assert snap.ok and dict(snap.market_flags) == {"BTC": "unflagged"}, snap.error
+    snap, calls = _run(EF.upbit_routes(market_all=[]))
+    assert snap.ok and dict(snap.market_flags) == {"BTC": "absent"}, snap.error
+    assert positions.venue_value_krw(snap) == 20_000.0 and _query(calls[-1]) == "markets=KRW-USDT"
+
+
+def test_deep_listing_json_keeps_the_snapshot_prices_and_amber_status():
+    from core.compliance import model
+    from execution import checks
+
+    # Valid JSON below ordinary body caps, but beyond the decoder's nesting limit.
+    raw = b'[{"market":"KRW-BTC","ignored":' + b'[' * 10_000 + b'0' + b']' * 10_000 + b'}]'
+    routes = EF.upbit_routes(market_all=lambda call: (200, {"Date": EF.DATE_HEADER}, raw))
+    snap, calls = _run(routes)
+    assert snap.ok and dict(snap.market_flags) == {"BTC": "unknown"}, snap.error
+    assert snap.prices_krw["BTC"] == 100_000_000.0 and positions.venue_value_krw(snap) == 30_000.0
+    assert PATH["market_all"] not in snap.response_sha256
+    assert _path(calls[-1]) == PATH["ticker"] and _query(calls[-1]) == "markets=KRW-BTC,KRW-USDT"
+    owner = model.OwnerState.broken("fixture")
+    alerts = checks.run_checks({}, {"upbit": snap}, owner, checks.limits_from(owner, None), EF.NOW)
+    market_alerts = [a for a in alerts if a.kind == "MARKET_FLAGS"]
+    assert [(a.text_key, a.level, dict(a.slots)) for a in market_alerts] == [
+        ("HELD_FLAGS_UNKNOWN", "amber", {"n": 1})]

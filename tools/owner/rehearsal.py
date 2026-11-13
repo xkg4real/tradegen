@@ -31,7 +31,8 @@ from typing import Callable
 from execution.transport import inquiry_guard
 from execution_accounts.baseline_store import CheckpointStore
 from execution_accounts.collector import CoverageEvidence, OpeningAnchor, TradeFeeEvidence
-from execution_accounts.instrument_terms import E1UpbitTermsSource, TermsAuthority, authority_digest
+from execution_accounts.instrument_terms import (E1UpbitTermsSource, TermsAuthority, UniverseTermsAuthority,
+                                                 authority_digest)
 from execution_accounts.quotes import E1UpbitQuoteSource
 from execution_accounts.upbit_collector import E1UpbitSource
 from execution_control.capability import digest
@@ -108,12 +109,16 @@ class AccountAudit:
     terms_authority: TermsAuthority | None
     source_documents: tuple[tuple[str, str, str], ...]  # kind, explicit private path, reviewed bytes digest
     raw_sha256: str
+    universe_terms_authority: UniverseTermsAuthority | None = None   # v2, spec section 10; never with v1
 
 
 def parse_account_audit(raw: bytes) -> AccountAudit:
     """Strict parsing only; no source/reviewer/credential authenticity is conferred."""
     _need(type(raw) is bytes and 0 < len(raw) <= MAX_AUDIT_BYTES, "REHEARSAL_ACCOUNT_AUDIT_TOO_LARGE")
-    body = _schema(_object(raw), _AUDIT_FIELDS, "REHEARSAL_ACCOUNT_AUDIT_SCHEMA_INVALID")
+    body = _object(raw)
+    # The old key set, or the old set plus the v2 authority (spec section 10).
+    optional = {"universe_terms_authority"} if type(body) is dict and "universe_terms_authority" in body else set()
+    _schema(body, _AUDIT_FIELDS | optional, "REHEARSAL_ACCOUNT_AUDIT_SCHEMA_INVALID")
     _need(type(body["schema_version"]) is int and body["schema_version"] == 1
           and body["kind"] == "tradegen-flat-account-rehearsal-audit/1", "REHEARSAL_ACCOUNT_AUDIT_KIND_INVALID")
     scope = body["account_scope"]
@@ -175,10 +180,42 @@ def parse_account_audit(raw: bytes) -> AccountAudit:
             identity_binding_sha256=_sha(t["identity_binding_sha256"]),
             valid_from=_time(t["valid_from"]), valid_until=_time(t["valid_until"]))
         authority_digest(terms)
+    universe_terms = None
+    if body.get("universe_terms_authority") is not None:
+        u = _dataclass_body(body["universe_terms_authority"], UniverseTermsAuthority)
+        _need(terms is None and u["account_scope"] == scope
+              and u["provenance_sha256"] in by_kind.get("instrument_terms", ())
+              and u["identity_binding_sha256"] == by_kind["credential_identity"][0],
+              "REHEARSAL_TERMS_DOCUMENT_BINDING_INVALID")
+        universe_terms = UniverseTermsAuthority(account_scope=scope, universe_sha256=_sha(u["universe_sha256"]),
+            **{name: _amount(u[name]) for name in ("lot_size", "min_quantity", "maximum_notional_krw")},
+            provenance_sha256=_sha(u["provenance_sha256"]),
+            identity_binding_sha256=_sha(u["identity_binding_sha256"]),
+            valid_from=_time(u["valid_from"]), valid_until=_time(u["valid_until"]))
+        authority_digest(universe_terms)
     return AccountAudit(account_scope=scope, window_digest=_sha(body["deployment_window_digest"]),
         baseline_anchor_sha256=_sha(body["baseline_anchor_sha256"]), anchor=anchor, coverage=coverage,
         fees=tuple(fees), terms_authority=terms, source_documents=tuple(documents),
-        raw_sha256=hashlib.sha256(raw).hexdigest())
+        raw_sha256=hashlib.sha256(raw).hexdigest(), universe_terms_authority=universe_terms)
+
+
+def _terms_authority(profile, audit):
+    """The audit's terms authority for this profile: v2 for a universe profile, v1 for a fixed one (spec section 10).
+
+    None when the audit carries neither. The other version must be absent and the authority's digest must be the
+    profile's rules source.
+    """
+    universe = profile.universe_rule_sha256 is not None
+    authority = audit.universe_terms_authority if universe else audit.terms_authority
+    other = audit.terms_authority if universe else audit.universe_terms_authority
+    if authority is None and other is None:
+        return None
+    _need(other is None and authority is not None
+          and (authority.universe_sha256 == profile.universe_rule_sha256 if universe
+               else authority.symbol == profile.symbol)
+          and authority_digest(authority) == profile.instrument_rules.source_digest,
+          "REHEARSAL_TERMS_PROFILE_MISMATCH")
+    return authority
 
 
 def verify_source_documents(audit: AccountAudit) -> None:
@@ -360,11 +397,9 @@ def build_rehearsal(config_path: str, *, clock: Callable) -> OwnerRuntime:
                                  clock=clock, trade_fees=audit.fees)
 
     terms = None
-    if audit.terms_authority is not None:
-        _need(audit.terms_authority.symbol == comp.profile.symbol
-              and authority_digest(audit.terms_authority) == comp.profile.instrument_rules.source_digest,
-              "REHEARSAL_TERMS_PROFILE_MISMATCH")
-        terms = _TermsSource(E1UpbitTermsSource(authority=audit.terms_authority, clock=clock), guard)
+    authority = _terms_authority(comp.profile, audit)
+    if authority is not None:
+        terms = _TermsSource(E1UpbitTermsSource(authority=authority, clock=clock), guard)
     coordinator = Coordinator(mode="rehearsal", profile=comp.profile, evidence=comp.evidence, driver=comp.driver,
         implementation_verifier=comp.verifiers.implementation, adapters={"upbit": DryRunAdapter(upbit)},
         account_source=intervals, account_prefetch=prefetch, trusted_head=head,

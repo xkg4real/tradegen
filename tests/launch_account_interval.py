@@ -120,6 +120,8 @@ class FakeUpbit:
         elif path == "/v1/ticker":
             body = [dict(market=market, trade_price=self.ticker, timestamp=_ms(now), trade_timestamp=_ms(now))
                     for market in query["markets"].split(",")]
+        elif path == "/v1/market/all":                                    # every held coin is listed
+            body = [dict(market="KRW-" + row["currency"]) for row in self.balances if row["currency"] != "KRW"]
         else:
             raise AssertionError("unexpected synthetic route")
         raw = json.dumps(body, separators=(",", ":")).encode()

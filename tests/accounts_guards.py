@@ -13,7 +13,8 @@ FORBIDDEN_CALLS = {"eval", "exec", "__import__", "compile", "request", "urlopen"
 
 
 COLLECTOR_ROUTES = frozenset({"/v1/accounts", "/v1/orders/open", "/v1/orders/closed",
-                              "/v1/order", "/v1/deposits", "/v1/withdraws", "/v1/ticker"})
+                              "/v1/order", "/v1/deposits", "/v1/withdraws", "/v1/ticker",
+                              "/v1/market/all", "/v1/orderbook"})          # spec 11: listing and thin-coin book
 
 READ_ROUTES = {"upbit_collector.py": COLLECTOR_ROUTES,
                "quotes.py": frozenset({"/v1/orderbook"})}
@@ -149,7 +150,7 @@ def test_account_endpoint_literals_are_file_exact():
     for route in ("/v1/orders", "/v1/withdraws/coin", "/v1/withdraws/krw",
                   "/v1/orders/open/x", "/v1/orders/uuids", "/v1/order/new",
                   "/v1/deposits/generate_coin_address", "/V1/ORDERS/OPEN",
-                  "/v1/orderbook", "/v1/withdraws/coin_addresses"):
+                  "/v1/withdraws/coin_addresses"):
         assert problems(f'PATH = {route!r}', "upbit_collector.py"), route
 
 
@@ -209,11 +210,11 @@ def test_account_guard_negative_controls_cover_privileged_neighbors():
 def test_quote_source_exception_is_public_get_and_file_exact():
     source = 'request("upbit", "GET", "/v1/orderbook", params)'
     assert not problems(source, "quotes.py")
-    for path in ("provider.py", "upbit_collector.py", "nested/quotes.py", ""):
+    for path in ("provider.py", "nested/quotes.py", ""):
         assert problems(source, path)
     for method in ("POST", "DELETE", "PUT"):
         assert problems(source.replace('"GET"', repr(method)), "quotes.py")
-    for route in COLLECTOR_ROUTES | {"/v1/orders", "/v1/orderbooks"}:
+    for route in (COLLECTOR_ROUTES - {"/v1/orderbook"}) | {"/v1/orders", "/v1/orderbooks"}:
         assert problems(source.replace('"/v1/orderbook"', repr(route)), "quotes.py")
     assert problems('request("upbit", "GET", path, params)', "quotes.py")
     assert problems('request("upbit", "GET", "/v1/orderbook", params, data=x)', "quotes.py")

@@ -12,6 +12,7 @@ from collections.abc import Callable, Iterable, Mapping
 from contextlib import ExitStack
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
+import json
 import math
 import os
 from pathlib import Path
@@ -277,11 +278,11 @@ def inquire_once(*, venue: str, now: datetime, reader: Callable[[datetime], obje
     try:
         snap = reader(now)
         from core.compliance import model
-        from execution.snapshot import Snapshot, load
+        from execution.snapshot import Snapshot, dump, load
         if type(snap) is not Snapshot:
             return InquirySummary(venue=venue, inquiry_connected=False, reasons=("INVALID_INQUIRY_RECORD",))
         # Rebuild and rehash frozen-but-nested mappings before deriving any result.
-        snap = load(model.jsonable(snap))
+        snap = load(json.loads(dump(snap)))
         if snap.venue != venue:
             return InquirySummary(venue=venue, inquiry_connected=False, reasons=("INQUIRY_SCOPE_MISMATCH",))
         observed = datetime.fromisoformat(snap.utc)

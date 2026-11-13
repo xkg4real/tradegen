@@ -17,6 +17,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 from core.compliance import model
+from core.compliance.rules import FLAG_CLASSES
 from core.isolation import checked_target, state_root
 
 VENUES = ("kis", "upbit", "okx")
@@ -89,6 +90,8 @@ class Snapshot:
     prices_krw: Mapping[str, float] = field(default_factory=dict)    # symbol or currency -> KRW price used
     response_sha256: Mapping[str, str] = field(default_factory=dict) # path -> sha256 of the body; the OKX algo
                                           # calls use f"{path}?ordType={t}"; never a KIS query (E37)
+    market_flags: Mapping[str, str] | None = None   # Upbit: held coin -> its FLAG_CLASSES class from one market/all
+                                          # read (universe spec 15); None when nothing was read, left out of the hash
     snapshot_sha256: str = ""             # set by __post_init__
 
     def __post_init__(self) -> None:
@@ -97,7 +100,11 @@ class Snapshot:
             raise ValueError("snapshot: venue is not kis, upbit or okx")
         if not self.flags <= FLAGS:
             raise ValueError("snapshot: a flag outside FLAGS")
-        body = {k: v for k, v in model.jsonable(self).items() if k != "snapshot_sha256"}
+        if self.market_flags is not None and not (isinstance(self.market_flags, Mapping) and all(
+                isinstance(coin, str) and value in FLAG_CLASSES for coin, value in self.market_flags.items())):
+            raise ValueError("snapshot: a market flag outside FLAG_CLASSES")
+        body = {k: v for k, v in model.jsonable(self).items()
+                if k != "snapshot_sha256" and not (k == "market_flags" and v is None)}
         object.__setattr__(self, "snapshot_sha256", model.sha256_hex(model.canonical_json(body)))
 
 
@@ -121,15 +128,19 @@ def failed(venue: str, utc: str, error: str, *, flags=frozenset(), server_utc=No
 
 
 def dump(snap: Snapshot) -> bytes:
-    """One inquiry line: the canonical JSON of every field (keys sorted) plus a newline, UTF-8."""
-    return (model.canonical_json(snap) + "\n").encode("utf-8")
+    """One inquiry line: the canonical JSON of every field (keys sorted; market_flags left out while None, so rows
+    from before it keep their bytes) plus a newline, UTF-8."""
+    body = model.jsonable(snap)
+    if snap.market_flags is None:
+        del body["market_flags"]
+    return (model.canonical_json(body) + "\n").encode("utf-8")
 
 
 def load(obj: dict) -> Snapshot:
     """The Snapshot a dump() line holds, nested records rebuilt. ValueError unless `obj` has exactly the snapshot
     fields, every record rebuilds, snapshot_sha256 recomputes (a tampered row) and `obj` is the row dump() writes for
     that Snapshot (a look-alike container is refused); the text names no value."""
-    if not isinstance(obj, dict) or set(obj) != _FIELDS:
+    if not isinstance(obj, dict) or set(obj) not in (_FIELDS, _FIELDS - {"market_flags"}):
         raise ValueError("snapshot row: not the snapshot fields")
     try:
         snap = Snapshot(
@@ -144,7 +155,8 @@ def load(obj: dict) -> Snapshot:
             withdrawal_addresses=tuple(Address(**a) for a in obj["withdrawal_addresses"]),
             key_expiry=obj["key_expiry"], loans=dict(obj["loans"]), earn=dict(obj["earn"]),
             flags=obj["flags"], prices_krw=dict(obj["prices_krw"]),
-            response_sha256=dict(obj["response_sha256"]))
+            response_sha256=dict(obj["response_sha256"]),
+            market_flags=dict(obj["market_flags"]) if "market_flags" in obj else None)
         same = json.loads(dump(snap)) == obj            # dict() and tuple() above also take "", [] or pairs
     except (TypeError, ValueError, AttributeError, RecursionError) as exc:   # json nests deeper than jsonable recurses
         raise ValueError(f"snapshot row: {type(exc).__name__}") from None

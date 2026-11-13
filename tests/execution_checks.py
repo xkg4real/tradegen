@@ -134,8 +134,8 @@ def _due_run(polls, start: datetime = NOW) -> list[tuple[list[str], list[str]]]:
 # The catalogue
 # --------------------------------------------------------------------------- #
 def test_catalogue_kinds_levels_and_slots_are_consistent():
-    assert len(checks.KINDS) == 13 and len(set(checks.KINDS)) == 13
-    assert len(checks.TEXT) == 24
+    assert len(checks.KINDS) == 15 and len(set(checks.KINDS)) == 15
+    assert len(checks.TEXT) == 28
     slot_names = checks.INT_SLOTS | checks.TIME_SLOTS | checks.ITEM_SLOTS
     for key, (kind, level, template) in checks.TEXT.items():
         assert kind in checks.KINDS, key
@@ -151,7 +151,7 @@ def test_catalogue_kinds_levels_and_slots_are_consistent():
 def test_text_is_the_contract_catalogue_and_render_fills_it():
     # The SHA-256 of contract 15.3's catalogue as canonical JSON: a slip in any key, kind, level or sentence fails.
     assert model.sha256_hex(model.canonical_json(dict(checks.TEXT))) == (
-        "1055607ceb02cde19b81297fba5476709e1760278ef626a4b93900828e1fa258")
+        "adecfb4b24390f8ab53e60ab1360bd67f4cc5ee9a58b92ee01333d14cc0c98d4")
     order = checks.Alert(venue="upbit", kind="FOREIGN_ORDER", level="red", text_key="FOREIGN_ORDER", slots={"n": 1})
     assert checks.render(order) == "Upbit shows 1 open order(s). E1 places no orders: check the Upbit app now."
     note = checks.Alert(venue="all", kind="NOT_SET", level="info", text_key="NOT_SET",
@@ -513,7 +513,7 @@ def test_evaluated_names_only_checks_whose_inputs_were_there():
     new = _new(kis=_snap("kis", cash={"KRW": 30_000.0}, clock_offset_s=1.0))
     per_ok = ("KEY_HEALTH", "FOREIGN_ORDER", "D15_LIVE", "HARD_BLOCK_LIVE", "OUTAGE")
     want = ({(v, k) for v in snapshot.VENUES for k in per_ok} | {("kis", "CLOCK_SKEW")}
-            | {("upbit", "HOLDINGS_CHANGED"), ("upbit", "ADDRESS_LIST")}
+            | {("upbit", "HOLDINGS_CHANGED"), ("upbit", "ADDRESS_LIST"), ("upbit", "MARKET_FLAGS")}
             | {("all", "FLOOR"), ("all", "DAILY_LOSS"), ("okx", "OKX_CAP")})
     assert checks.evaluated(prev, new, owner, checks.limits_from(owner, start), NOW) == frozenset(want)
     assert ("all", "DAILY_LOSS") not in checks.evaluated(prev, new, owner, checks.limits_from(owner, None), NOW)
@@ -773,6 +773,10 @@ def _zoo() -> list[checks.Alert]:
     new = {"kis": _failed("kis", UNSIGNED), "upbit": _failed("upbit", frozenset({"auth_error"})),
            "okx": _failed("okx", KEYS_MISSING)}
     alerts += checks.run_checks(prev, new, owner, checks.limits_from(owner, None), NOW)
+    flags = {"BTC": "absent", "ETH": "warning", "XRP": "unknown"}
+    held = _snap("upbit", cash={"KRW": 20_000.0}, holdings={c: snapshot.Holding(units=1.0) for c in flags},
+                 market_flags=flags)
+    alerts += checks.run_checks(_prev(), {"upbit": held}, owner, checks.limits_from(owner, None), NOW)
     return alerts
 
 
@@ -786,7 +790,7 @@ def test_no_balance_or_address_in_any_sentence():
             texts.append(checks.render(_alert(venue, key)))
     zoo = _zoo()
     raised = {a.text_key for a in zoo}
-    poller_own = {"OUTAGE_CRASH", "CRASH_UNLOGGED", "EVIDENCE_BROKEN", "NOT_SET"}
+    poller_own = {"OUTAGE_CRASH", "CRASH_UNLOGGED", "EVIDENCE_BROKEN", "NOT_SET", "UNIVERSE_NO_SNAPSHOT"}
     assert raised == set(checks.TEXT) - poller_own, sorted(set(checks.TEXT) - poller_own - raised)
     for a in zoo:
         assert checks.verify_row(_stored([a], NOW)[0]), a                  # every check alert's row verifies
@@ -799,3 +803,76 @@ def test_no_balance_or_address_in_any_sentence():
         assert not LONG_RUN.search(text), text
         for needle in ("21000", "21,000", "0.0001", "61000", "bc1q", "fixtureaddress", ADDRESS):
             assert needle not in text, (needle, text)
+
+
+def test_held_coin_flags_raise_counts_and_clear_only_after_a_full_listing_read():
+    flags = {"BTC": "absent", "ETH": "warning", "XRP": "warning", "DOGE": "unknown", "SOL": "unflagged"}
+    holdings = {c: snapshot.Holding(units=1.0) for c in flags}
+    found = _run(_new(upbit=_snap("upbit", cash={"KRW": 20_000.0}, holdings=holdings, market_flags=flags)))
+    assert found[("upbit", "HELD_UNLISTED")] == {"n": 1} and found[("upbit", "HELD_WARNING")] == {"n": 2}
+    assert found[("upbit", "HELD_FLAGS_UNKNOWN")] == {"n": 1}
+    owner = _owner()
+
+    def done(snap):
+        limits = checks.limits_from(owner, None)
+        return ("upbit", "MARKET_FLAGS") in checks.evaluated(_prev(), _new(upbit=snap), owner, limits, NOW)
+    assert not done(_snap("upbit", cash={"KRW": 20_000.0}, holdings=holdings, market_flags=flags))
+    assert done(_snap("upbit", cash={"KRW": 20_000.0}, holdings=holdings, market_flags=dict(flags, DOGE="unflagged")))
+    assert done(_snap("upbit", cash={"KRW": 20_000.0}))                     # nothing held, nothing to check
+    assert not done(_failed("upbit"))
+
+
+def test_universe_no_snapshot_is_amber_from_0945_kst_and_only_with_an_approved_rule():
+    from types import SimpleNamespace
+
+    def ctx(rule="signed-rule", universe=None, valid=True):
+        venues = SimpleNamespace(venues={"upbit": SimpleNamespace(universe_rule=rule)})
+        return SimpleNamespace(active=SimpleNamespace(valid=valid, venues=venues if valid else None),
+                               universe=universe)
+    before = datetime(2026, 10, 24, 0, 44, 59, tzinfo=timezone.utc)          # 09:44:59 KST
+    after = datetime(2026, 10, 24, 0, 45, tzinfo=timezone.utc)               # 09:45:00 KST
+    alerts, done = checks.universe_check(ctx(), after)
+    assert [(a.venue, a.kind, a.level, a.text_key) for a in alerts] == [("upbit", "UNIVERSE", "amber",
+                                                                         "UNIVERSE_NO_SNAPSHOT")]
+    assert done == frozenset({("upbit", "UNIVERSE")})
+    assert checks.universe_check(ctx(universe="in force"), after) == ([], frozenset({("upbit", "UNIVERSE")}))
+    for c, now in ((ctx(), before), (ctx(rule=None), after), (ctx(valid=False), after)):
+        assert checks.universe_check(c, now) == ([], frozenset())
+
+
+def test_prior_held_coin_red_alerts_survive_missing_or_incomplete_flags_until_a_full_read():
+    state = {"inquiry": [], "alerts": []}
+    holdings = {coin: snapshot.Holding(units=1.0) for coin in ("BTC", "ETH")}
+    reds = {("upbit", "HELD_UNLISTED"), ("upbit", "HELD_WARNING")}
+
+    def poll_flags(flags, tick):
+        now = NOW + timedelta(minutes=5 * tick)
+        snap = _snap("upbit", utc=model.iso_utc(now), cash={"KRW": 20_000.0}, holdings=holdings,
+                     prices_krw={"BTC": 1.0, "ETH": 1.0}, market_flags=flags)
+        return _poll(state, _new(now, upbit=snap), now)
+
+    first = poll_flags({"BTC": "warning", "ETH": "absent"}, 0)
+    assert reds <= set(first["fresh"]), first
+    for tick, flags in enumerate((None, {}, {"BTC": "unflagged"},
+                                  {"BTC": "unflagged", "ETH": "unknown"}), 1):
+        result = poll_flags(flags, tick)
+        assert not reds & set(result["clears"]), (flags, result)
+    complete = poll_flags({"BTC": "unflagged", "ETH": "caution"}, 5)
+    assert reds <= set(complete["clears"]), complete
+
+
+def test_market_flag_alert_counts_ignore_unheld_or_zero_balances_and_cover_missing_flags():
+    holdings = {"BTC": snapshot.Holding(units=1.0), "ETH": snapshot.Holding(units=2.0),
+                "XRP": snapshot.Holding(units=0.0)}
+    snap = _snap("upbit", holdings=holdings,
+                 market_flags={"BTC": "warning", "XRP": "warning", "DOGE": "absent"})
+    found = _run(_new(upbit=snap))
+    assert found[("upbit", "HELD_WARNING")] == {"n": 1}, found
+    assert found[("upbit", "HELD_FLAGS_UNKNOWN")] == {"n": 1}, found
+    assert ("upbit", "HELD_UNLISTED") not in found, found
+    owner = _owner()
+    empty = _snap("upbit", holdings={"XRP": snapshot.Holding(units=0.0)}, market_flags={"XRP": "unknown"})
+    assert ("upbit", "MARKET_FLAGS") in checks.evaluated(_prev(), _new(upbit=empty), owner,
+                                                         checks.limits_from(owner, None), NOW)
+    assert not any(a.kind == "MARKET_FLAGS" for a in checks.run_checks(
+        _prev(), _new(upbit=empty), owner, checks.limits_from(owner, None), NOW))

@@ -346,7 +346,9 @@ def _configuration_issues(profile, now):
     if venue in markets and market is not None and market not in markets[venue]:
         add("MARKET_VENUE_MISMATCH", "market", "Use a supported cash market for the chosen venue.")
     if venue in markets and market in markets[venue]:
-        expected_tif = "day" if venue == "kis" else "gtc"
+        # Spec 11: a universe Upbit profile sends IOC orders; a fixed Upbit profile keeps gtc.
+        expected_tif = ("day" if venue == "kis" else
+                        "ioc" if venue == "upbit" and profile.universe_rule_sha256 is not None else "gtc")
         if profile.time_in_force is not None and profile.time_in_force != expected_tif:
             add("TIME_IN_FORCE_MISMATCH", "time_in_force", "Use the supported time in force for this venue.")
         pattern = (r"KRW-[A-Z0-9]{1,20}" if venue == "upbit" else r"[A-Z0-9]{1,20}-(?:USDT|USDC)"

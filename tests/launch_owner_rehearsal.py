@@ -469,3 +469,45 @@ def test_current_authority_is_loaded_once_per_request_and_slow_collections_still
                 assert report["published_units"] == 0 and report["account_source"] and report["new_entry_blocked"], report
                 assert (e.heads / "account-baseline" / "head.json").read_bytes() == original_head
             runtime.close()
+
+
+def test_the_audit_carries_a_v1_or_a_v2_terms_authority_and_the_profile_picks_its_own():
+    from execution_accounts import instrument_terms as T
+    rule = hashlib.sha256(b"fixture-universe-rule").hexdigest()
+    with fixture() as e:
+        body = json.loads(e.raw_audit)
+        terms_doc = hashlib.sha256(b"SYNTHETIC TEST ONLY: reviewed instrument_terms").hexdigest()
+        body["source_documents"].append({"kind": "instrument_terms", "path": str(e.folder / "instrument_terms.txt"),
+                                         "sha256": terms_doc})
+        identity = next(d["sha256"] for d in body["source_documents"] if d["kind"] == "credential_identity")
+        v2 = T.UniverseTermsAuthority(account_scope=body["account_scope"], universe_sha256=rule, lot_size=D("0.01"),
+            min_quantity=D("0.01"), maximum_notional_krw=D("2000000"), provenance_sha256=terms_doc,
+            identity_binding_sha256=identity, valid_from=e.fake.now-timedelta(days=1),
+            valid_until=e.fake.now+timedelta(days=1))
+        v1 = T.TermsAuthority(symbol="KRW-BTC", **{k: v for k, v in asdict(v2).items() if k != "universe_sha256"})
+
+        def raw(**authorities):
+            return json.dumps(body | {k: plain(asdict(v)) for k, v in authorities.items()}).encode()
+        audit = R.parse_account_audit(raw(universe_terms_authority=v2))
+        assert audit.universe_terms_authority == v2 and audit.terms_authority is None
+        fixed = R.parse_account_audit(raw(terms_authority=v1))
+        assert fixed.terms_authority == v1 and fixed.universe_terms_authority is None
+        assert R.parse_account_audit(e.raw_audit).universe_terms_authority is None     # the old key set still parses
+        refused(lambda: R.parse_account_audit(raw(terms_authority=v1, universe_terms_authority=v2)),
+                "REHEARSAL_TERMS_DOCUMENT_BINDING_INVALID")
+        refused(lambda: R.parse_account_audit(raw(universe_terms_authority=replace(v2, identity_binding_sha256="f"*64))),
+                "REHEARSAL_TERMS_DOCUMENT_BINDING_INVALID")
+        bad = json.loads(raw(universe_terms_authority=v2))
+        bad["universe_terms_authority"]["symbol"] = "KRW-BTC"
+        refused(lambda: R.parse_account_audit(json.dumps(bad).encode()), "REHEARSAL_ACCOUNT_AUDIT_SCHEMA_INVALID")
+
+        def profile(universe, symbol, authority):
+            return SimpleNamespace(universe_rule_sha256=universe, symbol=symbol,
+                                   instrument_rules=SimpleNamespace(source_digest=T.authority_digest(authority)))
+        assert R._terms_authority(profile(rule, "KRW-ETH", v2), audit) == v2
+        refused(lambda: R._terms_authority(profile(None, "KRW-BTC", v2), audit), "REHEARSAL_TERMS_PROFILE_MISMATCH")
+        refused(lambda: R._terms_authority(profile("f"*64, "KRW-ETH", v2), audit), "REHEARSAL_TERMS_PROFILE_MISMATCH")
+        assert R._terms_authority(profile(None, "KRW-BTC", v1), fixed) == v1
+        refused(lambda: R._terms_authority(profile(rule, "KRW-BTC", v1), fixed), "REHEARSAL_TERMS_PROFILE_MISMATCH")
+        refused(lambda: R._terms_authority(profile(None, "KRW-ETH", v1), fixed), "REHEARSAL_TERMS_PROFILE_MISMATCH")
+        assert R._terms_authority(profile(None, "KRW-BTC", v1), R.parse_account_audit(e.raw_audit)) is None

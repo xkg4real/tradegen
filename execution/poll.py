@@ -132,8 +132,9 @@ def poll_once(now: datetime) -> dict:
     if start is None and live is not None:               # the first live poll of the Seoul day is the start (E34)
         start = (live.equity_krw, model.iso_utc(now))
     limits = checks.limits_from(ctx.owner, start)
-    raw = checks.run_checks(prev, new, ctx.owner, limits, now) + own
-    done |= checks.evaluated(prev, new, ctx.owner, limits, now)
+    universe_raw, universe_done = checks.universe_check(ctx, now)       # universe spec 15
+    raw = checks.run_checks(prev, new, ctx.owner, limits, now) + own + universe_raw
+    done |= checks.evaluated(prev, new, ctx.owner, limits, now) | universe_done
     skipped = checks.not_set(new, ctx.owner, limits, live)
     if skipped:                                          # E43: one info row a day, never toasted or sent
         raw.append(checks.Alert(venue="all", kind="NOT_SET", level="info", text_key="NOT_SET",

@@ -312,3 +312,12 @@ def test_every_rule_terms_digest_call_passes_the_universe_selector():
                               any(k.arg == "universe_rule_sha256" for k in node.keywords)))
     assert len(calls) >= 12, calls  # the 12 calls at the spec section 10 sites; fewer means the scan collapsed
     assert all(selected for _, _, selected in calls), [call for call in calls if not call[2]]
+
+
+def test_a_universe_profile_requires_ioc_and_a_fixed_upbit_profile_keeps_gtc():
+    fixed = fixture_profile()
+    universe = replace(fixed, universe_rule_sha256=RULE, time_in_force="ioc")
+    assert "TIME_IN_FORCE_MISMATCH" not in preflight_profile(fixed, now=NOW).reasons
+    assert "TIME_IN_FORCE_MISMATCH" not in preflight_profile(universe, now=NOW).reasons
+    assert "TIME_IN_FORCE_MISMATCH" in preflight_profile(replace(universe, time_in_force="gtc"), now=NOW).reasons
+    assert "TIME_IN_FORCE_MISMATCH" in preflight_profile(replace(fixed, time_in_force="ioc"), now=NOW).reasons

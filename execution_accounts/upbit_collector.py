@@ -32,7 +32,7 @@ _EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
 _WEEK_MS = 7 * 86400 * 1000
 _CCY = re.compile(r"[A-Z][A-Z0-9]{0,11}")
 _ALLOWED = frozenset({"/v1/accounts", "/v1/orders/open", "/v1/orders/closed", "/v1/order",
-                      "/v1/deposits", "/v1/withdraws", "/v1/ticker"})
+                      "/v1/deposits", "/v1/withdraws", "/v1/ticker", "/v1/market/all", "/v1/orderbook"})
 
 
 class E1UpbitSource:
@@ -84,6 +84,10 @@ class E1UpbitSource:
                     answer = request("upbit", "GET", "/v1/deposits", params)
                 elif path == "/v1/withdraws":
                     answer = request("upbit", "GET", "/v1/withdraws", params)
+                elif path == "/v1/market/all":
+                    answer = request("upbit", "GET", "/v1/market/all", params)
+                elif path == "/v1/orderbook":
+                    answer = request("upbit", "GET", "/v1/orderbook", params)
                 else:
                     answer = request("upbit", "GET", "/v1/ticker", params)
         except Exception:
@@ -123,6 +127,18 @@ def _market(value):
 def _ms(value):
     delta = instant(value) - _EPOCH
     return (delta.days * 86400 + delta.seconds) * 1000 + delta.microseconds // 1000
+
+
+def _best_bid(body, symbol):
+    """(best bid, book time) of one level-0 book of `symbol` (spec 11's thin-coin mark)."""
+    require(type(body) is list and len(body) == 1 and type(body[0]) is dict, "COLLECTOR_BOOK_INVALID")
+    book = body[0]
+    units = book.get("orderbook_units")
+    require(book.get("market") == symbol and type(book.get("timestamp")) is int
+            and type(units) is list and len(units) > 0 and type(units[0]) is dict, "COLLECTOR_BOOK_INVALID")
+    require(number(book.get("level"), json_number=True) == 0, "COLLECTOR_BOOK_INVALID")
+    return (number(units[0].get("bid_price"), positive=True, json_number=True),
+            _EPOCH + timedelta(milliseconds=book["timestamp"]))
 
 
 def _merge(rows, other):
@@ -387,7 +403,18 @@ def _collect(source, anchor, coverage, baseline, clock, trade_fees, max_requests
             "COLLECTOR_CASH_LOCK_RECONCILIATION_MISMATCH")
     require(all(locks.get(base, _ZERO) == sell_locks.get(base, _ZERO)
                 for base in (set(locks) | set(sell_locks)) - {"KRW"}), "COLLECTOR_ASSET_LOCK_RECONCILIATION_MISMATCH")
-    markets = tuple(sorted("KRW-"+base for base, amount in balances.items() if base != "KRW" and amount > 0))
+    held = tuple(sorted("KRW-"+base for base, amount in balances.items() if base != "KRW" and amount > 0))
+    # Spec 11: the listing first. A held coin missing from it is unlisted: no ticker read, price 0, the read's time.
+    listing = _rows(capture.get("/v1/market/all", (("is_details", "true"),))) if held else []
+    listing_at = capture.receipts[-1].received_at
+    # A malformed or duplicate entry cannot establish that a held market is absent.
+    current = set()
+    for row in listing:
+        symbol = row.get("market")
+        require(type(symbol) is str and re.fullmatch(r"[A-Z0-9]+-[A-Z0-9]+", symbol) is not None
+                and symbol not in current, "COLLECTOR_MARKET_LIST_INVALID")
+        current.add(symbol)
+    markets = tuple(symbol for symbol in held if symbol in current)
     marks = {}
     if markets:
         for row in _rows(capture.get("/v1/ticker", (("markets", ",".join(markets)),))):
@@ -406,6 +433,9 @@ def _collect(source, anchor, coverage, baseline, clock, trade_fees, max_requests
             "COLLECTOR_OPEN_ORDERS_CHANGED_DURING_CAPTURE")
     require(capture.pages("/v1/deposits") == deposits and capture.pages("/v1/withdraws") == withdrawals,
             "COLLECTOR_FLOWS_CHANGED_DURING_CAPTURE")
+    # Spec 11: a last trade older than 30 seconds is marked at the best bid of a book at most 10 seconds old.
+    books = {symbol: _best_bid(capture.get("/v1/orderbook", (("markets", symbol), ("level", "0"))), symbol)
+             for symbol in markets if capture.receipts[-1].received_at - marks[symbol][1] > timedelta(seconds=30)}
     observed = instant(clock())
     require(start <= observed <= coverage.quiescent_until and observed <= coverage.history_through,
             "COLLECTOR_COVERAGE_ENDED_DURING_CAPTURE")
@@ -414,13 +444,20 @@ def _collect(source, anchor, coverage, baseline, clock, trade_fees, max_requests
     # A full collection must finish in the account provider's 30-second freshness budget.
     require(observed-start <= timedelta(seconds=30), "COLLECTOR_CAPTURE_TOO_SLOW")
     positions = []
-    for symbol in markets:
-        price, at, published = marks[symbol]
-        require(timedelta(0) <= observed-at <= timedelta(seconds=30)
-                and timedelta(0) <= observed-published <= timedelta(seconds=30),
-                "COLLECTOR_TICKER_STALE_OR_FUTURE")
+    for symbol in held:
+        if symbol not in current:
+            price, at, unlisted = _ZERO, listing_at, True
+        elif symbol in books:
+            (price, at), unlisted = books[symbol], None
+            require(timedelta(0) <= observed-at <= timedelta(seconds=10), "COLLECTOR_BOOK_STALE_OR_FUTURE")
+        else:
+            price, at, published = marks[symbol]
+            unlisted = None
+            require(timedelta(0) <= observed-at <= timedelta(seconds=30)
+                    and timedelta(0) <= observed-published <= timedelta(seconds=30),
+                    "COLLECTOR_TICKER_STALE_OR_FUTURE")
         positions.append(Position(market="spot", symbol=symbol, base_currency=symbol[4:], quote_currency="KRW",
-            units=balances[symbol[4:]], price=price, asof=at))
+            units=balances[symbol[4:]], price=price, asof=at, unlisted=unlisted))
     manifest = content_digest((anchor, coverage, trade_fees, tuple((r.path, r.params, r.account_scope,
         r.received_at, r.server_time, r.sha256) for r in capture.receipts)))
     pages = tuple(EvidencePage(kind=kind, cursor=None, next_cursor=None, start=origin, end=observed,

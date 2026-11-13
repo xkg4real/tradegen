@@ -286,3 +286,28 @@ def test_read_only_states_never_initialize_repair_or_mutate_journal():
         damaged = journal.read_bytes()
         reject(env.controller.states)
         assert journal.read_bytes() == damaged
+
+
+def _with_unlisted_dust(env):
+    # Spec 11: the provider keeps an unlisted coin's units in holdings and adds nothing to equity.
+    env.observation = replace(env.observation,
+        positions=replace(env.observation.positions, holdings={('upbit','BTC'):0.001, ('upbit','XYZ'):5.0}),
+        holdings={('upbit','fixture-account','spot','KRW-BTC'):D('0.001'),
+                  ('upbit','fixture-account','spot','KRW-XYZ'):D('5')})
+
+
+def test_unlisted_dust_next_to_the_held_coin_leaves_exit_cancel_and_ticks_working():
+    with runner_fixture() as env:
+        env.runner.launch_session = None
+        _with_unlisted_dust(env)
+        env.signal = replace(env.signal, action='exit')
+        report = env.runner.tick(now=env.now)
+        assert report.status == 'submitted' and report.order_status == 'ACKNOWLEDGED', report
+        assert len(creates(env)) == 1
+        canceled = env.runner.cancel(report.client_id, now=env.now)
+        assert canceled.status in ('ACKNOWLEDGED', 'CANCEL_REQUESTED'), canceled
+    with runner_fixture() as env:
+        env.runner.stop(); env.runner.evidence = None
+        _with_unlisted_dust(env)
+        state = env.runner.submit_exit(replace(env.signal, action='exit'), now=env.now)
+        assert state.status == 'ACKNOWLEDGED' and len(creates(env)) == 1

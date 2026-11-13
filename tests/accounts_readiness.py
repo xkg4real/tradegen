@@ -195,7 +195,7 @@ def test_upbit_reader_runs_existing_e1_client_with_fake_http_and_no_state_writer
         result = _call(E1InquiryReader(venue="upbit", state_directory=home))
         assert result.inquiry_connected, result.reasons
         expected = ("/v1/accounts", "/v1/orders/open", "/v1/orders/closed", "/v1/withdraws",
-                    "/v1/withdraws/coin_addresses", "/v1/deposits", "/v1/api_keys", "/v1/ticker")
+                    "/v1/withdraws/coin_addresses", "/v1/deposits", "/v1/api_keys", "/v1/market/all", "/v1/ticker")
         assert tuple((call["method"], call["path"]) for call in calls) == tuple(("GET", path) for path in expected)
         # E1 intentionally never calls the fixture's allowlisted wallet-status route.
         assert not list(home.iterdir())
@@ -307,3 +307,12 @@ def test_cli_rejects_nonmetadata_duplicate_nonfinite_and_linked_json_without_ech
         with redirect_stdout(output):
             assert cli.main(["--network-policy", str(linked / "policy.json")]) == 2
         assert json.loads(output.getvalue())["error"] == "READINESS_METADATA_UNAVAILABLE"
+
+
+def test_inquiry_roundtrip_accepts_legacy_and_flagged_rows_but_refuses_nested_flag_mutation():
+    for flags in (None, {"BTC": "unflagged"}):
+        snap = EF.snap("upbit", market_flags=flags)
+        assert _call(lambda now: snap).inquiry_connected, flags
+    snap = EF.snap("upbit", market_flags={"BTC": "warning"})
+    snap.market_flags["BTC"] = "unflagged"
+    assert not _call(lambda now: snap).inquiry_connected
