@@ -1,0 +1,81 @@
+{
+  "label": "startup-new-integration1",
+  "head": "811c780f304f47f239d6e11a5cea1c272c6f970d",
+  "source_hash": "cbe4ebe714df6c4eef523a08ce716d7d346545dc1b53521e6f85dd437cc79a9e",
+  "total": 64,
+  "counts": {
+    "PASS": 54,
+    "FAIL": 10,
+    "NOT_RUN": 0
+  },
+  "process_segments": 1,
+  "seconds": 529.748,
+  "current_segment_seconds": 529.748,
+  "sum_test_seconds": 526.686,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "real_homes_check_scope": "metadata before imports/discovery through completion",
+  "failures": [
+    {
+      "test": "launch/launch_committed_startup_integration/test_actual_endpoint_partial_fill_fee_and_open_residual_are_reconciled_not_counted_as_flat",
+      "status": "FAIL",
+      "seconds": 5.4347,
+      "detail": "ValueError: invalid adapter code"
+    },
+    {
+      "test": "launch/launch_committed_startup_integration/test_actual_endpoint_terminal_fill_reconciles_exact_quantity_and_cumulative_fee",
+      "status": "FAIL",
+      "seconds": 5.1296,
+      "detail": "ValueError: invalid adapter code"
+    },
+    {
+      "test": "launch/launch_committed_startup_integration/test_actual_open_zero_fill_status_requires_new_reconciled_row_and_keeps_residual",
+      "status": "FAIL",
+      "seconds": 5.2409,
+      "detail": "ValueError: invalid adapter code"
+    },
+    {
+      "test": "launch/launch_committed_startup_integration/test_actual_reducing_reserve_dispatch_unknown_then_restart_status_never_retransmits",
+      "status": "FAIL",
+      "seconds": 5.4282,
+      "detail": "ValueError: invalid adapter code"
+    },
+    {
+      "test": "launch/launch_committed_startup_integration/test_actual_status_then_heavy_final_durable_read_expiry_or_clock_rollback_refuses_success",
+      "status": "FAIL",
+      "seconds": 5.7109,
+      "detail": "ValueError: invalid adapter code"
+    },
+    {
+      "test": "launch/launch_committed_startup_integration/test_current_owner_mutation_after_actual_status_is_rechecked_before_success",
+      "status": "FAIL",
+      "seconds": 5.4363,
+      "detail": "ValueError: invalid adapter code"
+    },
+    {
+      "test": "launch/launch_committed_startup_integration/test_mismatched_cumulative_status_fee_or_broker_identity_cannot_claim_reconciliation",
+      "status": "FAIL",
+      "seconds": 5.5867,
+      "detail": "ValueError: invalid adapter code"
+    },
+    {
+      "test": "launch/launch_committed_startup_integration/test_required_cutoff_and_new_seoul_day_are_policy_refusals_not_fresh_or_generic_stale",
+      "status": "FAIL",
+      "seconds": 0.0122,
+      "detail": "AccountIntervalError: ACCOUNT_INTERVAL_BOUNDARY_NOT_BRACKETED"
+    },
+    {
+      "test": "launch/launch_committed_startup_integration/test_status_fill_missing_from_retained_endpoint_needs_next_real_generation",
+      "status": "FAIL",
+      "seconds": 5.3537,
+      "detail": "ValueError: invalid adapter code"
+    },
+    {
+      "test": "launch/launch_committed_startup_integration/test_unknown_and_interrupted_dispatch_remain_uncertain_and_never_resend",
+      "status": "FAIL",
+      "seconds": 5.0861,
+      "detail": "ValueError: invalid adapter code"
+    }
+  ]
+}

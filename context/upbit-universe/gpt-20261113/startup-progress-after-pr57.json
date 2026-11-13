@@ -1,0 +1,101 @@
+{
+  "observed_at": "2026-11-14T04:31:41+09:00",
+  "status": "RUNNING_NOT_COMPLETED",
+  "runtime_commit": "811c780f304f47f239d6e11a5cea1c272c6f970d",
+  "test_only_correction_commit": "894552cdc08603afad77fb4726daf8b018aa35b4",
+  "branch": "gpt/committed-startup-retention",
+  "planned_unique_test_ids": 456,
+  "first_core_result": {
+    "total": 71,
+    "PASS": 70,
+    "FAIL": 1,
+    "NOT_RUN": 0,
+    "seconds": 5.864,
+    "failure": "Unsupported completion receipt repr expectation; production codec unchanged."
+  },
+  "corrected_codec_result": {
+    "total": 22,
+    "PASS": 22,
+    "FAIL": 0,
+    "NOT_RUN": 0,
+    "seconds": 2.795
+  },
+  "shards": [
+    {
+      "label": "startup-new-integration1",
+      "head": "811c780f304f47f239d6e11a5cea1c272c6f970d",
+      "source_hash": "cbe4ebe714df6c4eef523a08ce716d7d346545dc1b53521e6f85dd437cc79a9e",
+      "registered": 64,
+      "completed": 50,
+      "counts": {
+        "PASS": 44,
+        "FAIL": 6,
+        "NOT_RUN": 0
+      },
+      "status": "RUNNING_SNAPSHOT_NOT_FINAL"
+    },
+    {
+      "label": "startup-related1",
+      "head": "811c780f304f47f239d6e11a5cea1c272c6f970d",
+      "source_hash": "cbe4ebe714df6c4eef523a08ce716d7d346545dc1b53521e6f85dd437cc79a9e",
+      "registered": 321,
+      "completed": 207,
+      "counts": {
+        "PASS": 207,
+        "FAIL": 0,
+        "NOT_RUN": 0
+      },
+      "status": "RUNNING_SNAPSHOT_NOT_FINAL"
+    }
+  ],
+  "full_union_result": null,
+  "execution_ready": false,
+  "initial_shard_observed_at": "2026-11-14T04:30:44+09:00",
+  "main57_integration_commit": "119c9abca6435a4dce9743b022b50f8398f03ef7",
+  "adapter_fixture_correction_commit": "ae3f3c3909781a8017a602a70b1501ac6ed4b756",
+  "adapter_fixture_correction_reason": "Four synthetic AdapterResult codes used unsupported hyphens; test-only correction uses the existing strict underscore grammar. Production validation unchanged; first failures remain preserved.",
+  "final_affected_pending": {
+    "label": "startup-final-affected1",
+    "head": "ae3f3c3909781a8017a602a70b1501ac6ed4b756",
+    "source_hash": "41f92e4b72dd5488f01f221d4cccc20f290d4756a10ac10b841cd09b9dbeddf8",
+    "registered": 83,
+    "completed_at_snapshot": 29,
+    "counts_at_snapshot": {
+      "PASS": 29,
+      "FAIL": 0,
+      "NOT_RUN": 0
+    },
+    "status": "RUNNING_NOT_FINAL",
+    "scope": "format22 + startup integration28 + launch guards31 + source closure2"
+  },
+  "followup": {
+    "observed_at": "2026-11-14T04:34:58+09:00",
+    "source": "Parent completed B summary and runtime progress message; prior snapshots retained unchanged",
+    "startup_remote_head": "ae3f3c3909781a8017a602a70b1501ac6ed4b756",
+    "initial_B_summary_file": "startup-new-integration1-summary.json",
+    "initial_B_counts": {
+      "PASS": 54,
+      "FAIL": 10,
+      "NOT_RUN": 0
+    },
+    "initial_B_seconds": 529.748,
+    "initial_B_failure_categories": {
+      "invalid_adapter_code": 9,
+      "boundary_not_bracketed": 1
+    },
+    "boundary_failure_status": "READ_ONLY_DIAGNOSIS_PENDING",
+    "final_affected": {
+      "registered": 83,
+      "PASS": 34,
+      "FAIL": 0,
+      "status": "RUNNING_NOT_FINAL"
+    },
+    "related_C": {
+      "registered": 321,
+      "PASS": 230,
+      "FAIL": 0,
+      "status": "RUNNING_NOT_FINAL"
+    },
+    "full_union_result": null
+  }
+}

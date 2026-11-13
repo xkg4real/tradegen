@@ -1,0 +1,27 @@
+{
+  "label": "startup-new-core1",
+  "head": "811c780f304f47f239d6e11a5cea1c272c6f970d",
+  "source_hash": "cbe4ebe714df6c4eef523a08ce716d7d346545dc1b53521e6f85dd437cc79a9e",
+  "total": 71,
+  "counts": {
+    "PASS": 70,
+    "FAIL": 1,
+    "NOT_RUN": 0
+  },
+  "process_segments": 1,
+  "seconds": 5.864,
+  "current_segment_seconds": 5.864,
+  "sum_test_seconds": 2.871,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "real_homes_check_scope": "metadata before imports/discovery through completion",
+  "failures": [
+    {
+      "test": "launch/launch_guard_generation_format/test_capture_registry_is_unchanged_and_returned_records_are_not_shared_cached_instances",
+      "status": "FAIL",
+      "seconds": 0.0047,
+      "detail": "AssertionError: "
+    }
+  ]
+}

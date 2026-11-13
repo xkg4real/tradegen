@@ -1,0 +1,20 @@
+{
+  "label": "recovered-selection-related1",
+  "head": "19f6775935f8d8828eed21fcaa76449507239a5b",
+  "source_hash": "97b858e0fa81969d2b93fc6e6971e5bdb2795c40b8256f904c91fa4ba4d39fe3",
+  "total": 368,
+  "counts": {
+    "PASS": 368,
+    "FAIL": 0,
+    "NOT_RUN": 0
+  },
+  "process_segments": 1,
+  "seconds": 2193.82,
+  "current_segment_seconds": 2193.82,
+  "sum_test_seconds": 2189.269,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "real_homes_check_scope": "metadata before imports/discovery through completion",
+  "failures": []
+}

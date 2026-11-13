@@ -1,0 +1,20 @@
+{
+  "label": "startup-codec-correction1",
+  "head": "894552cdc08603afad77fb4726daf8b018aa35b4",
+  "source_hash": "3f0cafbe0c05927d7798516cbaa589861ff40b12499e1ec93d227e501ce61e8d",
+  "total": 22,
+  "counts": {
+    "PASS": 22,
+    "FAIL": 0,
+    "NOT_RUN": 0
+  },
+  "process_segments": 1,
+  "seconds": 2.795,
+  "current_segment_seconds": 2.795,
+  "sum_test_seconds": 0.114,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "real_homes_check_scope": "metadata before imports/discovery through completion",
+  "failures": []
+}

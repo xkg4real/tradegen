@@ -1,0 +1,66 @@
+{
+  "observed_at": "2026-11-14T04:30:44+09:00",
+  "status": "MERGED_VALIDATED",
+  "pr": "https://github.com/xkg4real/tradegen/pull/57",
+  "runtime_commit": "25ba6077267bce997e0ba625065173d96a56cc31",
+  "delivery_commit": "91443c1e109339412537744fd2e5538819f1f7d1",
+  "main_merge_commit": "e224bc604134695ac433560cf2256f74c19ec01c",
+  "main_delivery_tree": "0b248511c1a822605e868706bb31da74f2e8da8d",
+  "tree_equality_confirmed_by": "Parent actual git fetch/main-tree comparison",
+  "validation": {
+    "label": "recovered-selection-related1",
+    "total": 368,
+    "PASS": 368,
+    "FAIL": 0,
+    "NOT_RUN": 0,
+    "seconds": 2193.82,
+    "process_segments": 1,
+    "source_hash": "97b858e0fa81969d2b93fc6e6971e5bdb2795c40b8256f904c91fa4ba4d39fe3",
+    "keyless_names": 19,
+    "source_unchanged": true,
+    "real_homes_metadata_unchanged_before_imports_through_completion": true,
+    "qa_restored": true
+  },
+  "prior_interim_patch": {
+    "file": "recovered-selection-pending.patch",
+    "sha256": "3ebb321e804b04308b295b3f6c1bef7281025781630feaabdedb11909c4cd282",
+    "status": "HISTORICAL_SUPERSEDED_BY_PR57",
+    "instruction": "Preserve historical bytes; do not apply over merged PR57 or the existing worktree."
+  },
+  "source_execution_log_note": "The unchanged repository log has an earlier pending delivery/main sentence. This checkpoint records the actual later delivery and merge; runtime body was not changed.",
+  "snapshot_sha256": {
+    "recovered-selection-related1-summary.json": "4a704a9c4833c5e298b3fe6a409d5a86fcccd8eee84a7a52f53971134ce28e3e",
+    "recovered-selection-related1-start.json": "b657c50d83ef7e91310a59e9e391d5661bcf18003474f34f5f7f2a91f534396c",
+    "recovered-selection-related1-rows.json": "db4b47ba061127f53abfe7d6d7b93b91933d6bf1bf58ae572279c3ae69e7ecd6",
+    "TRADEGEN_RECOVERED_SELECTION_EXECUTION_LOG_2026-11-13.md": "cab7e1bac9b6c70aec916d1b379b16da1f9122075a26b0b5d150d28099542647",
+    "TRADEGEN_COMMITTED_STARTUP_API_2026-11-13.md": "712e994115e7db97ff6a95bf34f336dd8cae948488c59059e2b3a30c704be940",
+    "startup-new-core1-summary.json": "47039c70cd9a1d55b901b4452238d63c00e559895a9790c03ffc676d79112d43",
+    "startup-codec-correction1-summary.json": "fab672c16b5f218e222c63caf0625023d0b5f1a87f3073c59a47581d7aa1aa82",
+    "startup-new-integration1-summary.json": "11f6d13eb542722019cfa7164fa6d879bd08bf9a8321e3bf4c5b53446c95aaca"
+  },
+  "ledger_previous_prefix_bytes": 67664,
+  "ledger_previous_prefix_sha256": "d407b078884fe929dc9720ebdb843a693fd62c2ebe0fed2217789f1fcec4b837",
+  "usage_weekly_pct": "unknown",
+  "usage_source": "unavailable",
+  "execution_ready": false,
+  "passkey": {
+    "branch": "gpt/passkey-archive-foundation",
+    "base": "25ba6077267bce997e0ba625065173d96a56cc31",
+    "status": "FOUNDATION_IMPLEMENTATION_STARTED",
+    "full_vertical_complete": false,
+    "operational_authority": false,
+    "dependency_setup": "Separate Cloud venv dependency installation completed with four exact pins; verifier tests not yet run."
+  },
+  "followup_observed_at": "2026-11-14T04:34:58+09:00",
+  "startup_push_confirmation": {
+    "confirmed_by": "Parent actual git push result",
+    "branch": "origin/gpt/committed-startup-retention",
+    "head": "ae3f3c3909781a8017a602a70b1501ac6ed4b756",
+    "includes": [
+      "811c780f304f47f239d6e11a5cea1c272c6f970d",
+      "894552cdc08603afad77fb4726daf8b018aa35b4",
+      "119c9abca6435a4dce9743b022b50f8398f03ef7",
+      "ae3f3c3909781a8017a602a70b1501ac6ed4b756"
+    ]
+  }
+}
