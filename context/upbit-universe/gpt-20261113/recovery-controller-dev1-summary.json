@@ -1,0 +1,33 @@
+{
+  "label": "recovery-controller-dev1",
+  "head": "24c51f62023c5c6c932411c75fae6d1c607be004",
+  "source_hash": "af1345f467944da14c5a8c4d9bf2aa4e57af53b730ffcd572520c6191043d551",
+  "total": 142,
+  "counts": {
+    "PASS": 140,
+    "FAIL": 2,
+    "NOT_RUN": 0
+  },
+  "process_segments": 1,
+  "seconds": 752.628,
+  "current_segment_seconds": 752.628,
+  "sum_test_seconds": 749.153,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "real_homes_check_scope": "metadata before imports/discovery through completion",
+  "failures": [
+    {
+      "test": "launch/launch_research_recovery_attempts/test_preflight_reads_share_same_three_opportunities_and_exact_due_boundary",
+      "status": "FAIL",
+      "seconds": 0.0285,
+      "detail": "RecoveryAttemptError: RECOVERY_CHECKPOINT_ROLLBACK"
+    },
+    {
+      "test": "launch/launch_research_recovery_store/test_restart_preserves_same_attempt_resume_budget_and_due_time",
+      "status": "FAIL",
+      "seconds": 0.1856,
+      "detail": "RecoveryAttemptError: RECOVERY_FORMAT_INVALID"
+    }
+  ]
+}

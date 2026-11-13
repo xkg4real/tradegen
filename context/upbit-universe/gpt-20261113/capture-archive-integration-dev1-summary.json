@@ -1,0 +1,33 @@
+{
+  "label": "capture-archive-integration-dev1",
+  "head": "f20dd1f8efe7c178c63c5579c2751f7647c5c8c0",
+  "source_hash": "4c78c5ca4c0dfde5723538d9ba5fe425a712d2a9858eba498985731939d758c9",
+  "total": 161,
+  "counts": {
+    "PASS": 159,
+    "FAIL": 2,
+    "NOT_RUN": 0
+  },
+  "process_segments": 1,
+  "seconds": 36.912,
+  "current_segment_seconds": 36.912,
+  "sum_test_seconds": 32.672,
+  "keyless_names": 19,
+  "source_unchanged": true,
+  "real_homes_unchanged": true,
+  "real_homes_check_scope": "metadata before imports/discovery through completion",
+  "failures": [
+    {
+      "test": "launch/launch_guard_capture_archive/test_primary_only_publication_is_not_a_packet_and_exact_retry_completes_only_backup",
+      "status": "FAIL",
+      "seconds": 0.1748,
+      "detail": "AssertionError: ('BUNDLE_STORE_IO_REFUSED', 'CAPTURE_ARCHIVE_BACKED_RAW_REQUIRED')"
+    },
+    {
+      "test": "launch/launch_guard_capture_archive/test_read_manifest_budget_refuses_before_full_graph_decode_or_historical_replay",
+      "status": "FAIL",
+      "seconds": 0.2864,
+      "detail": "AssertionError: ('BUNDLE_STORE_IO_REFUSED', 'CAPTURE_ARCHIVE_RESOURCE_LIMIT')"
+    }
+  ]
+}
