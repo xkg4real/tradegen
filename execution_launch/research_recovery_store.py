@@ -62,6 +62,12 @@ def _decode(raw, maximum):
         raise RecoveryStoreError(code) from None
 
 
+def _model_failure(error, fallback):
+    # Retry/semantic execution limits are not storage-capacity exhaustion.
+    return RecoveryStoreError("RECOVERY_STORE_LIMIT_EXCEEDED"
+                              if str(error) == "RECOVERY_RESOURCE_LIMIT" else fallback)
+
+
 @dataclass(frozen=True, kw_only=True)
 class RecoveryStoreLimits:
     format_limits: F.RecoveryAttemptLimits
@@ -326,7 +332,10 @@ class RecoveryAttemptStore:
         # Start from the format's own initial state, parse each recorded event
         # once, fold once, and validate only the final derived projection. Never
         # accept an external state or repeatedly revalidate every history prefix.
-        state = F._replay_events(tuple(raw_events), limits=self.limits.format_limits)
+        try:
+            state = F._replay_events(tuple(raw_events), limits=self.limits.format_limits)
+        except F.RecoveryAttemptError as exc:
+            raise _model_failure(exc, "RECOVERY_STORE_REPLAY_REFUSED") from None
         _need(len(state.events) == sequence, "RECOVERY_STORE_DUPLICATE_ROW")
         return RecoveryStoreSnapshot(state=state, head=head, sequence=sequence), len(raw), previous, last_event
 
@@ -474,9 +483,13 @@ class RecoveryAttemptStore:
         if last_event == event_raw and expected_head in (current.head, previous):
             return None
         _need(expected_head == current.head, "RECOVERY_STORE_EXPECTED_HEAD_CHANGED")
-        proposed = F.reduce(current.state, event, limits=self.limits.format_limits)
-        if F.state_bytes(proposed, limits=self.limits.format_limits) == F.state_bytes(
-                current.state, limits=self.limits.format_limits):
+        try:
+            proposed = F.reduce(current.state, event, limits=self.limits.format_limits)
+            unchanged = F.state_bytes(proposed, limits=self.limits.format_limits) == F.state_bytes(
+                current.state, limits=self.limits.format_limits)
+        except F.RecoveryAttemptError as exc:
+            raise _model_failure(exc, "RECOVERY_STORE_TRANSITION_REFUSED") from None
+        if unchanged:
             return None
         body = {"schema": 1, "sequence": current.sequence + 1, "previous_sha256": current.head,
                 "context_sha256": self.context_sha256, "event": json.loads(event_raw)}
@@ -508,6 +521,8 @@ class RecoveryAttemptStore:
                 return current
         except RecoveryStoreError:
             raise
+        except F.RecoveryAttemptError as exc:
+            raise _model_failure(exc, "RECOVERY_STORE_ADMISSION_REFUSED") from None
         except (ValueError, RuntimeError, OSError, TypeError, KeyError, RecursionError, OverflowError):
             raise RecoveryStoreError("RECOVERY_STORE_ADMISSION_REFUSED") from None
 
@@ -543,6 +558,8 @@ class RecoveryAttemptStore:
                 return current
         except RecoveryStoreError:
             raise
+        except F.RecoveryAttemptError as exc:
+            raise _model_failure(exc, "RECOVERY_STORE_ADMISSION_REFUSED") from None
         except (ValueError, RuntimeError, OSError, TypeError, KeyError, RecursionError, OverflowError):
             raise RecoveryStoreError("RECOVERY_STORE_ADMISSION_REFUSED") from None
 
@@ -564,14 +581,21 @@ class RecoveryAttemptStore:
                 _need(self.head.compare_and_set(current.head, row["row_sha256"]) is True,
                       "RECOVERY_STORE_HEAD_UPDATE_REFUSED")
                 confirmed, confirmed_size, _, _ = self._load(pins)
-                _need(confirmed.head == row["row_sha256"] and confirmed.sequence == row["sequence"]
-                      and F.state_bytes(confirmed.state, limits=self.limits.format_limits)
-                      == F.state_bytes(proposed, limits=self.limits.format_limits)
-                      and confirmed_size == size + len(line), "RECOVERY_STORE_PUBLICATION_MISMATCH")
+                _need(confirmed.head == row["row_sha256"] and confirmed.sequence == row["sequence"],
+                      "RECOVERY_STORE_PUBLICATION_MISMATCH")
+                try:
+                    same_state = F.state_bytes(confirmed.state, limits=self.limits.format_limits) == F.state_bytes(
+                        proposed, limits=self.limits.format_limits)
+                except F.RecoveryAttemptError as exc:
+                    raise _model_failure(exc, "RECOVERY_STORE_PUBLICATION_MISMATCH") from None
+                _need(same_state and confirmed_size == size + len(line),
+                      "RECOVERY_STORE_PUBLICATION_MISMATCH")
                 self._check_anchor(pins, anchor)
                 return confirmed
         except RecoveryStoreError:
             raise
+        except F.RecoveryAttemptError as exc:
+            raise _model_failure(exc, "RECOVERY_STORE_COMMIT_REFUSED") from None
         except (ValueError, RuntimeError, OSError, TypeError, KeyError, RecursionError, OverflowError):
             raise RecoveryStoreError("RECOVERY_STORE_COMMIT_REFUSED") from None
 

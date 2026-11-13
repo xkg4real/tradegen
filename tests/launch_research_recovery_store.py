@@ -190,8 +190,62 @@ def test_restart_preserves_same_attempt_resume_budget_and_due_time():
             raise AssertionError("fourth execution must fail in the codec")
         # A structurally valid repeated execution still reaches and fails the store.
         refused(lambda: restarted.commit(resume(3, 181), expected_head=current.head),
-                "RECOVERY_STORE_COMMIT_REFUSED")
+                "RECOVERY_STORE_TRANSITION_REFUSED")
         assert files(s) == before and restarted.inspect() == current
+
+
+def test_actual_model_attempt_capacity_is_classified_before_any_write():
+    capped = S.RecoveryStoreLimits(format_limits=replace(F.DEFAULT_LIMITS, max_attempts=1))
+    with stack(store_limits=capped) as s:
+        first = s.store.commit(register_event(), expected_head=s.store.genesis_digest)
+        current = s.store.commit(failure_event(), expected_head=first.head)
+        at = NOW + timedelta(seconds=2)
+        extra = F.make_event("PREFLIGHT_REFUSED", dict(route_id=route().route_id,
+            incident_id="8" * 64, execution_number=1, incident_head=[2, "3" * 64],
+            status="READ_UNAVAILABLE", reason_code="RECOVERY_SOURCE_UNAVAILABLE",
+            checkpoint=F.checkpoint_document(checkpoint(at)),
+            revocation_status="NOT_REVOKED_AT_HEAD"), observed_at=at)
+        before = files(s)
+        refused(lambda: s.store.admit(extra, expected_head=current.head), "RECOVERY_STORE_LIMIT_EXCEEDED")
+        refused(lambda: s.store.commit(extra, expected_head=current.head), "RECOVERY_STORE_LIMIT_EXCEEDED")
+        assert files(s) == before and s.store.inspect() == current
+
+
+def test_actual_model_execution_limit_is_a_transition_refusal_not_storage_capacity():
+    capped = S.RecoveryStoreLimits(format_limits=replace(F.DEFAULT_LIMITS, max_resumes=0))
+    with stack(store_limits=capped) as s:
+        first = s.store.commit(register_event(), expected_head=s.store.genesis_digest)
+        current = s.store.commit(started_event(), expected_head=first.head)
+        at = NOW + timedelta(seconds=61)
+        extra = F.make_event("RESUME_STARTED", dict(attempt_id=F.attempt_id(route(), INCIDENT),
+            execution_number=2, incident_head=[2, "3" * 64],
+            checkpoint=F.checkpoint_document(checkpoint(at))), observed_at=at)
+        before = files(s)
+        refused(lambda: s.store.admit(extra, expected_head=current.head), "RECOVERY_STORE_TRANSITION_REFUSED")
+        refused(lambda: s.store.commit(extra, expected_head=current.head), "RECOVERY_STORE_TRANSITION_REFUSED")
+        assert files(s) == before and s.store.inspect() == current
+
+
+def test_actual_persisted_invalid_transition_has_replay_diagnostic_and_preserves_bytes():
+    with stack() as s:
+        first = s.store.commit(register_event(), expected_head=s.store.genesis_digest)
+        current = s.store.commit(started_event(), expected_head=first.head)
+        at = NOW + timedelta(seconds=121)
+        # Canonical event and row bytes with exact backup, but no execution 2.
+        # Keep the actual head at the last committed prefix: no synthetic CAS.
+        invalid = F.make_event("RESUME_STARTED", dict(attempt_id=F.attempt_id(route(), INCIDENT),
+            execution_number=3, incident_head=[2, "3" * 64],
+            checkpoint=F.checkpoint_document(checkpoint(at))), observed_at=at)
+        body = dict(schema=1, sequence=current.sequence + 1, previous_sha256=current.head,
+            context_sha256=s.store.context_sha256, event=json.loads(F.event_bytes(invalid)))
+        digest = S._digest("row", body)
+        raw = S._canonical(body | {"row_sha256": digest})
+        journal = s.store.root / "journal.jsonl"
+        journal.write_bytes(journal.read_bytes() + raw + b"\n")
+        (s.store.backup_root / "versions" / (digest + ".json")).write_bytes(raw)
+        before = files(s)
+        refused(s.store.inspect, "RECOVERY_STORE_REPLAY_REFUSED")
+        assert files(s) == before and s.store.head.read() == current.head
 
 
 def test_duplicate_and_response_loss_retry_do_not_append_or_duplicate_notifications():
