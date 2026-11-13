@@ -1,6 +1,6 @@
 # Fixed carry-v2: deadline handling across evaluation, review and rehearsal
 
-2026-11-13. This change implements a separate fixed Upbit KRW spot GTC behavior revision. It preserves open inventory at the study end, separates strategy decisions from execution blocking, and requests new management approval at the runtime deadline. It does not activate live trading or issue post-deadline management authority. Validation below is being completed before delivery.
+2026-11-13. This change implements a separate fixed Upbit KRW spot GTC behavior revision. It preserves open inventory at the study end, separates strategy decisions from execution blocking, and requests new management approval at the runtime deadline. It does not activate live trading or issue post-deadline management authority. Frozen-source full regression is complete; production activation remains a separate boundary.
 
 ## Connected behavior
 
@@ -24,13 +24,26 @@ Runner checks the actual issued runtime deadline against a fresh clock after the
 
 Existing GTC orders can fill after E. The regression distinguishes a late fill under an existing venue/client identity from a new create. This fixture does not prove a production held-account issuer or reconciliation of every managed-order state. Errors, restart and storage failure remain execution conditions, not strategy SELL signals. Existing risk floors and halt rules remain unchanged.
 
-## Validation status
+## Validation
 
-Final frozen-source results and delivery commits will be recorded here after verification. All work uses 19 KEYLESS variables, isolated test homes, synthetic observations and temporary test signing keys. Actual home contents, real keys, exchange APIs, activation and orders are not used.
+Final complete repository run: **2,936 PASS / 0 FAIL / 135 NOT_RUN**, **3,071 total**, **1,385.116 seconds**, one uninterrupted process. Tested runtime commit: `2b1de13227a8985620f253260dd2ab836a498d0f`. Python/YAML fingerprint:
+
+`3001278c9174a007be7d5531cbedf3f643a6d6dd11b5044a73316d6d7877d36b`
+
+All 2,907 preceding PR4e test IDs and terminal statuses are retained, with 164 additional passing checks including the integrated outcome contract. NOT_RUN comprises the existing 121 macro prerequisites and 14 Windows-specific cases; these are not passes. Source and actual-home metadata remained unchanged from before imports/discovery through completion, and original QA bytes were restored. All work used 19 KEYLESS variables, isolated test homes, synthetic observations and temporary test signing keys. Actual home contents, real keys, exchange APIs, activation and orders were not used.
+
+Eleven real Coordinator-to-history/head-to-Runner tests passed together, including final HOLD/SELL, reused approval requests after restart, late fill under an existing GTC identity, and slow persistence. They exercise actual temporary owner approval and independent Ed25519 signatures; invented source/account fixtures are not production source-completeness issuers.
 
 Independent review found and fixed: no-order E/HOLD valuation incorrectly requiring a stressed executable bid, below-minimum SELL being labelled HOLD, midpoint disagreement, deadline crossing during callback, slow protective persistence losing original history, repeated writes to closed management, missing source dependencies and signed display values not checked through direct Runner assessment.
 
-The first development run completed 124 checks: 113 PASS and 11 FAIL. The common Coordinator fixture used future-dated rules relative to its review time. After correcting those times, real quote parsing exposed a locked-book fixture (`bid == ask`); the parser was retained and the fixture was corrected. These failed runs are preserved and are not final acceptance evidence.
+Development failures remain recorded rather than being counted as acceptance:
+
+- First development run: 113 PASS / 11 FAIL of 124. The common Coordinator fixture used future rules relative to its review time. A subsequent 4 PASS / 7 FAIL run exposed a locked-book fixture (`bid == ask`); the real parser was retained and the fixture corrected.
+- A 10 PASS / 1 FAIL Coordinator run exposed the closed-management diagnostic being wrapped as a storage error. Moving that diagnostic outside the storage context produced 11 PASS / 0 FAIL.
+- Focused integration: 359 PASS / 1 FAIL / 2 Windows NOT_RUN. The remaining legacy signer display fixture omitted its explicit body schema. Testing both supported body schemas corrected the fixture without weakening typed confirmation; 22 confirmation/review checks passed.
+- The first full run was intentionally interrupted after 1,108 results (985 PASS / 2 FAIL / 121 NOT_RUN). Existing credential guards matched a credential-field substring in a new diagnostic. Only that diagnostic was renamed; neither guard was weakened. Both guards and affected capture/review cases then passed (35 PASS). The final 3,071-test run restarted from the beginning on the frozen source above.
+
+Focused runs overlap the final suite and are not added to its total. Earlier selector-launch mistakes ran zero tests and supply no acceptance evidence.
 
 ## Remaining production boundaries
 
