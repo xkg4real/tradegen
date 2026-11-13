@@ -537,8 +537,11 @@ def test_actual_local_no_send_rejection_maps_to_neutral_blocked_without_a_strate
         assert len(dispatch_rows) == 1 and not creates(e)
         rejected = [row for row in F.rows(e) if row['kind'] == 'rejected']
         assert len(rejected) == 1
-        assert rejected[0]['data']['metadata']['tg_local_pre_send'] == 'not_called'
-        assert rejected[0]['data']['metadata']['tg_local_reason'] == 'COMMITTED_COMPLETION_STALE'
+        assert dict(rejected[0]['data']['metadata']) == {
+            'tg_local_pre_send': 'not_called',
+            'tg_local_reason': 'COMMITTED_COMPLETION_STALE',
+            'tg_dispatch_row': dispatch_rows[0]['row_sha256'],
+        }
         before = F.rows(e)
         report = e.runner._dispatch_tick_result(state, reconciled_orders=0,
             protective_action_needed=True, metadata=R._signal_metadata(e.signal))
