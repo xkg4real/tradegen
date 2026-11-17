@@ -357,13 +357,17 @@ class _Operation:
                   and disk[3]+len(raw)<=limit.max_backup_bytes,'PASSKEY_RESOURCE_LIMIT')
             with self._writing():
                 _need(self._disk()==disk)
-                self._append(raw+b'\n',disk[2])
-                _new(self._pins[3],row.row_sha256+'.json',raw)
-                after=self._disk(allow_unpublished=True)
-                _need(after[0]==disk[0]+(raw,) and after[1]==disk[1])
-                self._head(A.Head(sequence=row.sequence,sha256=row.row_sha256),after)
-                confirmed=self._disk()
-                _need(confirmed[0]==after[0] and confirmed[2:]==after[2:])
+                try:
+                    self._append(raw+b'\n',disk[2])
+                    _new(self._pins[3],row.row_sha256+'.json',raw)
+                    after=self._disk(allow_unpublished=True)
+                    _need(after[0]==disk[0]+(raw,) and after[1]==disk[1])
+                    self._head(A.Head(sequence=row.sequence,sha256=row.row_sha256),after)
+                    confirmed=self._disk()
+                    _need(confirmed[0]==after[0] and confirmed[2:]==after[2:])
+                # Bytes may already be durable: any later refusal (a changed or
+                # malformed store document too) is indeterminate, never an input error.
+                except C.PasskeyError: raise C.PasskeyError(_INDETERMINATE) from None
             return LedgerSnapshot(head=A.Head(sequence=row.sequence,sha256=row.row_sha256),
                 context_sha256=self._ledger.context_sha256,journal_bytes=confirmed[2],state=proposed)
         except C.PasskeyError: raise
@@ -408,7 +412,9 @@ Only this helper creates paths; normal constructors/readers do not call it.
     try:
         with ExitStack() as stack:
             pins=[stack.enter_context(S._BundlePin(p)) for p in (roots.primary,roots.backup,roots.head)]
-            _need(all(not pin.names(1) for pin in pins),'PASSKEY_BOOTSTRAP_REQUIRED')
+            # Same bound as _disk: a prepared/partial root (<=3 leaves) refuses as
+            # BOOTSTRAP_REQUIRED; names(1) raised on any second entry instead.
+            _need(all(not pin.names(4) for pin in pins),'PASSKEY_BOOTSTRAP_REQUIRED')
             for name,raw in (('operation.lock',b'0'),('writer.lock',b'0'),('journal.jsonl',b'')):
                 _new(pins[0],name,raw)
             for pin,name in ((pins[1],'versions'),(pins[2],ledger._head_dir.name)):

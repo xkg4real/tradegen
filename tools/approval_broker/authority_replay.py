@@ -175,7 +175,8 @@ def _notification(body,*,authority_id,request_id,application_id,kind,status,obse
 def _active(state,at,index):
     _need(state.grant is not None and state.registry_epoch>=1 and not state.disabled,'PASSKEY_GRANT_INVALID')
     body=A.grant_body(state.grant.body_bytes)
-    C.at_time(C.time_value(body['issued_at']),C.time_value(body['expires_at']),at)
+    # A grant lasts up to 366 days (grant_body); at_time's 300 s bound is for challenges only.
+    _need(C.time_value(body['issued_at'])<=C.instant(at)<C.time_value(body['expires_at']),'PASSKEY_EXPIRED')
     _need(state.owner_evidence is not None,'PASSKEY_OWNER_CHANGED')
     checkpoint=A.parse_owner_checkpoint(body['owner_checkpoint'])
     _owner(checkpoint,state,None,index)
@@ -274,7 +275,7 @@ def _transition_owned(state,event,*,installation,limits,_index=None):
         _need(state.owner_evidence is not None,'PASSKEY_OWNER_CHANGED')
         B.verify_grant_document(grant,signer_public_key_raw=state.owner_evidence.public_key_raw)
         checkpoint=A.parse_owner_checkpoint(g['owner_checkpoint']); _owner(checkpoint,state,installation,index_map)
-        C.at_time(C.time_value(g['issued_at']),C.time_value(g['expires_at']),at)
+        _need(C.time_value(g['issued_at'])<=C.instant(at)<C.time_value(g['expires_at']),'PASSKEY_EXPIRED')
         enrollment=C.parse_enrollment(_raw(body['enrollment_request']))
         _,pending=_pending(state,enrollment.digest,index_map)
         initial=A.parse_credential(_raw(body['initial_credential']))
