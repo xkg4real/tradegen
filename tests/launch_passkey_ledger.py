@@ -144,7 +144,7 @@ def bootstrap(e):
 def notification(e,*,request_id=None,application_id=None,kind,status,at=NOW):
     identity=dict(authority_id=e.installation.authority_id,request_id=request_id,
                   application_id=application_id,kind=kind)
-    return dict(schema=1,intent_id=A.record_digest('notification-id',A.canonical(identity)),
+    return dict(intent_id=A.record_digest('notification-id',A.canonical(identity)),
                 **identity,status=status,created_at=C.stamp(at))
 
 
@@ -264,8 +264,9 @@ def test_same_owner_checkpoint_is_noop_but_actual_signed_growth_is_retained():
         first=push(e,event); before=files(e.base)
         again=push(e,proposal(event.kind,document(event.payload_bytes),at=NOW+timedelta(seconds=1)))
         assert again==first and files(e.base)==before
+        grown=[['changed.py','c'*64]]
         raw,digest=S.entry_line(e.owner,4,e.evidence.head.sha256,'code_approved',
-            dict(sha256='b'*64,files=[['changed.py','c'*64]]),NOW.strftime('%Y-%m-%dT%H:%M:%SZ'))
+            dict(sha256=S.sha256_hex(S.canonical_json(grown)),files=grown),NOW.strftime('%Y-%m-%dT%H:%M:%SZ'))
         next_evidence=replace(e.evidence,log_bytes=e.evidence.log_bytes+raw,
             head=A.Head(sequence=4,sha256=digest),observed_at=NOW+timedelta(seconds=1),
             completed_at=NOW+timedelta(seconds=1))
@@ -349,6 +350,13 @@ def test_operation_lock_lifetime_cross_object_and_body_error_preservation():
 
 def test_actual_operation_lock_replacement_is_detected_before_nested_store_read():
     with fixture() as e:
+        if os.name=='nt':
+            # Windows: the held lock handle shares no delete access, so the OS refuses the swap itself.
+            with e.ledger.operation():
+                path=e.roots.primary/'operation.lock'
+                try: path.rename(path.with_suffix('.old'))
+                except PermissionError: return
+            raise AssertionError('held operation lock was replaced')
         def operation():
             with e.ledger.operation() as op:
                 path=e.roots.primary/'operation.lock'; path.rename(path.with_suffix('.old'))

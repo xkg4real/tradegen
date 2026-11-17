@@ -6,7 +6,6 @@ import hashlib
 import json
 from pathlib import Path
 import shutil
-import sys
 import tempfile
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -77,9 +76,13 @@ def test_target_environment_record_bytes_never_use_ambient_broker_metadata():
 
 
 def test_actual_target_d14_matches_existing_signer_in_its_own_real_environment():
-    with fixture() as e:
-        actual=Path(sys.prefix).resolve(strict=True)
-        assert R.target_deployment_code_hash(e.repo,actual)==S.code_hash(e.repo)
+    # The signer runs in the app environment (cryptography and PyYAML). This broker
+    # environment pins no PyYAML, so compare against the signer's own report there.
+    import os
+    from tests.passkey_authority_fixtures import REPO, packet_export
+    worker=packet_export('raw')
+    environment=Path(os.environ['PASSKEY_TEST_APP_ENV'])
+    assert R.target_deployment_code_hash(REPO,environment)==worker.report['signer_code_sha256']
 
 
 def test_actual_log_signatures_initial_root_snapshot_and_current_code_are_observed():
@@ -298,16 +301,28 @@ def test_actual_dependency_record_and_all_file_bytes_determine_artifact_commitme
 
 
 def test_shared_runtime_library_is_closed_and_missing_configured_file_refuses():
+    import os
+    from contextlib import ExitStack
     with tempfile.TemporaryDirectory() as temp:
-        root=Path(temp); library=root/'libpython3.13.so'
+        root=Path(temp)
         actual=R._shared_runtime_library()
+        if os.name=='nt':
+            # Windows binds base_prefix/pythonXY.dll. Patching the shared os.name to
+            # 'posix' would also send the signer's real file reads down POSIX paths.
+            library=root/actual.name
+            patchers=[patch.object(R.sys,'base_prefix',str(root))]
+        else:
+            library=root/'libpython3.13.so'
+            values={'Py_ENABLE_SHARED':1,'LIBDIR':str(root),'LDLIBRARY':library.name,'PYTHONFRAMEWORK':''}
+            patchers=[patch.object(R.os,'name','posix'),patch.object(R.sysconfig,'get_config_var',side_effect=values.get)]
         if actual is not None:
             shutil.copyfile(actual,library)
         else:
             # Static-host negative fixture; never claimed to be executable code.
             library.write_bytes(b'not a verified runtime')
-        values={'Py_ENABLE_SHARED':1,'LIBDIR':str(root),'LDLIBRARY':library.name,'PYTHONFRAMEWORK':''}
-        with patch.object(R.os,'name','posix'),patch.object(R.sysconfig,'get_config_var',side_effect=values.get):
+        with ExitStack() as stack:
+            for patcher in patchers:
+                stack.enter_context(patcher)
             pinned=R._shared_runtime_library()
             original=R._read(pinned)
             library.write_bytes(b'changed actual bytes')
