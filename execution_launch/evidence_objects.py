@@ -579,7 +579,8 @@ class EvidenceObjectStore:
                 _require(len(result) < budget.max_objects, "EVIDENCE_OBJECT_LIMIT_EXCEEDED")
                 _require(entry.name == "pending.blob" or re.fullmatch(r"[0-9a-f]{64}\.blob", entry.name) is not None,
                          "EVIDENCE_OBJECT_PATH_REFUSED")
-                info = entry.stat(follow_symlinks=False)
+                # DirEntry.stat() reports st_ino/st_dev/st_nlink as 0 on Windows.
+                info = os.lstat(entry.path)
                 _file_info(info, max(_HARD_CHUNK_BYTES, _HARD_MANIFEST_BYTES))
                 total += info.st_size
                 _require(total <= budget.max_bytes, "EVIDENCE_OBJECT_LIMIT_EXCEEDED")
