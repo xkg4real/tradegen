@@ -62,8 +62,20 @@ def fixture(*, provision=True, initialize=True, policy=None, storage_limits=None
 
 
 def files(root):
-    return {str(path.relative_to(root)): path.read_bytes()
+    return {str(path.relative_to(root)): content(path)
             for path in root.rglob("*") if path.is_file()}
+
+
+def content(path):
+    try:
+        return path.read_bytes()
+    except PermissionError:
+        if os.name != "nt" or path.name != "session.lock":
+            raise
+        # Windows msvcrt.locking: no other handle can read a held lock byte, so record the
+        # size, write time and file id, which still change on any write, truncation or swap.
+        info = path.stat()
+        return ("held", info.st_size, info.st_mtime_ns, info.st_ino)
 
 
 def refused(call, *codes):
@@ -716,9 +728,25 @@ def test_active_writer_refuses_root_or_lock_replacement_while_another_writer_hol
                 initial = first.snapshot()
                 event = F.event(initial.state)
                 if mode == "root_field":
-                    shutil.copytree(original_root, replacement)
+                    # Windows cannot read the held lock byte; the copy gets the byte provisioning writes.
+                    shutil.copytree(original_root, replacement,
+                                    ignore=shutil.ignore_patterns("session.lock") if os.name == "nt" else None)
+                    if os.name == "nt":
+                        (replacement / "session.lock").write_bytes(b"0")
                     env.store.root = replacement
                     second_store = env.reopen(root=replacement)
+                elif os.name == "nt":
+                    # Windows: the held lock handle shares no delete access, so the OS refuses either swap itself.
+                    before = files(env.home), files(env.head_root)
+                    try:
+                        (original_root / "session.lock" if mode == "lock_file" else original_root).rename(displaced)
+                    except PermissionError:
+                        pass
+                    else:
+                        raise AssertionError("held session lock was replaced")
+                    assert not displaced.exists() and (files(env.home), files(env.head_root)) == before
+                    assert first.snapshot() == initial
+                    continue
                 elif mode == "lock_file":
                     (original_root / "session.lock").rename(displaced)
                     (original_root / "session.lock").write_bytes(b"0")
@@ -790,6 +818,20 @@ def test_lock_replacement_after_object_staging_cannot_publish_a_transition_or_ad
 
         with env.store.session() as writer:
             head_before = env.store.head.read()
+            if os.name == "nt":
+                # Windows: the held lock handle shares no delete access, so the OS refuses the swap itself
+                # right after staging, and the commit stops before any append or head update.
+                with patch.object(E.EvidenceObjectStore, "stage", new=stage_then_replace):
+                    try:
+                        commit(writer, env.policy)
+                    except PermissionError:
+                        pass
+                    else:
+                        raise AssertionError("held session lock was replaced")
+                assert not old_lock.exists() and (env.root / "journal.jsonl").read_bytes() == b""
+                assert env.store.head.read() == head_before
+                assert list((env.root / "payload-objects" / "objects").glob("*.blob")), "staged evidence vanished"
+                return
             try:
                 with patch.object(E.EvidenceObjectStore, "stage", new=stage_then_replace):
                     refused(lambda: commit(writer, env.policy), "PROTECTIVE_STORE_LOCK_CHANGED")
