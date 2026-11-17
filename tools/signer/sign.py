@@ -2595,7 +2595,10 @@ def _bundle_identity(info, *, regular=False):
             or getattr(info, 'st_file_attributes', 0) & (0x400 | 0x1000 | 0x00040000 | 0x00400000)
             or (regular and (not stat.S_ISREG(info.st_mode) or info.st_nlink != 1))):
         raise ValueError('archive packet path identity refused')
-    return info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, (info.st_birthtime_ns if os.name == 'nt' else info.st_ctime_ns)
+    # NTFS reports a directory's size as 0 until its index is loaded, then its allocation (cache state, not
+    # content); entry changes still move its mtime, which stays bound with dev/ino/birthtime.
+    size = 0 if os.name == 'nt' and stat.S_ISDIR(info.st_mode) else info.st_size
+    return info.st_dev, info.st_ino, size, info.st_mtime_ns, (info.st_birthtime_ns if os.name == 'nt' else info.st_ctime_ns)
 
 
 def _bundle_directory(path):

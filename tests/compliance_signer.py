@@ -1681,6 +1681,22 @@ def test_archive_windows_pin_passes_caller_errors_through_and_still_refuses_a_ch
     assert type(_raises(changed,ValueError)) is signer._bw_WindowsPinError and fake.closed==[3,2,1]
 
 
+def test_archive_windows_directory_identity_ignores_cache_dependent_size_but_binds_mtime():
+    from types import SimpleNamespace
+    S_IFDIR,S_IFREG=signer.stat.S_IFDIR,signer.stat.S_IFREG
+    def info(size,*,mtime=5,mode=S_IFDIR|0o700):
+        return SimpleNamespace(st_dev=1,st_ino=2,st_nlink=1,st_mode=mode,st_size=size,st_mtime_ns=mtime,
+                               st_birthtime_ns=3,st_ctime_ns=4,st_file_attributes=16)
+    identity=signer._bundle_identity
+    with _patched(signer.os,'name','nt'):
+        # NTFS: a cold directory reports size 0, the same directory reports its index allocation once loaded.
+        assert identity(info(0))==identity(info(4096))
+        assert identity(info(0))!=identity(info(0,mtime=6))
+        assert identity(info(0,mode=S_IFREG|0o600),regular=True)!=identity(info(1,mode=S_IFREG|0o600),regular=True)
+    if os.name!='nt':
+        assert identity(info(0))!=identity(info(4096))
+
+
 def test_archive_posix_pin_closes_remaining_ancestors_after_one_close_failure():
     pin=signer._BundlePin(Path('/synthetic-packet'))
     pin.rows=[(Path('/synthetic'),101,(1,1)),(Path('/synthetic-packet'),102,(1,2))]
