@@ -1661,6 +1661,42 @@ def test_archive_windows_pin_copy_denies_write_delete_sharing_and_checks_native_
         assert fake.closed==[2,1]
 
 
+def test_archive_windows_pin_passes_caller_errors_through_and_still_refuses_a_changed_pin():
+    class FakeAPI:
+        def __init__(self):self.opened=[];self.closed=[];self.attributes={}
+        def open_directory(self,path):self.opened.append(path);return len(self.opened)
+        def information(self,handle):return signer._bw_DirectoryInformation(
+            attributes=self.attributes.get(handle,16),volume_serial=1,file_index=handle)
+        def final_path(self,handle):return '\\\\?\\'+self.opened[handle-1]
+        def close(self,handle):self.closed.append(handle)
+    class CallerError(ValueError):pass
+    fake=FakeAPI()
+    def caller():
+        with signer._bw_pin_windows_directory('C:\\review\\packet',api=fake):raise CallerError('caller')
+    assert type(_raises(caller,ValueError)) is CallerError and fake.closed==[3,2,1]
+    fake=FakeAPI()
+    def changed():
+        with signer._bw_pin_windows_directory('C:\\review\\packet',api=fake):
+            fake.attributes[3]=16|0x400;raise CallerError('caller')
+    assert type(_raises(changed,ValueError)) is signer._bw_WindowsPinError and fake.closed==[3,2,1]
+
+
+def test_archive_windows_directory_identity_ignores_cache_dependent_size_but_binds_mtime():
+    from types import SimpleNamespace
+    S_IFDIR,S_IFREG=signer.stat.S_IFDIR,signer.stat.S_IFREG
+    def info(size,*,mtime=5,mode=S_IFDIR|0o700):
+        return SimpleNamespace(st_dev=1,st_ino=2,st_nlink=1,st_mode=mode,st_size=size,st_mtime_ns=mtime,
+                               st_birthtime_ns=3,st_ctime_ns=4,st_file_attributes=16)
+    identity=signer._bundle_identity
+    with _patched(signer.os,'name','nt'):
+        # NTFS: a cold directory reports size 0, the same directory reports its index allocation once loaded.
+        assert identity(info(0))==identity(info(4096))
+        assert identity(info(0))!=identity(info(0,mtime=6))
+        assert identity(info(0,mode=S_IFREG|0o600),regular=True)!=identity(info(1,mode=S_IFREG|0o600),regular=True)
+    if os.name!='nt':
+        assert identity(info(0))!=identity(info(4096))
+
+
 def test_archive_posix_pin_closes_remaining_ancestors_after_one_close_failure():
     pin=signer._BundlePin(Path('/synthetic-packet'))
     pin.rows=[(Path('/synthetic'),101,(1,1)),(Path('/synthetic-packet'),102,(1,2))]

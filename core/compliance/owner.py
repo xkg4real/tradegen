@@ -397,7 +397,7 @@ def _research_anchor_info(info, *, directory=False):
             stat.S_ISREG(info.st_mode) and info.st_nlink == 1 and 0 < info.st_size <= 256)
             and not getattr(info, "st_file_attributes", 0) & refused_attributes):
         raise ValueError("research restriction anchor file refused")
-    return info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns
+    return info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, (info.st_birthtime_ns if os.name == 'nt' else info.st_ctime_ns)
 
 
 def _open_research_anchor(path: Path, flags: int, *, parent_identity=None):
