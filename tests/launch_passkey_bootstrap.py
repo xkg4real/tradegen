@@ -148,7 +148,7 @@ def copied_signer(e, *, key=None, confirmed=None):
     Only disposable-key unlock, typed input and the test clock are substituted.
     Owner/release/config/ledger/crypto/output are the actual production paths.
     """
-    from tools.signer import sign as original
+    from tools.approval_broker import owner_sign as original
     path=e.base/'independent-sign.py'
     shutil.copyfile(Path(original.__file__),path)
     name='_disposable_passkey_signer_'+hashlib.sha256(str(path).encode()).hexdigest()[:16]
