@@ -197,7 +197,8 @@ def test_late_actual_owner_work_refuses_before_request_effect_and_preserves_orig
                 e.clock_cell[0] += timedelta(seconds=31)
             return value
         with patch.object(O.OwnerReader,'observe',delayed):
-            F.refused(lambda:archive_request(e),'PASSKEY_CLOCK_INVALID')
+            # Grant eligibility (30 s owner age) runs before Engine._fresh in _begin, so it names the refusal.
+            F.refused(lambda:archive_request(e),'PASSKEY_OWNER_STALE')
         assert len(first) == 1 and not e.ledger.inspect().state.requests
         assert e.ledger.inspect().head == before.head
 
