@@ -13,6 +13,7 @@ from unittest.mock import patch
 from core.compliance import owner
 from execution_launch import deployment as D
 from tests import compliance_fixtures as F
+from tests.notrun import NotRun
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -212,6 +213,35 @@ def test_owner_command_sources_are_scanned_and_links_refuse_before_hashing():
                 patch.object(owner, "_repo_imports", side_effect=AssertionError("must not inspect source AST")), \
                 patch.object(owner, "code_files", side_effect=AssertionError("must not hash source")):
             refused(lambda: D.export_manifest(repo_root=root), "DEPLOYMENT_LINKED_SOURCE_REFUSED")
+
+
+def test_case_twins_refuse_before_hashing():
+    """A Windows Path compares lower-cased, so a scanned Kelvin twin (ris\\u212a.py by risk.py) or an import-only twin
+    (core/twin/Pkg.py by pkg.py, reached only through imports) must refuse instead of one of them going unscanned."""
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        package = root / "execution_launch"; package.mkdir()
+        (package / "importer.py").write_text("import core.twin.pkg\nimport core.twin.Pkg\n", encoding="utf-8")
+        twins = root / "core" / "twin"; twins.mkdir(parents=True)
+        for name in ("pkg.py", "Pkg.py"):   # two files where case is kept; one file under two spellings where it folds
+            (twins / name).write_text("VALUE=1\n", encoding="utf-8")
+        with patch.object(D, "_ROOT", root), \
+                patch.object(owner, "code_files", side_effect=AssertionError("must not hash source")):
+            refused(lambda: D.export_manifest(repo_root=root), "DEPLOYMENT_SOURCE_CASE_TWIN_REFUSED")
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        package = root / "execution_launch"; package.mkdir()
+        real, twin = package / "risk.py", package / "ris\u212a.py"
+        try:
+            real.write_text("VALUE=1\n", encoding="utf-8"); twin.write_text("VALUE=2\n", encoding="utf-8")
+            folded = os.path.samefile(real, twin)
+        except (OSError, UnicodeError):
+            folded = True
+        if folded:
+            raise NotRun("REFDATA: this filesystem folds U+212A KELVIN SIGN to k, so no Kelvin twin can exist")
+        with patch.object(D, "_ROOT", root), \
+                patch.object(owner, "code_files", side_effect=AssertionError("must not hash source")):
+            refused(lambda: D.export_manifest(repo_root=root), "DEPLOYMENT_SOURCE_CASE_TWIN_REFUSED")
 
 
 def test_cli_compares_bounded_explicit_files_and_redacts_paths_and_rejected_arguments():

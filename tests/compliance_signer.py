@@ -682,6 +682,29 @@ def test_unimported_owner_commands_and_their_dependencies_are_signed():
     assert "private_parser.py" not in {name for name, _ in third}
 
 
+def test_case_twins_refuse_the_code_closure():
+    """A Windows Path compares lower-cased, so a case twin (ris\\u212a.py by risk.py, \\u212ait/ by kit/) must refuse
+    the closure in owner.py and the signer instead of leaving one of the two files out of the signed hash."""
+    for n, twin in enumerate(("execution_control/ris\u212a.py", "execution_control/\u212ait/a.py")):
+        root = Path(os.environ["TRADEGEN_HOME"]) / f"case-twin-{n}"
+        try:
+            for relative in (twin.replace("\u212a", "k"), twin):
+                (root / relative).parent.mkdir(parents=True, exist_ok=True)
+                (root / relative).write_text("X = 1\n", encoding="utf-8")
+            folded = os.path.samefile(root / twin.replace("\u212a", "k"), root / twin)
+        except (OSError, UnicodeError):
+            folded = True
+        if folded:
+            raise NotRun("REFDATA: this filesystem folds U+212A KELVIN SIGN to k, so no case twin can exist")
+        for code_files in (owner.code_files, signer.code_files):
+            try:
+                code_files(root)
+            except ValueError as exc:
+                assert "differ only in letter case" in str(exc), exc
+            else:
+                raise AssertionError(f"{code_files.__module__}: a case twin was hashed")
+
+
 def test_code_files_match_owner():
     mine = signer.code_files(ROOT)
     theirs = [tuple(f) for f in owner.code_files(ROOT)]

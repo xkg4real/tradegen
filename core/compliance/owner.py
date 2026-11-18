@@ -977,8 +977,9 @@ def _module_file(root: Path, dotted: str) -> Path | None:
     return None
 
 
-def _repo_imports(root: Path, path: Path) -> set[Path]:
-    """The in-repo files `path` imports, relative imports resolved against its package."""
+def _repo_imports(root: Path, path: Path) -> list[Path]:
+    """The in-repo files `path` imports, relative imports resolved against its package. A list, not a set: a Windows
+    Path compares lower-cased, so a set keeps one of two files whose names differ only in case (code_files refuses)."""
     package = list(path.relative_to(root).parent.parts)
     names: set[str] = set()
     tree = ast.parse(path.read_bytes())
@@ -991,7 +992,7 @@ def _repo_imports(root: Path, path: Path) -> set[Path]:
         if module:
             names.add(module)
             names.update(f"{module}.{alias.name}" for alias in node.names)
-    return {f for name in names if (f := _module_file(root, name)) is not None}
+    return [f for name in names if (f := _module_file(root, name)) is not None]
 
 
 def code_files(repo_root: Path) -> list[tuple[str, str]]:
@@ -999,22 +1000,27 @@ def code_files(repo_root: Path) -> list[tuple[str, str]]:
     execution/*.py, recursive execution_control/, execution_orders/, execution_accounts/, execution_network/, execution_launch/ and tools/owner/ files, every in-repo file they import at any
     depth, every ancestor package __init__.py, and the RECORD
     files of the cryptography and PyYAML installs of the running interpreter as venv:<dist>-<version>.dist-info/RECORD
-    (absent when not installed)."""
+    (absent when not installed). Two closure paths that differ only in letter case (risk.py and ris\\u212a.py, Pkg/
+    and pkg/) refuse the closure."""
     root = Path(repo_root)
     todo = [p for base in (root / "core" / "compliance", root / "core" / "odds", root / "execution")
             for p in sorted(base.glob("*.py"))]
     todo.extend(p for base in (root / "execution_control", root / "execution_orders", root / "execution_accounts", root / "execution_network", root / "execution_launch", root / "tools" / "owner")
                 for p in sorted(base.rglob("*.py")))
-    seen: set[Path] = set()
+    seen: dict[str, Path] = {}          # casefolded str, not Path: a Windows Path compares lower-cased
     while todo:
         path = todo.pop()
-        if path in seen:
+        key = str(path).casefold()
+        if key in seen:
+            if str(seen[key]) != str(path):
+                raise ValueError(f"code closure: {ascii(seen[key].relative_to(root).as_posix())} and "
+                                 f"{ascii(path.relative_to(root).as_posix())} differ only in letter case; refused")
             continue
-        seen.add(path)
+        seen[key] = path
         todo.extend(_repo_imports(root, path))
         todo.extend(d / "__init__.py" for d in path.parents
                     if d != root and d.is_relative_to(root) and (d / "__init__.py").is_file())
-    out = {p.relative_to(root).as_posix(): model.sha256_hex(p.read_bytes()) for p in seen}
+    out = {p.relative_to(root).as_posix(): model.sha256_hex(p.read_bytes()) for p in seen.values()}
     for name in _RECORD_DISTS:
         try:
             dist = importlib.metadata.distribution(name)
