@@ -204,17 +204,19 @@ def _source_tree(repo_root):
         base = root / relative
         _require(all(not _linked(p) for p in (base, *base.parents)), "DEPLOYMENT_LINKED_SOURCE_REFUSED")
         todo.extend(_source_paths(base, recursive=recursive))
-    seen, size = set(), 0
+    seen, size = {}, 0                  # casefolded str, not Path: a Windows Path compares lower-cased
     while todo:
         target = todo.pop()
-        if target in seen:
+        key = str(target).casefold()
+        if key in seen:
+            _require(seen[key] == str(target), "DEPLOYMENT_SOURCE_CASE_TWIN_REFUSED")
             continue
         _require(target.is_relative_to(root) and not target.name.startswith(".env") and not target.is_symlink()
                  and all(not _linked(p) for p in target.parents),
                  "DEPLOYMENT_LINKED_SOURCE_REFUSED")
         info = target.lstat()
         _require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1, "DEPLOYMENT_LINKED_SOURCE_REFUSED")
-        seen.add(target); size += info.st_size
+        seen[key] = str(target); size += info.st_size
         _require(len(seen) <= 2048 and size <= 33554432, "DEPLOYMENT_SOURCE_SCAN_BOUND")
         todo.extend(owner._repo_imports(root, target))
         todo.extend(parent / "__init__.py" for parent in target.parents
