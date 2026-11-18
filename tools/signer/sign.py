@@ -2416,6 +2416,11 @@ def _bw__final_path(value):
     _bw__need(type(value) is str and value.startswith('\\\\?\\'))
     return _bw__lexical_path(value[4:])
 
+def _bw__at(final, path):
+    """The native final path names this reviewed lexical `path`. Every prefix is a fixed point of
+    _bw__lexical_path, so an exact '\\\\?\\'+path match is what the full comparison accepts, without re-lexing."""
+    return final == '\\\\?\\' + path or ntpath.normcase(_bw__final_path(final)) == ntpath.normcase(path)
+
 @dataclass(frozen=True, kw_only=True)
 class _bw_DirectoryInformation:
     attributes: int
@@ -2488,7 +2493,7 @@ class _bw_WindowsDirectoryPin:
         for path, handle, identity in self._rows:
             current = self._api.information(handle)
             _bw__need(type(current) is _bw_DirectoryInformation and current.identity == identity)
-            _bw__need(ntpath.normcase(_bw__final_path(self._api.final_path(handle))) == ntpath.normcase(path))
+            _bw__need(_bw__at(self._api.final_path(handle), path))
 
 @contextmanager
 def _bw__held_windows_directory(path, *, api=None):
@@ -2516,7 +2521,7 @@ def _bw__held_windows_directory(path, *, api=None):
             info = native.information(handle)
             _bw__need(type(info) is _bw_DirectoryInformation)
             identity = info.identity
-            _bw__need(ntpath.normcase(_bw__final_path(native.final_path(handle))) == ntpath.normcase(prefix))
+            _bw__need(_bw__at(native.final_path(handle), prefix))
             rows.append((prefix, handle, identity))
         pin = _bw_WindowsDirectoryPin(native, rows)
         pin.check()
@@ -2615,12 +2620,26 @@ def _bundle_directory(path):
 
 class _BundlePin:
     """Retained directory/ancestor handles for a complete packet operation."""
-    def __init__(self, path):
+    def __init__(self, path, parent=None):
         self.path = Path(path).absolute()
-        self.rows, self.native, self.descriptor = [], None, None
+        self.rows, self.native, self.descriptor, self.parent = [], None, None, parent
 
     def __enter__(self):
-        self.path, _ = _bundle_directory(self.path)
+        if self.parent is None:
+            self.path, _ = _bundle_directory(self.path)
+        else:
+            # A child of a held pin: that pin reviewed the whole ancestry once and still holds and re-checks it,
+            # so only the new component gets _bundle_directory's review here (its own native pin is full).
+            self.parent.check()
+            # Exact spelling: Windows Path equality folds case (str.lower()) across distinct NTFS names.
+            if (str(self.parent.path) != str(self.path.parent) or self.path.name in ('', '.', '..')
+                    or ':' in self.path.name):
+                raise ValueError('archive packet directory refused')
+            _checked(self.path)
+            info = os.lstat(self.path)
+            _bundle_identity(info)
+            if not stat.S_ISDIR(info.st_mode):
+                raise ValueError('archive packet directory refused')
         if os.name == 'nt':
             self.native = _bw_pin_windows_directory(str(self.path))
             self.native.__enter__()
@@ -2695,15 +2714,19 @@ class _BundlePin:
                 raise ValueError('archive directory handles did not close cleanly') from None
 
 
-def _bundle_read(path, maximum, *, hash_only=False, empty=False, parent_pin=None):
-    """One bounded original, pinned by opened identity; empty raw evidence is valid."""
-    target = _review_path(path)
+def _bundle_read(path, maximum, *, hash_only=False, empty=False, parent_pin=None, initial=None):
+    """One bounded original, pinned by opened identity; empty raw evidence is valid. `initial`: the stat a
+    walk just took through this same `parent_pin`, not repeated; the opened file must still match it."""
     if parent_pin is None:
+        target = _review_path(path)
         with _BundlePin(target.parent) as pinned:
             return _bundle_read(target, maximum, hash_only=hash_only, empty=empty, parent_pin=pinned)
-    if parent_pin.path != target.parent:
+    # The held pin reviewed the parent and every ancestor and re-checks them on each stat/open below; a link,
+    # reparse point or hard link as the file itself is refused by _bundle_identity(regular=True).
+    target = Path(path).absolute()
+    if str(parent_pin.path) != str(target.parent):
         raise ValueError('archive read directory does not match its pin')
-    initial = parent_pin.stat(target.name)
+    initial = parent_pin.stat(target.name) if initial is None else initial
     identity = _bundle_identity(initial, regular=True)
     if not (0 if empty else 1) <= initial.st_size <= maximum:
         raise ValueError('archive packet input size refused')

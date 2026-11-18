@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import ast
 import base64
+import contextlib
 import csv
 import hashlib
 import io
@@ -23,9 +24,9 @@ _MAX_TOTAL = 512 * 1024 * 1024
 _MAX_FILES = 8192
 
 
-def _read(path, maximum=_MAX_FILE):
+def _read(path, maximum=_MAX_FILE, *, pin=None, info=None):
     try:
-        return S._bundle_read(path,maximum,empty=True)
+        return S._bundle_read(path,maximum,empty=True,parent_pin=pin,initial=info)
     except (ValueError,OSError,TypeError,RuntimeError):
         raise C.PasskeyError('PASSKEY_RELEASE_READ_REFUSED') from None
 
@@ -39,27 +40,54 @@ def _directory(path):
         raise C.PasskeyError('PASSKEY_RELEASE_LOCATION_INVALID') from None
 
 
-def _walk(root, *, suffixes=None):
-    """Bounded exact inventory; no symlink or reparse traversal."""
+def _pinned(stack, directory, parent=None, code='PASSKEY_RELEASE_LOCATION_INVALID'):
+    """A directory pin held by `stack`; from a held `parent` only the new component is reviewed."""
+    try:
+        return stack.enter_context(S._BundlePin(directory,parent=parent))
+    except (ValueError,OSError,TypeError,RuntimeError):
+        raise C.PasskeyError(code) from None
+
+
+def _pins(stack, base):
+    """Pins held for one pass: one per directory, one under `base` entered from its held parent, so each
+    ancestry is reviewed once rather than per file. Never kept beyond the pass (`stack`). Keyed by the exact
+    spelling: Windows Path equality is str.lower(), which joins distinct NTFS folders ('broker' and 'bro'
+    U+212A 'er', or two folders of a case-sensitive directory), and a shared pin would read the wrong one."""
+    held = {}
+    def pin(directory):
+        key = str(directory)
+        if key not in held:
+            parent = pin(directory.parent) if key != str(base) and directory.is_relative_to(base) else None
+            held[key] = _pinned(stack,directory,parent,'PASSKEY_RELEASE_READ_REFUSED')
+        return held[key]
+    return pin
+
+
+def _walk(root, *, suffixes=None, skip=None, read=None):
+    """Bounded exact inventory; no symlink or reparse traversal. Each directory is pinned once, from its held
+    parent, and `read(pin,path,info)` sees every listed file under that same pin."""
     _directory(root)
-    result, pending = [], [root]
-    visited = 0
-    while pending:
-        directory = pending.pop()
-        with S._BundlePin(directory) as pin:
+    result, visited = [], 0
+    def visit(directory, parent):
+        nonlocal visited
+        with contextlib.ExitStack() as stack:
+            pin = _pinned(stack,directory,parent)
             for name in sorted(pin.names(_MAX_FILES)):
                 visited += 1
                 C.need(visited <= _MAX_FILES*4,'PASSKEY_RESOURCE_LIMIT')
                 item = directory/name
                 info = pin.stat(name)
                 if stat.S_ISDIR(info.st_mode):
-                    _directory(item)
-                    pending.append(item)
+                    if skip is None or not skip(item):
+                        visit(item,pin)
                 else:
                     S._bundle_identity(info,regular=True)
                     if suffixes is None or any(name.endswith(suffix) for suffix in suffixes):
                         result.append(item)
                         C.need(len(result) <= _MAX_FILES,'PASSKEY_RESOURCE_LIMIT')
+                        if read is not None:
+                            read(pin,item,info)
+    visit(root,None)
     return tuple(sorted(result))
 
 
@@ -104,11 +132,12 @@ def _distributions(site, *, required=None):
                     continue
                 C.need(separator and directory_name and directory_version,'PASSKEY_DEPLOYMENT_REFUSED')
             directory = site/name
-            _directory(directory)
             C.need(len(result)<256,'PASSKEY_RESOURCE_LIMIT')
-            size = (directory/'METADATA').lstat().st_size
-            C.need(0 <= size <= 2*1024*1024 and total+size <= 8*1024*1024,'PASSKEY_RESOURCE_LIMIT')
-            raw, identity = _read(directory/'METADATA',2*1024*1024)
+            with contextlib.ExitStack() as stack:
+                held = _pinned(stack,directory,pin)
+                size = held.stat('METADATA').st_size
+                C.need(0 <= size <= 2*1024*1024 and total+size <= 8*1024*1024,'PASSKEY_RESOURCE_LIMIT')
+                raw, identity = _read(directory/'METADATA',2*1024*1024,pin=held)
             total += len(raw)
             try:
                 lines = raw.decode('utf-8').splitlines()
@@ -137,48 +166,51 @@ def _target_files(repo,environment):
         if base.exists():
             todo.extend(_walk(base,suffixes=('.py',)))
     C.need(todo,'PASSKEY_DEPLOYMENT_REFUSED')
-    seen, snapshots = set(), {}
-    total = 0
-    while todo:
-        path = todo.pop()
-        if path in seen:
-            continue
-        C.need(path.is_relative_to(root) and len(seen)<_MAX_FILES,'PASSKEY_RESOURCE_LIMIT')
-        size=path.lstat().st_size
-        C.need(0 <= size <= _MAX_FILE and total+size <= _MAX_TOTAL,'PASSKEY_RESOURCE_LIMIT')
-        raw, identity = _read(path)
-        total += len(raw)
-        C.need(total <= _MAX_TOTAL,'PASSKEY_RESOURCE_LIMIT')
-        seen.add(path)
-        snapshots[path] = (raw,identity)
-        # Same reviewed AST semantics, using our bounded retained bytes only.
-        tree = ast.parse(raw)
-        package, names = list(path.relative_to(root).parent.parts), set()
-        for node in S._import_nodes(tree,S._guards(tree)):
-            if isinstance(node,ast.Import):
-                names.update(alias.name for alias in node.names)
-            else:
-                base = package[:len(package)-node.level+1] if node.level else []
-                module = '.'.join(base+([node.module] if node.module else []))
-                if module:
-                    names.add(module)
-                    names.update(f'{module}.{alias.name}' for alias in node.names)
-        todo.extend(p for name in names if (p:=S._module_file(root,name)) is not None)
-        todo.extend(d/'__init__.py' for d in path.parents if d != root and d.is_relative_to(root)
-                    and (d/'__init__.py').is_file())
-    rows = {p.relative_to(root).as_posix():hashlib.sha256(raw).hexdigest()
-            for p,(raw,_) in snapshots.items()}
-    site = _sites(env)
-    distributions = _distributions(site,required=S._RECORD_DISTS)
-    for name in S._RECORD_DISTS:
-        C.need(_normalized(name) in distributions,'PASSKEY_DEPLOYMENT_REFUSED')
-        directory,_,version,metadata,metadata_id = distributions[_normalized(name)]
-        record,identity = _read(directory/'RECORD',8*1024*1024)
-        snapshots[directory/'METADATA'] = (metadata,metadata_id)
-        snapshots[directory/'RECORD'] = (record,identity)
-        rows[f'venv:{name}-{version}.dist-info/RECORD'] = hashlib.sha256(record).hexdigest()
-    for path,expected in snapshots.items():
-        C.need(_read(path,max(_MAX_FILE,len(expected[0]))) == expected,'PASSKEY_DEPLOYMENT_CHANGED')
+    with contextlib.ExitStack() as stack:
+        pin = _pins(stack,root)  # every directory of the closure pinned once, from its held parent
+        seen, snapshots = set(), {}
+        total = 0
+        while todo:
+            path = todo.pop()
+            if path in seen:
+                continue
+            C.need(path.is_relative_to(root) and len(seen)<_MAX_FILES,'PASSKEY_RESOURCE_LIMIT')
+            size=path.lstat().st_size
+            C.need(0 <= size <= _MAX_FILE and total+size <= _MAX_TOTAL,'PASSKEY_RESOURCE_LIMIT')
+            raw, identity = _read(path,pin=pin(path.parent))
+            total += len(raw)
+            C.need(total <= _MAX_TOTAL,'PASSKEY_RESOURCE_LIMIT')
+            seen.add(path)
+            snapshots[path] = (raw,identity)
+            # Same reviewed AST semantics, using our bounded retained bytes only.
+            tree = ast.parse(raw)
+            package, names = list(path.relative_to(root).parent.parts), set()
+            for node in S._import_nodes(tree,S._guards(tree)):
+                if isinstance(node,ast.Import):
+                    names.update(alias.name for alias in node.names)
+                else:
+                    base = package[:len(package)-node.level+1] if node.level else []
+                    module = '.'.join(base+([node.module] if node.module else []))
+                    if module:
+                        names.add(module)
+                        names.update(f'{module}.{alias.name}' for alias in node.names)
+            todo.extend(p for name in names if (p:=S._module_file(root,name)) is not None)
+            todo.extend(d/'__init__.py' for d in path.parents if d != root and d.is_relative_to(root)
+                        and (d/'__init__.py').is_file())
+        rows = {p.relative_to(root).as_posix():hashlib.sha256(raw).hexdigest()
+                for p,(raw,_) in snapshots.items()}
+        site = _sites(env)
+        distributions = _distributions(site,required=S._RECORD_DISTS)
+        for name in S._RECORD_DISTS:
+            C.need(_normalized(name) in distributions,'PASSKEY_DEPLOYMENT_REFUSED')
+            directory,_,version,metadata,metadata_id = distributions[_normalized(name)]
+            record,identity = _read(directory/'RECORD',8*1024*1024,pin=pin(directory))
+            snapshots[directory/'METADATA'] = (metadata,metadata_id)
+            snapshots[directory/'RECORD'] = (record,identity)
+            rows[f'venv:{name}-{version}.dist-info/RECORD'] = hashlib.sha256(record).hexdigest()
+        for path,expected in snapshots.items():
+            C.need(_read(path,max(_MAX_FILE,len(expected[0])),pin=pin(path.parent)) == expected,
+                   'PASSKEY_DEPLOYMENT_CHANGED')
     C.need(_directory(repo) == (root,root_identity) and _directory(environment) == (env,env_identity),
            'PASSKEY_DEPLOYMENT_CHANGED')
     return tuple(sorted(rows.items()))
@@ -204,83 +236,92 @@ def _dependency_inventory(roots):
     for site in roots:
         _directory(site)
         C.need(site.is_relative_to(environment),'PASSKEY_RELEASE_LOCATION_INVALID')
-        for _,(directory,name,version,metadata,metadata_identity) in sorted(_distributions(site).items()):
-            size=(directory/'RECORD').lstat().st_size
-            C.need(0 <= size <= 8*1024*1024 and total+size <= _MAX_TOTAL,'PASSKEY_RESOURCE_LIMIT')
-            record,record_identity = _read(directory/'RECORD',8*1024*1024)
-            C.need(record.count(b'\n') <= _MAX_FILES,'PASSKEY_RESOURCE_LIMIT')
-            try:
-                entries = csv.reader(io.StringIO(record.decode('utf-8'),newline=''))
-                artifacts, claimed = [], set()
-                for row in entries:
-                    C.need(len(row)==3,'PASSKEY_RELEASE_INVALID')
-                    C.need(count<_MAX_FILES,'PASSKEY_RESOURCE_LIMIT')
-                    relative,expected_hash,expected_size = row
-                    C.need(0<len(relative)<=512 and '\\' not in relative and '\x00' not in relative
-                           and not PurePosixPath(relative).is_absolute(),'PASSKEY_RELEASE_INVALID')
-                    # Wheel RECORD may refer to its environment's bin/Scripts.
-                    # Resolve lexical '..' only, then every actual component is pinned.
-                    path = Path(os.path.abspath(site/relative))
-                    C.need(path.is_relative_to(environment) and path not in claimed,'PASSKEY_RELEASE_INVALID')
-                    size = path.lstat().st_size
-                    C.need(0 <= size <= _MAX_FILE and total+size <= _MAX_TOTAL,'PASSKEY_RESOURCE_LIMIT')
-                    raw,identity = _read(path)
-                    total += len(raw); count += 1
-                    C.need(total<=_MAX_TOTAL,'PASSKEY_RESOURCE_LIMIT')
-                    if expected_size:
-                        C.need(expected_size.isascii() and expected_size.isdigit() and len(expected_size)<=19
-                               and int(expected_size)==len(raw),'PASSKEY_RELEASE_CHANGED')
-                    if expected_hash:
-                        algorithm,encoded = expected_hash.split('=',1)
-                        C.need(algorithm in ('sha256','sha384','sha512'),'PASSKEY_RELEASE_INVALID')
-                        digest = hashlib.new(algorithm,raw).digest()
-                        C.need(base64.urlsafe_b64encode(digest).rstrip(b'=').decode('ascii') == encoded,
-                               'PASSKEY_RELEASE_CHANGED')
-                    else:
-                        C.need(path == directory/'RECORD' or path.suffix == '.pyc','PASSKEY_RELEASE_INVALID')
-                    claimed.add(path)
-                    snapshots[path] = (len(raw),hashlib.sha256(raw).hexdigest(),identity)
-                    artifacts.append({'name':relative,'byte_count':len(raw),'sha256':hashlib.sha256(raw).hexdigest()})
-                C.need(directory/'RECORD' in claimed and directory/'METADATA' in claimed,'PASSKEY_RELEASE_INVALID')
-            except C.PasskeyError:
-                raise
-            except (ValueError,UnicodeError,csv.Error):
-                raise C.PasskeyError('PASSKEY_RELEASE_INVALID') from None
-            C.need(not (claimed & all_claimed),'PASSKEY_RELEASE_INVALID')
-            all_claimed.update(claimed)
-            C.need(_read(directory/'RECORD',8*1024*1024)==(record,record_identity)
-                   and _read(directory/'METADATA',2*1024*1024)==(metadata,metadata_identity),
-                   'PASSKEY_RELEASE_CHANGED')
-            rows.append(A.DependencyDigest(distribution=name,version=version,
-                record_sha256=hashlib.sha256(record).hexdigest(),
-                artifact_sha256=A.record_digest('dependency-artifacts',C.encoded(sorted(artifacts,key=lambda r:r['name'])))))
-            C.need(len(rows)<=256,'PASSKEY_RESOURCE_LIMIT')
-    actual = {path for site in roots for path in _walk(site)}
+        distributions = sorted(_distributions(site).items())
+        # One pinned walk reads every installed file once (each directory's ancestry reviewed once, not per
+        # file); RECORD rows are checked against these reads and the final walk below reads them all again.
+        installed = {}
+        def first(pin,path,info):
+            nonlocal total
+            C.need(0 <= info.st_size <= _MAX_FILE and total+info.st_size <= _MAX_TOTAL,'PASSKEY_RESOURCE_LIMIT')
+            installed[path] = _read(path,pin=pin,info=info)
+            total += len(installed[path][0])
+            C.need(total<=_MAX_TOTAL,'PASSKEY_RESOURCE_LIMIT')
+        _walk(site,read=first)
+        for _,(directory,name,version,metadata,metadata_identity) in distributions:
+            with contextlib.ExitStack() as stack:
+                pin = _pins(stack,environment)
+                size=pin(directory).stat('RECORD').st_size
+                C.need(0 <= size <= 8*1024*1024 and total+size <= _MAX_TOTAL,'PASSKEY_RESOURCE_LIMIT')
+                record,record_identity = _read(directory/'RECORD',8*1024*1024,pin=pin(directory))
+                C.need(record.count(b'\n') <= _MAX_FILES,'PASSKEY_RESOURCE_LIMIT')
+                try:
+                    entries = csv.reader(io.StringIO(record.decode('utf-8'),newline=''))
+                    artifacts, claimed = [], set()
+                    for row in entries:
+                        C.need(len(row)==3,'PASSKEY_RELEASE_INVALID')
+                        C.need(count<_MAX_FILES,'PASSKEY_RESOURCE_LIMIT')
+                        relative,expected_hash,expected_size = row
+                        C.need(0<len(relative)<=512 and '\\' not in relative and '\x00' not in relative
+                               and not PurePosixPath(relative).is_absolute(),'PASSKEY_RELEASE_INVALID')
+                        # Wheel RECORD may refer to its environment's bin/Scripts.
+                        # Resolve lexical '..' only, then every actual component is pinned.
+                        path = Path(os.path.abspath(site/relative))
+                        C.need(path.is_relative_to(environment) and path not in claimed,'PASSKEY_RELEASE_INVALID')
+                        if path in installed:
+                            raw,identity = installed.pop(path)
+                        else:
+                            size = path.lstat().st_size
+                            C.need(0 <= size <= _MAX_FILE and total+size <= _MAX_TOTAL,'PASSKEY_RESOURCE_LIMIT')
+                            raw,identity = _read(path,pin=pin(path.parent))
+                            total += len(raw)
+                        count += 1
+                        C.need(total<=_MAX_TOTAL,'PASSKEY_RESOURCE_LIMIT')
+                        if expected_size:
+                            C.need(expected_size.isascii() and expected_size.isdigit() and len(expected_size)<=19
+                                   and int(expected_size)==len(raw),'PASSKEY_RELEASE_CHANGED')
+                        if expected_hash:
+                            algorithm,encoded = expected_hash.split('=',1)
+                            C.need(algorithm in ('sha256','sha384','sha512'),'PASSKEY_RELEASE_INVALID')
+                            digest = hashlib.new(algorithm,raw).digest()
+                            C.need(base64.urlsafe_b64encode(digest).rstrip(b'=').decode('ascii') == encoded,
+                                   'PASSKEY_RELEASE_CHANGED')
+                        else:
+                            C.need(path == directory/'RECORD' or path.suffix == '.pyc','PASSKEY_RELEASE_INVALID')
+                        claimed.add(path)
+                        digest = hashlib.sha256(raw).hexdigest()
+                        snapshots[path] = (len(raw),digest,identity)
+                        artifacts.append({'name':relative,'byte_count':len(raw),'sha256':digest})
+                    C.need(directory/'RECORD' in claimed and directory/'METADATA' in claimed,'PASSKEY_RELEASE_INVALID')
+                except C.PasskeyError:
+                    raise
+                except (ValueError,UnicodeError,csv.Error):
+                    raise C.PasskeyError('PASSKEY_RELEASE_INVALID') from None
+                C.need(not (claimed & all_claimed),'PASSKEY_RELEASE_INVALID')
+                all_claimed.update(claimed)
+                C.need(_read(directory/'RECORD',8*1024*1024,pin=pin(directory))==(record,record_identity)
+                       and _read(directory/'METADATA',2*1024*1024,pin=pin(directory))==(metadata,metadata_identity),
+                       'PASSKEY_RELEASE_CHANGED')
+                rows.append(A.DependencyDigest(distribution=name,version=version,
+                    record_sha256=hashlib.sha256(record).hexdigest(),
+                    artifact_sha256=A.record_digest('dependency-artifacts',C.encoded(sorted(artifacts,key=lambda r:r['name'])))))
+                C.need(len(rows)<=256,'PASSKEY_RESOURCE_LIMIT')
+    # Second pass: one pinned walk lists every installed file and re-reads it under that same pin.
+    again = {}
+    def last(pin,path,info):
+        again[path] = S._bundle_read(path,_MAX_FILE,hash_only=True,empty=True,parent_pin=pin,initial=info)
+    actual = {path for site in roots for path in _walk(site,read=last)}
     C.need(actual == {p for p in all_claimed if any(p.is_relative_to(site) for site in roots)},
            'PASSKEY_RELEASE_INVENTORY_CHANGED')
     for path,(length,digest,identity) in snapshots.items():
-        actual,actual_identity = S._bundle_read(path,_MAX_FILE,hash_only=True,empty=True)
+        actual,actual_identity = (again[path] if path in again
+                                  else S._bundle_read(path,_MAX_FILE,hash_only=True,empty=True))
         C.need(actual==(length,digest) and actual_identity==identity,'PASSKEY_RELEASE_CHANGED')
     return tuple(sorted(rows,key=lambda row:row.distribution))
 
 
-def _stdlib_files(standard,dependency_roots):
-    files,pending,visited = [],[standard],0
-    while pending:
-        current=pending.pop()
-        with S._BundlePin(current) as pin:
-            for name in sorted(pin.names(_MAX_FILES)):
-                visited += 1
-                C.need(visited<=_MAX_FILES*4,'PASSKEY_RESOURCE_LIMIT')
-                path=current/name
-                if stat.S_ISDIR(pin.stat(name).st_mode):
-                    if path in dependency_roots or name in ('site-packages','dist-packages'):
-                        continue
-                    _directory(path); pending.append(path)
-                else:
-                    C.need(len(files)<_MAX_FILES,'PASSKEY_RESOURCE_LIMIT')
-                    files.append(path)
-    return tuple(sorted(files))
+def _stdlib_files(standard,dependency_roots,read=None):
+    return _walk(standard,read=read,skip=lambda path:path in dependency_roots
+                 or path.name in ('site-packages','dist-packages'))
 
 
 def _shared_runtime_library():
@@ -323,20 +364,24 @@ def _release_inventory(directory, *, role, dependency_roots):
     """
     C.need(role in ('BROKER','RP'),'PASSKEY_RELEASE_INVALID')
     root,root_identity = _directory(directory)
-    package_files = _walk(root)
-    rows, snapshots, total = [], {}, 0
-    def add(name,path):
+    rows, snapshots, total, rechecked = [], {}, 0, set()
+    def add(name,path,pin=None,info=None):
         nonlocal total
-        size=path.lstat().st_size
+        size=(path.lstat() if info is None else info).st_size
         C.need(0 <= size <= _MAX_FILE and total+size <= _MAX_TOTAL and len(rows)<_MAX_FILES,
                'PASSKEY_RESOURCE_LIMIT')
-        raw,identity = _read(path)
+        raw,identity = _read(path,pin=pin,info=info)
         total += len(raw)
         C.need(total <= _MAX_TOTAL and len(rows)<_MAX_FILES,'PASSKEY_RESOURCE_LIMIT')
         snapshots[path] = (raw,identity)
         rows.append(A.FileDigest(name=name,byte_count=len(raw),sha256=hashlib.sha256(raw).hexdigest()))
-    for path in package_files:
-        add(('package/' if role=='BROKER' else '')+path.relative_to(root).as_posix(),path)
+    def again(pin,path,info):
+        # Final pass under the listing walk's own pins; an added or removed file fails that listing's compare.
+        if path in snapshots:
+            C.need(_read(path,pin=pin,info=info)==snapshots[path],'PASSKEY_RELEASE_CHANGED')
+            rechecked.add(path)
+    package_files = _walk(root,read=lambda pin,path,info:add(
+        ('package/' if role=='BROKER' else '')+path.relative_to(root).as_posix(),path,pin,info))
     if role == 'BROKER':
         installed = Path(__file__).resolve(strict=True).parents[2]
         required = set(_walk(installed/'tools'/'approval_broker'))
@@ -344,10 +389,12 @@ def _release_inventory(directory, *, role, dependency_roots):
         for parent in (installed/'tools',installed/'tools'/'signer'):
             if (parent/'__init__.py').exists():
                 required.add(parent/'__init__.py')
-        for original in required:
-            target = root/original.relative_to(installed)
-            C.need(target in snapshots,'PASSKEY_RELEASE_INCOMPLETE')
-            C.need(_read(original)[0] == snapshots[target][0],'PASSKEY_RELEASE_CHANGED')
+        with contextlib.ExitStack() as stack:
+            pin = _pins(stack,installed)
+            for original in required:
+                target = root/original.relative_to(installed)
+                C.need(target in snapshots,'PASSKEY_RELEASE_INCOMPLETE')
+                C.need(_read(original,pin=pin(original.parent))[0] == snapshots[target][0],'PASSKEY_RELEASE_CHANGED')
         executable = Path(sys.executable).resolve(strict=True)
         add('runtime/python',executable)
         shared_library = _shared_runtime_library()
@@ -355,19 +402,20 @@ def _release_inventory(directory, *, role, dependency_roots):
             add('runtime/libpython',shared_library)
         standard = Path(sysconfig.get_path('stdlib')).resolve(strict=True)
         _directory(standard)
-        standard_files = _stdlib_files(standard,dependency_roots)
-        for path in standard_files:
-            add('runtime/stdlib/'+path.relative_to(standard).as_posix(),path)
+        standard_files = _stdlib_files(standard,dependency_roots,read=lambda pin,path,info:add(
+            'runtime/stdlib/'+path.relative_to(standard).as_posix(),path,pin,info))
         dependencies = _dependency_inventory(dependency_roots)
         C.need(_shared_runtime_library()==shared_library,'PASSKEY_RELEASE_CHANGED')
-        C.need(_stdlib_files(standard,dependency_roots)==standard_files,'PASSKEY_RELEASE_INVENTORY_CHANGED')
+        C.need(_stdlib_files(standard,dependency_roots,read=again)==standard_files,
+               'PASSKEY_RELEASE_INVENTORY_CHANGED')
     else:
         C.need(dependency_roots == (),'PASSKEY_RELEASE_LOCATION_INVALID')
         dependencies = ()
-    C.need(_walk(root)==package_files and _directory(directory)==(root,root_identity),
+    C.need(_walk(root,read=again)==package_files and _directory(directory)==(root,root_identity),
            'PASSKEY_RELEASE_CHANGED')
     for path,expected in snapshots.items():
-        C.need(_read(path)==expected,'PASSKEY_RELEASE_CHANGED')
+        if path not in rechecked:
+            C.need(_read(path)==expected,'PASSKEY_RELEASE_CHANGED')
     return A.ReleaseManifest(role=role,python_version=sys.version.split()[0],
         files=tuple(sorted(rows,key=lambda row:row.name)),dependencies=dependencies)
 
