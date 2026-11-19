@@ -152,7 +152,8 @@ def _implementation(candidate, result, variant, composition, document, authority
     binding = ImplementationBinding(program_digest=variant.strategy_code_sha256,
         protocol_digest=evidence_digest(candidate.protocol), evidence_digest=evidence_digest(result),
         profile_contract_digest=profile_contract_digest(variant),
-        rule_terms_digest=rule_terms_digest(variant.instrument_rules))
+        rule_terms_digest=rule_terms_digest(variant.instrument_rules,
+                                            universe_rule_sha256=variant.universe_rule_sha256))
     return verify_implementation_review(binding, composition.driver, document, authority=authority, now=now,
         approved_history_provider=composition.history.provider,
         approved_history_verifier=composition.history.verifier)
@@ -208,7 +209,8 @@ def _authenticate_sealed_study_selection(store, bundle_digest, *, archive_attest
                           strategy_code_sha256=program_digest(candidate.program, artifact))
         _need(candidate.protocol.universe_rule_sha256 is None
               and profile_contract_digest(variant) == candidate.protocol.profile_contract_digest
-              and rule_terms_digest(variant.instrument_rules) == candidate.protocol.rule_terms_digest,
+              and rule_terms_digest(variant.instrument_rules, universe_rule_sha256=variant.universe_rule_sha256)
+              == candidate.protocol.rule_terms_digest,
               'SEALED_SELECTION_CURRENT_CONTRACT_MISMATCH')
         variants[identifier] = variant
     _audit_files(manifest, snapshot.files, bodies, audits)
