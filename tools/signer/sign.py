@@ -2510,7 +2510,7 @@ def _bw__held_windows_directory(path, *, api=None):
         raise
     except (OSError, AttributeError, TypeError, RuntimeError):
         raise _bw_WindowsPinError(_bw__UNSUPPORTED) from None
-    rows, handles, pin = ([], [], None)
+    rows, handles, pin, body = ([], [], None, None)
     drive, root, tail = ntpath.splitroot(path)
     prefixes = [drive + root]
     for part in tail.split('\\') if tail else ():
@@ -2528,11 +2528,16 @@ def _bw__held_windows_directory(path, *, api=None):
         pin.check()
         try:
             yield pin
+        except BaseException as exc:
+            body = exc
+            raise
         finally:
             pin.check()
     except _bw_WindowsPinError:
         raise
-    except (OSError, ValueError, TypeError, AttributeError, RuntimeError, OverflowError):
+    except (OSError, ValueError, TypeError, AttributeError, RuntimeError, OverflowError) as exc:
+        if exc is body:
+            raise  # The caller's own error, as on POSIX; a changed pin still refuses above.
         raise _bw_WindowsPinError(_bw__CODE) from None
     finally:
         if pin is not None:
@@ -2596,7 +2601,10 @@ def _bundle_identity(info, *, regular=False):
             or getattr(info, 'st_file_attributes', 0) & (0x400 | 0x1000 | 0x00040000 | 0x00400000)
             or (regular and (not stat.S_ISREG(info.st_mode) or info.st_nlink != 1))):
         raise ValueError('archive packet path identity refused')
-    return info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns
+    # NTFS reports a directory's size as 0 until its index is loaded, then its allocation (cache state, not
+    # content); entry changes still move its mtime, which stays bound with dev/ino/birthtime.
+    size = 0 if os.name == 'nt' and stat.S_ISDIR(info.st_mode) else info.st_size
+    return info.st_dev, info.st_ino, size, info.st_mtime_ns, (info.st_birthtime_ns if os.name == 'nt' else info.st_ctime_ns)
 
 
 def _bundle_directory(path):

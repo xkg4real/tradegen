@@ -80,7 +80,7 @@ def _file(info, maximum):
 
 
 def _stamp(info):
-    return _identity(info), info.st_size, info.st_mtime_ns, info.st_ctime_ns
+    return _identity(info), info.st_size, info.st_mtime_ns, (info.st_birthtime_ns if os.name == 'nt' else info.st_ctime_ns)
 
 
 def _decode(raw, maximum):

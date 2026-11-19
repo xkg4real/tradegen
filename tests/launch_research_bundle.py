@@ -534,3 +534,29 @@ def test_public_sealed_evaluation_projects_the_same_single_actual_snapshot_witho
         # actual Store input. A later call must re-read and re-evaluate itself.
         refused(lambda:R._evaluate_sealed_study_snapshot(displayed, finished.bundle_digest), 'BUNDLE_STORE_REQUIRED')
         refused(lambda:R._evaluate_sealed_study_snapshot(seen[0], finished.bundle_digest), 'BUNDLE_STORE_REQUIRED')
+
+
+def test_file_stamps_agree_between_path_and_handle_stat_after_a_delayed_write():
+    # Windows CPython 3.12+: lstat() reports creation time as st_ctime, fstat() the change time.
+    import time
+    from core.compliance import owner as OWN
+    from execution_launch import bundle_review as BR, research_incident_store as INC
+    from tools.signer import sign as SIGN
+    stamps = (R._identity, BR._file_identity, INC._stamp, OWN._research_anchor_info,
+              lambda info: SIGN._bundle_identity(info, regular=True))
+    with tempfile.TemporaryDirectory() as temp:
+        path = Path(temp) / "stamp.bin"
+        descriptor = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY | getattr(os, "O_BINARY", 0))
+        try:
+            time.sleep(0.05)
+            os.write(descriptor, b"x" * 32)
+            os.fsync(descriptor)
+        finally:
+            os.close(descriptor)
+        descriptor = os.open(path, os.O_RDONLY | getattr(os, "O_BINARY", 0))
+        try:
+            handle = os.fstat(descriptor)
+        finally:
+            os.close(descriptor)
+        for stamp in stamps:
+            assert stamp(os.lstat(path)) == stamp(handle)
