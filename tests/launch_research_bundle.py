@@ -330,14 +330,13 @@ def test_single_handle_reader_rejects_a_b_a_swap_before_read():
     with fixture() as e:
         path = e.work/'swap.md'; path.write_bytes(b'AAAA')
         replacement = e.work/'replacement.md'; replacement.write_bytes(b'BBBB')
-        held = e.work/'held.md'
         actual_open = os.open
         swapped = []
         def open_(name, *args, **kwargs):
             if str(name) in ('swap.md', str(path)) and not swapped:
-                path.rename(held); replacement.rename(path)
-                descriptor = actual_open(name, *args, **kwargs)
-                path.rename(replacement); held.rename(path)
+                # The path names A before and after while the handle names B. Opening B by its own
+                # name builds that A-B-A state without renaming a file Windows holds open.
+                descriptor = actual_open(replacement, *args, **kwargs)
                 swapped.append(True)
                 return descriptor
             return actual_open(name, *args, **kwargs)
@@ -439,7 +438,9 @@ def test_required_flag_casefold_collision_and_unsafe_names_are_archived_before_z
             if kind == 'required':
                 e.inputs = replace(e.inputs, files=(replace(e.inputs.files[0], required=False),)+e.inputs.files[1:])
             else:
-                path = e.work/('REPORT.md' if kind == 'collision' else 'CON.md')
+                # The Windows reader refuses DOS-device names such as CON.md before opening, so their
+                # bytes never arrive there; DEL is format-unsafe yet openable on Windows.
+                path = e.work/('REPORT.md' if kind == 'collision' else 'CON.md' if os.name != 'nt' else 'report\x7f.md')
                 path.write_bytes(b'display-only original is retained even with invalid metadata')
                 e.inputs = replace(e.inputs, files=e.inputs.files+(R.BundleInputFile(role='report', path=path),))
             before = dict(E._EVALUATED)

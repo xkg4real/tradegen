@@ -117,7 +117,8 @@ def run(entries) -> list[dict]:
             traceback.print_exc()
         row["seconds"] = round(time.perf_counter() - started, 4)
         results.append(row)
-        print(f"{row['status']} {name} {row['detail'] or row.get('reason', '')}".rstrip())
+        # flush: a redirected stdout is block-buffered, so a slow test run otherwise looks stalled for hours
+        print(f"{row['status']} {name} {row['detail'] or row.get('reason', '')}".rstrip(), flush=True)
     return results
 
 

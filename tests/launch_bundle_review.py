@@ -201,15 +201,14 @@ def test_payload_open_a_b_a_replacement_is_rejected_by_the_original_handle_ident
         actual_open = os.open
         injected = []
         original = e.packet/'payloads'/'p-bad.bin'
-        saved, substitute = e.base/'saved.bin', e.base/'substitute.bin'
-        substitute.write_bytes(b'B'*len(e.payloads['bad']))
+        substitute = e.base/'substitute.bin'
+        substitute.write_bytes(e.payloads['bad'])  # Same bytes: only the handle identity can tell B from A.
         def open_(name, flags, *args, **kwargs):
             if str(name) in ('p-bad.bin', str(original)) and not flags & os.O_CREAT and not injected:
-                original.rename(saved); substitute.rename(original)
-                descriptor = actual_open(name, flags, *args, **kwargs)
-                original.rename(substitute); saved.rename(original)
+                # A-B-A end state: the path still names A, the returned handle is B. Opening B by its
+                # own name builds it without renaming an open file, which Windows refuses.
                 injected.append(True)
-                return descriptor
+                return actual_open(substitute, flags, *args, **kwargs)
             return actual_open(name, flags, *args, **kwargs)
         with patch.object(R.os, 'open', side_effect=open_):
             refused(lambda:export(e))
@@ -218,6 +217,20 @@ def test_payload_open_a_b_a_replacement_is_rejected_by_the_original_handle_ident
 
 
 def test_output_root_replacement_cannot_redirect_an_active_export():
+    if os.name == 'nt':
+        # The root pin alone does not stop a rename; only the payloads pin (a handle inside the root) does.
+        # Before payloads is pinned Windows allows the swap, so the product itself must refuse it there.
+        with raw_fixture() as e:
+            actual, saved = R._PacketOutput._make_payload_directory, e.base/'moved-original'
+            def early(packet):
+                packet.root.rename(saved); packet.root.mkdir()
+                return actual(packet)
+            with patch.object(R._PacketOutput, '_make_payload_directory', early):
+                try: export(e)
+                # A Windows pin that fails its own exit check may report HANDLE_CLOSE_REFUSED over the first refusal.
+                except R.BundleReviewError as exc: assert 'BUNDLE_REVIEW_DIRECTORY_CHANGED' in (str(exc), str(exc.__context__)), exc
+                else: raise AssertionError('unsafe or unauthorized packet accepted')
+            assert list(e.packet.iterdir()) == [] and not (saved/'request.json').exists()
     with raw_fixture() as e:
         actual = R._write_new
         saved = e.base/'moved-original'
@@ -228,6 +241,13 @@ def test_output_root_replacement_cannot_redirect_an_active_export():
                 packet.root.rename(saved); packet.root.mkdir()
             return actual(packet, name, raw, payload=payload)
         with patch.object(R, '_write_new', side_effect=swap):
+            if os.name == 'nt':
+                # Now the payloads pin is open inside the root: Windows itself refuses the swap and nothing is written.
+                try: export(e)
+                except PermissionError as exc: assert exc.winerror == 5 and Path(exc.filename2) == saved, exc
+                else: raise AssertionError('unsafe or unauthorized packet accepted')
+                assert not saved.exists() and [p.name for p in e.packet.iterdir()] == ['payloads'] and tree(e.packet) == {}
+                return
             refused(lambda:export(e), 'BUNDLE_REVIEW_DIRECTORY_CHANGED')
         assert list(e.packet.iterdir()) == [] and not (saved/'request.json').exists()
 
@@ -252,7 +272,8 @@ def test_independent_packet_reader_rejects_all_extra_missing_changed_linked_and_
             if kind == 'extra-top':
                 (e.packet/'raw-manifest.json').write_bytes(b'not part of the agreed packet')
             elif kind == 'extra-payload':
-                (e.packet/'payloads'/'P-BAD.bin').write_bytes(e.payloads['bad'])
+                # NTFS folds case, so P-BAD.bin would just rewrite p-bad.bin; Windows needs a distinct extra name.
+                (e.packet/'payloads'/('P-BAD.bin' if os.name != 'nt' else 'p-copy.bin')).write_bytes(e.payloads['bad'])
             elif kind == 'missing':
                 target.unlink()
             elif kind == 'bytes':

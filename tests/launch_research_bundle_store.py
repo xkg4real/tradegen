@@ -316,18 +316,24 @@ def test_roots_names_links_and_runtime_configuration_are_rejected_before_publica
 def test_session_lock_or_root_replacement_during_stage_is_not_committed():
     for change in ('lock','root'):
         with fixture() as e:
-            m,raw,p=raw_archive(e.store); real=E.EvidenceObjectStore.stage; changed=[False]
+            m,raw,p=raw_archive(e.store); real=E.EvidenceObjectStore.stage; changed=[False]; held=[]
             def swap(self,*args,**kw):
                 result=real(self,*args,**kw)
                 if not changed[0]:
                     changed[0]=True
-                    if change=='lock':
-                        lock=e.roots.sealed_root/'session.lock'; lock.rename(e.base/'old-lock'); lock.write_bytes(b'0')
-                    else:
-                        old=e.base/'old-root'; e.roots.sealed_root.rename(old); shutil.copytree(old,e.roots.sealed_root)
+                    try:
+                        if change=='lock':
+                            lock=e.roots.sealed_root/'session.lock'; lock.rename(e.base/'old-lock'); lock.write_bytes(b'0')
+                        else:
+                            old=e.base/'old-root'; e.roots.sealed_root.rename(old); shutil.copytree(old,e.roots.sealed_root)
+                    except PermissionError: held.append(change); raise
                 return result
             with patch.object(E.EvidenceObjectStore,'stage',swap):
-                refused(lambda:e.store.archive_raw(raw,p),'BUNDLE_STORE_STORAGE_CHANGED','BUNDLE_STORE_ROOT_CHANGED')
+                if os.name=='nt':
+                    # Windows: the held session lock shares no delete access, so the OS refuses to move it or its root.
+                    refused(lambda:e.store.archive_raw(raw,p),'BUNDLE_STORE_IO_REFUSED')
+                    assert held==[change] and not any(e.base.glob('old-*')),held
+                else: refused(lambda:e.store.archive_raw(raw,p),'BUNDLE_STORE_STORAGE_CHANGED','BUNDLE_STORE_ROOT_CHANGED')
             assert (e.roots.sealed_root/'catalog.jsonl').read_bytes()==b''
 
 

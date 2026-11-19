@@ -288,12 +288,15 @@ def test_reused_batch_id_cannot_send_again_but_new_explicit_batch_can_collect():
 
 def test_competing_same_batch_cannot_send_while_the_actual_winner_is_in_flight():
     from threading import Event, Thread
+    # Bounds only, not expected durations: each wait returns as soon as its event fires. On Windows the
+    # store's per-file path checks make one archived GET take seconds, and a whole batch minutes.
+    bound = 600
     started, release = Event(), Event()
     outcomes, failures = [], []
     def response(call, default, _state):
         if call.index == 1:
             started.set()
-            assert release.wait(10), 'fixture response release timed out'
+            assert release.wait(bound), 'fixture response release timed out'
         return default
     with fixture(response=response) as e:
         def winner():
@@ -304,13 +307,13 @@ def test_competing_same_batch_cannot_send_while_the_actual_winner_is_in_flight()
         worker = Thread(target=winner)
         worker.start()
         try:
-            assert started.wait(10), failures
+            assert started.wait(bound), failures
             assert len(e.calls) == 1
             refused(lambda: collect(e, batch_id='concurrent-batch'), 'READ_BATCH_ID_REUSED')
             assert len(e.calls) == 1
         finally:
             release.set()
-            worker.join(20)
+            worker.join(bound)
         assert not worker.is_alive() and not failures and len(outcomes) == 1
         assert outcomes[0].status == 'COLLECTED' and archive(e, outcomes[0]).status == 'COLLECTED'
 
