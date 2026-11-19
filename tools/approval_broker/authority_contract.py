@@ -29,6 +29,9 @@ DIGEST_KINDS = frozenset(('config', 'release', 'credential', 'grant-document', '
     'proposal', 'evidence', 'request', 'display', 'application-id', 'notification-id', 'authority-event',
     'ledger-context', 'ledger-genesis', 'packet', 'operator-installation', 'dependency-artifacts'))
 _REASON = re.compile(r'[A-Z][A-Z0-9_]{0,95}')
+# ARCHIVE_API 8.3: an authenticated request whose target/current conditions changed.
+REJECTION_REASONS = frozenset(('PASSKEY_TARGET_CHANGED', 'PASSKEY_OWNER_CHANGED', 'PASSKEY_GRANT_INVALID',
+    'PASSKEY_CLOCK_INVALID', 'PASSKEY_EXPIRED'))
 
 
 def _text(value, maximum=512, minimum=1):
@@ -740,10 +743,14 @@ def _payload(kind, raw):
     elif kind=='AUTHORITY_DISABLED':
         C.keys(b,('disable','notification')); parsed('disable',parse_disable); parsed('notification',parse_notification)
     elif kind=='REQUEST_CLOSED':
-        C.keys(b,('request_sha256','state','reason','evidence_sha256','notification'))
+        # A REJECTED close also keeps its authenticated evidence so replay re-verifies it.
+        rejected=type(b) is dict and b.get('state')=='REJECTED'
+        C.keys(b,('request_sha256','state','reason','evidence_sha256','notification')+(('evidence',) if rejected else ()))
         C.hashed(b['request_sha256']); _reason(b['reason'])
         C.need(type(b['state']) is str and b['state'] in ('EXPIRED','REJECTED','INVALIDATED'))
         if b['evidence_sha256'] is not None: C.hashed(b['evidence_sha256'])
+        if rejected:
+            C.need(b['reason'] in REJECTION_REASONS and b['evidence_sha256']==parsed('evidence',parse_evidence).digest)
         parsed('notification',parse_notification)
     elif kind=='OWNER_CHECKPOINT_ADVANCED':
         C.keys(b,('evidence',)); parse_owner_evidence(b['evidence'])

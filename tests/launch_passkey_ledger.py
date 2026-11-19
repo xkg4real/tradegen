@@ -237,6 +237,33 @@ def test_real_bad_signature_does_not_consume_request_or_write_any_bytes():
         assert files(e.base)==before and e.ledger.inspect().state.requests[0].state=='PENDING'
 
 
+def test_rejected_close_replays_only_live_authenticated_evidence_and_advances_counter():
+    with fixture() as e:
+        bootstrap(e); request=revoke_request(e); applied=revoke_event(e,request)
+        def closed(event,*,at=NOW,reason='PASSKEY_TARGET_CHANGED',evidence=True):
+            body=document(event.payload_bytes)['evidence']
+            payload=dict(request_sha256=request.request_sha256,state='REJECTED',reason=reason,
+                evidence_sha256=A.parse_evidence(A.canonical(body)).digest,notification=notification(e,
+                request_id=request.request_id,kind='CREDENTIAL_RESULT',status='REJECTED',at=at))
+            return proposal('REQUEST_CLOSED',payload|(dict(evidence=body) if evidence else {}),at=at)
+        before=files(e.base)
+        refused(lambda:push(e,closed(revoke_event(e,request,signature=b'\0'*64))),'PASSKEY_SIGNATURE_INVALID')
+        refused(lambda:push(e,closed(applied,at=request.challenge_expires_at)),'PASSKEY_EXPIRED')
+        refused(lambda:push(e,closed(applied,evidence=False)),'PASSKEY_FORMAT_INVALID')
+        refused(lambda:push(e,closed(applied,reason='PASSKEY_RESOURCE_LIMIT')),'PASSKEY_FORMAT_INVALID')
+        assert files(e.base)==before and e.ledger.inspect().state.requests[0].state=='PENDING'
+        result=push(e,closed(applied))
+        rejected=result.state.requests[0]
+        assert rejected.state=='REJECTED' and rejected.evidence_sha256==document(
+            result.state.events[-1].payload_bytes)['evidence_sha256']
+        assert result.state.credentials[0].last_counter==2 and result.state.credentials[0].state=='ACTIVE'
+        assert L.AuthorityLedger(**e.args).inspect()==result
+        before=files(e.base)
+        refused(lambda:push(e,applied),'PASSKEY_REQUEST_REUSED')
+        refused(lambda:push(e,closed(applied,at=NOW+timedelta(seconds=1))),'PASSKEY_REQUEST_REUSED')
+        assert files(e.base)==before
+
+
 def test_received_in_time_but_committed_after_challenge_expiry_is_refused():
     with fixture() as e:
         bootstrap(e); request=revoke_request(e)

@@ -248,11 +248,16 @@ class Engine:
                and body['rp_release_sha256'] == self.rp_release.digest, 'PASSKEY_GRANT_INVALID')
         return require_grant_eligibility(grant, observation, at=self._time())
 
-    def _begin(self, op, *, grant=True, allow_disabled=False):
+    def _begin(self, op, *, grant=True, allow_disabled=False, admit=True):
         self._configuration()
         snapshot = op.load()
         self._time(snapshot.state.last_trusted_at)
         snapshot, observation = self._owner(op, snapshot)
+        if admit:
+            self._admit(snapshot, observation, grant=grant, allow_disabled=allow_disabled)
+        return snapshot, observation
+
+    def _admit(self, snapshot, observation, *, grant=True, allow_disabled=False):
         if grant:
             self._eligible(snapshot, observation, allow_disabled=allow_disabled)
         else:
@@ -260,7 +265,6 @@ class Engine:
             C.need(observation.deployment_problem is None, 'PASSKEY_OWNER_CHANGED')
         self._releases()
         self._fresh(observation.evidence.observed_at, observation.completed_at)
-        return snapshot, observation
 
     def _fresh(self, first, completed, expires=()):
         now = self._time()
@@ -350,13 +354,13 @@ class Engine:
     def submit_registration(self, enrollment_id, document):
         C.hashed(enrollment_id)
         response = C.parse_registration(document)
-        received = self._time()
         with AuthorityLedger.operation(self.ledger) as op:
             snapshot, observation = self._begin(op, grant=False)
             pending = self._pending(snapshot.state, enrollment_id)
             if pending.registration is not None:
                 C.need(C.registration_bytes(pending.registration) == document, 'PASSKEY_REQUEST_REUSED')
                 return pending.proof_request
+            received = self._time()
             verified = V.verify_registration(pending.enrollment, response, now=received)
             now = self._time()
             proof = C.ProofRequest(authority_id=self.config.authority_id, request_id=secrets.token_hex(32),
@@ -426,6 +430,14 @@ class Engine:
         C.hashed(proposal_id)
         grant = A.parse_grant(document)
         with AuthorityLedger.operation(self.ledger) as op:
+            self._configuration()
+            initial = op.load()
+            if initial.state.grant is not None and initial.state.grant.digest == grant.digest:
+                # Response-loss retry of this exact install: the historical result, not current use.
+                values = [p for p in initial.state.enrollments if p.proposal_sha256 == proposal_id]
+                C.need(len(values) == 1 and values[0].initial_credential.digest ==
+                       _body(grant.body_bytes)['initial_credential_sha256'], 'PASSKEY_TARGET_CHANGED')
+                return self._historical(initial.state, 'AUTHORITY_INSTALLED')[1]
             snapshot, observation = self._begin(op, grant=False)
             values = [p for p in snapshot.state.enrollments if p.proposal_sha256 == proposal_id]
             C.need(len(values) == 1, 'PASSKEY_TARGET_CHANGED')
@@ -449,7 +461,11 @@ class Engine:
                 config_sha256=self.config.digest, initial_credential=_body(A.credential_bytes(credential)),
                 enrollment_request=proposal.enrollment.document(), registration=proposal.registration.document(),
                 proof_request=proposal.proof_request.document(), proof=_body(A.evidence_bytes(proposal.proof))))
-            final, _, _ = self._final(op, observation.evidence.observed_at)
+            try:
+                final, _, _ = self._final(op, observation.evidence.observed_at)
+            except Exception:
+                # The install row is durable (e110f55): a later refusal is indeterminate, never an input error.
+                raise C.PasskeyError('PASSKEY_STORE_INDETERMINATE') from None
             return OperationResult(status='APPLIED', request_id=None, application_id=None,
                                    head=final.head, reason='PASSKEY_APPLIED')
 
@@ -475,6 +491,7 @@ class Engine:
         C.instant(approval_expires_at)
         with AuthorityLedger.operation(self.ledger) as op:
             snapshot, observation = self._begin(op)
+            self._expire(op, snapshot)
             packet = self._packet(packet_directory)
             target = _body(archive_target(packet))
             snapshot, checkpoint, now = self._final(op, observation.evidence.observed_at,
@@ -496,6 +513,7 @@ class Engine:
         C.need(reason in ('OWNER_WITHDRAWN','DEVICE_LOST','CREDENTIAL_SUSPECTED'), 'PASSKEY_SCOPE_UNSUPPORTED')
         with AuthorityLedger.operation(self.ledger) as op:
             snapshot, observation = self._begin(op)
+            self._expire(op, snapshot)
             credential = self._credential(snapshot.state, credential_sha256)
             C.need(credential.state == 'ACTIVE', 'PASSKEY_REVOKED')
             snapshot, _, now = self._final(op, observation.evidence.observed_at)
@@ -519,6 +537,50 @@ class Engine:
         values = [r for r in state.requests if r.request.request_id == request_id]
         C.need(len(values) == 1, 'PASSKEY_TARGET_CHANGED')
         return values[0]
+
+    @staticmethod
+    def _expired(request, now):
+        return now >= request.challenge_expires_at or (
+            request.approval_expires_at is not None and now >= request.approval_expires_at)
+
+    def _close(self, op, snapshot, request, *, reason='PASSKEY_EXPIRED', evidence=None):
+        """REJECTED with authenticated evidence while live; otherwise objectively EXPIRED."""
+        now = self._time()
+        state = 'EXPIRED' if evidence is None or self._expired(request, now) else 'REJECTED'
+        if state == 'EXPIRED':
+            reason, evidence = 'PASSKEY_EXPIRED', None
+        kind = 'APPLICATION_RESULT' if request.kind == 'ARCHIVE_CONFIRM' else 'CREDENTIAL_RESULT'
+        note = _notification(self.config.authority_id, kind, request_id=request.request_id, status=state, at=now)
+        payload = dict(request_sha256=request.request_sha256, state=state, reason=reason,
+            evidence_sha256=None if evidence is None else evidence.digest, notification=_body(A.notification_bytes(note)))
+        if evidence is not None:
+            payload['evidence'] = _body(A.evidence_bytes(evidence))
+        snapshot = self._commit(op, snapshot, 'REQUEST_CLOSED', payload)
+        return snapshot, OperationResult(status=state, request_id=request.request_id, application_id=None,
+                                         head=snapshot.head, reason=reason)
+
+    def _expire(self, op, snapshot):
+        # Lapsed PENDING requests still count toward pending128 until a row closes them.
+        for stored in snapshot.state.requests:
+            if stored.state == 'PENDING' and self._expired(stored.request, self._time()):
+                snapshot, _ = self._close(op, snapshot, stored.request)
+        return snapshot
+
+    @staticmethod
+    def _closed(state, stored):
+        if stored.state == 'INVALIDATED':
+            return 'PASSKEY_REVOKED' if state.disabled else 'PASSKEY_REGISTRY_CHANGED'
+        reasons = [body['reason'] for body in (_body(e.payload_bytes) for e in state.events if e.kind == 'REQUEST_CLOSED')
+                   if body['request_sha256'] == stored.request.request_sha256]
+        C.need(len(reasons) == 1, 'PASSKEY_STORE_INDETERMINATE')
+        return reasons[0]
+
+    @staticmethod
+    def _historical(state, kind):
+        events = [e for e in state.events if e.kind == kind]
+        C.need(len(events) == 1, 'PASSKEY_STORE_INDETERMINATE')
+        return events[0], OperationResult(status='APPLIED', request_id=None, application_id=None,
+            head=A.Head(sequence=events[0].sequence, sha256=events[0].row_sha256), reason='PASSKEY_APPLIED')
 
     @staticmethod
     def _retry(state, request, response):
@@ -545,20 +607,18 @@ class Engine:
             if self._retry(initial.state, stored, response):
                 return OperationResult(status='EXACT_RETRY', request_id=response.request_id,
                     application_id=stored.application_id, head=initial.head, reason='PASSKEY_EXACT_RETRY')
-            snapshot, observation = self._begin(op)
+            if stored.state != 'PENDING':
+                return OperationResult(status=stored.state, request_id=response.request_id, application_id=None,
+                                       head=initial.head, reason=self._closed(initial.state, stored))
+            # The verified owner head is retained first; eligibility follows the assertion check.
+            snapshot, observation = self._begin(op, admit=False)
             stored = self._stored_request(snapshot.state, response.request_id)
             C.need(stored.state == 'PENDING', 'PASSKEY_REGISTRY_CHANGED')
             request = stored.request
             body = _body(request.raw)
-            now = self._time()
-            if (now >= request.challenge_expires_at or
-                    (request.approval_expires_at is not None and now >= request.approval_expires_at)):
-                kind = 'APPLICATION_RESULT' if request.kind == 'ARCHIVE_CONFIRM' else 'CREDENTIAL_RESULT'
-                note = _notification(self.config.authority_id, kind, request_id=request.request_id,
-                                     status='EXPIRED', at=now)
-                snapshot = self._commit(op, snapshot, 'REQUEST_CLOSED', dict(
-                    request_sha256=request.request_sha256, state='EXPIRED', reason='PASSKEY_EXPIRED',
-                    evidence_sha256=None, notification=_body(A.notification_bytes(note))))
+            if self._expired(request, self._time()):
+                self._admit(snapshot, observation)
+                snapshot, _ = self._close(op, snapshot, request)
                 final, _, _ = self._final(op, observation.evidence.observed_at)
                 return OperationResult(status='EXPIRED', request_id=request.request_id, application_id=None,
                                        head=final.head, reason='PASSKEY_EXPIRED')
@@ -567,9 +627,6 @@ class Engine:
             credential = self._credential(snapshot.state, hashlib.sha256(response.credential_id).hexdigest())
             C.need(credential.state == 'ACTIVE', 'PASSKEY_REVOKED')
             C.need(body['kind'] in ('ARCHIVE_CONFIRM','REVOKE_CREDENTIAL'), 'PASSKEY_SCOPE_UNSUPPORTED')
-            packet = self._request_packet(request) if body['kind'] == 'ARCHIVE_CONFIRM' else None
-            if body['kind'] == 'REVOKE_CREDENTIAL':
-                C.need(body['target']['credential_sha256'] == credential.credential_sha256, 'PASSKEY_TARGET_CHANGED')
             received = self._time()
             context = C.AssertionContext(purpose=request.kind, request_id=request.request_id,
                 request_sha256=request.request_sha256, rp=credential.material().rp, challenge=request.challenge,
@@ -577,8 +634,20 @@ class Engine:
                 requested_at=C.time_value(body['requested_at']), expires_at=request.challenge_expires_at)
             V.verify_assertion(context, response, now=received)
             evidence = A.WebAuthnEvidence(request_sha256=request.request_sha256, assertion=response, received_at=received)
-            snapshot, checkpoint, now = self._final(op, observation.evidence.observed_at,
-                expires=(request.challenge_expires_at,)+((request.approval_expires_at,) if packet else ()), packet=packet)
+            try:
+                # Authenticated from here: a changed target/current condition closes the request (8.3).
+                self._admit(snapshot, observation)
+                packet = self._request_packet(request) if body['kind'] == 'ARCHIVE_CONFIRM' else None
+                if body['kind'] == 'REVOKE_CREDENTIAL':
+                    C.need(body['target']['credential_sha256'] == credential.credential_sha256, 'PASSKEY_TARGET_CHANGED')
+                snapshot, checkpoint, now = self._final(op, observation.evidence.observed_at,
+                    expires=(request.challenge_expires_at,)+((request.approval_expires_at,) if packet else ()), packet=packet)
+            except C.PasskeyError as error:
+                from .cli import _public_error
+                reason = _public_error(error)
+                if reason not in A.REJECTION_REASONS:
+                    raise
+                return self._close(op, op.load(), request, reason=reason, evidence=evidence)[1]
             application_id = None
             if packet is not None:
                 target, archive = body['target'], body['target']['archive_request']
@@ -617,7 +686,12 @@ class Engine:
         with AuthorityLedger.operation(self.ledger) as op:
             self._configuration()
             snapshot = op.load()
-            C.need(snapshot.state.grant is not None and not snapshot.state.disabled, 'PASSKEY_BOOTSTRAP_REQUIRED')
+            C.need(snapshot.state.grant is not None, 'PASSKEY_BOOTSTRAP_REQUIRED')
+            if snapshot.state.disabled:
+                # Only the exact durable disable is a response-loss retry; anything else is refused.
+                event, result = self._historical(snapshot.state, 'AUTHORITY_DISABLED')
+                C.need(A.canonical(_body(event.payload_bytes)['disable']) == A.disable_bytes(disable), 'PASSKEY_REVOKED')
+                return result
             C.need(body['authority_id'] == self.config.authority_id
                    and body['grant_sha256'] == snapshot.state.grant.digest
                    and A.parse_head(body['expected_head']) == snapshot.head, 'PASSKEY_GRANT_INVALID')
@@ -627,9 +701,13 @@ class Engine:
             note = _notification(self.config.authority_id, 'CREDENTIAL_RESULT', status='APPLIED', at=now)
             snapshot = self._commit(op,snapshot,'AUTHORITY_DISABLED',dict(disable=_body(A.disable_bytes(disable)),
                 notification=_body(A.notification_bytes(note))))
-            checked = op.load()
-            C.need(checked.head == snapshot.head and checked.state.disabled, 'PASSKEY_STORE_INDETERMINATE')
-            self._fresh(now, now, (C.time_value(body['expires_at']),))
+            try:
+                checked = op.load()
+                C.need(checked.head == snapshot.head and checked.state.disabled, 'PASSKEY_STORE_INDETERMINATE')
+                self._fresh(now, now, (C.time_value(body['expires_at']),))
+            except Exception:
+                # The disable row is durable (e110f55): a later refusal is indeterminate, never an input error.
+                raise C.PasskeyError('PASSKEY_STORE_INDETERMINATE') from None
             return OperationResult(status='APPLIED',request_id=None,application_id=None,head=checked.head,reason='PASSKEY_APPLIED')
 
     def read_current(self, application_id):

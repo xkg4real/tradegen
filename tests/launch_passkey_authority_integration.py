@@ -202,8 +202,8 @@ def test_self_revoke_advances_epoch_invalidates_pending_work_and_keeps_historica
         head = e.engine.inspect().head
         assert e.restart().submit_assertion(document).status == 'EXACT_RETRY'
         assert e.restart().submit_assertion(revoke_document).status == 'EXACT_RETRY'
-        F.refused(lambda:e.engine.submit_assertion(C.assertion_bytes(e.issue_assertion(pending, counter=4))),
-                  'PASSKEY_REGISTRY_CHANGED', 'PASSKEY_REVOKED')
+        stale = e.engine.submit_assertion(C.assertion_bytes(e.issue_assertion(pending, counter=4)))
+        assert (stale.status, stale.reason, stale.application_id) == ('INVALIDATED', 'PASSKEY_REGISTRY_CHANGED', None)
         assert e.engine.inspect().head == head and e.engine.inspect().application_count == 1
 
 
@@ -247,23 +247,28 @@ def test_authentic_restrictive_owner_head_is_retained_before_refusal_and_cannot_
         assert e.engine.ledger.inspect().state.owner_evidence.head == restrictive
 
 
-def test_actual_packet_payload_change_and_external_location_are_refused_without_consumption():
+def test_actual_packet_payload_change_and_external_location_are_refused_and_never_applied():
     with F.fixture() as e:
         outside = e.base/'outside-packet'
         shutil.copytree(e.packet, outside)
+        before = e.engine.inspect().head
         F.refused(lambda:e.engine.open_archive_request(outside,
                   approval_expires_at=e.clock()+timedelta(minutes=10)), 'PASSKEY_TARGET_CHANGED')
+        assert e.engine.inspect().head == before
         request = open_request(e)
         payload = e.packet/'payloads'/'p-bad.bin'
         original = payload.read_bytes()
-        before = e.engine.inspect().head
         payload.write_bytes(b'{changed payload')
-        F.refused(lambda:e.engine.submit_assertion(C.assertion_bytes(e.issue_assertion(request))))
-        assert e.engine.inspect().head == before and e.engine.inspect().application_count == 0
-        assert e.engine.inspect().pending_request_count == 1
+        # Authenticated on a changed target: closed with a fixed rejection (ARCHIVE_API 8.3).
+        rejected = e.engine.submit_assertion(C.assertion_bytes(e.issue_assertion(request)))
+        assert (rejected.status, rejected.reason, rejected.application_id) == ('REJECTED', 'PASSKEY_TARGET_CHANGED', None)
+        assert e.engine.inspect().head == rejected.head and e.engine.inspect().application_count == 0
+        assert e.engine.inspect().pending_request_count == 0
         payload.write_bytes(original)
         assert P.read_packet(e.packet).packet_sha256 == e.packet_snapshot.packet_sha256
-        assert e.engine.submit_assertion(C.assertion_bytes(e.issue_assertion(request))).status == 'APPLIED'
+        again = e.engine.submit_assertion(C.assertion_bytes(e.issue_assertion(request, counter=3)))
+        assert (again.status, again.reason, again.application_id) == ('REJECTED', 'PASSKEY_TARGET_CHANGED', None)
+        assert again.head == e.engine.inspect().head == rejected.head and e.engine.inspect().application_count == 0
 
 
 def test_actual_release_byte_change_refuses_current_observation_but_retains_historical_application():

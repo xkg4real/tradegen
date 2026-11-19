@@ -5,7 +5,7 @@ imports the app. All signatures and ledger/replay checks remain genuine. RP
 release bytes are fixture commitments, not an operational HTTPS/IPC channel.
 """
 from dataclasses import replace
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 import hashlib
 from pathlib import Path
 from unittest.mock import patch
@@ -97,7 +97,11 @@ def test_recovery_disable_requires_exact_head_and_genuine_recovery_signature():
         archive_request(e)  # real successor invalidates the independently selected exact head
         F.refused(lambda:e.engine.install_disable(A.disable_bytes(signed)), 'PASSKEY_GRANT_INVALID')
         actual = F.disable_document(e)
-        assert e.engine.install_disable(A.disable_bytes(actual)).status == 'APPLIED'
+        applied = e.engine.install_disable(A.disable_bytes(actual))
+        assert applied.status == 'APPLIED'
+        # Only the exact durable disable is a response-loss retry; another disable is refused as revoked.
+        assert e.restart().install_disable(A.disable_bytes(actual)) == applied
+        F.refused(lambda:e.engine.install_disable(A.disable_bytes(F.disable_document(e))),'PASSKEY_REVOKED')
         assert e.engine.read_current(result.application_id).status == 'INVALIDATED'
         F.refused(lambda:archive_request(e),'PASSKEY_REVOKED')
 
@@ -145,6 +149,10 @@ def test_objective_expiry_closes_request_without_fabricating_an_application():
         state = e.ledger.inspect().state
         assert not state.applications
         assert next(r for r in state.requests if r.request.request_id==request.request_id).state == 'EXPIRED'
+        head = e.ledger.inspect().head
+        again = e.restart().submit_assertion(C.assertion_bytes(assertion))
+        assert (again.status, again.reason, again.application_id) == ('EXPIRED', 'PASSKEY_EXPIRED', None)
+        assert e.ledger.inspect().head == head
 
 
 def test_actual_packet_modification_is_rejected_before_apply_and_on_current_read():
@@ -153,11 +161,20 @@ def test_actual_packet_modification_is_rejected_before_apply_and_on_current_read
         payload = next((e.packet/'payloads').iterdir())
         original = payload.read_bytes()
         payload.write_bytes(original+b'x')
-        before = e.ledger.inspect()
-        F.refused(lambda:e.engine.submit_assertion(C.assertion_bytes(e.issue_assertion(request))))
-        assert e.ledger.inspect().head == before.head and not before.state.applications
+        document = C.assertion_bytes(e.issue_assertion(request))
+        # Authenticated, but the target changed: a fixed REJECTED close, never a later apply (8.3).
+        rejected = e.engine.submit_assertion(document)
+        assert (rejected.status, rejected.reason, rejected.application_id) == ('REJECTED', 'PASSKEY_TARGET_CHANGED', None)
+        F.engine_only(rejected)
         payload.write_bytes(original)
-        _,_,result = apply(e,request)
+        state = e.ledger.inspect().state
+        closed = next(r for r in state.requests if r.request.request_id==request.request_id)
+        assert closed.state == 'REJECTED' and closed.evidence_sha256 is not None and not state.applications
+        assert state.events[-1].kind == 'REQUEST_CLOSED' and state.credentials[0].last_counter == 2
+        again = e.restart().submit_assertion(document)
+        assert (again.status, again.reason) == ('REJECTED', 'PASSKEY_TARGET_CHANGED')
+        assert e.ledger.inspect().head == rejected.head and not e.ledger.inspect().state.applications
+        _,_,result = apply(e,counter=3)
         payload.write_bytes(original+b'x')
         F.refused(lambda:e.engine.read_current(result.application_id))
         assert len(e.ledger.inspect().state.applications) == 1
@@ -298,6 +315,117 @@ def test_verified_future_code_change_crossed_during_final_configuration_never_re
             F.refused(lambda:e.engine.read_current(result.application_id),'PASSKEY_OWNER_CHANGED')
         assert len(seen)==2 and calls
         assert e.ledger.inspect().state.owner_evidence.head.sequence == 2
+
+
+def _late_after(e, kind, delay):
+    """Advance the actual fixture clock only once the named row is durable."""
+    original = L._Operation.commit
+    def commit(operation, event, *, expected_head):
+        result = original(operation, event, expected_head=expected_head)
+        if event.kind == kind:
+            e.clock_cell[0] += delay
+        return result
+    return patch.object(L._Operation, 'commit', commit)
+
+
+def test_late_check_after_durable_disable_is_indeterminate_and_exact_retry_is_historical():
+    with F.fixture() as e:
+        document = A.disable_bytes(F.disable_document(e))
+        with _late_after(e, 'AUTHORITY_DISABLED', timedelta(seconds=301)):
+            F.refused(lambda:e.engine.install_disable(document), 'PASSKEY_STORE_INDETERMINATE')
+        state = e.ledger.inspect()
+        assert state.state.disabled and state.state.events[-1].kind == 'AUTHORITY_DISABLED'
+        retried = e.restart().install_disable(document)
+        assert (retried.status, retried.reason, retried.head) == ('APPLIED', 'PASSKEY_APPLIED', state.head)
+        assert e.ledger.inspect().head == state.head
+
+
+def test_late_check_after_durable_grant_is_indeterminate_and_exact_retry_is_historical():
+    with F.fixture(installed=False) as e:
+        F.bootstrap(e, install=False)
+        document = A.grant_bytes(e.grant)
+        with _late_after(e, 'AUTHORITY_INSTALLED', timedelta(seconds=31)):
+            F.refused(lambda:e.engine.install_grant(document, e.proposal.digest), 'PASSKEY_STORE_INDETERMINATE')
+        state = e.ledger.inspect()
+        installed = next(v for v in state.state.events if v.kind == 'AUTHORITY_INSTALLED')
+        assert state.state.grant == e.grant
+        retried = e.restart().install_grant(document, e.proposal.digest)
+        assert (retried.status, retried.reason) == ('APPLIED', 'PASSKEY_APPLIED')
+        assert retried.head == A.Head(sequence=installed.sequence, sha256=installed.row_sha256)
+        F.refused(lambda:e.engine.install_grant(document, 'f'*64), 'PASSKEY_TARGET_CHANGED')
+        assert e.ledger.inspect().head == state.head
+
+
+def test_lapsed_pending_requests_are_closed_before_a_new_request_meets_the_pending_cap():
+    with F.fixture() as e:
+        at = e.clock()
+        with L.AuthorityLedger.operation(e.ledger) as op:
+            snapshot = op.load()
+            for _ in range(128):
+                request = E._request(e.config, snapshot.state.grant, snapshot.state.registry_epoch, 'REVOKE_CREDENTIAL',
+                    dict(credential_sha256=e.credential.credential_sha256, reason='OWNER_WITHDRAWN'), at)
+                note = E._notification(e.config.authority_id, 'REQUEST_READY', request_id=request.request_id,
+                                       status='PENDING', at=at)
+                snapshot = op.commit(A.ProposedEvent(kind='REQUEST_OPENED', observed_at=at, payload_bytes=A.canonical(
+                    dict(request=E._body(request.raw), notification=E._body(A.notification_bytes(note))))),
+                    expected_head=snapshot.head)
+        assert e.engine.inspect().pending_request_count == 128
+        e.clock_cell[0] = request.challenge_expires_at
+        opened = e.engine.open_revoke_request(e.credential.credential_sha256, reason='OWNER_WITHDRAWN')
+        state = e.ledger.inspect().state
+        assert [r.state for r in state.requests] == ['EXPIRED']*128+['PENDING']
+        assert state.requests[-1].request == opened
+        assert sum(v.kind == 'REQUEST_CLOSED' for v in state.events) == 128
+
+
+def test_archive_request_open_closes_a_lapsed_pending_request_first():
+    with F.fixture() as e:
+        lapsed = e.engine.open_revoke_request(e.credential.credential_sha256, reason='OWNER_WITHDRAWN')
+        e.clock_cell[0] = lapsed.challenge_expires_at
+        opened = archive_request(e)
+        state = e.ledger.inspect().state
+        assert [r.state for r in state.requests] == ['EXPIRED', 'PENDING'] and state.requests[-1].request == opened
+        assert [v.kind for v in state.events[-2:]] == ['REQUEST_CLOSED', 'REQUEST_OPENED']
+
+
+def test_kst_date_change_before_the_final_clock_refuses_before_any_request_row():
+    with F.fixture(now=datetime(2031, 1, 7, 14, 59, 50, tzinfo=timezone.utc)) as e:
+        before = e.ledger.inspect()
+        now = e.clock_cell[0]
+        original = E.Engine._configuration
+        actual_owner = O.OwnerReader.observe
+        seen = []
+        def owner(reader,*,retained):
+            observed = actual_owner(reader,retained=retained)
+            seen.append(observed)
+            return observed
+        def configuration(engine):
+            original(engine)
+            if len(seen)>=2:  # after the pre-commit final owner observation: 15 s old, but next KST day
+                e.clock_cell[0] = now+timedelta(seconds=15)
+        with patch.object(O.OwnerReader,'observe',owner), patch.object(E.Engine,'_configuration',configuration):
+            F.refused(lambda:e.engine.open_revoke_request(e.credential.credential_sha256, reason='OWNER_WITHDRAWN'),
+                      'PASSKEY_CLOCK_INVALID')
+        assert len(seen) == 2 and e.clock_cell[0]-seen[0].evidence.observed_at == timedelta(seconds=15)
+        after = e.ledger.inspect()
+        assert after.head == before.head and not after.state.requests
+
+
+def test_registration_received_time_is_read_after_the_locked_owner_and_release_checks():
+    with F.fixture(installed=False) as e:
+        enrollment = e.engine.prepare_initial_enrollment()
+        registration = F.registration(enrollment,e.credential_key,e.credential_id)
+        original = E.Engine._begin
+        def begin(engine, op, **options):
+            result = original(engine, op, **options)
+            e.clock_cell[0] += timedelta(seconds=5)
+            return result
+        late = e.clock()+timedelta(seconds=5)
+        with patch.object(E.Engine,'_begin',begin):
+            e.engine.submit_registration(enrollment.enrollment_id,C.registration_bytes(registration))
+        pending = next(p for p in e.ledger.inspect().state.enrollments
+                       if p.enrollment.enrollment_id==enrollment.enrollment_id)
+        assert pending.registration_received_at == late
 
 
 def _cli_failure(exception):

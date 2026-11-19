@@ -366,16 +366,27 @@ def _transition_owned(state,event,*,installation,limits,_index=None):
             if x.state=='PENDING' else x for x in state.requests),notifications=state.notifications+(note,))
     elif kind=='REQUEST_CLOSED':
         index,pending=_request(state,body['request_sha256'],index_map)
-        _need(pending.state=='PENDING' and body['state']=='EXPIRED'
-              and at>=min(pending.request.challenge_expires_at,
-                  pending.request.approval_expires_at or pending.request.challenge_expires_at)
-              and body['evidence_sha256'] is None,
-              'PASSKEY_EXPIRED')
+        expired=at>=min(pending.request.challenge_expires_at,
+                        pending.request.approval_expires_at or pending.request.challenge_expires_at)
+        if body['state']=='REJECTED':
+            # Only an assertion that re-verifies here, still live, closes a pending request as REJECTED.
+            evidence=A.parse_evidence(_raw(body['evidence']))
+            _need(pending.state=='PENDING','PASSKEY_REQUEST_REUSED')
+            _need(not expired,'PASSKEY_EXPIRED')
+            _need(body['evidence_sha256']==evidence.digest and body['reason'] in A.REJECTION_REASONS,
+                  'PASSKEY_TARGET_CHANGED')
+            ci,credential=_assertion(state,pending.request,evidence,at=at,purpose=pending.request.kind,index=index_map)
+            changes['credentials']=_set(state.credentials,ci,credential)
+            closed=replace(pending,state='REJECTED',evidence_sha256=evidence.digest)
+        else:
+            _need(pending.state=='PENDING' and body['state']=='EXPIRED' and expired
+                  and body['evidence_sha256'] is None,'PASSKEY_EXPIRED')
+            closed=replace(pending,state='EXPIRED')
         note=_notification(body['notification'],authority_id=installation.authority_id,
             request_id=pending.request.request_id,application_id=None,
             kind='APPLICATION_RESULT' if pending.request.kind=='ARCHIVE_CONFIRM' else 'CREDENTIAL_RESULT',
-            status='EXPIRED',observed_at=at)
-        changes.update(requests=_set(state.requests,index,replace(pending,state='EXPIRED')),
+            status=closed.state,observed_at=at)
+        changes.update(requests=_set(state.requests,index,closed),
                        notifications=state.notifications+(note,))
     elif kind=='DELIVERY_REPORTED':
         _need(body['intent_id'] in index_map.notifications,'PASSKEY_TARGET_CHANGED')
