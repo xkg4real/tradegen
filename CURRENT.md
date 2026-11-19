@@ -4,9 +4,9 @@ reason: manual
 from: claude
 task: upbit-universe
 cycle: 2026-11-17
-done_ids: none
+done_ids: protective-hold/committed-producer-link, universe-selector-sites-1, d14-case-twins-1, windows-file-identity-1, windows-test-portability-1, universe-pr5/passkey-archive-authority/windows-review, owner-signing-1111, owner-signing-1112
 next_ids: universe-pr5/passkey-archive-authority, universe-pr5, universe-pr5/recovery-operations, universe-pr5-clock-notify, policy-loss-budget-plan-1, rules-review-1202, protective-hold/p2-integration, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, universe-code-approve, launch-private-capture-setup-1, e1-14-owner-setup, launch-prospective-study, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1
-updated_at: 2026-11-20T00:52:00+09:00
+updated_at: 2026-11-20T01:00:00+09:00
 stale_after_hours: 24
 waiting_on: owner
 work_branch: claude/passkey-windows
@@ -37,7 +37,7 @@ session: Claude Code 메인 세션 TRADEGEN_GITHUB (local_a72616d1)
 
 | 종류 | 위치 | 쓰는 부분 |
 |---|---|---|
-| 직전 GPT 문서 | `archive/`로 옮긴 2026-11-14 05:11 CURRENT (`cbfb15b`) | 완료 ID, 남은 ID, 경계 |
+| 직전 GPT 문서 | handoff 커밋 `cbfb15b`의 CURRENT.md (`git show cbfb15b:CURRENT.md`). 같은 task라 archive/로는 옮겨지지 않음 | 완료 ID, 남은 ID, 경계 |
 | 패스키 인수 | 소유자 지시 2026-11-17 (Claude 메인이 GPT 엔진 브랜치를 검증·완성) | `universe-pr5/passkey-archive-authority` |
 | 전체 체크리스트 | 소유자 PC `Desktop\TRADEGEN\ORCHESTRATION_CHECKLIST.md` (저장소 밖) | M0-M10, 소유자 조치 O1-O23 |
 
@@ -45,7 +45,7 @@ session: Claude Code 메인 세션 TRADEGEN_GITHUB (local_a72616d1)
 
 | 결정 | 이유 | 버린 대안 |
 |---|---|---|
-| `--force`로 잠금만 바꾸고 LEDGER는 다음 게시에서 기록 | 소유자가 잠금 정리만 허락함 | 한 번에 기록: 잠금 해제와 원장 기록이 섞임 |
+| `--force`로 잠금만 바꾸고(handoff `4120714`) LEDGER는 다음 게시에서 기록 | 소유자가 잠금 정리만 허락함 | 한 번에 기록: 잠금 해제와 원장 기록이 섞임 |
 | `stale_after_hours: 24` | 패스키 무거운 테스트 1건이 이 PC에서 20-100분, 전체 실행은 하루 이상 | 3시간: 긴 실행 중 끊긴 것으로 잘못 보임 |
 | next_ids에서 `protective-hold/committed-producer-link` 제외 | PR #60으로 `243488b`에 병합됨 | 유지: 끝난 일을 다시 할 위험 |
 
@@ -62,6 +62,8 @@ session: Claude Code 메인 세션 TRADEGEN_GITHUB (local_a72616d1)
 broker venv + keyless, light passkey modules on c6ac761
 84 PASS / 0 FAIL / 0 NOT_RUN
 ```
+
+**LEDGER에 새로 기록한 것 (2026-11-20):** #60(GPT 작업 대리 기록), Claude의 PR #61-#64(열림, 병합 대기), 패스키 Windows 검증·리뷰 수정 부분, 소유자 서명 11-11(#8 code_approved, #9 rules `1699d1d6`)과 11-12(#10 code-approve, 코드 해시 `1660e1db`).
 
 ## 5. 중단 지점
 
@@ -99,5 +101,6 @@ handoff로 바뀌면 CURRENT.md, AGENTS.md, LEDGER.md를 먼저 읽고, LEDGER.m
 
 ```
 python push_handoff.py --show    # status: checkpoint, from: claude
-git show origin/handoff:archive/  # 직전 GPT 문서가 그대로 보관됨
+git show cbfb15b:CURRENT.md     # 직전 GPT 문서 (2026-11-14 05:11)
+python push_handoff.py --ledger  # 이번에 기록한 8행
 ```
