@@ -63,10 +63,15 @@ def no_history(*_):
 
 @contextmanager
 def fixture(*, carry=False, count=500, provision=True):
-    """Shared real-path fixture for CLI. Caller may only patch wall clock for CLI."""
+    """Shared real-path fixture for CLI. Caller may only patch wall clock for CLI.
+
+    Earlier tests keep issued results for the process lifetime; start from none and
+    restore their exact records, so the production 128-result cap is this test's own.
+    """
     with memoized_pure_inputs():
         capture = recorded(carry=carry, count=count)
-        with patch.object(RF.RF, 'fixture', return_value=capture), RF.fixture(carry=carry) as e:
+        with patch.object(RF.RF, 'fixture', return_value=capture), patch.dict(E._EVALUATED, clear=True), \
+             RF.fixture(carry=carry) as e:
             home = C.state_root()
             with CF.pubkey_at(home/'owner_pubkey.pem'):
                 key = CF.full_home(home)

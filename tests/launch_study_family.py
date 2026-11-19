@@ -213,12 +213,15 @@ def test_capture_replaced_after_open_is_not_misclassified_as_an_oversized_resour
         real_open, changed = os.open, []
 
         def replaced(path, *args, **kwargs):
-            fd = real_open(path, *args, **kwargs)
             if not changed and str(path) in (target.name, str(target)):
+                # The descriptor gets the oversized original while the name now holds a replacement,
+                # the state a swap after open leaves; built before the open because Windows refuses
+                # to rename a file that is open without share-delete.
                 target.rename(retained)
                 target.write_bytes(b'replacement')
                 changed.append(True)
-            return fd
+                path = str(retained)            # absolute, so any dir_fd is ignored
+            return real_open(path, *args, **kwargs)
 
         with (patch.object(S.os, 'open', new=replaced),
               patch.object(S.os, 'supports_dir_fd', os.supports_dir_fd | {replaced})):

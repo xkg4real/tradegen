@@ -5,6 +5,7 @@ The ordinary default Journal is the test operator's explicit provisioning step.
 """
 import builtins
 from contextlib import contextmanager
+import os
 from pathlib import Path
 import shutil
 import threading
@@ -30,8 +31,20 @@ def events(journal):
 
 
 def tree(root):
-    return {p.relative_to(root).as_posix():p.read_bytes()
+    return {p.relative_to(root).as_posix():content(p)
             for p in root.rglob('*') if p.is_file()} if root.exists() else {}
+
+
+def content(path):
+    try:
+        return path.read_bytes()
+    except PermissionError:
+        if os.name != 'nt' or path.name != 'control.lock':
+            raise
+        # Windows msvcrt.locking: no other handle can read a held lock byte, so record the
+        # size, write time and file id, which still change on any write, truncation or swap.
+        info = path.stat()
+        return ('held',info.st_size,info.st_mtime_ns,info.st_ino)
 
 
 def provision(journal, *, row=False):
@@ -133,6 +146,17 @@ def test_deleted_pair_or_lock_during_transaction_poison_append_without_recreatio
         with _home() as (home,journal):
             strict = provision(journal,row=True)
             with strict.transaction() as tx:
+                if os.name == 'nt' and missing == ('control.lock',):
+                    # Windows: the held lock handle shares no delete access, so the OS refuses the deletion itself.
+                    before = tree(home)
+                    try:
+                        (strict._root/'control.lock').unlink()
+                    except PermissionError:
+                        pass
+                    else:
+                        raise AssertionError('held control lock was deleted')
+                    assert tree(home) == before and len(tx.events) == 1
+                    continue
                 for name in missing:
                     (strict._root/name).unlink()
                 before = tree(home)

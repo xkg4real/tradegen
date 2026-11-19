@@ -466,16 +466,19 @@ def test_source_directory_open_failure_closes_prior_handles_and_returns_fixed_di
     with fixture() as e:
         target = destination(e)
         before = SF.files(e.root)
-        actual, handles = R._open_posix_directory, []
+        # Fail the primitive _SourcePin really uses on this OS; a Windows pin is closed once check() refuses.
+        nt = os.name == 'nt'
+        seam = 'pin_windows_directory' if nt else '_open_posix_directory'
+        actual, handles = getattr(R,seam), []
         def failed(path):
             if handles: raise OSError('private directory failure must not escape')
             handle = actual(path); handles.append(handle); return handle
-        with patch.object(R,'_open_posix_directory',side_effect=failed):
+        with patch.object(R,seam,side_effect=failed):
             AF.refused(lambda:restore(e,target),'BUNDLE_RECOVERY_IO_REFUSED')
         assert len(handles) == 1
-        try: os.fstat(handles[0])
-        except OSError: pass
+        try: handles[0].check() if nt else os.fstat(handles[0])
+        except (ValueError if nt else OSError): pass
         else: raise AssertionError('source directory handle leaked')
-        with patch.object(R,'_open_posix_directory',side_effect=OSError('private inspect path')):
+        with patch.object(R,seam,side_effect=OSError('private inspect path')):
             AF.refused(lambda:inspect(e),'BUNDLE_RECOVERY_IO_REFUSED')
         assert SF.files(e.root) == before
