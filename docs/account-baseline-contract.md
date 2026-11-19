@@ -16,11 +16,20 @@ recovery boundary:
   marked equity observed in any complete covered interval during the day. Recovery
   cannot erase an earlier loss. This is an explicitly selected interpretation,
   not a new default for the owner's still-unresolved daily-loss choice.
+  Planned, not implemented at `1fd8792` (approach-A design BR-16): inside a gap
+  that spans a detected suspend or restart, points after the gap's first 30
+  seconds do not count toward this loss; the first record after the gap does.
 - `external_flows="no_external_flows"`: both gross incoming and gross outgoing
   external flows must be known and zero for every interval. Offsetting flows do
   not count as no flow. A funded account with no subsequent transfers is supported.
+  Planned, not implemented at `1fd8792`: the
+  [approach-A design](superpowers/specs/2026-11-20-blocker1-held-interval-approach-a-design.md)
+  (BR-21, BR-22) adds a flow-adjusted convention in which deposits, withdrawals,
+  the owner's manual trades and unexplained changes all continue the record.
 - `max_interval_seconds`: an explicit integer from1 to300. A longer uncovered time
   range refuses rather than interpolating missing peaks, troughs or activity.
+  Planned: a separate gap interval kind whose path is rebuilt from the trade list,
+  bounded by the list's reach instead (approach-A design BR-16, BR-17).
 - `recovery_cutoff_seconds`: `None` preserves the original behavior. The only
   supported enabled value is the exact integer `79200`, meaning 22:00 Seoul time.
   The matching risk policy must independently enable the same recovery condition;
@@ -30,11 +39,15 @@ The existing profile's `externally_reconciled` convention can receive this reduc
 result only when the operator explicitly chooses and reviews the detailed convention
 above. The reducer does not overwrite the profile or choose a policy for the owner.
 
-Broader flow adjustment is deliberately unsupported. The existing Controller keeps
+Broader flow adjustment is unsupported in the current code. The existing Controller keeps
 a monotone raw high-watermark and a fixed opening equity per day; decreasing a
 cash-flow-adjusted peak after a withdrawal would not change that persisted control
 history. Implementing that policy requires an agreed valuation convention and a
 coherent Controller transition, not merely subtracting a transfer in this reducer.
+The approach-A design (BR-22) proposes that convention: every risk number uses
+equity minus the cumulative net external flow, so the Controller's peak stays
+monotone and its day opening stays fixed in those adjusted terms. Until that code
+is approved, this section describes the behavior.
 
 ## Anchor, advance and export
 
@@ -54,6 +67,15 @@ coherent Controller transition, not merely subtracting a transfer in this reduce
    gross external inflows/outflows and source/coverage digests. All values are
    exact bounded `Decimal`s already expressed in KRW using reviewed source and FX
    conventions. **The extrema are source evidence, not min/max of the endpoints.**
+   One planned exception (approach-A design BR-16; not implemented at `1fd8792`)
+   follows the owner's decision of 2026-11-20 that a gap is judged at the first
+   account record after it. For a gap interval that spans a detected suspend or
+   restart, the minimum given to the reducer is the lowest of the two endpoints
+   and the points in the gap's first 30 seconds, while the maximum is still the
+   gap path's highest point. The 30-second threshold and the judged first 30
+   seconds are proposed defaults the owner has not yet confirmed (design OQ6).
+   A dip that recovered by the first record after the gap therefore does not
+   halt, a loss still present there does, and the gap high still raises the peak.
 4. `advance_baseline(state, interval)` rejects scope changes, missing coverage
    identifiers, contradictory extrema, time/sequence gaps, rollbacks and unsupported
    flows. Identical redelivery returns the same state and timestamp. A changed
@@ -83,6 +105,13 @@ opening snapshot immediately before events timestamped exactly at `end`; extrema
 include both adjoining snapshots. The trusted producer must establish this cut-off
 and collect exact boundary evidence.
 
+Planned, not implemented at `1fd8792` (approach-A design BR-11 and BR-12): a
+boundary value may be rebuilt from a capture read within 30 seconds after the
+boundary, minus the fills and flows stamped since the boundary, at each coin's
+last trade before it. It is computed from evidence, not a later balance
+relabelled. A boundary missed while the app runs still refuses; one missed
+inside a gap that spans a suspend or restart is rebuilt and split there.
+
 A transition to another Seoul day must end exactly at the next Seoul midnight.
 Skipping across midnight to the first later poll refuses. The new opening equity
 comes from that boundary snapshot; daily loss resets to zero there, while lifetime
@@ -108,6 +137,9 @@ is retained unchanged through later recovery, repeated calls and process
 restarts; its equity is never replaced with a later, better balance. Existing
 daily maximum loss, lifetime high-watermark, first trading date and approved
 floor remain intact. Only the next Seoul midnight clears that day's proof.
+Planned (approach-A design BR-11, BR-12 and BR-16): a 22:00 value rebuilt within
+that 30-second bound is the proof; one rebuilt later, or inside such a gap,
+creates no proof and the day stays unknown.
 
 An anchor exactly at the boundary can capture its actual value. An anchor after
 the boundary has no proof and remains unknown; supplied historical proof is not
