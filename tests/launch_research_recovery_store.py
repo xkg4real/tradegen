@@ -95,7 +95,7 @@ def stack(*, provision=True, initialize=True, store_limits=None):
 
 
 def files(s):
-    return {str(path.relative_to(s.base)): path.read_bytes()
+    return {path.relative_to(s.base).as_posix(): path.read_bytes()
             for path in s.base.rglob("*") if path.is_file()}
 
 
@@ -607,10 +607,25 @@ def test_operation_preserves_controller_body_errors_after_actual_cleanup():
 
 def test_operation_lock_replacement_blocks_nested_commit_before_append_and_final_return():
     with stack() as s:
+        if os.name == "nt":
+            # Windows: the held operation lock shares no delete access, so the OS refuses the swap itself.
+            before = files(s)
+            with s.store.operation():
+                try:
+                    (s.store.root / "operation.lock").rename(s.base / "retained-operation-lock")
+                except PermissionError:
+                    pass
+                else:
+                    raise AssertionError("held operation lock was replaced")
+                s.store.check_operation()
+            assert files(s) == before
+            assert s.store._operation_state is None and not S._OPERATION_LOCK.locked()
         journal = (s.store.root / "journal.jsonl").read_bytes()
         try:
             with s.store.operation():
                 lock = s.store.root / "operation.lock"
+                if os.name == "nt":
+                    lock = s.store.root / "session.lock"  # Unheld member of the same operation anchor.
                 lock.rename(s.base / "retained-operation-lock")
                 lock.write_bytes(b"0")
                 refused(s.store.check_operation, "RECOVERY_STORE_STORAGE_CHANGED")
