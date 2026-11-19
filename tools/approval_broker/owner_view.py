@@ -154,6 +154,17 @@ def _anchor(sequence, digest):
     return A.Head(sequence=sequence, sha256=digest)
 
 
+def _exact(names):
+    """The app finds restriction files without case on Windows (Path.exists, glob); a spelling that differs only in
+    case would be enforced there but skipped by the exact compares below, so it refuses."""
+    for name in names:
+        folded = name.casefold()
+        C.need(not (folded in ('alerts.jsonl','snapshots','approved','research-attestations') and name != folded)
+               and not any(folded.endswith(suffix) and not name.endswith(suffix)
+                           for suffix in ('.json','.anchor.json')), 'PASSKEY_OWNER_ANCHOR_INVALID')
+    return names
+
+
 def _anchor_snapshot(root, initial_key):
     """Retain exact external inventory and bytes, including strict restriction files."""
     anchors, snapshot = set(), []
@@ -172,7 +183,7 @@ def _anchor_snapshot(root, initial_key):
         snapshot.append((path.relative_to(root).as_posix(), identity, hashlib.sha256(raw).hexdigest()))
         return raw
     with S._BundlePin(root) as pin:
-        names = pin.names(32768)
+        names = _exact(pin.names(32768))
         if 'alerts.jsonl' in names:
             raw = read(root/'alerts.jsonl', _MAX_LOG)
             C.need(raw.count(b'\n') <= _MAX_ANCHORS, 'PASSKEY_RESOURCE_LIMIT')
@@ -193,7 +204,7 @@ def _anchor_snapshot(root, initial_key):
             count()
             with S._BundlePin(directory) as sub:
                 snapshot.append((folder, sub.rows[-1][2] if sub.rows else sub.native.identity, None))
-                children = sub.names(_MAX_ANCHORS)
+                children = _exact(sub.names(_MAX_ANCHORS))
                 if folder == 'snapshots':
                     for name in sorted(children):
                         count()
@@ -208,7 +219,7 @@ def _anchor_snapshot(root, initial_key):
                         info = sub.stat(kind)
                         C.need(stat.S_ISDIR(info.st_mode), 'PASSKEY_OWNER_ANCHOR_INVALID')
                         with S._BundlePin(directory/kind) as leaves:
-                            entries = leaves.names(_MAX_ANCHORS)
+                            entries = _exact(leaves.names(_MAX_ANCHORS))
                             for name in sorted(entries):
                                 count()
                                 if kind == 'research-attestations':

@@ -63,7 +63,7 @@ def _pins(stack, base):
     return pin
 
 
-def _walk(root, *, suffixes=None, skip=None, read=None):
+def _walk(root, *, skip=None, read=None):
     """Bounded exact inventory; no symlink or reparse traversal. Each directory is pinned once, from its held
     parent, and `read(pin,path,info)` sees every listed file under that same pin."""
     _directory(root)
@@ -90,11 +90,10 @@ def _walk(root, *, suffixes=None, skip=None, read=None):
                         visit(item,pin)
                 else:
                     S._bundle_identity(info,regular=True)
-                    if suffixes is None or any(name.endswith(suffix) for suffix in suffixes):
-                        result.append(item)
-                        C.need(len(result) <= _MAX_FILES,'PASSKEY_RESOURCE_LIMIT')
-                        if read is not None:
-                            read(pin,item,info)
+                    result.append(item)
+                    C.need(len(result) <= _MAX_FILES,'PASSKEY_RESOURCE_LIMIT')
+                    if read is not None:
+                        read(pin,item,info)
     visit(root,None)
     return tuple(sorted(result))
 
@@ -172,16 +171,22 @@ def _target_files(repo,environment):
     for base in (root/'execution_control',root/'execution_orders',root/'execution_accounts',
                  root/'execution_network',root/'execution_launch',root/'tools'/'owner'):
         if base.exists():
-            todo.extend(_walk(base,suffixes=('.py',)))
+            _walk(base)  # pinned review of every name: twins, trailing '.' or ' ', links, reparse points
+            todo.extend(sorted(base.rglob('*.py')))  # sign.code_files' own selection; it ignores case on Windows
     C.need(todo,'PASSKEY_DEPLOYMENT_REFUSED')
     with contextlib.ExitStack() as stack:
         pin = _pins(stack,root)  # every directory of the closure pinned once, from its held parent
-        seen, snapshots = {}, {}  # seen: first spelling per Path (case-fold); snapshots: every exact spelling
+        seen, snapshots = {}, {}  # seen: first spelling per str(path).casefold(); snapshots: every exact spelling
         total = 0
         while todo:
             path = todo.pop()
-            if str(path) in snapshots:
+            # sign.code_files' rule: a second spelling that differs only in letter case refuses the closure, a
+            # distinct twin file or an import probe of the same file alike (core/odds/O.py for core/odds/o.py).
+            key = str(path).casefold()
+            if key in seen:
+                C.need(str(seen[key]) == str(path),'PASSKEY_DEPLOYMENT_REFUSED')
                 continue
+            seen[key] = path
             C.need(path.is_relative_to(root) and len(snapshots)<_MAX_FILES,'PASSKEY_RESOURCE_LIMIT')
             size=path.lstat().st_size
             C.need(0 <= size <= _MAX_FILE and total+size <= _MAX_TOTAL,'PASSKEY_RESOURCE_LIMIT')
@@ -189,12 +194,6 @@ def _target_files(repo,environment):
             total += len(raw)
             C.need(total <= _MAX_TOTAL,'PASSKEY_RESOURCE_LIMIT')
             snapshots[str(path)] = (raw,identity)
-            # A case-fold spelling of a read file (an import probe such as core/odds/O.py for core/odds/o.py) is
-            # skipped as before and in sign.code_files once its read shows the same file; a distinct file refuses.
-            if path in seen:
-                C.need(seen[path] == identity,'PASSKEY_DEPLOYMENT_REFUSED')
-                continue
-            seen[path] = identity
             # Same reviewed AST semantics, using our bounded retained bytes only.
             tree = ast.parse(raw)
             package, names = list(path.relative_to(root).parent.parts), set()
@@ -210,7 +209,7 @@ def _target_files(repo,environment):
             todo.extend(p for name in names if (p:=S._module_file(root,name)) is not None)
             todo.extend(d/'__init__.py' for d in path.parents if d != root and d.is_relative_to(root)
                         and (d/'__init__.py').is_file())
-        rows = {p.relative_to(root).as_posix():hashlib.sha256(snapshots[str(p)][0]).hexdigest() for p in seen}
+        rows = {p.relative_to(root).as_posix():hashlib.sha256(snapshots[str(p)][0]).hexdigest() for p in seen.values()}
         site = _sites(env)
         distributions = _distributions(site,required=S._RECORD_DISTS)
         for name in S._RECORD_DISTS:
@@ -235,7 +234,7 @@ def target_deployment_code_hash(repo,environment):
         return S.sha256_hex(S.canonical_json(_target_files(repo,environment)))
     except C.PasskeyError:
         raise
-    except (ValueError,OSError,TypeError,AttributeError,RecursionError,RuntimeError):
+    except (ValueError,SyntaxError,OSError,TypeError,AttributeError,RecursionError,RuntimeError):
         raise C.PasskeyError('PASSKEY_DEPLOYMENT_REFUSED') from None
 
 
@@ -368,6 +367,42 @@ def _shared_runtime_library():
         raise C.PasskeyError('PASSKEY_RUNTIME_UNSUPPORTED') from None
 
 
+def _running_interpreter():
+    """Windows: the binary this process runs. The venv launcher (sys.executable) starts the base interpreter, and
+    sys._base_executable can be a Store app-execution alias that cannot be opened (WinError 1920)."""
+    import ctypes
+    buffer = ctypes.create_unicode_buffer(32768)
+    length = ctypes.WinDLL('kernel32',use_last_error=True).GetModuleFileNameW(None,buffer,32768)
+    C.need(0 < length < 32768,'PASSKEY_RUNTIME_UNSUPPORTED')
+    return Path(buffer.value).resolve(strict=True)
+
+
+def _prefix_names(prefix):
+    """Windows sys.prefix (a site dir) and sys.base_prefix top level: the pyvenv.cfg and distutils-precedence.pth
+    names to commit. Any other *.pth or *._pth, sitecustomize*/usercustomize* or pythonXY.zip refuses. Both are on
+    sys.path ahead of site-packages, so a top-level module (*.py, *.pyw, *.pyc, *.pyd), regular package (a folder
+    holding __init__.*) or folder named as an imported top-level module (a namespace portion: tools/ is one) there
+    would shadow committed code; it refuses too, as does any reparse point (a link or junction, which import follows).
+    ponytail: a namespace folder for a name not yet imported is left; check module origins if that matters."""
+    archive = 'python'+str(sys.version_info.major)+str(sys.version_info.minor)+'.zip'
+    with contextlib.ExitStack() as stack:
+        pin = _pinned(stack,prefix)
+        names = sorted(pin.names(_MAX_FILES))
+        for name in names:
+            folded, info = name.casefold(), pin.stat(name)
+            C.need(not (folded.endswith(('.pth','._pth')) and folded != 'distutils-precedence.pth')
+                   and not folded.startswith(('sitecustomize','usercustomize')) and folded != archive
+                   and not folded.endswith(('.py','.pyw','.pyc','.pyd')) and not (stat.S_ISDIR(info.st_mode)
+                   and name in sys.modules) and not getattr(info,'st_file_attributes',0) & 0x400,
+                   'PASSKEY_RELEASE_INVALID')
+            if stat.S_ISDIR(info.st_mode):
+                with contextlib.ExitStack() as inner:
+                    C.need(not any(child.casefold().startswith('__init__.')
+                                   for child in _pinned(inner,prefix/name,pin).names(_MAX_FILES)),
+                           'PASSKEY_RELEASE_INVALID')
+    return tuple(name for name in names if name.casefold() in ('pyvenv.cfg','distutils-precedence.pth'))
+
+
 def _release_inventory(directory, *, role, dependency_roots):
     """Actual fixed virtual inventory builder, useful to explicit review tooling.
 
@@ -414,6 +449,21 @@ def _release_inventory(directory, *, role, dependency_roots):
         shared_library = _shared_runtime_library()
         if shared_library is not None:
             add('runtime/libpython',shared_library)
+        if os.name == 'nt':
+            # Windows loads code from outside the stdlib walk as well: the base interpreter the venv launcher
+            # starts, pyvenv.cfg (which interpreter and site dirs), the venv root as a site dir (*.pth,
+            # sitecustomize) and base_prefix\DLLs (native stdlib modules: _hashlib, _ctypes, _socket, libcrypto).
+            add('runtime/base-python',_running_interpreter())
+            prefixes = (('runtime/prefix/',Path(sys.prefix).resolve(strict=True)),
+                        ('runtime/base-prefix/',Path(sys.base_prefix).resolve(strict=True)))
+            prefix_names = tuple(_prefix_names(prefix) for _,prefix in prefixes)
+            for (label,prefix),names in zip(prefixes,prefix_names):
+                for name in names:
+                    add(label+name,prefix/name)
+            native = prefixes[1][1]/'DLLs'
+            _directory(native)
+            native_files = _walk(native,read=lambda pin,path,info:add(
+                'runtime/DLLs/'+path.relative_to(native).as_posix(),path,pin,info))
         standard = Path(sysconfig.get_path('stdlib')).resolve(strict=True)
         _directory(standard)
         standard_files = _stdlib_files(standard,dependency_roots,read=lambda pin,path,info:add(
@@ -422,6 +472,10 @@ def _release_inventory(directory, *, role, dependency_roots):
         C.need(str(_shared_runtime_library())==str(shared_library),'PASSKEY_RELEASE_CHANGED')
         C.need(tuple(map(str,_stdlib_files(standard,dependency_roots,read=again)))==tuple(map(str,standard_files)),
                'PASSKEY_RELEASE_INVENTORY_CHANGED')
+        if os.name == 'nt':
+            C.need(tuple(_prefix_names(prefix) for _,prefix in prefixes)==prefix_names
+                   and tuple(map(str,_walk(native,read=again)))==tuple(map(str,native_files)),
+                   'PASSKEY_RELEASE_INVENTORY_CHANGED')
     else:
         C.need(dependency_roots == (),'PASSKEY_RELEASE_LOCATION_INVALID')
         dependencies = ()
