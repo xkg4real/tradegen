@@ -78,17 +78,19 @@ def _cose(raw):
 
 def _client(raw, *, kind, rp, challenge):
     body = C.decode(raw, maximum=16384)
-    C.need(type(body) is dict and len(body) in (3, 4))
-    C.need(set(body) in ({"type", "challenge", "origin"}, {"type", "challenge", "origin", "crossOrigin"}))
+    # WebAuthn L3 5.8.1: other members are ignored (Chromium adds one at random); the raw bytes stay signed.
+    C.need(type(body) is dict and {"type", "challenge", "origin"} <= set(body))
+    C.need("topOrigin" not in body, "PASSKEY_ORIGIN_RP_INVALID")
     C.need("crossOrigin" not in body or body["crossOrigin"] is False, "PASSKEY_ORIGIN_RP_INVALID")
     C.need(type(body["type"]) is str and body["type"] == kind)
     C.need(type(body["origin"]) is str and body["origin"] == rp.origin, "PASSKEY_ORIGIN_RP_INVALID")
     C.need(C.unb64(body["challenge"], 32, minimum=32) == challenge, "PASSKEY_CHALLENGE_INVALID")
 
 
-def _auth_data(raw, *, registering):
+def _auth_data(raw, *, registering, rp):
     C.binary(raw, 16384)
     C.need(len(raw) >= 37)
+    C.need(raw[:32] == hashlib.sha256(rp.rp_id.encode()).digest(), "PASSKEY_ORIGIN_RP_INVALID")
     flags, counter = raw[32], int.from_bytes(raw[33:37], "big")
     C.need(not flags & 0xA2 and bool(flags & 0x40) is registering)
     C.need(flags & 1 and flags & 4, "PASSKEY_UV_REQUIRED")
@@ -165,7 +167,7 @@ def verify_registration(request, response, *, now):
     C.keys(attestation, ("fmt", "authData", "attStmt"))
     C.need(type(attestation["fmt"]) is str and attestation["fmt"] == "none")
     C.keys(attestation["attStmt"], ())
-    eligible, backed, counter, identifier, key = _auth_data(attestation["authData"], registering=True)
+    eligible, backed, counter, identifier, key = _auth_data(attestation["authData"], registering=True, rp=request.rp)
     C.need(identifier == response.credential_id, "PASSKEY_TARGET_CHANGED")
     server = _server(request.rp)
     try:
@@ -203,11 +205,8 @@ def verify_assertion(context, response, *, now):
            "PASSKEY_TARGET_CHANGED")
     C.need(response.user_handle is None or response.user_handle == context.user_handle, "PASSKEY_USER_HANDLE_INVALID")
     _client(response.client_data_json, kind="webauthn.get", rp=context.rp, challenge=context.challenge)
-    eligible, backed, counter, _, _ = _auth_data(response.authenticator_data, registering=False)
+    eligible, backed, counter, _, _ = _auth_data(response.authenticator_data, registering=False, rp=context.rp)
     C.need(eligible is context.credential.backup_eligible, "PASSKEY_BACKUP_FLAGS_CHANGED")
-    old = context.credential.counter
-    anomaly = (counter > 0 or old > 0) and counter <= old
-    C.need(eligible or not anomaly, "PASSKEY_COUNTER_INVALID")
     key = _cose(context.credential.public_key_cose)
     server = _server(context.rp)
     try:
@@ -225,6 +224,10 @@ def verify_assertion(context, response, *, now):
         raise
     except (ValueError, TypeError, KeyError, AttributeError, OverflowError, RecursionError):
         raise C.PasskeyError("PASSKEY_SIGNATURE_INVALID") from None
+    # W3C 7.2: signCount policy runs on authenticated authenticatorData only.
+    old = context.credential.counter
+    anomaly = (counter > 0 or old > 0) and counter <= old
+    C.need(eligible or not anomaly, "PASSKEY_COUNTER_INVALID")
     evidence = C.digest("assertion-evidence", {"request_sha256": context.request_sha256,
         "purpose": context.purpose, "assertion": response.document()})
     return VerifiedAssertion(credential_sha256=context.credential.credential_sha256,
