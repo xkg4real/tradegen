@@ -1,106 +1,107 @@
 ---
-status: checkpoint
-reason: manual
+status: handoff
+reason: usage_limit_weekly
 from: claude
 task: upbit-universe
 cycle: 2026-11-17
-done_ids: protective-hold/committed-producer-link, universe-selector-sites-1, d14-case-twins-1, windows-file-identity-1, windows-test-portability-1, universe-pr5/passkey-archive-authority/windows-review, owner-signing-1111, owner-signing-1112
-next_ids: universe-pr5/passkey-archive-authority, universe-pr5, universe-pr5/recovery-operations, universe-pr5-clock-notify, policy-loss-budget-plan-1, rules-review-1202, protective-hold/p2-integration, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, universe-code-approve, launch-private-capture-setup-1, e1-14-owner-setup, launch-prospective-study, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1
-updated_at: 2026-11-20T01:00:00+09:00
+done_ids: universe-pr5/passkey-archive-authority
+next_ids: blocker1-approach-a-code, launch-private-capture-setup-1, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1, universe-pr5, universe-pr5/recovery-operations, universe-pr5-clock-notify, policy-loss-budget-plan-1, rules-review-1202, protective-hold/p2-integration, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, universe-code-approve, e1-14-owner-setup, launch-prospective-study
+updated_at: 2026-11-20T15:50:00+09:00
 stale_after_hours: 24
 waiting_on: owner
 work_branch: claude/passkey-windows
-work_commit: c6ac761
+work_commit: ae255f8
 uncommitted_changes: no
-pr: 61, 62, 63, 64 (모두 열림, 소유자 병합 대기)
-usage_weekly_pct: 86
+pr: 65, 66 (열림, 소유자 답변·병합 대기)
+usage_weekly_pct: 99
 usage_5h_pct: unknown
 usage_resets_at: 2026-11-24T17:00:00+09:00
 session: Claude Code 메인 세션 TRADEGEN_GITHUB (local_a72616d1)
 ---
 
-# 인수인계: GPT 잠금 정리와 담당 변경 (Claude 메인 체크포인트)
+# 인수인계: Claude 주간 한도 도달 (패스키 PR #66, 블로커1 사양 PR #65)
 
 ## 0. 한 줄 요약
 
-소유자 허락으로 2026-11-14 05:11 이후 멈춘 GPT의 `taken` 잠금을 정리했습니다. universe-pr5, universe-pr5/recovery-operations, 패스키는 Claude 메인이 맡습니다. GPT는 이번 창에 이 작업을 잡지 않습니다.
+Claude 주간 사용량이 99%라 인계합니다. 패스키 PR #66과 블로커1 사양 PR #65가 열려 소유자를 기다립니다. GPT가 지금 잡을 수 있는 일은 `blocker1-approach-a-code`의 A0 측정 프로브 하나이고, A1·A2는 소유자가 #65에 답하고 병합한 뒤입니다.
 
-## 1. 소유자 결정 (원문 그대로)
+## 1. 목표와 완료 조건
 
-- 질문(상위 Claude 세션, 2026-11-20): "GPT handoff의 멈춘 'taken' 잠금을 정리하고 PR5·패스키를 메인에 맡길까요?"
-- 소유자 답:
+- **소유자 지시 (원문 그대로):**
+  > 주간 사용량 98%가 되면 GPT에 인계합니다.
   > 잠금 정리, 메인 담당
-- 적용: universe-pr5, universe-pr5/recovery-operations, 패스키는 메인 담당. GPT는 이번 창(11-19 00:00 ~ 11-24 17:00)에 이 작업을 잡지 않음.
-- 그 밖의 남은 ID는 Claude 메인이 의존성에 따라 배정합니다. GPT에는 다음에 Claude 주간 사용량이 한도(98%)에 가까워져 `status: handoff`로 넘길 때 넘깁니다. 그 전에는 GPT가 새 ID를 잡지 않습니다.
+- **완료 조건:** 아래 6절 ID 중 GPT가 잡은 것마다 PR이 열리고, 관련 테스트가 PASS이며, LEDGER에 한 줄이 기록됨
+- **범위 밖 (GPT가 잡지 않음):** `universe-pr5`, `universe-pr5/recovery-operations`, 패스키 후속은 소유자 결정(11-20 "잠금 정리, 메인 담당")으로 Claude 메인 담당입니다. 이번 창이 끝나는 2026-11-24 17:00 KST까지 잡지 마세요.
 
 ## 2. 근거
 
 | 종류 | 위치 | 쓰는 부분 |
 |---|---|---|
-| 직전 GPT 문서 | handoff 커밋 `cbfb15b`의 CURRENT.md (`git show cbfb15b:CURRENT.md`). 같은 task라 archive/로는 옮겨지지 않음 | 완료 ID, 남은 ID, 경계 |
-| 패스키 인수 | 소유자 지시 2026-11-17 (Claude 메인이 GPT 엔진 브랜치를 검증·완성) | `universe-pr5/passkey-archive-authority` |
-| 전체 체크리스트 | 소유자 PC `Desktop\TRADEGEN\ORCHESTRATION_CHECKLIST.md` (저장소 밖) | M0-M10, 소유자 조치 O1-O23 |
+| 블로커1 사양 | PR #65 `docs/superpowers/specs/2026-11-20-blocker1-held-interval-approach-a-design.md` | 규칙 BR-1~26, A0/A1/A2, 질문 OQ1-OQ18 |
+| 패스키 PR | PR #66 (`claude/passkey-windows` `ae255f8`) | 리뷰 수정 13건, 사양 편차 2건, 소유자 질문 |
+| 직전 Claude 문서 | handoff `abfc320` | LEDGER 8행, O5 결정 |
 
 ## 3. 판단 기록
 
 | 결정 | 이유 | 버린 대안 |
 |---|---|---|
-| `--force`로 잠금만 바꾸고(handoff `4120714`) LEDGER는 다음 게시에서 기록 | 소유자가 잠금 정리만 허락함 | 한 번에 기록: 잠금 해제와 원장 기록이 섞임 |
-| `stale_after_hours: 24` | 패스키 무거운 테스트 1건이 이 PC에서 20-100분, 전체 실행은 하루 이상 | 3시간: 긴 실행 중 끊긴 것으로 잘못 보임 |
-| next_ids에서 `protective-hold/committed-producer-link` 제외 | PR #60으로 `243488b`에 병합됨 | 유지: 끝난 일을 다시 할 위험 |
+| 패스키 PR만 열고 인계 | 테스트가 끝난 상태라 PR 개설은 몇 단계뿐임 | PR 없이 인계: 소유자가 11-24까지 검토를 시작할 수 없음 |
+| engine 실패 16건은 환경 문제로 판정 | 테스트마다 별도 프로세스로 돌리니 16건 모두 PASS. 같은 프로세스 5회 반복 시 핸들 수 고정(329-330), 커밋 73→119 MB | 코드 수정: 누수 증거 없음. 배포 전 브로커 장시간 실행 시험은 PR #66 본문에 남김 |
 
 ## 4. 진행 상황
 
-- [x] PR #60 committed producer link: GPT 작업, main `243488b` (2026-11-14 05:34 KST 병합)
-- [ ] PR #61 유니버스 선택자 3곳, #62 D14 대소문자 쌍둥이 거부, #63 Windows 파일 식별 4건, #64 Windows 테스트 이식성: 모두 열림, 소유자 병합 대기. #64는 #63 커밋 2개를 포함하므로 #63 다음에 병합
-- [ ] `universe-pr5/passkey-archive-authority` ← **여기서 진행 중.** `claude/passkey-windows` `c6ac761`(#62·#63 위에 쌓음). GPT 엔진 브랜치를 Windows에서 검증·수정했고, 5관점 리뷰에서 확정한 13건 중 WebAuthn·릴리스 묶음을 커밋함. 엔진·원장 묶음은 검증을 마쳐 적용 대기
-- [ ] universe-pr5 본체와 recovery-operations: 패스키 PR을 연 뒤 시작
+- [x] PR #61-#64 병합(11-20 00:56-00:57, main `1fd8792`)
+- [x] `universe-pr5/passkey-archive-authority`: PR #66 열림. light 84, ledger 24, bootstrap 16, engine 25, integration 14 PASS; compliance·deployment 140/142(알려진 2건)
+- [x] 블로커1 사양: PR #65 열림 (다른 Claude 세션 작성)
+- [ ] `blocker1-approach-a-code` ← **GPT가 여기서 시작 가능 (A0만)**
 
 **마지막으로 통과한 검증:**
 
 ```
-broker venv + keyless, light passkey modules on c6ac761
-84 PASS / 0 FAIL / 0 NOT_RUN
+claude/passkey-windows ae255f8, Windows, broker venv, keyless, 테스트 프로세스 하나씩
+light 84/84, ledger 24/24, bootstrap 16/16, engine 25/25(실패 16건은 따로 재실행), integration 14/14
 ```
-
-**LEDGER에 새로 기록한 것 (2026-11-20):** #60(GPT 작업 대리 기록), Claude의 PR #61-#64(열림, 병합 대기), 패스키 Windows 검증·리뷰 수정 부분, 소유자 서명 11-11(#8 code_approved, #9 rules `1699d1d6`)과 11-12(#10 code-approve, 코드 해시 `1660e1db`).
 
 ## 5. 중단 지점
 
-엔진·원장 수정(REJECTED 닫기, 만료 요청 정리, 설치 재시도, 종결 상태 재시도, 등록 시각, KST 날짜 테스트)을 두 검증자의 테스트 수정과 합쳐 `claude/passkey-windows`에 적용하기 직전입니다. 커밋되지 않은 변경은 없습니다.
+커밋되지 않은 변경은 없습니다. 패스키는 PR #66에서 소유자 검토를 기다립니다. 소유자 결정(O11): 서명 설계 b-lite/b/c, 일시적 읽기 실패로 승인이 거절로 소모되는 문제(검증자 둘 다 제외 권장), clientDataJSON·REJECTED evidence 사양 편차, 엔진 시작 약 40초 vs 30초.
 
 ## 6. 다음 할 일 (순서대로)
 
-1. `universe-pr5/passkey-archive-authority`: 엔진·원장 묶음 적용, 무거운 테스트(light, ledger, bootstrap, engine, integration), 패스키 PR 열기, 소유자 결정 정리 — 완료 기준: 무거운 테스트 전부 PASS, PR이 #62·#63 위에 열림
-2. `universe-pr5`: forward-universe-v1 evaluator(`execution_launch/strategy.py`의 STRATEGY_EVALUATOR_UNSUPPORTED), capture, 시장별 parser, size check, family prior_attempts, study rule, tooling — 완료 기준: PR 열림, 관련 테스트 PASS
-3. `universe-pr5/recovery-operations`: 연구 복구·선발을 incident, 알림, 새 버전, 재관측, 정지 절차에 연결
-4. `universe-pr5-clock-notify`: PR5 병합 뒤 PC 시계 세션에 알림 → 1,000 ms 허용 PR
-5. `policy-loss-budget-plan-1`: PR5 병합과 소유자 floor_state_check(S1-S12 코드) 뒤
-6. `rules-review-1202`: 2026-12-03 규칙표 재검토 PR(47행, KR-OKX-SPOT auto_off 유지)은 이 ID로 기록합니다. 담당 Claude 세션 rules-table-re-review-be, 12-03 08:00 시작
+1. `blocker1-approach-a-code` A0: PR #65 사양의 A0(Upbit 공개 체결 목록 측정 프로브, 키 없음, D14 밖). OQ18이 기본값이라는 전제로만 시작하고, 소유자가 OQ18에 이의를 달면 멈춥니다. — 완료 기준: 별도 PR 열림, 프로브 테스트 PASS, D14 파일 변경 없음
+2. `blocker1-approach-a-code` A1/A2: 소유자가 PR #65의 OQ1-OQ7에 답하고 #65를 병합한 뒤에만 합니다. — 완료 기준: 사양 BR 규칙별 테스트 PASS, A1은 study freeze 전에 병합
+3. `launch-private-capture-setup-1`: A1/A2 뒤
+4. `launch-kis-live-collector-1`, `launch-okx-live-collector-1`, `launch-multi-market-validation-1`: 소유자가 TRADEGEN 자격 증명을 QUANTGEN .env와 분리한 뒤(O21)
+5. 그 밖의 ID는 Claude 메인이 11-24 17:00 이후 이어갑니다.
 
 ## 7. 주의사항 / 하지 말 것
 
-- GPT는 이번 창(11-19 00:00 ~ 11-24 17:00)에 universe-pr5, universe-pr5/recovery-operations, 패스키를 잡지 않습니다. 그 밖의 ID도 Claude가 `status: handoff`로 넘기기 전에는 잡지 않습니다.
+- `universe-pr5`, `universe-pr5/recovery-operations`, 패스키(PR #66)는 잡지 않습니다.
 - PR 병합·코드 승인·서명·키 입력·arm·주문은 소유자만 합니다.
-- 저장소는 공개입니다. 금액·개인 경로·자격 증명을 쓰지 않습니다.
-- 직전 GPT 문서의 경계(E 비청산, 기존 손실 하한 유지, S1-S12 가정 금지)는 그대로입니다.
+- 저장소는 공개입니다. Y 값·금액·개인 경로·자격 증명을 쓰지 않습니다.
+- 기존 파일의 줄 끝(LF/CRLF)을 그대로 둡니다. `git diff --stat`가 `--ignore-cr-at-eol`과 같아야 합니다.
 
 ## 8. 사용자에게 물어야 할 것
 
-- 열린 PR #61-#64 병합(#63을 #64보다 먼저)
-- 블로커1 마지막 질문(공백 동안 어떤 계좌 변화까지 이어갈지): 다른 Claude 세션에서 답을 기다림
+- PR #65 OQ1-OQ7 답변과 병합 (기한 2026-11-21 02:47 KST)
+- PR #66 검토와 소유자 결정(O11)
+- 다음 서명 전: 저장소 밖 서명기 사본을 main `1fd8792`의 `tools/signer/sign.py`로 교체(O8)
 
 ## 9. 이어받는 에이전트에게 주는 지시문
 
 ```
-지금은 Claude 메인이 작업 중(status: checkpoint)이다. 이 문서가 status: handoff로 바뀌기 전에는 어떤 ID도 잡지 마라.
-handoff로 바뀌면 CURRENT.md, AGENTS.md, LEDGER.md를 먼저 읽고, LEDGER.md에 있는 ID는 다시 하지 마라.
+너는 xkg4real/tradegen 레포의 "blocker1-approach-a-code" 작업을 이어받는다.
+1. handoff 브랜치의 CURRENT.md, AGENTS.md, LEDGER.md를 먼저 읽어라. LEDGER.md에 있는 ID는 다시 하지 마라.
+2. CURRENT.md의 status를 taken으로, from을 gpt로 바꾸고 updated_at을 갱신해 handoff 브랜치에 push해라.
+3. AGENTS.md 2절 5번에 따라 main 1fd8792에서 gpt/blocker1-a0 브랜치를 만들어 작업해라. AGENTS.md 5절을 한 줄도 어기지 마라.
+4. PR #65 사양의 A0(공개 체결 목록 측정 프로브)만 만든다. A1/A2는 소유자가 #65를 병합하기 전에는 시작하지 마라. universe-pr5, universe-pr5/recovery-operations, 패스키는 잡지 마라.
+5. ID 하나를 끝낼 때마다 LEDGER.md에 한 줄을 덧붙이고 CURRENT.md를 같은 양식으로 갱신해라. 끝나거나 멈출 때, 늦어도 화요일(11-24) 17:00(KST) 전에 status를 returned로 바꿔라.
 ```
 
 ## 10. 결과 확인 방법
 
 ```
-python push_handoff.py --show    # status: checkpoint, from: claude
-git show cbfb15b:CURRENT.md     # 직전 GPT 문서 (2026-11-14 05:11)
-python push_handoff.py --ledger  # 이번에 기록한 8행
+python push_handoff.py --show     # status: handoff, from: claude
+gh pr view 66 --repo xkg4real/tradegen   # 패스키 PR
+gh pr view 65 --repo xkg4real/tradegen   # 블로커1 사양 PR
 ```
