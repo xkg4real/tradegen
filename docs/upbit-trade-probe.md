@@ -117,7 +117,16 @@ signature, independent backup, or protection from a malicious local writer**.
 It is not an approved research archive and does not replace PR5 storage.
 
 Transport and format failures retain their received evidence where available and
-use fixed diagnostic codes. A storage failure stops collection; it does not
+use fixed diagnostic codes. A short body compared with `Content-Length`, or an
+incomplete chunked response, is recorded as `HTTP_BODY_INCOMPLETE` and stops the
+session before JSON can be used, even if the partial bytes form valid JSON.
+`Content-Length` and `Transfer-Encoding` are retained with the response headers.
+Only the bounded prefix exposed by the HTTP library can be saved; for a chunked
+failure this may exclude bytes from the unfinished chunk. A body read failure
+without available bytes records empty bytes, retained headers and
+`HTTP_RESPONSE_FAILED`; this does not claim the socket received an empty body.
+Protocol failures before headers use `TRANSPORT_FAILED`. Raw exception text is
+never retained. A storage failure stops collection; it does not
 promise to log to storage that is failing. Paths involving `.tradegen` or
 `.nextgen`, symlinks/reparse points and multiply linked log files are refused.
 

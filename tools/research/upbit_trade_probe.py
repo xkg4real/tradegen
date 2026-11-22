@@ -13,6 +13,7 @@ from datetime import datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
 from email.utils import parsedate_to_datetime
 import hashlib
+from http import client as http_client
 import json
 import math
 import os
@@ -31,6 +32,8 @@ MAX_ARCHIVE = 1024 * 1024 * 1024
 SETTLE_TOLERANCE_SECONDS = 0.1
 PATHS = frozenset(("/v1/trades/ticks", "/v1/trades/ticks/", "/v1/ticker", "/v1/candles/minutes/1"))
 UTC = timezone.utc
+RESPONSE_HEADERS = frozenset(("date", "remaining-req", "retry-after", "content-type", "content-length", "transfer-encoding"))
+REPLY_ERRORS = frozenset(("HTTP_BODY_INCOMPLETE", "HTTP_RESPONSE_FAILED", "HTTP_LENGTH_INVALID"))
 
 
 class ProbeError(Exception):
@@ -137,6 +140,7 @@ class Reply:
     headers: dict
     body: bytes
     truncated: bool = False
+    error: str | None = None
 
 
 class Clock:
@@ -167,10 +171,28 @@ def public_request(path, params):
     except error.HTTPError as exc:
         response = exc
     with response:
-        raw = response.read(MAX_BODY + 1)
         headers = {k.lower(): v for k, v in response.headers.items()
-                   if k.lower() in ("date", "remaining-req", "retry-after", "content-type")}
-        return Reply(response.status, headers, raw[:MAX_BODY], len(raw) > MAX_BODY)
+                   if k.lower() in RESPONSE_HEADERS}
+        failure = None
+        try:
+            raw = response.read(MAX_BODY + 1)
+        except http_client.IncompleteRead as exc:
+            # http.client exposes bytes from completed chunks, not necessarily
+            # every byte received on the socket. Retain exactly that prefix.
+            raw = exc.partial
+            failure = "HTTP_BODY_INCOMPLETE"
+        except (http_client.HTTPException, OSError):
+            raw = b""
+            failure = "HTTP_RESPONSE_FAILED"
+        truncated = len(raw) > MAX_BODY
+        if failure is None and not truncated and "content-length" in headers and headers.get("transfer-encoding", "").strip().lower() != "chunked":
+            length = headers["content-length"]
+            if not re.fullmatch(r"[0-9]{1,20}", length):
+                failure = "HTTP_LENGTH_INVALID"
+            elif len(raw) != int(length):
+                # HTTPResponse.read(amt) may return a short body without raising.
+                failure = "HTTP_BODY_INCOMPLETE"
+        return Reply(response.status, headers, raw[:MAX_BODY], truncated, failure)
 
 
 def _ordinary(path, directory=False):
@@ -307,16 +329,21 @@ class Probe:
         self.next_request = tick + 1 / self.config.requests_per_second
         try:
             reply = self.transport(path, dict(params))
-        except (OSError, error.URLError, TimeoutError):
-            self.archive.append({"kind": "response", "purpose": purpose, "path": path, "params": params,
-                                 "sent_at": utc_text(start), "received_at": utc_text(self.clock.wall()),
-                                 "error": "TRANSPORT_FAILED"})
-            raise ProbeStop("TRANSPORT_FAILED") from None
+        except (OSError, error.URLError, TimeoutError, http_client.HTTPException) as exc:
+            code = "HTTP_BODY_INCOMPLETE" if isinstance(exc, http_client.IncompleteRead) else "TRANSPORT_FAILED"
+            observation = {"kind": "response", "purpose": purpose, "path": path, "params": params,
+                           "sent_at": utc_text(start), "received_at": utc_text(self.clock.wall()), "error": code}
+            if isinstance(exc, http_client.IncompleteRead):
+                prefix = exc.partial[:MAX_BODY]
+                observation.update(body_base64=base64.b64encode(prefix).decode("ascii"),
+                                   body_sha256=hashlib.sha256(prefix).hexdigest(), body_truncated=len(exc.partial) > MAX_BODY)
+            self.archive.append(observation)
+            raise ProbeStop(code) from None
         end, finish = self.clock.wall(), self.clock.monotonic()
-        if type(reply) is not Reply or type(reply.body) is not bytes or len(reply.body) > MAX_BODY:
+        if type(reply) is not Reply or type(reply.body) is not bytes or len(reply.body) > MAX_BODY or (reply.error is not None and reply.error not in REPLY_ERRORS):
             raise ProbeStop("TRANSPORT_CONTRACT_INVALID")
         headers = {k.lower(): v for k, v in reply.headers.items()
-                   if k.lower() in ("date", "remaining-req", "retry-after", "content-type")}
+                   if k.lower() in RESPONSE_HEADERS}
         date = None
         try:
             date = parsedate_to_datetime(headers.get("date", "")).timestamp()
@@ -329,6 +356,8 @@ class Probe:
                        "body_sha256": hashlib.sha256(reply.body).hexdigest(), "body_truncated": reply.truncated,
                        "date_offset_seconds": None if date is None else date - (start + end) / 2,
                        "date_offset_uncertainty_seconds": None if date is None else 1 + latency / 2}
+        if reply.error is not None:
+            observation["error"] = reply.error
         self.archive.append(observation)
         self.last_response_timing = (start, end)
         self.last_wall = end
@@ -337,6 +366,8 @@ class Probe:
         if reply.status in (418, 429):
             # Stop the entire run. The owner can honour Retry-After before a new run.
             raise ProbeStop("RATE_LIMIT_STOP_" + str(reply.status))
+        if reply.error is not None:
+            raise ProbeStop(reply.error)
         if reply.truncated:
             raise ProbeStop("RESPONSE_TOO_LARGE")
         if not 200 <= reply.status < 300:

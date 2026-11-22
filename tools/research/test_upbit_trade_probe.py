@@ -4,6 +4,7 @@ from contextlib import redirect_stdout, redirect_stderr
 from datetime import datetime, timezone
 from email.utils import formatdate
 import io
+from http import client as http_client
 import json
 from pathlib import Path
 import socket
@@ -366,6 +367,117 @@ class ProbeTests(unittest.TestCase):
         self.assertEqual(self_req[0].full_url, "https://api.upbit.com/v1/ticker?markets=KRW-BTC")
         self.assertFalse(self_req[0].has_header("Origin"))
         self.assertNotIn("authorization", reply.headers)
+
+    def memory_http_response(self, wire):
+        class MemorySocket:
+            def makefile(self, mode):
+                return io.BytesIO(wire)
+        response = http_client.HTTPResponse(MemorySocket())
+        response.begin()
+        return response
+
+    def test_short_content_length_body_rejected_even_when_json_is_valid(self):
+        response = self.memory_http_response(b"HTTP/1.1 200 OK\r\nContent-Length: 10\r\n\r\n[]")
+        with patch.object(P.request, "build_opener") as make:
+            make.return_value.open.return_value = response
+            with P.Archive(self.root, self.config) as archive:
+                with self.assertRaisesRegex(P.ProbeStop, "HTTP_BODY_INCOMPLETE"):
+                    P.Probe(self.config, P.public_request, archive, self.clock).run()
+        rows = read_rows(self.root)
+        observation = next(x for x in rows if x["kind"] == "response")
+        self.assertEqual(base64.b64decode(observation["body_base64"]), b"[]")
+        self.assertEqual(observation["headers"]["content-length"], "10")
+        self.assertEqual(observation["error"], "HTTP_BODY_INCOMPLETE")
+        self.assertEqual(rows[-1]["code"], "HTTP_BODY_INCOMPLETE")
+        self.assertFalse(any(x["kind"] == "sample" for x in rows))
+
+    def test_incomplete_chunked_body_keeps_available_prefix_and_cli_stops(self):
+        response = self.memory_http_response(b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n2\r\n[]\r\n4\r\na")
+        output = io.StringIO()
+        with patch.object(P.request, "build_opener") as make:
+            make.return_value.open.return_value = response
+            with redirect_stdout(output):
+                code = P.main(["--market", "KRW-BTC", "--output", str(self.root), "--allow-public-network"])
+        self.assertEqual(code, 2)
+        self.assertEqual(json.loads(output.getvalue())["status"], "HTTP_BODY_INCOMPLETE")
+        rows = read_rows(self.root)
+        observation = next(x for x in rows if x["kind"] == "response")
+        self.assertEqual(base64.b64decode(observation["body_base64"]), b"[]")
+        self.assertEqual(observation["error"], "HTTP_BODY_INCOMPLETE")
+        self.assertEqual(rows[-1]["kind"], "session_stop")
+        self.assertEqual(rows[-1]["code"], "HTTP_BODY_INCOMPLETE")
+        self.assertFalse((self.root / ".probe.lock").exists())
+
+    def test_protocol_failure_before_headers_is_sanitized_and_logged(self):
+        with patch.object(P.request, "build_opener") as make:
+            make.return_value.open.side_effect = http_client.BadStatusLine("private_exception_detail")
+            with P.Archive(self.root, self.config) as archive:
+                with self.assertRaisesRegex(P.ProbeStop, "TRANSPORT_FAILED"):
+                    P.Probe(self.config, P.public_request, archive, self.clock).run()
+        rows = read_rows(self.root)
+        self.assertEqual(rows[-2]["error"], "TRANSPORT_FAILED")
+        self.assertEqual(rows[-1]["code"], "TRANSPORT_FAILED")
+        self.assertNotIn("private_exception_detail", (self.root / "observations.jsonl").read_text())
+
+    def test_transport_incomplete_read_exposes_only_available_prefix(self):
+        def transport(*_):
+            raise http_client.IncompleteRead(b"partial", 20)
+        with P.Archive(self.root, self.config) as archive:
+            with self.assertRaisesRegex(P.ProbeStop, "HTTP_BODY_INCOMPLETE"):
+                P.Probe(self.config, transport, archive, self.clock).run()
+        rows = read_rows(self.root)
+        self.assertEqual(base64.b64decode(rows[-2]["body_base64"]), b"partial")
+        self.assertNotIn("status", rows[-2])
+        self.assertNotIn("headers", rows[-2])
+        self.assertEqual(rows[-1]["code"], "HTTP_BODY_INCOMPLETE")
+
+    def test_body_read_failure_preserves_headers_without_claiming_complete_bytes(self):
+        response = self.memory_http_response(b"HTTP/1.1 200 OK\r\nContent-Length: 10\r\n\r\n[]")
+        with patch.object(P.request, "build_opener") as make, patch.object(response, "read", side_effect=OSError("private_detail")):
+            make.return_value.open.return_value = response
+            with P.Archive(self.root, self.config) as archive:
+                with self.assertRaisesRegex(P.ProbeStop, "HTTP_RESPONSE_FAILED"):
+                    P.Probe(self.config, P.public_request, archive, self.clock).run()
+        rows = read_rows(self.root)
+        observation = next(x for x in rows if x["kind"] == "response")
+        self.assertEqual(observation["headers"]["content-length"], "10")
+        self.assertEqual(observation["body_base64"], "")
+        self.assertEqual(observation["error"], "HTTP_RESPONSE_FAILED")
+        self.assertEqual(rows[-1]["code"], "HTTP_RESPONSE_FAILED")
+        self.assertNotIn("private_detail", (self.root / "observations.jsonl").read_text())
+
+    def test_partial_prefix_is_bounded_and_its_hash_covers_only_saved_bytes(self):
+        response = self.memory_http_response(b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n")
+        with patch.object(P.request, "build_opener") as make, patch.object(response, "read", side_effect=http_client.IncompleteRead(b"x" * (P.MAX_BODY + 32))):
+            make.return_value.open.return_value = response
+            with P.Archive(self.root, self.config) as archive:
+                with self.assertRaisesRegex(P.ProbeStop, "HTTP_BODY_INCOMPLETE"):
+                    P.Probe(self.config, P.public_request, archive, self.clock).run()
+        observation = next(x for x in read_rows(self.root) if x["kind"] == "response")
+        self.assertTrue(observation["body_truncated"])
+        raw = base64.b64decode(observation["body_base64"])
+        self.assertEqual(len(raw), P.MAX_BODY)
+        self.assertEqual(P.hashlib.sha256(raw).hexdigest(), observation["body_sha256"])
+
+    def test_complete_content_length_and_chunked_responses_still_parse(self):
+        for wire in (b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n[]",
+                     b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n2\r\n[]\r\n0\r\n\r\n"):
+            response = self.memory_http_response(wire)
+            with patch.object(P.request, "build_opener") as make:
+                make.return_value.open.return_value = response
+                reply = P.public_request("/v1/ticker", {"markets": "KRW-BTC"})
+            self.assertIsNone(reply.error)
+            self.assertEqual(reply.body, b"[]")
+            self.assertFalse(reply.truncated)
+
+    def test_invalid_content_length_has_fixed_refusal(self):
+        response = self.memory_http_response(b"HTTP/1.1 200 OK\r\nContent-Length: bad\r\n\r\n[]")
+        with patch.object(P.request, "build_opener") as make:
+            make.return_value.open.return_value = response
+            with P.Archive(self.root, self.config) as archive:
+                with self.assertRaisesRegex(P.ProbeStop, "HTTP_LENGTH_INVALID"):
+                    P.Probe(self.config, P.public_request, archive, self.clock).run()
+        self.assertEqual(read_rows(self.root)[-1]["code"], "HTTP_LENGTH_INVALID")
 
 
 if __name__ == "__main__":
