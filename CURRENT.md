@@ -4,9 +4,9 @@ reason: independent_units_delivered_owner_inputs_pending
 from: gpt
 task: upbit-universe
 cycle: 2026-11-17
-done_ids: universe-pr5/passkey-archive-authority, blocker1-approach-a-code/a0-probe, didm-readonly-source-bridge-1, workflow-resume-1122
+done_ids: universe-pr5/passkey-archive-authority, blocker1-approach-a-code/a0-probe, didm-readonly-source-bridge-1, workflow-resume-1122, workflow-mail-notify-1122
 next_ids: blocker1-approach-a-code/A1-A2, launch-private-capture-setup-1, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1, universe-pr5, universe-pr5/recovery-operations, universe-pr5-clock-notify, policy-loss-budget-plan-1, rules-review-1202, protective-hold/p2-integration, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, universe-code-approve, e1-14-owner-setup, launch-prospective-study
-updated_at: 2026-11-22T22:35:54+09:00
+updated_at: 2026-11-22T23:03:21+09:00
 stale_after_hours: 24
 waiting_on: owner_policy_decisions_and_native_measurements
 work_branch: gpt/resume-1122
@@ -27,7 +27,7 @@ Claude의 최신 인계 `32ea218`과 main `1fd8792`를 대조해 A0 측정 도�
 
 ## 1. 목표와 완료 조건
 
-소유자의 11-22 요청은 최신 Claude 로그 분석, Notion 완료 항목 취소선 표시, 남은 개발, DIDM 데이터 구현, 두 사람의 수동 작업 완료 추적, 당일 기록 보관입니다. 이번 독립 코드 단위는 PR #67과 검증 기록으로 인도했습니다. 사용자 PC로의 복사와 메일 발송은 완료되지 않았습니다.
+소유자의 11-22 요청은 최신 Claude 로그 분석, Notion 완료 항목 취소선 표시, 남은 개발, DIDM 데이터 구현, 두 사람의 수동 작업 완료 추적, 당일 기록 보관입니다. 이번 독립 코드 단위는 PR #67과 검증 기록으로 인도했습니다. 사용자 PC로의 복사는 아직 완료되지 않았습니다. 메일 발송은 초기 인도 시점에 미완료였으며, 11-22 후속 결과는 5절에 기록했습니다.
 
 ## 2. 근거
 
@@ -52,6 +52,7 @@ Claude의 최신 인계 `32ea218`과 main `1fd8792`를 대조해 A0 측정 도�
 - [x] DIDM 읽기 전용 연결, 검사 29건, 실제 QUANTGEN 코드와 합성 자료를 이용한 상호운용 확인, PR #67.
 - [x] 수동 추적기 검사 22건, Windows 복사 스크립트, 당일 비공개 기록 묶음.
 - [x] Notion의 기존 완료 항목 취소선, 현재 상태, 고정 수동 작업 ID·담당자·다음 단계 갱신.
+- [x] 11-22 후속: Gmail 연결, 기한이 지난 PR #65 소유자 안내 발송 및 SENT 확인. 수신·열람은 확인되지 않았습니다.
 - [ ] PR #67 병합, PC 복사, 실제 A0 측정, 실제 DIDM 입력, Windows 검증.
 - [ ] A1/A2, PR #66 관련 결정, 앱 실거래 통합, 모형 검증, 소유자의 실제 활성화.
 
@@ -59,7 +60,9 @@ Claude의 최신 인계 `32ea218`과 main `1fd8792`를 대조해 A0 측정 도�
 
 ## 5. 중단 지점
 
-코드는 커밋·push됐고 PR #67에서 검토할 수 있습니다. 원래 패스키 브랜치와 main은 수정하지 않았습니다. 메일 연결이 없어 기한이 지난 PR #65 안내는 비공개 초안만 생성했으며 발송하지 않았습니다. Cloud에서는 실제 Windows Desktop에 쓸 수 없어 보관 스크립트와 기록 묶음으로 전달했습니다. 주간 사용량을 조회할 수단은 없습니다.
+코드는 커밋·push됐고 PR #67에서 검토할 수 있습니다. 원래 패스키 브랜치와 main은 수정하지 않았습니다. 초기 인도 시점에는 메일 연결이 없어 기한이 지난 PR #65 안내를 비공개 초안으로만 남겼습니다. Cloud에서는 실제 Windows Desktop에 쓸 수 없어 보관 스크립트와 기록 묶음으로 전달했습니다. 주간 사용량을 조회할 수단은 없습니다.
+
+**2026-11-22 23:03:21 KST 후속:** Gmail 연결 후 PR #65 소유자 안내를 발송했고, 메일 메타데이터에서 SENT 상태를 확인했습니다. 수신자에게 도달했거나 읽혔는지는 확인되지 않았습니다. 발송 근거는 비공개 영수증과 Notion에 보관하며, 공개 인수인계에는 수신 주소·메일 ID·개인 경로를 넣지 않습니다. 코드 변경은 없습니다.
 
 ## 6. 다음 할 일
 
@@ -75,7 +78,7 @@ Claude의 최신 인계 `32ea218`과 main `1fd8792`를 대조해 A0 측정 도�
 
 ## 8. 필요한 입력과 수동 추적
 
-Notion의 `TG-MAN-001~012`, `TG-HIST-001~003`이 공통 ID입니다. 신규 작업 12개는 대기 중이며, 과거 완료 보고 3개는 보존했습니다. 담당자·버전·보고 시각·근거·다음 단계를 기록합니다. 메일 수단 연결, 기한이 지난 PR #65 관련 결정, 소유자 상태 코드가 필요하며 자동으로 승인하지 않습니다. 비공개 연락처·개인 경로·상태 파일을 공개 저장소에 복사하지 마세요.
+Notion의 `TG-MAN-001~012`, `TG-HIST-001~003`이 공통 ID입니다. 신규 작업 12개를 완료로 전환하지 않았으며, 과거 완료 보고 3개는 보존했습니다. 담당자·버전·보고 시각·근거·다음 단계를 기록합니다. 11-22 후속 기준으로 `TG-MAN-001`의 PR #65 답변은 여전히 대기 중입니다. `TG-MAN-006`은 Gmail 연결과 소유자 안내 발송만 끝난 부분 완료 상태이며, skymi의 알림 수신처는 아직 확인되지 않았습니다. PR #65 관련 결정과 소유자 상태 코드도 여전히 필요하며, 메일 발송을 응답이나 승인으로 간주하지 않습니다. 비공개 연락처·개인 경로·상태 파일을 공개 저장소에 복사하지 마세요.
 
 ## 9. 이어받는 지시
 
