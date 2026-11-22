@@ -1,19 +1,20 @@
 ---
-status: handoff
-reason: usage_limit_weekly
-from: claude
+status: taken
+reason: owner_requested_resume_2026_11_22
+from: gpt
 task: upbit-universe
 cycle: 2026-11-17
 done_ids: universe-pr5/passkey-archive-authority
 next_ids: blocker1-approach-a-code, launch-private-capture-setup-1, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1, universe-pr5, universe-pr5/recovery-operations, universe-pr5-clock-notify, policy-loss-budget-plan-1, rules-review-1202, protective-hold/p2-integration, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, universe-code-approve, e1-14-owner-setup, launch-prospective-study
-updated_at: 2026-11-20T15:50:00+09:00
+updated_at: 2026-11-22T22:23:16+09:00
 stale_after_hours: 24
 waiting_on: owner
 work_branch: claude/passkey-windows
 work_commit: ae255f8
 uncommitted_changes: no
 pr: 65, 66 (열림, 소유자 답변·병합 대기)
-usage_weekly_pct: 99
+usage_weekly_pct: unknown
+usage_source: unavailable
 usage_5h_pct: unknown
 usage_resets_at: 2026-11-24T17:00:00+09:00
 session: Claude Code 메인 세션 TRADEGEN_GITHUB (local_a72616d1)
@@ -105,3 +106,7 @@ python push_handoff.py --show     # status: handoff, from: claude
 gh pr view 66 --repo xkg4real/tradegen   # 패스키 PR
 gh pr view 65 --repo xkg4real/tradegen   # 블로커1 사양 PR
 ```
+
+## 11. GPT 재개 (2026-11-22 KST)
+
+소유자가 최신 로그 분석·Notion 완료표시·잔여 개발과 DIDM 데이터 연결을 요청함. main `1fd8792`, PR65 `7614167`, PR66 `ae255f8` 확인. 기존 패스키 브랜치를 다시 구현하지 않음. A0와 DIDM의 입력 불필요 범위를 별도 개발. 수동 작업은 완료 통보와 검증을 구분해 추적. 실제 주문·키·서명 실행 없음.
