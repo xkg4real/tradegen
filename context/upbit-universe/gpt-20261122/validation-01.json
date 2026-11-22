@@ -1,0 +1,373 @@
+{
+  "schema": "tradegen-focused-verification-v1",
+  "label": "validation-01",
+  "base": "1fd87928d79a4819c3bace0255cf190f0bdeb712",
+  "head": "1fd87928d79a4819c3bace0255cf190f0bdeb712",
+  "platform": "linux",
+  "python": "3.13.16",
+  "source_sha256": "02bd3810602fd205c4e105311295069ed085c576a5b67f8779d76dc83c60f11c",
+  "source_unchanged": true,
+  "home_metadata_unchanged": true,
+  "qa_unchanged": true,
+  "keyless_names": 19,
+  "network_disabled": true,
+  "d14_owner_signer_equal": true,
+  "d14_base_unchanged": true,
+  "d14_file_count_including_records": 134,
+  "existing_tracked_files_unchanged": true,
+  "counts": {
+    "PASS": 86,
+    "FAIL": 0,
+    "NOT_RUN": 0
+  },
+  "total": 86,
+  "seconds": 9.711,
+  "windows_native": "NOT_RUN",
+  "live_api_calls": 0,
+  "rows": [
+    {
+      "id": "test_upbit_trade_probe.ProbeTests.test_0900_kst_uses_both_utc_days_and_omits_ambiguous_to_at_midnight",
+      "status": "PASS"
+    },
+    {
+      "id": "test_upbit_trade_probe.ProbeTests.test_429_and_418_stop_after_one_request_and_retain_retry_after",
+      "status": "PASS"
+    },
+    {
+      "id": "test_upbit_trade_probe.ProbeTests.test_bounded_page_limit_never_means_complete",
+      "status": "PASS"
+    },
+    {
+      "id": "test_upbit_trade_probe.ProbeTests.test_config_numeric_and_market_boundaries",
+      "status": "PASS"
+    },
+    {
+      "id": "test_upbit_trade_probe.ProbeTests.test_corrupted_hash_refused",
+      "status": "PASS"
+    },
+    {
+      "id": "test_upbit_trade_probe.ProbeTests.test_cursor_loop_refused_after_retaining_responses",
+      "status": "PASS"
+    },
+    {
+      "id": "test_upbit_trade_probe.ProbeTests.test_first_seen_uses_network_receipt_not_storage_latency",
+      "status": "PASS"
+    },
+    {
+      "id": "test_upbit_trade_probe.ProbeTests.test_full_six_sample_measurement_preserves_raw_and_no_authority",
+      "status": "PASS"
+    },
+    {
+      "id": "test_upbit_trade_probe.ProbeTests.test_missing_date_cannot_support_day_walk",
+      "status": "PASS"
+    },
+    {
+      "id": "test_upbit_trade_probe.ProbeTests.test_network_exception_retained_without_sensitive_exception_text",
+      "status": "PASS"
+    },
+    {
+      "id": "test_upbit_trade_probe.ProbeTests.test_no_cli_network_without_explicit_option",
+      "status": "PASS"
+    },
+    {
+      "id": "test_upbit_trade_probe.ProbeTests.test_no_redirect_and_no_proxy_are_installed",
+      "status": "PASS"
+    },
+    {
+      "id": "test_upbit_trade_probe.ProbeTests.test_numeric_exactness_is_independent_of_decimal_context",
+      "status": "PASS"
+    },
+    {
+      "id": "test_upbit_trade_probe.ProbeTests.test_oversize_and_malformed_responses_leave_raw_observations",
+      "status": "PASS"
+    },
+    {
+      "id": "test_upbit_trade_probe.ProbeTests.test_pagination_uses_received_last_id_not_numeric_order_and_deduplicates",
+      "status": "PASS"
+    },
+    {
+      "id": "test_upbit_trade_probe.ProbeTests.test_previous_candle_does_not_claim_target_minute_stability",
+      "status": "PASS"
+    },
+    {
+      "id": "test_upbit_trade_probe.ProbeTests.test_real_owner_home_paths_refused_without_creation",
+      "status": "PASS"
+    },
+    {
+      "id": "test_upbit_trade_probe.ProbeTests.test_resume_configuration_change_refused",
+      "status": "PASS"
+    },
+    {
+      "id": "test_upbit_trade_probe.ProbeTests.test_resume_keeps_prefix_including_decimal_timing",
+      "status": "PASS"
+    },
+    {
+      "id": "test_upbit_trade_probe.ProbeTests.test_same_id_changed_is_refused",
+      "status": "PASS"
+    },
+    {
+      "id": "test_upbit_trade_probe.ProbeTests.test_second_writer_refused_without_removing_first_lock",
+      "status": "PASS"
+    },
+    {
+      "id": "test_upbit_trade_probe.ProbeTests.test_server_day_mismatch_refused",
+      "status": "PASS"
+    },
+    {
+      "id": "test_upbit_trade_probe.ProbeTests.test_start_to_start_rate_ceiling_and_actual_settle_are_recorded",
+      "status": "PASS"
+    },
+    {
+      "id": "test_upbit_trade_probe.ProbeTests.test_symlink_output_refused",
+      "status": "PASS"
+    },
+    {
+      "id": "test_upbit_trade_probe.ProbeTests.test_ticker_mismatch_is_a_no_go_in_the_returned_summary",
+      "status": "PASS"
+    },
+    {
+      "id": "test_upbit_trade_probe.ProbeTests.test_timestamp_boundaries_are_half_open",
+      "status": "PASS"
+    },
+    {
+      "id": "test_upbit_trade_probe.ProbeTests.test_torn_row_is_preserved_and_not_resumed",
+      "status": "PASS"
+    },
+    {
+      "id": "test_upbit_trade_probe.ProbeTests.test_trailing_slash_is_opt_in_and_observed_refusal_preserved",
+      "status": "PASS"
+    },
+    {
+      "id": "test_upbit_trade_probe.ProbeTests.test_transport_rejects_arbitrary_paths_or_query_credentials",
+      "status": "PASS"
+    },
+    {
+      "id": "test_upbit_trade_probe.ProbeTests.test_wire_parser_refuses_duplicates_nan_bool_and_wrong_market",
+      "status": "PASS"
+    },
+    {
+      "id": "test_didm_source_bridge.BridgeTests.test_actual_shape_sqlite_cli_preserves_bytes_and_creates_private_report",
+      "status": "PASS"
+    },
+    {
+      "id": "test_didm_source_bridge.BridgeTests.test_cli_bad_last_record_leaves_no_output_or_temp",
+      "status": "PASS"
+    },
+    {
+      "id": "test_didm_source_bridge.BridgeTests.test_corrupt_and_non_sqlite_inputs_refuse",
+      "status": "PASS"
+    },
+    {
+      "id": "test_didm_source_bridge.BridgeTests.test_distinct_alfred_vintages_remain_distinct_items",
+      "status": "PASS"
+    },
+    {
+      "id": "test_didm_source_bridge.BridgeTests.test_duplicate_json_keys_and_noncanonical_payload_refuse",
+      "status": "PASS"
+    },
+    {
+      "id": "test_didm_source_bridge.BridgeTests.test_duplicate_scores_refuse_rather_than_select_one",
+      "status": "PASS"
+    },
+    {
+      "id": "test_didm_source_bridge.BridgeTests.test_empty_data_is_reported_without_fake_rows_or_scores",
+      "status": "PASS"
+    },
+    {
+      "id": "test_didm_source_bridge.BridgeTests.test_future_corrupt_record_refuses_whole_input",
+      "status": "PASS"
+    },
+    {
+      "id": "test_didm_source_bridge.BridgeTests.test_future_versions_are_preserved_and_do_not_change_as_of_selection",
+      "status": "PASS"
+    },
+    {
+      "id": "test_didm_source_bridge.BridgeTests.test_later_correction_is_selected_only_after_receipt",
+      "status": "PASS"
+    },
+    {
+      "id": "test_didm_source_bridge.BridgeTests.test_missing_extra_and_wrong_container_fields_refuse",
+      "status": "PASS"
+    },
+    {
+      "id": "test_didm_source_bridge.BridgeTests.test_nonfinite_payload_including_overflow_json_is_refused",
+      "status": "PASS"
+    },
+    {
+      "id": "test_didm_source_bridge.BridgeTests.test_payload_and_row_limits_do_not_return_partial_success",
+      "status": "PASS"
+    },
+    {
+      "id": "test_didm_source_bridge.BridgeTests.test_pub_after_receipt_preserved_with_clock_anomaly",
+      "status": "PASS"
+    },
+    {
+      "id": "test_didm_source_bridge.BridgeTests.test_publication_competing_writer_is_not_overwritten",
+      "status": "PASS"
+    },
+    {
+      "id": "test_didm_source_bridge.BridgeTests.test_publication_never_overwrites_and_cleans_temp_on_failure",
+      "status": "PASS"
+    },
+    {
+      "id": "test_didm_source_bridge.BridgeTests.test_score_provenance_link_and_receipt_must_match_source",
+      "status": "PASS"
+    },
+    {
+      "id": "test_didm_source_bridge.BridgeTests.test_score_receipt_after_cutoff_never_known_at_as_of",
+      "status": "PASS"
+    },
+    {
+      "id": "test_didm_source_bridge.BridgeTests.test_source_change_during_read_is_refused",
+      "status": "PASS"
+    },
+    {
+      "id": "test_didm_source_bridge.BridgeTests.test_source_sidecars_all_refuse_without_change",
+      "status": "PASS"
+    },
+    {
+      "id": "test_didm_source_bridge.BridgeTests.test_superseded_source_score_is_retained_but_not_counted_as_current",
+      "status": "PASS"
+    },
+    {
+      "id": "test_didm_source_bridge.BridgeTests.test_tied_receipts_match_producer_hash_tiebreak",
+      "status": "PASS"
+    },
+    {
+      "id": "test_didm_source_bridge.BridgeTests.test_timezone_missing_and_invalid_clock_refuse",
+      "status": "PASS"
+    },
+    {
+      "id": "test_didm_source_bridge.BridgeTests.test_unknown_source_kind_and_contract_refuse",
+      "status": "PASS"
+    },
+    {
+      "id": "test_didm_source_bridge.BridgeTests.test_utc_equivalent_receipts_are_duplicate_versions",
+      "status": "PASS"
+    },
+    {
+      "id": "test_didm_source_bridge.BridgeTests.test_v0_score_bounds_fields_and_algebra_are_not_coerced",
+      "status": "PASS"
+    },
+    {
+      "id": "test_didm_source_bridge.BridgeTests.test_valid_v0_scores_are_research_only_and_optional_version_is_preserved",
+      "status": "PASS"
+    },
+    {
+      "id": "test_didm_source_bridge.BridgeTests.test_views_triggers_extra_tables_and_changed_sql_refuse",
+      "status": "PASS"
+    },
+    {
+      "id": "test_didm_source_bridge.BridgeTests.test_windows_identity_uses_birthtime_not_inconsistent_ctime",
+      "status": "PASS"
+    },
+    {
+      "id": "test_completion_tracker.TrackerTests.test_baseline_edit_after_events_is_detected",
+      "status": "PASS"
+    },
+    {
+      "id": "test_completion_tracker.TrackerTests.test_clock_rollback_refused",
+      "status": "PASS"
+    },
+    {
+      "id": "test_completion_tracker.TrackerTests.test_corrupt_event_hash_refuses_without_rewrite",
+      "status": "PASS"
+    },
+    {
+      "id": "test_completion_tracker.TrackerTests.test_deleting_prefix_event_is_detected",
+      "status": "PASS"
+    },
+    {
+      "id": "test_completion_tracker.TrackerTests.test_duplicate_json_keys_refused",
+      "status": "PASS"
+    },
+    {
+      "id": "test_completion_tracker.TrackerTests.test_duplicate_submission_is_idempotent",
+      "status": "PASS"
+    },
+    {
+      "id": "test_completion_tracker.TrackerTests.test_hardlink_input_refused",
+      "status": "PASS"
+    },
+    {
+      "id": "test_completion_tracker.TrackerTests.test_historical_date_preserves_unknown_original_time",
+      "status": "PASS"
+    },
+    {
+      "id": "test_completion_tracker.TrackerTests.test_initial_pending_without_invented_completion",
+      "status": "PASS"
+    },
+    {
+      "id": "test_completion_tracker.TrackerTests.test_lock_prevents_concurrent_overwrite",
+      "status": "PASS"
+    },
+    {
+      "id": "test_completion_tracker.TrackerTests.test_lock_removed_after_refused_transition",
+      "status": "PASS"
+    },
+    {
+      "id": "test_completion_tracker.TrackerTests.test_oversize_file_refused",
+      "status": "PASS"
+    },
+    {
+      "id": "test_completion_tracker.TrackerTests.test_owner_only_action_is_not_delegated",
+      "status": "PASS"
+    },
+    {
+      "id": "test_completion_tracker.TrackerTests.test_owner_only_invariant_is_also_enforced_during_replay",
+      "status": "PASS"
+    },
+    {
+      "id": "test_completion_tracker.TrackerTests.test_reopen_needs_new_version_and_reason",
+      "status": "PASS"
+    },
+    {
+      "id": "test_completion_tracker.TrackerTests.test_report_then_verify_preserves_history_and_actor",
+      "status": "PASS"
+    },
+    {
+      "id": "test_completion_tracker.TrackerTests.test_symlink_input_refused",
+      "status": "PASS"
+    },
+    {
+      "id": "test_completion_tracker.TrackerTests.test_task_definition_cannot_start_done",
+      "status": "PASS"
+    },
+    {
+      "id": "test_completion_tracker.TrackerTests.test_timezone_required",
+      "status": "PASS"
+    },
+    {
+      "id": "test_completion_tracker.TrackerTests.test_unknown_actor_task_and_missing_evidence_refused",
+      "status": "PASS"
+    },
+    {
+      "id": "test_completion_tracker.TrackerTests.test_verification_requires_prior_report",
+      "status": "PASS"
+    },
+    {
+      "id": "test_completion_tracker.TrackerTests.test_verified_task_is_not_downgraded",
+      "status": "PASS"
+    },
+    {
+      "id": "test_allowlists_are_pinned",
+      "status": "PASS"
+    },
+    {
+      "id": "test_upbit_strings_are_exact",
+      "status": "PASS"
+    },
+    {
+      "id": "test_capture_endpoint_pin_does_not_expand_inquiry_permission",
+      "status": "PASS"
+    },
+    {
+      "id": "test_new_runtime_packages_are_signed_recursively_by_owner_and_signer",
+      "status": "PASS"
+    },
+    {
+      "id": "test_launch_and_network_do_not_directly_sign_arm_or_open_http",
+      "status": "PASS"
+    }
+  ]
+}

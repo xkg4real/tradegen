@@ -1,0 +1,24 @@
+{
+  "synthetic_only": true,
+  "source_commit": "dec979a7fae65d5f749e12193fad3d0a9ce8ddf3",
+  "product_sha256": "c817b4c1210d82d1f336a52153bfa01e983d07d35baeaf55f31dc6a0574d0305",
+  "reference_files": 12,
+  "reference_blobs_verified": true,
+  "checks": [
+    "actual_six_source_parsers_and_store_as_of_match",
+    "all_nine_versions_retained_future_correction_excluded",
+    "original_database_unchanged_no_source_sidecars",
+    "actual_upstream_v0_validator_and_bridge_accept_same_fixture",
+    "five_invalid_score_mutations_rejected_by_both_validators",
+    "actual_shaped_export_links_score_without_authority",
+    "complete_report_roundtrip"
+  ],
+  "checks_passed": 7,
+  "network_attempts": 0,
+  "source_unchanged": true,
+  "reference_unchanged": true,
+  "native_windows": "NOT_RUN",
+  "real_provider_calls": 0,
+  "owner_data_used": false,
+  "live_activation": false
+}

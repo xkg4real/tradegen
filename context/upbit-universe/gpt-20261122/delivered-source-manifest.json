@@ -1,0 +1,34 @@
+{
+  "commit": "2aaaca011c360435d169312d3f2f7e7426cb5c4a",
+  "pr": "https://github.com/xkg4real/tradegen/pull/67",
+  "files": [
+    {
+      "path": "docs/didm-source-bridge.md",
+      "sha256": "6d3a58e7b3c3de9e7a9c0705fd98ac284f609a1d35020bf86bb0cbb17b29c80e"
+    },
+    {
+      "path": "docs/resume-2026-11-22.md",
+      "sha256": "f801816721805d65bf2a88a2cecef6eb588a06cbaefe56ac14b37ca682f0445b"
+    },
+    {
+      "path": "docs/upbit-trade-probe.md",
+      "sha256": "742794797d215944df2449dce0e79f4f0dca65f04f6e21b09e4237f23985a3c8"
+    },
+    {
+      "path": "tools/research/didm_source_bridge.py",
+      "sha256": "c817b4c1210d82d1f336a52153bfa01e983d07d35baeaf55f31dc6a0574d0305"
+    },
+    {
+      "path": "tools/research/test_didm_source_bridge.py",
+      "sha256": "d0344843dbbdd210b1e3389731a4fe557b28ad7ef93c7a0fe7242cce80ea748b"
+    },
+    {
+      "path": "tools/research/test_upbit_trade_probe.py",
+      "sha256": "92cdcd36d026f81ea48a54be792a4840d239d014c3d4a7e8f6595ca6669e2f00"
+    },
+    {
+      "path": "tools/research/upbit_trade_probe.py",
+      "sha256": "f3fae873c7dd2064f6186ca6f233a10300595d52c5513aa7290960c16f417635"
+    }
+  ]
+}

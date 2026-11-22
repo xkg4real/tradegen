@@ -1,112 +1,88 @@
 ---
-status: taken
-reason: owner_requested_resume_2026_11_22
+status: returned
+reason: independent_units_delivered_owner_inputs_pending
 from: gpt
 task: upbit-universe
 cycle: 2026-11-17
-done_ids: universe-pr5/passkey-archive-authority
-next_ids: blocker1-approach-a-code, launch-private-capture-setup-1, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1, universe-pr5, universe-pr5/recovery-operations, universe-pr5-clock-notify, policy-loss-budget-plan-1, rules-review-1202, protective-hold/p2-integration, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, universe-code-approve, e1-14-owner-setup, launch-prospective-study
-updated_at: 2026-11-22T22:23:16+09:00
+done_ids: universe-pr5/passkey-archive-authority, blocker1-approach-a-code/a0-probe, didm-readonly-source-bridge-1, workflow-resume-1122
+next_ids: blocker1-approach-a-code/A1-A2, launch-private-capture-setup-1, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1, universe-pr5, universe-pr5/recovery-operations, universe-pr5-clock-notify, policy-loss-budget-plan-1, rules-review-1202, protective-hold/p2-integration, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, universe-code-approve, e1-14-owner-setup, launch-prospective-study
+updated_at: 2026-11-22T22:35:54+09:00
 stale_after_hours: 24
-waiting_on: owner
-work_branch: claude/passkey-windows
-work_commit: ae255f8
+waiting_on: owner_policy_decisions_and_native_measurements
+work_branch: gpt/resume-1122
+work_commit: 2aaaca011c360435d169312d3f2f7e7426cb5c4a
 uncommitted_changes: no
-pr: 65, 66 (열림, 소유자 답변·병합 대기)
+pr: 65, 66, 67 (open)
 usage_weekly_pct: unknown
 usage_source: unavailable
 usage_5h_pct: unknown
-usage_resets_at: 2026-11-24T17:00:00+09:00
-session: Claude Code 메인 세션 TRADEGEN_GITHUB (local_a72616d1)
+session: Codex Cloud 2026-11-22
 ---
 
-# 인수인계: Claude 주간 한도 도달 (패스키 PR #66, 블로커1 사양 PR #65)
+# 2026-11-22 인수인계: A0·DIDM 입력 도구 PR #67
 
 ## 0. 한 줄 요약
 
-Claude 주간 사용량이 99%라 인계합니다. 패스키 PR #66과 블로커1 사양 PR #65가 열려 소유자를 기다립니다. GPT가 지금 잡을 수 있는 일은 `blocker1-approach-a-code`의 A0 측정 프로브 하나이고, A1·A2는 소유자가 #65에 답하고 병합한 뒤입니다.
+Claude의 최신 인계 `32ea218`과 main `1fd8792`를 대조해 A0 측정 도구와 DIDM 읽기 전용 입력 도구를 구현·검증하고 PR #67을 열었습니다. 앱의 실거래 준비가 완료된 것은 아닙니다. PR #65·#66의 미결정 사항, 실제 관측과 Windows 검증이 남아 있습니다.
 
 ## 1. 목표와 완료 조건
 
-- **소유자 지시 (원문 그대로):**
-  > 주간 사용량 98%가 되면 GPT에 인계합니다.
-  > 잠금 정리, 메인 담당
-- **완료 조건:** 아래 6절 ID 중 GPT가 잡은 것마다 PR이 열리고, 관련 테스트가 PASS이며, LEDGER에 한 줄이 기록됨
-- **범위 밖 (GPT가 잡지 않음):** `universe-pr5`, `universe-pr5/recovery-operations`, 패스키 후속은 소유자 결정(11-20 "잠금 정리, 메인 담당")으로 Claude 메인 담당입니다. 이번 창이 끝나는 2026-11-24 17:00 KST까지 잡지 마세요.
+소유자의 11-22 요청은 최신 Claude 로그 분석, Notion 완료 항목 취소선 표시, 남은 개발, DIDM 데이터 구현, 두 사람의 수동 작업 완료 추적, 당일 기록 보관입니다. 이번 독립 코드 단위는 PR #67과 검증 기록으로 인도했습니다. 사용자 PC로의 복사와 메일 발송은 완료되지 않았습니다.
 
 ## 2. 근거
 
-| 종류 | 위치 | 쓰는 부분 |
-|---|---|---|
-| 블로커1 사양 | PR #65 `docs/superpowers/specs/2026-11-20-blocker1-held-interval-approach-a-design.md` | 규칙 BR-1~26, A0/A1/A2, 질문 OQ1-OQ18 |
-| 패스키 PR | PR #66 (`claude/passkey-windows` `ae255f8`) | 리뷰 수정 13건, 사양 편차 2건, 소유자 질문 |
-| 직전 Claude 문서 | handoff `abfc320` | LEDGER 8행, O5 결정 |
+- main `1fd87928d79a4819c3bace0255cf190f0bdeb712`: PR #61~#64 병합.
+- PR #65 head `761416705cb3ed5fc5450a0c8d88b118f9192c8f`, PR #66 head `ae255f813a51ddc14b614a91831f2cb63eac5bb6`: 둘 다 열려 있으며, 구현·정책 상태는 원본 기록 그대로입니다.
+- 이전 CURRENT 원문: `context/upbit-universe/gpt-20261122/claude-current-32ea218.md`.
+- PR #67: https://github.com/xkg4real/tradegen/pull/67, head `2aaaca011c360435d169312d3f2f7e7426cb5c4a`.
+- QUANTGEN main `dec979a7fae65d5f749e12193fad3d0a9ce8ddf3`: DIDM PR #138 완료. QUANTGEN은 수정하지 않았습니다.
+- Notion: https://app.notion.com/p/41b5c916fe0c81208b99c55ad64635f5.
 
 ## 3. 판단 기록
 
-| 결정 | 이유 | 버린 대안 |
-|---|---|---|
-| 패스키 PR만 열고 인계 | 테스트가 끝난 상태라 PR 개설은 몇 단계뿐임 | PR 없이 인계: 소유자가 11-24까지 검토를 시작할 수 없음 |
-| engine 실패 16건은 환경 문제로 판정 | 테스트마다 별도 프로세스로 돌리니 16건 모두 PASS. 같은 프로세스 5회 반복 시 핸들 수 고정(329-330), 커밋 73→119 MB | 코드 수정: 누수 증거 없음. 배포 전 브로커 장시간 실행 시험은 PR #66 본문에 남김 |
+- QUANTGEN의 커넥터 10개를 재작성하지 않고, 실제 SQLite 계약을 읽는 독립 도구로 연결했습니다.
+- SETTLE마다 새 구간을 정하고 해당 구간을 다시 읽습니다. 서로 다른 구간을 같은 구간으로 비교하지 않습니다. 실제 목표 시각에 미달한 경우와 미측정 항목을 기록합니다.
+- 기존 손실·서명·거래 경로를 변경하지 않았습니다. A0 자료나 DIDM 입력은 실전 권한을 부여하지 않습니다.
+- 첨부된 MTFE 비교 문서의 구성표는 비어 있습니다. EODHD의 비용·권리·과거 예상치 이력은 확정하지 않았습니다.
+- 실제 완료 통보와 검증 완료를 구분해 기록합니다. 11-11·11-12의 서명과 QUANTGEN 공급원 6개 조회 성공은 과거 이력으로 보존합니다.
 
 ## 4. 진행 상황
 
-- [x] PR #61-#64 병합(11-20 00:56-00:57, main `1fd8792`)
-- [x] `universe-pr5/passkey-archive-authority`: PR #66 열림. light 84, ledger 24, bootstrap 16, engine 25, integration 14 PASS; compliance·deployment 140/142(알려진 2건)
-- [x] 블로커1 사양: PR #65 열림 (다른 Claude 세션 작성)
-- [ ] `blocker1-approach-a-code` ← **GPT가 여기서 시작 가능 (A0만)**
+- [x] A0 코드, 검사 30건, 독립 검토, PR #67.
+- [x] DIDM 읽기 전용 연결, 검사 29건, 실제 QUANTGEN 코드와 합성 자료를 이용한 상호운용 확인, PR #67.
+- [x] 수동 추적기 검사 22건, Windows 복사 스크립트, 당일 비공개 기록 묶음.
+- [x] Notion의 기존 완료 항목 취소선, 현재 상태, 고정 수동 작업 ID·담당자·다음 단계 갱신.
+- [ ] PR #67 병합, PC 복사, 실제 A0 측정, 실제 DIDM 입력, Windows 검증.
+- [ ] A1/A2, PR #66 관련 결정, 앱 실거래 통합, 모형 검증, 소유자의 실제 활성화.
 
-**마지막으로 통과한 검증:**
-
-```
-claude/passkey-windows ae255f8, Windows, broker venv, keyless, 테스트 프로세스 하나씩
-light 84/84, ledger 24/24, bootstrap 16/16, engine 25/25(실패 16건은 따로 재실행), integration 14/14
-```
+검증 환경은 Linux Python 3.13.16입니다. 통합 검사 결과는 86 PASS, 0 FAIL, 0 NOT_RUN(30+29+22+5)이며, 9.711초가 걸렸습니다. 별도의 QUANTGEN 상호운용 확인 7개 항목은 단위시험 수에 합산하지 않습니다. D14 owner/sign 목록 134개 항목과 main 소스가 동일함을 확인했습니다. 기존 파일·QA·홈 메타데이터는 바뀌지 않았으며, 실제 홈 내용·키를 읽거나 실제 API·주문을 실행하지 않았습니다. 상세 원본 검증 JSON과 전달 파일 SHA는 같은 context에 있습니다. Windows 실제 환경과 실자료 검증은 NOT_RUN입니다.
 
 ## 5. 중단 지점
 
-커밋되지 않은 변경은 없습니다. 패스키는 PR #66에서 소유자 검토를 기다립니다. 소유자 결정(O11): 서명 설계 b-lite/b/c, 일시적 읽기 실패로 승인이 거절로 소모되는 문제(검증자 둘 다 제외 권장), clientDataJSON·REJECTED evidence 사양 편차, 엔진 시작 약 40초 vs 30초.
+코드는 커밋·push됐고 PR #67에서 검토할 수 있습니다. 원래 패스키 브랜치와 main은 수정하지 않았습니다. 메일 연결이 없어 기한이 지난 PR #65 안내는 비공개 초안만 생성했으며 발송하지 않았습니다. Cloud에서는 실제 Windows Desktop에 쓸 수 없어 보관 스크립트와 기록 묶음으로 전달했습니다. 주간 사용량을 조회할 수단은 없습니다.
 
-## 6. 다음 할 일 (순서대로)
+## 6. 다음 할 일
 
-1. `blocker1-approach-a-code` A0: PR #65 사양의 A0(Upbit 공개 체결 목록 측정 프로브, 키 없음, D14 밖). OQ18이 기본값이라는 전제로만 시작하고, 소유자가 OQ18에 이의를 달면 멈춥니다. — 완료 기준: 별도 PR 열림, 프로브 테스트 PASS, D14 파일 변경 없음
-2. `blocker1-approach-a-code` A1/A2: 소유자가 PR #65의 OQ1-OQ7에 답하고 #65를 병합한 뒤에만 합니다. — 완료 기준: 사양 BR 규칙별 테스트 PASS, A1은 study freeze 전에 병합
-3. `launch-private-capture-setup-1`: A1/A2 뒤
-4. `launch-kis-live-collector-1`, `launch-okx-live-collector-1`, `launch-multi-market-validation-1`: 소유자가 TRADEGEN 자격 증명을 QUANTGEN .env와 분리한 뒤(O21)
-5. 그 밖의 ID는 Claude 메인이 11-24 17:00 이후 이어갑니다.
+1. PR #67 검토 후 실제 A0 관측(`TG-MAN-005`)과 DIDM 사본 검증(`TG-MAN-012`)을 진행합니다. 코드 구현이 완료된 ID를 다시 구현하지 마세요.
+2. PR #65의 미확정 OQ1~OQ4·OQ6~OQ7과 유니버스 적용 범위를 결정한 뒤 A1/A2를 진행합니다. 기한만으로 매도하지 않으며 재시작 자체를 매도 신호로 삼지 않는다는 요구는 이 대화에서 확정됐으므로 다시 질문하지 마세요.
+3. PR #66의 서명 설계·일시적 거절 정책 등 미결정 사항을 다룹니다. Claude가 검증을 완료한 163건을 다시 미완성으로 돌리지 마세요.
+4. S1~S12 결과는 아직 없습니다. 보유 자산 운영, 보호 보유, 복구 운영, PLB, 실제 관측, 시장별 권한·수집, 최종 범위별 서명 연결이 남아 있습니다.
+5. `rules-review-1202`는 별도로 유지합니다. 무료 뉴스 조회 실패 시험과 기존 QUANTGEN 키 등록을 반복해서 요청하지 마세요.
 
-## 7. 주의사항 / 하지 말 것
+## 7. 주의사항
 
-- `universe-pr5`, `universe-pr5/recovery-operations`, 패스키(PR #66)는 잡지 않습니다.
-- PR 병합·코드 승인·서명·키 입력·arm·주문은 소유자만 합니다.
-- 저장소는 공개입니다. Y 값·금액·개인 경로·자격 증명을 쓰지 않습니다.
-- 기존 파일의 줄 끝(LF/CRLF)을 그대로 둡니다. `git diff --stat`가 `--ignore-cr-at-eol`과 같아야 합니다.
+원래 AGENTS의 키·실제 홈·실제 주문·QUANTGEN 변경 금지를 유지합니다. PR #65·#66의 정책 결정을 임의로 승인하지 않습니다. PR #67의 출력은 연구용입니다. 이번 작업 기간에 Claude가 담당하는 PR5·패스키를 중복 구현하지 않았습니다. 원래 가이드 전체는 보존한 CURRENT 사본을 참조하세요.
 
-## 8. 사용자에게 물어야 할 것
+## 8. 필요한 입력과 수동 추적
 
-- PR #65 OQ1-OQ7 답변과 병합 (기한 2026-11-21 02:47 KST)
-- PR #66 검토와 소유자 결정(O11)
-- 다음 서명 전: 저장소 밖 서명기 사본을 main `1fd8792`의 `tools/signer/sign.py`로 교체(O8)
+Notion의 `TG-MAN-001~012`, `TG-HIST-001~003`이 공통 ID입니다. 신규 작업 12개는 대기 중이며, 과거 완료 보고 3개는 보존했습니다. 담당자·버전·보고 시각·근거·다음 단계를 기록합니다. 메일 수단 연결, 기한이 지난 PR #65 관련 결정, 소유자 상태 코드가 필요하며 자동으로 승인하지 않습니다. 비공개 연락처·개인 경로·상태 파일을 공개 저장소에 복사하지 마세요.
 
-## 9. 이어받는 에이전트에게 주는 지시문
+## 9. 이어받는 지시
 
-```
-너는 xkg4real/tradegen 레포의 "blocker1-approach-a-code" 작업을 이어받는다.
-1. handoff 브랜치의 CURRENT.md, AGENTS.md, LEDGER.md를 먼저 읽어라. LEDGER.md에 있는 ID는 다시 하지 마라.
-2. CURRENT.md의 status를 taken으로, from을 gpt로 바꾸고 updated_at을 갱신해 handoff 브랜치에 push해라.
-3. AGENTS.md 2절 5번에 따라 main 1fd8792에서 gpt/blocker1-a0 브랜치를 만들어 작업해라. AGENTS.md 5절을 한 줄도 어기지 마라.
-4. PR #65 사양의 A0(공개 체결 목록 측정 프로브)만 만든다. A1/A2는 소유자가 #65를 병합하기 전에는 시작하지 마라. universe-pr5, universe-pr5/recovery-operations, 패스키는 잡지 마라.
-5. ID 하나를 끝낼 때마다 LEDGER.md에 한 줄을 덧붙이고 CURRENT.md를 같은 양식으로 갱신해라. 끝나거나 멈출 때, 늦어도 화요일(11-24) 17:00(KST) 전에 status를 returned로 바꿔라.
-```
+먼저 CURRENT·LEDGER와 PR #67의 현재 상태를 확인하세요. 이미 끝난 A0·DIDM 구현을 반복하지 말고, 새로운 소유자 응답과 실측 자료를 작업 ID에 연결해 다음 의존성을 진행하세요. 사용자가 완료를 통보하면 출처와 보고자를 보존하고, 다음 세션에서 같은 작업을 다시 요청하지 마세요. 원본 확정 자료·승인·실전 권한을 임의로 만들지 마세요.
 
-## 10. 결과 확인 방법
+## 10. 확인
 
-```
-python push_handoff.py --show     # status: handoff, from: claude
-gh pr view 66 --repo xkg4real/tradegen   # 패스키 PR
-gh pr view 65 --repo xkg4real/tradegen   # 블로커1 사양 PR
-```
+PR #67의 source manifest와 `validation-01.json`, `didm-reference-parity.json`을 대조합니다. Notion과 당일 비공개 기록 묶음의 완료 상태는 같은 TG-ID로 연결합니다.
 
-## 11. GPT 재개 (2026-11-22 KST)
-
-소유자가 최신 로그 분석·Notion 완료표시·잔여 개발과 DIDM 데이터 연결을 요청함. main `1fd8792`, PR65 `7614167`, PR66 `ae255f8` 확인. 기존 패스키 브랜치를 다시 구현하지 않음. A0와 DIDM의 입력 불필요 범위를 별도 개발. 수동 작업은 완료 통보와 검증을 구분해 추적. 실제 주문·키·서명 실행 없음.
+법률, 세무, 투자 조언이 아니며 면허를 가진 자문가가 아니다
