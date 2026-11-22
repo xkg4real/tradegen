@@ -4,13 +4,13 @@ reason: independent_units_delivered_owner_inputs_pending
 from: gpt
 task: upbit-universe
 cycle: 2026-11-17
-done_ids: universe-pr5/passkey-archive-authority, blocker1-approach-a-code/a0-probe, didm-readonly-source-bridge-1, workflow-resume-1122, workflow-mail-notify-1122
+done_ids: universe-pr5/passkey-archive-authority, blocker1-approach-a-code/a0-probe, didm-readonly-source-bridge-1, workflow-resume-1122, workflow-mail-notify-1122, workflow-skymi-notify-1122, blocker1-approach-a-code/a0-http-read, strategy-holdout-recheck-1123, launch-kis-live-collector-1/evidence-review-1123
 next_ids: blocker1-approach-a-code/A1-A2, launch-private-capture-setup-1, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1, universe-pr5, universe-pr5/recovery-operations, universe-pr5-clock-notify, policy-loss-budget-plan-1, rules-review-1202, protective-hold/p2-integration, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, universe-code-approve, e1-14-owner-setup, launch-prospective-study
-updated_at: 2026-11-22T23:03:21+09:00
+updated_at: 2026-11-23T00:29:53+09:00
 stale_after_hours: 24
 waiting_on: owner_policy_decisions_and_native_measurements
 work_branch: gpt/resume-1122
-work_commit: 2aaaca011c360435d169312d3f2f7e7426cb5c4a
+work_commit: 3390311b81fb149919f28f0d16985f7bd5dfd04c
 uncommitted_changes: no
 pr: 65, 66, 67 (open)
 usage_weekly_pct: unknown
@@ -34,7 +34,7 @@ Claude의 최신 인계 `32ea218`과 main `1fd8792`를 대조해 A0 측정 도�
 - main `1fd87928d79a4819c3bace0255cf190f0bdeb712`: PR #61~#64 병합.
 - PR #65 head `761416705cb3ed5fc5450a0c8d88b118f9192c8f`, PR #66 head `ae255f813a51ddc14b614a91831f2cb63eac5bb6`: 둘 다 열려 있으며, 구현·정책 상태는 원본 기록 그대로입니다.
 - 이전 CURRENT 원문: `context/upbit-universe/gpt-20261122/claude-current-32ea218.md`.
-- PR #67: https://github.com/xkg4real/tradegen/pull/67, head `2aaaca011c360435d169312d3f2f7e7426cb5c4a`.
+- PR #67: https://github.com/xkg4real/tradegen/pull/67, 초기 인도 `2aaaca0`, 최신 head `3390311b81fb149919f28f0d16985f7bd5dfd04c`.
 - QUANTGEN main `dec979a7fae65d5f749e12193fad3d0a9ce8ddf3`: DIDM PR #138 완료. QUANTGEN은 수정하지 않았습니다.
 - Notion: https://app.notion.com/p/41b5c916fe0c81208b99c55ad64635f5.
 
@@ -53,16 +53,21 @@ Claude의 최신 인계 `32ea218`과 main `1fd8792`를 대조해 A0 측정 도�
 - [x] 수동 추적기 검사 22건, Windows 복사 스크립트, 당일 비공개 기록 묶음.
 - [x] Notion의 기존 완료 항목 취소선, 현재 상태, 고정 수동 작업 ID·담당자·다음 단계 갱신.
 - [x] 11-22 후속: Gmail 연결, 기한이 지난 PR #65 소유자 안내 발송 및 SENT 확인. 수신·열람은 확인되지 않았습니다.
+- [x] 11-22 23:22:46 KST 후속: skymi가 직접 제공한 수신처로 요청한 안내를 발송하고 SENT를 확인했습니다. `TG-MAN-006`의 완료를 검증했으며, 수신·열람은 확인되지 않았습니다.
 - [ ] PR #67 병합, PC 복사, 실제 A0 측정, 실제 DIDM 입력, Windows 검증.
 - [ ] A1/A2, PR #66 관련 결정, 앱 실거래 통합, 모형 검증, 소유자의 실제 활성화.
 
 검증 환경은 Linux Python 3.13.16입니다. 통합 검사 결과는 86 PASS, 0 FAIL, 0 NOT_RUN(30+29+22+5)이며, 9.711초가 걸렸습니다. 별도의 QUANTGEN 상호운용 확인 7개 항목은 단위시험 수에 합산하지 않습니다. D14 owner/sign 목록 134개 항목과 main 소스가 동일함을 확인했습니다. 기존 파일·QA·홈 메타데이터는 바뀌지 않았으며, 실제 홈 내용·키를 읽거나 실제 API·주문을 실행하지 않았습니다. 상세 원본 검증 JSON과 전달 파일 SHA는 같은 context에 있습니다. Windows 실제 환경과 실자료 검증은 NOT_RUN입니다.
+
+11-23 후속에서 A0가 본문을 일부만 받은 HTTP 응답을 정상 JSON으로 사용할 수 있는 결함을 수정했습니다. 헤더·수신 가능한 바이트와 오류를 보존한 뒤 측정을 중단합니다. `3390311`에서 집중 검사 94/94 통과(A0 38, DIDM 29, 수동 추적기 22, 기존 경계 5)입니다. 과거 연구의 선발 6개에 대해 누적 수익을 다시 계산했고 모두 비용 반영 단순 보유에 미달했습니다. 자료와 증거는 `context/upbit-universe/gpt-20261123/`에 있습니다. 최종 활성화에 사용할 전략은 아직 없습니다. KIS 국내·해외 계좌 필드 정의를 현 조회 코드와 대조했습니다. 첫 페이지·소수점 매매 제한, 결제 현금·개별 비용·거래시점 환율 근거가 남습니다. 세부 검토는 당일 비공개 작업 기록을 참조하세요.
 
 ## 5. 중단 지점
 
 코드는 커밋·push됐고 PR #67에서 검토할 수 있습니다. 원래 패스키 브랜치와 main은 수정하지 않았습니다. 초기 인도 시점에는 메일 연결이 없어 기한이 지난 PR #65 안내를 비공개 초안으로만 남겼습니다. Cloud에서는 실제 Windows Desktop에 쓸 수 없어 보관 스크립트와 기록 묶음으로 전달했습니다. 주간 사용량을 조회할 수단은 없습니다.
 
 **2026-11-22 23:03:21 KST 후속:** Gmail 연결 후 PR #65 소유자 안내를 발송했고, 메일 메타데이터에서 SENT 상태를 확인했습니다. 수신자에게 도달했거나 읽혔는지는 확인되지 않았습니다. 발송 근거는 비공개 영수증과 Notion에 보관하며, 공개 인수인계에는 수신 주소·메일 ID·개인 경로를 넣지 않습니다. 코드 변경은 없습니다.
+
+**2026-11-22 23:22:46 KST 후속:** skymi가 자신의 알림 수신처를 직접 제공하고 안내 발송을 요청했습니다. 해당 안내를 발송한 뒤 Gmail 메타데이터의 SENT 상태를 확인했습니다. Gmail 연결과 skymi 수신처 확인을 포함하는 `TG-MAN-006`은 완료로 검증했습니다. 메일이 실제로 수신되거나 읽혔다는 뜻은 아니며, `TG-MAN-001`의 PR #65 답변은 여전히 대기 중입니다. 발송 증거는 비공개 영수증과 Notion에만 보관합니다. 기존 소스 커밋과 코드에는 변경이 없습니다.
 
 ## 6. 다음 할 일
 
@@ -78,7 +83,7 @@ Claude의 최신 인계 `32ea218`과 main `1fd8792`를 대조해 A0 측정 도�
 
 ## 8. 필요한 입력과 수동 추적
 
-Notion의 `TG-MAN-001~012`, `TG-HIST-001~003`이 공통 ID입니다. 신규 작업 12개를 완료로 전환하지 않았으며, 과거 완료 보고 3개는 보존했습니다. 담당자·버전·보고 시각·근거·다음 단계를 기록합니다. 11-22 후속 기준으로 `TG-MAN-001`의 PR #65 답변은 여전히 대기 중입니다. `TG-MAN-006`은 Gmail 연결과 소유자 안내 발송만 끝난 부분 완료 상태이며, skymi의 알림 수신처는 아직 확인되지 않았습니다. PR #65 관련 결정과 소유자 상태 코드도 여전히 필요하며, 메일 발송을 응답이나 승인으로 간주하지 않습니다. 비공개 연락처·개인 경로·상태 파일을 공개 저장소에 복사하지 마세요.
+Notion의 `TG-MAN-001~012`, `TG-HIST-001~003`이 공통 ID입니다. 신규 수동 작업 12개 중 `TG-MAN-006`의 완료를 검증했고, 나머지 11개는 대기 중입니다. 과거 완료 보고 3개는 보존했습니다. 담당자·버전·보고 시각·근거·다음 단계를 기록합니다. 11-22 후속 기준으로 `TG-MAN-001`의 PR #65 답변은 여전히 대기 중입니다. `TG-MAN-006`은 23:22:46 KST 후속에서 skymi의 수신처 직접 제공과 요청한 안내의 SENT를 확인하여 완료로 검증했습니다. 이전의 부분 완료 기록은 당시 상태로 보존합니다. PR #65 관련 결정과 소유자 상태 코드도 여전히 필요하며, 메일 발송을 응답이나 승인으로 간주하지 않습니다. 비공개 연락처·개인 경로·상태 파일을 공개 저장소에 복사하지 마세요.
 
 ## 9. 이어받는 지시
 
