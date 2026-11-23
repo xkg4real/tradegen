@@ -8,6 +8,7 @@ from __future__ import annotations
 import argparse
 import base64
 from collections import Counter, defaultdict
+from contextlib import nullcontext
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
@@ -206,6 +207,93 @@ def _ordinary(path, directory=False):
         raise ProbeError("ARCHIVE_PATH_REFUSED")
 
 
+def _local_directory(root):
+    root = Path(root).absolute()
+    if any(x.casefold() in (".tradegen", ".nextgen") for x in root.parts):
+        raise ProbeError("ARCHIVE_PATH_REFUSED")
+    for parent in reversed((root, *root.parents)):
+        if parent.exists() or parent.is_symlink():
+            _ordinary(parent, directory=True)
+    root.mkdir(parents=True, exist_ok=True)
+    _ordinary(root, directory=True)
+    return root
+
+
+def _retry_deadline(headers, received):
+    """Return the earliest safe local epoch second, or None for operator review."""
+    value = headers.get("retry-after", "").strip()
+    if re.fullmatch(r"[0-9]{1,12}", value):
+        return math.ceil(received + int(value))
+    try:
+        retry = parsedate_to_datetime(value)
+        date = parsedate_to_datetime(headers["date"])
+        if retry.tzinfo is None or date.tzinfo is None:
+            return None
+        # Use the provider's elapsed interval if the local clock is ahead.
+        return math.ceil(max(retry.timestamp(), received + max(0, (retry - date).total_seconds())))
+    except (KeyError, ValueError, TypeError, OverflowError, OSError):
+        return None
+
+
+class SharedPublicBudget:
+    """Serialize cooperating public probes using one ordinary local directory."""
+    def __init__(self, directory):
+        root = _local_directory(directory)
+        self.lock = root / "upbit-public-session.lock"
+        self.hold = root / "upbit-public-cooldown.json"
+        self.keep_lock = False
+
+    def __enter__(self):
+        try:
+            fd = os.open(self.lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+        except FileExistsError:
+            raise ProbeError("PUBLIC_BUDGET_BUSY_OR_UNREVIEWED") from None
+        os.close(fd)
+        try:
+            if self.hold.exists() or self.hold.is_symlink():
+                _ordinary(self.hold)
+                with self.hold.open("rb") as stream:
+                    raw = stream.read(129)
+                if len(raw) > 128:
+                    raise ProbeError("PUBLIC_BUDGET_REVIEW_REQUIRED")
+                try:
+                    state = _json(raw, decimals=False)
+                except ProbeError:
+                    raise ProbeError("PUBLIC_BUDGET_REVIEW_REQUIRED") from None
+                if (not isinstance(state, dict) or set(state) != {"retry_at_unix", "status"}
+                        or type(state["status"]) is not int or state["status"] not in (418, 429)):
+                    raise ProbeError("PUBLIC_BUDGET_REVIEW_REQUIRED")
+                deadline = state["retry_at_unix"]
+                if type(deadline) is not int or deadline < 0:
+                    raise ProbeError("PUBLIC_BUDGET_REVIEW_REQUIRED")
+                if time.time() < deadline:
+                    raise ProbeError("PUBLIC_BUDGET_COOLDOWN")
+                self.hold.unlink()
+        except BaseException:
+            self.lock.unlink()
+            raise
+        return self
+
+    def rate_limited(self, status, headers, received):
+        # A crash or storage failure before persistence keeps the exclusive
+        # marker. Other participating sessions must wait for operator review.
+        self.keep_lock = True
+        state = {"status": status, "retry_at_unix": _retry_deadline(headers, received)}
+        try:
+            with self.hold.open("xb") as stream:
+                stream.write(canonical(state))
+                stream.flush()
+                os.fsync(stream.fileno())
+        except OSError:
+            return "REVIEW_LOCK_RETAINED"
+        self.keep_lock = False
+        return "REVIEW_REQUIRED" if state["retry_at_unix"] is None else "COOLDOWN_RECORDED"
+
+    def __exit__(self, *_):
+        if not self.keep_lock:
+            self.lock.unlink()
+
+
 class Archive:
     """Exclusive append log. Resume preserves all prior sessions and failures.
 
@@ -213,14 +301,7 @@ class Archive:
     measurement storage, not a signed research bundle or secure owner ledger.
     """
     def __init__(self, root, config):
-        self.root = Path(root).absolute()
-        if any(x.casefold() in (".tradegen", ".nextgen") for x in self.root.parts):
-            raise ProbeError("ARCHIVE_PATH_REFUSED")
-        for parent in reversed((self.root, *self.root.parents)):
-            if parent.exists() or parent.is_symlink():
-                _ordinary(parent, directory=True)
-        self.root.mkdir(parents=True, exist_ok=True)
-        _ordinary(self.root, directory=True)
+        self.root = _local_directory(root)
         self.path = self.root / "observations.jsonl"
         self.lock = self.root / ".probe.lock"
         self.lock_fd = None
@@ -300,10 +381,11 @@ class Archive:
 
 
 class Probe:
-    def __init__(self, config, transport, archive, clock=None):
+    def __init__(self, config, transport, archive, clock=None, budget=None):
         self.config = config.validate()
         self.transport = transport
         self.archive = archive
+        self.budget = budget
         self.clock = clock or Clock()
         self.next_request = 0.0
         self.last_wall = self.clock.wall()
@@ -356,6 +438,8 @@ class Probe:
                        "body_sha256": hashlib.sha256(reply.body).hexdigest(), "body_truncated": reply.truncated,
                        "date_offset_seconds": None if date is None else date - (start + end) / 2,
                        "date_offset_uncertainty_seconds": None if date is None else 1 + latency / 2}
+        if self.budget is not None and reply.status in (418, 429):
+            observation["public_budget_hold"] = self.budget.rate_limited(reply.status, headers, end)
         if reply.error is not None:
             observation["error"] = reply.error
         self.archive.append(observation)
@@ -566,6 +650,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description="A0 public-only measurement; no orders, keys, or completeness certification.")
     parser.add_argument("--market", required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--coordination-dir", type=Path, help="stable local directory shared by cooperating public probes across IP changes")
     parser.add_argument("--cycles", type=int, default=1)
     parser.add_argument("--interval-seconds", type=int, default=5)
     parser.add_argument("--max-pages", type=int, default=20)
@@ -578,8 +663,12 @@ def main(argv=None):
         parser.error("public reads require --allow-public-network; no request was made")
     try:
         config = Config(args.market, args.interval_seconds, args.max_pages, args.requests_per_second, args.probe_trailing_slash).validate()
-        with Archive(args.output, config) as archive:
-            result = Probe(config, public_request, archive).run(args.cycles, args.pause_seconds)
+        budget = SharedPublicBudget(args.coordination_dir) if args.coordination_dir is not None else nullcontext()
+        with budget as active_budget, Archive(args.output, config) as archive:
+            if active_budget is not None:
+                # A previous process might have sent just before releasing its lease.
+                time.sleep(1 / config.requests_per_second)
+            result = Probe(config, public_request, archive, budget=active_budget).run(args.cycles, args.pause_seconds)
         print(json.dumps(result, sort_keys=True))
         return 0
     except ProbeError as exc:

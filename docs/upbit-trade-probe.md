@@ -32,6 +32,34 @@ It does not force a rate-limit condition or retry automatically. Before restarti
 honour the recorded wait and diagnose other readers. No 429/418 observation means
 that behaviour is unobserved, not tested successfully on the venue.
 
+### Windows PC with changing public IPs (OQ17)
+
+On each cooperating public-probe command, add this option using the same
+ordinary folder on a local disk. For example, in PowerShell use
+`--coordination-dir "$env:LOCALAPPDATA\TRADEGEN-A0\public-budget"`. Keep the
+directory stable across market, output-folder, router, VPN and hotspot changes.
+Use a local folder outside OneDrive or another sync service. The probe never
+looks up, records or switches the public IP. A second cooperating run exits
+before its first request while a session owns this directory.
+
+A 429 or 418 stops the run and persists a hold in `upbit-public-cooldown.json`.
+With a usable `Retry-After`, later runs refuse before making any requests until
+the deadline (UTC Unix seconds). HTTP-date values also require a valid response
+`Date` to account for clock skew. Keep the PC clock accurate. When the wait
+is unknown or the marker is malformed, later runs report
+`PUBLIC_BUDGET_REVIEW_REQUIRED`. A process kill or failed hold write can leave
+`upbit-public-session.lock` and cause `PUBLIC_BUDGET_BUSY_OR_UNREVIEWED`.
+For manual recovery, verify that all participating runs have stopped, preserve
+the marker and measurement evidence, and check the provider's current
+restriction. Remove a stale lock or unresolved marker only after confirming
+collection can resume. A valid timed hold expires automatically on the next run.
+
+QUANTGEN, another PC, or a reader using a different directory can still consume
+the same venue allowance. Agree on one measurement window or allocate a
+conservative combined request budget across those readers whenever they may
+share a network. A network change alone never clears the hold. Omitting this
+option preserves the per-process behaviour described above.
+
 `--cycles` is finite (default 1), `--max-pages` bounds each UTC-day walk (default
 20), and `--pause-seconds` pauses between completed cycles (default 5). Run around
 09:00 KST to gather a UTC-day boundary example, and for hours or days if needed.
@@ -138,7 +166,8 @@ python -B -m unittest tools.research.test_upbit_trade_probe -v
 
 The tests use synthetic responses, an injected clock, temporary directories and a
 socket connection guard. They exercise pagination, UTC-day crossing, repeat reads,
-rate limits, partial writes/resume, response bounds, transport restrictions and
+rate limits, shared-run contention, cross-session cooldown expiry and manual
+holds, partial writes/resume, response bounds, transport restrictions and
 truthful refusal/incomplete output. Venue measurements and Windows native execution
 must be reported separately. No real API request is needed for this test command.
 

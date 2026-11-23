@@ -480,5 +480,70 @@ class ProbeTests(unittest.TestCase):
         self.assertEqual(read_rows(self.root)[-1]["code"], "HTTP_LENGTH_INVALID")
 
 
+class SharedBudgetTests(unittest.TestCase):
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.temp = Path(tmp.name)
+        self.budget = self.temp / "shared"
+        self.clock = FakeClock()
+        guard = patch.object(socket.socket, "connect", side_effect=AssertionError("LIVE_NETWORK_FORBIDDEN"))
+        guard.start()
+        self.addCleanup(guard.stop)
+
+    def run_cli(self, output, reply, expected):
+        args = ["--market", "KRW-BTC", "--output", str(self.temp / output),
+                "--coordination-dir", str(self.budget), "--allow-public-network"]
+        with (patch.object(P, "public_request", return_value=reply) as transport,
+              patch.object(P.time, "time", self.clock.wall),
+              patch.object(P.time, "sleep", self.clock.sleep),
+              patch.object(P, "Clock", return_value=self.clock), redirect_stdout(io.StringIO()) as result):
+            code = P.main(args)
+        self.assertEqual(json.loads(result.getvalue())["status"], expected)
+        self.assertEqual(code, 2)
+        return transport.call_count
+
+    def test_different_archives_cannot_overlap_on_a_shared_budget(self):
+        with P.SharedPublicBudget(self.budget):
+            self.assertEqual(self.run_cli("other-market-folder", None, "PUBLIC_BUDGET_BUSY_OR_UNREVIEWED"), 0)
+        self.assertFalse((self.temp / "other-market-folder").exists())
+
+    def test_provider_cooldown_follows_shared_directory_across_restarts_and_new_archives(self):
+        limited = P.Reply(429, {"Retry-After": "12"}, b"limited")
+        self.assertEqual(self.run_cli("wifi", limited, "RATE_LIMIT_STOP_429"), 1)
+        timed = read_rows(self.temp / "wifi")[-2]
+        self.assertEqual(timed["public_budget_hold"], "COOLDOWN_RECORDED")
+        self.assertEqual(self.run_cli("mobile", None, "PUBLIC_BUDGET_COOLDOWN"), 0)
+        self.clock.sleep(14)
+        self.assertEqual(self.run_cli("mobile", P.Reply(418, {}, b"blocked"), "RATE_LIMIT_STOP_418"), 1)
+        self.clock.sleep(24 * 3600)
+        self.assertEqual(self.run_cli("other", None, "PUBLIC_BUDGET_REVIEW_REQUIRED"), 0)
+
+    def test_absolute_retry_time_honours_server_duration_when_local_clock_is_ahead(self):
+        server = self.clock.wall() - 60
+        headers = {"Date": formatdate(server, usegmt=True), "Retry-After": formatdate(server + 8, usegmt=True)}
+        self.assertEqual(self.run_cli("one", P.Reply(429, headers, b"wait"), "RATE_LIMIT_STOP_429"), 1)
+        self.clock.sleep(5)
+        self.assertEqual(self.run_cli("two", None, "PUBLIC_BUDGET_COOLDOWN"), 0)
+
+    def test_corrupt_cooldown_state_refuses_before_network_and_is_preserved(self):
+        self.budget.mkdir()
+        state = self.budget / "upbit-public-cooldown.json"
+        state.write_bytes(b'{"broken"')
+        self.assertEqual(self.run_cli("one", None, "PUBLIC_BUDGET_REVIEW_REQUIRED"), 0)
+        self.assertEqual(state.read_bytes(), b'{"broken"')
+
+    def test_cooldown_storage_failure_retains_lease_and_raw_observation(self):
+        self.budget.mkdir()
+        def create_conflict(_path, _params):
+            (self.budget / "upbit-public-cooldown.json").mkdir()
+            return P.Reply(418, {"Retry-After": "60"}, b"wait")
+        with P.SharedPublicBudget(self.budget) as active, P.Archive(self.temp / "first", P.Config("KRW-BTC")) as archive:
+            with self.assertRaisesRegex(P.ProbeStop, "RATE_LIMIT_STOP_418"):
+                P.Probe(P.Config("KRW-BTC"), create_conflict, archive, self.clock, budget=active).run()
+        self.assertEqual(read_rows(self.temp / "first")[-2]["public_budget_hold"], "REVIEW_LOCK_RETAINED")
+        self.assertEqual(self.run_cli("second", None, "PUBLIC_BUDGET_BUSY_OR_UNREVIEWED"), 0)
+
+
 if __name__ == "__main__":
     unittest.main()
