@@ -16,16 +16,20 @@ recovery boundary:
   marked equity observed in any complete covered interval during the day. Recovery
   cannot erase an earlier loss. This is an explicitly selected interpretation,
   not a new default for the owner's still-unresolved daily-loss choice.
-  Planned, not implemented at `1fd8792` (approach-A design BR-16): inside a gap
-  that spans a detected suspend or restart, points after the gap's first 30
-  seconds do not count toward this loss; the first record after the gap does.
+  The owner approved the planned BR-16 exception on 2026-11-23 (OQ6). In a long
+  interval spanning a detected suspend or restart, the first 30 seconds and the
+  first account record after the gap count toward the loss. The remaining
+  interior points are retained for audit. The implementation at `1fd8792` uses
+  the existing convention above.
 - `external_flows="no_external_flows"`: both gross incoming and gross outgoing
   external flows must be known and zero for every interval. Offsetting flows do
   not count as no flow. A funded account with no subsequent transfers is supported.
   Planned, not implemented at `1fd8792`: the
   [approach-A design](superpowers/specs/2026-11-20-blocker1-held-interval-approach-a-design.md)
-  (BR-21, BR-22) adds a flow-adjusted convention in which deposits, withdrawals,
-  the owner's manual trades and unexplained changes all continue the record.
+  (BR-21, BR-22) adds flow and trade classification both while running and after
+  a gap (OQ1). The owner approved OQ1–7 on 2026-11-23 with the protected-floor
+  condition below for OQ2–3. The proposed treatment of unexplained residuals
+  (OQ8) awaits separate review.
 - `max_interval_seconds`: an explicit integer from1 to300. A longer uncovered time
   range refuses rather than interpolating missing peaks, troughs or activity.
   Planned: a separate gap interval kind whose path is rebuilt from the trade list,
@@ -44,10 +48,17 @@ a monotone raw high-watermark and a fixed opening equity per day; decreasing a
 cash-flow-adjusted peak after a withdrawal would not change that persisted control
 history. Implementing that policy requires an agreed valuation convention and a
 coherent Controller transition, not merely subtracting a transfer in this reducer.
-The approach-A design (BR-22) proposes that convention: every risk number uses
-equity minus the cumulative net external flow, so the Controller's peak stays
-monotone and its day opening stays fixed in those adjusted terms. Until that code
-is approved, this section describes the behavior.
+In the revised OQ2 design (BR-22), deposits and withdrawals, including withdrawal
+fees in the outflow, are excluded from trading profit and loss. Equity minus
+cumulative net external flow gives a monotone adjusted peak and a fixed adjusted
+day opening. A deposit adds to protection and creates no extra loss budget. A
+withdrawal cannot lower the nominal KRW principal floor or the high-watermark
+floor already protected under the existing policy. Evaluate actual marked equity
+against the applicable protected nominal floor as well as checking the adjusted
+limits. Carry the flow history and protected floors through a reviewed re-anchor.
+If a direct withdrawal leaves actual equity below its protected floor, record it,
+block new buys and alert. Existing halt and daily-stop rules at judged points
+still apply. OQ3 replaces the old no-flow budget rule only with these protections.
 
 ## Anchor, advance and export
 
@@ -70,12 +81,18 @@ is approved, this section describes the behavior.
    One planned exception (approach-A design BR-16; not implemented at `1fd8792`)
    follows the owner's decision of 2026-11-20 that a gap is judged at the first
    account record after it. For a gap interval that spans a detected suspend or
-   restart, the minimum given to the reducer is the lowest of the two endpoints
-   and the points in the gap's first 30 seconds, while the maximum is still the
-   gap path's highest point. The 30-second threshold and the judged first 30
-   seconds are proposed defaults the owner has not yet confirmed (design OQ6).
-   A dip that recovered by the first record after the gap therefore does not
-   halt, a loss still present there does, and the gap high still raises the peak.
+   restart, judge the true gap endpoints and each point in the first 30 seconds
+   measured from its original start. Splitting at midnight or a signed-limit
+   boundary does not start a new 30-second allowance. Retain the lowest point
+   of the entire reconstructed path in the audit record. The owner accepted the
+   30-second rule (OQ6). A recovered dip in the exempt interior does not create a
+   retrospective halt. A breach in the judged first 30 seconds still counts.
+   The gap high raises the peak before judging the first record after the gap.
+   A floor breach there halts; a daily-limit breach sets the daily stop. Earlier
+   halts survive the gap. Ordinary retries or overruns are judged throughout.
+   If the trade list cannot cover the gap, stop the chain, block entries and
+   alert until a reviewed re-anchor. Today's re-anchor requires zero coins
+   (including personal holdings) and zero open orders (OQ7).
 4. `advance_baseline(state, interval)` rejects scope changes, missing coverage
    identifiers, contradictory extrema, time/sequence gaps, rollbacks and unsupported
    flows. Identical redelivery returns the same state and timestamp. A changed
@@ -138,8 +155,10 @@ restarts; its equity is never replaced with a later, better balance. Existing
 daily maximum loss, lifetime high-watermark, first trading date and approved
 floor remain intact. Only the next Seoul midnight clears that day's proof.
 Planned (approach-A design BR-11, BR-12 and BR-16): a 22:00 value rebuilt within
-that 30-second bound is the proof; one rebuilt later, or inside such a gap,
-creates no proof and the day stays unknown.
+the permitted running boundary retry window supplies proof. A required 22:00
+boundary inside the exempt gap has no recovery proof and blocks new entries
+for that day (OQ6). A missed running boundary still stops the chain when its
+bounded retry fails.
 
 An anchor exactly at the boundary can capture its actual value. An anchor after
 the boundary has no proof and remains unknown; supplied historical proof is not
