@@ -38,11 +38,18 @@ test('issued P-256 VAPID public key round trips; wrong or missing key requires r
 test('exports exactly standard subscription fields without leaking other properties',()=>{
   assert.deepEqual(registrationFile(sub()),{endpoint,expirationTime:null,keys:{p256dh:pubText,auth}});
 });
+test('preserves the production FCM wp capability URL in the exported registration', () => {
+  const issued = 'https://fcm.googleapis.com/wp/Ab:cd-123_EF';
+  assert.equal(JSON.parse(JSON.stringify(registrationFile(sub(issued)))).endpoint, issued);
+});
 test('unknown notification providers and noncanonical endpoint targets are rejected',()=>{
   for (const url of [endpoint.replace('https:','http:'),endpoint.replace('.com/', '.com.test/'),endpoint.replace('/fcm/send/','/other/'),
     endpoint+'?parameter=x',endpoint+'#fragment',endpoint.replace('fcm.googleapis.com','user@fcm.googleapis.com'),
     endpoint+'/extra', endpoint+'%20', endpoint+'\n', endpoint.replace('fcm.googleapis.com','fcm.googleapis.com:443'),
-    endpoint.replace('fcm.googleapis.com','fcm.googleapis.com:8443')]) assert.throws(()=>registrationFile(sub(url)));
+    endpoint.replace('fcm.googleapis.com','fcm.googleapis.com:8443'),
+    'https://fcm.googleapis.com/preprod/wp/id', 'https://fcm.googleapis.com/wp/',
+    'https://fcm.googleapis.com/wp//id', 'https://fcm.googleapis.com/wp/id?extra',
+    'https://other.example/wp/id']) assert.throws(()=>registrationFile(sub(url)));
   for (const expirationTime of [0,-1,'100']) {
     const invalid = {...sub().toJSON(), expirationTime};
     assert.throws(()=>registrationFile({toJSON:()=>invalid}));

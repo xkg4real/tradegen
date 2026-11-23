@@ -24,7 +24,7 @@ export function sameKey(subscription, expected) {
 
 export function registrationFile(subscription) {
   const {endpoint, keys, expirationTime = null} = subscription.toJSON();
-  if (typeof endpoint !== 'string' || !/^https:\/\/fcm\.googleapis\.com\/fcm\/send\/[A-Za-z0-9_:-]{1,4096}$/.test(endpoint)) {
+  if (typeof endpoint !== 'string' || !/^https:\/\/fcm\.googleapis\.com\/(?:wp|fcm\/send)\/[A-Za-z0-9_:-]{1,4096}$/.test(endpoint)) {
     throw new Error('UNSUPPORTED_PROVIDER');
   }
   if (expirationTime !== null && (!Number.isSafeInteger(expirationTime) || expirationTime <= 0)) {

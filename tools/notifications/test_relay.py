@@ -62,10 +62,23 @@ class ProvidersTest(unittest.TestCase):
         public = ec.EllipticCurvePublicKey.from_encoded_point(ec.SECP256R1(), decoded(key))
         public.verify(der, (header + "." + body).encode("ascii"), ec.ECDSA(hashes.SHA256()))
 
+    def test_android_uses_issued_wp_endpoint_verbatim(self):
+        endpoint = "https://fcm.googleapis.com/wp/Ab:cd-123_EF"
+        provider = providers.Android({**self.subscription, "endpoint": endpoint}, self.key.read_bytes(), ORIGIN)
+        calls = []
+        def capture(url, headers, body):
+            calls.append(url)
+            return 201, None, b""
+        self.assertEqual(provider.deliver(EVENT, capture).state, "accepted")
+        self.assertEqual(calls, [endpoint])
+
     def test_invalid_endpoint_expired_subscription_no_traffic(self):
         for endpoint in ("http://fcm.googleapis.com/fcm/send/x", self.endpoint + "?foo", self.endpoint + "/foo",
                          self.endpoint.replace("googleapis.com", "googleapis.com.evil.example"),
-                         self.endpoint.replace("fcm.googleapis.com", "a@fcm.googleapis.com")):
+                         self.endpoint.replace("fcm.googleapis.com", "a@fcm.googleapis.com"),
+                         "https://fcm.googleapis.com/preprod/wp/id", "https://fcm.googleapis.com/wp/",
+                         "https://fcm.googleapis.com/wp//id", "https://fcm.googleapis.com/wp/id?extra",
+                         "https://other.example/wp/id"):
             with self.subTest(endpoint=endpoint), self.assertRaises(providers.ConfigurationError):
                 providers.Android({**self.subscription, "endpoint": endpoint}, self.key.read_bytes(), ORIGIN)
         expired = providers.Android({**self.subscription, "expirationTime": 1}, self.key.read_bytes(), ORIGIN)

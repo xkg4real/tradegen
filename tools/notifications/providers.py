@@ -177,7 +177,7 @@ class Android:
     def __init__(self, subscription, pem, origin):
         endpoint = subscription["endpoint"]
         if not isinstance(endpoint, str) or not re.fullmatch(
-            r"https://fcm\.googleapis\.com/fcm/send/[A-Za-z0-9_:-]{1,4096}", endpoint
+            r"https://fcm\.googleapis\.com/(?:wp|fcm/send)/[A-Za-z0-9_:-]{1,4096}", endpoint
         ):
             raise ConfigurationError("push_endpoint_invalid")
         self.endpoint = endpoint
