@@ -4,15 +4,15 @@ reason: independent_units_delivered_owner_inputs_pending
 from: gpt
 task: upbit-universe
 cycle: 2026-11-17
-done_ids: universe-pr5/passkey-archive-authority, blocker1-approach-a-code/a0-probe, didm-readonly-source-bridge-1, workflow-resume-1122, workflow-mail-notify-1122, workflow-skymi-notify-1122, blocker1-approach-a-code/a0-http-read, strategy-holdout-recheck-1123, launch-kis-live-collector-1/evidence-review-1123, owner-pr65-oq1-7-1123, owner-pr65-oq8-11-1123, owner-pr65-oq13-18-1123, a0-observation-1123, android-companion-relay-1123, android-fcm-compat-1123, owner-pr65-oq12-1123
+done_ids: universe-pr5/passkey-archive-authority, blocker1-approach-a-code/a0-probe, didm-readonly-source-bridge-1, workflow-resume-1122, workflow-mail-notify-1122, workflow-skymi-notify-1122, blocker1-approach-a-code/a0-http-read, strategy-holdout-recheck-1123, launch-kis-live-collector-1/evidence-review-1123, owner-pr65-oq1-7-1123, owner-pr65-oq8-11-1123, owner-pr65-oq13-18-1123, a0-observation-1123, android-companion-relay-1123, android-fcm-compat-1123, owner-pr65-oq12-1123, owner-br26-adaptive-y-1123, br26-adaptive-y-preview-1123
 next_ids: blocker1-approach-a-code/A1-A2, launch-private-capture-setup-1, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1, universe-pr5, universe-pr5/recovery-operations, universe-pr5-clock-notify, policy-loss-budget-plan-1, rules-review-1202, protective-hold/p2-integration, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, universe-code-approve, e1-14-owner-setup, launch-prospective-study
-updated_at: 2026-11-23T11:15:30+09:00
+updated_at: 2026-11-23T11:33:24+09:00
 stale_after_hours: 24
 waiting_on: owner_pr65_design_merge_private_deployment_and_native_measurements
-work_branch: gpt/resume-1122
-work_commit: c3e09478245bf07a86813fb20a1c4bd59bb20692
+work_branch: gpt/adaptive-bid-gap-1123
+work_commit: f98ee4bf67fbb0c3a82f4e6f3d60d56c13c577bb
 uncommitted_changes: no
-pr: 65, 66, 67 (open), 68 (draft amendment to 65), 69 (draft Android and relay)
+pr: 65, 66, 67 (open), 68 (ready, amendment to 65), 69 (draft Android and relay), 70 (adaptive Y research preview)
 usage_weekly_pct: unknown
 usage_source: unavailable
 usage_5h_pct: unknown
@@ -23,7 +23,7 @@ session: Codex Cloud 2026-11-22~23
 
 ## 0. 한 줄 요약
 
-Claude의 최신 인계 `32ea218`과 main `1fd8792`를 대조해 A0 측정 도구와 DIDM 읽기 전용 입력 도구를 구현·검증하고 PR #67을 열었습니다. 앱의 실거래 준비가 완료된 것은 아닙니다. 11-23 소유자의 직접 답변으로 PR #65 OQ1~OQ7은 권장 표대로 승인됐습니다. OQ8~OQ11에도 추가 답변이 접수됐으며, 조건과 범위는 5절에 기록했습니다. 소유자가 OQ12의 계좌 분리 대조안을 승인해 PR #65의 OQ1~OQ18에 모두 답했습니다. A1/A2 구현은 소유자의 PR #65 설계 병합 후에 시작합니다. 개인 물량의 매도 범위, PR #66의 미결정 사항, 운영 승인 사이트 연결, Android·Windows 실기기 및 거래소 관측은 남았습니다.
+Claude의 최신 인계 `32ea218`과 main `1fd8792`를 대조해 A0 측정 도구와 DIDM 읽기 전용 입력 도구를 구현·검증하고 PR #67을 열었습니다. 앱의 실거래 준비가 완료된 것은 아닙니다. 11-23 소유자의 직접 답변으로 PR #65 OQ1~OQ7은 권장 표대로 승인됐습니다. OQ8~OQ11에도 추가 답변이 접수됐으며, 조건과 범위는 5절에 기록했습니다. 소유자가 OQ12의 계좌 분리 대조안을 승인해 PR #65의 OQ1~OQ18에 모두 답했습니다. BR-26은 유효 Y의 공통 상한을 5%로 두고, 검증된 방향 모형이 미리 승인된 범위 안에서 Y를 조정하는 설계로 결정했습니다. A1/A2 구현은 소유자의 PR #65 설계 병합 후에 시작합니다. 개인 물량의 매도 범위, PR #66의 미결정 사항, 운영 승인 사이트 연결, Android·Windows 실기기 및 거래소 관측은 남았습니다.
 
 ## 1. 목표와 완료 조건
 
@@ -59,6 +59,8 @@ Claude의 최신 인계 `32ea218`과 main `1fd8792`를 대조해 A0 측정 도�
 - [x] 11-23 추가 답변 기록: PR #65 OQ8~OQ11의 조건부·개별 답변. 계좌 설정이나 실행 완료를 뜻하지 않습니다.
 - [x] OQ13~OQ18의 답변 기록. OQ13 보호 매도·OQ17 유동 IP·OQ18 주문 소켓의 범위는 5절 참조.
 - [x] OQ12 계좌 대조·분리 후 시작, 출처 미확인 주문이 있을 때 신규 자동매매 보류로 결정.
+- [x] BR-26 공통 상한과 조건부 Y 조정 설계 반영, 별도 연구 도구로 오프라인 검증.
+- [ ] 전향 자료로 모형의 방향별 성능과 호가 위험을 검증하고, 운영 모형·서명 한도를 정해 실제 적용 경로를 검토합니다.
 - [ ] 설계 PR 병합 후 A1/A2, 개인 물량 처분 규칙·권한 검토, PR #66 관련 결정, 운영 HTTPS 승인·알림 연결, 앱 실거래 통합, 모형 검증, 소유자의 실제 활성화.
 
 검증 환경은 Linux Python 3.13.16입니다. 통합 검사 결과는 86 PASS, 0 FAIL, 0 NOT_RUN(30+29+22+5)이며, 9.711초가 걸렸습니다. 별도의 QUANTGEN 상호운용 확인 7개 항목은 단위시험 수에 합산하지 않습니다. D14 owner/sign 목록 134개 항목과 main 소스가 동일함을 확인했습니다. 기존 파일·QA·홈 메타데이터는 바뀌지 않았으며, 실제 홈 내용·키를 읽거나 실제 API·주문을 실행하지 않았습니다. 상세 원본 검증 JSON과 전달 파일 SHA는 같은 context에 있습니다. Windows 실제 환경과 실자료 검증은 NOT_RUN입니다.
@@ -110,12 +112,18 @@ OQ8~OQ11을 기록한 당시에는 OQ12~OQ18의 답변이 없었습니다. 이�
 
 - **모바일 배포본 교체.** [PR #69 `b74dc3c`](https://github.com/xkg4real/tradegen/commit/b74dc3c696a849f552c05450f800ec16c76f51e2)에서 Android Chrome이 발급하는 FCM `/wp/`와 기존 `/fcm/send/`를 모두 처리합니다. JS 7건, 발송기 17건, 별도 합성 상호운용 5건을 확인했습니다. 운영자가 배포할 파일은 Android·Windows 배포 ZIP **v2** (SHA-256 `f522839dcffc0aec20be93490fc4f192b61d04107316cd22dc2a0e35d11a267e`)입니다. 당일 통합 기록 ZIP v2와 한국어 후속 로그도 전달했습니다. 운영 사이트·실제 기기 수신·승인 연결은 대기입니다.
 
-- **BR-26은 설명 후 결정.** 소유자는 기존 한도 기록과 서명기를 확장하는 안의 상세 설명을 요청했습니다. BR-10의 30초 기준, 최우선 매수호가의 괴리 경계와 위험 점검, Y 미설정 시 신규 매수 보류, 최초 양수 Y의 익일 효력을 당일 기록으로 전달했습니다. 문서에는 [OQ12 결정 및 BR-26 대기](https://github.com/xkg4real/tradegen/commit/6810cdcb4469d0db283519bf2af7b70c2ab94304)를 반영했습니다.
+### BR-26 소유자 후속 결정
+
+- [OQ12 결정 당시의 BR-26 설명 요청](https://github.com/xkg4real/tradegen/commit/6810cdcb4469d0db283519bf2af7b70c2ab94304) 이후 소유자가 새 설계를 지정했습니다. Y는 어떤 경우에도 **5% 이하**이며 유효한 개인 서명 상한이 더 작으면 그 상한까지 적용합니다. 모형과 방향별 판단 기준은 미리 정해 검증하고, 충분한 근거가 있을 때 Y를 높이거나 낮출 수 있습니다. 소유자가 예로 든 Monte Carlo 75%는 특정 모의 경로의 비중으로, 실전 정확도와 운영 확률 기준은 별도 검증이 필요합니다. [설계 수정](https://github.com/xkg4real/tradegen/commit/1de3df09ebfc7defdcfe19508762786b4f5ba4c0)
+- 현재 호가의 경보는 그 호가를 관측하기 전에 적용 중이던 Y로 먼저 판정합니다. 활성화된 정책 범위 안에서 제안된 값은 그 뒤 유효한 다음 관측부터 적용할 수 있습니다. 이미 발생한 경보·진입 보류·손실 중단을 모형으로 해제하지 않습니다. 근거가 부족하면 기존 값을 유지합니다. 서명된 Y가 없을 때에는 기존 OQ10(신규 매수 보류, 보유분 Y=0 감시)을 따릅니다. 최초 양수 서명 한도나 서명된 허용 범위를 넓히는 변경은 D12의 다음 서울 날짜 및 기존 효력 조건을 따릅니다.
+- [오프라인 연구 도구](https://github.com/xkg4real/tradegen/pull/70) `f98ee4bf67fbb0c3a82f4e6f3d60d56c13c577bb`에서 규칙의 동작을 확인했습니다. 검사 58건 통과(신규 36, 기존 22), 서명 대상 134개가 main과 일치. 정책 원장에 쓸 운영 Y와 모형, 전향 자료를 이용한 가격 괴리 검증, 실제 서명·배포는 남아 있습니다.
+
+- 별도 과거 일봉 점검에서 BTC/KRW 5일 구간 272개 중 75% 이상 상승 신호 17건의 실제 상승은 9건, 하락 신호 1건의 실제 하락은 0건이었습니다. 당시의 호가·잔량·지연 자료가 없어 이 결과로 운영 모형을 인정하지 않았습니다.
 
 ## 6. 다음 할 일
 
 1. PR #67 검토 후 실제 A0 관측(`TG-MAN-005`)과 DIDM 사본 검증(`TG-MAN-012`)을 진행합니다. 코드 구현이 완료된 ID를 다시 구현하지 마세요.
-2. PR #65의 OQ1~OQ18 답변 접수는 완료됐습니다. [수정안 #68](https://github.com/xkg4real/tradegen/pull/68)은 [원 설계 #65](https://github.com/xkg4real/tradegen/pull/65)의 브랜치를 대상으로 합니다. 다음 단계는 소유자가 최신 수정안을 검토·병합해 #65에 반영하고, BR-26의 Y 서명기·소유자 원장 스키마 변경 설계 범위를 확인한 뒤 #65를 병합하는 것입니다. 그 다음 A1/A2 구현·검증으로 이어갑니다. OQ9의 매수 우위 기준·검증과 OQ13 개인 물량 처분의 구체적 조건·권한은 별도 검토 항목입니다.
+2. PR #65의 OQ1~OQ18 답변 접수는 완료됐습니다. [수정안 #68](https://github.com/xkg4real/tradegen/pull/68)은 [원 설계 #65](https://github.com/xkg4real/tradegen/pull/65)의 브랜치를 대상으로 합니다. 다음 단계는 소유자가 BR-26 후속 결정을 담은 수정안 #68을 원 설계 브랜치에 반영하고 #65를 병합하는 것입니다. A1에서는 기존 두 필드 한도 기록과의 호환성, 공통 상한과 서명 상한, 유효 Y와 실제 호가의 판정 순서, 별도 서명기의 검증을 점검합니다. 그 다음 A1/A2 구현·검증으로 이어갑니다. OQ9의 매수 우위 기준·검증과 OQ13 개인 물량 처분의 구체적 조건·권한은 별도 검토 항목입니다.
 3. PR #66의 서명 설계·일시적 거절 정책 등 미결정 사항을 다룹니다. Claude가 검증을 완료한 163건을 다시 미완성으로 돌리지 마세요.
 4. S1~S12 결과는 아직 없습니다. 보유 자산 운영, 보호 보유, 복구 운영, PLB, 실제 관측, 시장별 권한·수집, 최종 범위별 서명 연결이 남아 있습니다.
 5. `rules-review-1202`는 별도로 유지합니다. 무료 뉴스 조회 실패 시험과 기존 QUANTGEN 키 등록을 반복해서 요청하지 마세요.
@@ -130,7 +138,7 @@ Notion의 `TG-MAN-001~012`, `TG-HIST-001~003`이 공통 ID입니다. 기존 수�
 
 ## 9. 이어받는 지시
 
-먼저 CURRENT·LEDGER와 PR #67의 현재 상태를 확인하세요. 이미 끝난 A0·DIDM 구현을 반복하지 말고, 새로운 소유자 응답과 실측 자료를 작업 ID에 연결해 다음 의존성을 진행하세요. 사용자가 완료를 통보하면 출처와 보고자를 보존하고, 다음 세션에서 같은 작업을 다시 요청하지 마세요. 원본 확정 자료·승인·실전 권한을 임의로 만들지 마세요.
+먼저 CURRENT·LEDGER와 PR #65·#68, 관측기 #67, BR-26 연구 도구 PR의 상태를 확인하세요. 이미 끝난 A0·DIDM 구현을 반복하지 말고, 새로운 소유자 응답과 실측 자료를 작업 ID에 연결해 다음 의존성을 진행하세요. 사용자가 완료를 통보하면 출처와 보고자를 보존하고, 다음 세션에서 같은 작업을 다시 요청하지 마세요. 원본 확정 자료·승인·실전 권한을 임의로 만들지 마세요.
 
 ## 10. 확인
 
