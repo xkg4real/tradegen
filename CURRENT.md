@@ -4,9 +4,9 @@ reason: independent_units_delivered_owner_inputs_pending
 from: gpt
 task: upbit-universe
 cycle: 2026-11-17
-done_ids: universe-pr5/passkey-archive-authority, blocker1-approach-a-code/a0-probe, didm-readonly-source-bridge-1, workflow-resume-1122, workflow-mail-notify-1122, workflow-skymi-notify-1122, blocker1-approach-a-code/a0-http-read, strategy-holdout-recheck-1123, launch-kis-live-collector-1/evidence-review-1123, owner-pr65-oq1-7-1123, owner-pr65-oq8-11-1123, owner-pr65-oq13-18-1123, a0-observation-1123, android-companion-relay-1123
+done_ids: universe-pr5/passkey-archive-authority, blocker1-approach-a-code/a0-probe, didm-readonly-source-bridge-1, workflow-resume-1122, workflow-mail-notify-1122, workflow-skymi-notify-1122, blocker1-approach-a-code/a0-http-read, strategy-holdout-recheck-1123, launch-kis-live-collector-1/evidence-review-1123, owner-pr65-oq1-7-1123, owner-pr65-oq8-11-1123, owner-pr65-oq13-18-1123, a0-observation-1123, android-companion-relay-1123, android-fcm-compat-1123
 next_ids: blocker1-approach-a-code/A1-A2, launch-private-capture-setup-1, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1, universe-pr5, universe-pr5/recovery-operations, universe-pr5-clock-notify, policy-loss-budget-plan-1, rules-review-1202, protective-hold/p2-integration, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, universe-code-approve, e1-14-owner-setup, launch-prospective-study
-updated_at: 2026-11-23T11:05:39+09:00
+updated_at: 2026-11-23T11:10:52+09:00
 stale_after_hours: 24
 waiting_on: oq12_owner_review_personal_sale_scope_private_deployment_and_native_measurements
 work_branch: gpt/resume-1122
@@ -105,7 +105,9 @@ OQ8~OQ11을 기록한 당시에는 OQ12~OQ18의 답변이 없었습니다. 이�
 
 - [정책 수정안 #68](https://github.com/xkg4real/tradegen/pull/68) `452387c`에 OQ13 개인 보유분 검토 범위까지 반영했습니다. 사용자가 OQ12를 선택하기 전까지 보류합니다.
 - [관측기 #67](https://github.com/xkg4real/tradegen/pull/67) `c3e0947` 검사 124건 통과(공개 43, 인증 25, DIDM 29, 추적 22, 기존 경계 5). 실제 계좌 및 Windows 측정은 남았습니다.
-- [Android와 Windows 알림 #69](https://github.com/xkg4real/tradegen/pull/69) `e6f275e`에서 JS 6건, 전송기 16건, 로컬 TLS/Nginx 경로 12건을 확인했습니다. Chromium의 모바일 크기 화면에서 로컬 기기 알림도 검증했습니다. 배포 ZIP SHA-256은 `3de420ddf9dff551bc59f76518f9e67dea4e77e272ecaef33679d7dc16929cb6`입니다. 실제 모바일 승인은 운영 HTTPS 승인함, 기기 등록, 권한 범위별 연동을 필요로 합니다. Notion Remaining Work에 완료와 대기를 구분했습니다.
+- [Android와 Windows 알림 #69](https://github.com/xkg4real/tradegen/pull/69) `e6f275e`에서 JS 6건, 전송기 16건, 로컬 TLS/Nginx 경로 12건을 확인했습니다. Chromium의 모바일 크기 화면에서 로컬 기기 알림도 검증했습니다. 초기 배포 ZIP SHA-256은 `3de420ddf9dff551bc59f76518f9e67dea4e77e272ecaef33679d7dc16929cb6`입니다. 실제 모바일 승인은 운영 HTTPS 승인함, 기기 등록, 권한 범위별 연동을 필요로 합니다. Notion Remaining Work에 완료와 대기를 구분했습니다.
+
+- **모바일 배포본 교체.** [PR #69 `b74dc3c`](https://github.com/xkg4real/tradegen/commit/b74dc3c696a849f552c05450f800ec16c76f51e2)에서 Android Chrome이 발급하는 FCM `/wp/`와 기존 `/fcm/send/`를 모두 처리합니다. JS 7건, 발송기 17건, 별도 합성 상호운용 5건을 확인했습니다. 운영자가 배포할 파일은 Android·Windows 배포 ZIP **v2** (SHA-256 `f522839dcffc0aec20be93490fc4f192b61d04107316cd22dc2a0e35d11a267e`)입니다. 당일 통합 기록 ZIP v2와 한국어 후속 로그도 전달했습니다. 운영 사이트·실제 기기 수신·승인 연결은 대기입니다.
 
 ## 6. 다음 할 일
 
