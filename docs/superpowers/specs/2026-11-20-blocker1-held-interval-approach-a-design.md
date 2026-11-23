@@ -2,7 +2,7 @@
 
 Date: 2026-11-20 (Asia/Seoul).
 Status: proposed amendment to PR #65. Section 9 records the owner's direct approval of OQ1–OQ7 on 2026-11-23 KST
-and their subsequent decisions on OQ8–OQ11. OQ12–OQ18 remain pending. Separate decisions cover the BR-26
+and their subsequent decisions on OQ8–OQ11 and OQ13–OQ18. OQ12 remains open. Separate decisions cover the BR-26
 owner-log and signer schema, PR merges, code review, signatures and trading activation.
 
 **Citations.** `path:line` is rev `1fd8792` (main, after PRs #61-#64). Short names, all under
@@ -17,7 +17,7 @@ list-withdrawals, pocket-overview) and two changelog notices (api-path-format-er
 
 **Tags.** Each rule carries the owner answer it rests on: `[Q1]` to `[Q9]`, `[Q6r]` (answer 6 as revised on
 2026-11-12), `[Q9-1]` (continue on everything), `[Q9-2]` (the gap high raises H) and `[Y]` (where Y is signed). A rule
-tagged `[OQ1]` through `[OQ11]` refers to the owner decision in section 9. A `[default, OQn]` tag denotes
+tagged with an answered OQ refers to the owner decision in section 9. A `[default, OQn]` tag denotes
 a proposal still awaiting an answer. Earlier Q-numbered answers in section 1 are distinct from these OQ items.
 A rule tagged `[design]` is a mechanism this document chooses to carry out an answer.
 
@@ -33,7 +33,7 @@ app reads Upbit's public trade list for every held coin and rebuilds the exact p
 every trade, our fills, fees and flows, in time order. The path gives the interval's true lowest and highest equity.
 The floor and the daily loss are checked at every point, and a floor breach writes the halt row first. A stale last
 trade, a ticker or canary mismatch and a minute-candle mismatch each re-check the floor, block new buys and alert;
-they never start a sale themselves. A sleep, a Windows update or a reboot no longer stops the chain: the gap path is
+an independently established, authorized protective sell can then execute under OQ13. A sleep, a Windows update or a reboot no longer stops the chain: the gap path is
 rebuilt, its high raises H, and the floor and daily loss are judged at the first account record after the gap. Every
 account change continues the record: app fills, the owner's manual trades, deposits, withdrawals and unexplained
 changes. Flow adjustment separates deposits and withdrawals from trading results. A withdrawal preserves the existing
@@ -102,12 +102,12 @@ The original answer 6 (a per-coin trade-gap threshold) is replaced by Q6r. A 24 
 - **BR-3 Opening and closing value [Q6r].** The value at S uses each coin's mark at S; the value at E uses its mark at
   E. A coin with no trade inside the list's reach (7 UTC days) is marked at the ticker's `trade_price` and
   `trade_timestamp`, a path that is already allowlisted. No age limit applies to a mark.
-  - **Unlisted coins [design].** A balance whose KRW market is absent from a valid `market/all` read is valued at 0
+  - **Unlisted coins [OQ13].** A balance whose KRW market is absent from a valid `market/all` read is valued at 0
     from that read's time, as UNI:570-572 and `execution_accounts/upbit_collector.py:448-449` do today. It gets no
     trade-list path, ticker or bid read, and it never sets the entry block by itself. The drop to 0 is a judged path
     point, so it can trip the floor. `PriceMark` requires a positive price (`execution_accounts/continuous.py:149`),
     so this case is carried outside it. The coordinator's vanish latch (`execution_launch/coordinator.py:775-776`)
-    keeps its input.
+    keeps its input. Zero valuation records risk even where no executable market exists. It supplies no executable sale price.
 - **BR-4 Every trade counts [Q8].** No print is filtered. Each trade moves its coin's mark and is a path point.
   Interval minimum and maximum are taken over every point, the opening and closing values included. A same-millisecond
   set is evaluated at every price in the set against the holdings before and after any of our fills in that
@@ -117,7 +117,8 @@ The original answer 6 (a per-coin trade-gap threshold) is replaced by Q6r. A 24 
   uncaptured fills by funds: fee_i = remainder x funds_i / (sum of their funds), rounded down to the fee's precision
   with the residue on the last of them, so the parts sum exactly to `paid_fee` [design]. When no fill was captured,
   the whole `paid_fee` is split that way. If the remainder is negative, or a fully captured order's fees do not sum to
-  `paid_fee`, the whole order is split by funds and an alert is raised [default, OQ15]. This replaces the refusals
+  `paid_fee`, allocate that order's total fee in proportion to executed notional (funds), preserve the reported
+  order total and record the allocation and alert [OQ15]. This replaces the refusals
   `COLLECTOR_FEE_COVERAGE_INCOMPLETE`, `COLLECTOR_FEE_RECONCILIATION_MISMATCH` and
   `COLLECTOR_PER_TRADE_FEE_EVIDENCE_REQUIRED` (`execution_accounts/upbit_collector.py:247-264`) and the `Inexact` refusal
   for this case (`:356-364`). It supersedes, for fees only,
@@ -131,7 +132,7 @@ The original answer 6 (a per-coin trade-gap threshold) is replaced by Q6r. A 24 
   stamped before the walk's `to` bound (BR-2) whose timestamp and price are not in the walked pages. A ticker trade at
   or after `to` lies outside the walk and is not compared. Response: CBA at the ticker's price.
 - **BR-7 Own-fill canary [Q7].** Each of our fills in [S, E) must match a public trade by timestamp (ms), price and
-  volume. `ask_bid` is not used until A0 shows which side it reports. The part of an order stopped by self-match
+  volume. Applying `ask_bid` requires paired evidence of which side it reports (see OQ18). The part of an order stopped by self-match
   prevention (myOrder state `prevented`; in REST order detail, state `cancel` with a nonzero `prevented_volume`) has no
   fill, so it is not a miss; any fills that order did have are checked as usual. `cancel_maker` is the announced default
   from 2026-11-09 (changelog notice); A2 confirms it. A miss gets CBA at our fill price.
@@ -154,21 +155,26 @@ The original answer 6 (a per-coin trade-gap threshold) is replaced by Q6r. A 24 
       applying the release. Reuse the existing scoped, single-use approval checks.
     - **Automatic release.** An authorized, tested model may release the latch when verified evidence shows that a new buy offers an
       advantage. With every independent admission check satisfied, continue through the authorized automated order
-      path to pursue excess returns without waiting for another manual click. This route can run during continuous operation or after restart and successful state,
-      balance and open-order reconciliation. A restart alone leaves the latch in place. The model's comparison
+      path to pursue excess returns without another manual click within a valid deployment. After restart, reconcile
+      state, balances and open orders and obtain a valid deployment before using that route. OQ16 ends the old one. A restart alone leaves the latch in place. The model's comparison
       basis, benefit metric and acceptance criterion still require definition; until they are specified and
       validated for the authorized model, no automatic release can be justified. An absent or unproven advantage
       leaves the latch in place for the manual route.
     - Check current permissions, reconciled account and market evidence, and the condition that raised the block.
       Any outstanding input mismatch, missing evidence, independent entry block, daily stop or floor halt remains
       binding. OQ9 can clear only the corresponding entry latch. Each later order still needs valid deployment and
-      order authority. OQ16 separately covers whether a standing deployment survives a restart.
-  - **(c) Alert on all channels,** meaning D5's set: a Windows notification, iOS push and email (D5,
-    `2026-10-23-compliance-gate-and-odds-engine-design.md:64`; `_CHANNELS` in `core/compliance/alerts.py:19`).
-    `_toast_once` (`execution_launch/coordinator.py:617-627`) is only the toast leg and de-duplicates by key, so each
-    CBA key names the coin, the kind and the time. Push and email are sent today only by the daily Claude task
-    (`core/compliance/alerts.py:1-5`); until a prompt path exists, CBA writes a durable alert row for that task
-    [default, OQ14].
+      order authority. A restart or a handoff longer than 30 s ends the standing deployment under OQ16.
+  - **(c) Alert delivery [OQ14].** Persist a unique alert for each event (coin, kind and time). At a floor breach,
+    entry block or account-chain stop, dispatch immediately through the Telegram bot and Android app as well as the
+    configured Windows, iOS and email channels. Track attempts and acknowledgement separately by channel. Retry
+    failed sends from the durable record with backoff and deduplicate successful sends by event and channel.
+    At `1fd8792`, `_toast_once` (`execution_launch/coordinator.py:617-627`) covers Windows and the daily task
+    handles the other existing deliveries (`core/compliance/alerts.py:1-5`). Immediate remote delivery needs
+    implementation and device checks. Provide an Android companion alongside the Windows app so the owner can
+    inspect current status, alert details and pending approval requests from the phone. An approval notification
+    opens its scoped HTTPS request in a browser
+    that supports WebAuthn. Verify the enrolled user's passkey and current one-time request before applying the
+    approved action. A push delivery receipt or a Telegram/Android button tap supplies no order authorization.
   - **Breach found after the interval committed** (the candle audit runs after the minute) [design]. The breach is
     held as a pending halt: the entry block is set and the alert sent at once, and the halt is written inside the next
     staged interval's commit (the in-transaction halt, `execution_launch/continuous_guard_commit.py:376-380`). A
@@ -186,7 +192,12 @@ The original answer 6 (a per-coin trade-gap threshold) is replaced by Q6r. A 24 
   the capture also reads the best bid. If bid <= mark x (1 - Y), the response is CBA at the bid. The mark stays the
   last trade for equity, the minimum, the maximum and H. The rule is the same for every profile (fixed and universe).
   - It covers every held coin with a listed market: app or owner units, in or out of the universe, dust included
-    [default, OQ13]. Unlisted coins follow BR-3.
+    [OQ13]. Unlisted coins follow BR-3. A verified risk condition can trigger an automatic protective sale under
+    current risk policy and order authority, up to free app units eligible to sell (BR-23). Check the executable
+    market, price, available size and outstanding orders before submitting. Unfilled amounts remain held and
+    monitored subject to the existing order policy. Personal holdings enter the risk calculation; OQ4 caps sales
+    at app units. Selling personal units would require a separate grant. Expiry, restart or missing data alone
+    never supplies the protective trigger (OQ5).
   - A bid that cannot be read, or an empty book, gets the entry block and an alert without a price re-check; the unit
     does not refuse [OQ10].
   - With no Y in force, no buy is prepared, and a held coin is checked with Y = 0, so any bid below the mark gets CBA
@@ -289,9 +300,11 @@ The original answer 6 (a per-coin trade-gap threshold) is replaced by Q6r. A 24 
   interpolated. Under today's collector a re-anchor needs zero coin inventory and zero open orders
   (`execution_accounts/upbit_collector.py:232-233`; ACC:68-69), the owner's coins included; this design keeps that, and
   a held-coin anchor is a later design [OQ7]. The app must not sell assets to make the account eligible for re-anchoring.
-- **BR-18 Unfinished rebuild [design].** On 429, 418, a timeout or a network error the head stays at S, an alert is
-  raised and the next unit retries. After a 418 nothing is retried until the next unit; E1 transport already paces each
-  process at 0.2 s per request and retries a GET once (`execution/transport.py:54-57, 336-360`). No entry block is
+- **BR-18 Unfinished rebuild [OQ17].** A timeout, transport error, 429 or 418 leaves the head at S and raises an alert.
+  On a venue limit response, stop reads for the affected endpoint group and shared egress. Honour `Retry-After`,
+  any stated ban expiry and the shared limiter's backoff across units and restarts before retrying. Where the
+  venue gives no retry time, use conservative backoff. E1's existing per-process pacing and GET retry
+  (`execution/transport.py:54-57, 336-360`) must respect the shared wait. No new entry block is
   set for a read failure: while the head stays at S every app order and exit refuses anyway, because the account must
   be at most 30 s old (`execution_launch/runner.py:461-463`). The owner can still sell by hand on Upbit, and the
   rebuild records it (Q9-1). The rebuild holds the work lock (`execution_launch/coordinator.py:32-33, 497, 915-917`),
@@ -411,13 +424,13 @@ The original answer 6 (a per-coin trade-gap threshold) is replaced by Q6r. A 24 
     `exit` command. The legacy end-slot target of zero must not produce an expiry-only sale under OQ5
     (`execution_launch/driver.py:448-450`). CL 4.5 "every held unit of the trade coin" (CL:212-220)
     and SD 6.4 "every held unit of a coin traded by this profile" (SD:199-201) become "every app unit".
-  - **Driver and runner sites [default, OQ12].** They read app units and the app's cash: the anchor
+  - **Driver and runner sites [default, OQ12, pending].** Under the proposal they would read app units and the app's cash: the anchor
     (`execution_launch/live_history.py:561-566`; `execution_launch/driver.py:466-471`), sell sizing (`:336`), the
     other-inventory refusal (`:475-477`, which then ignores owner units), the reserved-cash check (`:478-481`, which
     then excludes cash an owner order reserves), the outstanding-order check (`:482-484`, app orders only), the
     first-bar check (`:487-489`), the universe flat check (`execution_launch/runner.py:408-413`) and the universe
     helpers `held_coins`, `choose_trade_coin` and the extra-coin buy latch
-    (`execution_launch/coordinator.py:141-166, 769-779`). An owner coin or owner order does not block the app.
+    (`execution_launch/coordinator.py:141-166, 769-779`). The owner has yet to choose whether a reconciled personal coin or order alone blocks the app.
   - **Limits [OQ4].** The whole account (app units, owner units and cash) counts toward L and the daily loss
     limit. The policy budget from the previous day's realized result (PLB:325-326; `execution_control/risk.py:299-311`)
     uses the lower of the app-only and whole-account realized net results. Apply the existing policy to that value,
@@ -425,13 +438,19 @@ The original answer 6 (a per-coin trade-gap threshold) is replaced by Q6r. A 24 
     checks app units only. Buy admission enforces both BR-22 cash-floor checks; an owner purchase that consumes
     the required cash blocks app buys until cash returns. The guarantee G3 (PLB:246) and the
     card's "holds even if this position goes to zero" (PLB:290) cover the app's trades only, and the card says so.
-  - **Startup [default, OQ12].** An open order with an empty identifier (an owner order) no longer blocks
-    (`execution_launch/committed_startup.py:520-524, 575-579`); its locked funds count in equity and its later fills
-    are owner fills. An open order with an unknown non-empty id still blocks.
+  - **Startup [default, OQ12, pending].** Under the proposal an order identified as personal would no longer block
+    (`execution_launch/committed_startup.py:520-524, 575-579`). Reserved personal funds would remain in account
+    equity and unavailable to the app; a known personal fill would retain its owner tag. An unknown non-empty
+    identifier would still block startup. The OQ12 choice is pending.
 - **BR-24 Price paths for every coin [Q9-1].** Every coin with a balance at S, or with a fill, flow or residual in
-  [S, E), app or owner, gets a BR-1 to BR-8 path, except an unlisted coin (BR-3); equity sums them. Upbit allows 10
-  trade-list requests per second per IP, shared by every reader on that IP; E1 paces each process at 5 per second.
-  Many owner coins make each unit longer; A0 measures it [design; OQ17 asks about other readers].
+  [S, E), app or owner, gets a BR-1 to BR-8 path, except an unlisted coin (BR-3); equity sums them.
+  - **Public read capacity [OQ17].** The Upbit trade-list limit cited in this design is per public IP. Track the
+    currently observed egress and venue group, and coordinate the aggregate budget across concurrent TRADEGEN,
+    QUANTGEN or other readers using that route, including multiple PCs behind NAT. A per-process cap alone cannot
+    bound the aggregate. For unknown sharing or a change of public egress, assume shared capacity, reduce pacing
+    or pause until a safe allocation is known, and carry outstanding backoff forward. Do not switch IPs to obtain
+    a fresh quota. Actual network topology and other readers still need observation. No additional venue/account
+    privileges are needed for rate coordination. A0 can measure observed unit duration and rate responses.
 - **BR-25 Study records [Q9-1].** Each fill and flow in the capture archive carries an origin tag: `app`, `owner`,
   `deposit`, `withdrawal`, `pocket_transfer` or `unexplained`. An unresolved difference retains its evidence and
   reconciliation status until BR-21 and BR-22 classify it. The study, the odds and the outcome ladder use app fills only. Account
@@ -455,7 +474,7 @@ The original answer 6 (a per-coin trade-gap threshold) is replaced by Q6r. A 24 
 
 | Committed-path element at `1fd8792` | Under this design |
 |---|---|
-| Startup blocks on any open order the journal does not know (`execution_launch/committed_startup.py:520-524, 575-579`) | An order with an empty identifier (an owner order) is allowed (BR-23); an unknown non-empty id still blocks. |
+| Startup blocks on any open order the journal does not know (`execution_launch/committed_startup.py:520-524, 575-579`) | OQ12 remains open. The proposal would allow an identified personal order after reconciliation and keep an unknown non-empty identifier blocked (BR-23). |
 | Holdings are reported, not reconciled, at startup (`execution_launch/committed_startup.py:573-574`) | Holdings split into app and owner units from the journaled lots (BR-23). |
 | `CommittedStartup._time_status` (`execution_launch/committed_startup.py:203-213`, also used at `execution_launch/committed_producer.py:406`): STALE after 30 s; REFUSED across a date change or a needed 22:00 | A long interval (BR-16), split at the boundaries. REFUSED stays for a clock rollback (`:204-205`), BR-12's running case, BR-17 and BR-19. `classify_restart` (`execution_launch/continuous_guard_commit.py:182-240`) and all its refusals are unchanged. |
 | GPT notes forbid a REST backfill of a gap (`docs/committed-startup-retention-execution-log.md:119, 121`; `handoff:context/upbit-universe/gpt-20261113/TRADEGEN_COMMITTED_STARTUP_READINESS_2026-11-13.md:56, 60`) | Superseded by the owner's Q9 answer for the trade-list rebuild only. Order and balance history still come from the existing reads. |
@@ -492,7 +511,8 @@ What this means for approach A:
   and alert, with a halt if the floor breaks. Valid strategy and protective sells may proceed under their own
   conditions and current authority. Expiry alone grants neither sell nor cancel authority.
 - **Restart.** Reconcile the prior position and outstanding orders when rebuilding the chain. A recovered account
-  record supplies no new management authority. The standing deployment question is tracked separately in OQ16.
+  record supplies no new management authority. On restart or a handoff over 30 s the old standing deployment ends.
+  A reviewed, valid deployment is required for subsequent orders (OQ16).
 - **Past E the chain must stay alive** through `monitor_until` (at most window end + 1 day,
   `execution_launch/coordinator.py:444-449`) and across the boundaries scheduled after E (`:250-261`). After
   `monitor_until` no unit runs; the next start rebuilds the gap (BR-16) within reach (BR-17).
@@ -533,13 +553,17 @@ The PH clauses above and the legacy universe deadline path require alignment wit
 The delivery plan below describes M7-T3. Changes that depend on an open OQ or BR-26 still need the corresponding decision
 before implementation. The sequence was recorded on 2026-11-12 and re-cited at `1fd8792`:
 
-1. **A0, a probe outside the D14 closure.** Public reads only, no keys, not in `CAPTURE_FILES`. The owner runs it for
-   hours or days. It measures: the Date header on trade-list responses and its offset; when a trade appears in the
-   list (SETTLE); when a minute candle becomes final; pages per interval; two reads of one interval at SETTLE 0.5, 1
-   and 2 s; ticker against the list; prices within one closing millisecond; which side `ask_bid` reports; refusal of a
-   trailing slash; 429 and 418; latency; behaviour across 09:00 KST; and whole-unit time against
-   `MONITOR_UNIT_SECONDS` = 5 and the slot envelope (`execution_launch/coordinator.py:32-36, 90-94`). It gives a go or
-   no-go before any signed code.
+1. **A0 observation.** The existing probe in PR #67 uses public reads, outside D14 and `CAPTURE_FILES`. It
+   measures Date-header offsets, visibility of trades at separate 0.5/1/2 s SETTLE targets, repeated reads of
+   the same interval, page counts, ticker/candle comparisons, closing-millisecond prices, trailing-slash behaviour,
+   observed 429/418 responses, latency and the 09:00 KST boundary. The owner can gather hours or days of observations.
+   Public data alone does not establish `ask_bid` semantics or whole-account timing against the five-second envelope.
+   - OQ18 permits a separate, optional authenticated Upbit `myOrder` WebSocket observation using the minimum
+     query permission supported by the venue. Verify actual entitlement on the owner's system and record a refusal,
+     missing events or unresolved permissions truthfully. Observe naturally occurring events without creating
+     an order to produce a sample. Restrict access to the private account evidence and keep it separate from public
+     A0 logs. This design grants neither order submission nor credential provisioning. The existing public probe
+     remains usable without authentication.
 2. **A1, preview only.** The trade-list module, the walk, BR-1 to BR-12, the flow classification and the unit lots
    (BR-21 to BR-25), the new capture schema, and Y parsing (BR-26). Allowlist entries for `/v1/trades/ticks` and, for
    BR-8, `/v1/candles/minutes/1` in `ENDPOINTS`, `PUBLIC` and `READ_CAPTURE_ENDPOINTS`
@@ -560,7 +584,7 @@ any change to the study's strategy. Section 5 defines the required behaviour for
 
 - Merging this PR (design approval).
 - Approving, in design and again in the implementation PR, the `sign.py` and owner-log change for Y (BR-26).
-- Running A0 on the owner's PC.
+- Running A0 on the owner's PC, and choosing whether to enable the separate query-only session under OQ18.
 - After M7-T3: one `code_approved`; the reviewed re-anchor that moves the deployment to the new conventions (BR-22),
   which under today's collector needs a flat account with no open orders, the owner's coins included (BR-17); and
   signing Y.
@@ -611,21 +635,29 @@ The decisions below apply the recommended answers, including the OQ2 amendment a
   ownership and classify each movement according to its relation to the measured account scope under BR-21.
   Provisioning this permission and authorizing a specific transfer remain separate steps.
 
-**C. OQ12–OQ18 remain pending explicit review.** The following are proposals for the owner's review. Alert delivery
-timing (OQ14), shared IP use (OQ17) and the A0 scope (OQ18) are still open.
+**C. Remaining account decision and subsequent owner answers.**
 
-- **OQ12. Owner coins and orders with the app running:** an owner open order no longer blocks startup, and the
-  drivers and the universe helpers read app units and app cash, so an owner coin or order does not stop the app
-  (BR-23).
-- **OQ13. Owner coins, coins outside the universe and dust:** each gets a path and the bid-gap rule; an unlisted coin
-  is valued at 0 as today (BR-3, BR-10, BR-24).
-- **OQ14. Alert delivery:** a Windows toast at once; push and email through a durable alert row that the daily Claude
-  task sends, so they can arrive up to a day late until a prompt path is built.
-- **OQ15. Fee mismatch:** when myOrder fees do not add up to `paid_fee`, the order's fee is split by funds and an
-  alert is raised (BR-5).
-- **OQ16. Standing deployment:** a restart and a handoff over 30 s still end the standing deployment as safety stops
-  (SD 6.2); only the account chain now survives them.
-- **OQ17. Shared IP (information):** will QUANTGEN or another Upbit public reader run from the same PC or IP while
-  TRADEGEN is live? The trade-list limit of 10 per second per IP is shared.
-- **OQ18. A0's reach:** public reads only (default), or also one keyed, read-only myOrder subscription with no
-  orders, to learn which key permissions myOrder needs (undocumented)?
+- **OQ12. Personal holdings and open orders.** Decision pending. Consider an identified personal coin outside the
+  universe, a resting personal buy with reserved cash, and an open order whose identifier cannot be reconciled.
+  Under the proposed rule the first two can coexist with startup once reconciled, with the personal assets and
+  reserved cash unavailable for app orders. The unknown order blocks startup. An alternative is to block startup
+  whenever personal inventory or personal orders are present. No choice is recorded yet.
+- **OQ13. Coverage and risk sales.** Include personal holdings, holdings outside the universe and dust. A listed
+  holding gets its price path and bid-gap checks and an unlisted holding is valued at zero. When the established
+  risk policy calls for a sale and an executable market and authority exist, automatically sell up to available
+  app units (OQ4). Coverage of personal units grants no authority to sell them.
+- **OQ14. Urgent notifications.** Persist urgent events and send immediately through the Telegram bot and Android
+  app alongside the configured channels. Provide Android status and pending-request views alongside the Windows
+  app. Retry undelivered notifications and deduplicate successful delivery.
+  Approval actions use the scoped HTTPS/WebAuthn path in BR-9.
+- **OQ15. Fee mismatch.** Preserve the reported order total. On a mismatch allocate fees in proportion to
+  executed notional under BR-5 and record the allocation and alert.
+- **OQ16. Standing deployment.** Restart or a handoff longer than 30 s ends that deployment. Preserve the
+  account chain where BR-16 permits recovery and reconcile balances and orders. Automatic entries under OQ9
+  can resume only within a valid deployment. Restart does not itself trigger a sale.
+- **OQ17. Shared public IP.** Design for varying egress and readers behind a shared route. Coordinate aggregate
+  pacing, honour rate responses and preserve backoff on a route change (BR-18 and BR-24). Confirm the actual
+  PC/network arrangement during observation.
+- **OQ18. A0 reach.** Permit a separate optional authenticated, query-only `myOrder` WebSocket observation.
+  Document actual permissions and naturally observed events privately; reserve orders and other private operations
+  for their own authority. The public probe in PR #67 is already separate (§7).
