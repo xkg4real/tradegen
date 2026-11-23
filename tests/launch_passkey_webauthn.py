@@ -15,9 +15,13 @@ from tools.approval_broker import webauthn_verify as V
 from tests.launch_passkey_contract import NOW, enrollment, refused
 
 
-def client(kind, challenge, origin):
+def client(kind, challenge, origin, **extra):
     return json.dumps({"type": kind, "challenge": C.b64(challenge), "origin": origin,
-                       "crossOrigin": False}, separators=(",", ":")).encode()
+                       "crossOrigin": False, **extra}, separators=(",", ":")).encode()
+
+
+# Chromium adds this member to a random share of create()/get() calls.
+CHROMIUM = {"other_keys_can_be_added_here": "do not compare clientDataJSON against a template. See https://goo.gl/yabPex"}
 
 
 def fixture(*, eligible=True, backed=False, counter=0):
@@ -94,11 +98,11 @@ def test_exact_origin_challenge_and_client_type_are_checked_with_valid_signature
 def test_rp_hash_is_verified_by_real_library_not_just_browser_origin():
     e = fixture()
     data = b"x" * 32 + b"\x0d" + (1).to_bytes(4, "big")
-    refused(lambda: V.verify_assertion(e.context, assertion(e, auth_data=data), now=NOW), "PASSKEY_SIGNATURE_INVALID")
+    refused(lambda: V.verify_assertion(e.context, assertion(e, auth_data=data), now=NOW), "PASSKEY_ORIGIN_RP_INVALID")
     body = cbor.decode(e.response.attestation_object)
     body["authData"] = b"x" * 32 + body["authData"][32:]
     response = replace(e.response, attestation_object=cbor.encode(body))
-    refused(lambda: V.verify_registration(e.request, response, now=NOW), "PASSKEY_REGISTRATION_INVALID")
+    refused(lambda: V.verify_registration(e.request, response, now=NOW), "PASSKEY_ORIGIN_RP_INVALID")
 
 
 def test_uv_up_missing_flags_reserved_flags_and_extensions_refuse():
@@ -132,6 +136,14 @@ def test_counter_rules_preserve_synced_zero_nonmonotone_and_device_bound_protect
         refused(lambda: V.verify_assertion(e.context, assertion(e, counter=new), now=NOW), "PASSKEY_COUNTER_INVALID")
 
 
+def test_forged_signature_with_low_counter_reports_signature_not_counter():
+    e = fixture(eligible=False, counter=5)
+    other = ec.generate_private_key(ec.SECP256R1())
+    for new in (0, 5):
+        refused(lambda: V.verify_assertion(e.context, assertion(e, counter=new, key=other), now=NOW),
+                "PASSKEY_SIGNATURE_INVALID")
+
+
 def test_backup_eligibility_cannot_change_and_backed_up_requires_eligible():
     e = fixture(eligible=True)
     refused(lambda: V.verify_assertion(e.context, assertion(e, flags=5), now=NOW), "PASSKEY_BACKUP_FLAGS_CHANGED")
@@ -150,6 +162,28 @@ def test_duplicate_cross_origin_top_origin_and_trailing_client_json_refuse_befor
     with patch.object(V, "_server", side_effect=AssertionError("must fail before library")):
         for raw in cases:
             refused(lambda: V.verify_assertion(e.context, assertion(e, raw_client=raw), now=NOW))
+
+
+def test_unknown_client_member_verifies_but_top_origin_cross_origin_and_missing_members_refuse():
+    e = fixture()
+    raw = client("webauthn.get", e.context.challenge, e.context.rp.origin, **CHROMIUM)
+    assert V.verify_assertion(e.context, assertion(e, raw_client=raw), now=NOW).counter == 1
+    raw = client("webauthn.create", e.request.challenge, e.request.rp.origin, **CHROMIUM)
+    result = V.verify_registration(e.request, replace(e.response, client_data_json=raw), now=NOW)
+    assert result.credential.public_key_cose == e.registration.credential.public_key_cose
+    with patch.object(V, "_server", side_effect=AssertionError("must fail before library")):
+        for extra in ({"topOrigin": e.context.rp.origin}, {"crossOrigin": True}):
+            raw = client("webauthn.get", e.context.challenge, e.context.rp.origin, **CHROMIUM, **extra)
+            refused(lambda: V.verify_assertion(e.context, assertion(e, raw_client=raw), now=NOW),
+                    "PASSKEY_ORIGIN_RP_INVALID")
+            raw = client("webauthn.create", e.request.challenge, e.request.rp.origin, **CHROMIUM, **extra)
+            refused(lambda: V.verify_registration(e.request, replace(e.response, client_data_json=raw), now=NOW),
+                    "PASSKEY_ORIGIN_RP_INVALID")
+        body = json.loads(client("webauthn.get", e.context.challenge, e.context.rp.origin, **CHROMIUM))
+        for name in ("type", "challenge", "origin"):
+            raw = C.encoded({key: value for key, value in body.items() if key != name})
+            refused(lambda: V.verify_assertion(e.context, assertion(e, raw_client=raw), now=NOW),
+                    "PASSKEY_FORMAT_INVALID")
 
 
 def test_none_attestation_is_strict_and_entire_authdata_cose_is_consumed():
