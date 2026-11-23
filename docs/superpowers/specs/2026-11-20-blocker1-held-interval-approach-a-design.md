@@ -2,7 +2,7 @@
 
 Date: 2026-11-20 (Asia/Seoul).
 Status: proposed amendment to PR #65. Section 9 records the owner's direct approval of OQ1–OQ7 on 2026-11-23 KST
-and their subsequent decisions on OQ8–OQ11 and OQ13–OQ18. OQ12 remains open. Separate decisions cover the BR-26
+and their subsequent decisions on OQ8–OQ18, including approval of the BR-23 startup rule (OQ12). Separate decisions cover the BR-26
 owner-log and signer schema, PR merges, code review, signatures and trading activation.
 
 **Citations.** `path:line` is rev `1fd8792` (main, after PRs #61-#64). Short names, all under
@@ -345,9 +345,11 @@ The original answer 6 (a per-coin trade-gap threshold) is replaced by Q6r. A 24 
     prefix. That is #58's own test (`execution_launch/committed_startup.py:520-521`); the prefix itself changes with
     each profile (`execution_launch/runner.py:355`), and `identifier` carries the client id
     (`execution_orders/upbit.py:26`).
-  - **Owner fill:** any other fill, including a manual order with an empty identifier (the collector maps it to `''`,
-    `execution_accounts/upbit_collector.py:313-316`). Every order type counts (limit, price, market, best); today only
-    limit passes (`:279-281`).
+  - **Owner fill:** a fill reconciled to a personal order. A manual order may have an empty client identifier
+    (`execution_accounts/upbit_collector.py:313-316`). Reconcile its venue order and fill records with the
+    account balances and journal before tagging it as personal. Preserve an unresolved order's evidence and
+    defer new automated entries under BR-23 until its origin is established. Every order type counts (limit,
+    price, market, best); today only limit passes (`:279-281`).
   - **Deposit or withdrawal,** KRW or coin, from `/v1/deposits` and `/v1/withdraws`. A deposit counts at `ACCEPTED`
     (its `done_at`); `TRAVEL_RULE_SUSPECTED`, `REFUNDING` and `REFUNDED` are not settled. A withdrawal counts at `DONE`
     (its `done_at`) [design; A0 and the account balances confirm the timing]. A withdrawal's fee is part of the outflow
@@ -424,13 +426,14 @@ The original answer 6 (a per-coin trade-gap threshold) is replaced by Q6r. A 24 
     `exit` command. The legacy end-slot target of zero must not produce an expiry-only sale under OQ5
     (`execution_launch/driver.py:448-450`). CL 4.5 "every held unit of the trade coin" (CL:212-220)
     and SD 6.4 "every held unit of a coin traded by this profile" (SD:199-201) become "every app unit".
-  - **Driver and runner sites [default, OQ12, pending].** Under the proposal they would read app units and the app's cash: the anchor
+  - **Driver and runner sites [OQ12].** Use reconciled app units and the app's available cash at the anchor
     (`execution_launch/live_history.py:561-566`; `execution_launch/driver.py:466-471`), sell sizing (`:336`), the
     other-inventory refusal (`:475-477`, which then ignores owner units), the reserved-cash check (`:478-481`, which
     then excludes cash an owner order reserves), the outstanding-order check (`:482-484`, app orders only), the
     first-bar check (`:487-489`), the universe flat check (`execution_launch/runner.py:408-413`) and the universe
     helpers `held_coins`, `choose_trade_coin` and the extra-coin buy latch
-    (`execution_launch/coordinator.py:141-166, 769-779`). The owner has yet to choose whether a reconciled personal coin or order alone blocks the app.
+    (`execution_launch/coordinator.py:141-166, 769-779`). Exclude personal reservations once when calculating
+    app buying power, including when the venue balance already reports available cash net of reservations.
   - **Limits [OQ4].** The whole account (app units, owner units and cash) counts toward L and the daily loss
     limit. The policy budget from the previous day's realized result (PLB:325-326; `execution_control/risk.py:299-311`)
     uses the lower of the app-only and whole-account realized net results. Apply the existing policy to that value,
@@ -438,10 +441,12 @@ The original answer 6 (a per-coin trade-gap threshold) is replaced by Q6r. A 24 
     checks app units only. Buy admission enforces both BR-22 cash-floor checks; an owner purchase that consumes
     the required cash blocks app buys until cash returns. The guarantee G3 (PLB:246) and the
     card's "holds even if this position goes to zero" (PLB:290) cover the app's trades only, and the card says so.
-  - **Startup [default, OQ12, pending].** Under the proposal an order identified as personal would no longer block
-    (`execution_launch/committed_startup.py:520-524, 575-579`). Reserved personal funds would remain in account
-    equity and unavailable to the app; a known personal fill would retain its owner tag. An unknown non-empty
-    identifier would still block startup. The OQ12 choice is pending.
+  - **Startup [OQ12, approved].** Reconcile holdings and open orders against venue balances, order and fill
+    records, and the account journal. If personal holdings and personal open orders can be separated from the
+    app's, allow startup subject to the other entry checks. Keep personal holdings and reserved funds in account
+    equity and outside app order sizing. If an order's origin is unresolved, defer new automated entries until
+    reconciliation establishes it, including when the client identifier is empty. Continue any independently
+    authorized monitoring under the existing risk policy. The separate reviewed re-anchor rule is in BR-17.
 - **BR-24 Price paths for every coin [Q9-1].** Every coin with a balance at S, or with a fill, flow or residual in
   [S, E), app or owner, gets a BR-1 to BR-8 path, except an unlisted coin (BR-3); equity sums them.
   - **Public read capacity [OQ17].** The Upbit trade-list limit cited in this design is per public IP. Track the
@@ -467,14 +472,15 @@ The original answer 6 (a per-coin trade-gap threshold) is replaced by Q6r. A 24 
   (`tools/signer/sign.py:217-218, 3157-3158`), `OwnerContextClaim` and `_owner_terms`
   (`execution_launch/continuous_guard.py:64-76, 192-194`) and the producer's limit read
   (`execution_launch/committed_producer.py:288-295`). PLB says no owner-log schema or signer change (PLB:71, 419), and
-  CL:413 puts `sign.py` changes only in PR L3. The proposed A1 exception needs separate owner approval. The owner signs Y only
+  CL:413 puts `sign.py` changes only in PR L3. On 2026-11-23 the owner requested an explanation before deciding
+  whether to approve this A1 design exception. The value of Y is a later operational decision. The owner signs Y only
   after its parsing code is code-approved, as with a lower floor.
 
 ## 4. The committed path (#46-#60) and #58 startup reconciliation
 
 | Committed-path element at `1fd8792` | Under this design |
 |---|---|
-| Startup blocks on any open order the journal does not know (`execution_launch/committed_startup.py:520-524, 575-579`) | OQ12 remains open. The proposal would allow an identified personal order after reconciliation and keep an unknown non-empty identifier blocked (BR-23). |
+| Startup blocks on any open order the journal does not know (`execution_launch/committed_startup.py:520-524, 575-579`) | Allow startup with reconciled personal holdings and open orders. An order of unresolved origin defers new automated entries until reconciled (BR-23, OQ12). |
 | Holdings are reported, not reconciled, at startup (`execution_launch/committed_startup.py:573-574`) | Holdings split into app and owner units from the journaled lots (BR-23). |
 | `CommittedStartup._time_status` (`execution_launch/committed_startup.py:203-213`, also used at `execution_launch/committed_producer.py:406`): STALE after 30 s; REFUSED across a date change or a needed 22:00 | A long interval (BR-16), split at the boundaries. REFUSED stays for a clock rollback (`:204-205`), BR-12's running case, BR-17 and BR-19. `classify_restart` (`execution_launch/continuous_guard_commit.py:182-240`) and all its refusals are unchanged. |
 | GPT notes forbid a REST backfill of a gap (`docs/committed-startup-retention-execution-log.md:119, 121`; `handoff:context/upbit-universe/gpt-20261113/TRADEGEN_COMMITTED_STARTUP_READINESS_2026-11-13.md:56, 60`) | Superseded by the owner's Q9 answer for the trade-list rebuild only. Order and balance history still come from the existing reads. |
@@ -635,13 +641,14 @@ The decisions below apply the recommended answers, including the OQ2 amendment a
   ownership and classify each movement according to its relation to the measured account scope under BR-21.
   Provisioning this permission and authorizing a specific transfer remain separate steps.
 
-**C. Remaining account decision and subsequent owner answers.**
+**C. Owner decisions on OQ12–OQ18.**
 
-- **OQ12. Personal holdings and open orders.** Decision pending. Consider an identified personal coin outside the
-  universe, a resting personal buy with reserved cash, and an open order whose identifier cannot be reconciled.
-  Under the proposed rule the first two can coexist with startup once reconciled, with the personal assets and
-  reserved cash unavailable for app orders. The unknown order blocks startup. An alternative is to block startup
-  whenever personal inventory or personal orders are present. No choice is recorded yet.
+- **OQ12. Personal holdings and open orders.** Approved on 2026-11-23 KST. Allow startup when personal holdings
+  and personal open orders can be reconciled and separated from app inventory and orders. For example, a
+  reconciled personal coin outside the universe or a resting personal buy can remain in the account. Exclude the
+  personal units and reserved cash from app orders and retain them in whole-account risk checks. An order with
+  unresolved origin defers new automated entries until reconciliation. Existing OQ4 sale limits and the separate
+  OQ13 personal-sale design review apply.
 - **OQ13. Coverage and risk sales.** Include personal holdings, holdings outside the universe and dust. A listed
   holding gets its price path and bid-gap checks and an unlisted holding is valued at zero. When the established
   risk policy calls for a sale and an executable market and authority exist, automatically sell up to available

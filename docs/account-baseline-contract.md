@@ -79,6 +79,16 @@ a negative remainder counts as a loss and a positive one as external flow,
 excluded from trading profit. Classification alone neither halts the chain nor
 blocks entry. Existing floor and daily-limit checks still apply to the result.
 
+The owner approved the planned OQ12 startup rule (BR-23) on 2026-11-23.
+Reconcile venue balances, open orders and fills with the account journal.
+When personal holdings and personal open orders can be separated from app
+holdings and orders, startup may proceed subject to the other checks. Include
+personal assets and reserved funds in whole-account equity. Exclude them from
+app order sizing, accounting for each reservation once. An order of unresolved
+origin defers new automated entries until reconciled, including when its client
+identifier is empty. The reviewed re-anchor still requires a flat account under
+OQ7. The running code at `1fd8792` retains its original startup checks.
+
 ## Anchor, advance and export
 
 1. An authenticated account-history integration constructs `BaselineAnchor` from a
