@@ -645,7 +645,22 @@ The decisions below apply the recommended answers, including the OQ2 amendment a
 - **OQ13. Coverage and risk sales.** Include personal holdings, holdings outside the universe and dust. A listed
   holding gets its price path and bid-gap checks and an unlisted holding is valued at zero. When the established
   risk policy calls for a sale and an executable market and authority exist, automatically sell up to available
-  app units (OQ4). Coverage of personal units grants no authority to sell them.
+  app units under the currently approved OQ4 cap. The owner requested a design review that also covers
+  personal units. The following is a proposed amendment for review.
+  - An independent, revocable management approval would identify the account, assets, eligible personal lots,
+    maximum sale quantity, applicable risk trigger, minimum executable price or slippage rule, and expiry.
+    The existing OQ4 cap applies until that amendment and corresponding authority take effect.
+  - Reconcile free and reserved units, open orders, ownership and recent fills. Estimate the quantity required by
+    the approved risk rule using executable bid depth, fees and the permitted price. Use eligible app units first.
+    Consider only the uncovered quantity from personal lots explicitly in scope, up to their signed cap and
+    free balance. Never cancel a personal order to release reserved units under this proposal.
+  - Deduct partial fills from the correct owner's lot ledger and remaining cap. Reconcile any outstanding order
+    before another attempt. A missing attribution, unusable bid, incomplete fill result or insufficient eligible
+    quantity pauses that action and alerts the owner. Keep strategy exits, risk exits and manual orders distinct.
+    Expiry or restart alone creates no sell trigger. Existing portfolio and daily stops continue to bind.
+  - Review cases include mixed holdings in one market, reserved personal inventory, out-of-universe or dust
+    positions that cannot be sold, partial fills, revocation and restart. No personal sale becomes available
+    solely because OQ12 allows account startup or a personal holding is included in the portfolio valuation.
 - **OQ14. Urgent notifications.** Persist urgent events and send immediately through the Telegram bot and Android
   app alongside the configured channels. Provide Android status and pending-request views alongside the Windows
   app. Retry undelivered notifications and deduplicate successful delivery.
