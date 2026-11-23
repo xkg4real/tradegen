@@ -28,8 +28,9 @@ recovery boundary:
   [approach-A design](superpowers/specs/2026-11-20-blocker1-held-interval-approach-a-design.md)
   (BR-21, BR-22) adds flow and trade classification both while running and after
   a gap (OQ1). The owner approved OQ1–7 on 2026-11-23 with the protected-floor
-  condition below for OQ2–3. The proposed treatment of unexplained residuals
-  (OQ8) awaits separate review.
+  condition below for OQ2–3. OQ8 requires reconciliation before applying the
+  unexplained-residual rule. OQ11 approves permission to move assets between
+  pockets.
 - `max_interval_seconds`: an explicit integer from1 to300. A longer uncovered time
   range refuses rather than interpolating missing peaks, troughs or activity.
   Planned: a separate gap interval kind whose path is rebuilt from the trade list,
@@ -59,6 +60,24 @@ limits. Carry the flow history and protected floors through a reviewed re-anchor
 If a direct withdrawal leaves actual equity below its protected floor, record it,
 block new buys and alert. Existing halt and daily-stop rules at judged points
 still apply. OQ3 replaces the old no-flow budget rule only with these protections.
+
+For OQ8, reconcile each discrepancy against the source balances, fills, settled
+withdrawals (including their fees) and the internal tracking records at the same
+cutoff. Check timing differences, duplicate or missing postings and transfers
+between pockets. Keep the original amounts, timestamps and evidence for each
+classification. A documented withdrawal follows OQ2 once; a tracking difference
+is reconciled to its evidenced cause. An internal transfer between two observed
+pockets changes their individual balances without creating an external flow or
+aggregate trading P&L; match both legs once, including on replay. Record any
+separately evidenced fee once. A missing leg alone cannot establish an external
+withdrawal. Keep the difference unresolved while the evidence cannot distinguish
+the cause.
+
+Only after ruling out a tracking difference or withdrawal and reconciling known
+activity does the remaining unexplained amount follow BR-22. Record and alert;
+a negative remainder counts as a loss and a positive one as external flow,
+excluded from trading profit. Classification alone neither halts the chain nor
+blocks entry. Existing floor and daily-limit checks still apply to the result.
 
 ## Anchor, advance and export
 

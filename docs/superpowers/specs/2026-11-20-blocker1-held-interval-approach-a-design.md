@@ -1,9 +1,9 @@
 # Blocker 1, approach A: held-coin account intervals rebuilt from the Upbit trade list
 
 Date: 2026-11-20 (Asia/Seoul).
-Status: proposed amendment to PR #65. On 2026-11-23 KST the owner confirmed that they personally approved the recommended
-answers to OQ1–OQ7, including the amendments recorded in section 9. OQ8–OQ18 are reserved for later review. The separate BR-26 owner-log and signer schema
-approval, PR merges, code review, signatures and trading activation are outside the stated response.
+Status: proposed amendment to PR #65. Section 9 records the owner's direct approval of OQ1–OQ7 on 2026-11-23 KST
+and their subsequent decisions on OQ8–OQ11. OQ12–OQ18 remain pending. Separate decisions cover the BR-26
+owner-log and signer schema, PR merges, code review, signatures and trading activation.
 
 **Citations.** `path:line` is rev `1fd8792` (main, after PRs #61-#64). Short names, all under
 `docs/superpowers/specs/` unless a path is given: SD = `2026-11-12-standing-deployment-design.md`, CL =
@@ -17,7 +17,7 @@ list-withdrawals, pocket-overview) and two changelog notices (api-path-format-er
 
 **Tags.** Each rule carries the owner answer it rests on: `[Q1]` to `[Q9]`, `[Q6r]` (answer 6 as revised on
 2026-11-12), `[Q9-1]` (continue on everything), `[Q9-2]` (the gap high raises H) and `[Y]` (where Y is signed). A rule
-tagged `[OQ1]` through `[OQ7]` refers to the owner decision in section 9. A `[default, OQn]` tag denotes
+tagged `[OQ1]` through `[OQ11]` refers to the owner decision in section 9. A `[default, OQn]` tag denotes
 a proposal still awaiting an answer. Earlier Q-numbered answers in section 1 are distinct from these OQ items.
 A rule tagged `[design]` is a mechanism this document chooses to carry out an answer.
 
@@ -56,6 +56,9 @@ at its own units.
 | Q9-1 | 11-20 | Continue on everything: app fills, manual sells, manual buys, deposits, withdrawals and unexplained changes all continue the record. (Asked about gaps.) |
 | Q9-2 | 11-20 | The gap's highest point raises H. |
 | Y | 11-20 | Y is signed in the PLB `limit_set` together with L and the daily loss limit, in force whenever a coin is held. The value is never written to the repo. |
+
+The historical Q1 and Q7 answers above describe why the latch is set. The later OQ9 decision defines both ways to
+release that latch under BR-9(b); its independent risk checks still apply.
 
 The original answer 6 (a per-coin trade-gap threshold) is replaced by Q6r. A 24 h census of all 301 KRW coins on
 2026-11-12 found none without a trade gap over 30 s, so a threshold could not work.
@@ -142,9 +145,24 @@ The original answer 6 (a per-coin trade-gap threshold) is replaced by Q6r. A 24 
     halts by BR-14: the chosen Q1 and Q7 options say "halt on a breach". The daily loss is re-checked the same way, and
     a daily-loss breach sets the persistent daily stop, as today (`execution_control/controller.py:803-811`); it never
     halts [design]. A CBA price inside the unjudged part of a forgiven gap follows BR-16 instead.
-  - **(b) Entry block.** Set at once. It needs two new journal kinds, `entry_block` and `entry_unblock`, since
-    `EVENT_KINDS` is a fixed set (`execution_control/store.py:25-28`). It stays until the owner lifts it after
-    checking [default, OQ9].
+  - **(b) Entry block [OQ9].** Set the durable `entry_block` latch immediately. A matching `entry_unblock` may be
+    written through either route below. Bind the release to the active block, account, deployment and policy terms;
+    journal its cause, authority and supporting evidence. `EVENT_KINDS` is a fixed set
+    (`execution_control/store.py:25-28`).
+    - **Manual release.** One Telegram button opens the owner approval for the identified block. Display its reason
+      and terms and verify user presence and user verification through the independent WebAuthn approval path before
+      applying the release. Reuse the existing scoped, single-use approval checks.
+    - **Automatic release.** An authorized, tested model may release the latch when verified evidence shows that a new buy offers an
+      advantage. With every independent admission check satisfied, continue through the authorized automated order
+      path to pursue excess returns without waiting for another manual click. This route can run during continuous operation or after restart and successful state,
+      balance and open-order reconciliation. A restart alone leaves the latch in place. The model's comparison
+      basis, benefit metric and acceptance criterion still require definition; until they are specified and
+      validated for the authorized model, no automatic release can be justified. An absent or unproven advantage
+      leaves the latch in place for the manual route.
+    - Check current permissions, reconciled account and market evidence, and the condition that raised the block.
+      Any outstanding input mismatch, missing evidence, independent entry block, daily stop or floor halt remains
+      binding. OQ9 can clear only the corresponding entry latch. Each later order still needs valid deployment and
+      order authority. OQ16 separately covers whether a standing deployment survives a restart.
   - **(c) Alert on all channels,** meaning D5's set: a Windows notification, iOS push and email (D5,
     `2026-10-23-compliance-gate-and-odds-engine-design.md:64`; `_CHANNELS` in `core/compliance/alerts.py:19`).
     `_toast_once` (`execution_launch/coordinator.py:617-627`) is only the toast leg and de-duplicates by key, so each
@@ -170,9 +188,9 @@ The original answer 6 (a per-coin trade-gap threshold) is replaced by Q6r. A 24 
   - It covers every held coin with a listed market: app or owner units, in or out of the universe, dust included
     [default, OQ13]. Unlisted coins follow BR-3.
   - A bid that cannot be read, or an empty book, gets the entry block and an alert without a price re-check; the unit
-    does not refuse [default, OQ10].
+    does not refuse [OQ10].
   - With no Y in force, no buy is prepared, and a held coin is checked with Y = 0, so any bid below the mark gets CBA
-    [default, OQ10]. This matches the D12 fold, where an unset limit counts as the tightest
+    [OQ10]. This matches the D12 fold, where an unset limit counts as the tightest
     (`core/compliance/owner.py:682-686`).
   - The app may trade a coin by the universe's traded-value rank only; no trade-gap threshold applies [Q6r].
 - **What it replaces.** PR 4c merged as #33 (`7d256f9`) with a different rule: a last trade older than 30 s is marked
@@ -322,12 +340,21 @@ The original answer 6 (a per-coin trade-gap threshold) is replaced by Q6r. A 24 
     (its `done_at`) [design; A0 and the account balances confirm the timing]. A withdrawal's fee is part of the outflow
     [OQ2]. An incoming coin is valued at the higher of its mark at `done_at` and its first trade after it, an
     outgoing coin at the lower, so a stale mark cannot create a gain [design].
-  - **Unexplained change:** per currency, the captured balance minus (the previous balance plus fills and settled
-    flows), when it is not zero.
+  - **Unmatched balance difference [OQ8].** For each currency, compare the captured balance with the prior balance
+    plus reconciled fills and flows. Preserve any nonzero difference and reconcile the tracking records, withdrawals
+    and pocket movements before booking it under BR-22.
 
-  The same rule applies while running, not only after a gap [OQ1]. The app trades in the main pocket, and the
-  owner makes no pocket transfer while a coin is held; a pocket transfer would show as an unexplained change [default,
-  OQ11]. This replaces the exclusive-account fence (`execution_accounts/collector.py:112-131`), the transfer-scope
+  The same rule applies while running, not only after a gap [OQ1]. The main pocket remains the trading location.
+  Inter-pocket asset movement is permitted, including while holding; the approved permission scope can include
+  Upbit's pocket-management capability (`포켓관리`), which may also be needed to read the transfer records [OQ11].
+  Match movement records to balances on both sides. A transfer inside the valued account scope preserves units,
+  ownership and total equity; it contributes no external F and no trading P&L. For movements across the measured
+  boundary, record the evidenced direction and pocket endpoints and account for the boundary flow exactly once.
+  Keep its origin distinguishable from a deposit or withdrawal at the exchange. A missing leg or ambiguous scope
+  remains unresolved until reconciled under OQ8. OQ11 specifies the permission category; it supplies no transfer
+  instruction, amount, source/destination policy, external withdrawal authority or change of order permissions.
+
+  This replaces the exclusive-account fence (`execution_accounts/collector.py:112-131`), the transfer-scope
   coverage rule (`execution_accounts/upbit_collector.py:237-243`), the flow refusals (`:325-343`) and the KRW lock
   check (`:402-403`), the provider's coin-flow refusal and FIFO equality (`execution_accounts/provider.py:212-229,
   245-248`), the bridge's interval-flow refusal and FIFO profit equality (`execution_accounts/baseline_bridge.py:71-76`;
@@ -359,15 +386,21 @@ The original answer 6 (a per-coin trade-gap threshold) is replaced by Q6r. A 24 
     as BC:120-126 (written for the recovery-cutoff schema), moving a deployment to the flow-adjusted convention is a
     reviewed owner re-anchor (`docs/account-baseline-integration.md:200-218`), carrying H, the day opening, both
     floor bases, F and the daily stop from the journal fold (BR-14, BR-19).
-  - **Unexplained changes [default, OQ8].** A negative residual counts as a loss, not a flow, so it can trip the floor
-    and the daily loss. A positive residual counts as a flow, not a gain, so it cannot raise H. Each is logged and
-    alerted on all channels (BR-9 (c)). Neither stops the chain or sets the entry block.
+  - **Unexplained changes [OQ8].** Journal and alert on the observed difference. Apply the signed amount only
+    after evidence rules out a tracking discrepancy and a withdrawal and reconciles the pocket-transfer records
+    under BR-21. Then book a remaining decrease as a loss subject to the floor and daily loss, and a remaining
+    increase as a flow that does not raise adjusted H. The residual classification alone imposes no new halt or
+    entry block. While the cause is unresolved, keep the evidence and unresolved status; do not book either side
+    as profit, loss or flow, or certify reconciliation from those records. If it later matches a tracking correction,
+    withdrawal or internal transfer, link the correction to the original observation and recognize its effect once.
   - PLB-O6 ("no flow while a budget is in force", PLB:345-349, 659) is superseded only with the
     amended OQ2 raw-floor protection and flow accounting in force [OQ3].
 - **BR-23 App units and owner units [Q9-1].** Both are tracked per coin as journaled FIFO lots.
   - App units = app buy fills - app sell fills - owner-initiated outflows charged to the app. Owner units = owner buy
-    fills + coin deposits + positive coin residuals - outflows charged to the owner.
-  - An owner-initiated outflow (a hand sell, a coin withdrawal, a pocket transfer or a negative coin residual) is
+    fills + coin deposits + classified positive coin residuals - outflows charged to the owner.
+  - For a same-scope pocket move, carry each lot's origin to its destination and exclude moved units from main-pocket
+    availability. An owner-initiated outflow from measured inventory (a hand sell, coin withdrawal, outward transfer
+    across scope, or a classified negative coin residual) is
     charged to app units first, but only up to the app units not locked by open app sells at that time; the rest is
     charged to owner units [OQ4]. A hand sell on Upbit is the documented way out of an app position when the
     app cannot act (SD:206-208), and a resting app sell's units are locked, so a hand sell can only use free units.
@@ -400,7 +433,8 @@ The original answer 6 (a per-coin trade-gap threshold) is replaced by Q6r. A 24 
   trade-list requests per second per IP, shared by every reader on that IP; E1 paces each process at 5 per second.
   Many owner coins make each unit longer; A0 measures it [design; OQ17 asks about other readers].
 - **BR-25 Study records [Q9-1].** Each fill and flow in the capture archive carries an origin tag: `app`, `owner`,
-  `deposit`, `withdrawal` or `unexplained`. The study, the odds and the outcome ladder use app fills only. Account
+  `deposit`, `withdrawal`, `pocket_transfer` or `unexplained`. An unresolved difference retains its evidence and
+  reconciliation status until BR-21 and BR-22 classify it. The study, the odds and the outcome ladder use app fills only. Account
   profit and loss uses all of them. A manual trade is recorded but never counted as a strategy result.
 
 ### 3.8 Y in the signed limits
@@ -561,19 +595,25 @@ The decisions below apply the recommended answers, including the OQ2 amendment a
   requires zero inventory (including personal coins) and zero open orders. No candle substitution or automatic
   liquidation to meet the re-anchor prerequisite (BR-17).
 
-**B. OQ8–OQ18 remain pending explicit review.** The original proposals below are preserved for that review.
-Silence does not accept them. In particular, alert delivery timing (OQ14), the shared-IP fact (OQ17) and final
-A0 measurement scope (OQ18) remain open. No additional authenticated query follows from the OQ1–OQ7 response.
+**B. Owner decisions on OQ8–OQ11.**
 
-- **OQ8. Unexplained changes:** logged and alerted; no stop and no entry block; a negative one counts as a loss, a
-  positive one as a flow (BR-22).
-- **OQ9. Lifting the entry block:** an owner console command, written to the journal, after checking. A restart does
-  not lift it.
-- **OQ10. No bid, no Y:** an unreadable bid gets the entry block and an alert, without refusing the unit; with no Y in
-  force no buy is prepared and held coins are checked at Y = 0 (BR-10).
-- **OQ11. Pockets:** the app trades in the main pocket and the owner makes no pocket transfer while a coin is held.
-  Alternative: give the read key pocket management (`포켓관리`), which can also move assets, so the app can read
-  pocket transfers.
+- **OQ8. Unexplained changes.** Log and alert. Apply the residual rule only after excluding a tracking discrepancy
+  and withdrawal and reconciling pocket movements. A confirmed negative residual counts as loss, a positive
+  residual as flow. Unresolved differences keep their evidence for subsequent reconciliation and single booking.
+- **OQ9. Lifting an entry block.** One Telegram button initiates manual release through independent WebAuthn
+  verification when a new buy has no verified advantage. When a tested model establishes an advantage to buying
+  and all other permissions and order checks pass, automatically release the latch and enter through the normal
+  trading path to pursue excess returns, regardless of restart, without a further click. The benefit test still
+  needs an agreed definition and validation. Apply BR-9(b)'s evidence and authority checks on both routes.
+- **OQ10. No bid, no Y.** Accept the proposed fallback. An unreadable bid blocks entries and alerts without rejecting
+  the unit. With no Y in force, prepare no buy and check held coins at Y = 0 (BR-10).
+- **OQ11. Pockets.** Allow inter-pocket asset movement permission. Retain evidence for both ends, preserve lot
+  ownership and classify each movement according to its relation to the measured account scope under BR-21.
+  Provisioning this permission and authorizing a specific transfer remain separate steps.
+
+**C. OQ12–OQ18 remain pending explicit review.** The following are proposals for the owner's review. Alert delivery
+timing (OQ14), shared IP use (OQ17) and the A0 scope (OQ18) are still open.
+
 - **OQ12. Owner coins and orders with the app running:** an owner open order no longer blocks startup, and the
   drivers and the universe helpers read app units and app cash, so an owner coin or order does not stop the app
   (BR-23).
