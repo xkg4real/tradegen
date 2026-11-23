@@ -2,8 +2,9 @@
 
 Date: 2026-11-20 (Asia/Seoul).
 Status: proposed amendment to PR #65. Section 9 records the owner's direct approval of OQ1–OQ7 on 2026-11-23 KST
-and their subsequent decisions on OQ8–OQ18, including approval of the BR-23 startup rule (OQ12). Separate decisions cover the BR-26
-owner-log and signer schema, PR merges, code review, signatures and trading activation.
+and their subsequent decisions on OQ8–OQ18, including approval of the BR-23 startup rule (OQ12). The owner
+adopted the BR-26 design with a hard 5% ceiling and conditional model adjustment on 2026-11-23. Implementation
+review, PR merges, owner signatures, model qualification and trading activation are separate steps.
 
 **Citations.** `path:line` is rev `1fd8792` (main, after PRs #61-#64). Short names, all under
 `docs/superpowers/specs/` unless a path is given: SD = `2026-11-12-standing-deployment-design.md`, CL =
@@ -21,7 +22,8 @@ tagged with an answered OQ refers to the owner decision in section 9. A `[defaul
 a proposal still awaiting an answer. Earlier Q-numbered answers in section 1 are distinct from these OQ items.
 A rule tagged `[design]` is a mechanism this document chooses to carry out an answer.
 
-Owner financial parameters (L, the daily loss limit, Y, X, M, Md, any amount) stay private and are not written here.
+Account-specific settings (L, the daily loss limit, the signed Y and model settings, X, M, Md, any amount) stay
+private. Section 3.8 gives the software-wide upper bound on Y.
 This is software design, not legal, tax or investment advice. Neither the software nor its author is a licensed
 advisor.
 
@@ -55,7 +57,7 @@ at its own units.
 | Q9 | 11-20 | Gaps (sleep, Windows update, reboot): rebuild the gap path from the trade list and check the floor and the daily loss. If the path crossed a limit inside the gap but the first point after the gap is back within the limits, do not halt. If the loss is still there right after the gap, halt. |
 | Q9-1 | 11-20 | Continue on everything: app fills, manual sells, manual buys, deposits, withdrawals and unexplained changes all continue the record. (Asked about gaps.) |
 | Q9-2 | 11-20 | The gap's highest point raises H. |
-| Y | 11-20 | Y is signed in the PLB `limit_set` together with L and the daily loss limit, in force whenever a coin is held. The value is never written to the repo. |
+| Y | 11-20, amended 11-23 | The owner signs a private bid-gap limit. The hard maximum is 5%. A qualified model can adjust the working threshold prospectively within the owner's authorized rule in BR-26. |
 
 The historical Q1 and Q7 answers above describe why the latch is set. The later OQ9 decision defines both ways to
 release that latch under BR-9(b); its independent risk checks still apply.
@@ -189,7 +191,8 @@ The original answer 6 (a per-coin trade-gap threshold) is replaced by Q6r. A 24 
 ### 3.3 One stale-trade rule (replaces the PR #33 rule)
 
 - **BR-10 Bid gap [Q6r, Y].** At each capture, for each held coin whose mark at E is older than 30 s by server time,
-  the capture also reads the best bid. If bid <= mark x (1 - Y), the response is CBA at the bid. The mark stays the
+  the capture also reads the best bid. Compare it to the BR-26 threshold already in force for this observation.
+  If bid <= mark x (1 - Y), the response is CBA at the bid. The mark stays the
   last trade for equity, the minimum, the maximum and H. The rule is the same for every profile (fixed and universe).
   - It covers every held coin with a listed market: app or owner units, in or out of the universe, dust included
     [OQ13]. Unlisted coins follow BR-3. A verified risk condition can trigger an automatic protective sale under
@@ -199,8 +202,8 @@ The original answer 6 (a per-coin trade-gap threshold) is replaced by Q6r. A 24 
     at app units. Selling personal units would require a separate grant. Expiry, restart or missing data alone
     never supplies the protective trigger (OQ5).
   - A bid that cannot be read, or an empty book, gets the entry block and an alert without a price re-check; the unit
-    does not refuse [OQ10].
-  - With no Y in force, no buy is prepared, and a held coin is checked with Y = 0, so any bid below the mark gets CBA
+    does not refuse [OQ10]. A quote failure supplies no evidence for widening Y.
+  - With no signed Y in force, no buy is prepared, and a held coin is checked with Y = 0 under the same comparison
     [OQ10]. This matches the D12 fold, where an unset limit counts as the tightest
     (`core/compliance/owner.py:682-686`).
   - The app may trade a coin by the universe's traded-value rank only; no trade-gap threshold applies [Q6r].
@@ -254,10 +257,11 @@ The original answer 6 (a per-coin trade-gap threshold) is replaced by Q6r. A 24 
   the new anchor carries the journaled H, floor, applicable raw principal and protected high-water floors, cumulative
   flow and daily stop (BR-22). Previously recorded halts stay latched.
 - **BR-15 Limits that change inside an interval [Q2].** An interval whose [S, E) contains a change in the signed
-  limits in force (L, the daily loss limit or Y) is refused. To keep this rare, intervals and long intervals are cut
+  limits in force (L, the daily loss limit or the signed BR-26 terms) is refused. To keep this rare, intervals and long intervals are cut
   where the change takes effect under the D12 fold [design]: a loosening at the next Seoul midnight, already a
   boundary (`core/compliance/owner.py:682-684`), and a tightening at its owner-log entry, including one signed while
-  the app was off.
+  the app was off. For an unchanged signed policy, persist and replay BR-26's working Y at each observation;
+  changing that derived value does not create an owner-log entry or a signed-limit epoch.
   - **Epoch handover [design].** Today any owner-log append, including the app's own `system_halt` and
     `system_disarm`, ends the chain, because these sites require identical owner terms or heads:
     `execution_launch/continuous_guard.py:369-372`, `execution_launch/committed_account.py:358`,
@@ -461,20 +465,51 @@ The original answer 6 (a per-coin trade-gap threshold) is replaced by Q6r. A 24 
   reconciliation status until BR-21 and BR-22 classify it. The study, the odds and the outcome ladder use app fills only. Account
   profit and loss uses all of them. A manual trade is recorded but never counted as a strategy result.
 
-### 3.8 Y in the signed limits
+### 3.8 Signed bid-gap limit and adaptive working Y
 
-- **BR-26 Y in `limit_set` [Y], proposed schema pending separate approval.** The proposal accepts both its current two-key shape, `{total_loss_floor_krw,
-  daily_loss_krw}`, and a three-key shape that adds Y (proposed key `bid_gap_fraction`, an exact decimal string with
-  0 < Y < 1). A smaller Y is tighter. With no Y in force the app treats Y as 0 (BR-10), so a first-ever Y is a loosening
-  and counts from the next Seoul date under D12 (`core/compliance/owner.py:682-684`). The change touches the schema and
-  exact-key checks (`core/compliance/owner.py:158-159, 176-190, 243-245`), the D12 fold
-  (`core/compliance/owner.py:634-637, 681-729, 742-749, 764-769`), the signer's copy of the schema
-  (`tools/signer/sign.py:217-218, 3157-3158`), `OwnerContextClaim` and `_owner_terms`
-  (`execution_launch/continuous_guard.py:64-76, 192-194`) and the producer's limit read
-  (`execution_launch/committed_producer.py:288-295`). PLB says no owner-log schema or signer change (PLB:71, 419), and
-  CL:413 puts `sign.py` changes only in PR L3. On 2026-11-23 the owner requested an explanation before deciding
-  whether to approve this A1 design exception. The value of Y is a later operational decision. The owner signs Y only
-  after its parsing code is code-approved, as with a lower floor.
+- **BR-26, owner decision of 2026-11-23.** The software-wide bid-gap maximum is **5% inclusive**.
+  Preserve the existing two-field `limit_set` records (`total_loss_floor_krw`, `daily_loss_krw`) and their
+  signatures. The optional third field `bid_gap_fraction` is the owner's static threshold and upper bound.
+  Accept exact decimal fractions `0 < bid_gap_fraction <= 0.05`; reject malformed, nonfinite or out-of-range
+  records. A 5% maximum does not set a private value. Without an effective signed value, apply BR-10's Y=0
+  monitoring and OQ10's prohibition on preparing buys. In static mode use the signed value.
+- **Signed terms.** An adaptive deployment must also bind the owner-authorized model, evidence source,
+  asset scope, forecast horizon, confidence criterion, and mapping from direction to target Y by immutable version
+  or digest. Every target and every working value must satisfy `0 < Y <= bid_gap_fraction <= 0.05` in adaptive
+  mode. A smaller private limit always binds. The model cannot change the ceiling, its own authorization or the
+  signed ledger. The first positive signed limit, an increase in that limit, or a change that loosens the
+  authorized terms follows D12, including its next-Seoul-date, armed-session and halt restrictions. A tightened
+  signed cap clamps the working Y from its effective instant (BR-15). A new signed ceiling never resets a
+  previously tighter working value upward by itself.
+- **Directional evidence.** In Upbit KRW long spot, a supported adverse forecast can tighten the gap check.
+  A supported favorable forecast can propose a wider threshold for a later observation to tolerate a temporary
+  price discrepancy. Predeclare the directional targets and decision rule. Freeze model and data cutoffs before
+  use. Qualify direction probabilities with chronological out-of-sample calibration, sufficient observations at
+  the chosen horizon, and returns net of relevant fees, spread and slippage. The owner's example of at least 75%
+  of Monte Carlo paths favoring a move is illustrative. Simulated path counts alone do not establish predictive
+  accuracy or select a live confidence threshold. Absent qualified evidence, retain the working Y; on the first
+  clean start without an adaptive history use the effective static signed value.
+- **Observation order and replay.** Evaluate the current observation with the threshold already in force and
+  apply the price, floor, daily-loss, data-quality and entry checks first. The decision made from that observation
+  can apply only to later observations. For a proposed increase, first check a subsequent clean observation
+  against the prior, tighter threshold; require current qualifying evidence and no outstanding block, stop or
+  halt before activating the increase prospectively. A tighter proposal can protect the next observation. Movements
+  wholly inside the effective, pre-authorized rule need no new owner entry or midnight wait. Y never clears a
+  latched event, creates an entry or sell signal, changes a protected floor, or supplies OQ9 release authority.
+  Retain the prior value on a model error, stale or inconclusive evidence and pending verification. If recovery
+  cannot establish which threshold applied, block new entries and use conservative Y=0 monitoring until
+  reconciliation; a restart cannot restore a looser value. Record market, policy/model digest, input cutoff,
+  probabilities and uncertainty, prior/applied/proposed Y, reason, observation sequence and effective sequence.
+  Replay uses that evidence, preserves the first result for repeated observations, and never revises a past quote.
+- **Implementation boundary.** Align the owner's and independent signer's strict schemas
+  (`core/compliance/owner.py:158-159, 176-190, 243-245`, `tools/signer/sign.py:217-218, 3157-3158`), D12
+  (`core/compliance/owner.py:634-637, 681-729, 742-749, 764-769`), `OwnerContextClaim` and `_owner_terms`
+  (`execution_launch/continuous_guard.py:64-76, 192-194`), and the producer's private limit read
+  (`execution_launch/committed_producer.py:288-295`). The owner approved this design exception to PLB:71, 419 and
+  CL:413. The implementation still needs review; private terms and model eligibility must be verified independently
+  before runtime use. Test legacy records, an absent value, the exact 5% boundary and values above it, a
+  smaller signed cap, directional calibration failure, same-quote repricing, duplicate observations, stale proposals,
+  restart recovery and outstanding risk stops.
 
 ## 4. The committed path (#46-#60) and #58 startup reconciliation
 
@@ -550,14 +585,15 @@ The PH clauses above and the legacy universe deadline path require alignment wit
     inside a forgiven gap;
   - "never relabelled": RC:34-35, BC:104-110 and `execution_launch/account_interval.py:13-15`, read with BR-11;
   - no flows while a budget is in force: PLB:345-349 and PLB-O6 (PLB:659), when the OQ2 protection and flow accounting are in force (OQ3);
-  - "no owner-log schema or signer change" (PLB:71, 419) and "`sign.py` only in PR L3" (CL:413), for Y only, subject to separate BR-26 approval;
+  - "no owner-log schema or signer change" (PLB:71, 419) and "`sign.py` only in PR L3" (CL:413), for the BR-26 design exception only; its implementation still requires separate review;
   - PLB:246, 283 and 290 as BR-23 qualifies them under OQ4;
   - rule I on approach-A events (PH:348-349, 477-478, 487-490), as superseded by the 11-13 rule under OQ5 for both profiles.
 
 ## 7. Delivery
 
-The delivery plan below describes M7-T3. Changes that depend on an open OQ or BR-26 still need the corresponding decision
-before implementation. The sequence was recorded on 2026-11-12 and re-cited at `1fd8792`:
+The delivery plan below describes M7-T3. Implement A1/A2 after the owner merges the amended approach-A design.
+Model qualification and private operating terms are later steps. The sequence was recorded on 2026-11-12 and
+re-cited at `1fd8792`:
 
 1. **A0 observation.** The existing probe in PR #67 uses public reads, outside D14 and `CAPTURE_FILES`. It
    measures Date-header offsets, visibility of trades at separate 0.5/1/2 s SETTLE targets, repeated reads of
@@ -571,13 +607,14 @@ before implementation. The sequence was recorded on 2026-11-12 and re-cited at `
      A0 logs. This design grants neither order submission nor credential provisioning. The existing public probe
      remains usable without authentication.
 2. **A1, preview only.** The trade-list module, the walk, BR-1 to BR-12, the flow classification and the unit lots
-   (BR-21 to BR-25), the new capture schema, and Y parsing (BR-26). Allowlist entries for `/v1/trades/ticks` and, for
+   (BR-21 to BR-25), the new capture schema, and bid-gap limit parsing and offline adaptive replay (BR-26). Allowlist entries for `/v1/trades/ticks` and, for
    BR-8, `/v1/candles/minutes/1` in `ENDPOINTS`, `PUBLIC` and `READ_CAPTURE_ENDPOINTS`
    (`execution/upbit_inquiry.py:17-31`) and their pinned tests (`tests/execution_guards.py:855-859, 1129-1133,
    1149-1154`; `tests/execution_read_capture.py:70-73`). It changes `CAPTURE_FILES` (`execution_launch/study.py:63-65`),
    so it lands before the study freeze.
 3. **A2, live, after controlled mode.** BR-13 to BR-20, the entry block, the epoch handover, F in the controller's
-   admission check, and the reducer's long-interval kind and flow convention. The coordinator today refuses anything
+   admission check, the reducer's long-interval kind and flow convention, and the BR-26 threshold history and live
+   validation of signed terms and model evidence. The coordinator today refuses anything
    but rehearsal (`execution_launch/coordinator.py:394`).
 4. **One `code_approved`, then the study freeze, then signing** (including Y). The driver identity hashes 46 source
    files, 49 for carry (`execution_launch/driver.py:38-92`). Every listed file that A1 and A2 touch changes it, and a
@@ -589,11 +626,11 @@ any change to the study's strategy. Section 5 defines the required behaviour for
 ## 8. Owner-only steps this design implies
 
 - Merging this PR (design approval).
-- Approving, in design and again in the implementation PR, the `sign.py` and owner-log change for Y (BR-26).
+- Reviewing the implementation PR for the BR-26 signer and owner-log changes. The 11-23 decision covers the design.
 - Running A0 on the owner's PC, and choosing whether to enable the separate query-only session under OQ18.
 - After M7-T3: one `code_approved`; the reviewed re-anchor that moves the deployment to the new conventions (BR-22),
   which under today's collector needs a flat account with no open orders, the owner's coins included (BR-17); and
-  signing Y.
+  signing the private Y terms and authorizing a qualified model policy before using adaptive Y.
 
 ## 9. Owner questions
 
