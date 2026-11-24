@@ -130,7 +130,9 @@ def reviewed_counts(history, config, now):
     stats = {d: {"calls": 0, "hits": 0, "prob_sum": 0.0} for d in ("up", "down")}
     for split in range(n, len(bars) - h + 1, h):
         origin = ends[split - 1]
-        need(max(known[split-n:split]) <= origin, "HOLDOUT_FEATURE_NOT_YET_KNOWN")
+        # The fold forecasts once its last feature is published, before the next bar closes: the
+        # same lag the current forecast allows (known_at < as_of <= last end + step).
+        need(max(known[split-n:split]) < origin + step, "HOLDOUT_FEATURE_NOT_YET_KNOWN")
         counts = sample_direction(returns[split-n:split], config, origin)
         direction = confidence(counts, config)
         if direction:

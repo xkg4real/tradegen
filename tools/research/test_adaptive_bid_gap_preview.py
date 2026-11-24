@@ -148,6 +148,16 @@ class AdaptiveBidGapTests(unittest.TestCase):
         self.bars[11]["known_at"] += 60
         self.assertEqual(self.run_preview()["reason"], "HOLDOUT_FEATURE_NOT_YET_KNOWN")
 
+    def test_holdout_accepts_publication_after_bar_close(self):
+        # Real bars are published after they close. A lag under one bar is what the live check allows.
+        for bar in self.bars:
+            bar["known_at"] = bar["end"] + 2
+        self.obs.update(as_of=self.obs["as_of"] + 2, bid_at=self.obs["bid_at"] + 2,
+                        last_trade_at=self.obs["last_trade_at"] + 2)
+        out = self.run_preview()
+        self.assertEqual(out["status"], "PROPOSAL_ONLY")
+        self.assertEqual(out["holdout"]["hits"], 24)
+
     def test_recovery_unknown_threshold_does_not_revert_to_positive_ceiling(self):
         self.terms["current_y"] = None
         out = self.run_preview()
