@@ -4,15 +4,15 @@ reason: manual
 from: claude
 task: upbit-universe
 cycle: 2026-11-24
-done_ids: owner-merges-1123
+done_ids: owner-merges-1123, owner-merge-pr71-1124
 next_ids: blocker1-approach-a-code/A1-A2, universe-pr5, universe-pr5/recovery-operations, universe-pr5-clock-notify, policy-loss-budget-plan-1, rules-review-1202, launch-private-capture-setup-1, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1, protective-hold/p2-integration, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, universe-code-approve, e1-14-owner-setup, launch-prospective-study
-updated_at: 2026-11-24T18:50:00+09:00
+updated_at: 2026-11-24T18:52:00+09:00
 stale_after_hours: 24
 waiting_on: owner
 work_branch: main
-work_commit: b380ef8
+work_commit: 41f255f
 uncommitted_changes: no
-pr: 69, 70, 71 (열림)
+pr: 69, 70, 72 (열림)
 usage_weekly_pct: 13
 usage_5h_pct: unknown
 usage_resets_at: 2026-12-01T17:00:00+09:00
@@ -32,7 +32,7 @@ session: Claude Code 메인 세션 TRADEGEN_GITHUB (local_a72616d1)
 | #65 블로커1 사양 | open | 병합 `c8f0904` |
 | #66 패스키 | open | 병합 `e807b60` |
 | #67 A0 관측기·DIDM 입력 | open | 병합 `b380ef8` |
-| #68 소유자 OQ1-OQ18 결정 | ready | #65 브랜치에 병합돼 main에 없음 → PR #71로 옮김(문서 2개, 소유자 병합 대기) |
+| #68 소유자 OQ1-OQ18 결정 | ready | #65 브랜치에 병합돼 main에 없음 → PR #71로 옮김(문서 2개). 소유자가 11-24 18:40:59 KST에 병합 `41f255f` |
 | #69 Android·Windows 알림 | draft | 열림 (메인이 M7-T10과 함께 검토) |
 | #70 BR-26 연구 도구 | open | 열림 (quantgpt-intake 검토, 소유자 병합 대기) |
 
@@ -41,7 +41,8 @@ session: Claude Code 메인 세션 TRADEGEN_GITHUB (local_a72616d1)
 1. 패스키 남은 소유자 결정(O11)을 한국어로 정리. #66은 병합됐으므로 후속 PR이 필요한 것만 구분
 2. main `b380ef8` 고정 사본으로 Windows 전체 run_all 1회 (11-24 18:38 KST 시작, 하루 이상)
 3. `universe-pr5` 계속
-4. `blocker1-approach-a-code/A1-A2`: #71 병합 뒤 (다른 Claude 세션이 계획·테스트부터 시작)
+4. `blocker1-approach-a-code/A1-A2`: #71 병합으로 시작 가능 (다른 Claude 세션이 계획·테스트부터)
+5. PR #72(방향 예측 소비 계약, 문서)와 PR #70 수정: Claude quantgpt-intake 세션
 
 ## 3. 주의사항
 
