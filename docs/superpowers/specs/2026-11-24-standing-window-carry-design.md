@@ -11,7 +11,7 @@ owner merges it unchanged, each decision of section 7 takes its recommended opti
 stays open until `p` is measured (3.7). The already approved policies that section 7 names are not choices.
 
 **Citations.** `path:line` is rev `b828b2d` (main). PH, SD, CL and B1 are the documents A2 names, at the same line
-numbers A2 cites; A2 only appends to existing lines. A2's own lines are at PR #74's head `a394cb0`. PLB is
+numbers A2 cites; A2 only appends to existing lines. A2's own lines are at PR #74's head `078e8e7`. PLB is
 [principal loss budget](2026-11-11-principal-loss-budget-design.md). All of them are under `docs/superpowers/specs/`.
 `launch.py` is `tools/owner/launch.py`. Other code paths are under `execution_launch/` unless they say otherwise.
 
