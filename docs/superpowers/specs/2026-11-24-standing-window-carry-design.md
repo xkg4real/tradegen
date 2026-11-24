@@ -7,8 +7,10 @@ boundaries, as the owner decided on 2026-11-24 (O33 Q1 b). It builds on section 
 document approves the design only. It signs nothing, arms nothing and sends no order. It changes no code, no signed
 table and no `tools/signer/sign.py`. It edits no other document, but if the owner chooses C1 (a) it supersedes the SD
 and PH lines listed in 3.0 for fixed carry standing schedules. Where they differ, this document then wins. If the
-owner merges it unchanged, each decision of section 7 takes its recommended option, as PLB:7 does, except C3, which
-stays open until `p` is measured (3.7). The already approved policies that section 7 names are not choices.
+owner merges it unchanged, each decision of section 7 takes its recommended option, as PLB:7 does, except C3 and C8.
+C3 stays open until `p` is measured (3.7). C8 stays open until the owner states in the PR which of its branches
+applies, and its option (b) needs a separate explicit approval. Approved policies stay in force unless a row
+explicitly offers to reopen them (C4, C5).
 
 **Citations.** `path:line` is rev `b828b2d` (main). PH, SD, CL and B1 are the documents A2 names, at the same line
 numbers A2 cites; A2 only appends to existing lines. A2's own lines are at PR #74's head `078e8e7`. PLB is
@@ -22,18 +24,18 @@ software design, not legal, tax or investment advice.
 ## 0. The proposal in one paragraph
 
 A standing deployment of a fixed carry profile runs as one deployment window. The window ends no later than the review's
-expiry and the newest standing entry's `valid_until` (C6), so its end is the deployment's end. That makes it a little
-under 7 days at most. Inside it there is no window boundary, so nothing has to be handed from one window to the next.
-The carry driver already holds through its window without an end-slot sale (`managed_behavior.py:55-65`), and its
-history keeps every mark of the window (`live_history.py:591-592`). The first-bar flat check stays, and runs once, at
-the deployment start. The evidence is a carry study whose span is at least the deployment's span. The interface shared
-with M7-T9 is a position record that the app writes whenever a deployment ends or stops while the app holds units. W1
-pays for this with a full restart after every stop: a new review signature, a new `standing_armed` and a flat start, so
-a coin held at the stop must be sold first or wait for M7-T9. Chained windows with carried history (W2, section 5) avoid
-the new review signature, and the sale too if section 5's held start is built, but still need a new `standing_armed`, at
-a much larger cost in code and evidence. Two prerequisites apply to any multi-day window: the time a late slot takes and
-the completion odds of a long study. A third applies to all live use, on any route: the control journal fills after
-about 11 operating days in total (3.7, M7-T13).
+expiry and the newest standing entry's `valid_until` (C6), so its end is the deployment's end, or earlier, at a newer
+entry's `valid_until` (3.1). That makes it a little under 7 days at most. Inside it there is no window boundary, so
+nothing has to be handed from one window to the next. The carry driver already holds through its window without an
+end-slot sale (`managed_behavior.py:55-65`), and its history keeps every mark of the window (`live_history.py:591-592`).
+The first-bar flat check stays, and runs once, at the deployment start. The evidence is a carry study whose span is at
+least the deployment's span. The interface shared with M7-T9 is a position record that the app writes whenever a
+deployment ends or stops while the app holds units. W1 pays for this with a full restart after every stop: a new review
+signature, a new `standing_armed` and a flat start, so a coin held at the stop must be sold first or wait for M7-T9.
+Chained windows with carried history (W2, section 5) avoid the new review signature, and the sale too if section 5's
+held start is built, but still need a new `standing_armed`, at a much larger cost in code and evidence. Two
+prerequisites apply to any multi-day window: the time a late slot takes and the completion odds of a long study. A third
+applies to all live use, on any route: the control journal fills after about 11 operating days in total (3.7, M7-T13).
 
 ## 1. What the code does today
 
@@ -70,7 +72,8 @@ strategy could then neither top up nor exit, and only the protective rules could
 | Carry deadline | `window.end`, which 3.1 makes the deployment end | Moves from `window.end` to the deployment end (`driver.py:655-660`) |
 | Coordinator handoff (SD 5.1) | Not used | Kept. A miss over 30 s is a safety stop that ends the deployment, not an account-chain stop (SD:253; B1:579-580; A2:58-63) |
 | Study | The carry study at the evaluator revision after M6-T3 | A new evaluator revision with an idle gap bar at each boundary; studies of the other revision do not count |
-| After a safety stop or a restart | The deployment is over. Trading again needs a new schedule, a new review signature, a new `standing_armed` and a flat app, then a new warmup. The strategy no longer manages a held position. After a stop in the same process, the protective rules may sell until E if X, M and Md are in force (3.5); otherwise nothing sells and approval is requested (Q2 a). After a restart there is no hold: nothing sells until the owner acts or M7-T9 lands (A2:156-157, 183-187) | The deployment ends too (SD:177-184). The same deployment can be re-armed with a new `standing_armed` under the same review (SD:90-91), and its next window starts (SD:125-127). It may start with held units only after a stop in the same process; after a restart it starts flat unless the owner decides otherwise in M7-T9 (section 5) |
+| After a safety stop or a restart | The deployment is over. Trading again needs a new schedule, a new review signature, a new `standing_armed` and a flat app, then a new warmup. The strategy no longer manages a held position. After a hold stop in the same process (not a halt), the protective rules may sell until E if X, M and Md are in force (3.5); otherwise nothing sells and approval is requested (Q2 a). After a restart there is no hold: nothing sells until the owner acts or M7-T9 lands (A2:156-157, 183-187) | The deployment ends too (SD:177-184). The same deployment can be re-armed with a new `standing_armed` under the same review (SD:90-91), and its next window starts (SD:125-127). It may start with held units only after a stop in the same process; after a restart it starts flat unless the owner decides otherwise in M7-T9 (section 5) |
+| Longest protective hold after a stop | Until the deployment end: almost 7 days at C3 (c) (3.5) | Until the stopped window's end: 48 hours by default, 72 at most (SD:42, 264; A2 N6's default, A2:472) |
 | Code to approve | Small (section 6) | Large (section 5) |
 
 W2 keeps SD 4.2's re-arm of the same deployment under one review; W1 does not. Stops are common until the 1,000 ms
@@ -78,9 +81,14 @@ allowance lands (PH:729-730), so under W1 each one costs the owner a new review 
 restart works only if the app is flat at the stop: then a new deployment can start as soon as those are signed,
 which may come sooner than W2's next window. With app units held, a new W1 deployment cannot start until the coin is
 sold, by the owner's `exit` or a hand sell, by a protective sell before E, or under what M7-T9 brings (A2:185).
-M7-T12 adds no other way out. This cost grows with `p` (3.7), so C1 is reopened with C3 if `p` turns out high. Apart
-from the re-arm we found no requirement that W2 meets and W1 does not. A renewed profile is already swapped in inside a
-window (`driver.py:356-357`), so a long window needs no restart for it.
+M7-T12 adds no other way out. This cost grows with `p` (3.7), so C1 is reopened with C3 if `p` turns out high.
+
+W2 also bounds the protective hold after a stop by the stopped window's end, 48 hours by default and 72 at most. W1
+holds until the deployment end, almost 7 days at C3 (c) (3.5). Under W1 the approval request and the urgent alerts
+therefore come later and PH's worst case lasts longer; in exchange protective selling runs longer. The difference
+exists only when a deployment is longer than one SD window. C4 asks whether to bound it under W1; its option (b) is a
+new signed field. Apart from the re-arm and this hold, we found no requirement that W2 meets and W1 does not. A
+renewed profile is already swapped in inside a window (`driver.py:356-357`), so a long window needs no restart for it.
 
 ## 3. Design W1
 
@@ -93,8 +101,10 @@ For a fixed carry standing schedule only, this document wins over:
 - SD:49 and the `launch.py` row of SD:236, which raise the owner tool's cap to 72 hours for every window.
 - SD 4.1's schedule body as version 2, and its window-`k` match (SD:59-63), with the file row and tests that follow
   them (SD:229, 242-243).
-- PH:670-671, "a mid-window `valid_until` is not a stop": under W1 the newest entry's `valid_until`, if it comes
-  before `window.end`, ends the deployment there under the 11-13 rule (3.1).
+- PH:187-191, where the deployment-end check runs only after the end slot of the window that is running, and a
+  mid-window `valid_until` writes no disarm and does not stop the coordinator; and PH:670-671, "a mid-window
+  `valid_until` is not a stop". Under W1 the newest entry's `valid_until`, if it comes before `window.end`, ends the
+  deployment there under the 11-13 rule (3.1). Both follow from C6 (a).
 
 A2 already supersedes SD:52-53 (A2:111). With C1 (b) none of these change, except as section 5 says.
 
@@ -109,18 +119,31 @@ A2 already supersedes SD:52-53 (A2:111). With C1 (b) none of these change, excep
   `strategy.py:628`, `669-670`). `valid_until` is at most 7 days after its signing (SD:82). So
   `window.end + bar_seconds <= min(issued_at + 7 days, capture_end + review_max_age_seconds)`. With a review age that
   covers it, the longest window is 7 days minus the lead from the review's signing to the window start, minus one bar:
-  at most 2,016 slots at 300 s, about 2,000 with a one-hour lead.
+  at most 2,015 slots at 300 s (2,016 only if the window started at the review's signing, which a real lead rules
+  out), about 2,000 with a one-hour lead.
 - **Where it is checked.** `live.py` checks the review part before it composes the driver. A deployment may have
-  several open entries, because a change of X, M or Md is a new signed entry (A2:248-249; SD:97-100), and the newest
-  one counts (PH:218-220). Each is signed after `live.py` starts (SD:88).
+  several open entries, because a change of X, M or Md is a new signed entry (A2:248-249; SD:97-100). SD keeps every
+  unexpired, unclosed entry in force (SD:97); this document takes the newest one's `valid_until` as the deployment's,
+  as A2 does for X, M and Md (A2:248-249). Each is signed after `live.py` starts (SD:88).
   - `live.py status` prints the minimum `valid_until` for any new entry of the running deployment: `window.end`.
   - `live.py` checks the newest entry at every preparation and at every fold of the owner log while the deployment
     runs. It refuses to prepare under an entry whose `valid_until` is before `window.end`, and flags one in status
     and with a red toast.
   - If such an entry comes into force anyway, for example while the app holds units and no preparation runs (A2
-    3.10), the deployment ends at that `valid_until` under the 11-13 rule (A2:133-134). The slot ticks stop, so the
-    driver sends no more orders. Entries are blocked and approval is requested; nothing sells. The monitor units run
-    on until `monitor_until`, as after E (A2:102). For a W1 deployment this replaces PH:670-671 (3.0).
+    3.10), the deployment ends at that `valid_until` under the 11-13 rule (A2:133-134). So signing such an entry
+    ends strategy management and protective selling at that time, and status says so in those words. At that
+    `valid_until`, not at the signing, the coordinator runs PH section 4's deployment-end check (PH:187-196):
+    - the slot ticks stop, so the driver sends no more orders;
+    - it writes `safety_held_at_end` or `standing_ended` with a standing `system_disarm`, which closes every open
+      entry of the deployment id (SD:97-100);
+    - it sends A2 3.7's cancel requests for the app's resting buys in the runner's namespace, repeated until
+      terminal (PH:127-134);
+    - it blocks entries and raises the red toast and the urgent alerts of OQ14 (A2:89-91);
+    - it writes a position record with reason `deadline` (section 4).
+  - Nothing sells. The management approval request waits until `window.end`: the protective policy accepts a
+    deadline event only from `holding_deadline`, which is bound to `window.end`, and only that event requests
+    approval (`protective_state.py:331`, `337-339`; `coordinator.py:202`, `872`). The monitor units run on until
+    `monitor_until`, as after E (A2:102). For a W1 deployment this replaces PH:187-191 and PH:670-671 (3.0).
 - **Why.** Without this rule the review expires before a 7-day window ends, and every later tick is refused, sells
   included (`runner.py:229-238`, `640-641`; `review_auth.py:199`). A `valid_until` inside the window would let the
   driver keep selling without a session after the deployment has ended (PH:189-191; SD:149-150). A2 makes
@@ -148,7 +171,13 @@ A2 already supersedes SD:52-53 (A2:111). With C1 (b) none of these change, excep
 - **Renewal registry.** One process issues a terms renewal about every 4 minutes (`coordinator.py:95`), in the window
   and in its monitor tail, which can run up to one day past `window.end` (`coordinator.py:252`, `444`, `923`): about
   2,880 in 8 days. Both process registries hold 4,096 (`instrument_refresh.py:19`, `100`;
-  `execution_accounts/instrument_terms.py:33`, `315`). It fits; a test records the margin.
+  `execution_accounts/instrument_terms.py:33`, `315`). On this normal path it fits; a test records the margin. After a
+  renewal that `renew_profile` refuses, the coordinator reads the terms again at every monitor unit
+  (`coordinator.py:720-727`, `746-749`, `764-766`), and each read takes a registry entry
+  (`execution_accounts/instrument_terms.py:343-345`). At the 10 s default, 4,096 reads take about 11.4 hours, less if
+  renewals already used some; after that every read in the process fails with `TERMS_PROCESS_CAPACITY_REACHED`.
+  Strategy slots are already refused while the terms are blocked (`coordinator.py:981`), and nothing sells because of
+  it. M7-T12 accepts this, and a test records it.
 - A fixed carry schedule never has a handoff (SD 5.1).
 
 ### 3.2 Driver and history
@@ -211,8 +240,10 @@ A2 already supersedes SD:52-53 (A2:111). With C1 (b) none of these change, excep
   watching (PH:455-456), from 48 or 72 hours to almost 7 days (C4).
 - **Many W1 deployments may end here.** At a per-slot stop rate `p` of 0.1%, a deployment ends by a safety stop 44%
   of the time at 48 hours, 58% at 72 hours and 87% at 7 days. A stop is more likely than a full run when `p` is above
-  about 0.12%, 0.08% and 0.034% for those spans (3.7). It then goes to the protective hold, if X, M and Md are in
-  force, or to a no-sale approval request.
+  about 0.12%, 0.08% and 0.034% for those spans (3.7). A protective hold follows only a hold stop in the same
+  process (a missed slot, a runner error, `held_at_end`, a clock rollback, a chain that comes back) with X, M and Md
+  in force; after a review failure only T and B run in it (A2:64-71). Otherwise nothing sells and approval is
+  requested. A restart or a halt never holds (A2:156-157; PH:226), and a halt is permanent (PLB:37).
 
 ### 3.6 Study evidence
 
@@ -273,8 +304,10 @@ A2 already supersedes SD:52-53 (A2:111). With C1 (b) none of these change, excep
   - the chance that a run completes is `(1 - p)^n`;
   - if each failed run is followed at once by a new one, the expected wait for one complete run is at least
     `(1 - (1 - p)^n) / (p * (1 - p)^n)` slots; every new study also needs a new registration before its capture.
+    This wait counts only stops after which a new run is possible: after a halt there is none (PLB:37), and after a
+    stop with app units held the coin must be sold first (section 2).
   - Example at `p` = 0.1%: 48 hours (577 slots) completes 56% of the time, with an expected wait of about 65 hours;
-    72 hours (865 slots), 42% and about 115 hours; 7 days (2,017 slots for a study, at most 2,016 live), 13% and
+    72 hours (865 slots), 42% and about 115 hours; 7 days (2,017 slots for a study, at most 2,015 live), 13% and
     about 544 hours (23 days). So a run ends by a stop 44%, 58% and 87% of the time.
   - A stop is more likely than a full run when `p` is above about 0.12% for 48 hours, 0.08% for 72 hours and 0.034%
     for 7 days.
@@ -355,8 +388,17 @@ W1 changes:
   driver composition goes through it, `export-driver` included (`launch.py:392`).
 - `tools/owner/live.py` (M7-T6, M7-T8; not on main yet): `count` 1 for a fixed carry schedule, the span rule, the end
   rule, and the check of every newest entry's `valid_until` with its flag (3.1).
-- `execution_launch/coordinator.py`: stopping the slot ticks, with the monitor units running on, when a newest entry's
-  `valid_until` before `window.end` comes into force (3.1). It adds no sale.
+- `execution_launch/coordinator.py`: when a newest entry's `valid_until` before `window.end` comes into force, the
+  deployment-end check at that `valid_until` (3.1): the slot ticks stop, the end record and the standing
+  `system_disarm` are written, the app's resting buys get cancel requests until terminal, the alerts are raised and a
+  position record is written, with the monitor units running on. It adds no sale. The approval path stays as it is:
+  `_management_deadline` returns before `window.end` (`coordinator.py:865-895`, `872`), the protective binding
+  requires `holding_deadline == window.end` (`coordinator.py:202`), and the protective policy refuses an earlier
+  deadline event (`protective_state.py:331`) and is the only place that requests approval
+  (`protective_state.py:337-339`). So the request waits until `window.end` (3.1).
+- If the owner chooses C8 (b): `core/compliance/owner.py` folds the new `limit_set` margin, and `tools/owner/live.py`
+  refuses a multi-day carry deployment at its first preparation while `H` is within it (C8). The `sign.py` mirror
+  changes only with the owner's approval.
 - The single-session preparation: a carry window longer than 24 hours is refused without a standing binding (3.1).
 - `execution_launch/review_auth.py`: the standing review, version 3, in schedule form only, with its 7-day lifetime
   (3.4). The `sign.py` mirror is outside D14, and changes only with the owner's approval.
@@ -372,20 +414,21 @@ leaves the logic of `driver.py`, `live_history.py`, `carry_evaluator.py`, `strat
 
 | ID | Question | Options | Recommended |
 |---|---|---|---|
-| C1 | Window shape | (a) W1, one window per deployment. This replaces SD's default of 48-hour windows and the SD lines of 3.0 for fixed carry. (b) W2, chained windows. | (a): no boundary to carry across, and little code. Its cost: every safety stop or restart ends the deployment, and trading again needs a new review signature, a new `standing_armed` and a flat app. With a coin held, a flat app means a sale first (the owner's `exit`, a hand sell, or a protective sell before E) or a wait for M7-T9 (section 2). The cost grows with `p`, so reopen C1 with C3 if the measured `p` makes a stop more likely than a full run at the chosen span (3.7) |
-| C2 | Span rule | (a) A deployment is no longer than the study that qualified it. (b) A shorter study may approve up to 7 days. | (a): only (a) is measured (3.6) |
-| C3 | Study and deployment span `L` | (a) 48 h, 577 slots. (b) 72 h, 865 slots. (c) The longest that 3.1 allows: at most 2,016 slots, less the review's lead and any shortfall of the review age. | None yet. Decide after `p` is measured (3.7), with the completion odds and expected wait of each option shown |
-| C4 | E under W1: reopen SD-O8? | SD-O8's default is approved: the owner chose it on 11-12, and A2 amends it so that at E nothing sells (A2:378; PH:699). Under W1, E can come almost 7 days after a stop, not 48 or 72 hours (3.5). (a) Keep it. (b) Reopen SD-O8 for its alternative, a shorter signed `protective_max_hold_seconds`, such as 48 h after the stop. At that cap nothing sells either (A2 3.1). It adds a signed field to `standing_armed` and to the `sign.py` mirror, which needs the owner's approval. | (a), if the owner confirms A2 reading 5 (O36). (a) keeps protective selling longer but delays the approval request and the urgent alerts, and leaves an unmanaged hold for up to almost 7 days. (b) asks the owner sooner |
+| C1 | Window shape | (a) W1, one window per deployment. This replaces SD's default of 48-hour windows and the SD lines of 3.0 for fixed carry. (b) W2, chained windows. Exposure of (b): large code (section 5), a new evaluator revision, and a position record whose integrity is safety-critical (section 4). | (a): no boundary to carry across, and little code. Its cost: every safety stop or restart ends the deployment, and trading again needs a new review signature, a new `standing_armed` and a flat app. With a coin held, a flat app means a sale first (the owner's `exit`, a hand sell, or a protective sell before E) or a wait for M7-T9 (section 2). After a stop the protective hold can last until the deployment end, almost 7 days, so the approval request and the urgent alerts come later than under W2 (section 2; C4). The cost grows with `p`, so reopen C1 with C3 if the measured `p` makes a stop more likely than a full run at the chosen span (3.7) |
+| C2 | Span rule | (a) A deployment is no longer than the study that qualified it. (b) A shorter study may approve up to 7 days. Exposure of (b): live runs past what was measured. | (a): only (a) is measured (3.6). Its cost: a study as long as the deployment |
+| C3 | Study and deployment span `L` | (a) 48 h, 577 slots. (b) 72 h, 865 slots. (c) The longest that 3.1 allows: at most 2,015 slots, less the review's lead and any shortfall of the review age. | None yet. Decide after `p` is measured (3.7), with the completion odds and expected wait of each option shown |
+| C4 | E under W1: reopen SD-O8? | SD-O8's default is approved: the owner chose it on 11-12, and A2 amends it so that at E nothing sells (A2:378; PH:699). Under W1, E can come almost 7 days after a stop, not 48 or 72 hours (3.5). (a) Keep it. (b) Reopen SD-O8 for its alternative, a shorter signed `protective_max_hold_seconds`, such as 48 h after the stop. At that cap nothing sells either (A2 3.1). It adds a signed field to `standing_armed` and to the `sign.py` mirror, which needs the owner's approval. | (a). A2 reading 5 holds once PR #74 merges (O36), and this document opens only after that (section 9). (a) keeps protective selling longer but delays the approval request and the urgent alerts, and leaves an unmanaged hold for up to almost 7 days. (b) asks the owner sooner |
 | C5 | Buys after a date change while the app holds: reopen PLB pin 3? | A2 3.10 applies the approved PLB pin 3 (PLB:283): preparation is refused while the app holds, so buys wait until flat. The main session counts, from the study capture and outside signed code, the top-ups and entries that live would have skipped or delayed (3.6), and shows them. (a) Keep it. (b) Reopen pin 3 in M6-T3 and allow preparation while the app holds. Exposure of (b): with a coin held, the odds card would show `E - C` of headroom while the runtime has only `cash - C` (PLB:283), so it overstates the headroom. It amends PLB pin 3 and A2 3.10. | (a): no new signed change |
 | C6 | The end of a multi-day window | (a) The end rule of 3.1: the window ends no later than the review's expiry and the newest entry's `valid_until`. (b) A carry deadline equal to the earliest of `window.end`, the review's expiry and `valid_until`, in the driver, the runner, the coordinator and the protective policy. Under (b) a deployment can reach its review's expiry, after which every tick is refused, sells included (`runner.py:229-238`). | (a): it adds no code that sells |
-| C7 | The control journal's row cap (3.7, M7-T13) | (a) Write a `risk_snapshot` only when its fields change. This lowers the rate but is not a bound: while a coin is held and equity keeps making new highs, `high_watermark` changes at almost every observation (`execution_control/controller.py:818-822`), and the rows still add up across deployments. (b) A new journal per deployment, or rotation. The new journal must start from everything the controller reads back (`execution_control/controller.py:787-805`, `1052-1055`): the effective-floor ratchet, the recorded peak, the day's start equity and the daily-stop latch, the kill and halt latches, every open, unknown or cancel-requested order, and the reservation history. Rotating only at a Seoul date change with no open order and no pending guard removes the day's values and the orders from that list. | (b), rotating only at a Seoul date change with no open order, with the carried values checked against the old journal's last rows. (a) can be added to slow the growth, but alone it does not remove the cap |
-| C8 | Activation during a multi-day carry deployment (PLB-O4) | Already applied, not options here: PLB-O4's guidance, including a plan target below `A` (PLB:145), and PLB-O5, `L = W0` signed when the state check first shows `H >= A` (PLB:38, 144). Both are approved defaults (PLB:7, 657-658). What standing carry adds is how long a position is held across `A` (section 10). (a) Nothing more. (b) `live.py` refuses to start a multi-day carry deployment while `H` is within a signed margin of `A`, a new signed value that needs the owner's approval. | (a) if the private plan keeps its target below `A`, as the applied guidance says. Otherwise (b): it makes a crossing inside a deployment less likely, but it does not bound a position already open at the jump |
+| C7 | The control journal's row cap (3.7, M7-T13) | (a) Write a `risk_snapshot` only when its fields change. This lowers the rate but is not a bound: while a coin is held and equity keeps making new highs, `high_watermark` changes at almost every observation (`execution_control/controller.py:818-822`), and the rows still add up across deployments. (b) A new journal per deployment, or rotation. The new journal carries each of these, and M7-T13 tests each one: (1) the old journal's last row time and head, bound into the new journal's first row, because a new journal starts at GENESIS (`execution_control/store.py:352`) and replay refuses time that moves backward (`execution_control/controller.py:285-287`); (2) the effective-floor ratchet, the recorded peak, the day's start equity and the daily-stop latch (`controller.py:787-805`); (3) earlier days' `calculated_floor` rows, which a floor relaxation needs (`controller.py:310-314`, `909-915`), or else relaxation is refused until a later Seoul day in the new journal, which fails closed; (4) the kill and halt latches and every open, unknown or cancel-requested order (`controller.py:1052-1055`); (5) the reservation history; (6) the broker-id to client-id map (`controller.py:400-407`), or it is dropped with the orders it served; (7) the A2-1 `entry_block` latch of M7-T3's plan and A2-3's pending halt, or a rotation could clear a block without the owner's authority. The state check (`tools/floor_state_check.py:139-153`) must still read the carried halt rows (S3), peak (S4) and last floor (S5) in the same folder (PLB:35), as the same row kinds. Rotating only at a Seoul date change with no open order and no pending guard removes the day's values and the orders from that list. Exposure of (b): a missed latch or order could let the app buy after a halt or under a lower floor. | (b), rotating only at a Seoul date change with no open order, with the carried values checked against the old journal's last rows. (a) can be added to slow the growth, but alone it does not remove the cap |
+| C8 | Activation during a multi-day carry deployment (PLB-O4) | Already applied, not options here: PLB-O4's guidance, including a plan target below `A` (PLB:145), and PLB-O5, `L = W0` signed when the state check first shows `H >= A` (PLB:38, 144). Both are approved defaults (PLB:7, 657-658). What standing carry adds is how long a position is held across `A` (section 10). No runtime code reads the plan target: `target_krw` lives only in `core/odds` (`core/odds/plan.py:94`), and preparation uses the plan only for the odds card (`execution_control/session.py:162-195`). (a) Nothing more. A target below `A` then bounds the held position only if the owner notices, stops the deployment and sells with `exit` or by hand, during up to 7 days of unattended running (SD:270). (b) `live.py` refuses a multi-day carry deployment at its first preparation while `H` is within a signed margin of `A`, reading `H` as the state check does (`tools/floor_state_check.py:139-153`). The margin is a new field of the signed `limit_set` (`core/compliance/owner.py:158`), because it belongs to the budget, like `L`, not to one deployment. It needs the owner-log fold in `owner.py`, the `sign.py` mirror and the owner's separate approval (section 6). Exposure of (b): `H` never falls (`execution_control/controller.py:308-309`, `789`; PLB:135), so once `H` is within the margin every later multi-day carry deployment is refused until activation, unless `A` (an unsigned profile value, PLB:137) or the margin changes. (b) moves partly toward PLB-O4's alternative, constraining parameters in code (PLB:657). | None by default: open until the owner states in the PR which branch applies (status). (a) depends on the owner's attention. (b) makes a crossing inside a deployment less likely, but it does not bound a position already open at the jump |
 
-- **What PLB-O5 covers, in plain words.** PLB-O5 acts only after the state check shows `H >= A`. It does not protect a
-  position already open at the jump, and a session already armed keeps admitting buys (PLB:142). After it, no new
-  session can be prepared until the post-activation spec exists (PLB:144). Of the measures above, only a plan target
-  below `A` bounds the open position at the jump, and C8 (b) bounds it in part. A signed X, M or Md does not cover it
-  in normal running (section 10).
+- **What PLB-O5 and the plan target cover, in plain words.** PLB-O5 acts only after the state check shows `H >= A`. It
+  does not protect a position already open at the jump, and a session already armed keeps admitting buys (PLB:142).
+  After it, no new session can be prepared until the post-activation spec exists (PLB:144). A plan target below `A`
+  is guidance for the owner, not a runtime limit: under W1 it bounds the open position only through the owner's own
+  `stop` and sale (C8). C8 (b) makes a crossing inside a deployment less likely; it does not bound a position already
+  open at the jump. A signed X, M or Md does not cover it in normal running (section 10).
 
 - **C3's cost.** It applies only when the first trade is a fixed standing deployment. O35, the first-trade path, is
   still open (A2:416-417). The owner was given these options:
@@ -401,7 +444,8 @@ leaves the logic of `driver.py`, `live_history.py`, `carry_evaluator.py`, `strat
   happens. Under 4 it is a one-day session, which keeps the 24-hour cap (3.1), and C3 does not apply. Under 2, and
   under 3 when the fixed path goes first, the first trade waits for the study: by span alone, 7 days is about 5 days
   longer than 48 hours, and with the completion odds of 3.7 the expected wait can be much longer. With (a) or (b), a
-  deployment ends every 48 or 72 hours, and a held position at that end waits for approval (3.2). Every route,
+  deployment ends every 48 or 72 hours. If a coin is held at that end, nothing trades again until the owner sells it
+  (`exit` or a hand sell) or M7-T9 lands (3.2); a shorter `L` makes this more frequent. Every route,
   4 included, needs M7-T13 before about 11 operating days of live use in total (3.7).
 - **SD 4.1's version number** changes from 2 to 3 (3.4). It is not a new decision; SD already decided the 7-day
   review.
@@ -416,18 +460,23 @@ leaves the logic of `driver.py`, `live_history.py`, `carry_evaluator.py`, `strat
 - `test_window_end_plus_one_bar_equal_to_the_review_expiry_is_accepted` and
   `test_window_end_less_than_one_bar_before_the_review_expiry_is_refused` (3.1)
 - `test_valid_until_before_the_window_end_refuses_preparation` (3.1)
-- `test_mid_window_entry_with_an_early_valid_until_is_flagged_and_ends_the_deployment_without_a_sale`: the slot ticks
-  stop at that `valid_until`, entries are blocked, approval is requested and the monitor units run on (3.1)
+- `test_mid_window_entry_with_an_early_valid_until_is_flagged_and_ends_the_deployment_without_a_sale`: at that
+  `valid_until`, not at the signing, the slot ticks stop, entries are blocked, the end record and the standing
+  `system_disarm` are written, the app's resting buys get cancel requests until terminal, the alerts are raised and a
+  position record with reason `deadline` is written; management approval is requested at `window.end`, and the
+  monitor units run on (3.1)
 - `test_carry_driver_holds_across_seoul_midnight_without_a_sale`
 - `test_preparation_refused_while_the_app_holds_and_sells_continue` (A2 3.10)
-- `test_fixed_carry_journal_of_2016_slots_replays_within_row_limits`, at the 3.1 maximum, with its total size at
+- `test_fixed_carry_journal_of_2015_slots_replays_within_row_limits`, at the 3.1 maximum, with its total size at
   the last slot
-- `test_renewal_registries_fit_eight_days` (the window and the longest monitor tail, about 2,880 of 4,096)
+- `test_renewal_registries_fit_eight_days` (the window and the longest monitor tail, about 2,880 of 4,096), and the
+  time the registry takes to fill after a refused renewal (3.1)
+- If the owner chooses C8 (b): `test_multi_day_carry_is_refused_while_the_peak_is_within_the_margin_of_activation`
 - `test_position_record_is_written_at_deadline_and_stop_with_app_units_only`
 - `test_position_record_with_another_identity_is_refused`
 - `test_position_record_grants_no_sale_entry_or_cancel`
 - `test_standing_review_version_3_lasts_at_most_seven_days`, with `sign.py` test vectors (SD:69-70)
-- A measurement on the owner's PC, not a unit test: the whole slot unit at slot index 2,015, the last that 3.1
+- A measurement on the owner's PC, not a unit test: the whole slot unit at slot index 2,014, the last that 3.1
   allows, finishes inside the 10 s slot window, with its margin (3.2)
 
 ## 9. Order of work
@@ -451,8 +500,10 @@ leaves the logic of `driver.py`, `live_history.py`, `carry_evaluator.py`, `strat
   jumps while nothing sells. A position worth more than `min(H - W0, delta * H)` can then cause a permanent halt that
   ends the budget for good (PLB:145). PLB-O4's guidance and PLB-O5 already apply (C8). PLB:145 bounded the exposure
   to one window of at most a day. Standing carry (Q1 b) with W1's long window lets the app hold the position across
-  `A` for up to almost 7 days. Top-ups go on only for the rest of the Seoul day of the crossing (3.3, A2 3.10), and
-  new entries only until `L = W0` is signed (PLB:38). A halt sells nothing (SD-O1) and ends protective selling
+  `A` for up to almost 7 days. Top-ups go on only for the rest of the Seoul day of the crossing (3.3, A2 3.10). New
+  entries continue until the session armed when `L = W0` is signed ends at Seoul midnight, and no later session can be
+  prepared after that signature (PLB:38, 142, 144). Before the owner's state check and that signature, flat days can
+  still prepare and enter above `A`. A halt sells nothing (SD-O1) and ends protective selling
   (A2:64-71), so the coin then stays held under a permanent halt. Rule B does not help in normal running. It runs only
   in a protective hold that an earlier safety stop started, before E (PH:204, 208, 215-217; A2:64-71), and then only
   with a signed M in force and if the jump itself did not halt. During normal W1 running only the strategy's own exit
