@@ -1,5 +1,6 @@
 """Offline tests for the research-only direction forecast adapter (M11-T3). Synthetic data only."""
 import copy
+import importlib.util
 import json
 from pathlib import Path
 import subprocess
@@ -35,6 +36,7 @@ class SnapshotTests(unittest.TestCase):
             (lambda s: s.update(generated_at=s["forecasts"][-1]["issued_at"] - 1), "FORECAST_TIME_ORDER"),
             (lambda s: s["model"].update(training_cutoff=s["model"]["frozen_at"] + 1), "MODEL_TIME_ORDER"),
             (lambda s: s["forecasts"][0].update(market="BTC"), "FORECAST_MARKET"),
+            (lambda s: s["model"].pop("version"), "MODEL_FORMAT"),
         ]
         for change, reason in cases:
             with self.subTest(reason=reason):
@@ -114,6 +116,12 @@ class ReplayTests(unittest.TestCase):
         events = self.run_replay()["events"]
         self.assertEqual({e["feature_cutoff"] for e in events}, {self.live["as_of"] - 3600})
 
+    def test_outcome_bars_published_after_the_observation_are_not_scored(self):
+        # Bar 150 is published after both quotes, so the record known then stops at bar 149.
+        self.replay["history"]["bars"][150]["known_at"] = self.replay["observations"][-1]["as_of"] + 1
+        holdout = self.run_replay()["events"][0]["holdout"]
+        self.assertEqual(holdout["calls"], 69)   # even as_of 10..146, windows ending by bar 148
+
     def test_expired_forecasts_are_not_used(self):
         later = self.live["as_of"] + 7200
         for i, observation in enumerate(self.replay["observations"]):
@@ -173,6 +181,7 @@ class BoundaryTests(unittest.TestCase):
                                      cwd=ROOT, capture_output=True, text=True)
             self.assertEqual(refused.returncode, 2)
 
+    @unittest.skipUnless(importlib.util.find_spec("yaml"), "core.compliance needs the app's PyYAML install")
     def test_d14_code_closure_does_not_include_research_tools(self):
         from core.compliance.owner import code_files
         self.assertEqual([path for path, _ in code_files(ROOT) if path.startswith("tools/research/")], [])
