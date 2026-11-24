@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import unittest.mock
 
 from tools.research import adaptive_bid_gap_preview as preview
 from tools.research import direction_forecast_adapter as adapter
@@ -72,6 +73,19 @@ class SnapshotTests(unittest.TestCase):
         other["model"]["version"] = "0.0.2"
         with self.assertRaisesRegex(preview.Invalid, "MODEL_VERSION_MIXED"):
             adapter.merge([self.snapshot, seal(other)])
+
+    def test_forecast_count_is_bounded_before_parsing_and_across_files(self):
+        with unittest.mock.patch.object(adapter, "MAX_FORECASTS", len(self.snapshot["forecasts"])):
+            adapter.merge([self.snapshot])
+            with self.assertRaisesRegex(preview.Invalid, "SNAPSHOT_SIZE"):
+                adapter.merge([self.snapshot, copy.deepcopy(self.snapshot)])
+        with tempfile.TemporaryDirectory() as directory, \
+                unittest.mock.patch.object(adapter, "MAX_FORECASTS", 2), \
+                unittest.mock.patch.object(adapter.json, "loads", side_effect=AssertionError("parsed")):
+            path = Path(directory) / "forecasts.json"
+            path.write_text('{"forecasts":[' + ",".join(["{}"] * 1100) + "]}", encoding="utf-8")
+            with self.assertRaisesRegex(preview.Invalid, "SNAPSHOT_SIZE"):
+                adapter.read_snapshot(path, "0" * 64)
 
 
 class ReplayTests(unittest.TestCase):
@@ -156,6 +170,21 @@ class ReplayTests(unittest.TestCase):
         events = self.run_replay()["events"]
         self.assertEqual(events[0]["quote_state"], "BID_GAP_TRIGGERED")
         self.assertTrue(all(e["entry_block_latched"] and e["candidate_next_y"] is None for e in events))
+
+    def test_forecast_off_the_bar_grid_refuses_the_study(self):
+        # Main review PIT-1: as_of 1800 s into a bar with a two-bar horizon was scored on one bar
+        # while its window was still open, and could be the live forecast at the same time.
+        forecast = self.snapshot["forecasts"][-3]
+        forecast.update(as_of=forecast["as_of"] + 1800, issued_at=forecast["as_of"] + 1860)
+        events = self.run_replay()["events"]
+        self.assertEqual({e["snapshot_reason"] for e in events}, {"FORECAST_OFF_BAR_GRID"})
+        self.assertEqual({e["transition"] for e in events}, {"KEEP"})
+
+    def test_horizon_must_be_whole_bars(self):
+        self.config["horizon_seconds"] = 7300
+        for forecast in self.snapshot["forecasts"]:
+            forecast["horizon_seconds"] = 7300
+        self.assertEqual(self.run_replay()["events"][0]["snapshot_reason"], "HORIZON_NOT_WHOLE_BARS")
 
     def test_bad_snapshot_rejects_the_replay(self):
         self.snapshot["forecasts"][0]["direction"] = "down"

@@ -90,6 +90,7 @@ def read_snapshot(path, expected_sha256):
     def reject(_):
         raise preview.Invalid("NONFINITE_JSON_NUMBER")
 
+    need(raw.count(b"{") + raw.count(b"[") <= 2 * MAX_FORECASTS + 1024, "SNAPSHOT_SIZE")   # bounds the parsed tree
     snapshot = check_snapshot(json.loads(raw.decode("utf-8"), object_pairs_hook=unique, parse_constant=reject))
     need(snapshot["snapshot_sha256"] == expected_sha256, "SNAPSHOT_SHA256_MISMATCH")
     return snapshot
@@ -98,9 +99,11 @@ def read_snapshot(path, expected_sha256):
 def merge(snapshots):
     """Combine snapshots of one model version in receipt order. A revised forecast refuses the later file."""
     need(type(snapshots) is list and snapshots, "NO_SNAPSHOT")
-    model, seen = None, {}
+    model, seen, total = None, {}, 0
     for snapshot in snapshots:
         check_snapshot(snapshot)
+        total += len(snapshot["forecasts"])
+        need(total <= MAX_FORECASTS, "SNAPSHOT_SIZE")   # across all files of one run
         need(model is None or snapshot["model"] == model, "MODEL_VERSION_MIXED")
         model = snapshot["model"]
         for forecast in snapshot["forecasts"]:
@@ -117,7 +120,8 @@ def study_config(study, cap, forecast_model):
     matches(study["market"], MARKET, "FORECAST_MARKET")
     need(type(study["source_id"]) is str and 0 < len(study["source_id"]) <= 140, "INVALID_SOURCE_ID")
     step = integer(study["step_seconds"], 1, 86400)
-    integer(study["horizon_seconds"], 2 * step, 2_592_000)   # at least one whole bar inside any window
+    horizon = integer(study["horizon_seconds"], 2 * step, 2_592_000)
+    need(horizon % step == 0, "HORIZON_NOT_WHOLE_BARS")   # every outcome window is a run of whole bars
     integer(study["hurdle_bps"], 0, 9999)
     integer(study["min_validation_calls"], 1, 1000)
     need(forecast_model["frozen_at"] < moment(study["evaluation_start"]), "MODEL_NOT_FROZEN_BEFORE_EVALUATION")
@@ -166,6 +170,8 @@ def forecast_source(forecast_model, forecasts):
         usable = sorted((f for f in forecasts if f["market"] == config["market"] and f["horizon_seconds"] == horizon
                          and f["hurdle_bps"] == config["hurdle_bps"] and f["as_of"] >= config["evaluation_start"]
                          and f["issued_at"] <= now), key=lambda f: (f["as_of"], f["issued_at"]))
+        # On the bar grid, a window's last bar ends at as_of + horizon, so it is scored only after the window.
+        need(all((f["as_of"] - first) % step == 0 for f in usable), "FORECAST_OFF_BAR_GRID")
         up_bar, down_bar = math.log1p(config["hurdle_bps"] / 10000), math.log1p(-config["hurdle_bps"] / 10000)
         stats = {d: {"calls": 0, "hits": 0, "prob_sum": 0.0} for d in ("up", "down")}
         last, windows = None, 0
@@ -173,10 +179,10 @@ def forecast_source(forecast_model, forecasts):
             if last is not None and forecast["as_of"] < last + horizon:
                 continue
             last = forecast["as_of"]
-            start = -((first - forecast["as_of"] - step) // step)   # first bar wholly after as_of
-            stop = (forecast["as_of"] + horizon - first) // step    # last bar ending inside the window
+            start = (forecast["as_of"] - first) // step + 1   # first bar after as_of
+            stop = (forecast["as_of"] + horizon - first) // step   # bar ending at as_of + horizon
             if stop >= len(returns):
-                continue   # outcome not yet complete in the record known at now
+                continue   # last bar not known before now, so the window has not ended before now
             windows += 1
             direction = called(forecast, config)
             if direction:
@@ -253,6 +259,7 @@ def main():
             path, separator, digest = item.rpartition("=")
             need(separator == "=", "SNAPSHOT_ARGUMENT")
             snapshots.append(read_snapshot(Path(path), digest))
+            need(sum(len(s["forecasts"]) for s in snapshots) <= MAX_FORECASTS, "SNAPSHOT_SIZE")
         report = run(preview.read_input(args.replay), snapshots)
     except (preview.Invalid, OSError, ValueError, RecursionError) as error:
         parser.exit(2, "Refused: %s\n" % (error if type(error) is preview.Invalid else "UNREADABLE_INPUT"))

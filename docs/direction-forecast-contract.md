@@ -25,7 +25,8 @@ A forecast is a research input. It never becomes an order input, an approval or 
 
 One UTF-8 JSON file without a byte-order mark, at most 16 MiB and 50,000 forecasts. Duplicate keys, `NaN`,
 `Infinity` and unknown keys are refused. A refused file is refused whole; no forecast is dropped silently.
-Times are integer UTC epoch seconds. Probabilities and hurdles are decimal strings, as in PR #70.
+Times are integer UTC epoch seconds. Probabilities are decimal strings, as in PR #70. `hurdle_bps` is an integer
+number of basis points from 0 to 9,999.
 
 ```json
 {
@@ -175,7 +176,8 @@ confirmation rules are unchanged; only the source of the direction differs.
 python -m tools.research.direction_forecast_adapter --replay study.json --snapshot forecasts-001.json=<sha256>
 ```
 
-Repeat `--snapshot` in receipt order. Each `<sha256>` is the value from the producer's interface note. Exit code 0
+Repeat `--snapshot` in receipt order. Each `<sha256>` is the value from the producer's interface note. One run reads
+at most 50,000 forecasts across all its files; a file's size in objects is checked before it is parsed. Exit code 0
 means only that the files passed these checks. Exit code 2 prints a fixed reason and no partial result. Every report
 carries the five flags in section 5.
 
@@ -187,17 +189,20 @@ the study's preregistered terms, pinned by `terms.model_sha256` as in PR #70:
 | --- | --- |
 | `scope`, `source_id` | As in PR #70: the replay scope and the bar record's source. |
 | `rule_version` | `external-forecast-v1`. |
-| `market`, `horizon_seconds`, `hurdle_bps` | The forecasts this study uses. Others in the snapshots are ignored. The horizon is at least two bars. |
+| `market`, `horizon_seconds`, `hurdle_bps` | The forecasts this study uses. Others in the snapshots are ignored. The horizon is a whole number of bars, at least two. |
 | `forecast_model` | The model's `name`, `version` and `sha256`. A snapshot of another model is refused. |
 | `evaluation_start` | Start of the evaluation window. It must be after the model's `frozen_at` and on or after the first bar. Earlier forecasts never count. |
 | `step_seconds` | Bar spacing of `history`. |
 | `confidence` | A forecast is a call when its direction's probability is at least this value (above 0.5). |
 | `min_validation_calls`, `max_calibration_gap`, `up_y`, `down_y` | As in PR #70. Targets stay within the signed ceiling and 5%. |
 
-At each observation the adapter uses only forecasts issued at or before it. Evidence comes from the earliest
-non-overlapping forecasts in the window whose outcome bars, wholly inside `(as_of, as_of + horizon]`, were known
-before the observation. A call needs the PR #70 minimum count, a nominal 95% hit-rate lower bound at or above
-`confidence`, and a calibration gap within the limit. The live forecast is the latest issued one whose window is
+At each observation the adapter uses only forecasts issued at or before it. Their `as_of` must be on the history's
+bar grid (a bar's `end`), so a producer serving a BR-26 study issues forecasts at bar closes. One that is not
+refuses the study at that observation with `FORECAST_OFF_BAR_GRID`. Each outcome window `(as_of, as_of + horizon]`
+is then a run of whole bars whose last bar ends at `as_of + horizon`. Evidence comes from the earliest
+non-overlapping forecasts in the evaluation window whose last outcome bar was known before the observation, so
+every scored window ended before it (section 4). A call needs the PR #70 minimum count, a nominal 95% hit-rate lower
+bound at or above `confidence`, and a calibration gap within the limit. The live forecast is the latest issued one whose window is
 still open; none means the working Y is kept. Offline replay uses `issued_at` as the visible time. Forward validation
 must also record each snapshot's receipt time (section 3, rule 7).
 
