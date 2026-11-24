@@ -9,6 +9,8 @@ from tools.research import adaptive_bid_gap_preview as preview
 
 
 SCHEMA = "tradegen-adaptive-bid-gap-replay-v1"
+# Whole series, separate from one snapshot's 2,000,000 steps: about 32 full-size snapshots.
+REPLAY_SIMULATION_BUDGET = 64_000_000
 OBSERVATION_KEYS = {
     "sequence", "as_of", "scope", "last_trade_at", "last_trade", "bid_at", "bid",
     "prior_block_active", "floor_halt", "daily_stop",
@@ -89,7 +91,7 @@ def replay(document):
             visible = visible_history(history, now)
             if not latched:
                 steps += path_steps(model, visible)
-                preview.need(steps <= 2_000_000, "REPLAY_SIMULATION_BUDGET")
+                preview.need(steps <= REPLAY_SIMULATION_BUDGET, "REPLAY_SIMULATION_BUDGET")
             prior = str(current) if current is not None else "0"
             snapshot_terms = None if terms is None else {**terms, "current_y": prior if current is not None else None}
             snapshot = preview.evaluate({"schema": preview.SCHEMA, "terms": snapshot_terms, "model": model,

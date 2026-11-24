@@ -120,6 +120,22 @@ class ReplayTest(unittest.TestCase):
         data["model"]["paths"] = 1_000_000
         self.assertEqual(module.replay(data)["reason"], "REPLAY_SIMULATION_BUDGET")
 
+    def test_replay_budget_is_not_one_snapshot_budget(self):
+        # About 1M simulated steps per observation: inside one preview snapshot's limit, so two
+        # observations must not exhaust the whole replay.
+        data = module.example()
+        data["model"].update(paths=2000, horizon=5)
+        data["terms"]["model_sha256"] = module.preview.model_id(data["model"])
+        bars, step = data["history"]["bars"], data["model"]["step_seconds"]
+        while len(bars) < 512:
+            bars.append({**bars[-1], "end": bars[-1]["end"] + step, "known_at": bars[-1]["known_at"] + step})
+        first = data["observations"][0]
+        data["observations"] = [{**first, "sequence": i + 1, "as_of": bar["end"] + 1, "bid_at": bar["end"] + 1,
+                                 "last_trade_at": bar["end"] - 44} for i, bar in enumerate(bars[-2:])]
+        report = module.replay(data)
+        self.assertEqual(report["status"], "REPLAYED")
+        self.assertEqual([e["transition"] for e in report["events"]], ["AWAIT_WIDEN_CONFIRMATION", "WIDEN_FOR_NEXT"])
+
 
 if __name__ == "__main__":
     unittest.main()
