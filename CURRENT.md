@@ -6,7 +6,7 @@ task: upbit-universe
 cycle: 2026-11-24
 done_ids: owner-merges-1123
 next_ids: blocker1-approach-a-code/A1-A2, universe-pr5, universe-pr5/recovery-operations, universe-pr5-clock-notify, policy-loss-budget-plan-1, rules-review-1202, launch-private-capture-setup-1, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1, protective-hold/p2-integration, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, universe-code-approve, e1-14-owner-setup, launch-prospective-study
-updated_at: 2026-11-24T19:10:00+09:00
+updated_at: 2026-11-24T18:50:00+09:00
 stale_after_hours: 24
 waiting_on: owner
 work_branch: main
@@ -27,7 +27,7 @@ session: Claude Code 메인 세션 TRADEGEN_GITHUB (local_a72616d1)
 
 ## 1. 대조 결과
 
-| 항목 | GPT 문서 | GitHub (11-24 19:10 KST) |
+| 항목 | GPT 문서 | GitHub (11-24 18:30 KST) |
 |---|---|---|
 | #65 블로커1 사양 | open | 병합 `c8f0904` |
 | #66 패스키 | open | 병합 `e807b60` |
@@ -39,7 +39,7 @@ session: Claude Code 메인 세션 TRADEGEN_GITHUB (local_a72616d1)
 ## 2. 다음 할 일 (Claude 메인)
 
 1. 패스키 남은 소유자 결정(O11)을 한국어로 정리. #66은 병합됐으므로 후속 PR이 필요한 것만 구분
-2. main `b380ef8` 고정 사본으로 Windows 전체 run_all 1회
+2. main `b380ef8` 고정 사본으로 Windows 전체 run_all 1회 (11-24 18:38 KST 시작, 하루 이상)
 3. `universe-pr5` 계속
 4. `blocker1-approach-a-code/A1-A2`: #71 병합 뒤 (다른 Claude 세션이 계획·테스트부터 시작)
 
