@@ -438,6 +438,58 @@ class BridgeTests(unittest.TestCase):
         with self.assertRaisesRegex(bridge.BridgeError, "DIDM_DUPLICATE_VERSION"):
             bridge.inspect_snapshot(source.read_bytes(), input_kind="sqlite", as_of=AS_OF)
 
+    # PR #76 review: refusals during the second read, oversized values, cleanup order, offsets.
+    def test_second_read_refusal_keeps_its_reason_and_leaves_no_temp(self):
+        source, output = self.root / "qg.sqlite", self.root / "report.json"
+        make_database(source, self.many_rows(3))
+        scratch = self.root / "tmp"; scratch.mkdir()
+        real = bridge.check_row
+        def first_read_digest_differs(row):
+            return {**real(row), "record_sha256": "0" * 64}
+        with patch.object(bridge.tempfile, "tempdir", str(scratch)), \
+                patch.object(bridge, "check_row", first_read_digest_differs):
+            code, summary = self.run_database(source, output)
+        self.assertEqual((code, summary["reason"]), (2, "DIDM_INPUT_CHANGED"))
+        self.assertFalse(output.exists())
+        self.assertEqual(list(scratch.iterdir()), [])
+
+    def test_oversized_sqlite_value_is_refused_before_python_reads_it(self):
+        big = row()
+        big["payload"] = json.dumps({"value": "x" * 200_000}, separators=(",", ":"))
+        big["payload_sha256"] = bridge.sha256(big["payload"].encode())
+        source = self.root / "qg.sqlite"; make_database(source, [big])
+        with patch.object(bridge, "MAX_PAYLOAD_BYTES", 1000):
+            code, summary = self.run_database(source)
+        self.assertEqual((code, summary["reason"]), (2, "DIDM_SQLITE_INVALID_OR_LIMIT"))
+
+    def test_cleanup_failure_publishes_nothing(self):
+        source, output = self.root / "qg.sqlite", self.root / "report.json"
+        make_database(source, [row()])
+        class FailingCleanup(tempfile.TemporaryDirectory):
+            def __exit__(self, *exc):
+                super().__exit__(*exc)
+                raise OSError("cleanup")
+        with patch.object(bridge.tempfile, "TemporaryDirectory", FailingCleanup):
+            code, summary = self.run_database(source, output)
+        self.assertEqual((code, summary["reason"]), (2, "DIDM_INPUT_OR_OUTPUT_REFUSED"))
+        self.assertEqual([p.name for p in self.root.iterdir()], ["qg.sqlite"])
+
+    def test_offset_cutoff_and_valid_times_compare_as_instants(self):
+        cutoff = "2026-11-22T21:00:00+09:00"                     # 12:00Z
+        late = row(1, received="2026-11-22T20:00:00+00:00")     # after the cutoff; its text sorts before it
+        first = row(2, item="first", received="2026-11-22T09:00:00+00:00")
+        second = row(3, item="second", received="2026-11-22T09:00:00+00:00")
+        first["valid_at"] = "2026-10-01T08:00:00+09:00"         # 09-30 23:00Z, earlier than second
+        second["valid_at"] = "2026-10-01T00:00:00+00:00"        # but its text sorts first
+        source = self.root / "qg.sqlite"; make_database(source, [late, first, second])
+        for kind, report in (("export", self.inspect([late, first, second], as_of=cutoff)),
+                             ("sqlite", bridge.inspect_snapshot(source.read_bytes(), input_kind="sqlite",
+                                                                as_of=cutoff))):
+            with self.subTest(kind=kind):
+                digests = [r["record_sha256"] for r in report["records"]]
+                self.assertEqual(report["future_received_count"], 1)
+                self.assertEqual(report["selected_record_sha256"], digests[1:])
+
 
 if __name__ == "__main__":
     unittest.main()

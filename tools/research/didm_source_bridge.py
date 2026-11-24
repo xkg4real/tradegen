@@ -230,6 +230,8 @@ def open_snapshot(path):
     os.chmod(path, 0o400)
     connection = sqlite3.connect(path.as_uri() + "?mode=ro&immutable=1", uri=True)
     try:
+        # SQLite refuses an oversized value itself, before Python copies it into memory.
+        connection.setlimit(sqlite3.SQLITE_LIMIT_LENGTH, MAX_PAYLOAD_BYTES + 64 * 1024)
         connection.execute("PRAGMA query_only=ON")
         connection.execute("PRAGMA trusted_schema=OFF")
         require(connection.execute("PRAGMA query_only").fetchone() == (1,),
@@ -367,7 +369,12 @@ def inspection(source, *, input_kind, input_sha256, as_of, directory):
         if input_kind == "sqlite":
             snapshot, scores = open_snapshot(source), []
             def rows():
-                return (dict(zip(ROW_COLUMNS, values)) for values in snapshot.execute(ROWS_SQL))
+                cursor = snapshot.execute(ROWS_SQL)
+                try:
+                    for values in cursor:
+                        yield dict(zip(ROW_COLUMNS, values))
+                finally:
+                    cursor.close()
             ordered = rows
         elif input_kind == "export":
             exchange = strict_json(source)
@@ -453,12 +460,19 @@ def inspection(source, *, input_kind, input_sha256, as_of, directory):
             "scores": score_records, "gaps": sorted(gaps)}
 
         def records():
-            digests = state.execute("SELECT seq, record_sha256 FROM seen ORDER BY seq")
-            for row, (seq, digest) in zip(ordered(), digests, strict=True):
-                # A second read of the private copy must match the validated first read.
-                require(row["seq"] == seq and sha256(canonical(row).encode("utf-8")) == digest,
-                        "DIDM_INPUT_CHANGED")
-                yield {"record_sha256": digest, "row": row}
+            digests, second = state.execute("SELECT seq, record_sha256 FROM seen ORDER BY seq"), ordered()
+            try:
+                for row, (seq, digest) in zip(second, digests, strict=True):
+                    # A second read of the private copy must match the validated first read.
+                    require(row["seq"] == seq and sha256(canonical(row).encode("utf-8")) == digest,
+                            "DIDM_INPUT_CHANGED")
+                    yield {"record_sha256": digest, "row": row}
+            finally:
+                # A traceback keeps this frame alive. An open cursor would keep its connection
+                # open after close(), and Windows could not delete the private files.
+                digests.close()
+                if hasattr(second, "close"):
+                    second.close()
 
         def selected():
             return (digest for (digest,) in state.execute(
@@ -505,12 +519,13 @@ def inspect_snapshot(raw, *, input_kind, as_of):
     return json.loads("".join(parts))
 
 
-def publish_report(report, destination):
-    """No partial final file and no overwrite, including concurrent publishers.
+@contextmanager
+def report_file(destination):
+    """Yield write(text) into a temporary file beside destination; publish it only on a clean exit.
 
-    report is a dict or a function that streams the report text through write(text).
+    No partial final file and no overwrite, including concurrent publishers. Any error inside
+    the block, including a failed cleanup of private temporary files, publishes nothing.
     """
-    produce = report if callable(report) else lambda write: write(canonical(report) + "\n")
     destination = Path(destination).absolute()
     require(not os.path.lexists(destination), "DIDM_OUTPUT_EXISTS")
     require(destination.parent.is_dir(), "DIDM_OUTPUT_DIRECTORY_REQUIRED")
@@ -524,7 +539,7 @@ def publish_report(report, destination):
                 size += len(data)
                 require(size <= MAX_OUTPUT_BYTES, "DIDM_OUTPUT_SIZE_LIMIT")
                 stream.write(data)
-            produce(write)
+            yield write
             stream.flush()
             os.fsync(stream.fileno())
         # Hard-link is an atomic no-clobber publication on supported local filesystems.
@@ -532,6 +547,15 @@ def publish_report(report, destination):
         os.link(temporary, destination)
     finally:
         os.unlink(temporary)
+
+
+def publish_report(report, destination):
+    """Publish a report dict, or a function that streams the report text through write(text)."""
+    with report_file(destination) as write:
+        if callable(report):
+            report(write)
+        else:
+            write(canonical(report) + "\n")
 
 
 def main(argv=None):
@@ -543,7 +567,9 @@ def main(argv=None):
     parser.add_argument("--output", required=True, help="New PRIVATE report path; never overwritten")
     args = parser.parse_args(argv)
     try:
-        with tempfile.TemporaryDirectory(prefix="tradegen-didm-snapshot-") as directory:
+        # The report is published only after the private copy and scratch state are removed.
+        with report_file(args.output) as write, \
+                tempfile.TemporaryDirectory(prefix="tradegen-didm-snapshot-") as directory:
             if args.database:
                 snapshot = Path(directory) / "snapshot.sqlite"
                 with open(snapshot, "xb") as sink:
@@ -554,7 +580,7 @@ def main(argv=None):
                 digest = sha256(snapshot)
             with inspection(snapshot, input_kind="sqlite" if args.database else "export",
                             input_sha256=digest, as_of=args.as_of, directory=directory) as result:
-                publish_report(result.write, args.output)
+                result.write(write)
         report = result.fields
         print(canonical({key: report[key] for key in ("format", "record_count", "selected_count",
             "score_count", "known_score_count", "future_received_count", "input_sha256", "research_only", "live_eligible", "gaps")}))
