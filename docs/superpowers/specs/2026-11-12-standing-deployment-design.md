@@ -4,7 +4,7 @@ Date: 2026-11-12 (Asia/Seoul).
 Status: proposed. The owner approved this design in conversation on 2026-11-12. Nothing is implemented. Merging this
 document approves the design only. It signs nothing, arms nothing and sends no order. It changes `tools/signer/sign.py`
 and the owner-log fold in design. The implementation PR that makes those changes is reviewed and merged by the owner
-like any other.
+like any other. **Amended 2026-11-24 by [amendment A2](2026-11-24-standing-amendment-a2-design.md).** No auto-sell after a restart or at a window end, a standing deployment carries app units across its windows (built in M7-T12), and SD 4.3's freeze covers signed entries only.
 Builds on: [controlled launcher, current planner and study runbook](2026-11-12-controlled-launch-and-planner-design.md)
 (below, "the base design"). Its code lands after the base design's code (base design, section 9).
 

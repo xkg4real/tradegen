@@ -4,7 +4,7 @@ Date: 2026-11-20 (Asia/Seoul).
 Status: proposed amendment to PR #65. Section 9 records the owner's direct approval of OQ1–OQ7 on 2026-11-23 KST
 and their subsequent decisions on OQ8–OQ18, including approval of the BR-23 startup rule (OQ12). The owner
 adopted the BR-26 design with a hard 5% ceiling and conditional model adjustment on 2026-11-23. Implementation
-review, PR merges, owner signatures, model qualification and trading activation are separate steps.
+review, PR merges, owner signatures, model qualification and trading activation are separate steps. **Amended 2026-11-24 by [amendment A2](2026-11-24-standing-amendment-a2-design.md).** The owner granted the app authority to cancel its own resting buys at a safety stop and at the deadline (A2 3.7). Owner orders are never cancelled.
 
 **Citations.** `path:line` is rev `1fd8792` (main, after PRs #61-#64). Short names, all under
 `docs/superpowers/specs/` unless a path is given: SD = `2026-11-12-standing-deployment-design.md`, CL =

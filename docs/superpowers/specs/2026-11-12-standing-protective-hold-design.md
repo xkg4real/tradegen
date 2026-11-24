@@ -5,7 +5,7 @@ Status: proposed. It amends [standing deployment](2026-11-12-standing-deployment
 already merged on main as `2fffeff`, an ancestor of `3868cde`, so this is a new docs PR, not a change to an open one.
 Nothing is implemented. Merging this document approves the design only. It signs nothing, arms nothing and sends no
 order. It changes `tools/signer/sign.py` and the owner-log fold in design. The hard rules reserve the `sign.py` change
-for the owner's approval. This document asks for that approval in design, and the implementation PR asks again.
+for the owner's approval. This document asks for that approval in design, and the implementation PR asks again. **Amended 2026-11-24 by [amendment A2](2026-11-24-standing-amendment-a2-design.md).** Sales whose only cause is an error, a restart or a deadline are removed, and the hold acts on app units and flow-adjusted equity. A2 section 4 lists the lines it supersedes.
 
 **Citations.** `path:line` is rev `3868cde` (main, after PRs #29 and #30). The two 2026-11-12 specs are byte-identical at `9b603fe` and
 `3868cde` (`git diff 9b603fe 3868cde` on them is empty), so their line numbers hold at both revs. Short names, all under
