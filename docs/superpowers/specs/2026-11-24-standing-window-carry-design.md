@@ -9,12 +9,12 @@ table and no `tools/signer/sign.py`. It edits no other document, but if the owne
 lines listed in 3.0 for fixed carry standing schedules. Where they differ, this document then wins.
 
 **Citations.** `path:line` is rev `b828b2d` (main). PH, SD, CL and B1 are the documents A2 names, at the same line
-numbers A2 cites; A2 only appends to existing lines. A2's own lines are at PR #74's head `42bfac4`. PLB is
+numbers A2 cites; A2 only appends to existing lines. A2's own lines are at PR #74's head `91465e5`. PLB is
 [principal loss budget](2026-11-11-principal-loss-budget-design.md). All of them are under `docs/superpowers/specs/`.
 `launch.py` is `tools/owner/launch.py`. Other code paths are under `execution_launch/` unless they say otherwise.
 
 **Scope.** The fixed carry path only (factory `tradegen-fixed-carry-v2`). The universe profile waits for M7-T11 and
-its own carry design (A2 3.14, A2:330). Owner financial parameters stay private and are not written here. This is
+its own carry design (A2 3.14, A2:365). Owner financial parameters stay private and are not written here. This is
 software design, not legal, tax or investment advice.
 
 ## 0. The proposal in one paragraph
@@ -42,7 +42,7 @@ window: the control journal's row cap, the time a late slot takes, and the compl
 | 6 | A window has at most 20,000 bars; 7 days at 300 s is 2,017. Three places cap a fixed window at 24 h and a universe window at 72 h: the owner tool's window reader, `setup_history` and the driver composition. | `driver.py:237-238`; `launch.py:113`, `175-179`; `coordinator.py:1492-1493` |
 | 7 | A review approves one driver identity, which includes one window digest, for at most 24 h. Review body schema 2 already means carry. The runner checks the review at every tick, sells included. | `review_auth.py:32`, `39-42`, `85-88`, `113-115`; `runner.py:229-238`, `640-641` |
 | 8 | The carry study starts flat and marks its inventory at the end; it invents no sale. The legacy study sold at its last bar. | `carry_evaluator.py:6-7`, `208`, `231`; `strategy.py:391-393` |
-| 9 | Preparation is refused while the app holds units. Sells need no session and continue. | A2 3.10 (A2:289); PLB:283; SD:149-150 |
+| 9 | Preparation is refused while the app holds units. Sells need no session and continue. | A2 3.10 (A2:323); PLB:283; SD:149-150 |
 | 10 | The account anchor is the whole account's holding of the symbol. App units (BR-23, B1:417) come with M7-T3. | `live_history.py:563-566` |
 | 11 | All end-of-window handling is keyed to `window.end`: the carry deadline, the deadline record, and the protective policy's `holding_deadline`. | `driver.py:655-660`; `runner.py:509-520`; `coordinator.py:202`, `872` |
 
@@ -86,7 +86,7 @@ For a fixed carry standing schedule only, this document wins over:
 - SD 4.1's schedule body as version 2, and its window-`k` match (SD:59-63), with the file row and tests that follow
   them (SD:229, 242-243).
 
-A2 already supersedes SD:52-53 (A2:101). With C1 (b) none of these change, except as section 5 says.
+A2 already supersedes SD:52-53 (A2:107). With C1 (b) none of these change, except as section 5 says.
 
 ### 3.1 The schedule
 
@@ -138,18 +138,18 @@ A2 already supersedes SD:52-53 (A2:101). With C1 (b) none of these change, excep
   window's. A slot that overruns is a missed slot. So a measured tick at the last slot, on the owner's PC, is a
   prerequisite of a multi-day window (3.7). Carrying the chain incrementally would be a driver change.
 - **Deployment end.** By 3.1 the window end is the deployment end, so the 11-13 rule applies there (A2 3.1,
-  A2:83-85; A2:118-119). Held app units are not sold, entries are blocked and approval is requested. Under C6 (a) the
+  A2:86-88; A2:128-129). Held app units are not sold, entries are blocked and approval is requested. Under C6 (a) the
   review's expiry and `valid_until` cannot come first. A review check that fails mid-window for another reason (the
   owner log does not fold, the code or key differs) is a `held_at_end` safety stop (PH:182-186; A2 principle 4 and N3,
-  A2:61-65, 392). The next deployment needs a flat start, so a held position waits for the owner (`exit`, a hand
-  sell) or for M7-T9's management approval. Carry across deployments is out of scope. Under W1, M7-T12 therefore opens
-  no way out of A2 3.3's gap after a restart (A2:156-160).
+  A2:63-68, 427). The next deployment needs a flat start, so a held position waits for the owner (`exit`, a hand
+  sell) or for what M7-T9 brings, such as A2 N5's protect-only approval (A2:429). Carry across deployments is out of
+  scope. Under W1, M7-T12 therefore opens no way out of A2 3.3's gap after a restart (A2:172-176).
 
 ### 3.3 Daily sessions inside a long window (SD:149-150, A2 3.10)
 
 - **Sessions stay daily.** A prepared session is valid only on its Seoul date (SD:25). The app prepares again after
   each Seoul midnight (SD 5.2).
-- **While the app holds units at a Seoul date change,** preparation is refused (A2 3.10, A2:289). The new day then has
+- **While the app holds units at a Seoul date change,** preparation is refused (A2 3.10, A2:323). The new day then has
   no session: buys wait until the app is flat again, and sells continue (PLB:283). Refusals are retried every
   15 minutes (SD:144).
 - **Effect against the study.** 3.6 lists every way live trading differs from the study. The sign of their effect on
@@ -171,9 +171,10 @@ A2 already supersedes SD:52-53 (A2:101). With C1 (b) none of these change, excep
 ### 3.5 The protective hold's end E
 
 - **E is unchanged.** A2 keeps E as the stop window's scheduled end or the entry's `valid_until`, whichever is first
-  (A2:86-87). Under W1 a hold after a stop can therefore last until the deployment end: almost 7 days, not PH's 48 or
-  72 hours (PH:449-453).
-- **What a later E changes.** After E nothing sells (A2:83-85, reading 5 at A2:382). A later E keeps the protective
+  (A2:89-90). Under W1 a hold after a stop can therefore last until the deployment end: almost 7 days, not PH's 48 or
+  72 hours (PH:449-453). A2's N6 asks about E in a window that is not the deployment's last (A2:430), so it does not
+  arise under W1.
+- **What a later E changes.** After E nothing sells (A2:86-88, reading 5 at A2:418). A later E keeps the protective
   rules S, W, T and B able to sell for longer. It also delays the red toast, the urgent alerts and the approval
   request that A2 raises at E, and it stretches PH's worst case, a coin that no studied strategy manages with nobody
   watching (PH:455-456), from 48 or 72 hours to almost 7 days (C4).
@@ -243,7 +244,7 @@ A2 already supersedes SD:52-53 (A2:101). With C1 (b) none of these change, excep
 **Why one record.** A restart ends the deployment without a sale (OQ16, B1:714-716). A deadline requests management
 approval (11-13 rule). W2 would also need the same facts at every window boundary. One record of the app's position
 serves all three. M7-T9 may use it; whether any management or protective state resumes after a restart is an owner
-decision in M7-T9 under OQ16 (B1:554-556) and Q7 (A2:43).
+decision in M7-T9 under OQ16 (B1:554-556), Q7 (A2:43) and A2's N5 reconfirmation (A2:429).
 
 | Field | Meaning |
 |---|---|
@@ -277,10 +278,11 @@ decision in M7-T9 under OQ16 (B1:554-556) and Q7 (A2:43).
 
 - **First bar** (`driver.py:487-489`). Window 0 as today, with PLB-O2. Window `k > 0` compares its first anchor with
   window `k - 1`'s position record.
-- **Deadline.** Under Q1 (b) a window end inside a deployment is not a deadline (A2:105-107). Today's carry deadline
+- **Deadline.** Under Q1 (b) a window end inside a deployment is not a deadline (A2:111-113). Today's carry deadline
   is `window.end` (`driver.py:655-660`), and reaching it writes the deadline record and asks for approval
   (`runner.py:509-520`). W2 moves the deadline to the deployment end, with the same end rule as 3.1 against the
-  review's expiry and `valid_until`.
+  review's expiry and `valid_until`. For a stop inside window `k`, A2's N6 decides whether the hold's E is that
+  window's end or `valid_until` (A2:430).
 - **History** (`driver.py:383`, `417-440`). Bar indices and the prior-decision recomputation run over the whole
   deployment's history, not the window's. The decision's 20,000-bar bound still holds for 7 days.
 - **Journals** (`live_history.py:892-896`). Window `k > 0` binds over the previous journal's head instead of GENESIS,
@@ -329,7 +331,7 @@ leaves the logic of `driver.py`, `live_history.py`, `carry_evaluator.py`, `strat
 | C8 | Activation during a W1 deployment (PLB-O4) | (a) Keep the plan target below `A`, as PLB:145 advises. (b) Sign PLB-O5 (`L = W0`) when the state check first shows `H >= A` (PLB:144). (c) `live.py` refuses a multi-day carry window while `H` is within a signed margin of `A`. | (a) where the private plan allows it; otherwise (b) |
 
 - **C3's cost.** It applies only when the first trade is a fixed standing deployment. O35, the first-trade path, is
-  still open (A2:345-346). The owner was given these options:
+  still open (A2:380-381). The owner was given these options:
   1. Keep the universe study (M9-T4, 48 h, 577 slots) and move the first live trade after it.
   2. Move the first trade to the fixed path (KRW-BTC).
   3. Run both studies at the same time.
@@ -381,7 +383,7 @@ leaves the logic of `driver.py`, `live_history.py`, `carry_evaluator.py`, `strat
   jumps while nothing sells. A position worth more than `min(H - W0, delta * H)` can then cause a permanent halt that
   ends the budget for good (PLB:145). PLB bounded that exposure to one window of at most a day. W1 keeps the strategy
   running across such a jump for up to almost 7 days, including top-ups sized against `C` above `A` (PLB:142). A halt
-  sells nothing (SD-O1) and ends protective selling (A2:61-65), so the coin then stays held under a permanent halt.
+  sells nothing (SD-O1) and ends protective selling (A2:63-68), so the coin then stays held under a permanent halt.
   Rule B can sell first only if a signed M is in force and the jump itself did not halt. PLB's one-day bound was
   already weak on main, because the carry driver does not sell at its window end. C8 asks the owner how to handle
   this.
