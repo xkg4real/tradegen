@@ -4,15 +4,15 @@ reason: manual
 from: claude
 task: upbit-universe
 cycle: 2026-11-24
-done_ids: owner-merges-1123, owner-merge-pr71-1124
+done_ids: owner-merges-1123, owner-merge-pr71-1124, owner-merge-pr72-1124
 next_ids: blocker1-approach-a-code/A1-A2, universe-pr5, universe-pr5/recovery-operations, universe-pr5-clock-notify, policy-loss-budget-plan-1, rules-review-1202, launch-private-capture-setup-1, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1, protective-hold/p2-integration, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, launch-planner-provider-1, launch-controlled-coordinator-1, universe-code-approve, e1-14-owner-setup, launch-prospective-study
-updated_at: 2026-11-24T18:52:00+09:00
+updated_at: 2026-11-24T18:53:00+09:00
 stale_after_hours: 24
 waiting_on: owner
 work_branch: main
-work_commit: 41f255f
+work_commit: 6d30fb0
 uncommitted_changes: no
-pr: 69, 70, 72 (열림)
+pr: 69, 70 (열림)
 usage_weekly_pct: 13
 usage_5h_pct: unknown
 usage_resets_at: 2026-12-01T17:00:00+09:00
@@ -42,7 +42,7 @@ session: Claude Code 메인 세션 TRADEGEN_GITHUB (local_a72616d1)
 2. main `b380ef8` 고정 사본으로 Windows 전체 run_all 1회 (11-24 18:38 KST 시작, 하루 이상)
 3. `universe-pr5` 계속
 4. `blocker1-approach-a-code/A1-A2`: #71 병합으로 시작 가능 (다른 Claude 세션이 계획·테스트부터)
-5. PR #72(방향 예측 소비 계약, 문서)와 PR #70 수정: Claude quantgpt-intake 세션
+5. PR #72 병합됨(6d30fb0). PR #70 중요 2건은 0c46957로 고침(소유자 검토·병합 대기)
 
 ## 3. 주의사항
 
