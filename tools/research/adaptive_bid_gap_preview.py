@@ -146,7 +146,28 @@ def reviewed_counts(history, config, now):
     return current, stats, folds
 
 
-def evaluate(document):
+def moving_block_direction(document, terms, scope, cap, now, out):
+    """Built-in direction source: None (reason set) or (direction, holdout stats, pinned limits)."""
+    model, history = document["model"], document["history"]
+    need(terms["model_sha256"] is not None and model_id(model) == terms["model_sha256"], "MODEL_NOT_BOUND")
+    need(model["scope"] == scope == history["scope"], "MODEL_OR_HISTORY_SCOPE_MISMATCH")
+    config = validate_model(model, cap)
+    out["model_sha256"] = terms["model_sha256"]
+    need(history["source_id"] == config["source_id"], "EVIDENCE_SOURCE_MISMATCH")
+    counts, stats, folds = reviewed_counts(history, config, now)
+    up, down = counts
+    out["path_counts"] = {"up": up, "down": down, "neutral": config["paths"] - up - down}
+    paths = config["paths"]
+    out["probabilities"] = {"up": up / paths, "down": down / paths, "neutral": (paths-up-down) / paths}
+    out["nonoverlap_folds"] = folds
+    direction = confidence(counts, config)
+    if not direction:
+        out["reason"] = "MODEL_UNCERTAIN"
+        return None
+    return direction, stats, config
+
+
+def evaluate(document, direction_source=moving_block_direction):
     out = {"schema": SCHEMA, "status": "REVIEW", "current_y": None, "candidate_next_y": None,
            "quote_state": "UNKNOWN", "model_checks_passed": False, "execution_ready": False}
     try:
@@ -191,22 +212,10 @@ def evaluate(document):
             out.update(new_buys_blocked=True, reason="BID_GAP_TRIGGERED" if triggered else
                        ("PRIOR_BLOCK" if stored_block else out["status"]))
             return out
-        model, history = document["model"], document["history"]
-        need(terms["model_sha256"] is not None and model_id(model) == terms["model_sha256"], "MODEL_NOT_BOUND")
-        need(model["scope"] == scope == history["scope"], "MODEL_OR_HISTORY_SCOPE_MISMATCH")
-        config = validate_model(model, cap)
-        out["model_sha256"] = terms["model_sha256"]
-        need(history["source_id"] == config["source_id"], "EVIDENCE_SOURCE_MISMATCH")
-        counts, stats, folds = reviewed_counts(history, config, now)
-        up, down = counts
-        out["path_counts"] = {"up": up, "down": down, "neutral": config["paths"] - up - down}
-        paths = config["paths"]
-        out["probabilities"] = {"up": up / paths, "down": down / paths, "neutral": (paths-up-down) / paths}
-        out["nonoverlap_folds"] = folds
-        direction = confidence(counts, config)
-        if not direction:
-            out["reason"] = "MODEL_UNCERTAIN"
+        found = direction_source(document, terms, scope, cap, now, out)
+        if found is None:
             return out
+        direction, stats, config = found
         checked = stats[direction]
         calls, hits = checked["calls"], checked["hits"]
         lower = wilson_lower(hits, calls)

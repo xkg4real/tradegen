@@ -1,6 +1,7 @@
 # Direction forecast input contract (research only)
 
-Status: proposed, 2026-11-24 (Asia/Seoul). Checklist item M11-T2. Documentation only; no code reads this format yet.
+Status: merged 2026-11-24 (Asia/Seoul), checklist item M11-T2. Read by the research-only replay adapter in section 8
+(M11-T3).
 
 TRADEGEN can study directional forecasts from an outside model, for example one built on QUANTGEN's QuantGPT or
 DIDM outputs (section 7), or the moving-block model in PR #70. This document fixes what such a forecast must contain before TRADEGEN reads it, and what TRADEGEN
@@ -88,7 +89,7 @@ A matching hash proves byte identity, not authorship, authenticity or permission
 
 ## 4. Where TRADEGEN may use it
 
-- **BR-26 working Y (PR #70 replay).** An adapter (M11-T3, `tools/research/` only, after PR #70 merges) feeds these
+- **BR-26 working Y (PR #70 replay).** An adapter (M11-T3, `tools/research/` only, section 8) feeds these
   forecasts to the replay in place of its built-in moving-block forecast. The replay's own rules stay: a decision
   applies only to later observations, a widening needs a later clean observation under the old Y, a block or stop
   suppresses proposals, and `0 < Y <= signed ceiling <= 0.05`. The direction-to-target map (`up_y`, `down_y`), the
@@ -163,5 +164,43 @@ Answers to v0.1 section 8:
    recorded, not capped, and replay uses `issued_at`.
 4. **Python and dependencies.** TRADEGEN requires Python 3.13 or later (`pyproject.toml`). It takes no private
    dependency, because it imports no producer code.
+
+## 8. Replay adapter (M11-T3)
+
+`tools/research/direction_forecast_adapter.py` checks snapshots against sections 2 and 3 and replays them through the
+PR #70 BR-26 replay in place of its built-in moving-block forecast. The replay's quote, block, tightening and
+confirmation rules are unchanged; only the source of the direction differs.
+
+```shell
+python -m tools.research.direction_forecast_adapter --replay study.json --snapshot forecasts-001.json=<sha256>
+```
+
+Repeat `--snapshot` in receipt order. Each `<sha256>` is the value from the producer's interface note. Exit code 0
+means only that the files passed these checks. Exit code 2 prints a fixed reason and no partial result. Every report
+carries the five flags in section 5.
+
+`study.json` is a `tradegen-adaptive-bid-gap-replay-v1` document. Its `history` is TRADEGEN's own contiguous bar
+record (`end`, `known_at`, `return_bps`; at most 1,024 bars, so choose the bar size to cover the study). Its `model` is
+the study's preregistered terms, pinned by `terms.model_sha256` as in PR #70:
+
+| Field | Meaning |
+| --- | --- |
+| `scope`, `source_id` | As in PR #70: the replay scope and the bar record's source. |
+| `rule_version` | `external-forecast-v1`. |
+| `market`, `horizon_seconds`, `hurdle_bps` | The forecasts this study uses. Others in the snapshots are ignored. The horizon is at least two bars. |
+| `forecast_model` | The model's `name`, `version` and `sha256`. A snapshot of another model is refused. |
+| `evaluation_start` | Start of the evaluation window. It must be after the model's `frozen_at` and on or after the first bar. Earlier forecasts never count. |
+| `step_seconds` | Bar spacing of `history`. |
+| `confidence` | A forecast is a call when its direction's probability is at least this value (above 0.5). |
+| `min_validation_calls`, `max_calibration_gap`, `up_y`, `down_y` | As in PR #70. Targets stay within the signed ceiling and 5%. |
+
+At each observation the adapter uses only forecasts issued at or before it. Evidence comes from the earliest
+non-overlapping forecasts in the window whose outcome bars, wholly inside `(as_of, as_of + horizon]`, were known
+before the observation. A call needs the PR #70 minimum count, a nominal 95% hit-rate lower bound at or above
+`confidence`, and a calibration gap within the limit. The live forecast is the latest issued one whose window is
+still open; none means the working Y is kept. Offline replay uses `issued_at` as the visible time. Forward validation
+must also record each snapshot's receipt time (section 3, rule 7).
+
+Verification: `python -m unittest tools.research.test_direction_forecast_adapter` uses synthetic data only.
 
 법률, 세무, 투자 조언이 아니며 면허를 가진 자문가가 아니다
