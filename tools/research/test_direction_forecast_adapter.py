@@ -87,6 +87,31 @@ class SnapshotTests(unittest.TestCase):
             with self.assertRaisesRegex(preview.Invalid, "SNAPSHOT_SIZE"):
                 adapter.read_snapshot(path, "0" * 64)
 
+    def test_keys_and_values_are_bounded_before_parsing(self):
+        with tempfile.TemporaryDirectory() as directory, \
+                unittest.mock.patch.object(adapter, "MAX_FORECASTS", 2), \
+                unittest.mock.patch.object(adapter.json, "loads", side_effect=AssertionError("parsed")):
+            path = Path(directory) / "forecasts.json"
+            for body in ("{" + ",".join('"k%d":0' % i for i in range(1100)) + "}", "[" + ",".join(["0"] * 1100) + "]"):
+                path.write_text(body, encoding="utf-8")
+                with self.assertRaisesRegex(preview.Invalid, "SNAPSHOT_SIZE"):
+                    adapter.read_snapshot(path, "0" * 64)
+
+    def test_run_budget_applies_before_parsing_the_next_file(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "forecasts.json"
+            path.write_text(json.dumps(self.snapshot), encoding="utf-8")
+            digest = self.snapshot["snapshot_sha256"]
+            count = len(self.snapshot["forecasts"])
+            self.assertEqual(adapter.read_snapshot(path, digest, budget=count), self.snapshot)
+            with self.assertRaisesRegex(preview.Invalid, "SNAPSHOT_SIZE"):
+                adapter.read_snapshot(path, digest, budget=count - 1)
+            path.write_text('{"forecasts":[' + ",".join(["{}"] * 1100) + "]}", encoding="utf-8")
+            with unittest.mock.patch.object(adapter, "MAX_FORECASTS", 600), \
+                    unittest.mock.patch.object(adapter.json, "loads", side_effect=AssertionError("parsed")), \
+                    self.assertRaisesRegex(preview.Invalid, "SNAPSHOT_SIZE"):
+                adapter.read_snapshot(path, "0" * 64, budget=0)
+
 
 class ReplayTests(unittest.TestCase):
     def setUp(self):

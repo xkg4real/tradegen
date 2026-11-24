@@ -58,7 +58,7 @@ The values above are illustrative, not a model result or a suggested setting.
 | `model.frozen_at` | Time the model and its settings were fixed. `training_cutoff <= frozen_at`. |
 | `generated_at` | Time the file was written. It is at least every `issued_at`. |
 | `market` | An Upbit KRW market code such as `KRW-BTC`. Long spot only. |
-| `as_of` | Information cutoff. Every input behind this forecast was published at or before `as_of`. |
+| `as_of` | Information cutoff. Every input behind this forecast was published at or before `as_of`. For a BR-26 study it is one of the study's bar closes, the same grid as TRADEGEN's bar record (section 8). |
 | `issued_at` | Time the forecast itself existed. `as_of <= issued_at <= generated_at`. |
 | `horizon_seconds` | The outcome window is `(as_of, as_of + horizon_seconds]`. From 60 to 2,592,000. |
 | `hurdle_bps` | Cost hurdle, net of fees, spread and slippage: "up" means the compounded return over the window exceeds `+hurdle`, "down" means it is below `-hurdle`, otherwise "neutral". This is PR #70's definition. |
@@ -124,7 +124,7 @@ A matching hash proves byte identity, not authorship, authenticity or permission
 Compare a producer's interface note with this contract and report any gap. It should state:
 
 1. the format name and version, or a mapping from its own format to every field in section 2;
-2. what `as_of` means, and whether `issued_at` is recorded separately;
+2. what `as_of` means, how it is aligned to the study's bar closes, and whether `issued_at` is recorded separately;
 3. the horizons, markets and hurdle definition, including which costs the hurdle covers;
 4. the probability classes, and that they sum to 1;
 5. the model name, version, artifact digest, training cutoff and freeze time;
@@ -142,7 +142,9 @@ features are the producer's business, but its forecasts follow sections 2-5.
 
 Other differences from this contract:
 
-- QuantGPT's `as_of` is the evidence receipt time, which matches `as_of` here. There is no separate `issued_at`.
+- QuantGPT's `as_of` is the evidence receipt time, which matches the meaning of `as_of` here. There is no separate
+  `issued_at`. A receipt time is rarely a TRADEGEN bar close, and a forecast for a BR-26 study must have its `as_of`
+  on the study's bar closes (section 8).
 - The model is identified by `model.id`, `model.adapter` and `model.prompt_version`. A producer maps that triple,
   plus the decoding settings, to one `model.sha256`. Replay reads recorded outputs; it never reruns the model.
 - `request_sha256` names a request, not an output file. A snapshot still needs `snapshot_sha256`.
@@ -161,8 +163,9 @@ Answers to v0.1 section 8:
    start time before the window opens.
 3. **Input for BR-26 and OQ9.** Section 2: one forecast per market and horizon, probabilities over up, down and
    neutral against a cost hurdle. A missing, stale or refused forecast means no forecast, and BR-26 keeps the
-   working Y. Refresh at least once per horizon for each market studied. The lag between `as_of` and `issued_at` is
-   recorded, not capped, and replay uses `issued_at`.
+   working Y. Refresh at least once per horizon for each market studied. Each `as_of` is a bar close of the study's
+   bar record (section 8). The lag between `as_of` and `issued_at` is recorded, not capped, and replay uses
+   `issued_at`.
 4. **Python and dependencies.** TRADEGEN requires Python 3.13 or later (`pyproject.toml`). It takes no private
    dependency, because it imports no producer code.
 
@@ -177,9 +180,10 @@ python -m tools.research.direction_forecast_adapter --replay study.json --snapsh
 ```
 
 Repeat `--snapshot` in receipt order. Each `<sha256>` is the value from the producer's interface note. One run reads
-at most 50,000 forecasts across all its files; a file's size in objects is checked before it is parsed. Exit code 0
-means only that the files passed these checks. Exit code 2 prints a fixed reason and no partial result. Every report
-carries the five flags in section 5.
+at most 50,000 forecasts across all its files. Before a file is parsed, its counts of braces, brackets, colons and
+commas are checked against the forecasts the run has left, which bounds the objects, keys and values it can hold.
+Exit code 0 means only that the files passed these checks. Exit code 2 prints a fixed reason and no partial result.
+Every report carries the five flags in section 5.
 
 `study.json` is a `tradegen-adaptive-bid-gap-replay-v1` document. Its `history` is TRADEGEN's own contiguous bar
 record (`end`, `known_at`, `return_bps`; at most 1,024 bars, so choose the bar size to cover the study). Its `model` is
@@ -198,7 +202,8 @@ the study's preregistered terms, pinned by `terms.model_sha256` as in PR #70:
 
 At each observation the adapter uses only forecasts issued at or before it. Their `as_of` must be on the history's
 bar grid (a bar's `end`), so a producer serving a BR-26 study issues forecasts at bar closes. One that is not
-refuses the study at that observation with `FORECAST_OFF_BAR_GRID`. Each outcome window `(as_of, as_of + horizon]`
+refuses the study with `FORECAST_OFF_BAR_GRID` at the first observation that can see it and at every later one,
+because a visible forecast stays visible. Each outcome window `(as_of, as_of + horizon]`
 is then a run of whole bars whose last bar ends at `as_of + horizon`. Evidence comes from the earliest
 non-overlapping forecasts in the evaluation window whose last outcome bar was known before the observation, so
 every scored window ended before it (section 4). A call needs the PR #70 minimum count, a nominal 95% hit-rate lower

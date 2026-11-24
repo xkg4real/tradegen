@@ -73,8 +73,11 @@ def check_snapshot(snapshot):
     return snapshot
 
 
-def read_snapshot(path, expected_sha256):
-    """Read an explicit local snapshot whose SHA-256 the producer published in its interface note."""
+def read_snapshot(path, expected_sha256, budget=None):
+    """Read an explicit local snapshot whose SHA-256 the producer published in its interface note.
+
+    budget is the number of forecasts the run may still read; it defaults to the whole run limit."""
+    budget = MAX_FORECASTS if budget is None else budget
     matches(expected_sha256, HEX64, "SNAPSHOT_SHA256_MISMATCH")
     info = path.stat()
     need(path.suffix.lower() == ".json" and stat.S_ISREG(info.st_mode) and info.st_size <= MAX_BYTES, "SNAPSHOT_FILE")
@@ -90,8 +93,12 @@ def read_snapshot(path, expected_sha256):
     def reject(_):
         raise preview.Invalid("NONFINITE_JSON_NUMBER")
 
-    need(raw.count(b"{") + raw.count(b"[") <= 2 * MAX_FORECASTS + 1024, "SNAPSHOT_SIZE")   # bounds the parsed tree
+    # A forecast has 2 objects, 10 keys and 9 separators. Counting the bytes bounds how many containers, keys and
+    # values the parser can build; braces, colons or commas inside strings only make the count stricter.
+    need(raw.count(b"{") + raw.count(b"[") <= 2 * budget + 1024 and raw.count(b":") <= 10 * budget + 1024
+         and raw.count(b",") <= 9 * budget + 1024, "SNAPSHOT_SIZE")
     snapshot = check_snapshot(json.loads(raw.decode("utf-8"), object_pairs_hook=unique, parse_constant=reject))
+    need(len(snapshot["forecasts"]) <= budget, "SNAPSHOT_SIZE")
     need(snapshot["snapshot_sha256"] == expected_sha256, "SNAPSHOT_SHA256_MISMATCH")
     return snapshot
 
@@ -258,8 +265,8 @@ def main():
         for item in args.snapshot:
             path, separator, digest = item.rpartition("=")
             need(separator == "=", "SNAPSHOT_ARGUMENT")
-            snapshots.append(read_snapshot(Path(path), digest))
-            need(sum(len(s["forecasts"]) for s in snapshots) <= MAX_FORECASTS, "SNAPSHOT_SIZE")
+            left = MAX_FORECASTS - sum(len(s["forecasts"]) for s in snapshots)   # checked before parsing the next file
+            snapshots.append(read_snapshot(Path(path), digest, left))
         report = run(preview.read_input(args.replay), snapshots)
     except (preview.Invalid, OSError, ValueError, RecursionError) as error:
         parser.exit(2, "Refused: %s\n" % (error if type(error) is preview.Invalid else "UNREADABLE_INPUT"))
