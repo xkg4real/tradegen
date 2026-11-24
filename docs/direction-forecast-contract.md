@@ -2,8 +2,8 @@
 
 Status: proposed, 2026-11-24 (Asia/Seoul). Checklist item M11-T2. Documentation only; no code reads this format yet.
 
-TRADEGEN can study directional forecasts from an outside model, for example QUANTGEN's QuantGPT or the moving-block
-model in PR #70. This document fixes what such a forecast must contain before TRADEGEN reads it, and what TRADEGEN
+TRADEGEN can study directional forecasts from an outside model, for example one built on QUANTGEN's QuantGPT or
+DIDM outputs (section 7), or the moving-block model in PR #70. This document fixes what such a forecast must contain before TRADEGEN reads it, and what TRADEGEN
 may and may not do with it. The format is `tradegen-direction-forecast-v1`. It is a TRADEGEN boundary format. It
 does not claim that any producer already writes it.
 
@@ -119,7 +119,7 @@ A matching hash proves byte identity, not authorship, authenticity or permission
 
 ## 6. Checking an interface note (M11-T1)
 
-When `QUANTGPT_TRADEGEN.md` appears, compare it with this contract and report any gap. It should state:
+Compare a producer's interface note with this contract and report any gap. It should state:
 
 1. the format name and version, or a mapping from its own format to every field in section 2;
 2. what `as_of` means, and whether `issued_at` is recorded separately;
@@ -128,5 +128,40 @@ When `QUANTGPT_TRADEGEN.md` appears, compare it with this contract and report an
 5. the model name, version, artifact digest, training cutoff and freeze time;
 6. how snapshot hashes are published and how files reach the owner offline;
 7. that no weights, prompts, private specification or credentials appear in the public note.
+
+## 7. QuantGPT interface v0.1 (checked 2026-11-24)
+
+`QUANTGPT_TRADEGEN.md` v0.1 on `xkg4real/quantgen` `handoff` (`0c6fb61`) states that QuantGPT produces **no price
+direction, return or probability forecast**. Its outputs are explanations, summaries, research hypotheses and
+news-type judgments in a `qgpt-env-v1` envelope, and its confidence scores are uncalibrated. So no QuantGPT output
+is a `tradegen-direction-forecast-v1` forecast today, and none can enter the BR-26 replay or an OQ9 study as is.
+A direction model built separately, with QuantGPT or DIDM outputs as its features, would deliver this format; its
+features are the producer's business, but its forecasts follow sections 2-5.
+
+Other differences from this contract:
+
+- QuantGPT's `as_of` is the evidence receipt time, which matches `as_of` here. There is no separate `issued_at`.
+- The model is identified by `model.id`, `model.adapter` and `model.prompt_version`. A producer maps that triple,
+  plus the decoding settings, to one `model.sha256`. Replay reads recorded outputs; it never reruns the model.
+- `request_sha256` names a request, not an output file. A snapshot still needs `snapshot_sha256`.
+- The import boundary in v0.1 lists the `execution*` packages only. The boundary here is the whole D14 closure,
+  which also includes `core/compliance`, `core/odds` and `tools/owner` (section 5).
+- An "owner screen explain button" in TRADEGEN, mentioned in v0.1, would be an application change, not a research
+  input. It needs its own review and owner approval, outside this contract.
+
+Answers to v0.1 section 8:
+
+1. **Paths QuantGPT must not touch.** The D14 closure in section 5, the owner log and signer, `.env` and keys, the
+   real home `~/.tradegen`, and TRADEGEN's Git repository. TRADEGEN reads snapshot files only.
+2. **Preregistration.** TRADEGEN's `research_lab/` is a frozen retrospective study: `research_lab/run.py` refuses to
+   run after any pinned source changes, so nothing is added there. Preregistration for direction forecasts is
+   checklist item M11-T4 and is not defined yet. It will pin the model triple, hurdle, horizon, cutoffs, targets and
+   start time before the window opens.
+3. **Input for BR-26 and OQ9.** Section 2: one forecast per market and horizon, probabilities over up, down and
+   neutral against a cost hurdle. A missing, stale or refused forecast means no forecast, and BR-26 keeps the
+   working Y. Refresh at least once per horizon for each market studied. The lag between `as_of` and `issued_at` is
+   recorded, not capped, and replay uses `issued_at`.
+4. **Python and dependencies.** TRADEGEN requires Python 3.13 or later (`pyproject.toml`). It takes no private
+   dependency, because it imports no producer code.
 
 법률, 세무, 투자 조언이 아니며 면허를 가진 자문가가 아니다
