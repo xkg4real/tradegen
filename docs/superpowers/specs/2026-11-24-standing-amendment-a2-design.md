@@ -316,9 +316,9 @@ Supersedes, for B:
   and equality is not a breach (B1:397). It starts no B sale. Whether entries are also blocked above the floor, up to
   the floor plus M, is new choice N1b (section 5).
 - **R_w, the raw equity after a withdrawal** (new choice N1a, section 5).
-  - It is the raw equity of the first account capture after a settled withdrawal, recorded whether or not a
-    deployment or a hold exists. After several withdrawals, the lowest counts. It is kept with the account record
-    (BR-22), not in a hold's memory, so it holds across holds, deployments and restarts. No M is stored with it.
+  - It is the raw equity of the first account capture after a settled withdrawal, recorded before that capture's B
+    check, whether or not a deployment or a hold exists. After several, the lowest counts. It is kept with the account
+    record (BR-22), not in a hold's memory, so it holds across holds, deployments and restarts. No M is stored with it.
   - Each app fill after it is recorded lowers R_w by the fill's cost: its fee, plus the gap between its price and the
     mark of the first capture after it, times its quantity, when that gap is against the app (a buy above the mark,
     a sell below it). So the app's own trading cost never fires the raw pair. Only a fall in marks does.
