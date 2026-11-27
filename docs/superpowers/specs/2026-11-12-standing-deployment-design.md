@@ -4,7 +4,7 @@ Date: 2026-11-12 (Asia/Seoul).
 Status: proposed. The owner approved this design in conversation on 2026-11-12. Nothing is implemented. Merging this
 document approves the design only. It signs nothing, arms nothing and sends no order. It changes `tools/signer/sign.py`
 and the owner-log fold in design. The implementation PR that makes those changes is reviewed and merged by the owner
-like any other.
+like any other. **Amended 2026-11-24 by [amendment A2](2026-11-24-standing-amendment-a2-design.md).** No error, restart, window end or deadline alone starts a sale (A2 2); protective sales by T, B, S and W need signed X, M and Md (A2 3.6, 3.9). Carry across windows is designed in M7-T12; until then a window that ends with app units held closes the deployment with nothing sold, and until M7-T9 or M7-T12 only `exit` or a hand sell ends that hold (A2 3.2, N5). SD 4.3's freeze covers signed entries only.
 Builds on: [controlled launcher, current planner and study runbook](2026-11-12-controlled-launch-and-planner-design.md)
 (below, "the base design"). Its code lands after the base design's code (base design, section 9).
 

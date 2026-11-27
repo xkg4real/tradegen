@@ -2,7 +2,7 @@
 
 Date: 2026-11-12 (Asia/Seoul).
 Status: proposed. The owner approved this design in conversation on 2026-11-12 (six questions, section 1). Nothing
-is implemented. Merging this document approves the design only. It signs nothing, arms nothing and sends no order.
+is implemented. Merging this document approves the design only. It signs nothing, arms nothing and sends no order. **Amended 2026-11-24 by [amendment A2](2026-11-24-standing-amendment-a2-design.md).** A live window has no end-slot sale (A2 3.2), and the stake cap reads app buying power under BR-22 and BR-23 (A2 3.10).
 Companion: [standing deployment and multi-day arming](2026-11-12-standing-deployment-design.md), which builds on
 this document.
 
