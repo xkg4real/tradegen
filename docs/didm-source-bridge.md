@@ -52,9 +52,33 @@ owner's active database. The temporary copy is removed. A file being changed
 during copying may be refused; this is not a backup service or proof against a
 malicious writer preserving metadata. Source capture must still be coordinated.
 
-Limits are 64 MiB per input, 250,000 source rows, 1 MiB per payload, 25,000 optional
-scores, JSON depth 32, and 256 MiB per report. SQLite work has an instruction
-budget. Exceeding a limit refuses the whole input instead of dropping records.
+A SQLite input is never held in memory. It is hashed while it is streamed in 1 MiB
+chunks to the private copy, read one row at a time, and the duplicate, selection and
+score-link state is kept in a scratch SQLite file in the same private temporary
+directory. The report is streamed to disk; it is the same canonical
+`tradegen-didm-inspection-v1` JSON as before, written one record at a time after
+every record has passed. The records are read from the copy a second time for this,
+and a second read that differs from the validated first read refuses. Measured on
+synthetic stores on Windows, peak memory stayed at about 53 MiB working set for 23,
+123 and 257 MiB stores (the previous whole-file reader peaked at 260 MiB for the
+23 MiB store).
+
+Disk space is needed in two places. The private copy, the scratch state and
+SQLite's sort files go to the system temporary folder (`%TEMP%`, normally on C:):
+allow about twice the snapshot there, or set `TEMP` and `TMP` to another private
+folder before running. The report is written beside `--output` and is about the
+size of the store. A full disk gives a refusal code and no report.
+
+Limits are 1 GiB per SQLite input, 64 MiB per exchange JSON (parsed in memory),
+2,000,000 source rows, 1 MiB per payload, 25,000 optional scores, JSON depth 32,
+and 2 GiB per report. SQLite itself refuses any single value or row larger than the
+payload limit plus 64 KiB, before it is copied into memory. SQLite work has an
+instruction budget that scales with the
+copy's size (50,000 ticks of 1,000 steps plus one tick per 256 bytes; the synthetic
+stores needed one tick per 6,400 to 24,600 bytes). Exceeding a limit refuses the
+whole input instead of dropping records.
+The report is published only after the private copy and scratch state have been
+removed, so a failed cleanup also publishes nothing.
 Publish uses a flushed temporary file and an atomic, no-clobber hard link. If the
 destination filesystem does not support this, it refuses rather than falling
 back to overwriting. Crash durability of the containing directory and managed

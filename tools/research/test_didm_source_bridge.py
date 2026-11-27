@@ -352,6 +352,144 @@ class BridgeTests(unittest.TestCase):
         self.assertEqual(output.read_bytes(), b"other writer")
         self.assertEqual(list(self.root.iterdir()), [output])
 
+    # M11-T8: a real store is larger than memory allows; copy, hash and report are streamed.
+    def run_database(self, source, output=None):
+        output = output or self.root / "report.json"
+        with redirect_stdout(io.StringIO()) as stdout:
+            code = bridge.main(["--database", str(source), "--as-of", AS_OF, "--output", str(output)])
+        return code, json.loads(stdout.getvalue())
+
+    def many_rows(self, count=60):
+        return [row(seq, item=f"item-{seq}") for seq in range(1, count + 1)]
+
+    def test_streamed_copy_hash_equals_whole_file_hash(self):
+        source = self.root / "source.sqlite"; make_database(source, self.many_rows())
+        chunks = []
+        with patch.object(bridge, "CHUNK_BYTES", 1000):
+            digest = bridge.copy_snapshot(source, chunks.append, database=True)
+        self.assertGreater(len(chunks), 2)
+        self.assertEqual(b"".join(chunks), source.read_bytes())
+        self.assertEqual(digest, bridge.sha256(source.read_bytes()))
+
+    def test_database_limit_is_separate_and_refuses_before_reading(self):
+        source = self.root / "source.sqlite"; make_database(source, [row()])
+        with patch.object(bridge, "MAX_INPUT_BYTES", 8):  # a database above the in-memory export limit
+            code, summary = self.run_database(source)
+        self.assertEqual(code, 0)
+        self.assertEqual(summary["input_sha256"], bridge.sha256(source.read_bytes()))
+        second, opened, real_open = self.root / "second.json", [], bridge.os.open
+        def spy(path, *args, **kwargs):
+            opened.append(Path(path).absolute())
+            return real_open(path, *args, **kwargs)
+        with patch.object(bridge, "MAX_DATABASE_BYTES", source.stat().st_size - 1), \
+                patch.object(bridge.os, "open", spy):
+            code, summary = self.run_database(source, second)
+        self.assertEqual((code, summary["reason"]), (2, "DIDM_INPUT_SIZE_LIMIT"))
+        self.assertNotIn(source.absolute(), opened)
+        self.assertFalse(second.exists())
+
+    def test_change_during_streamed_copy_is_refused(self):
+        source = self.root / "source.sqlite"; make_database(source, self.many_rows())
+        original = source.read_bytes()
+        for change in ("grow", "same_size_rewrite"):
+            source.write_bytes(original)
+            chunks = []
+            def sink(chunk):
+                chunks.append(chunk)
+                if len(chunks) == 1:
+                    data = source.read_bytes()
+                    source.write_bytes(data + b"x" if change == "grow" else data[:-1] + bytes([data[-1] ^ 1]))
+            with self.subTest(change=change), patch.object(bridge, "CHUNK_BYTES", 1000):
+                with self.assertRaisesRegex(bridge.BridgeError, "INPUT_CHANGED"):
+                    bridge.copy_snapshot(source, sink, database=True)
+
+    def test_cli_streams_the_same_canonical_v1_report(self):
+        source, output = self.root / "qg.sqlite", self.root / "report.json"
+        make_database(source, [row(), row(2, received="2026-11-23T10:00:00+00:00", value=3.9),
+                               row(3, item="other", received="2026-11-22T09:00:00+09:00")])
+        code, summary = self.run_database(source, output)
+        data = output.read_bytes()
+        report = json.loads(data)
+        self.assertEqual(code, 0)
+        self.assertEqual(data, (bridge.canonical(report) + "\n").encode())
+        self.assertEqual(report, bridge.inspect_snapshot(source.read_bytes(), input_kind="sqlite", as_of=AS_OF))
+        self.assertEqual((report["format"], report["record_count"], report["selected_count"]),
+                         ("tradegen-didm-inspection-v1", 3, 2))
+        self.assertEqual(summary["future_received_count"], 1)
+
+    def test_output_limit_refuses_while_streaming_without_partial_file(self):
+        source, output = self.root / "qg.sqlite", self.root / "report.json"
+        make_database(source, self.many_rows())
+        with patch.object(bridge, "MAX_OUTPUT_BYTES", 4000):
+            code, summary = self.run_database(source, output)
+        self.assertEqual((code, summary["reason"]), (2, "DIDM_OUTPUT_SIZE_LIMIT"))
+        self.assertEqual([p.name for p in self.root.iterdir()], ["qg.sqlite"])
+
+    def test_sqlite_work_budget_refuses(self):
+        source = self.root / "qg.sqlite"; make_database(source, self.many_rows())  # > 1,000 SQLite steps
+        with patch.object(bridge, "SQLITE_BASE_TICKS", 0), patch.object(bridge, "SQLITE_BYTES_PER_TICK", 2**62):
+            code, summary = self.run_database(source)
+        self.assertEqual((code, summary["reason"]), (2, "DIDM_SQLITE_INVALID_OR_LIMIT"))
+
+    def test_duplicate_sequence_and_sqlite_utc_duplicate_refuse(self):
+        self.refuse(exchange([row(), row(1, item="other")]), "DIDM_SEQUENCE_INVALID")
+        source = self.root / "qg.sqlite"
+        make_database(source, [row(), row(2, received="2026-11-22T19:00:00+09:00")])
+        with self.assertRaisesRegex(bridge.BridgeError, "DIDM_DUPLICATE_VERSION"):
+            bridge.inspect_snapshot(source.read_bytes(), input_kind="sqlite", as_of=AS_OF)
+
+    # PR #76 review: refusals during the second read, oversized values, cleanup order, offsets.
+    def test_second_read_refusal_keeps_its_reason_and_leaves_no_temp(self):
+        source, output = self.root / "qg.sqlite", self.root / "report.json"
+        make_database(source, self.many_rows(3))
+        scratch = self.root / "tmp"; scratch.mkdir()
+        real = bridge.check_row
+        def first_read_digest_differs(row):
+            return {**real(row), "record_sha256": "0" * 64}
+        with patch.object(bridge.tempfile, "tempdir", str(scratch)), \
+                patch.object(bridge, "check_row", first_read_digest_differs):
+            code, summary = self.run_database(source, output)
+        self.assertEqual((code, summary["reason"]), (2, "DIDM_INPUT_CHANGED"))
+        self.assertFalse(output.exists())
+        self.assertEqual(list(scratch.iterdir()), [])
+
+    def test_oversized_sqlite_value_is_refused_before_python_reads_it(self):
+        big = row()
+        big["payload"] = json.dumps({"value": "x" * 200_000}, separators=(",", ":"))
+        big["payload_sha256"] = bridge.sha256(big["payload"].encode())
+        source = self.root / "qg.sqlite"; make_database(source, [big])
+        with patch.object(bridge, "MAX_PAYLOAD_BYTES", 1000):
+            code, summary = self.run_database(source)
+        self.assertEqual((code, summary["reason"]), (2, "DIDM_SQLITE_INVALID_OR_LIMIT"))
+
+    def test_cleanup_failure_publishes_nothing(self):
+        source, output = self.root / "qg.sqlite", self.root / "report.json"
+        make_database(source, [row()])
+        class FailingCleanup(tempfile.TemporaryDirectory):
+            def __exit__(self, *exc):
+                super().__exit__(*exc)
+                raise OSError("cleanup")
+        with patch.object(bridge.tempfile, "TemporaryDirectory", FailingCleanup):
+            code, summary = self.run_database(source, output)
+        self.assertEqual((code, summary["reason"]), (2, "DIDM_INPUT_OR_OUTPUT_REFUSED"))
+        self.assertEqual([p.name for p in self.root.iterdir()], ["qg.sqlite"])
+
+    def test_offset_cutoff_and_valid_times_compare_as_instants(self):
+        cutoff = "2026-11-22T21:00:00+09:00"                     # 12:00Z
+        late = row(1, received="2026-11-22T20:00:00+00:00")     # after the cutoff; its text sorts before it
+        first = row(2, item="first", received="2026-11-22T09:00:00+00:00")
+        second = row(3, item="second", received="2026-11-22T09:00:00+00:00")
+        first["valid_at"] = "2026-10-01T08:00:00+09:00"         # 09-30 23:00Z, earlier than second
+        second["valid_at"] = "2026-10-01T00:00:00+00:00"        # but its text sorts first
+        source = self.root / "qg.sqlite"; make_database(source, [late, first, second])
+        for kind, report in (("export", self.inspect([late, first, second], as_of=cutoff)),
+                             ("sqlite", bridge.inspect_snapshot(source.read_bytes(), input_kind="sqlite",
+                                                                as_of=cutoff))):
+            with self.subTest(kind=kind):
+                digests = [r["record_sha256"] for r in report["records"]]
+                self.assertEqual(report["future_received_count"], 1)
+                self.assertEqual(report["selected_record_sha256"], digests[1:])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -6,6 +6,7 @@ network, model, owner-log or trading imports. See docs/didm-source-bridge.md.
 from __future__ import annotations
 
 import argparse
+from contextlib import contextmanager
 from datetime import datetime, timezone
 import hashlib
 import json
@@ -16,6 +17,7 @@ import re
 import sqlite3
 import stat
 import tempfile
+from types import SimpleNamespace
 
 QG_COMMIT = "dec979a7fae65d5f749e12193fad3d0a9ce8ddf3"
 CONTRACT = {
@@ -25,10 +27,18 @@ CONTRACT = {
 }
 EXPORT_FORMAT = "tradegen-didm-exchange-v1"
 REPORT_FORMAT = "tradegen-didm-inspection-v1"
-MAX_INPUT_BYTES = 64 * 1024 * 1024
-MAX_OUTPUT_BYTES = 256 * 1024 * 1024
+MAX_INPUT_BYTES = 64 * 1024 * 1024  # exchange JSON, parsed in memory
+# A SQLite store is streamed to a private copy and read one row at a time; duplicate and
+# selection state lives in a scratch SQLite file, so Python memory does not grow with it.
+MAX_DATABASE_BYTES = 1024 ** 3
+MAX_OUTPUT_BYTES = 2 * 1024 ** 3  # streamed to disk
+CHUNK_BYTES = 1024 * 1024
 MAX_PAYLOAD_BYTES = 1024 * 1024
-MAX_ROWS = 250_000
+MAX_ROWS = 2_000_000
+# SQLite work budget, one tick per 1,000 virtual-machine steps, scaled to the copy's size.
+# Measured on synthetic stores: 6,400 bytes per tick with 200-byte rows, 24,600 with GDELT-sized rows.
+SQLITE_BASE_TICKS = 50_000
+SQLITE_BYTES_PER_TICK = 256
 MAX_SCORES = 25_000
 MAX_DEPTH = 32
 MAX_NODES = 2_000_000
@@ -163,115 +173,118 @@ def _no_sidecars(path):
             "DIDM_OFFLINE_SQLITE_SNAPSHOT_REQUIRED")
 
 
-def read_snapshot(path, *, database=False):
-    """Read one bounded file without opening a live DB; do not follow its symlink."""
+def copy_snapshot(path, write, *, database=False, limit=None):
+    """Stream one bounded file to write() without opening a live DB; do not follow its symlink.
+
+    Returns the SHA-256 of exactly the bytes passed to write().
+    """
+    limit = MAX_INPUT_BYTES if limit is None else limit
     path = Path(path).absolute()
     before = path.lstat()
     require(stat.S_ISREG(before.st_mode), "DIDM_REGULAR_INPUT_REQUIRED")
-    require(0 < before.st_size <= MAX_INPUT_BYTES, "DIDM_INPUT_SIZE_LIMIT")
+    require(0 < before.st_size <= limit, "DIDM_INPUT_SIZE_LIMIT")
     if database:
         _no_sidecars(path)
     flags = os.O_RDONLY | getattr(os, "O_BINARY", 0) | getattr(os, "O_NOFOLLOW", 0)
     fd = os.open(path, flags)
     try:
         require(_metadata(os.fstat(fd)) == _metadata(before), "DIDM_INPUT_CHANGED")
+        digest, size = hashlib.sha256(), 0
         with os.fdopen(fd, "rb", closefd=False) as stream:
-            raw = stream.read(MAX_INPUT_BYTES + 1)
-        require(len(raw) == before.st_size, "DIDM_INPUT_CHANGED")
+            while chunk := stream.read(CHUNK_BYTES):
+                size += len(chunk)
+                require(size <= before.st_size, "DIDM_INPUT_CHANGED")
+                digest.update(chunk)
+                write(chunk)
+        require(size == before.st_size, "DIDM_INPUT_CHANGED")
         require(_metadata(os.fstat(fd)) == _metadata(before), "DIDM_INPUT_CHANGED")
         require(_metadata(path.lstat()) == _metadata(before), "DIDM_INPUT_CHANGED")
         if database:
             _no_sidecars(path)
     finally:
         os.close(fd)
-    return raw
+    return digest.hexdigest()
+
+
+def read_snapshot(path, *, database=False):
+    """Read one file of at most MAX_INPUT_BYTES into memory (exchange JSON)."""
+    chunks = []
+    copy_snapshot(path, chunks.append, database=database)
+    return b"".join(chunks)
 
 
 def _sql_shape(value):
     return re.sub(r"\s+", "", value).lower() if value is not None else None
 
 
-def sqlite_rows(raw):
-    """Query only an isolated copy. The original's WAL/SHM are never opened."""
-    require(raw.startswith(b"SQLite format 3\x00"), "DIDM_SQLITE_INVALID")
+ROWS_SQL = ("SELECT seq,source_id,item_id,kind,published_at,valid_at,received_at,"
+            "payload,payload_sha256 FROM items ORDER BY seq")
+ROW_COLUMNS = ("seq", "source_id", "item_id", "kind", "published_at", "valid_at",
+               "received_at", "payload", "payload_sha256")
+
+
+def open_snapshot(path):
+    """Query only the private copy. The original's WAL/SHM are never opened."""
+    with open(path, "rb") as stream:
+        require(stream.read(16) == b"SQLite format 3\x00", "DIDM_SQLITE_INVALID")
+    os.chmod(path, 0o400)
+    connection = sqlite3.connect(path.as_uri() + "?mode=ro&immutable=1", uri=True)
     try:
-        with tempfile.TemporaryDirectory(prefix="tradegen-didm-snapshot-") as directory:
-            path = Path(directory) / "snapshot.sqlite"
-            path.write_bytes(raw)
-            os.chmod(path, 0o400)
-            connection = sqlite3.connect(path.as_uri() + "?mode=ro&immutable=1", uri=True)
-            try:
-                connection.execute("PRAGMA query_only=ON")
-                connection.execute("PRAGMA trusted_schema=OFF")
-                require(connection.execute("PRAGMA query_only").fetchone() == (1,),
-                        "DIDM_SQLITE_READ_ONLY_REQUIRED")
-                require(connection.execute("PRAGMA trusted_schema").fetchone() == (0,),
-                        "DIDM_SQLITE_UNTRUSTED_SCHEMA_REQUIRED")
-                ticks = [0]
-                def budget():
-                    ticks[0] += 1
-                    return ticks[0] > 50_000
-                connection.set_progress_handler(budget, 1000)
-                connection.execute("BEGIN")
-                schema = {(r[0], r[1], r[2]): _sql_shape(r[3]) for r in
-                          connection.execute("SELECT type,name,tbl_name,sql FROM sqlite_master")}
-                require(schema == {k: _sql_shape(v) for k, v in SCHEMA_SQL.items()},
-                        "DIDM_SQLITE_SCHEMA_MISMATCH")
-                require(connection.execute("PRAGMA integrity_check").fetchall() == [("ok",)],
-                        "DIDM_SQLITE_CORRUPT")
-                count = connection.execute("SELECT COUNT(*) FROM items").fetchone()[0]
-                require(count <= MAX_ROWS, "DIDM_RECORD_LIMIT")
-                keys = ("seq", "source_id", "item_id", "kind", "published_at", "valid_at",
-                        "received_at", "payload", "payload_sha256")
-                result = [dict(zip(keys, row)) for row in connection.execute(
-                    "SELECT seq,source_id,item_id,kind,published_at,valid_at,received_at,"
-                    "payload,payload_sha256 FROM items ORDER BY seq")]
-                connection.execute("ROLLBACK")
-                return result
-            finally:
-                connection.close()
-                os.chmod(path, 0o600)  # permits private temporary cleanup on Windows
-    except sqlite3.Error:
-        raise BridgeError("DIDM_SQLITE_INVALID_OR_LIMIT") from None
+        # SQLite refuses an oversized value itself, before Python copies it into memory.
+        connection.setlimit(sqlite3.SQLITE_LIMIT_LENGTH, MAX_PAYLOAD_BYTES + 64 * 1024)
+        connection.execute("PRAGMA query_only=ON")
+        connection.execute("PRAGMA trusted_schema=OFF")
+        require(connection.execute("PRAGMA query_only").fetchone() == (1,),
+                "DIDM_SQLITE_READ_ONLY_REQUIRED")
+        require(connection.execute("PRAGMA trusted_schema").fetchone() == (0,),
+                "DIDM_SQLITE_UNTRUSTED_SCHEMA_REQUIRED")
+        ticks = [0]
+        allowed = SQLITE_BASE_TICKS + path.stat().st_size // SQLITE_BYTES_PER_TICK
+        def budget():
+            ticks[0] += 1
+            return ticks[0] > allowed
+        connection.set_progress_handler(budget, 1000)
+        connection.execute("BEGIN")
+        schema = {(r[0], r[1], r[2]): _sql_shape(r[3]) for r in
+                  connection.execute("SELECT type,name,tbl_name,sql FROM sqlite_master")}
+        require(schema == {k: _sql_shape(v) for k, v in SCHEMA_SQL.items()},
+                "DIDM_SQLITE_SCHEMA_MISMATCH")
+        require(connection.execute("PRAGMA integrity_check").fetchall() == [("ok",)],
+                "DIDM_SQLITE_CORRUPT")
+        count = connection.execute("SELECT COUNT(*) FROM items").fetchone()[0]
+        require(count <= MAX_ROWS, "DIDM_RECORD_LIMIT")
+        return connection
+    except BaseException:
+        connection.close()
+        raise
 
 
-def validate_rows(rows):
-    require(type(rows) is list and len(rows) <= MAX_ROWS, "DIDM_RECORD_LIMIT")
-    result, sequences, versions, digests = [], set(), set(), set()
-    for row in rows:
-        require(type(row) is dict and set(row) == ROW_KEYS, "DIDM_RECORD_SCHEMA_MISMATCH")
-        seq = row["seq"]
-        require(type(seq) is int and 0 < seq < 2**63 and seq not in sequences,
-                "DIDM_SEQUENCE_INVALID")
-        sequences.add(seq)
-        source, kind, item = row["source_id"], row["kind"], row["item_id"]
-        require(type(source) is str and source in SOURCE_KINDS and
-                type(kind) is str and kind in SOURCE_KINDS[source], "DIDM_SOURCE_KIND_UNSUPPORTED")
-        require(type(item) is str and 0 < len(item) <= 512 and
-                all(ord(c) >= 32 for c in item), "DIDM_ITEM_ID_INVALID")
-        times = {key: timestamp(row[key]) for key in ("published_at", "valid_at", "received_at")}
-        payload = row["payload"]
-        require(type(payload) is str and len(payload.encode("utf-8")) <= MAX_PAYLOAD_BYTES,
-                "DIDM_PAYLOAD_LIMIT")
-        digest = row["payload_sha256"]
-        require(type(digest) is str and HASH.fullmatch(digest) and
-                sha256(payload.encode("utf-8")) == digest, "DIDM_PAYLOAD_HASH_MISMATCH")
-        parsed = strict_json(payload)
-        require(type(parsed) is dict and canonical(parsed) == payload, "DIDM_PAYLOAD_NOT_CANONICAL")
-        if "parser" in parsed:
-            expected = "kalshi-v0.2" if source == "kalshi" else "news-v0.1" if kind == "news" else None
-            require(expected is not None and parsed["parser"] == expected, "DIDM_PARSER_VERSION_UNSUPPORTED")
-        if "schema_version" in parsed:
-            raise BridgeError("DIDM_SOURCE_PAYLOAD_SCHEMA_UNSUPPORTED")
-        version = (source, item, times["received_at"], digest)
-        require(version not in versions, "DIDM_DUPLICATE_VERSION")
-        versions.add(version)
-        record_digest = sha256(canonical(row).encode("utf-8"))
-        require(record_digest not in digests, "DIDM_DUPLICATE_VERSION")
-        digests.add(record_digest)
-        result.append({"record_sha256": record_digest, "row": dict(row), "times": times,
-                       "parsed": parsed})
-    return sorted(result, key=lambda record: record["row"]["seq"])
+def check_row(row):
+    """Validate one record on its own; uniqueness is checked by the caller's state."""
+    require(type(row) is dict and set(row) == ROW_KEYS, "DIDM_RECORD_SCHEMA_MISMATCH")
+    seq = row["seq"]
+    require(type(seq) is int and 0 < seq < 2**63, "DIDM_SEQUENCE_INVALID")
+    source, kind, item = row["source_id"], row["kind"], row["item_id"]
+    require(type(source) is str and source in SOURCE_KINDS and
+            type(kind) is str and kind in SOURCE_KINDS[source], "DIDM_SOURCE_KIND_UNSUPPORTED")
+    require(type(item) is str and 0 < len(item) <= 512 and
+            all(ord(c) >= 32 for c in item), "DIDM_ITEM_ID_INVALID")
+    times = {key: timestamp(row[key]) for key in ("published_at", "valid_at", "received_at")}
+    payload = row["payload"]
+    require(type(payload) is str and len(payload.encode("utf-8")) <= MAX_PAYLOAD_BYTES,
+            "DIDM_PAYLOAD_LIMIT")
+    digest = row["payload_sha256"]
+    require(type(digest) is str and HASH.fullmatch(digest) and
+            sha256(payload.encode("utf-8")) == digest, "DIDM_PAYLOAD_HASH_MISMATCH")
+    parsed = strict_json(payload)
+    require(type(parsed) is dict and canonical(parsed) == payload, "DIDM_PAYLOAD_NOT_CANONICAL")
+    if "parser" in parsed:
+        expected = "kalshi-v0.2" if source == "kalshi" else "news-v0.1" if kind == "news" else None
+        require(expected is not None and parsed["parser"] == expected, "DIDM_PARSER_VERSION_UNSUPPORTED")
+    if "schema_version" in parsed:
+        raise BridgeError("DIDM_SOURCE_PAYLOAD_SCHEMA_UNSUPPORTED")
+    # seq is part of the canonical row, so distinct sequences give distinct record digests.
+    return {"record_sha256": sha256(canonical(row).encode("utf-8")), "times": times, "parsed": parsed}
 
 
 def _number(value, low, high):
@@ -321,95 +334,212 @@ def validate_score(score):
     return score
 
 
-def inspect_snapshot(raw, *, input_kind, as_of):
-    require(type(raw) is bytes and 0 < len(raw) <= MAX_INPUT_BYTES, "DIDM_INPUT_SIZE_LIMIT")
+STATE_SQL = """CREATE TABLE seen (
+    seq INTEGER PRIMARY KEY, record_sha256 TEXT NOT NULL, source_id TEXT NOT NULL,
+    item_id TEXT NOT NULL, published TEXT NOT NULL, valid TEXT NOT NULL,
+    received TEXT NOT NULL, payload_sha256 TEXT NOT NULL,
+    UNIQUE (source_id, item_id, received, payload_sha256))"""
+# Latest version per source/item known at the cutoff: QG's receipt time, then payload hash.
+SELECT_SQL = """CREATE TABLE selected AS SELECT record_sha256, valid, source_id, item_id FROM (
+    SELECT record_sha256, valid, source_id, item_id, row_number() OVER (
+        PARTITION BY source_id, item_id ORDER BY received DESC, payload_sha256 DESC) AS latest
+    FROM seen WHERE received <= ?) WHERE latest = 1"""
+
+
+def _utc(moment):
+    # Fixed-width UTC text sorts in time order, so SQLite compares it as the datetimes would.
+    return moment.isoformat(timespec="microseconds")
+
+
+@contextmanager
+def inspection(source, *, input_kind, input_sha256, as_of, directory):
+    """Validate every record, then yield the report fields and a streaming report writer.
+
+    source is the private SQLite copy's path or the exchange JSON bytes. Rows are read one
+    at a time. Duplicate, selection and score-link state lives in a scratch SQLite file in
+    the private directory, so Python memory does not grow with the number of rows.
+    """
     cutoff = timestamp(as_of)
-    if input_kind == "sqlite":
-        rows, scores = sqlite_rows(raw), []
-    elif input_kind == "export":
-        exchange = strict_json(raw)
-        require(type(exchange) is dict and set(exchange) == {"format", "contract", "rows", "scores"},
-                "DIDM_EXCHANGE_SCHEMA_MISMATCH")
-        require(exchange["format"] == EXPORT_FORMAT and exchange["contract"] == CONTRACT,
-                "DIDM_EXCHANGE_CONTRACT_MISMATCH")
-        rows, scores = exchange["rows"], exchange["scores"]
-        require(type(scores) is list and len(scores) <= MAX_SCORES, "DIDM_SCORE_LIMIT")
-    else:
-        raise BridgeError("DIDM_INPUT_KIND_INVALID")
-    records = validate_rows(rows)
-    by_digest = {entry["record_sha256"]: entry for entry in records}
-    latest, gaps = {}, {"SOURCE_AUTHENTICATION_UNVERIFIED", "DATA_RIGHTS_UNVERIFIED",
-        "CONTINUOUS_COLLECTION_UNVERIFIED", "MODEL_APPROVAL_UNVERIFIED", "EXPIRY_POLICY_UNCONFIGURED",
-        "STRATEGY_RESEARCH_NOT_VALIDATED", "APP_INTEGRATION_PENDING", "LIVE_ACTIVATION_NOT_PERFORMED"}
-    for record in records:
-        row, times, payload = record["row"], record["times"], record["parsed"]
-        if row["source_id"] in HELD_SOURCES:
-            gaps.add("HELD_NEWS_SOURCE_PRESENT")
-        if row["source_id"] == "kalshi" and "parser" not in payload:
-            gaps.add("LEGACY_KALSHI_PARSER_UNVERIFIED")
-        if row["source_id"] in {"alfred", "opendart", "ecos"}:
-            gaps.add("PRECISE_RELEASE_TIME_UNAVAILABLE")
-        if times["published_at"] > times["received_at"]:
-            gaps.add("SOURCE_CLOCK_ORDER_ANOMALY")
-        if times["received_at"] > cutoff:
-            continue
-        key = (row["source_id"], row["item_id"])
-        rank = (times["received_at"], row["payload_sha256"])
-        if key not in latest or rank > latest[key][0]:
-            latest[key] = (rank, record)
-    selected = [value[1] for value in latest.values()]
-    selected.sort(key=lambda entry: (entry["times"]["valid_at"], entry["row"]["source_id"], entry["row"]["item_id"]))
-    selected_ids = {entry["record_sha256"] for entry in selected}
-    score_records, seen_scores = [], set()
-    for wrapper in scores:
-        require(type(wrapper) is dict and set(wrapper) == {"source_record_sha256", "score"},
-                "DIDM_SCORE_LINK_SCHEMA_MISMATCH")
-        link = wrapper["source_record_sha256"]
-        require(type(link) is str and link in by_digest, "DIDM_SCORE_SOURCE_LINK_MISSING")
-        score = validate_score(wrapper["score"])
-        source = by_digest[link]
-        require(score["source_id"] == source["row"]["source_id"] and
-                timestamp(score["published_at"]) == source["times"]["published_at"] and
-                timestamp(score["received_at"]) >= source["times"]["received_at"],
-                "DIDM_SCORE_PROVENANCE_MISMATCH")
-        identity = (score["record_id"], score["model_version"], timestamp(score["received_at"]))
-        require(identity not in seen_scores, "DIDM_DUPLICATE_SCORE")
-        seen_scores.add(identity)
-        score_records.append({"source_record_sha256": link, "score": score,
-            "score_sha256": sha256(canonical(score).encode("utf-8")),
-            "known_at_as_of": timestamp(score["received_at"]) <= cutoff and link in selected_ids})
-    if not scores:
-        gaps.add("V0_MODEL_SCORES_MISSING")
-    known_scores = sum(item["known_at_as_of"] for item in score_records)
-    if not known_scores:
-        gaps.add("NO_V0_SCORES_KNOWN_AT_AS_OF")
-    if not selected:
-        gaps.add("NO_RECORDS_KNOWN_AT_AS_OF")
-    if not rows:
-        gaps.add("SOURCE_DATA_EMPTY")
-    return {"format": REPORT_FORMAT, "research_only": True, "live_eligible": False,
-        "execution_ready": False, "source_authenticated": False, "owner_approval_verified": False,
-        "contract_reference": dict(CONTRACT), "input_kind": input_kind,
-        "input_sha256": sha256(raw), "as_of": cutoff.isoformat(timespec="microseconds"),
-        "record_count": len(records), "selected_count": len(selected), "score_count": len(score_records),
-        "known_score_count": known_scores,
-        "future_received_count": sum(entry["times"]["received_at"] > cutoff for entry in records),
-        "records": [{"record_sha256": entry["record_sha256"], "row": entry["row"]} for entry in records],
-        "selected_record_sha256": [entry["record_sha256"] for entry in selected],
-        "scores": score_records, "gaps": sorted(gaps)}
+    snapshot = state = None
+    try:
+        state = sqlite3.connect(Path(directory) / "state.sqlite", isolation_level=None)
+        for pragma in ("journal_mode=OFF", "synchronous=OFF", "temp_store=FILE", "cache_size=-8192"):
+            state.execute("PRAGMA " + pragma)
+        state.execute(STATE_SQL)
+        if input_kind == "sqlite":
+            snapshot, scores = open_snapshot(source), []
+            def rows():
+                cursor = snapshot.execute(ROWS_SQL)
+                try:
+                    for values in cursor:
+                        yield dict(zip(ROW_COLUMNS, values))
+                finally:
+                    cursor.close()
+            ordered = rows
+        elif input_kind == "export":
+            exchange = strict_json(source)
+            require(type(exchange) is dict and set(exchange) == {"format", "contract", "rows", "scores"},
+                    "DIDM_EXCHANGE_SCHEMA_MISMATCH")
+            require(exchange["format"] == EXPORT_FORMAT and exchange["contract"] == CONTRACT,
+                    "DIDM_EXCHANGE_CONTRACT_MISMATCH")
+            data, scores = exchange["rows"], exchange["scores"]
+            require(type(scores) is list and len(scores) <= MAX_SCORES, "DIDM_SCORE_LIMIT")
+            require(type(data) is list and len(data) <= MAX_ROWS, "DIDM_RECORD_LIMIT")
+            def rows():
+                return iter(data)
+            def ordered():
+                return iter(sorted(data, key=lambda row: row["seq"]))
+        else:
+            raise BridgeError("DIDM_INPUT_KIND_INVALID")
+        gaps = {"SOURCE_AUTHENTICATION_UNVERIFIED", "DATA_RIGHTS_UNVERIFIED",
+            "CONTINUOUS_COLLECTION_UNVERIFIED", "MODEL_APPROVAL_UNVERIFIED", "EXPIRY_POLICY_UNCONFIGURED",
+            "STRATEGY_RESEARCH_NOT_VALIDATED", "APP_INTEGRATION_PENDING", "LIVE_ACTIVATION_NOT_PERFORMED"}
+        record_count = future_count = 0
+        state.execute("BEGIN")
+        for row in rows():
+            record = check_row(row)
+            times, payload = record["times"], record["parsed"]
+            if row["source_id"] in HELD_SOURCES:
+                gaps.add("HELD_NEWS_SOURCE_PRESENT")
+            if row["source_id"] == "kalshi" and "parser" not in payload:
+                gaps.add("LEGACY_KALSHI_PARSER_UNVERIFIED")
+            if row["source_id"] in {"alfred", "opendart", "ecos"}:
+                gaps.add("PRECISE_RELEASE_TIME_UNAVAILABLE")
+            if times["published_at"] > times["received_at"]:
+                gaps.add("SOURCE_CLOCK_ORDER_ANOMALY")
+            future_count += times["received_at"] > cutoff
+            try:
+                state.execute("INSERT INTO seen VALUES (?,?,?,?,?,?,?,?)", (
+                    row["seq"], record["record_sha256"], row["source_id"], row["item_id"],
+                    _utc(times["published_at"]), _utc(times["valid_at"]), _utc(times["received_at"]),
+                    row["payload_sha256"]))
+            except sqlite3.IntegrityError:
+                taken = state.execute("SELECT 1 FROM seen WHERE seq=?", (row["seq"],)).fetchone()
+                raise BridgeError("DIDM_SEQUENCE_INVALID" if taken else "DIDM_DUPLICATE_VERSION") from None
+            record_count += 1
+        state.execute(SELECT_SQL, (_utc(cutoff),))
+        selected_count = state.execute("SELECT COUNT(*) FROM selected").fetchone()[0]
+        if scores:
+            state.execute("CREATE INDEX seen_record ON seen (record_sha256)")
+            state.execute("CREATE INDEX selected_record ON selected (record_sha256)")
+        score_records, seen_scores = [], set()
+        for wrapper in scores:
+            require(type(wrapper) is dict and set(wrapper) == {"source_record_sha256", "score"},
+                    "DIDM_SCORE_LINK_SCHEMA_MISMATCH")
+            link = wrapper["source_record_sha256"]
+            linked = type(link) is str and state.execute(
+                "SELECT source_id, published, received FROM seen WHERE record_sha256=?", (link,)).fetchone()
+            require(linked, "DIDM_SCORE_SOURCE_LINK_MISSING")
+            score = validate_score(wrapper["score"])
+            received = _utc(timestamp(score["received_at"]))
+            require(score["source_id"] == linked[0] and
+                    _utc(timestamp(score["published_at"])) == linked[1] and
+                    received >= linked[2], "DIDM_SCORE_PROVENANCE_MISMATCH")
+            identity = (score["record_id"], score["model_version"], received)
+            require(identity not in seen_scores, "DIDM_DUPLICATE_SCORE")
+            seen_scores.add(identity)
+            current = state.execute("SELECT 1 FROM selected WHERE record_sha256=?", (link,)).fetchone()
+            score_records.append({"source_record_sha256": link, "score": score,
+                "score_sha256": sha256(canonical(score).encode("utf-8")),
+                "known_at_as_of": received <= _utc(cutoff) and current is not None})
+        if not scores:
+            gaps.add("V0_MODEL_SCORES_MISSING")
+        known_scores = sum(item["known_at_as_of"] for item in score_records)
+        if not known_scores:
+            gaps.add("NO_V0_SCORES_KNOWN_AT_AS_OF")
+        if not selected_count:
+            gaps.add("NO_RECORDS_KNOWN_AT_AS_OF")
+        if not record_count:
+            gaps.add("SOURCE_DATA_EMPTY")
+        fields = {"format": REPORT_FORMAT, "research_only": True, "live_eligible": False,
+            "execution_ready": False, "source_authenticated": False, "owner_approval_verified": False,
+            "contract_reference": dict(CONTRACT), "input_kind": input_kind,
+            "input_sha256": input_sha256, "as_of": _utc(cutoff),
+            "record_count": record_count, "selected_count": selected_count, "score_count": len(score_records),
+            "known_score_count": known_scores, "future_received_count": future_count,
+            "scores": score_records, "gaps": sorted(gaps)}
+
+        def records():
+            digests, second = state.execute("SELECT seq, record_sha256 FROM seen ORDER BY seq"), ordered()
+            try:
+                for row, (seq, digest) in zip(second, digests, strict=True):
+                    # A second read of the private copy must match the validated first read.
+                    require(row["seq"] == seq and sha256(canonical(row).encode("utf-8")) == digest,
+                            "DIDM_INPUT_CHANGED")
+                    yield {"record_sha256": digest, "row": row}
+            finally:
+                # A traceback keeps this frame alive. An open cursor would keep its connection
+                # open after close(), and Windows could not delete the private files.
+                digests.close()
+                if hasattr(second, "close"):
+                    second.close()
+
+        def selected():
+            return (digest for (digest,) in state.execute(
+                "SELECT record_sha256 FROM selected ORDER BY valid, source_id, item_id"))
+
+        def write_report(write):
+            """The canonical JSON of the whole report, written one list item at a time."""
+            streams = {"records": records, "selected_record_sha256": selected}
+            for index, key in enumerate(sorted([*fields, *streams])):
+                write(("," if index else "{") + canonical(key) + ":")
+                if key in streams:
+                    write("[")
+                    for position, item in enumerate(streams[key]()):
+                        write(("," if position else "") + canonical(item))
+                    write("]")
+                else:
+                    write(canonical(fields[key]))
+            write("}\n")
+
+        yield SimpleNamespace(fields=fields, write=write_report)
+    except sqlite3.Error:
+        raise BridgeError("DIDM_SQLITE_INVALID_OR_LIMIT") from None
+    finally:
+        if snapshot is not None:
+            snapshot.close()
+        if state is not None:
+            state.close()
+        if input_kind == "sqlite":
+            os.chmod(source, 0o600)  # permits private temporary cleanup on Windows
 
 
-def publish_report(report, destination):
-    """No partial final file and no overwrite, including concurrent publishers."""
-    data = (canonical(report) + "\n").encode("utf-8")
-    require(len(data) <= MAX_OUTPUT_BYTES, "DIDM_OUTPUT_SIZE_LIMIT")
+def inspect_snapshot(raw, *, input_kind, as_of):
+    """The CLI's streamed report, parsed into memory (tests and small inputs)."""
+    require(type(raw) is bytes and 0 < len(raw) <= MAX_INPUT_BYTES, "DIDM_INPUT_SIZE_LIMIT")
+    parts = []
+    with tempfile.TemporaryDirectory(prefix="tradegen-didm-snapshot-") as directory:
+        source = raw
+        if input_kind == "sqlite":
+            source = Path(directory) / "snapshot.sqlite"
+            source.write_bytes(raw)
+        with inspection(source, input_kind=input_kind, input_sha256=sha256(raw),
+                        as_of=as_of, directory=directory) as result:
+            result.write(parts.append)
+    return json.loads("".join(parts))
+
+
+@contextmanager
+def report_file(destination):
+    """Yield write(text) into a temporary file beside destination; publish it only on a clean exit.
+
+    No partial final file and no overwrite, including concurrent publishers. Any error inside
+    the block, including a failed cleanup of private temporary files, publishes nothing.
+    """
     destination = Path(destination).absolute()
     require(not os.path.lexists(destination), "DIDM_OUTPUT_EXISTS")
     require(destination.parent.is_dir(), "DIDM_OUTPUT_DIRECTORY_REQUIRED")
     fd, temporary = tempfile.mkstemp(prefix=".didm-", suffix=".tmp", dir=destination.parent)
     try:
         with os.fdopen(fd, "wb") as stream:
-            stream.write(data)
+            size = 0
+            def write(text):
+                nonlocal size
+                data = text.encode("utf-8")
+                size += len(data)
+                require(size <= MAX_OUTPUT_BYTES, "DIDM_OUTPUT_SIZE_LIMIT")
+                stream.write(data)
+            yield write
             stream.flush()
             os.fsync(stream.fileno())
         # Hard-link is an atomic no-clobber publication on supported local filesystems.
@@ -417,6 +547,15 @@ def publish_report(report, destination):
         os.link(temporary, destination)
     finally:
         os.unlink(temporary)
+
+
+def publish_report(report, destination):
+    """Publish a report dict, or a function that streams the report text through write(text)."""
+    with report_file(destination) as write:
+        if callable(report):
+            report(write)
+        else:
+            write(canonical(report) + "\n")
 
 
 def main(argv=None):
@@ -428,9 +567,21 @@ def main(argv=None):
     parser.add_argument("--output", required=True, help="New PRIVATE report path; never overwritten")
     args = parser.parse_args(argv)
     try:
-        raw = read_snapshot(args.database or args.export, database=bool(args.database))
-        report = inspect_snapshot(raw, input_kind="sqlite" if args.database else "export", as_of=args.as_of)
-        publish_report(report, args.output)
+        # The report is published only after the private copy and scratch state are removed.
+        with report_file(args.output) as write, \
+                tempfile.TemporaryDirectory(prefix="tradegen-didm-snapshot-") as directory:
+            if args.database:
+                snapshot = Path(directory) / "snapshot.sqlite"
+                with open(snapshot, "xb") as sink:
+                    digest = copy_snapshot(args.database, sink.write, database=True,
+                                           limit=MAX_DATABASE_BYTES)
+            else:
+                snapshot = read_snapshot(args.export)
+                digest = sha256(snapshot)
+            with inspection(snapshot, input_kind="sqlite" if args.database else "export",
+                            input_sha256=digest, as_of=args.as_of, directory=directory) as result:
+                result.write(write)
+        report = result.fields
         print(canonical({key: report[key] for key in ("format", "record_count", "selected_count",
             "score_count", "known_score_count", "future_received_count", "input_sha256", "research_only", "live_eligible", "gaps")}))
         return 0
