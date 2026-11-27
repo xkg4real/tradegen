@@ -44,7 +44,7 @@ def path_steps(model, visible):
     return (folds + 1) * h * paths
 
 
-def replay(document):
+def replay(document, direction_source=preview.moving_block_direction):
     """Replay a single scoped policy from a supplied research starting state.
 
     Sequence numbers start at one and refer to this input series. Duplicates
@@ -95,12 +95,14 @@ def replay(document):
             prior = str(current) if current is not None else "0"
             snapshot_terms = None if terms is None else {**terms, "current_y": prior if current is not None else None}
             snapshot = preview.evaluate({"schema": preview.SCHEMA, "terms": snapshot_terms, "model": model,
-                                         "history": visible, "observation": {**observation, "prior_block_active": latched}})
+                                         "history": visible, "observation": {**observation, "prior_block_active": latched}},
+                                        direction_source)
             latched = latched or snapshot.get("new_buys_blocked", False) or snapshot["quote_state"] == "UNKNOWN"
             target = snapshot["candidate_next_y"]
             transition = "KEEP"
             confirmed_sequence = None
             feature_end = visible["bars"][-1]["end"] if visible and visible["bars"] else None
+            feature_end = snapshot.get("forecast_as_of", feature_end)   # an external forecast's own cutoff
             if target is not None and not latched and snapshot["quote_state"] == "NO_STALE_BID_GAP":
                 candidate = preview.bounds(target)
                 preview.need(current is not None and candidate <= cap, "UNBOUND_CANDIDATE")
@@ -112,7 +114,8 @@ def replay(document):
                         current, pending, transition = candidate, None, "WIDEN_FOR_NEXT"
                     else:
                         # Independent confirmation is meaningful only while the first forecast is live.
-                        expires = feature_end + model["horizon"] * model["step_seconds"]
+                        expires = (snapshot["forecast_expires"] if "forecast_expires" in snapshot
+                                   else feature_end + model["horizon"] * model["step_seconds"])
                         if now < expires:
                             pending = {"target": candidate, "expires": expires, "sequence": sequence}
                             transition = "AWAIT_WIDEN_CONFIRMATION"
