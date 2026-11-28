@@ -17,7 +17,7 @@ import re
 from core.isolation import checked_target
 from core.compliance.model import KST
 from execution.transport import inquiry_clock, request
-from execution.upbit_inquiry import order_detail, trades_ticks
+from execution.upbit_inquiry import order_detail, tickers, trades_ticks
 from execution_accounts.collector import (
     CoverageEvidence, OpeningAnchor, SourceReceipt, TradeFeeEvidence,
     digest, identifier, instant, number, require, when,
@@ -136,6 +136,7 @@ class TradeWindowResult:
     all_prints: tuple[TradePrint, ...]
     receipts: tuple[SourceReceipt, ...]
     proof_sha256: str
+    ticker_discrepancy: tuple[datetime, Decimal] | None = None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -360,6 +361,15 @@ def _fees(order_id, rows, paid, evidence, consumed, *, allow_proportional=False)
     return {identifier(row.get("uuid")): paid if len(rows) == 1 else _ZERO for row in rows}, False
 
 
+def _limit_state(state, quantity, executed, remaining, locked):
+    require(executed + remaining == quantity, "COLLECTOR_ORDER_QUANTITY_MISMATCH")
+    active = state == "wait"
+    require(not active or remaining > 0, "COLLECTOR_ACTIVE_ORDER_EMPTY")
+    require(active or locked == 0, "COLLECTOR_TERMINAL_RESERVATION_PRESENT")
+    require(state != "done" or remaining == 0, "COLLECTOR_DONE_ORDER_INCOMPLETE")
+    return active
+
+
 def _order(detail, listed, scope, origin, cutoff, fee_evidence, consumed, *, allow_proportional_fees=False):
     require(type(detail) is dict, "COLLECTOR_ORDER_DETAIL_REQUIRED")
     order_id = identifier(detail.get("uuid"))
@@ -379,11 +389,7 @@ def _order(detail, listed, scope, origin, cutoff, fee_evidence, consumed, *, all
     executed = number(detail.get("executed_volume")); remaining = number(detail.get("remaining_volume"))
     price = number(detail.get("price"), positive=True); locked = number(detail.get("locked"))
     paid = number(detail.get("paid_fee"))
-    require(executed + remaining == quantity, "COLLECTOR_ORDER_QUANTITY_MISMATCH")
-    active = detail["state"] == "wait"
-    require(not active or remaining > 0, "COLLECTOR_ACTIVE_ORDER_EMPTY")
-    require(active or locked == 0, "COLLECTOR_TERMINAL_RESERVATION_PRESENT")
-    require(detail["state"] != "done" or remaining == 0, "COLLECTOR_DONE_ORDER_INCOMPLETE")
+    active = _limit_state(detail["state"], quantity, executed, remaining, locked)
     trades = _rows(detail.get("trades"))
     require(type(detail.get("trades_count")) is int and detail["trades_count"] == len(trades),
             "COLLECTOR_TRADE_DETAILS_INCOMPLETE")
@@ -589,137 +595,140 @@ def _collect(source, anchor, coverage, baseline, clock, trade_fees, max_requests
     return CollectionResult(bundle=bundle, receipts=tuple(capture.receipts), manifest_sha256=manifest)
 
 
-def _fetch_ticks_receipt(source, *, market: str, count: int, cursor: str | None,
-                         to: str | None, days_ago: int | None, scope: str, clock) -> SourceReceipt:
-    params = [("market", market), ("count", str(count))]
-    if to is not None:
-        params.append(("to", to))
-    if cursor is not None:
-        params.append(("cursor", cursor))
-    if days_ago is not None:
-        params.append(("days_ago", str(days_ago)))
-    query = tuple(params)
-    if source is not None and hasattr(source, "fetch"):
-        receipt = source.fetch("/v1/trades/ticks", query)
-        require(type(receipt) is SourceReceipt and receipt.path == "/v1/trades/ticks"
-                and receipt.params == query, "COLLECTOR_RECEIPT_SCOPE_MISMATCH")
-        return receipt
-    require(callable(clock), "COLLECTOR_CLOCK_REQUIRED")
-    try:
-        with inquiry_clock(clock):
-            answer = trades_ticks(market, count=count, cursor=cursor, to=to, days_ago=days_ago)
-    except Exception:
-        raise EvidenceError("COLLECTOR_AUTHENTICATED_READ_FAILED") from None
-    require(answer.server_utc is not None, "COLLECTOR_SERVER_TIME_REQUIRED")
-    receipt = SourceReceipt(path="/v1/trades/ticks", params=query, account_scope=scope,
-        received_at=answer.received_utc, server_time=answer.server_utc,
-        raw_body=answer.raw_body, sha256=answer.sha256)
-    receipt.decode()
-    return receipt
+def _checked_read(receipt, path, query, scope):
+    require(type(receipt) is SourceReceipt and receipt.path == path and receipt.params == query
+            and receipt.account_scope == scope, "COLLECTOR_RECEIPT_SCOPE_MISMATCH")
+    require(abs(instant(receipt.server_time) - instant(receipt.received_at)) <= timedelta(seconds=60),
+            "COLLECTOR_SERVER_CLOCK_MISMATCH")
+    return receipt.decode()
 
 
-def collect_trade_window(
-    source,
-    market: str,
-    *,
-    start: datetime,
-    end: datetime,
-    anchor_trade_id: int | str | None = None,
-    to: str | None = None,
-    days_ago: int | None = None,
-    count: int = 200,
-    max_pages: int = 60,
-    max_prints: int = 12000,
-    account_scope: str | None = None,
-    clock=None,
-) -> TradeWindowResult:
-    """Page trades_ticks backwards until coverage before `start` or `anchor_trade_id` is proven."""
+def _window_read(source, scope, clock, market, count=None, cursor=None, to=None, days_ago=None):
+    if count is None:
+        path, query = "/v1/ticker", (("markets", market),)
+    else:
+        path = "/v1/trades/ticks"
+        query = (("market", market), ("count", str(count))) + tuple(
+            (key, str(value)) for key, value in (("to", to), ("cursor", cursor), ("days_ago", days_ago))
+            if value is not None)
+    if source is not None:
+        receipt = source.fetch(path, query)
+    else:
+        require(callable(clock), "COLLECTOR_CLOCK_REQUIRED")
+        try:
+            with inquiry_clock(clock):
+                answer = (tickers((market,)) if count is None else
+                          trades_ticks(market, count=count, cursor=cursor, to=to, days_ago=days_ago))
+        except Exception:
+            raise EvidenceError("COLLECTOR_AUTHENTICATED_READ_FAILED") from None
+        require(answer.server_utc is not None, "COLLECTOR_SERVER_TIME_REQUIRED")
+        receipt = SourceReceipt(path=path, params=query, account_scope=scope, received_at=answer.received_utc,
+                                server_time=answer.server_utc, raw_body=answer.raw_body, sha256=answer.sha256)
+    return receipt, _rows(_checked_read(receipt, path, query, scope))
+
+
+def _public_print(row, market, receipt):
+    require(row.get("market") == market, "COLLECTOR_TRADE_SCOPE_MISMATCH")
+    seq, ms = row.get("sequential_id"), row.get("timestamp")
+    require(type(seq) is int and 0 < seq < 10**20, "COLLECTOR_TRADE_SEQ_INVALID")
+    require(type(ms) is int and ms > 0, "COLLECTOR_TRADE_TIME_REQUIRED")
+    return TradePrint(market=market, sequential_id=seq, timestamp_ms=ms, at=_EPOCH + timedelta(milliseconds=ms),
+                      price=number(row.get("trade_price"), positive=True, json_number=True),
+                      volume=number(row.get("trade_volume"), positive=True, json_number=True),
+                      ask_bid=row.get("ask_bid", ""), source_sha256=receipt.sha256)
+
+
+def collect_trade_window(source, market: str, *, start: datetime, end: datetime,
+                         anchor_trade_id: int | str | None = None, to: str | None = None,
+                         days_ago: int | None = None, count: int = 500, max_pages: int = 60,
+                         max_prints: int = 12000, account_scope: str | None = None, clock=None) -> TradeWindowResult:
+    """Walk each UTC trade day after the ticker's server Date clears the BR-1 read gate."""
     try:
-        with localcontext() as context:
-            context.prec = 512
-            context.traps[Inexact] = True
-            _market(market)
-            start_utc = instant(start)
-            end_utc = instant(end)
-            require(start_utc < end_utc, "COLLECTOR_WINDOW_INVALID")
-            require(type(count) is int and 1 <= count <= 200
-                    and type(max_pages) is int and 1 <= max_pages <= 500
-                    and type(max_prints) is int and 1 <= max_prints <= 50000,
-                    "COLLECTOR_BOUNDS_INVALID")
-            anchor_seq: int | None = None
-            if anchor_trade_id is not None:
-                if type(anchor_trade_id) is int:
-                    require(anchor_trade_id > 0, "COLLECTOR_TRADE_SEQ_INVALID")
-                    anchor_seq = anchor_trade_id
-                elif type(anchor_trade_id) is str and re.fullmatch(r"[1-9][0-9]{0,19}", anchor_trade_id) is not None:
-                    anchor_seq = int(anchor_trade_id)
-                else:
-                    raise EvidenceError("COLLECTOR_TRADE_SEQ_INVALID")
-            scope = identifier(account_scope if account_scope is not None else getattr(source, "account_scope", "public-trades"))
-            receipts: list[SourceReceipt] = []
-            seen_by_seq: dict[int, TradePrint] = {}
-            cursor: str | None = None
-            prev_min_seq: int | None = None
-            proven = False
-            for _ in range(max_pages):
-                receipt = _fetch_ticks_receipt(source, market=market, count=count, cursor=cursor,
-                                               to=to if cursor is None else None, days_ago=days_ago,
-                                               scope=scope, clock=clock)
-                instant(receipt.received_at); instant(receipt.server_time)
-                require(abs(receipt.server_time - receipt.received_at) <= timedelta(seconds=60),
-                        "COLLECTOR_SERVER_CLOCK_MISMATCH")
-                rows = _rows(receipt.decode())
+        _market(market)
+        start, end = instant(start), instant(end)
+        require(start < end, "COLLECTOR_WINDOW_INVALID")
+        require(type(count) is int and 1 <= count <= 500 and type(max_pages) is int and 1 <= max_pages <= 500
+                and type(max_prints) is int and 1 <= max_prints <= 50000, "COLLECTOR_BOUNDS_INVALID")
+        if anchor_trade_id is not None:
+            require(type(anchor_trade_id) in (str, int) and re.fullmatch(r"[1-9][0-9]{0,19}", str(anchor_trade_id)),
+                    "COLLECTOR_TRADE_SEQ_INVALID")
+        scope = identifier(account_scope if account_scope is not None else getattr(source, "account_scope", "public-trades"))
+        ticker, body = _window_read(source, scope, clock, market)
+        server = instant(ticker.server_time)
+        require(server >= end + timedelta(seconds=2), "COLLECTOR_TRADE_WINDOW_UNSETTLED")
+        require(len(body) == 1 and body[0].get("market") == market, "COLLECTOR_TICKER_INVALID")
+        ms = body[0].get("trade_timestamp")
+        require(type(ms) is int and 0 < ms < _ms(server) + 1000, "COLLECTOR_TRADE_TIME_REQUIRED")
+        ticker_at = _EPOCH + timedelta(milliseconds=ms)
+        ticker_price = number(body[0].get("trade_price"), positive=True, json_number=True)
+        receipts, seen = [ticker], {}
+        day = start.date()
+        last_day = (end - timedelta(microseconds=1)).date()
+        require(0 <= (server.date() - day).days < 7, "UPBIT_TRADE_COVERAGE_INCOMPLETE")
+        while day <= last_day:
+            midnight = datetime.combine(day + timedelta(days=1), datetime.min.time(), timezone.utc)
+            upper = min(end, midnight)
+            rounded = upper + timedelta(seconds=1 + int(bool(upper.microsecond)), microseconds=-upper.microsecond)
+            bound = rounded.strftime("%H:%M:%S") if rounded.date() == day else None
+            offset = (server.date() - day).days
+            if to is not None or days_ago is not None:
+                require(start.date() == last_day and (to is None or bound and to in (bound, rounded.strftime("%H%M%S")))
+                        and (days_ago is None or type(days_ago) is int and days_ago == offset),
+                        "COLLECTOR_WINDOW_QUERY_MISMATCH")
+            cursor, cursors = None, set()
+            previous_oldest_at = None
+            while True:
+                require(len(receipts) <= max_pages, "UPBIT_TRADE_COVERAGE_INCOMPLETE")
+                receipt, rows = _window_read(source, scope, clock, market, count, cursor, bound, offset or None)
+                receive_time = instant(receipt.received_at)
+                require(receive_time >= receipts[-1].received_at and instant(receipt.server_time) >= server,
+                        "COLLECTOR_RECEIPT_CLOCK_REGRESSED")
+                require(instant(receipt.server_time).date() - timedelta(days=offset) == day,
+                        "COLLECTOR_SERVER_DAY_MISMATCH")
                 require(len(rows) <= count, "COLLECTOR_PAGE_LIMIT_EXCEEDED")
                 receipts.append(receipt)
-                if not rows:
-                    raise EvidenceError("UPBIT_TRADE_COVERAGE_INCOMPLETE")
-                page_min_seq: int | None = None
-                page_min_at: datetime | None = None
-                for row in rows:
-                    require(row.get("market") == market, "COLLECTOR_TRADE_SCOPE_MISMATCH")
-                    seq_id = row.get("sequential_id")
-                    require(type(seq_id) is int and seq_id > 0, "COLLECTOR_TRADE_SEQ_INVALID")
-                    ts_ms = row.get("timestamp")
-                    require(type(ts_ms) is int and ts_ms > 0, "COLLECTOR_TRADE_TIME_REQUIRED")
-                    at = _EPOCH + timedelta(milliseconds=ts_ms)
-                    price = number(row.get("trade_price"), positive=True, json_number=True)
-                    volume = number(row.get("trade_volume"), positive=True, json_number=True)
-                    ask_bid = row.get("ask_bid") if type(row.get("ask_bid")) is str else ""
-                    item = TradePrint(market=market, sequential_id=seq_id, timestamp_ms=ts_ms,
-                                      at=at, price=price, volume=volume, ask_bid=ask_bid,
-                                      source_sha256=receipt.sha256)
-                    existing = seen_by_seq.get(seq_id)
-                    if existing is not None:
-                        require((existing.timestamp_ms, existing.price, existing.volume, existing.ask_bid)
-                                == (item.timestamp_ms, item.price, item.volume, item.ask_bid),
+                page = [_public_print(row, market, receipt) for row in rows]
+                require(all(left.at >= right.at for left, right in zip(page, page[1:])),
+                        "COLLECTOR_TRADE_PAGE_NOT_CHRONOLOGICAL")
+                for item in page:
+                    if previous_oldest_at is not None and item.sequential_id not in seen:
+                        require(item.at <= previous_oldest_at, "COLLECTOR_TRADE_PAGE_NOT_CHRONOLOGICAL")
+                    require(item.at.date() == day and (bound is None or item.at < rounded),
+                            "COLLECTOR_TRADE_OUTSIDE_QUERY")
+                    old = seen.get(item.sequential_id)
+                    if old is not None:
+                        require((old.timestamp_ms, old.price, old.volume, old.ask_bid) ==
+                                (item.timestamp_ms, item.price, item.volume, item.ask_bid),
                                 "COLLECTOR_DUPLICATE_CONTRADICTION")
                     else:
-                        seen_by_seq[seq_id] = item
-                    if page_min_seq is None or seq_id < page_min_seq:
-                        page_min_seq = seq_id
-                    if page_min_at is None or at < page_min_at:
-                        page_min_at = at
-                require(len(seen_by_seq) <= max_prints, "UPBIT_TRADE_COVERAGE_INCOMPLETE")
-                assert page_min_seq is not None and page_min_at is not None
-                if prev_min_seq is not None and page_min_seq >= prev_min_seq:
-                    raise EvidenceError("UPBIT_TRADE_COVERAGE_INCOMPLETE")
-                prev_min_seq = page_min_seq
-                if page_min_at < start_utc or (anchor_seq is not None and anchor_seq in seen_by_seq):
-                    proven = True
+                        seen[item.sequential_id] = item
+                require(len(seen) <= max_prints, "UPBIT_TRADE_COVERAGE_INCOMPLETE")
+                if not page or any(item.at < start for item in page):
                     break
-                if page_min_seq <= 1:
-                    raise EvidenceError("UPBIT_TRADE_COVERAGE_INCOMPLETE")
-                cursor = str(page_min_seq - 1)
-            require(proven, "UPBIT_TRADE_COVERAGE_INCOMPLETE")
-            ordered = sorted(seen_by_seq.values(), key=lambda p: (p.timestamp_ms, p.sequential_id))
-            prior = [p for p in ordered if p.at < start_utc]
-            opening = prior[-1] if prior else None
-            inside = [p for p in ordered if start_utc <= p.at < end_utc]
-            proof = content_digest((market, start_utc, end_utc, anchor_seq,
-                tuple((r.path, r.params, r.received_at, r.server_time, r.sha256) for r in receipts)))
-            return TradeWindowResult(market=market, start=start_utc, end=end_utc,
-                opening_print=opening, prints=tuple(inside), all_prints=tuple(ordered),
-                receipts=tuple(receipts), proof_sha256=proof)
+                previous_oldest_at = page[-1].at
+                cursor = str(page[-1].sequential_id)
+                require(cursor not in cursors, "UPBIT_TRADE_COVERAGE_INCOMPLETE")
+                cursors.add(cursor)
+            day += timedelta(days=1)
+        ordered = sorted(seen.values(), key=lambda p: (p.timestamp_ms, p.sequential_id))
+        prior = [p for p in ordered if p.at < start]
+        opening = prior[-1] if prior else None
+        if opening is not None and any(p.at == opening.at and p.price != opening.price for p in prior):
+            opening = None  # IDs do not establish ordering inside a millisecond.
+        # A query limited to a UTC day cannot include the following day's
+        # print, even when rounding E and adding the margin crosses midnight.
+        # The held opening mark may be ambiguous within one millisecond. BR-6
+        # compares membership in every page independently of that mark.
+        exclusive_to = min(rounded, midnight)
+        discrepancy = None
+        if ticker_at < exclusive_to and not any(p.at == ticker_at and p.price == ticker_price for p in ordered):
+            discrepancy = (ticker_at, ticker_price)
+        inside = tuple(p for p in ordered if start <= p.at < end)
+        proof = content_digest((market, scope, start, end, anchor_trade_id,
+            tuple((r.path, r.params, r.received_at, r.server_time, r.sha256) for r in receipts)))
+        return TradeWindowResult(market=market, start=start, end=end, opening_print=opening, prints=inside,
+                                 all_prints=tuple(ordered), receipts=tuple(receipts), proof_sha256=proof,
+                                 ticker_discrepancy=discrepancy)
     except EvidenceError:
         raise
     except (ValueError, TypeError, KeyError, AttributeError, ArithmeticError, OverflowError):
@@ -760,9 +769,10 @@ def collect_order_fills(
                 receipt = SourceReceipt(path="/v1/order", params=query, account_scope=scope,
                     received_at=answer.received_utc, server_time=answer.server_utc,
                     raw_body=answer.raw_body, sha256=answer.sha256)
-            detail = receipt.decode()
+            detail = _checked_read(receipt, "/v1/order", query, scope)
             require(type(detail) is dict, "COLLECTOR_ORDER_DETAIL_REQUIRED")
             oid = identifier(detail.get("uuid"))
+            require(detail.get(query[0][0]) == query[0][1], "COLLECTOR_ORDER_IDENTITY_MISMATCH")
             symbol = detail.get("market"); base = _market(symbol)
             require(detail.get("side") in ("bid", "ask"), "COLLECTOR_ORDER_SIDE_INVALID")
             side = "buy" if detail["side"] == "bid" else "sell"
@@ -781,6 +791,7 @@ def collect_order_fills(
             fills: list[Fill] = []
             seen: set[str] = set()
             created_at = when(detail.get("created_at"))
+            require(created_at <= instant(receipt.server_time) + timedelta(seconds=1), "COLLECTOR_TRADE_OUTSIDE_CAPTURE")
             for row in trades:
                 fill_id = identifier(row.get("uuid"))
                 require(fill_id not in seen, "COLLECTOR_DUPLICATE_TRADE")
@@ -788,7 +799,7 @@ def collect_order_fills(
                 require(row.get("market") == symbol and row.get("side") == detail["side"],
                         "COLLECTOR_TRADE_ORDER_MISMATCH")
                 at = when(row.get("created_at"))
-                require(created_at <= at, "COLLECTOR_TRADE_OUTSIDE_CAPTURE")
+                require(created_at <= at <= instant(receipt.server_time) + timedelta(seconds=1), "COLLECTOR_TRADE_OUTSIDE_CAPTURE")
                 units = number(row.get("volume"), positive=True)
                 trade_price = number(row.get("price"), positive=True)
                 fills.append(Fill(venue="upbit", account_scope=scope, order_id=oid, fill_id=fill_id, market="spot",
@@ -803,7 +814,14 @@ def collect_order_fills(
                 remaining = number(detail.get("remaining_volume"))
                 limit_price = number(detail.get("price"), positive=True)
                 locked = number(detail.get("locked"))
-                active = detail["state"] == "wait"
+                state = detail["state"]
+                if state in ("done", "wait"):
+                    # The documented REST prevented state is cancel. Without
+                    # evidence of non-cancel SMP accounting, do not infer fills.
+                    require(number(detail.get("prevented_volume", "0")) == 0,
+                            "COLLECTOR_SMP_LIMIT_STATE_UNVERIFIED")
+                    _limit_state(state, quantity, executed, remaining, locked)
+                active = state == "wait"
                 status = ("partial" if executed else "open") if active else ("filled" if detail["state"] == "done" else "canceled")
                 client = detail.get("identifier") or ""
                 require(type(client) is str, "COLLECTOR_CLIENT_ID_INVALID")

@@ -181,6 +181,10 @@ class OnlineManager:
             else _to_utc_timestamps(pd.Index([self.champion_spec.frozen_at]))[0]
         )
 
+        champion_frozen = _to_utc_timestamps(pd.Index([self.champion_spec.frozen_at]))[0]
+        if as_of_ts <= champion_frozen:
+            raise ValueError("Online evaluation must follow the champion freeze")
+        eval_start_ts = max(eval_start_ts, champion_frozen + pd.Timedelta(seconds=1))
         champ_scores, champ_proba = self._predict_up_to_as_of(self.champion_model, dataset, as_of_ts)
 
         # Fetch raw labels/meta strictly up to `as_of_ts` and IMMEDIATELY mask out any row with label_end_utc > as_of_ep!
@@ -194,11 +198,12 @@ class OnlineManager:
         end_utc_closed = pd.Series(dtype=np.float64)
 
         if not raw_slice.empty and ("meta", "label_end_utc") in raw_slice.columns:
-            end_ser = raw_slice[("meta", "label_end_utc")]
+            clock_col = ("meta", "label_known_at") if ("meta", "label_known_at") in raw_slice else ("meta", "label_end_utc")
+            end_ser = raw_slice[clock_col]
             end_arr = _epoch_seconds_array(end_ser.to_numpy())
             closed_mask = np.isfinite(end_arr) & (end_arr <= as_of_ep + 1e-9)
             open_window_count = int(np.sum(~closed_mask))
-            closed_rows = raw_slice.loc[closed_mask]
+            closed_rows = raw_slice.loc[closed_mask & (raw_slice.index.get_level_values("instrument") == self.market)]
             closed_idx = closed_rows.index
             if ("label", "realized_log_return") in closed_rows.columns:
                 y_ret_closed = closed_rows[("label", "realized_log_return")].astype(np.float64)
@@ -223,6 +228,8 @@ class OnlineManager:
         for ch_name, (ch_spec, ch_model) in sorted(self.challengers.items()):
             ch_scores, ch_proba = self._predict_up_to_as_of(ch_model, dataset, as_of_ts)
             common_closed = closed_idx.intersection(champ_scores.index).intersection(ch_scores.index).sort_values()
+            challenger_frozen = _to_utc_timestamps(pd.Index([ch_spec.frozen_at]))[0]
+            common_closed = common_closed[common_closed.get_level_values("datetime") > challenger_frozen]
 
             if len(common_closed) < 10:
                 challenger_evals[ch_name] = {
@@ -270,7 +277,7 @@ class OnlineManager:
                     sc_ch * yr_arr - sc_cm * yr_arr,
                     index=common_closed.get_level_values("datetime"),
                 )
-                s1 = {"passes": bool(dm["mean_diff"] < 0), "directions": {}, "passing_directions": []}
+                s1 = {"passes": False, "directions": {}, "passing_directions": []}
 
             # Aggregate skill_diff by unique date/timestamp for FamilyLedger registration & DSR
             dated_diff = skill_diff.groupby(level=0).mean()
@@ -397,6 +404,6 @@ class OnlineManager:
             raise PromotionGateRefusedError("Promotion dossier was built against a different Champion version")
 
         new_spec = FrozenModelSpec.from_dict(dossier["challenger_spec"])
-        self.champion_spec = new_spec
-        self.champion_model = Model.from_frozen_spec(new_spec)
+        new_model = Model.from_frozen_spec(new_spec)
+        self.champion_spec, self.champion_model = new_spec, new_model
         return new_spec

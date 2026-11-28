@@ -74,6 +74,7 @@ class OwnerContextClaim:
     signed_daily_loss_krw: Decimal
     observed_at: datetime
     source_sha256: str
+    signed_bid_gap_fraction: Decimal | None = None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -187,11 +188,14 @@ def _owner(claim):
     _instant(claim.observed_at)
     _amount(claim.signed_floor_krw)
     _amount(claim.signed_daily_loss_krw, positive=True)
+    if claim.signed_bid_gap_fraction is not None:
+        y = claim.signed_bid_gap_fraction
+        _need(type(y) is Decimal and y.is_finite() and 0 < y <= Decimal("0.05"), "GUARD_OWNER_BID_GAP_INVALID")
 
 
 def _owner_terms(claim):
     return (claim.owner_head_sha256, claim.code_sha256, claim.code_approval_sha256,
-            claim.signed_floor_krw, claim.signed_daily_loss_krw)
+            claim.signed_floor_krw, claim.signed_daily_loss_krw, claim.signed_bid_gap_fraction)
 
 
 def _checkpoint_digest(state):

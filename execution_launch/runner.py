@@ -1,9 +1,8 @@
 """Explicit, synchronous launch orchestration; importing this module does nothing.
 
 The default mode only diagnoses supplied observations. Rehearsal requires a
-separate explicit state root and exact DryRunAdapters. Controlled operation must
-be constructed explicitly by the owner with providers, reviewed strategy code,
-and an actual E2 prepared session; there are no credentials or live defaults.
+separate explicit state root and exact DryRunAdapters. Controlled operation
+requires a production guard and held-account authority that are still pending.
 """
 from __future__ import annotations
 
@@ -257,7 +256,7 @@ class LaunchSession:
 def prepare_launch_session(*, profile, evidence, driver, implementation_verifier,
                            journal, selected_plan, inputs, positions, now,
                            selection_seed_hex, clock, positions_asof, expires_at=None,
-                           universe_batch=None) -> LaunchSession:
+                           universe_batch=None, cap_review_expiry=False) -> LaunchSession:
     """Prepare fresh odds with a derived label BEFORE the owner signs its ID.
 
     This writes only the existing preparation event. It does not sign, arm, fetch
@@ -311,7 +310,7 @@ def prepare_launch_session(*, profile, evidence, driver, implementation_verifier
         now=now, selection_seed_hex=selection_seed_hex, account_scope=profile.account_scope,
         market=profile.market, quote_currency=profile.quote_currency, expires_at=expires_at,
         universe_batch=universe_batch,
-        clock=clock, positions_asof=positions_asof, completion_check=completion_check)
+        clock=clock, positions_asof=positions_asof, completion_check=completion_check, cap_review_expiry=cap_review_expiry)
     return LaunchSession(prepared=prepared, profile_digest=profile_digest(profile), binding=binding)
 
 
@@ -330,55 +329,6 @@ class TickResult:
 
 
 _MODES = ('observe', 'paper', 'rehearsal', 'controlled')
-
-
-def make_controller_order_boundary(controller: Controller, *, profile: LaunchProfile,
-                                   launch_session: LaunchSession | None = None) -> Callable:
-    """Create a live/rehearsal order submission boundary backed by Controller.submit(..., reserve_only=False)."""
-    _require(type(controller) is Controller, 'RUNNER_CONTROLLER_PROVIDER_MISMATCH')
-    _require(type(profile) is LaunchProfile, 'RUNNER_PROFILE_REQUIRED')
-    namespace = 'lr' + profile_contract_digest(profile)[:24] + '-'
-
-    def default_exit_session_id() -> str:
-        if (type(launch_session) is LaunchSession and type(launch_session.prepared) is PreparedSession
-                and type(launch_session.prepared.session_id) is str and launch_session.prepared.session_id):
-            return launch_session.prepared.session_id
-        return 'launch-exit-' + profile_contract_digest(profile)[:24]
-
-    def submit_boundary(signal: Signal, *, account: AccountObservation, now: datetime,
-                        session_id: str | None = None):
-        _instant(now)
-        _signal_metadata(signal)
-        _require(not signal.execution_block_reasons, 'RUNNER_SIGNAL_EXECUTION_BLOCKED')
-        if signal.action == 'hold':
-            return None
-        _require(_positive(signal.quantity) and _positive(signal.limit_price), 'RUNNER_SIGNAL_AMOUNTS_INVALID')
-        side = 'buy' if signal.action == 'entry' else 'sell'
-        tif = 'ioc' if (side == 'sell' and profile.universe_rule_sha256 is not None) else profile.time_in_force
-        identity = digest({'profile_contract_digest': profile_contract_digest(profile),
-                           'signal_id': signal.signal_id, 'side': side})
-        rate = account.quote_rates_krw.get((profile.venue, profile.account_scope, profile.quote_currency))
-        _require(_positive(rate), 'RUNNER_ACCOUNT_FX_REQUIRED')
-        order = Order(
-            client_id=namespace + identity[:37],
-            account_scope=profile.account_scope,
-            venue=profile.venue,
-            market=profile.market,
-            symbol=profile.symbol,
-            side=side,
-            quantity=signal.quantity,
-            limit_price=signal.limit_price,
-            quote_krw=rate,
-            time_in_force=tif,
-        )
-        validate_observed_order(order, profile.instrument_rules, now=now)
-        resolved_sid = session_id if session_id is not None else (
-            default_exit_session_id() if side == 'sell' else None
-        )
-        _require(type(resolved_sid) is str and bool(resolved_sid), 'RUNNER_ACTUAL_PREPARED_SESSION_REQUIRED')
-        return controller.submit(order, profile.instrument_rules, session_id=resolved_sid, now=now, reserve_only=False)
-
-    return submit_boundary
 
 
 class Runner:
@@ -433,15 +383,9 @@ class Runner:
             root = checked_target(Path(self._isolated_state_root).absolute(), 'rehearsal state')
             _require(not root.is_relative_to(Path.home() / '.tradegen') and state_root().absolute() == root
                      and c.journal._base == root, 'RUNNER_REHEARSAL_STATE_MISMATCH')
-        elif self.mode == 'controlled':
-            _require(bool(c.adapters) and self.profile.venue in c.adapters
-                     and all(type(a) is not DryRunAdapter
-                             and callable(getattr(a, 'prepare', None))
-                             and callable(getattr(a, 'dispatch', None))
-                             and getattr(getattr(a, 'credentials', None), '__name__', '') != 'unconfigured_credentials'
-                             for a in c.adapters.values()),
-                     'RUNNER_CONTROLLED_REQUIRES_LIVE_ADAPTERS')
-            _require(c.journal._base == state_root().absolute(), 'RUNNER_CONTROLLED_STATE_MISMATCH')
+        else:
+            # Only the isolated rehearsal has a supported dispatch path.
+            raise RunnerError('RUNNER_PRODUCTION_AUTHORITY_REQUIRED')
 
     def refresh_instrument_rules(self, renewal, *, now, account=None):
         """Apply an issued same-contract snapshot without changing owner authority.

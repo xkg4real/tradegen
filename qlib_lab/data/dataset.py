@@ -127,16 +127,6 @@ class DatasetH(Dataset):
                     f"Segment {a!r} end ({segs[a][1]}) overlaps or touches {b!r} start ({segs[b][0]})"
                 )
 
-        # (a) Enforce fit_end_time <= train_end on all StatefulProcessors!
-        if "train" in segs and isinstance(self.handler, DataHandlerLP):
-            train_end = segs["train"][1]
-            for proc in self.handler.get_all_processors():
-                if isinstance(proc, StatefulProcessor) and proc.fit_end_time > train_end:
-                    raise FitLeakageError(
-                        f"Processor {proc.__class__.__name__} fit_end_time ({proc.fit_end_time}) "
-                        f"exceeds train segment end ({train_end}); future fit leakage refused"
-                    )
-
         # (c) Enforce embargo_bars gap between consecutive ordered segments by truncating prior segment tail
         cal = self._calendar()
         eff = dict(segs)
@@ -156,30 +146,44 @@ class DatasetH(Dataset):
                     )
                 eff[prior_k] = (eff[prior_k][0], allowed_end)
 
-            # Re-verify StatefulProcessor fit_end_time <= effective train_end?
-            # Note: raw train_end or effective train_end: if fit_end_time > raw train_end it already raised;
-            # if embargo trimmed train_end, also check fit_end_time <= raw train_end (and warn/refuse if > next_start).
+        if "train" in eff and isinstance(self.handler, DataHandlerLP):
+            train_start, train_end = eff["train"]
+            for proc in self.handler.get_all_processors():
+                if isinstance(proc, StatefulProcessor) and (
+                    proc.fit_start_time < train_start or proc.fit_end_time > train_end
+                ):
+                    raise FitLeakageError(
+                        f"{type(proc).__name__} fit window lies outside the effective train segment"
+                    )
         self.segments = eff
 
-    def _overlaps_test(self, slc: Any) -> bool:
+    def _overlaps_test(self, slc: Any, level: Any) -> bool:
         if "test" not in self.segments:
             return False
         test_start, test_end = self.segments["test"]
+        if level not in ("datetime", 0):
+            # An instrument selection spans the entire calendar.
+            return True
         if isinstance(slc, slice):
             s0 = _to_utc_timestamps(pd.Index([slc.start]))[0] if slc.start is not None else pd.Timestamp.min.tz_localize("UTC")
             s1 = _to_utc_timestamps(pd.Index([slc.stop]))[0] if slc.stop is not None else pd.Timestamp.max.tz_localize("UTC")
             return s0 <= test_end and test_start <= s1
-        if isinstance(slc, (tuple, list)) and len(slc) == 2:
+        if isinstance(slc, (tuple, list)) and len(slc) == 2 and level == "datetime":
             s0 = _to_utc_timestamps(pd.Index([slc[0]]))[0]
             s1 = _to_utc_timestamps(pd.Index([slc[1]]))[0]
             return s0 <= test_end and test_start <= s1
-        return False
+        targets = slc if isinstance(slc, (list, tuple, pd.Index, np.ndarray)) else [slc]
+        dates = _to_utc_timestamps(pd.Index(targets))
+        return bool(((dates >= test_start) & (dates <= test_end)).any())
 
-    def _guard_test_leakage(self, seg_name: str | None, slc: Any, col_set: Any, data_key: str) -> Any:
-        touches_test = (seg_name == "test") or (seg_name is None and self._overlaps_test(slc))
+    def _guard_test_leakage(self, slc: Any, col_set: Any, data_key: str, fetch_options: Mapping[str, Any]) -> Any:
+        touches_test = self._overlaps_test(slc, fetch_options.get("level", "datetime"))
         if not touches_test or is_eval_authorized():
             return col_set
 
+        if fetch_options.get("proc_func") is not None:
+            # Handler callbacks see the full frame before column projection.
+            raise TestLabelLeakageError("Raw processing callbacks cannot run on held-out rows")
         if data_key == DataHandlerLP.DK_L:
             raise TestLabelLeakageError(
                 "prepare('test', data_key=DK_L) is forbidden outside authorized_eval_context"
@@ -211,7 +215,7 @@ class DatasetH(Dataset):
         if df.empty or not self.purge_outcomes:
             return df
         # Apply purging on train / valid (and any non-test segment, or whenever DK_L is prepared on non-test)
-        if seg_name == "test":
+        if seg_name == "test" and data_key != DataHandlerLP.DK_L:
             return df
 
         boundary_epoch = float(seg_bounds[1].value // 1_000_000_000)
@@ -222,7 +226,8 @@ class DatasetH(Dataset):
         if meta_col not in raw_full.columns:
             return df
 
-        end_utc_ser = raw_full[meta_col].reindex(df.index)
+        clock_col = ("meta", "label_known_at") if ("meta", "label_known_at") in raw_full else meta_col
+        end_utc_ser = raw_full[clock_col].reindex(df.index)
         end_epochs = end_utc_ser.to_numpy(dtype=np.float64)
         # Keep rows whose outcome ends at or before segment boundary!
         # On DK_L, a NaN label_end_utc means incomplete outcome -> also purge!
@@ -241,9 +246,8 @@ class DatasetH(Dataset):
         data_key: str = DataHandlerLP.DK_I,
         **kwargs: Any,
     ) -> Any:
-        safe_col_set = self._guard_test_leakage(seg_name, slc, col_set, data_key)
-        merged_kw = dict(self.fetch_kwargs)
-        merged_kw.update(kwargs)
+        merged_kw = {**self.fetch_kwargs, **kwargs}
+        safe_col_set = self._guard_test_leakage(slc, col_set, data_key, merged_kw)
         df = self.handler.fetch(slc, col_set=safe_col_set, data_key=data_key, **merged_kw)
         if seg_name is not None and seg_name in self.segments:
             df = self._purge_segment_df(df, seg_name, self.segments[seg_name], data_key)
@@ -290,7 +294,8 @@ class DatasetH(Dataset):
             )
             df = self._purge_segment_df(df, seg, (st, et), DataHandlerLP.DK_L)
             if ("meta", "label_end_utc") in df.columns and not df.empty:
-                vals = df[("meta", "label_end_utc")].to_numpy(dtype=np.float64)
+                clock_col = ("meta", "label_known_at") if ("meta", "label_known_at") in df else ("meta", "label_end_utc")
+                vals = df[clock_col].to_numpy(dtype=np.float64)
                 fin = vals[np.isfinite(vals)]
                 if fin.size > 0:
                     cur = float(np.max(fin))
@@ -400,7 +405,9 @@ class TSDataSampler:
         if isinstance(idx, tuple) and len(idx) == 2:
             dt_val, inst = idx
             ts = _to_utc_timestamps(pd.Index([dt_val]))[0]
-            r = bisect.bisect_right(self.idx_df.index, ts) - 1
+            if (inst, ts) not in self.data_index:
+                raise KeyError(f"Sample {idx!r} is outside the selected endpoints")
+            r = bisect.bisect_left(self.idx_df.index, ts)
             c = bisect.bisect_left(list(self.idx_df.columns), str(inst))
             if r < 0 or c >= len(self.idx_df.columns) or str(self.idx_df.columns[c]) != str(inst):
                 raise KeyError(f"Sample {idx!r} not found in TSDataSampler")
@@ -474,8 +481,11 @@ class TSDatasetH(DatasetH):
         if not isinstance(slc, slice):
             slc = slice(slc[0], slc[1])
 
-        safe_col_set = self._guard_test_leakage(seg_name, slc, col_set, data_key)
         ext_slice = self._extend_slice(slc)
+        fetch_options = {**self.fetch_kwargs, **kwargs}
+        safe_col_set = self._guard_test_leakage(ext_slice, col_set, data_key, fetch_options)
+        if flt_col is not None:
+            self._guard_test_leakage(slc, flt_col, data_key, fetch_options)
 
         # Fetch extended historical feature lookback using DK_I so historical context rows aren't dropped by label filters,
         # while indexable targets are restricted to the purged segment rows!

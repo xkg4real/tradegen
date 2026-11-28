@@ -39,7 +39,7 @@ CANDLES_DAYS_PATH = "/v1/candles/days"
 TRADES_TICKS_PATH = "/v1/trades/ticks"
 ORDER_PATH = "/v1/order"
 CANDLE_COUNT_MAX = 200                    # Upbit's largest daily-candle page
-TRADES_COUNT_MAX = 200                    # Upbit's reviewed trades/ticks page bound
+TRADES_COUNT_MAX = 500                    # Upbit's reviewed trades/ticks page bound
 
 
 def current_terms(symbol):
@@ -94,7 +94,7 @@ def daily_candles(market: str, to: datetime, count: int) -> Answer:
     return request("upbit", "GET", CANDLES_DAYS_PATH, candle_params(market, to, count))
 
 
-def trades_ticks(market: str, *, count: int = 200, cursor: str | None = None,
+def trades_ticks(market: str, *, count: int = 500, cursor: str | None = None,
                  to: str | None = None, days_ago: int | None = None) -> Answer:
     """One public GET page of recent trade prints for a KRW market."""
     checked = _krw_market(market)
@@ -102,7 +102,7 @@ def trades_ticks(market: str, *, count: int = 200, cursor: str | None = None,
         raise InquiryRefused("upbit: invalid trades count")
     params = [("market", checked), ("count", str(count))]
     if to is not None:
-        if type(to) is not str or re.fullmatch(r"(?:[01][0-9]|2[0-3])[0-5][0-9][0-5][0-9]", to) is None:
+        if type(to) is not str or re.fullmatch(r"(?:[01][0-9]|2[0-3])(?P<sep>:?)[0-5][0-9](?P=sep)[0-5][0-9]", to) is None:
             raise InquiryRefused("upbit: invalid trades to")
         params.append(("to", to))
     if cursor is not None:

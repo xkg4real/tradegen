@@ -10,7 +10,7 @@ from unittest.mock import patch
 from tools.research import adaptive_bid_gap_replay as replay_tool
 from tools.research import direction_stage1_evaluator as s1e
 from tools.research import direction_stage2_replay as s2r
-from tools.research.test_direction_stage1_evaluator import _build_stage1_scenario, _seal_snap
+from tools.research.test_direction_stage1_evaluator import _build_stage1_scenario, _coverage_table, _seal_snap
 from tools.research._study_common import (
     RESEARCH_FLAGS,
     StudyError,
@@ -71,6 +71,7 @@ class DirectionStage2ReplayTests(unittest.TestCase):
         study, s1_hist, m_s1_snap, b1_s1_snap, b0_s1_snap = _build_stage1_scenario(300, m_skill=True)
         s1_rep = s1e.evaluate_stage1(
             study=study,
+            feature_table=_coverage_table(study, s1_hist),
             history=s1_hist,
             m_snapshots=[m_s1_snap],
             b1_snapshots=[b1_s1_snap],
@@ -191,7 +192,7 @@ class DirectionStage2ReplayTests(unittest.TestCase):
 
     def test_s5_illegal_widening_s6_truncation_and_s7_voided_day_state_carry(self) -> None:
         study, s1_hist, m_s1_snap, b1_s1_snap, b0_s1_snap = _build_stage1_scenario(300, m_skill=True)
-        s1_rep = s1e.evaluate_stage1(study=study, history=s1_hist, m_snapshots=[m_s1_snap], b1_snapshots=[b1_s1_snap], b0_snapshots=[b0_s1_snap])
+        s1_rep = s1e.evaluate_stage1(study=study, feature_table=_coverage_table(study, s1_hist), history=s1_hist, m_snapshots=[m_s1_snap], b1_snapshots=[b1_s1_snap], b0_snapshots=[b0_s1_snap])
         scope = study["scope"]
         raw_after = study["evaluation_end"] + 7200
         day1_start = ((raw_after + 32400) // 86400 + 1) * 86400 - 32400

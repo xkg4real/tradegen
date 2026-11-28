@@ -407,3 +407,19 @@ def test_owner_change_after_real_reservation_blocks_dispatch_and_preserves_local
         assert e.controller.states()[0].status=='RESERVED' and not e.adapter.requests
         assert e.controller.cancel(e.order.client_id,now=e.now).status=='CANCELLED_LOCAL'
         assert not e.adapter.requests
+
+
+def test_same_head_midnight_bid_gap_limit_requires_a_matching_committed_claim():
+    start = datetime(2026, 11, 6, 23, 59, 50, tzinfo=M.KST)
+    end = datetime(2026, 11, 7, tzinfo=M.KST)
+
+    def schedule(home, key, at):
+        CF.sign(key, 'limit_set', {'total_loss_floor_krw': 100.0, 'daily_loss_krw': 10.0,
+                                   'bid_gap_fraction': 0.03}, M.iso_utc(at-timedelta(hours=1)))
+
+    with fixture(start=start, end=end, configure=schedule, prices=('101',)) as e:
+        claim = PF.read(e.s, e.provider, e.now).owner_claim
+        assert claim.signed_bid_gap_fraction is None
+        before = rows(e)
+        refused(lambda: e.controller.observe(now=e.now), 'COMMITTED_ACCOUNT_EFFECTIVE_LIMITS_CHANGED')
+        assert rows(e) == before and not e.adapter.requests

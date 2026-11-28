@@ -42,6 +42,7 @@ MAX_PRINTS = 12000
 MAX_FILLS = 512
 MAX_INTERVAL_FILLS = 128
 MAX_HISTORY_FILLS = 20000
+MAX_SOLVENCY_STATES = 32768
 MAX_DURATION = timedelta(seconds=30)
 COVERAGE_CONTRACT = "complete-ordered-account-marks-and-fills-v1"
 
@@ -354,6 +355,67 @@ def _opening_fifo_lots(accepted_fills: tuple[Fill, ...], market_index: Mapping[s
     return tuple(out)
 
 
+def _concurrent_fill_extrema(group, cash, units, min_marks, max_marks):
+    """Reachable KRW equity bounds when independent markets share a fill timestamp.
+
+    Preserve FIFO order within each market. For each per-market prefix record
+    its cash/units change. If the least cash combination stays nonnegative all
+    interleavings are solvent and the extremal sums factor across markets.
+    Otherwise retain only feasible prefixes on a full path to the final state.
+    """
+    prefixes = {}
+    for _, _, kind, market, qty, price, fee in group:
+        rows = prefixes.setdefault(market, [(_ZERO, _ZERO)])
+        spent, held = rows[-1]
+        delta = qty if kind == native_accel.TG_EVENT_BUY else -qty
+        rows.append((spent - delta * price - fee, held + delta))
+        _require(units[market] + rows[-1][1] >= 0, "CONTINUOUS_NEGATIVE_CASH_OR_INVENTORY")
+    markets = tuple(prefixes)
+    low = cash + sum(u * p for u, p in zip(units, min_marks))
+    high = cash + sum(u * p for u, p in zip(units, max_marks))
+    if cash + sum(min(c for c, _ in rows) for rows in prefixes.values()) >= 0:
+        return (low + sum(min(c + u * min_marks[m] for c, u in prefixes[m]) for m in markets),
+                high + sum(max(c + u * max_marks[m] for c, u in prefixes[m]) for m in markets))
+
+    final = tuple(len(prefixes[m]) - 1 for m in markets)
+    size = 1
+    for count in final:
+        size *= count + 1
+    _require(size <= MAX_SOLVENCY_STATES, "CONTINUOUS_UNORDERED_FILL_STATE_LIMIT")
+    start = tuple(0 for _ in markets)
+    reachable = {start}
+    frontier = {start}
+    for _ in group:
+        successors = set()
+        for state in frontier:
+            for i, count in enumerate(state):
+                if count == final[i]:
+                    continue
+                nxt = state[:i] + (count + 1,) + state[i+1:]
+                if cash + sum(prefixes[m][v][0] for m, v in zip(markets, nxt)) >= 0:
+                    successors.add(nxt)
+        reachable.update(successors)
+        frontier = successors
+    _require(final in reachable, "CONTINUOUS_NEGATIVE_CASH_OR_INVENTORY")
+    minimum, maximum = low, high
+    frontier = {final}
+    for _ in range(len(group) + 1):
+        predecessors = set()
+        for state in frontier:
+            lo, hi = low, high
+            for i, m in enumerate(markets):
+                c, u = prefixes[m][state[i]]
+                lo += c + u * min_marks[m]
+                hi += c + u * max_marks[m]
+                if state[i]:
+                    parent = state[:i] + (state[i] - 1,) + state[i+1:]
+                    if parent in reachable:
+                        predecessors.add(parent)
+            minimum, maximum = min(minimum, lo), max(maximum, hi)
+        frontier = predecessors
+    return minimum, maximum
+
+
 def _fold_interval_core(
     *,
     markets: tuple[str, ...],
@@ -367,6 +429,9 @@ def _fold_interval_core(
     end: datetime,
     previous_equity_krw: Decimal,
     conservative_ms: bool,
+    unordered_marks_or_fills: bool = False,
+    confirmed_closes=None,
+    undisclosed_closing: frozenset[str] = frozenset(),
 ):
     num_markets = len(markets)
     opening_units_vec = tuple(opening_units_by_market.get(sym, _ZERO) for sym in markets)
@@ -378,7 +443,9 @@ def _fold_interval_core(
     _number(initial_eq, positive=True)
     _require(initial_eq == previous_equity_krw, "CONTINUOUS_OPENING_EQUITY_MISMATCH")
 
-    if 1 <= num_markets <= MAX_HELD_MARKETS:
+    # ABI v1 collapses a tied close to one price and only visits one global
+    # fill ordering. Use the exact Decimal envelopes for unordered evidence.
+    if 1 <= num_markets <= MAX_HELD_MARKETS and not unordered_marks_or_fills:
         native_events = tuple(
             (at_ms, kind, m_idx, eqty, eprice, efee)
             for at_ms, _at, kind, m_idx, eqty, eprice, efee in ordered_events
@@ -496,13 +563,16 @@ def _fold_interval_core(
     else:
         idx = 0
         n_ev = len(ordered_events)
+        carried_min = list(opening_marks_vec)
+        carried_max = list(opening_marks_vec)
         while idx < n_ev:
             ms = ordered_events[idx][0]
             end_idx = idx
             while end_idx < n_ev and ordered_events[end_idx][0] == ms:
                 end_idx += 1
-            min_prices = [m.price for m in marks]
-            max_prices = [m.price for m in marks]
+            min_prices = carried_min.copy()
+            max_prices = carried_max.copy()
+            traded = {}
             last_marks = list(marks)
             for k in range(idx, end_idx):
                 _ms_k, ev_at, kind, m_idx, _eqty, eprice, _efee = ordered_events[k]
@@ -511,15 +581,27 @@ def _fold_interval_core(
                         min_prices[m_idx] = eprice
                     if eprice > max_prices[m_idx]:
                         max_prices[m_idx] = eprice
+                    lo, hi = traded.get(m_idx, (eprice, eprice))
+                    traded[m_idx] = (min(lo, eprice), max(hi, eprice))
                     last_marks[m_idx] = PriceMark(symbol=markets[m_idx], price=eprice, asof=ev_at)
             lo_eq = calc_eq(min_prices)
             hi_eq = calc_eq(max_prices)
             low, high = min(low, lo_eq), max(high, hi_eq)
+            next_fill_group = idx
             for k in range(idx, end_idx):
                 _ms_k, ev_at, kind, m_idx, eqty, eprice, efee = ordered_events[k]
                 if kind == native_accel.TG_EVENT_MARK:
                     marks[m_idx] = PriceMark(symbol=markets[m_idx], price=eprice, asof=ev_at)
                 else:
+                    if k >= next_fill_group:
+                        next_fill_group = k + 1
+                        while next_fill_group < end_idx and ordered_events[next_fill_group][1] == ev_at:
+                            next_fill_group += 1
+                        group = ordered_events[k:next_fill_group]
+                        if len({e[3] for e in group}) > 1:
+                            group_low, group_high = _concurrent_fill_extrema(
+                                group, cash, units, min_prices, max_prices)
+                            low, high = min(low, group_low), max(high, group_high)
                     apply_fill_py(kind, m_idx, eqty, eprice, efee)
                     lo_eq = calc_eq(min_prices)
                     hi_eq = calc_eq(max_prices)
@@ -527,6 +609,11 @@ def _fold_interval_core(
                 current = calc_eq([m.price for m in marks])
                 points.append(EquityPoint(at=ev_at, equity_krw=current, realized_net_total_krw=realized))
             marks = last_marks
+            for market, (lo, hi) in traded.items():
+                proof = confirmed_closes.get(market) if confirmed_closes else None
+                if proof is not None and proof[0] == ms:
+                    lo = hi = proof[1]
+                carried_min[market], carried_max[market] = lo, hi
             current = calc_eq([m.price for m in marks])
             low, high = min(low, current), max(high, current)
             idx = end_idx
@@ -539,7 +626,7 @@ def _fold_interval_core(
         realized_net_total_krw=realized,
         closing_cash_krw=cash,
         closing_units=closing_units,
-        closing_marks=tuple(marks),
+        closing_marks=tuple(mark for mark in marks if mark.symbol not in undisclosed_closing),
         points=tuple(points) + (EquityPoint(at=end, equity_krw=current, realized_net_total_krw=realized),),
     )
 
@@ -647,12 +734,16 @@ def value_trade_paths(
     end: datetime,
     account_scope: str,
     conservative_ms: bool = True,
+    closing_marks: Mapping[str, PriceMark] | None = None,
 ) -> PathValuation:
     """Multi-coin Approach A interval valuation (`<= 4` markets, `<= 12000` prints, `<= 512` fills).
 
     Deterministic merge-join across up to 4 held/traded KRW markets with exact `1e-18` `ROUND_DOWN`
     plus final residual FIFO lot cost release and conservative intra-millisecond `[min_eq, max_eq]`
-    envelope when `conservative_ms=True`. Preserves 100% single-coin behavior when `len(trade_path) <= 1`.
+    envelope for unordered public prints. Across instruments, fills with the same execution instant can
+    interleave subject to cash solvency. Within an instrument the caller supplies reconciled FIFO order.
+    A held coin's last millisecond with conflicting prices needs an independent closing PriceMark.
+    Returned points give one ordering for inspection; the min/max include all supported orderings.
     """
     try:
         with localcontext() as numeric:
@@ -743,6 +834,7 @@ def value_trade_paths(
                     points=(pt0, pt1),
                 )
 
+            _require(active_symbols <= set(trade_path), "CONTINUOUS_TRADE_WINDOW_MISSING")
             markets = tuple(sorted(active_symbols))
             market_index = {sym: idx for idx, sym in enumerate(markets)}
 
@@ -755,12 +847,17 @@ def value_trade_paths(
                     p_at = opening_print.at
                     _number(p_price, positive=True)
                     _instant(p_at)
+                    _require(getattr(opening_print, "market", sym) == sym and p_at < start,
+                             "CONTINUOUS_OPENING_PRINT_MISMATCH")
                     marks_map[sym] = PriceMark(symbol=sym, price=p_price, asof=p_at)
+            _require(all(mark.asof <= start for mark in marks_map.values()), "CONTINUOUS_OPENING_MARK_FUTURE")
             _require(set(markets) <= set(marks_map), "CONTINUOUS_MARK_COVERAGE_INCOMPLETE")
 
             # Merge-join trade prints across <= 4 markets and interval fills deterministically
             merged_rows: list[tuple[int, int, int, int, datetime, int, Decimal, Decimal, Decimal]] = []
             total_prints = 0
+            group_prices = {}
+            last_trade_ms = {}
             for sym in markets:
                 m_idx = market_index[sym]
                 raw_source = trade_path.get(sym, ())
@@ -784,8 +881,11 @@ def value_trade_paths(
                         _instant(p_at)
                         p_price = item.price
                         _number(p_price, positive=True)
-                        p_ms = int(getattr(item, "timestamp_ms", _ms_of(p_at.astimezone(timezone.utc))))
-                        p_seq = int(getattr(item, "sequential_id", idx_p))
+                        p_ms = _ms_of(p_at.astimezone(timezone.utc))
+                        supplied_ms = getattr(item, "timestamp_ms", p_ms)
+                        p_seq = getattr(item, "sequential_id", idx_p)
+                        _require(type(supplied_ms) is int and supplied_ms == p_ms and type(p_seq) is int,
+                                 "CONTINUOUS_MARK_TIME_MISMATCH")
                     elif isinstance(item, tuple) and len(item) == 2:
                         p_at, p_price = item
                         _instant(p_at)
@@ -795,6 +895,8 @@ def value_trade_paths(
                     else:
                         raise ContinuousEvidenceError("CONTINUOUS_MARK_INVALID")
                     _require(start <= p_at < end, "CONTINUOUS_HALF_OPEN_BOUNDARY_REQUIRED")
+                    group_prices.setdefault((sym, p_ms), set()).add(p_price)
+                    last_trade_ms[sym] = max(last_trade_ms.get(sym, p_ms), p_ms)
                     merged_rows.append((
                         p_ms, 0, m_idx, p_seq, p_at, native_accel.TG_EVENT_MARK, _ZERO, p_price, _ZERO,
                     ))
@@ -807,7 +909,41 @@ def value_trade_paths(
                     f_ms, 1, m_idx, idx_f, fill.executed_at, kind, fill.quantity, fill.price, fill.fee_amount,
                 ))
 
-            merged_rows.sort(key=lambda r: (r[0], r[1], r[2], r[3]))
+            _require(closing_marks is None or isinstance(closing_marks, Mapping), "CONTINUOUS_CLOSING_MARK_INVALID")
+            observed_closes = {} if closing_marks is None else closing_marks
+            closing_inventory = {row[3] for row in after.inventory if row[4] != 0}
+            confirmed = {}
+            undisclosed = set()
+            for sym, ms in last_trade_ms.items():
+                prices = group_prices[(sym, ms)]
+                if len(prices) == 1:
+                    continue
+                hint = observed_closes.get(sym)
+                if hint is None:
+                    _require(sym not in closing_inventory, "CONTINUOUS_CLOSING_MARK_AMBIGUOUS")
+                    undisclosed.add(sym)
+                    continue
+                _mark(hint)
+                _require(hint.symbol == sym and _ms_of(hint.asof) == ms and hint.price in prices and hint.asof < end,
+                         "CONTINUOUS_CLOSING_MARK_MISMATCH")
+                confirmed[market_index[sym]] = (ms, hint.price)
+
+            def event_order(row):
+                ms, is_fill, market, index, at, _, _, price, _ = row
+                if is_fill:
+                    # Equal-source instants retain the supplied reconciled fill sequence (FIFO).
+                    return ms, is_fill, at, index
+                return ms, is_fill, market, confirmed.get(market) == (ms, price), index
+
+            merged_rows.sort(key=event_order)
+            fill_markets = {}
+            for fill in interval_fills:
+                fill_markets.setdefault(fill.executed_at, set()).add(fill.symbol)
+            ambiguous = (any(len(prices) > 1 for prices in group_prices.values())
+                         or any(len(coins) > 1 for coins in fill_markets.values()))
+            _require(type(conservative_ms) is bool and (conservative_ms or
+                     all(merged_rows[i-1][0] != row[0] for i, row in enumerate(merged_rows) if i)),
+                     "CONTINUOUS_UNORDERED_TRADES_REQUIRE_ENVELOPE")
             ordered_events = tuple(
                 (r[0], r[4], r[5], r[2], r[6], r[7], r[8])
                 for r in merged_rows
@@ -826,6 +962,9 @@ def value_trade_paths(
                 end=end,
                 previous_equity_krw=previous_equity_krw,
                 conservative_ms=conservative_ms,
+                unordered_marks_or_fills=ambiguous,
+                confirmed_closes=confirmed,
+                undisclosed_closing=frozenset(undisclosed),
             )
             _require(dict(valuation.closing_units) == {row[3]: row[4] for row in after.inventory if row[4] != 0},
                      "CONTINUOUS_CLOSING_INVENTORY_MISMATCH")

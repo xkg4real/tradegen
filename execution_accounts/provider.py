@@ -155,12 +155,14 @@ def _dedupe(rows, key, code):
 
 
 def _check_bid_gap(best_bid: Decimal | None, mark_price: Decimal, bid_gap_y: Decimal | None) -> bool:
-    fast = native_accel.check_bid_gap(best_bid, mark_price, bid_gap_y)
+    # Unset signed Y uses a zero gap for monitoring; entry eligibility is separate.
+    threshold = _ZERO if bid_gap_y is None else bid_gap_y
+    fast = native_accel.check_bid_gap(best_bid, mark_price, threshold)
     if fast is not None:
         return fast
-    if bid_gap_y is None or best_bid is None:
+    if best_bid is None:
         return True
-    return Fraction(best_bid) <= Fraction(mark_price) * (Fraction(1) - Fraction(bid_gap_y))
+    return Fraction(best_bid) <= Fraction(mark_price) * (Fraction(1) - Fraction(threshold))
 
 
 def _account(account, now, bid_gap_y=_UNSET):
@@ -263,6 +265,8 @@ def _account(account, now, bid_gap_y=_UNSET):
         if position.unlisted is True:
             _fresh(position.asof, now)
             _require(position.price == 0, "POSITION_UNLISTED_PRICE_INVALID")
+        elif account.venue != "upbit":
+            _fresh(position.asof, now)
         elif now - position.asof > _STALE:
             _require(position.best_bid_asof is not None or y_supplied, "EVIDENCE_STALE_OR_FUTURE")
             if _check_bid_gap(position.best_bid, position.price, y_value):
@@ -410,13 +414,17 @@ def _build(bundle, now, bid_gap_y=_UNSET):
     reconciled, cancelable, trade_dates = set(), {}, {}
     equity = _ZERO
     bid_gap_triggered = False
+    missing_bid_gap_policy = False
     for account in bundle.accounts:
         _require(type(account) is AccountEvidence, "ACCOUNT_SCHEMA_INVALID")
         _require(account.venue not in scopes, "MULTIPLE_ACCOUNTS_PER_VENUE_UNSUPPORTED")
         _instant(account.origin)
         _require(account.origin.astimezone(compliance.KST).date() <= baseline.first_trading_day,
                  "HISTORY_START_AFTER_FIRST_TRADING_DAY")
-        account_y = bid_gap_y(now, account.account_scope) if callable(bid_gap_y) else bid_gap_y
+        account_y = _UNSET
+        if account.venue == "upbit":
+            account_y = bid_gap_y(now, account.account_scope) if callable(bid_gap_y) else bid_gap_y
+            missing_bid_gap_policy = account_y is None
         result = _account(account, now, account_y)
         if result["bid_gap_triggered"]:
             bid_gap_triggered = True
@@ -449,7 +457,7 @@ def _build(bundle, now, bid_gap_y=_UNSET):
         day_start_equity=baseline.day_start_equity, current_day_realized_net_profit=current,
         prior_day_realized_net_profit=None if first else previous, observed_daily_loss=baseline.observed_daily_loss,
         approved_effective_floor=baseline.approved_effective_floor, is_first_trading_day=first, asof=asof,
-        bid_gap_triggered=bid_gap_triggered, recovery_checkpoint=checkpoint)
+        bid_gap_triggered=bid_gap_triggered, bid_gap_policy_missing=missing_bid_gap_policy, recovery_checkpoint=checkpoint)
     return AccountObservation(positions=compliance.Positions(equity_krw=_legacy(equity), holdings=holdings,
         exposure=exposures), account_scopes=scopes, settled_cash_krw=cash, holdings=exact_holdings,
         risk=observation, asof=asof, server_time=min(server_stamps), no_credit=True, fills=tuple(fills),

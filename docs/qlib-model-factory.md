@@ -54,7 +54,7 @@ A forecast, score, model card, or promotion candidate produced by `qlib_lab` nev
 
 ## 3. Building Native Kernels & Running CLI Workflows
 
-Compile the C++17 native kernel shared library and record its SHA-256 manifest:
+Compile the C++17 native kernel shared library and record its SHA-256 manifest. The loader also requires independent source and binary pins (Linux x86-64, Debian g++ 14.2.0-19). It maps the verified bytes from a sealed file descriptor. Other toolchain outputs and hosts use the NumPy backend.
 
 ```shell
 .venv/bin/python -X utf8 -B -m qlib_lab._accel.build_accel

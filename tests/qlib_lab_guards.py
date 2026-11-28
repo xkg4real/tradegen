@@ -2,10 +2,12 @@
 from __future__ import annotations
 
 import ast
+import hashlib
 import json
 import os
 from pathlib import Path
 import tempfile
+from unittest.mock import patch
 
 import numpy as np
 
@@ -165,6 +167,7 @@ def test_cpp17_accel_build_tamper_guard_and_numpy_parity() -> None:
         os.environ["QLIB_LAB_DISABLE_ACCEL"] = "0"
         lib = _accel.verify_and_load_accel(force_reload=True)
         assert lib is not None and _accel.active_backend() == "cpp17"
+        assert lib._name == f"/proc/self/fd/{lib._tradegen_image.fileno()}"
 
         # 2. Verify SHA-256 tamper refusal in an isolated temporary directory
         with tempfile.TemporaryDirectory() as tmp:
@@ -274,3 +277,41 @@ def test_isolation_refuses_quantgen_and_symlinks() -> None:
             raise AssertionError("Expected RuntimeError when URI is a symlink")
         except RuntimeError:
             pass
+
+
+def test_consistent_unreviewed_build_selects_numpy_before_binding() -> None:
+    with tempfile.TemporaryDirectory() as tmp, patch.dict(os.environ, {"QLIB_LAB_DISABLE_ACCEL": "0"}):
+        directory = Path(tmp)
+        image = directory / "libqlib_accel.so"
+        manifest = directory / "build_manifest.json"
+        sample = b"offline fixture"
+        image.write_bytes(sample)
+        manifest.write_text(json.dumps({
+            "source_sha256": _accel.EXPECTED_SOURCE_SHA256,
+            "binary_sha256": hashlib.sha256(sample).hexdigest(),
+        }), encoding="ascii")
+        with patch.object(_accel.ctypes, "CDLL") as bind:
+            assert _accel.verify_and_load_accel(lib_path=image, manifest_path=manifest) is None
+            bind.assert_not_called()
+
+
+def test_misaligned_series_and_histograms_are_rejected_before_dispatch():
+    x = np.arange(5, dtype=np.float64)
+    bins = np.zeros((5, 2), dtype=np.uint8)
+    hist = np.zeros((2, 256), dtype=np.int64)
+    samples = np.arange(5, dtype=np.int32)
+    bad_calls = (
+        (_accel.wilder_atr, (x[:-1], x, x)),
+        (_accel.rolling_cov, (x, x[1:], 2)),
+        (_accel.rolling_corr, (x, x[1:], 2)),
+        (_accel.hist_build, (bins, x[:-1], x, samples)),
+        (_accel.hist_build, (bins, x, x, samples + 1)),
+        (_accel.hist_subtract, (hist[:, :2], hist, hist, hist, hist, hist)),
+        (_accel.hist_best_split, (hist, hist, hist, [2], None, 1, 0, 1, 0)),
+        (_accel.hist_best_split, (hist, hist, hist, [2, 2], [1], 1, 0, 1, 0)),
+    )
+    with patch.object(_accel, "verify_and_load_accel") as dispatcher:
+        for fn, args in bad_calls:
+            with np.testing.assert_raises(ValueError):
+                fn(*args)
+        dispatcher.assert_not_called()

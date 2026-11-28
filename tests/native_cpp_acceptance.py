@@ -5,20 +5,22 @@ Verifies:
 2. 1,100+ randomized differential test cases across HP-1 .. HP-6 proving 0-ULP / 0-digest
    identity between C++20 native execution and pure Python (TRADEGEN_DISABLE_NATIVE=1).
 3. Seamless TG_FALLBACK_PRECISION fallback for sub-1e-18 precision and >1e20 magnitude inputs.
-4. End-to-end latency speedup benchmarks across HP-1, HP-3, HP-5, and HP-6.
+4. End-to-end latency speedup benchmarks across HP-1, HP-3, and HP-6.
 """
 from __future__ import annotations
 
 from dataclasses import fields, is_dataclass
 from datetime import datetime, timedelta, timezone
-from decimal import Decimal
+from decimal import Decimal, localcontext
 from fractions import Fraction
 import json
+import hashlib
 import math
 import os
 from pathlib import Path
 import random
 import shutil
+import statistics
 import sys
 import tempfile
 import time
@@ -139,6 +141,38 @@ def test_native_manifest_and_tamper_refusal():
     assert _with_native_disabled(native_accel.get_native_handle) is None
 
 
+def test_native_image_requires_reviewed_binary_and_sealed_fd():
+    import fcntl
+
+    handle = _with_native_enabled(native_accel.get_native_handle)
+    fd = handle["lib"]._tradegen_image.fileno()
+    assert fcntl.fcntl(fd, getattr(fcntl, "F_GET_SEALS", 1034)) & 0x0008
+    assert handle["lib"]._name == f"/proc/self/fd/{fd}"
+
+    # A consistent local build manifest is insufficient to select a native kernel.
+    with tempfile.TemporaryDirectory() as tmp:
+        d = Path(tmp)
+        sample = b"offline fixture"
+        manifest = json.loads((native_accel.DEFAULT_BUILD_DIR / "build_manifest.json").read_bytes())
+        manifest["binary_sha256"] = hashlib.sha256(sample).hexdigest()
+        (d / "build_manifest.json").write_text(json.dumps(manifest), encoding="ascii")
+        (d / "libtradegen_fast.so").write_bytes(sample)
+        with patch.object(native_accel, "_bind_library") as bind:
+            assert _with_native_enabled(lambda: native_accel.get_native_handle(build_dir=d)) is None
+            bind.assert_not_called()
+
+
+def test_fp18_roundtrip_is_independent_of_decimal_context():
+    with localcontext() as ctx:
+        ctx.prec = 4
+        for text in ("-98765432109876543210.123456789012345678", "-0.000000000000000001",
+                     "1234.123456789012345678", "-100000000000000000000"):
+            value = D(text)
+            assert native_accel.fp18_to_decimal(*native_accel.decimal_to_fp18(value)) == value
+        for text in ("1e999999", "-1e-999999", "-1.0000000000000000001"):
+            assert native_accel.decimal_to_fp18(D(text)) is None
+
+
 def test_hp1_continuous_interval_differential_260_cases():
     rng = random.Random(2026112701)
     markets_pool = ("KRW-BTC", "KRW-ETH", "KRW-XRP", "KRW-SOL")
@@ -208,18 +242,20 @@ def test_hp1_continuous_interval_differential_260_cases():
                         cur_c -= qty * px + fee
 
         trade_path = {m: tuple(v) for m, v in prints_by.items()}
+        close_marks = {m: continuous.PriceMark(symbol=m, price=rows[-1].price, asof=rows[-1].at)
+                       for m, rows in prints_by.items() if rows}
         o_units_tup = tuple(sorted(o_units_list))
         hist_tup = tuple(hist_fills)
         int_tup = tuple(int_fills)
 
         nat = _with_native_enabled(lambda: continuous.value_trade_paths(
-            trade_path, opening_marks=o_marks, opening_cash_krw=open_cash,
+            trade_path, opening_marks=o_marks, closing_marks=close_marks, opening_cash_krw=open_cash,
             opening_units=o_units_tup, historical_fills=hist_tup, interval_fills=int_tup,
             previous_equity_krw=open_eq, previous_realized_net_krw=D(0),
             start=t_start, end=t_end, account_scope="acct-1",
         ))
         py = _with_native_disabled(lambda: continuous.value_trade_paths(
-            trade_path, opening_marks=o_marks, opening_cash_krw=open_cash,
+            trade_path, opening_marks=o_marks, closing_marks=close_marks, opening_cash_krw=open_cash,
             opening_units=o_units_tup, historical_fills=hist_tup, interval_fills=int_tup,
             previous_equity_krw=open_eq, previous_realized_net_krw=D(0),
             start=t_start, end=t_end, account_scope="acct-1",
@@ -423,6 +459,13 @@ def test_hp3_strategy_and_carry_differential_300_cases():
 
 
 def test_hp5_kis_frame_and_window_differential_150_cases():
+    from tests.kis_live import NOW, TRADE, wire
+
+    for size in (43, 128):
+        frame = wire(changes={"PRDY_VRSS_SIGN": "가" * size})
+        assert "가" in frame
+        parse = lambda: kis_live.parse_frame(frame, (TRADE,), received_at=NOW)
+        assert _with_native_enabled(parse) == _with_native_disabled(parse)
     rng = random.Random(2026112705)
     for i in range(100):
         fields = [f"F{j}_{rng.randint(10, 99999)}" for j in range(12)]
@@ -513,6 +556,26 @@ def test_hp6_odds_mc_and_bid_gap_study_differential():
     assert 0.0 <= s1["favorable_prob"] <= 1.0 and 0.0 <= s1["adverse_prob"] <= 1.0
 
 
+def _latency_samples(workload):
+    backends = (("native", _with_native_enabled), ("python", _with_native_disabled))
+    samples = {name: [] for name, _ in backends}
+    for _, run in backends:
+        run(workload)
+
+    def timed():
+        start = time.perf_counter_ns()
+        workload()
+        return (time.perf_counter_ns() - start) / 1_000_000
+
+    for pair in range(6):
+        for name, run in (backends if pair % 2 == 0 else reversed(backends)):
+            samples[name].append(run(timed))
+    native = statistics.median(samples["native"])
+    python = statistics.median(samples["python"])
+    return {"native": native, "python": python, "speedup_x": python / native,
+            "samples_ms": samples}
+
+
 def test_native_latency_benchmarks():
     rng = random.Random(2026112799)
 
@@ -543,25 +606,15 @@ def test_native_latency_benchmarks():
     }
     prev_eq = D("10000000") + D("6000000")
 
-    t0 = time.perf_counter()
-    for _ in range(5):
-        _with_native_enabled(lambda: continuous.value_trade_paths(
+    def _run_hp1_workload():
+        return continuous.value_trade_paths(
             prints_by, opening_marks=o_m, opening_cash_krw=D("10000000"),
             opening_units=o_u, historical_fills=h_fills, interval_fills=(),
             previous_equity_krw=prev_eq, previous_realized_net_krw=D(0),
             start=t_start, end=t_end, account_scope="acct-1",
-        ))
-    hp1_nat_ms = (time.perf_counter() - t0) * 1000.0 / 5.0
+        )
 
-    t0 = time.perf_counter()
-    for _ in range(2):
-        _with_native_disabled(lambda: continuous.value_trade_paths(
-            prints_by, opening_marks=o_m, opening_cash_krw=D("10000000"),
-            opening_units=o_u, historical_fills=h_fills, interval_fills=(),
-            previous_equity_krw=prev_eq, previous_realized_net_krw=D(0),
-            start=t_start, end=t_end, account_scope="acct-1",
-        ))
-    hp1_py_ms = (time.perf_counter() - t0) * 1000.0 / 2.0
+    hp1 = _latency_samples(_run_hp1_workload)
 
     # Benchmark 2: HP-3 2,000-bar multi-lot decimal carry simulation + 2,000-mark MA crossover
     n_bars = 2000
@@ -611,18 +664,10 @@ def test_native_latency_benchmarks():
         for _ in range(10):
             LP.target_fraction(ma_bench_spec, marks_2000)
 
-    t0 = time.perf_counter()
-    for _ in range(3):
-        _with_native_enabled(_run_hp3_workload)
-    hp3_nat_ms = (time.perf_counter() - t0) * 1000.0 / 3.0
-
-    t0 = time.perf_counter()
-    for _ in range(2):
-        _with_native_disabled(_run_hp3_workload)
-    hp3_py_ms = (time.perf_counter() - t0) * 1000.0 / 2.0
+    hp3 = _latency_samples(_run_hp3_workload)
 
     # Benchmark 3: HP-6 10,000-path Monte Carlo odds simulation
-    with CF.temp_home() as home, CF.pubkey_at(home / "test-anchor.pem"), OF.chunk(), OF.pilots():
+    with CF.temp_home() as home, CF.pubkey_at(home / "test-anchor.pem"), OF.chunk(10_000), OF.pilots():
         CF.full_home(
             home, venues_raw=OF.ODDS_VENUES,
             limits={"total_loss_floor_krw": 2000.0, "daily_loss_krw": 5000.0}, cap=0.1,
@@ -644,28 +689,20 @@ def test_native_latency_benchmarks():
             fraction=odds_plan.fixed(0.3),
         )
         inputs = OF.inputs(plan, series, now=now)
-        t0 = time.perf_counter()
-        for _ in range(5):
-            _with_native_enabled(lambda: odds_sim.simulate(plan, ctx, inputs))
-        hp6_nat_ms = (time.perf_counter() - t0) * 1000.0 / 5.0
 
-        t0 = time.perf_counter()
-        for _ in range(2):
-            _with_native_disabled(lambda: odds_sim.simulate(plan, ctx, inputs))
-        hp6_py_ms = (time.perf_counter() - t0) * 1000.0 / 2.0
+        def _run_hp6_workload():
+            report = odds_sim.simulate(plan, ctx, inputs)
+            assert len(report.columns) == 12 and report.n == 10_000
+            assert all(column.n == 10_000 for column in report.columns)
 
-    assert hp1_nat_ms < hp1_py_ms, (hp1_nat_ms, hp1_py_ms)
-    assert hp3_nat_ms < hp3_py_ms, (hp3_nat_ms, hp3_py_ms)
-    assert hp6_nat_ms < hp6_py_ms, (hp6_nat_ms, hp6_py_ms)
-    print(json.dumps({
-        "benchmark": "tradegen_fast_cpp20",
-        "hp1_4coin_4000prints_ms": {"native": round(hp1_nat_ms, 2), "python": round(hp1_py_ms, 2),
-                                    "speedup_x": round(hp1_py_ms / hp1_nat_ms, 2)},
-        "hp3_2000bars_carry_ms": {"native": round(hp3_nat_ms, 2), "python": round(hp3_py_ms, 2),
-                                  "speedup_x": round(hp3_py_ms / hp3_nat_ms, 2)},
-        "hp6_10000paths_mc_ms": {"native": round(hp6_nat_ms, 2), "python": round(hp6_py_ms, 2),
-                                 "speedup_x": round(hp6_py_ms / hp6_nat_ms, 2)},
-    }, sort_keys=True))
+        hp6 = _latency_samples(_run_hp6_workload)
+
+    results = {"hp1_4coin_4000prints_ms": hp1, "hp3_2000bars_carry_ms": hp3,
+               "hp6_10000paths_mc_ms": hp6}
+    print(json.dumps({"benchmark": "tradegen_fast_cpp20", "statistic": "median", **results},
+                     sort_keys=True), flush=True)
+    for workload, measurement in results.items():
+        assert measurement["native"] < measurement["python"], (workload, measurement)
 
 
 def tests():

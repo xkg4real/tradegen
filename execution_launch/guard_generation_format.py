@@ -166,10 +166,18 @@ def _policy(value, *, decode=False):
 
 
 def _owner_value(value, *, decode=False):
-    body = _keys(value, _OWNER_FIELDS) if decode else _attributes(value, OwnerContextClaim, _OWNER_FIELDS)
+    # Old envelopes omitted the cap. Preserve their exact field set on round trips.
+    optional = 'signed_bid_gap_fraction'
+    extended = (*_OWNER_FIELDS, optional)
+    if decode:
+        body = _keys(value, extended if type(value) is dict and optional in value else _OWNER_FIELDS)
+    else:
+        body = _attributes(value, OwnerContextClaim, extended)
     values = {name:_hash(body[name]) for name in _OWNER_HASHES}
     for name in ('signed_floor_krw', 'signed_daily_loss_krw'):
         values[name] = _scalar(body[name], 'Decimal', decode=decode)
+    if (decode and optional in body) or (not decode and body[optional] is not None):
+        values[optional] = _scalar(body[optional], 'Decimal', decode=decode)
     values['observed_at'] = _scalar(body['observed_at'], 'datetime', decode=decode)
     if decode:
         result = OwnerContextClaim(**values)

@@ -406,7 +406,7 @@ def fit_and_freeze_models(
     heldout_seconds: int = 7 * 86400,
 ) -> dict[str, Any]:
     """Fit M, B1, and B0 on the same purged training bars and return sealed frozen artifacts + fit report."""
-    require(type(feature_table) is dict and feature_table.get("format") == dfb.FEATURE_TABLE_FORMAT, "FEATURE_TABLE_FORMAT")
+    dfb.verify_feature_table(feature_table)
     step_seconds = int(feature_table["step_seconds"])
     market = str(feature_table["market"])
     feature_names: list[str] = list(feature_table["feature_names"])
@@ -435,8 +435,11 @@ def fit_and_freeze_models(
     )
     require(len(candidate_rows) >= 6, "INSUFFICIENT_TRAINING_ROWS")
 
-    incomplete_count = sum(1 for r in candidate_rows if not r["complete"])
-    missing_rate = incomplete_count / float(len(candidate_rows))
+    expected = {end for end in bars_by_end if train_start <= end <= train_end - horizon_seconds}
+    observed = {r["as_of"] for r in candidate_rows}
+    require(len(observed) == len(candidate_rows) and observed <= expected, "INVALID_TRAINING_FEATURE_GRID")
+    complete_count = sum(1 for r in candidate_rows if r["complete"])
+    missing_rate = (len(expected) - complete_count) / len(expected)
     require(missing_rate <= 0.05 + 1e-12, "S1_MISSING_FEATURES_EXCEED_5PCT")
 
     labeled_rows: list[dict[str, Any]] = []
@@ -564,7 +567,7 @@ def fit_and_freeze_models(
         "train_end": train_end,
         "training_cutoff": training_cutoff,
         "frozen_at": frozen_at,
-        "candidate_row_count": len(candidate_rows),
+        "candidate_row_count": len(expected),
         "complete_row_count": n_rows,
         "missing_rate": missing_rate,
         "d1_event_count": d1_event_count,

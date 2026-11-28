@@ -83,7 +83,7 @@ REVOCATION_NATIVE_PATH = "core/compliance/revocation_paths.py"
 # review; this does not allow ctypes imports throughout core/compliance.
 REVOCATION_NATIVE_AST_SHA256 = "e0e4cce0ff3f27552524f8554c4f7fe0775bd8244898da29c2d1435bc7479f6d"
 ACCEL_NATIVE_PATH = "core/compliance/native_accel.py"
-ACCEL_NATIVE_AST_SHA256 = "809ebf1cda748f78344855250d601a7d2c9e4650b17c91a6e22b89adb17a1a18"
+ACCEL_NATIVE_AST_SHA256 = "07886a8faabee62e1d5dee9b8c971259e10f5e9e434baa7419e5096c9f418553"
 
 
 # --------------------------------------------------------------------------- #

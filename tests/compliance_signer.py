@@ -47,10 +47,6 @@ _VALID = {                                          # one valid data object per 
     "transfer_ack": {"intent_hash": "d" * 64, "warning_sha256": "e" * 64},
     "key_rotated": {"old_pubkey_b64": base64.b64encode(bytes(range(32))).decode("ascii"),
                     "new_pubkey_b64": base64.b64encode(bytes(32)).decode("ascii")},
-    "bid_gap_set": {"scope": "upbit", "y": "0.02", "effective_from": None},
-    "bid_gap_clear": {"scope": "upbit", "reason": "owner reset"},
-    "protective_terms_set": {"scope": "upbit", "trailing_stop_x": "0.03",
-                             "halt_margin_krw": "10000", "daily_margin_krw": "2000"},
     "system_halt": {"floor_krw": 21000.0},
     "system_disarm": {"session_id": "S1", "reason": "floor reached"},
 }
@@ -2015,3 +2011,48 @@ def test_research_revocation_parent_swap_cannot_create_anchor_directory_outside_
         finally:
             if approved.is_symlink():approved.unlink()
             if moved.exists():moved.rename(approved)
+
+
+def test_bid_gap_is_optional_canonical_numeric_and_only_signed_inside_limit_set():
+    legacy = {"total_loss_floor_krw": 100.0, "daily_loss_krw": 5.0}
+    assert signer._data_problem("limit_set", legacy) == owner._data_problem("limit_set", legacy) == ""
+    for y in (0.02, 0.05, 3e-27):
+        data = {**legacy, "bid_gap_fraction": y}
+        signer.check_data("limit_set", data)
+        assert owner._data_problem("limit_set", data) == ""
+    for y in (None, True, "0.05", 0, "0", "0.000", "NaN", "Infinity", "-0.01",
+              "5e-2", " 0.03", "0.0500000000000000000001", [], {}):
+        data = {**legacy, "bid_gap_fraction": y}
+        _raises(lambda: signer.check_data("limit_set", data), ValueError)
+        assert owner._data_problem("limit_set", data)
+    for kind in ("bid_gap_set", "bid_gap_clear", "protective_terms_set"):
+        assert kind not in owner.OWNER_KINDS
+        _raises(lambda: signer.check_data(kind, {}), ValueError)
+
+
+def test_bid_gap_cli_refuses_literal_rounding_before_confirmation_and_signed_rows_stay_canonical():
+    valid = '{"total_loss_floor_krw":100,"daily_loss_krw":5,"bid_gap_fraction":TOKEN}'
+    delivered = []
+
+    def sign_fixture(args, kind, data):
+        signer.check_data(kind, data)
+        delivered.append(data["bid_gap_fraction"])
+        return 0
+
+    with _patched(signer, "_sign", sign_fixture):
+        def issue(token):
+            args = signer._parser().parse_args(["event", "limit_set", "--data", valid.replace("TOKEN", token)])
+            return args.run(args)
+        assert issue("0.0200") == 0
+        for token in ("0.050000000000000000001", "0.04999999999999999999999", "1e-400", '"0.02"', "true"):
+            _raises(lambda: issue(token), ValueError)
+        assert delivered == [0.02]
+
+    row, _ = signer.entry_line(fx.test_key(), 1, owner.GENESIS_PREV, "limit_set",
+                               {"total_loss_floor_krw": 100.0, "daily_loss_krw": 5.0, "bid_gap_fraction": 0.05},
+                               "2026-11-25T01:00:00Z")
+    changed = row.replace(b'"bid_gap_fraction":0.05', b'"bid_gap_fraction":0.05000000000000000001')
+    assert changed != row
+    for parse in (owner._parse_line, signer._parse_line):
+        parse(1, row, owner.GENESIS_PREV)
+        _raises(lambda: parse(1, changed, owner.GENESIS_PREV), ValueError)

@@ -16,12 +16,12 @@ import json
 from execution_control.risk import RecoveryCheckpoint
 
 
-_OMIT_IF_NONE = frozenset({"unlisted", "best_bid", "best_bid_asof"})
+_OMIT_IF_NONE = frozenset({"unlisted", "best_bid", "best_bid_asof", "signed_bid_gap_fraction"})
 
 
 def canonical(value):
     if is_dataclass(value) and not isinstance(value, type):
-        # Optional Position fields are left out while None, so every older evidence digest is unchanged.
+        # Optional fields are omitted while absent to preserve archived evidence digests.
         return {f.name: canonical(getattr(value, f.name)) for f in fields(value)
                 if not (f.name in _OMIT_IF_NONE and getattr(value, f.name) is None)}
     if type(value) is Decimal:

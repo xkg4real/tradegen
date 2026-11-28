@@ -229,7 +229,8 @@ def test_changed_owner_head_code_or_effective_limit_requires_real_timeline():
     state, pol, context = seed()
     args = build(state, pol, context)
     for change in (dict(owner_head_sha256="f"*64), dict(code_sha256="f"*64),
-                   dict(signed_floor_krw=D("99")), dict(signed_daily_loss_krw=D("11"))):
+                   dict(signed_floor_krw=D("99")), dict(signed_daily_loss_krw=D("11")),
+                   dict(signed_bid_gap_fraction=D("0.01"))):
         altered = args | {"owner_after": replace(args["owner_after"], **change)}
         refused(lambda: plan_continuous_guard(state, **altered), "GUARD_OWNER_TIMELINE_REQUIRED")
 

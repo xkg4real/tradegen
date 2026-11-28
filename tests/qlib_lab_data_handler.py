@@ -244,16 +244,16 @@ def test_dataseth_fit_leakage_purging_embargo_and_test_label_lock() -> None:
         },
         embargo_bars=2,
     )
-    # Valid starts at bar 31 -> embargo=2 trims train_end to bar 28 -> horizon=3 purges bars 26,27,28 -> max train bar is 25!
+    # The embargo ends training at close 28; the bar closing there arrives 15 seconds later.
     tr_df = ds.prepare("train", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)
     max_tr_ep = int(tr_df.index.get_level_values("datetime").max().timestamp())
-    assert max_tr_ep == t0 + 25 * step, (max_tr_ep, t0 + 25 * step)
+    assert max_tr_ep == t0 + 24 * step
 
-    # Test starts at bar 49 -> embargo=2 trims valid_end to bar 46 -> horizon=3 purges bars 44,45,46 -> max valid bar is 43!
+    # Likewise the last available validation outcome is from bar 45, received 15 seconds later.
     va_df = ds.prepare("valid", col_set=["feature", "label"], data_key=DataHandlerLP.DK_L)
     max_va_ep = int(va_df.index.get_level_values("datetime").max().timestamp())
-    assert max_va_ep == t0 + 43 * step
-    assert ds.effective_training_cutoff(include_valid=True) == t0 + 46 * step
+    assert max_va_ep == t0 + 42 * step
+    assert ds.effective_training_cutoff(include_valid=True) == t0 + 45 * step + 15
 
     # 3. Blocking test label access outside authorized_eval_context
     for bad_kwargs in (

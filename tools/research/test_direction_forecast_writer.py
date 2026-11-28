@@ -105,6 +105,7 @@ class DirectionForecastWriterTests(unittest.TestCase):
                 if r["as_of"] > frozen_at and r["complete"]:
                     r["features"]["D2"] = 999.0
                     break
+            ftable_tampered["table_sha256"] = dmf.sha256_ascii({k: v for k, v in ftable_tampered.items() if k != "table_sha256"})
             with self.assertRaisesRegex(StudyError, "FORECAST_REVISED"):
                 dfw.build_forecasts_from_model(
                     artifact=model_m,
@@ -150,6 +151,7 @@ class DirectionForecastWriterTests(unittest.TestCase):
         # S4 check: changing feature_builder_commit in feature_table refuses forecast generation
         ftable_s4 = copy.deepcopy(ftable)
         ftable_s4["feature_builder_commit"] = "f" * 40
+        ftable_s4["table_sha256"] = dmf.sha256_ascii({k: v for k, v in ftable_s4.items() if k != "table_sha256"})
         with self.assertRaisesRegex(StudyError, "S4_FROZEN_DEFINITION_CHANGED"):
             dfw.build_forecasts_from_model(
                 artifact=b0_tie,

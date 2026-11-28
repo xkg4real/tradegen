@@ -1,13 +1,10 @@
-"""Controlled live owner composition root with separate order keys and A2 Protective Hold.
+"""Controlled Upbit owner launcher under independent review.
 
     python -m tools.owner.live --config PRIVATE_LIVE_CONFIG.json
 
-Enforces an exclusive non-blocking live.lock under TRADEGEN_HOME, verifies that
-order credentials (UPBIT_ORDER_ACCESS_KEY / UPBIT_ORDER_SECRET_KEY) are set and
-distinct from inquiry credentials (UPBIT_ACCESS_KEY / UPBIT_SECRET_KEY), disarms
-any leftover armed owner session on startup, and wires VenueOrderTransport,
-held-capable UpbitIntervalSource (Blocker 1 Approach A), ProtectiveStore (A2),
-CurrentPlanner (D14-clean), and Coordinator(mode="controlled").
+The staged interval source lacks production guard and held-position authority.
+A valid configuration returns LIVE_PRODUCTION_AUTHORITY_REQUIRED before any
+credential access, network request, state change, or order.
 """
 from __future__ import annotations
 
@@ -157,23 +154,23 @@ class _LiveLock:
 def load_live_credentials(account_scope: str, *, key_reader: Callable = keys.read) -> Callable[[str, str], Credentials]:
     """Load Upbit order keys and verify strict separation from Upbit inquiry keys."""
     _need(type(account_scope) is str and _ID.fullmatch(account_scope) is not None, "LIVE_ACCOUNT_SCOPE_REQUIRED")
-    try:
-        inq_ak, inq_sk = key_reader(("UPBIT_ACCESS_KEY", "UPBIT_SECRET_KEY"))
-    except keys.KeyMissing:
-        raise LiveError("LIVE_INQUIRY_CREDENTIALS_REQUIRED") from None
-    try:
-        ord_ak, ord_sk = key_reader(("UPBIT_ORDER_ACCESS_KEY", "UPBIT_ORDER_SECRET_KEY"))
-    except keys.KeyMissing:
-        raise LiveError("LIVE_ORDER_CREDENTIALS_REQUIRED") from None
-    _need(all(type(v) is str and 0 < len(v) <= 4096 and not any(ord(c) < 32 or ord(c) == 127 for c in v)
-              for v in (inq_ak, inq_sk, ord_ak, ord_sk)), "LIVE_ORDER_CREDENTIALS_REQUIRED")
-    _need(len({inq_ak, inq_sk} & {ord_ak, ord_sk}) == 0 and ord_ak != ord_sk,
-          "LIVE_ORDER_INQUIRY_KEY_COLLISION")
-
     def _resolve(venue: str, scope: str) -> Credentials:
         _need(venue == "upbit" and scope == account_scope, "LIVE_CREDENTIAL_SCOPE_MISMATCH")
+        try:
+            inq_ak, inq_sk = key_reader(("UPBIT_ACCESS_KEY", "UPBIT_SECRET_KEY"))
+        except keys.KeyMissing:
+            raise LiveError("LIVE_INQUIRY_CREDENTIALS_REQUIRED") from None
+        try:
+            ord_ak, ord_sk = key_reader(("UPBIT_ORDER_ACCESS_KEY", "UPBIT_ORDER_SECRET_KEY"))
+        except keys.KeyMissing:
+            raise LiveError("LIVE_ORDER_CREDENTIALS_REQUIRED") from None
+        _need(all(type(v) is str and 0 < len(v) <= 4096 and not any(ord(c) < 32 or ord(c) == 127 for c in v)
+                  for v in (inq_ak, inq_sk, ord_ak, ord_sk)), "LIVE_ORDER_CREDENTIALS_REQUIRED")
+        _need(len({inq_ak, inq_sk} & {ord_ak, ord_sk}) == 0 and ord_ak != ord_sk,
+              "LIVE_ORDER_INQUIRY_KEY_COLLISION")
         return Credentials(venue="upbit", account_scope=account_scope, access_key=ord_ak, secret_key=ord_sk)
 
+    _resolve("upbit", account_scope)
     return _resolve
 
 
@@ -499,6 +496,11 @@ def build_live(config_path: str, *, clock: Callable[[], datetime],
     """Construct the controlled live OwnerRuntime with exclusive lock, separate order keys, and A2 store."""
     _need(callable(clock) and callable(key_reader) and callable(bars_reader), "LIVE_CLOCK_REQUIRED")
     config = load_live_config(read_file(config_path, MAX_CONFIG_BYTES))
+    # This source can construct a preview. It cannot attest coverage or commit the
+    # chronological guard transaction at a live controller boundary.
+    intervals = UpbitIntervalSource(trade_window_collector=collect_trade_window,
+                                    order_fill_collector=collect_order_fills)
+    _need(intervals.execution_ready, "LIVE_PRODUCTION_AUTHORITY_REQUIRED")
     root = _root(Path(config["state_root"]))
     _need(not root.is_relative_to(Path.home() / ".tradegen"), "LIVE_ISOLATED_STATE_REQUIRED")
     lock = _LiveLock(root)
@@ -517,11 +519,11 @@ def build_live(config_path: str, *, clock: Callable[[], datetime],
         _need(audit.coverage.quiescent_from <= now <= until <= audit.coverage.quiescent_until
               and until <= audit.coverage.history_through, "LIVE_ACCOUNT_FENCE_INCOMPLETE")
 
-        # Disarm any leftover armed owner sessions before constructing live order controls
+        # Closing an older arming requires a reconciled startup unit. Reading
+        # config, or a failed build, must never mutate the owner's log.
         snap = owner.load_owner_snapshot(now)
         _need(snap.ok, "LIVE_OWNER_LOG_INVALID")
-        for sid in sorted(snap.armed_sessions):
-            owner.append_system_entry("system_disarm", {"session_id": sid, "reason": "startup_recovery"}, now=now)
+        _need(not snap.armed_sessions, "LIVE_RECONCILED_STARTUP_REQUIRED")
 
         store = CheckpointStore(root=root)
         head = BaselineHead(root=hroot, name="account-baseline", chain=CheckpointChain(store))
@@ -562,10 +564,6 @@ def build_live(config_path: str, *, clock: Callable[[], datetime],
             raise LiveError("LIVE_PROTECTIVE_STORE_NOT_INITIALIZED") from None
 
         source = _AccountSource(E1UpbitSource(account_scope=audit.account_scope, state_directory=root, clock=clock), guard)
-        intervals = UpbitIntervalSource(
-            trade_window_collector=collect_trade_window,
-            order_fill_collector=collect_order_fills,
-        )
 
         def prefetch(previous):
             return intervals.collect(

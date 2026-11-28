@@ -430,6 +430,16 @@ def run_stage2_replay(
 ) -> dict[str, Any]:
     """Run 3-arm Stage 2 replay (static, M, B1) and evaluate Criterion 3."""
     require(type(stage1_report) is dict and stage1_report.get("outcome") == "PASS", "STAGE1_NOT_PASSED")
+    require(stage1_report.get("format") == s1e.STAGE1_REPORT_FORMAT and stage1_report.get("mode") == "final",
+            "INVALID_STAGE1_REPORT")
+    require(sha256_ascii({k: v for k, v in stage1_report.items() if k != "report_sha256"})
+            == stage1_report.get("report_sha256"), "STAGE1_REPORT_HASH_MISMATCH")
+    evidence = stage1_report.get("gate_evidence")
+    require(type(evidence) is dict, "STAGE1_EVIDENCE_MISSING")
+    fields = evidence["study_fields"]
+    require(all(k in study for k in fields) and sha256_ascii({k: study[k] for k in fields}) == evidence["study_sha256"],
+            "STAGE1_STUDY_CHANGED")
+    require(sha256_ascii(stage1_history) == evidence["history_sha256"], "STAGE1_HISTORY_CHANGED")
     passing_m_dirs = frozenset(stage1_report.get("passing_directions", ()))
     require(len(passing_m_dirs) >= 1, "STAGE1_NOT_PASSED")
 
@@ -456,10 +466,15 @@ def run_stage2_replay(
     prev_ts = -1
     for drec in daily_quote_records:
         kdate = str(drec["kst_date"])
+        require(kdate not in expected_per_day and drec.get("market") == study["market"]
+                and drec.get("scope") == study["scope"] and drec.get("interval_seconds") == interval_sec,
+                "QUOTE_STUDY_MISMATCH")
+        uqr.verify_daily_quotes(drec)
         expected_per_day[kdate] = int(drec.get("expected_observations", 86400 // interval_sec))
         for obs in drec["observations"]:
             ts = parse_epoch_int(obs["as_of"], low=1, error_code="CHRONOLOGY_UNRESOLVED")
-            require(ts > prev_ts, "CHRONOLOGY_UNRESOLVED")
+            require(ts > prev_ts and ts > evidence["evaluated_at"] and kst_date_iso(ts) == kdate,
+                    "CHRONOLOGY_UNRESOLVED")
             prev_ts = ts
             all_obs.append(dict(obs))
     require(len(all_obs) > 0, "NO_STAGE2_OBSERVATIONS")
@@ -494,6 +509,21 @@ def run_stage2_replay(
     m_model, m_forecasts = _prepare_forecasts_for_adapter(m_snapshots, m_receipt_times)
     b1_model, b1_forecasts = _prepare_forecasts_for_adapter(b1_snapshots, b1_receipt_times)
 
+    for arm, model, forecasts, pin in (("M", m_model, m_forecasts, "forecast_model"),
+                                       ("B1", b1_model, b1_forecasts, "b1_forecast_model")):
+        require({k: model[k] for k in ("name", "version", "sha256")} == study[pin], "STAGE1_MODEL_CHANGED")
+        require(s1e.gate_forecasts_digest(forecasts, study) == evidence[arm + "_sha256"], "STAGE1_FORECASTS_CHANGED")
+
+    def eligible_in_replay(forecasts):
+        # A batch that was unavailable at the stage 1 decision never gains a holdout vote.
+        return [f for f in forecasts if f["as_of"] + horizon > study["evaluation_end"]
+                or f["issued_at"] <= evidence["evaluated_at"]]
+
+    horizon = study["horizon_seconds"]
+    m_forecasts = eligible_in_replay(m_forecasts)
+    b1_forecasts = eligible_in_replay(b1_forecasts)
+    # Later prices cannot contribute new holdout evidence to the frozen gate.
+    stage1_history = {**stage1_history, "bars": [b for b in stage1_history["bars"] if b["end"] <= study["evaluation_end"]]}
     market = str(study["market"])
     step_sec = int(study["step_seconds"])
     horizon_sec = int(study["horizon_seconds"])
@@ -562,7 +592,7 @@ def run_stage2_replay(
         observations=all_obs,
         stage1_history=stage1_history,
         model_study=study_b1,
-        direction_source=_gated_direction_source(b1_model, b1_forecasts, None),
+        direction_source=_gated_direction_source(b1_model, b1_forecasts, frozenset(stage1_report["b1_passing_directions"])),
         ceiling_y_str=ceiling_y_str,
         latch_convention=latch_conv,
         interval_seconds=interval_sec,
