@@ -4,13 +4,13 @@ reason: manual
 from: gpt
 task: upbit-universe
 cycle: 2026-11-24
-done_ids: owner-merges-1127, blocker1-approach-a-code/a1-a2, protective-hold/p2-integration, launch-planner-provider-1, launch-controlled-coordinator-1, live-cpp20-accel-1, m11-didm-quantgpt-section12-1, qlib-lab-model-factory-1, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1/account-fixtures, pr79-upbit-receipt-review-1
-next_ids: pr79-independent-review-1, rules-review-1202, policy-loss-budget-plan-1, launch-multi-market-validation-1, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, universe-pr5, universe-pr5/recovery-operations, universe-pr5-clock-notify, launch-private-capture-setup-1, universe-code-approve, e1-14-owner-setup, launch-prospective-study
-updated_at: 2026-11-28T13:06:30+09:00
+done_ids: owner-merges-1127, blocker1-approach-a-code/a1-a2, protective-hold/p2-integration, launch-planner-provider-1, launch-controlled-coordinator-1, live-cpp20-accel-1, m11-didm-quantgpt-section12-1, qlib-lab-model-factory-1, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1/account-fixtures, pr79-upbit-receipt-review-1, rules-review-1202/preparation, policy-loss-budget-plan-1, pr79-study-gate-repair-1, pr79-native-integrity-1
+next_ids: pr79-independent-review-1, rules-review-1202, launch-multi-market-validation-1, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, universe-pr5, universe-pr5/recovery-operations, universe-pr5-clock-notify, launch-private-capture-setup-1, universe-code-approve, e1-14-owner-setup, launch-prospective-study
+updated_at: 2026-11-28T13:12:15+09:00
 stale_after_hours: 24
 waiting_on: none
 work_branch: gpt/pr79-followup-20261128
-work_commit: 71508dc
+work_commit: 171365f
 uncommitted_changes: no
 pr: 80 (PR #79 대상 후속 초안), 79 (검토 중), 69 (초안)
 usage_weekly_pct: unknown
@@ -64,6 +64,8 @@ session: Codex Cloud, PR #79 독립 검증
 | Qlib 방식 모형 팩토리를 동결된 `research_lab/` 밖의 최상위 `qlib_lab/`으로 신설하고 `pickle`을 전면 금지(JSON + `allow_pickle=False` NPZ) | `research_lab/run.py`는 9개 파일 바이트 해시가 고정된 과거 연구이므로 수정 불가하며, `pickle`은 임의 코드 실행 위험이 있어 TRADEGEN 보안 기준과 충돌함. 또한 `RollingGen`에서 프로세서 `[fit_start_time, fit_end_time]`을 창마다 자동 재결속하고 비중첩 `[active_from, active_until)`만 노출해 Qlib 원본 `manager.py`의 신호 오염 문제를 구조적으로 해결 | `research_lab/` 내부 확장 또는 원본 `pyqlib` 패키지 설치: 동결 연구 검증 파괴 및 `constraints.txt` 외부 의존성 오염으로 기각 |
 
 ## 4. 진행 상황
+
+- [x] 12월 규칙 재검토 자료, PLB 모의 검증 및 구현 순서 작성. 연구 시점·자료 동일성, 네이티브 무결성 보완. PR #80의 코드 기준을 `171365f`에 고정해 운영 권한·계좌·제어·준법 전체 시험 실행 중.
 
 - [x] KIS 9개, OKX 8개, 다시장 대사 4개 모의 검사. 업비트 체결 자료 경계 7개 검사. 입력과 거절 조건을 각 후보 커밋에 보존.
 - [ ] 원 사양 비교와 포괄적 검증 진행. 아래 Antigravity 기록은 원 커밋의 주장으로 보존한다.
