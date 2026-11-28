@@ -10,8 +10,10 @@ import re
 from decimal import Decimal, InvalidOperation, localcontext
 from pathlib import Path
 
-FAMILIES = frozenset({"stock", "bond", "etf", "eln", "crypto", "prediction", "other"})
-CORE_FAMILIES = FAMILIES - {"other"}
+CORE_FAMILIES = frozenset({"stock", "bond", "etf", "eln", "crypto", "prediction"})
+CONTRACT_FAMILIES = frozenset({"eln", "prediction", "option", "future", "swap", "etn", "structured_note", "warrant"})
+MODELED_FAMILIES = CORE_FAMILIES | CONTRACT_FAMILIES | {"fund", "fx", "commodity"}
+REFERENCE_FAMILIES = frozenset({"index", "asset_reference"})
 REFERENCE_TYPES = frozenset({"company_guidance", "survey_consensus", "prior_observation", "preregistered_baseline"})
 COSTS = ("execution_bps", "fx_bps", "tax_bps", "other_bps")
 BASIS = "total_return_on_invested_cash"
@@ -147,7 +149,6 @@ def _event(study, folder, decision, clock):
 
 def _candidate_scope(c):
     identity = {key: text(c, key) for key in ("instrument_id", "family", "venue", "symbol", "payoff_id")}
-    require(identity["family"] in FAMILIES, "unsupported family")
     require(c.get("market_access") in {"unknown", "unavailable", "paper_only", "reported_access"},
             "invalid market_access")
     return identity
@@ -161,8 +162,12 @@ def _evaluate(c, common, event, first_publication, decision, folder, clock):
     for key, reason_missing in (("response", "MISSING_RESPONSE"), ("costs", "MISSING_COSTS")):
         if row[key] is None:
             reason = reason or reason_missing
-    if c["family"] in {"eln", "prediction"} and not c.get("terms_sha256"):
+    if c["family"] in CONTRACT_FAMILIES and not c.get("terms_sha256"):
         reason = reason or "MISSING_CONTRACT_TERMS"
+    if c["family"] in REFERENCE_FAMILIES:
+        reason = "REFERENCE_ONLY"
+    elif c["family"] not in MODELED_FAMILIES:
+        reason = (reason or "UNMODELED_FAMILY") if c["family"] == "other" else "UNMODELED_FAMILY"
     if c.get("listing_status", "listed") != "listed":
         require(c["listing_status"] in {"unverified", "placeholder"}, "invalid listing status")
         reason = "LISTING_NOT_VERIFIED"
@@ -172,7 +177,7 @@ def _evaluate(c, common, event, first_publication, decision, folder, clock):
     response = _receipt(folder, row["response"], "response")
     costs = _receipt(folder, row["costs"], "costs")
     expected = {**scope, **common}
-    if c["family"] in {"eln", "prediction"}:
+    if c["family"] in CONTRACT_FAMILIES:
         _read(folder, c["terms_sha256"], ".blob")
         expected["terms_sha256"] = c["terms_sha256"]
     if any(any(type(record.get(k)) is not type(v) or record[k] != v for k, v in expected.items())

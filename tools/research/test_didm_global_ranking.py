@@ -115,6 +115,23 @@ class GlobalRanking(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "duplicate listed payoff"):
             self.run_study()
 
+    def test_extensible_source_families_and_investible_payoffs(self):
+        self.study["candidates"] = [self.instrument("equity", "stock", "spot")]
+        for family in ("option", "future", "swap", "etn", "structured_note", "warrant", "eln", "prediction",
+                       "index", "asset_reference", "vendor:novel_certificate", "fund", "commodity", "fx"):
+            self.study["candidates"].append(self.instrument(family, family, "contract"))
+        result = self.run_study()
+        rows = {r["family"]: r for r in result["candidates"]}
+        self.assertEqual(len(rows), 15)
+        for family in g.CONTRACT_FAMILIES:
+            self.assertEqual(rows[family]["status"], "MISSING_CONTRACT_TERMS")
+        for family in ("index", "asset_reference"):
+            self.assertEqual(rows[family]["status"], "REFERENCE_ONLY")
+            self.assertFalse(rows[family]["execution_ready"])
+        self.assertEqual(rows["vendor:novel_certificate"]["status"], "UNMODELED_FAMILY")
+        self.assertEqual(result["scored_count"], 4)
+        self.assertIsNone(result["best_in_declared_universe"])
+
     def test_archive_receipt_does_not_backdate_publication(self):
         self.study["observations"] = [self.update(self.observed, received_at=200)]
         self.assertEqual(self.run_study()["event"]["status"],"EVENT_UNAVAILABLE")
