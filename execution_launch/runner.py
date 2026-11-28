@@ -256,7 +256,7 @@ class LaunchSession:
 def prepare_launch_session(*, profile, evidence, driver, implementation_verifier,
                            journal, selected_plan, inputs, positions, now,
                            selection_seed_hex, clock, positions_asof, expires_at=None,
-                           universe_batch=None, cap_review_expiry=False, check_committed_entry=None) -> LaunchSession:
+                           universe_batch=None, cap_review_expiry=False, committed_preparation=None) -> LaunchSession:
     """Prepare fresh odds with a derived label BEFORE the owner signs its ID.
 
     This writes only the existing preparation event. It does not sign, arm, fetch
@@ -311,7 +311,7 @@ def prepare_launch_session(*, profile, evidence, driver, implementation_verifier
         market=profile.market, quote_currency=profile.quote_currency, expires_at=expires_at,
         universe_batch=universe_batch,
         clock=clock, positions_asof=positions_asof, completion_check=completion_check,
-        cap_review_expiry=cap_review_expiry, check_committed_entry=check_committed_entry)
+        cap_review_expiry=cap_review_expiry, committed_preparation=committed_preparation)
     return LaunchSession(prepared=prepared, profile_digest=profile_digest(profile), binding=binding)
 
 

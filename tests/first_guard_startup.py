@@ -175,3 +175,20 @@ def test_legitimate_untraded_account_has_a_consistent_inspection_without_executi
         assert report["origin_ready"] and report["unknown_order_count"] == report["app_open_count"] == 0
         assert not report["execution_ready"] and report["new_entries_blocked"]
         assert Producer.durable(e) == before and not e.adapter.requests
+
+
+def test_session_preparation_refuses_an_arbitrary_callback_without_passing_a_transaction():
+    from execution_control.session import PreparationError, prepare_session
+    called = []
+    def foreign(*args):
+        called.append(args)
+        raise AssertionError("untrusted callable reached")
+    try:
+        prepare_session(journal=None, session_id="", selected_plan=None, inputs=None, positions=None, policy=None,
+            instrument_rules=None, now=None, selection_seed_hex="", account_scope="", market="", quote_currency="",
+            clock=lambda: None, positions_asof=None, committed_preparation=foreign)
+    except PreparationError as exc:
+        assert str(exc) == "COMMITTED_PREPARATION_INPUT_INVALID"
+    else:
+        raise AssertionError("arbitrary callback accepted")
+    assert not called
