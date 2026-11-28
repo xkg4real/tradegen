@@ -11,7 +11,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: '0e761637e4e61bafdccd0d06fe3abedf6225aba4'
+          path: tested-source
+          fetch-depth: 1
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
@@ -19,4 +25,4 @@ jobs:
           architecture: x64
       - name: Run frozen keyless Windows tests
         shell: pwsh
-        run: ./tools/qa/run-windows-20261128.ps1 -InstallDependencies
+        run: ./tools/qa/run-windows-20261128.ps1 -Repository "$env:GITHUB_WORKSPACE/tested-source" -InstallDependencies

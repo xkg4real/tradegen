@@ -2,11 +2,12 @@
 param(
     [string]$Repository = (Get-Location).Path,
     [string]$Python = 'python',
+    [string]$BrokerPython,
     [switch]$InstallDependencies
 )
 $ErrorActionPreference = 'Stop'
 if ([Environment]::OSVersion.Platform -ne [PlatformID]::Win32NT) { throw 'This suite requires Windows.' }
-$revision = '16b6bbc8538ce97c8eb51163f88997ada044cbed'
+$revision = '0e761637e4e61bafdccd0d06fe3abedf6225aba4'
 $qaBase = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'Temp'
 $qaRoot = Join-Path $qaBase ('TRADEGEN-Windows-QA-' + [Guid]::NewGuid().ToString('N'))
 $qaSource = Join-Path $qaRoot 'source'
@@ -15,6 +16,7 @@ $qaLocal = Join-Path $qaProfile 'AppData/Local'
 $qaTemp = Join-Path $qaLocal 'Temp'
 $qaState = Join-Path $qaProfile 'tradegen-test-state'
 $qaReport = Join-Path $qaRoot 'result.json'
+$qaBrokerReport = Join-Path $qaRoot 'broker-result.json'
 $qaHarness = Join-Path $qaRoot 'cases.py'
 foreach ($location in @($qaRoot, $qaSource, $qaProfile, $qaLocal, $qaTemp, $qaState)) {
     [IO.Directory]::CreateDirectory($location) | Out-Null
@@ -26,17 +28,28 @@ Expand-Archive -LiteralPath $qaArchive -DestinationPath $qaSource
 if (Test-Path -LiteralPath (Join-Path $qaSource '.env')) { throw 'A clean archive without local configuration is required.' }
 $qaInterpreter = (Get-Command $Python -ErrorAction Stop).Source
 if ($InstallDependencies) {
+    $qaBasePython = $qaInterpreter
     $qaVenv = Join-Path $qaRoot 'venv'
     & $qaInterpreter -I -m venv $qaVenv
     if ($LASTEXITCODE -ne 0) { throw 'A temporary Python 3.13 venv could not be created.' }
     $qaInterpreter = Join-Path $qaVenv 'Scripts/python.exe'
     & $qaInterpreter -I -m pip --isolated install --disable-pip-version-check --no-cache-dir --index-url https://pypi.org/simple -c (Join-Path $qaSource 'constraints.txt') numpy pandas scipy matplotlib PyYAML requests python-dotenv tzdata 'fido2==2.2.1' cryptography websockets
     if ($LASTEXITCODE -ne 0) { throw 'Dependency installation failed. No Windows test ran.' }
+    $qaBrokerVenv = Join-Path $qaRoot 'broker-venv'
+    & $qaBasePython -I -m venv --without-pip $qaBrokerVenv
+    if ($LASTEXITCODE -ne 0) { throw 'The temporary broker environment was not created.' }
+    $BrokerPython = Join-Path $qaBrokerVenv 'Scripts/python.exe'
+    & $qaInterpreter -I -m pip --isolated --python $BrokerPython install --no-compile --disable-pip-version-check --no-cache-dir --index-url https://pypi.org/simple -r (Join-Path $qaSource 'tools/approval_broker/requirements.txt')
+    if ($LASTEXITCODE -ne 0) { throw 'The isolated broker requirements could not be installed.' }
 }
+if (-not $BrokerPython) { throw 'Supply -InstallDependencies or both -Python and -BrokerPython.' }
+$qaBrokerInterpreter = (Get-Command $BrokerPython -ErrorAction Stop).Source
 $qaCode = @'
 import importlib
 import json
 import os
+import re
+import traceback
 from pathlib import Path
 import socket
 import sys
@@ -49,7 +62,6 @@ test_home = Path(sys.argv[3]).resolve(strict=True)
 if Path.home().resolve() != test_home or not Path(os.environ["TRADEGEN_HOME"]).resolve().is_relative_to(test_home):
     raise SystemExit("Temporary Windows test home required")
 sys.path.insert(0, str(source))
-from tests.control_acceptance import _wrap
 from tests.notrun import NotRun
 
 CASES = {'launch_private_input': ['test_windows_reader_returns_exact_bytes_and_cli_reports_without_echo',
@@ -81,25 +93,39 @@ def refuse(event, args):
     if event in {"socket.connect", "socket.sendto", "socket.getaddrinfo", "socket.bind", "socket.gethostbyname"}:
         raise RuntimeError("NETWORK_FORBIDDEN")
 sys.addaudithook(refuse)
+broker_case = "test_windows_broker_release_commits_running_interpreter_venv_root_and_native_modules"
+is_broker = sys.argv[4] == "broker"
+if not is_broker:
+    from tests.control_acceptance import _wrap
 rows = []
 for module, cases in CASES.items():
     for case in cases:
+        if (case == broker_case) != is_broker:
+            continue
         label = module + "/" + case
         try:
             fn = getattr(importlib.import_module("tests." + module), case)
-            _wrap(fn)()
+            if is_broker:
+                fn()
+            else:
+                _wrap(fn)()
             row = {"case": label, "status": "PASS"}
         except NotRun as error:
             row = {"case": label, "status": "NOT_RUN", "reason": str(error)}
         except Exception as error:
             # Logs contain case identifiers and exception types, never file contents or local paths.
             row = {"case": label, "status": "FAIL", "exception": type(error).__name__}
+            if re.fullmatch("[A-Z][A-Z0-9_]{1,80}", str(error)):
+                row["reason"] = str(error)
+            trace = [f for f in traceback.extract_tb(error.__traceback__) if Path(f.filename).is_relative_to(source)]
+            if trace:
+                row["site"] = Path(trace[-1].filename).relative_to(source).as_posix() + "#" + str(trace[-1].lineno)
         rows.append(row)
-        print(row["status"], label, row.get("exception", row.get("reason", "")), flush=True)
+        print(row["status"], label, row.get("exception", ""), row.get("reason", ""), row.get("site", ""), flush=True)
 counts = {s: sum(r["status"] == s for r in rows) for s in ("PASS", "FAIL", "NOT_RUN")}
-if len(rows) != sum(map(len,CASES.values())):
+if len(rows) != (1 if is_broker else sum(map(len, CASES.values())) - 1):
     raise SystemExit("Incomplete case enumeration")
-report = {"source": "16b6bbc8538ce97c8eb51163f88997ada044cbed", "platform": sys.platform,
+report = {"group": sys.argv[4], "source": "0e761637e4e61bafdccd0d06fe3abedf6225aba4", "platform": sys.platform,
           "python": sys.version.split()[0], "counts": counts, "cases": rows}
 report_path.write_text(json.dumps(report,ensure_ascii=False,indent=2) + "\n",encoding="utf-8")
 print(json.dumps(counts), flush=True)
@@ -124,8 +150,14 @@ $qaProcess.EnvironmentVariables['TRADEGEN_HOME'] = $qaState
 $qaProcess.EnvironmentVariables['MPLCONFIGDIR'] = Join-Path $qaTemp 'mpl'
 $qaProcess.EnvironmentVariables['OPENBLAS_NUM_THREADS'] = '1'
 # Windows file names cannot contain double quotes. Only generated local paths are passed.
-$qaProcess.Arguments = '-I -B -X utf8 "' + $qaHarness + '" "' + $qaSource + '" "' + $qaReport + '" "' + $qaProfile + '"'
-$run = [Diagnostics.Process]::Start($qaProcess)
-$run.WaitForExit()
-Write-Output "QA_REPORT=$qaReport"
-exit $run.ExitCode
+$failed = $false
+foreach ($target in @(@('application', $qaInterpreter, $qaReport), @('broker', $qaBrokerInterpreter, $qaBrokerReport))) {
+    $qaProcess.FileName = $target[1]
+    $qaProcess.Arguments = '-I -B -X utf8 "' + $qaHarness + '" "' + $qaSource + '" "' + $target[2] + '" "' + $qaProfile + '" ' + $target[0]
+    $run = [Diagnostics.Process]::Start($qaProcess)
+    $run.WaitForExit()
+    Write-Output ('QA_REPORT=' + $target[2])
+    if ($run.ExitCode -ne 0) { $failed = $true }
+}
+if ($failed) { exit 1 }
+exit 0
