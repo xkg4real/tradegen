@@ -119,7 +119,26 @@ for module, cases in CASES.items():
                 row["reason"] = str(error)
             trace = [f for f in traceback.extract_tb(error.__traceback__) if Path(f.filename).is_relative_to(source)]
             if trace:
-                row["site"] = Path(trace[-1].filename).relative_to(source).as_posix() + "#" + str(trace[-1].lineno)
+                row["site"] = ",".join(Path(frame.filename).relative_to(source).as_posix() + "#" + str(frame.lineno)
+                                       for frame in trace[-7:])
+            if is_broker:
+                frames = traceback.walk_tb(error.__traceback__)
+                for frame, line in frames:
+                    if Path(frame.f_code.co_filename).name != "release.py" or frame.f_code.co_name != "_prefix_names":
+                        continue
+                    state = frame.f_locals
+                    entry = state.get("name", "")
+                    public_names = {"dlls", "doc", "include", "lib", "libs", "scripts", "share", "tcl",
+                                    "tools", "python313.zip", "distutils-precedence.pth", "pyvenv.cfg", "python",
+                                    "pythonw", "vcruntime140.dll", ".git", "sitecustomize.py", "usercustomize.py"}
+                    role = "venv" if state["prefix"] == Path(sys.prefix).resolve() else "base"
+                    import stat
+                    info = state.get("info")
+                    shape = ("module-shadow" if entry in sys.modules else "other",
+                             "directory" if info and stat.S_ISDIR(info.st_mode) else "file",
+                             "reparse" if getattr(info,"st_file_attributes",0) & 0x400 else "ordinary")
+                    row["site"] += ";" + role + "/" + (entry.casefold() if entry.casefold() in public_names
+                        else "unlisted") + "/" + ":".join(shape)
         rows.append(row)
         print(row["status"], label, row.get("exception", ""), row.get("reason", ""), row.get("site", ""), flush=True)
 counts = {s: sum(r["status"] == s for r in rows) for s in ("PASS", "FAIL", "NOT_RUN")}
