@@ -19,7 +19,7 @@ reducer's own ``risk_baseline``. The capture's fenced observation must still lie
 ``previous.asof``, the freshness rule every capture meets (R17), so a boundary capture never heals a longer
 gap; recovery stays the reviewed re-anchor.
 
-Nothing here loads owner context, signs, arms, orders, reads credentials or touches a file.
+An explicitly provisioned cross-check recorder can persist a verified discrepancy in the local control journal.
 """
 from __future__ import annotations
 
@@ -42,6 +42,7 @@ from execution_accounts.continuous import (COVERAGE_CONTRACT, MAX_DURATION, MAX_
                                            ContinuousEvidenceError, ContinuousPath, PathValuation, PriceMark,
                                            VerifiedCoverage, value_path, value_trade_paths, verify_coverage)
 from execution_launch.continuous_archive import archive_candidate
+from execution_launch.path_check_guard import PathCheckRecorder
 from execution_control.risk import account_fills
 from execution_accounts.provider import EvidenceError, _fresh, build_observation
 from execution_accounts.upbit_collector import CollectionResult, TradeWindowResult, collect_upbit
@@ -468,7 +469,10 @@ class UpbitIntervalSource:
         return False
 
     def __init__(self, *, trade_window_collector=None, order_fill_collector=None, opening_marks=None,
-                 bid_gap_y=None):
+                 bid_gap_y=None, path_check_recorder=None):
+        _require(path_check_recorder is None or (type(path_check_recorder) is PathCheckRecorder
+                 and callable(trade_window_collector)), "ACCOUNT_INTERVAL_INPUT_REQUIRED")
+        self._path_check_recorder = path_check_recorder
         self._bid_gap_y = bid_gap_y
         _require(trade_window_collector is None or callable(trade_window_collector),
                  "ACCOUNT_INTERVAL_INPUT_REQUIRED")
@@ -530,6 +534,7 @@ class UpbitIntervalSource:
                 active_syms = sorted(prior_syms | held_syms | fill_syms)
                 _require(len(active_syms) <= MAX_HELD_MARKETS, "ACCOUNT_INTERVAL_EXTREMA_EVIDENCE_REQUIRED")
                 extra_receipts: list[SourceReceipt] = []
+                order_details = {}
                 if in_fills:
                     _require(self._order_fill_collector is not None, "ACCOUNT_INTERVAL_ORDER_DETAIL_REQUIRED")
                     in_oids = sorted({f.order_id for f in in_fills})
@@ -544,6 +549,7 @@ class UpbitIntervalSource:
                                  and checked == captured and of_res.order is not None
                                  and of_res.order in orders_page and type(of_res.receipt) is SourceReceipt,
                                  "ACCOUNT_INTERVAL_ORDER_DETAIL_MISMATCH")
+                        order_details[oid] = of_res
                         extra_receipts.append(of_res.receipt)
                 trade_windows = {}
                 for sym in active_syms:
@@ -556,6 +562,13 @@ class UpbitIntervalSource:
                              and type(win.receipts) is tuple and bool(win.receipts)
                              and all(type(receipt) is SourceReceipt and receipt.account_scope == previous.account_scope
                                      for receipt in win.receipts), "ACCOUNT_INTERVAL_TRADE_WINDOW_MISMATCH")
+                    if self._path_check_recorder is not None:
+                        recorder = self._path_check_recorder
+                        _require(recorder.account_scope == previous.account_scope, "ACCOUNT_INTERVAL_CHECK_SCOPE")
+                        order_ids = frozenset(f.order_id for f in in_fills if f.symbol == sym)
+                        recorder.check_window(win, tuple(order_details[oid] for oid in sorted(order_ids)),
+                            expected_order_ids=order_ids, now=clock(),
+                            trade_fees=tuple(fee for fee in trade_fees if fee.order_id in order_ids))
                     trade_windows[sym] = win
                     extra_receipts.extend(win.receipts)
                 with self._lock:

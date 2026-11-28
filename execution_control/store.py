@@ -24,7 +24,7 @@ SCHEMA = 1
 GENESIS = "0" * 64
 EVENT_KINDS = frozenset({"session_prepared", "reserved", "dispatching", "acknowledged", "rejected", "unknown",
                        "expired", "cancelled_local", "cancel_requested", "reconciled", "fill", "risk_snapshot",
-                       "kill", "halt", "continuous_guard_prepare", "continuous_guard_complete",
+                       "kill", "halt", "entry_block", "continuous_guard_prepare", "continuous_guard_complete",
                        "universe_odds_batch"})
 MAX_ROW_BYTES = 262_144
 MAX_JOURNAL_BYTES = 67_108_864
@@ -124,6 +124,36 @@ def _valid_stamp(value: object) -> bool:
 
 def _hash(value: object) -> bool:
     return type(value) is str and _HASH.fullmatch(value) is not None
+
+
+ENTRY_BLOCK_FIELDS = frozenset({"account_scope", "deployment_sha256", "policy_sha256", "symbol", "cause",
+                                "observed_at", "price", "occurrences", "evidence_sha256"})
+_PATH_CAUSES = frozenset({"TICKER_MISMATCH", "OWN_FILL_MISS", "CANDLE_MINUTE", "CANDLE_LOW", "CANDLE_HIGH"})
+
+
+def validate_entry_block(data, *, recorded_at):
+    """Validate a local protective record. No journal row grants release authority."""
+    if type(data) is not dict or set(data) != ENTRY_BLOCK_FIELDS:
+        raise JournalError("invalid path entry block")
+    if (type(data["cause"]) is not str or data["cause"] not in _PATH_CAUSES
+            or type(data["account_scope"]) is not str or not re.fullmatch(r"[A-Za-z0-9_.:/-]{1,128}", data["account_scope"])
+            or type(data["symbol"]) is not str or not re.fullmatch(r"KRW-[A-Z0-9]{1,20}", data["symbol"])
+            or not all(_hash(data[name]) for name in ("deployment_sha256", "policy_sha256", "evidence_sha256"))
+            or not _valid_stamp(data["observed_at"]) or not _valid_stamp(recorded_at)
+            or data["observed_at"] > recorded_at
+            or type(data["occurrences"]) is not int or not 1 <= data["occurrences"] < 2**63):
+        raise JournalError("invalid path entry block")
+    price = data["price"]
+    if price is None and data["cause"] == "CANDLE_MINUTE":
+        return
+    if (type(price) is not str or len(price) > 128 or re.fullmatch(r"(0|[1-9][0-9]*)(\.[0-9]*[1-9])?", price) is None
+            or price == "0"):
+        raise JournalError("invalid path entry block price")
+
+
+def entries_blocked(events):
+    """A confirmed discrepancy protects the whole portfolio under this journal across restarts."""
+    return any(row["kind"] == "entry_block" for row in events)
 
 
 def _sync_directory(path: Path) -> None:
@@ -257,6 +287,8 @@ class Journal:
                     or type(row["data"]) is not dict or not _hash(row["row_sha256"])):
                 raise JournalError("control journal row invalid")
             data = _copy_primitive(row["data"])
+            if row["kind"] == "entry_block":
+                validate_entry_block(data, recorded_at=row["utc"])
             if _canonical(data) != _canonical(row["data"]):
                 raise JournalError("control payload invalid")
             body = {key: value for key, value in row.items() if key != "row_sha256"}
@@ -349,6 +381,10 @@ class Transaction:
             raise JournalError("control event kind or payload invalid")
         payload = _copy_primitive(data)
         utc = _utc(now)
+        if kind == "entry_block":
+            validate_entry_block(payload, recorded_at=utc)
+            if guard_pending(self._rows) or (self._rows and utc < self._rows[-1]["utc"]):
+                raise JournalError("path entry block requires a settled journal and current clock")
         previous = self._rows[-1]["row_sha256"] if self._rows else GENESIS
         body = {"schema": SCHEMA, "seq": len(self._rows) + 1, "prev_sha256": previous,
                 "kind": kind, "utc": utc, "data": payload}
