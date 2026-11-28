@@ -1,0 +1,22 @@
+name: Temporary Windows evidence for PR 79
+on:
+  push:
+    branches: ['gpt/windows-qa-20261128']
+permissions:
+  contents: read
+jobs:
+  native-windows:
+    runs-on: windows-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          architecture: x64
+      - name: Run frozen keyless Windows tests
+        shell: pwsh
+        run: ./tools/qa/run-windows-20261128.ps1 -InstallDependencies
