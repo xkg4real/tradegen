@@ -14,7 +14,7 @@ class GlobalRanking(unittest.TestCase):
         temp = tempfile.TemporaryDirectory()
         self.addCleanup(temp.cleanup)
         self.root = Path(temp.name)
-        self.scope = dict(event_id="earnings_Q", metric="revenue", unit="USD_m", period="quarter_Q")
+        self.scope = dict(event_id="earnings_Q", event_series="issuer_revenue", metric="revenue", unit="USD_m", period="quarter_Q")
         self.common = dict(event_series="issuer_revenue", metric="revenue", unit="USD_m",
                            horizon_seconds=86400, numeraire="USD", benchmark="USD_cash",
                            return_basis=g.BASIS)
@@ -25,7 +25,7 @@ class GlobalRanking(unittest.TestCase):
         self.reference = self.record("reference", **self.scope, published_at=10, received_at=11,
                                      reference_type="company_guidance", value="100")
         self.study = dict(schema="tradegen.global_didm.v1", **self.scope, decision_at=100,
-                          event_series="issuer_revenue", horizon_seconds=86400, numeraire="USD",
+                          horizon_seconds=86400, numeraire="USD",
                           benchmark="USD_cash", observations=[self.observed], reference=self.reference,
                           candidates=[self.instrument("ordinary", "stock", "ordinary"),
                                       self.instrument("inverse", "etf", "daily_inverse")])
@@ -139,6 +139,12 @@ class GlobalRanking(unittest.TestCase):
             writer.writerows(self.study["candidates"])
         data=out.read_bytes(); sha=hashlib.sha256(data).hexdigest()
         self.assertEqual(g.import_catalogue(out,sha),self.study["candidates"])
+        study = dict(self.study, candidates=[], catalogue_sha256=sha, catalogue_as_of=90,
+                     catalogue_received_at=101)
+        with self.assertRaisesRegex(ValueError, "catalogue unavailable"):
+            g.rank(study, self.root, out)
+        study["information_clock"] = "public_reconstruction"
+        self.assertEqual(g.rank(study,self.root,out)["declared_count"], 2)
         out.write_bytes(data+b"\n")
         with self.assertRaisesRegex(ValueError, "hash mismatch"):
             g.import_catalogue(out,sha)

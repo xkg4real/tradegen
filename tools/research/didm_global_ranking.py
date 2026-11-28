@@ -104,7 +104,7 @@ def _available(record, clock):
 
 
 def _event(study, folder, decision, clock):
-    fields = ("event_id", "metric", "unit", "period")
+    fields = ("event_id", "event_series", "metric", "unit", "period")
     scope = tuple(text(study, k) for k in fields)
     revisions = []
     for pin in study["observations"]:
@@ -218,6 +218,10 @@ def rank(study, evidence_dir, catalogue=None):
             "invalid study collections")
     candidates = list(study["candidates"])
     if "catalogue_sha256" in study:
+        as_of = time(study, "catalogue_as_of")
+        received = time(study, "catalogue_received_at")
+        require(as_of <= received, "catalogue receipt predates source")
+        require((received if clock == "receipt" else as_of) <= decision, "catalogue unavailable at decision")
         require(catalogue is not None, "pinned catalogue file required")
         candidates.extend(import_catalogue(catalogue, study["catalogue_sha256"]))
     else:
