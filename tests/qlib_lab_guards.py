@@ -2,10 +2,12 @@
 from __future__ import annotations
 
 import ast
+import hashlib
 import json
 import os
 from pathlib import Path
 import tempfile
+from unittest.mock import patch
 
 import numpy as np
 
@@ -165,6 +167,7 @@ def test_cpp17_accel_build_tamper_guard_and_numpy_parity() -> None:
         os.environ["QLIB_LAB_DISABLE_ACCEL"] = "0"
         lib = _accel.verify_and_load_accel(force_reload=True)
         assert lib is not None and _accel.active_backend() == "cpp17"
+        assert lib._name == f"/proc/self/fd/{lib._tradegen_image.fileno()}"
 
         # 2. Verify SHA-256 tamper refusal in an isolated temporary directory
         with tempfile.TemporaryDirectory() as tmp:
@@ -274,3 +277,19 @@ def test_isolation_refuses_quantgen_and_symlinks() -> None:
             raise AssertionError("Expected RuntimeError when URI is a symlink")
         except RuntimeError:
             pass
+
+
+def test_consistent_unreviewed_build_selects_numpy_before_binding() -> None:
+    with tempfile.TemporaryDirectory() as tmp, patch.dict(os.environ, {"QLIB_LAB_DISABLE_ACCEL": "0"}):
+        directory = Path(tmp)
+        image = directory / "libqlib_accel.so"
+        manifest = directory / "build_manifest.json"
+        sample = b"offline fixture"
+        image.write_bytes(sample)
+        manifest.write_text(json.dumps({
+            "source_sha256": _accel.EXPECTED_SOURCE_SHA256,
+            "binary_sha256": hashlib.sha256(sample).hexdigest(),
+        }), encoding="ascii")
+        with patch.object(_accel.ctypes, "CDLL") as bind:
+            assert _accel.verify_and_load_accel(lib_path=image, manifest_path=manifest) is None
+            bind.assert_not_called()

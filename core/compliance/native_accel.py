@@ -1,9 +1,9 @@
 """Verified C++20 native kernel loader and pure-value marshalling seam.
 
 This module performs no network, clock, credential, signing or ledger operation.
-Before loading ``libtradegen_fast.so``, it checks ``build_manifest.json`` against
-``EXPECTED_SOURCE_SHA256``, verifies the regular-file digest on an open ``O_NOFOLLOW``
-file descriptor, and loads through ``/proc/self/fd/<fd>`` when supported. Setting
+Before loading ``libtradegen_fast.so``, it checks the source and binary digests
+against pins in this module and loads a sealed copy of the verified bytes.
+Unsupported builds and hosts use the Python reference path. Setting
 ``TRADEGEN_DISABLE_NATIVE=1`` or running without a built shared object cleanly
 returns ``None`` so callers execute their exact pure-Python reference path. A
 present manifest or binary whose digest mismatches raises ``NativeIntegrityError``.
@@ -21,6 +21,9 @@ import threading
 
 EXPECTED_ABI_VERSION = 1
 EXPECTED_SOURCE_SHA256 = "d7a6fd44a93eae1f08d645fe88a94f516617cb017102a1ab7cd8309cbc74ab44"
+# Linux x86-64, g++ (Debian 14.2.0-19) 14.2.0, build_native.CXX_FLAGS.
+# An additional toolchain output requires review of this D14-covered file.
+EXPECTED_BINARY_SHA256 = "66967ba825a69761668e82e09117ebeb73aa7f416e1bb18767d69eb5c346a7ce"
 
 TG_OK = 0
 TG_FALLBACK_PRECISION = 1
@@ -87,8 +90,10 @@ def decimal_to_fp18(value: Decimal) -> tuple[int, int] | None:
         return None
     if not value:
         return (0, 0)
-    sign = 1 if value.is_signed() else 0
-    text = format(-value if sign else value, "f")
+    if not -_SCALE_EXP <= value.adjusted() <= 20:
+        return None
+    sign = value.is_signed()
+    text = format(value.copy_abs(), "f")
     if "." in text:
         whole, frac = text.split(".", 1)
         frac = frac.rstrip("0")
@@ -178,7 +183,31 @@ def _verify_manifest(raw: bytes) -> dict:
     return body
 
 
-def _bind_library(so_fd: int, fallback_path: Path):
+def sealed_image(raw: bytes):
+    """Return a sealed Linux file containing exactly raw, or None if unavailable."""
+    if not hasattr(os, "memfd_create") or not Path("/proc/self/fd").is_dir():
+        return None
+    import fcntl
+
+    try:
+        fd = os.memfd_create("tradegen-kernel", os.MFD_CLOEXEC | os.MFD_ALLOW_SEALING)
+    except OSError:
+        return None
+    image = os.fdopen(fd, "wb", buffering=0)
+    try:
+        if image.write(raw) != len(raw):
+            raise OSError("incomplete native image")
+        # Stable Linux UAPI (linux/fcntl.h); some CPython builds omit the aliases.
+        add_seals = getattr(fcntl, "F_ADD_SEALS", 1033)
+        seal_all_writes = 0x0008 | 0x0004 | 0x0002 | 0x0001  # WRITE, GROW, SHRINK, SEAL
+        fcntl.fcntl(fd, add_seals, seal_all_writes)
+        return image
+    except OSError:
+        image.close()
+        return None
+
+
+def _bind_library(image):
     import ctypes
 
     class C_I128(ctypes.Structure):
@@ -377,9 +406,9 @@ def _bind_library(so_fd: int, fallback_path: Path):
             ("p95_net_return", ctypes.c_double),
         ]
 
-    proc_fd = Path(f"/proc/self/fd/{so_fd}")
-    load_target = str(proc_fd) if proc_fd.exists() else str(fallback_path)
-    lib = ctypes.CDLL(load_target)
+    lib = ctypes.CDLL(f"/proc/self/fd/{image.fileno()}")
+    # dlopen caches pathname strings; retain the fd until the handle is released.
+    lib._tradegen_image = image
 
     lib.tg_abi_version.argtypes = []
     lib.tg_abi_version.restype = ctypes.c_uint32
@@ -603,6 +632,8 @@ def get_native_handle(*, build_dir: Path | None = None) -> dict | None:
         actual_sha = hashlib.sha256(so_raw).hexdigest()
         if actual_sha != manifest["binary_sha256"]:
             raise NativeIntegrityError("NATIVE_BINARY_DIGEST_MISMATCH")
+        if actual_sha != EXPECTED_BINARY_SHA256:
+            return None
         key = (str(directory.resolve()), actual_sha)
         with _LOCK:
             cached = _CACHE.get(key)
@@ -610,7 +641,17 @@ def get_native_handle(*, build_dir: Path | None = None) -> dict | None:
                 if build_dir is None:
                     _CACHE[("<default>", "")] = cached
                 return cached  # type: ignore[return-value]
-            bound = _bind_library(so_fd, so_path)
+            image = sealed_image(so_raw)
+            if image is None:
+                return None
+            try:
+                bound = _bind_library(image)
+            except OSError:
+                image.close()
+                return None
+            except BaseException:
+                image.close()
+                raise
             _CACHE[key] = bound
             if build_dir is None:
                 _CACHE[("<default>", "")] = bound

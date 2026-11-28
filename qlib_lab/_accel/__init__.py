@@ -9,6 +9,7 @@ from pathlib import Path
 
 import numpy as np
 
+from core.compliance.native_accel import sealed_image
 from core.isolation import checked_target
 from qlib_lab._accel import numpy_fallback as _np_fb
 from qlib_lab.exceptions import SecurityRefusalError
@@ -18,6 +19,11 @@ SOURCE_PATH = ACCEL_DIR / "kernels.cpp"
 BUILD_DIR = ACCEL_DIR / "build"
 LIB_PATH = BUILD_DIR / "libqlib_accel.so"
 MANIFEST_PATH = BUILD_DIR / "build_manifest.json"
+# Reproduced from kernels.cpp using build_accel.CXX_FLAGS on Linux x86-64
+# with g++ (Debian 14.2.0-19) 14.2.0. Both pins are independent of the build directory.
+EXPECTED_SOURCE_SHA256 = "b9a5bbe17394f9040082e1733a582939a2c1900dc072ee9043906dbd4dfb2111"
+EXPECTED_BINARY_SHA256 = "5422b5743c8943e44edaf683e66220b8db3cd81c8f929f09d8bb21539b13a510"
+MAX_BINARY_BYTES = 32 * 1024 * 1024
 
 _C_DOUBLE_P = ctypes.POINTER(ctypes.c_double)
 _C_INT64_P = ctypes.POINTER(ctypes.c_int64)
@@ -145,7 +151,11 @@ def verify_and_load_accel(
         raise SecurityRefusalError("Accel build manifest is not a JSON object")
 
     actual_src_sha = _sha256_bytes(checked_src)
-    actual_bin_sha = _sha256_bytes(checked_so)
+    with checked_so.open("rb") as stream:
+        binary = stream.read(MAX_BINARY_BYTES + 1)
+    if not 0 < len(binary) <= MAX_BINARY_BYTES:
+        raise SecurityRefusalError("Invalid native kernel image size")
+    actual_bin_sha = hashlib.sha256(binary).hexdigest()
     if manifest.get("source_sha256") != actual_src_sha:
         raise SecurityRefusalError(
             f"Accel source SHA-256 mismatch: manifest={manifest.get('source_sha256')} vs actual={actual_src_sha}"
@@ -155,7 +165,23 @@ def verify_and_load_accel(
             f"Accel binary SHA-256 mismatch: manifest={manifest.get('binary_sha256')} vs actual={actual_bin_sha}"
         )
 
-    lib = ctypes.CDLL(str(checked_so))
+    image = None
+    if actual_src_sha == EXPECTED_SOURCE_SHA256 and actual_bin_sha == EXPECTED_BINARY_SHA256:
+        image = sealed_image(binary)
+    if image is None:
+        if not custom_paths:
+            _LIB_HANDLE = None
+            _BACKEND = "numpy"
+        return None
+    try:
+        lib = ctypes.CDLL(f"/proc/self/fd/{image.fileno()}")
+    except OSError:
+        image.close()
+        if not custom_paths:
+            _LIB_HANDLE = None
+            _BACKEND = "numpy"
+        return None
+    lib._tradegen_image = image
     _bind_signatures(lib)
     if not custom_paths:
         _LIB_HANDLE = lib

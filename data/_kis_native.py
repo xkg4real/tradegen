@@ -35,7 +35,11 @@ def _ratio_int(num: int, den: int) -> Decimal:
 
 def parse_caret_fields(payload: str, expected_fields: int, max_field_len: int = 128) -> tuple[str, ...] | bool | None:
     """Return tuple of decoded fields, False if invalid frame, or None to use Python fallback."""
-    encoded = payload.encode("utf-8")
+    # The wire contract limits decoded characters. Only ASCII has identical
+    # byte and character lengths in the byte-oriented accelerator.
+    if not payload.isascii():
+        return None
+    encoded = payload.encode("ascii")
     return native_accel.kis_parse_caret_fields(encoded, expected_fields, max_field_len)
 
 

@@ -11,9 +11,10 @@ from __future__ import annotations
 
 from dataclasses import fields, is_dataclass
 from datetime import datetime, timedelta, timezone
-from decimal import Decimal
+from decimal import Decimal, localcontext
 from fractions import Fraction
 import json
+import hashlib
 import math
 import os
 from pathlib import Path
@@ -137,6 +138,38 @@ def test_native_manifest_and_tamper_refusal():
             assert str(exc) == "NATIVE_ABI_VERSION_MISMATCH"
 
     assert _with_native_disabled(native_accel.get_native_handle) is None
+
+
+def test_native_image_requires_reviewed_binary_and_sealed_fd():
+    import fcntl
+
+    handle = _with_native_enabled(native_accel.get_native_handle)
+    fd = handle["lib"]._tradegen_image.fileno()
+    assert fcntl.fcntl(fd, getattr(fcntl, "F_GET_SEALS", 1034)) & 0x0008
+    assert handle["lib"]._name == f"/proc/self/fd/{fd}"
+
+    # A consistent local build manifest is insufficient to select a native kernel.
+    with tempfile.TemporaryDirectory() as tmp:
+        d = Path(tmp)
+        sample = b"offline fixture"
+        manifest = json.loads((native_accel.DEFAULT_BUILD_DIR / "build_manifest.json").read_bytes())
+        manifest["binary_sha256"] = hashlib.sha256(sample).hexdigest()
+        (d / "build_manifest.json").write_text(json.dumps(manifest), encoding="ascii")
+        (d / "libtradegen_fast.so").write_bytes(sample)
+        with patch.object(native_accel, "_bind_library") as bind:
+            assert _with_native_enabled(lambda: native_accel.get_native_handle(build_dir=d)) is None
+            bind.assert_not_called()
+
+
+def test_fp18_roundtrip_is_independent_of_decimal_context():
+    with localcontext() as ctx:
+        ctx.prec = 4
+        for text in ("-98765432109876543210.123456789012345678", "-0.000000000000000001",
+                     "1234.123456789012345678", "-100000000000000000000"):
+            value = D(text)
+            assert native_accel.fp18_to_decimal(*native_accel.decimal_to_fp18(value)) == value
+        for text in ("1e999999", "-1e-999999", "-1.0000000000000000001"):
+            assert native_accel.decimal_to_fp18(D(text)) is None
 
 
 def test_hp1_continuous_interval_differential_260_cases():
@@ -423,6 +456,13 @@ def test_hp3_strategy_and_carry_differential_300_cases():
 
 
 def test_hp5_kis_frame_and_window_differential_150_cases():
+    from tests.kis_live import NOW, TRADE, wire
+
+    for size in (43, 128):
+        frame = wire(changes={"PRDY_VRSS_SIGN": "가" * size})
+        assert "가" in frame
+        parse = lambda: kis_live.parse_frame(frame, (TRADE,), received_at=NOW)
+        assert _with_native_enabled(parse) == _with_native_disabled(parse)
     rng = random.Random(2026112705)
     for i in range(100):
         fields = [f"F{j}_{rng.randint(10, 99999)}" for j in range(12)]
