@@ -30,3 +30,25 @@
 `upbit`, `coinbase`, `binance_spot`, `binance_usdm`, `binance_coinm`, `coingecko`도 같은 명령을 사용한다. 거래소·거래쌍·지급구조를 분리하고 코인 기준정보는 주문 대상에서 제외한다. 코인 증거금 inverse 선물은 지급 산식의 호가 관행을 나타내며, 그 자체로 하락에 투자한 포지션이 되지는 않는다. [업비트](https://docs.upbit.com/kr/reference/list-trading-pairs) · [코인베이스](https://docs.cdp.coinbase.com/api-reference/exchange-api/rest-api/products/get-all-known-trading-pairs) · [Binance](https://developers.binance.com/docs/derivatives/coin-margined-futures/market-data/rest-api/Exchange-Information) · [CoinGecko](https://docs.coingecko.com/reference/coins-list)
 
 `--max-pages N`은 표본 수집용이다. 같은 경로를 덮어쓰지 않는다. `coverage.json`에는 페이지·수신 객체 수·중복·불일치·오류·종료 사유가 있다. `pages.jsonl`과 압축 원문으로 재검증할 수 있다. `observations.sqlite`의 `entries`는 한 상품의 첫 구조 기록, `rejects`는 식별할 수 없는 페이지와 행 번호다. 행사·시리즈·복합 다리 정보는 별도 식별되며 원본에서 계약·증거를 대조할 수 있다. 한 복합계약의 구성 다리를 독립된 계약 거래로 계산하지 않는다. 수집된 두 방향은 원문 계약 검증 전까지 서명·연구 순위 근거로 삼지 않는다. HTTP 거절, 비정상 커서, 변경된 중복·불완전 자료는 일부 수집으로 보고된다. 결과 `candidates.csv`는 해시를 별도 등록하여 글로벌 연구 평가기로 가져올 수 있다. 주문 가능 여부는 `unknown` 또는 `unavailable`이다.
+
+## 통합 발굴 목록에서 연구 후보를 연결하기
+
+`python -m tools.research.didm_discovery_bridge unified_discovery.csv.gz bindings.json study.json evidence`는 전체 압축 목록의 SHA-256을 대조하고, 지정한 기록만 별도의 연구 평가기에 보낸다. study는 위 규격에서 `candidates=[]`로 두고 별도 catalogue를 지정하지 않는다. 입력 예시는 다음과 같다.
+
+```json
+{
+  "archive_sha256": "<압축 파일 전체의 SHA-256>",
+  "bindings": [
+    {"record_key": "<발굴 기록 키>"},
+    {"record_key": "<다른 기록 키>", "listing": "<listing 증거 해시>",
+     "response": "<response 증거 해시>", "costs": "<costs 증거 해시>"}
+  ]
+}
+```
+
+- 첫째 형식은 목록에 기록된 출처·관측 단위·상품·지급 방향·상태를 조회한다. 현재의 목록 등재 사실만으로 과거 후보나 수익을 만들지 않는다. 체인 자산과 지수 등 기준정보에는 순위를 부여하지 않는다.
+- 둘째 형식에는 독립적인 당시 근거에서 추출한 `kind=listing` 기록이 필요하다. `put_source`와 `put_evidence`로 원문과 추출값을 보관한다. 공통 원천·시각 필드 외에 발굴 행의 `dataset,source_id,unit,product_class,symbol_or_contract,venue_or_chain,side`와 평가기의 `instrument_id,family,venue,symbol,payoff_id`, 당시 `listing_status`, 적용 구간 `as_of,valid_through`를 기록한다. 출처와 해시의 확인은 발행기관이나 사용자가 해석한 근거의 진위를 보장하지 않는다.
+- 계약은 binding에 `terms_sha256`도 넣는다. Kalshi·Polymarket의 YES/NO는 각각 해당 방향의 근거를 사용한다. 원본에 있는 outcome_token_id와 settlement_group도 listing 기록과 일치해야 한다. 미지원 지급 방향은 UNMODELED_PAYOFF로 보존한다. 당시 활동 중지 상태, 미수신, 유효기한 종료, 기록 미발견은 이유와 함께 남긴다. 현재 목록의 상장폐지 표시를 보존한다. 그 표시보다 과거인 시점의 상장 여부는 당시 독립 근거로만 확인한다.
+- `archive_records_by_unit, requested, matched, submitted, scored`는 각각 관측 단위별 원본 행 수, 요청·일치·평가 제출·점수 산출 건수다. `submitted_subset_ranking`은 검토자가 요청하고 당시 상장을 입증한 일부 상품 간의 비교이다. 전 시장 또는 과거 전체 상장 종목의 성과를 주장하려면 표본 선정 기준과 당시 전체 모집단을 별도로 입증해야 한다. 어떤 결과에도 주문 권한이 생기지 않는다.
+
+검산은 `python -m unittest tools.research.test_didm_discovery_bridge`로 실행한다.
