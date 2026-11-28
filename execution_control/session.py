@@ -10,7 +10,7 @@ from core.compliance import gate, model, owner
 from core.odds import models, plan as odds_plan, simulate
 from execution_control.capability import digest, plain
 from execution_control.model import rules_digest
-from execution_control.store import guard_pending
+from execution_control.store import entries_blocked, guard_pending
 from execution_control.universe_odds import UniverseBatch, registered_batch
 
 
@@ -218,6 +218,7 @@ def prepare_session(*, journal, session_id: str, selected_plan, inputs, position
         events = tx.events
         # A row inside a pending guard transaction would leave it unresumable; resume the guard first.
         _require(not guard_pending(events), "SESSION_PREPARATION_GUARD_PENDING")
+        _require(not entries_blocked(events), "PATH_EVIDENCE_ENTRY_BLOCK")
         if universe_batch is not None:
             batches = [row["data"] for row in events if row["kind"] == "universe_odds_batch"
                        and row["data"].get("batch_digest") == universe_batch.batch_digest]
