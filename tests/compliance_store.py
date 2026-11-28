@@ -134,7 +134,9 @@ def test_code_files_is_the_import_closure():
     names = [name for name, _ in files]
     assert names == sorted(set(names)), "not sorted, or a repeat"
     repo = {name for name in names if not name.startswith("venv:")}
-    expected = {"core/__init__.py", "core/isolation.py"} | {
+    # The owner planner reads plans and issues comparison counts through the
+    # same two modules as the odds CLI. Their code belongs to the signed set.
+    expected = {"core/__init__.py", "core/isolation.py", "core/odds_plan_file.py", "core/odds_registry.py"} | {
         f"core/{sub}/{p.name}" for sub in ("compliance", "odds") for p in (ROOT / "core" / sub).glob("*.py")} | {
         f"execution/{p.name}" for p in (ROOT / "execution").glob("*.py")} | {
         p.relative_to(ROOT).as_posix() for package in ("execution_control", "execution_orders", "execution_accounts", "execution_network", "execution_launch", "tools/owner")

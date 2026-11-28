@@ -744,8 +744,10 @@ def _import_names(package: tuple[str, ...], raw: bytes) -> tuple[str, ...]:
 _cached_import_names = lru_cache(maxsize=256)(_import_names)
 
 
-def _repo_imports(root: Path, path: Path, raw: bytes) -> list[Path]:
+def _repo_imports(root: Path, path: Path, raw: bytes | None = None) -> list[Path]:
     """Resolve modules on each scan. Large sources bypass the bounded parse cache."""
+    if raw is None:
+        raw = path.read_bytes()
     package = path.relative_to(root).parent.parts
     parse = _cached_import_names if len(raw) <= 256 * 1024 else _import_names
     return [f for name in parse(package, raw) if (f := _module_file(root, name)) is not None]

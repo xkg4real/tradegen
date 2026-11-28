@@ -39,4 +39,4 @@ def test_identical_relative_source_in_different_packages_resolves_separately():
                 module.write_text("from . import child\n")
                 (module.parent / "child.py").write_text("")
                 paths = scanner._repo_imports(root, module, module.read_bytes())
-                assert paths == [module.parent / "child.py"]
+                assert scanner._repo_imports(root, module) == paths == [module.parent / "child.py"]
