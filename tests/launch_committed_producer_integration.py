@@ -145,7 +145,7 @@ def durable_trace(e):
         yield counts
 
 
-def _study_profile(holder):
+def _study_profile(holder, initial_equity):
     """Build and actually evaluate the research before the producer pins profile.
 
     The old fixture's triangle source is paced at this protocol's 60-second bar.
@@ -153,7 +153,7 @@ def _study_profile(holder):
     """
     def transform(original):
         now = original.instrument_rules.asof
-        profile = replace(original, policy=replace(original.policy, initial_equity=D('100090')))
+        profile = replace(original, policy=replace(original.policy, initial_equity=initial_equity))
         end = now-timedelta(seconds=60)
         start = end-BAR*500
         registered = start-timedelta(days=1)
@@ -180,7 +180,7 @@ def _study_profile(holder):
         result = E.evaluate_capture_json(protocol, raw, profile.instrument_rules, now=now)
         profile = replace(profile, strategy_id=program.strategy_id, strategy_code_sha256=protocol.strategy_code_sha256)
         assert profile_contract_digest(profile) == protocol.profile_contract_digest
-        assert protocol.initial_cash_quote == profile.policy.initial_equity == D('100090')
+        assert protocol.initial_cash_quote == profile.policy.initial_equity == initial_equity
         holder['research'] = SimpleNamespace(capture=captured, plan=plan, raw=raw, result=result,
             protocol=protocol, program=program, artifact=U._fixed_file(U.PROGRAM_SOURCE))
         return profile
@@ -188,14 +188,16 @@ def _study_profile(holder):
 
 
 @contextmanager
-def actual_reviewed_producer_fixture(*, bind_startup=True, clock_step=timedelta(0)):
+def actual_reviewed_producer_fixture(*, bind_startup=True, clock_step=timedelta(0), untraded=False):
     """Actual new study, signed review, issued carry driver and durable history.
 
     No production unit has run when yielded. Scheduler tests may bind startup
     themselves and prepare each recorder using F.arm_interval before collection.
     """
+    from tests.odds_fixtures import ODDS_VENUES
     holder = {}
-    with F.fixture(profile_transform=_study_profile(holder), bind_startup=bind_startup,
+    with F.fixture(venues_raw=ODDS_VENUES if untraded else None, profile_transform=_study_profile(holder, D('100000') if untraded else D('100090')),
+            bind_startup=bind_startup, untraded=untraded,
             clock_step=clock_step) as e:
         research = holder['research']
         now = e.clock()

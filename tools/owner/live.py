@@ -1,6 +1,14 @@
 """Controlled Upbit owner launcher under independent review.
 
     python -m tools.owner.live --config PRIVATE_LIVE_CONFIG.json
+    python -m tools.owner.live --config PRIVATE_LIVE_CONFIG.json --inspect-startup STARTUP_RECORD.json
+
+The second form checks an existing local guard archive, completion, control
+journal and separately retained heads. Its JSON result contains no order IDs,
+balances, paths or signatures. It never starts a trading runtime. The startup
+record has schema_version 1 and fields sealed_root, backup_root, archive_head,
+archive_limits, guard_head, baseline_head, input_archive_sha256 and
+completion_archive_sha256 (null when the completion is unavailable).
 
 The staged interval source lacks production guard and held-position authority.
 A valid configuration returns LIVE_PRODUCTION_AUTHORITY_REQUIRED before any
@@ -613,6 +621,62 @@ def build_live(config_path: str, *, clock: Callable[[], datetime],
         raise
 
 
+def inspect_startup(config_path: str, selection_path: str, *, clock: Callable) -> dict:
+    """Reopen independently retained records using the existing dry, inspection-only reader."""
+    from execution_control.dry_run import DryRunAdapter
+    from execution_control.store import Journal
+    from execution_launch.committed_startup import CommittedStartup
+    from execution_launch.continuous_guard_commit import GuardChain, GuardCheckpointStore
+    from execution_launch.profile import MAX_PROFILE_BYTES, parse_profile_json
+    from execution_launch.research_bundle import open_explicit_store
+    from execution_orders import upbit
+
+    config = load_live_config(read_file(config_path, MAX_CONFIG_BYTES))
+    root = _root(Path(config["state_root"]))
+    _need(not root.is_relative_to(Path.home() / ".tradegen"), "LIVE_ISOLATED_STATE_REQUIRED")
+    hroot = Path(config["head_root"])
+    fields = {"schema_version", "sealed_root", "backup_root", "archive_head", "archive_limits",
+              "guard_head", "baseline_head", "input_archive_sha256", "completion_archive_sha256"}
+    selection = _schema(_object(read_file(selection_path, MAX_CONFIG_BYTES)), fields, "LIVE_STARTUP_RECORD_INVALID")
+    _need(type(selection["schema_version"]) is int and selection["schema_version"] == 1,
+          "LIVE_STARTUP_RECORD_INVALID")
+    for key in ("sealed_root", "backup_root", "archive_head", "archive_limits", "guard_head", "baseline_head"):
+        _path(selection[key])
+    _need(selection["guard_head"] != selection["baseline_head"], "LIVE_STARTUP_RECORD_INVALID")
+    input_digest = _sha(selection["input_archive_sha256"])
+    completion = selection["completion_archive_sha256"]
+    if completion is not None:
+        _sha(completion)
+    profile = parse_profile_json(read_file(config["profile"], MAX_PROFILE_BYTES))
+    audit = parse_live_audit(read_file(config["account_audit"], MAX_AUDIT_BYTES))
+    window = read_window(config["window"], universe=profile.universe_rule_sha256 is not None)
+    _need(audit.account_scope == profile.account_scope and audit.window_digest == digest(window),
+          "LIVE_STARTUP_BINDING_CHANGED")
+    verify_source_documents(audit)
+    archive = open_explicit_store(selection["sealed_root"], selection["backup_root"], selection["archive_head"],
+                                  selection["archive_limits"])
+    guard, baseline = GuardCheckpointStore(root=root), CheckpointStore(root=root)
+    reader = CommittedStartup(archive_store=archive, journal=Journal(require_existing=True),
+        guard_store=guard, guard_head=BaselineHead(root=hroot, name=selection["guard_head"], chain=GuardChain(guard)),
+        baseline_store=baseline, baseline_head=BaselineHead(root=hroot, name=selection["baseline_head"],
+                                                            chain=CheckpointChain(baseline)),
+        profile=profile, adapters={"upbit": DryRunAdapter(upbit)}, isolated_state_root=root, clock=clock)
+    result = reader.inspect(input_digest, completion)
+    _need(result.account_anchor_sha256 == audit.baseline_anchor_sha256, "LIVE_STARTUP_BINDING_CHANGED")
+    local_consistent = (result.durable_status == "CONSISTENT" and result.current_status == "FRESH"
+                        and result.origin_ready and not result.permanent_halt
+                        and not result.daily_stop_at_checkpoint and not result.path_entry_block)
+    return {"command": "inspect-startup", "execution_ready": False, "new_entries_blocked": True,
+            "local_status": "CONSISTENT" if local_consistent else "REVIEW_REQUIRED", "path_entry_block": result.path_entry_block,
+            "source_authenticated": False, "durable_status": result.durable_status,
+            "current_status": result.current_status, "restart_reason": result.reason,
+            "account_observed_at": result.asof.isoformat(), "inspected_at": result.inspected_at.isoformat(),
+            "permanent_halt": result.permanent_halt, "daily_stop_at_checkpoint": result.daily_stop_at_checkpoint,
+            "origin_ready": result.origin_ready, "origin_reason": result.origin_reason,
+            "app_open_count": result.app_open_count, "personal_open_count": result.personal_open_count,
+            "unknown_order_count": result.unknown_order_count, "reason": "LIVE_PRODUCTION_AUTHORITY_REQUIRED"}
+
+
 def main(argv=None) -> int:
     args = sys.argv[1:] if argv is None else argv
     try:
@@ -620,6 +684,11 @@ def main(argv=None) -> int:
         if tuple(args) in ((), ("--help",), ("-h",)):
             print(__doc__)
             return 0
+        if len(args) == 4 and args[0] == "--config" and args[2] == "--inspect-startup":
+            _need(all(v and not v.startswith("--") for v in (args[1], args[3])), "LIVE_ARGUMENTS_INVALID")
+            report = inspect_startup(args[1], args[3], clock=lambda: datetime.now(timezone.utc))
+            print(json.dumps(report, sort_keys=True, ensure_ascii=True))
+            return 0 if report["local_status"] == "CONSISTENT" else 2
         _need(len(args) == 2 and args[0] == "--config" and bool(args[1]) and not args[1].startswith("--"),
               "LIVE_ARGUMENTS_INVALID")
         runtime = build_live(args[1], clock=lambda: datetime.now(timezone.utc))

@@ -10,7 +10,7 @@ from core.compliance import gate, model, owner
 from core.odds import models, plan as odds_plan, simulate
 from execution_control.capability import digest, plain
 from execution_control.model import rules_digest
-from execution_control.store import entries_blocked, guard_pending
+from execution_control.store import guard_pending
 from execution_control.universe_odds import UniverseBatch, registered_batch
 
 
@@ -79,7 +79,8 @@ def prepare_session(*, journal, session_id: str, selected_plan, inputs, position
                     account_scope: str, market: str, quote_currency: str,
                     clock, positions_asof: datetime, completion_check=None,
                     expires_at: datetime | None = None,
-                    universe_batch: UniverseBatch | None = None, cap_review_expiry=False) -> PreparedSession:
+                    universe_batch: UniverseBatch | None = None, cap_review_expiry=False,
+                    check_committed_entry=None) -> PreparedSession:
     """Actually rerun selected_plan with a fresh comparison seed before arming.
 
     Inputs and positions come from the caller's reconciled observations. A result
@@ -104,6 +105,7 @@ def prepare_session(*, journal, session_id: str, selected_plan, inputs, position
     the snapshot's end and before the next Seoul midnight, and the batch digest is bound into the session.
     """
     _require(callable(clock), "SESSION_PREPARATION_CLOCK_REQUIRED")
+    _require(check_committed_entry is None or callable(check_committed_entry), "SESSION_PREPARATION_CHECK_REQUIRED")
     _require(completion_check is None or callable(completion_check), "SESSION_PREPARATION_CHECK_REQUIRED")
     _require(_aware(now) and _aware(positions_asof), "SESSION_PREPARATION_TIME_REQUIRED")
     if type(session_id) is not str or re.fullmatch(r"[A-Za-z][A-Za-z0-9_-]{0,31}", session_id) is None:
@@ -216,7 +218,6 @@ def prepare_session(*, journal, session_id: str, selected_plan, inputs, position
         events = tx.events
         # A row inside a pending guard transaction would leave it unresumable; resume the guard first.
         _require(not guard_pending(events), "SESSION_PREPARATION_GUARD_PENDING")
-        _require(not entries_blocked(events), "PATH_EVIDENCE_ENTRY_BLOCK")
         if universe_batch is not None:
             batches = [row["data"] for row in events if row["kind"] == "universe_odds_batch"
                        and row["data"].get("batch_digest") == universe_batch.batch_digest]
@@ -239,6 +240,10 @@ def prepare_session(*, journal, session_id: str, selected_plan, inputs, position
         if actual_session_id in prepared_ids:
             raise ValueError("session identity already prepared")
         payload = plain(dict(fields, record_digest=prepared.record_digest))
+        if check_committed_entry is not None:
+            # The caller can impose extra refusals only. Use the same locked journal
+            # that will receive the preparation receipt; never open a nested transaction.
+            check_committed_entry(tx, current_ctx, current_time())
         append_at = current_time()  # even bounded record hashing must not cross a deadline
         _require(review_deadline is None or append_at < review_deadline,
                  "SESSION_PREPARATION_REVIEW_EXPIRED")

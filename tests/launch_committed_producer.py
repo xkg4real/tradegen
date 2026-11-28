@@ -51,11 +51,11 @@ def default_profile(start=START):
 
 
 @contextmanager
-def fixture(*, held=False, start=START, auto_setup=True, bind_startup=True,
-            profile=None, profile_transform=None, clock_step=timedelta(0), configure=None):
+def fixture(*, held=False, untraded=False, start=START, auto_setup=True, bind_startup=True,
+            profile=None, profile_transform=None, clock_step=timedelta(0), configure=None, venues_raw=None):
     with B.fixture(storage_limits=CA.limits()) as storage, CF.temp_home() as home, head_root() as hroot:
         with CF.pubkey_at(home/'fixture-owner.pem'):
-            key = CF.full_home(home, limits={'total_loss_floor_krw':70000.0, 'daily_loss_krw':10000.0})
+            key = CF.full_home(home, venues_raw=venues_raw, limits={'total_loss_floor_krw':70000.0, 'daily_loss_krw':10000.0})
             if configure is not None:
                 configure(home, key, start)
             profile = default_profile(start) if profile is None else profile
@@ -66,13 +66,16 @@ def fixture(*, held=False, start=START, auto_setup=True, bind_startup=True,
                 now = clock_cell[0]
                 clock_cell[0] += clock_step
                 return now
+            assert not (held and untraded)
             exchange = I.FakeUpbit(cash='89995', btc='1', orders=(I.BUY,)) if held else I.FakeUpbit()
+            if untraded:
+                exchange = I.FakeUpbit(cash='100000', orders=())
             exchange.clock = clock
             e = SimpleNamespace(home=home, hroot=hroot, head_root=hroot, storage=storage,
                 archive_store=storage.store, store=storage.store, key=key, profile=profile,
                 policy=risk_policy(profile), clock=clock, clock_cell=clock_cell, clock_step=clock_step,
                 exchange=exchange, anchor=replace(I.ANCHOR), coverage=replace(I.COVERAGE),
-                trade_fees=() if held else I.FEES, start=start, held=held, recorder=None,
+                trade_fees=() if held or untraded else I.FEES, start=start, held=held, untraded=untraded, recorder=None,
                 supplier_calls=[], raw_receipts=[], owner_calls=[], unit=None)
             class Source:
                 account_scope = I.SCOPE
@@ -109,7 +112,7 @@ def fixture(*, held=False, start=START, auto_setup=True, bind_startup=True,
             e.producer = P.CommittedAccountProducer(**e.args)
             if bind_startup:
                 e.producer._bind_startup(session_provider=lambda _:None)
-            equity = D('100045') if held else D('100090')
+            equity = D('100000') if untraded else (D('100045') if held else D('100090'))
             e.probe = RiskBaseline(day_start_equity=equity, prior_high_watermark=equity,
                 observed_daily_loss=D(0), approved_effective_floor=D('70000'), first_trading_day=I.FIRST_DAY,
                 asof=clock_cell[0], source_sha256='b'*64)
@@ -129,9 +132,9 @@ def seed_setup(e):
     """Explicit operator: a separate real collection AFTER actual opening owner completion."""
     e.clock_cell[0] = e.start
     assert e.opening.completed_at <= e.start
-    equity = D('100045') if e.held else D('100090')
+    equity = e.probe.day_start_equity
     state, _, _, collection = I.seed(e.home, e.exchange, e.trade_fees, e.start,
-        day_start=equity, high=equity, loss=D(0), realized=D(0) if e.held else D('90'),
+        day_start=equity, high=equity, loss=D(0), realized=D(0) if e.held or e.untraded else D('90'),
         day_open=D(0), previous=None)
     e.exchange.clock = e.clock
     e.setup_collection, e.state = collection, state

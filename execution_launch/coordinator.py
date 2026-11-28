@@ -55,17 +55,20 @@ from core.compliance.rules import universe_top_n
 from core.isolation import state_root
 from execution_accounts.baseline_bridge import BaselineFrame, ContinuousAccountProvider
 from execution_accounts.baseline_store import CheckpointStore
+from execution_accounts.model import content_digest
+from execution_accounts.ownership import reconcile_first_order
 from execution_accounts.instrument_terms import within_buy_cap
 from execution_accounts.universe import TickerRead
 from execution_control.capability import digest
-from execution_control.controller import Controller, OrderState
+from execution_control.controller import Controller, OrderState, _fold
 from execution_control.dry_run import DryRunAdapter
 from execution_control.owner_authority import CurrentOwnerAuthority
-from execution_control.store import Journal, JournalError
+from execution_control.store import GENESIS, Journal, JournalError
 from execution_control.universe_odds import run_batch
 from execution_launch.baseline_head import BaselineHead
 from execution_launch.committed_account import CommittedAccountProvider
 from execution_launch.committed_producer import CommittedAccountProducer
+from execution_launch.committed_startup import CommittedStartup
 from execution_launch.driver import (DeploymentWindow, FixedDriverError, FixedDriverIdentity, describe_fixed_driver,
                                      make_fixed_driver, make_fixed_carry_driver)
 from execution_launch.live_history import HistoryChain, LiveHistory, SlotUniverse
@@ -1937,6 +1940,24 @@ class Coordinator:
                  "COORDINATOR_PLANNER_CAP_REQUIRED")
         return market, min(principal, capital), end, self._universe
 
+    def _check_committed_preparation(self, expected, account, tx, context, at):
+        """Reopen the current account and risk under the session append's own journal transaction."""
+        self._committed_configuration()
+        events = tx.events
+        current_head = events[-1]["row_sha256"] if events else GENESIS
+        _require(current_head == expected.observed_control_head, "COORDINATOR_PREPARATION_GENERATION_CHANGED")
+        read = self._controller._account(at, tx)
+        _require(read.committed == expected, "COORDINATOR_PREPARATION_GENERATION_CHANGED")
+        self._controller._committed_context(read, context, at)
+        _require(read.committed.owner_claim.signed_bid_gap_fraction is not None,
+                 "COORDINATOR_PREPARATION_BID_GAP_POLICY_REQUIRED")
+        _, _, halted, _ = _fold(events)
+        assessment = reconcile_first_order(account, events, now=at, account_sha256=content_digest(account),
+                                           journal_head=expected.observed_control_head)
+        _require(assessment.origin_ready, "COORDINATOR_PREPARATION_ORDER_ORIGIN_UNVERIFIED")
+        risk, _, stopped = self._controller._risk_view(tx, read.observation, at, context, committed=read.committed)
+        _require(not halted and not stopped and not risk.new_entry_blocked, "COORDINATOR_PREPARATION_RISK_BLOCKED")
+
     def prepare(self, *, selected_plan=None, inputs=None, selection_seed_hex=None, expires_at: datetime | None = None,
                 universe_batch=None, build=None):
         """prepare_launch_session over the last unit's observation; the actual PreparedSession is kept here and
@@ -1946,18 +1967,32 @@ class Coordinator:
             _require(not self._terms_blocked, "COORDINATOR_CURRENT_TERMS_REQUIRED")
             _require(not (self._universe and self.status().window_ended_missed_slot),
                      "COORDINATOR_HISTORY_WINDOW_ENDED")
+            committed_baseline = None
             def preparation_clock():
                 _require(not self._stopping.is_set() and not self._closing.is_set(), "COORDINATOR_STOPPED")
                 _require(not self._terms_blocked, "COORDINATOR_CURRENT_TERMS_REQUIRED")
                 at = self._now()
+                if committed_baseline is not None:
+                    status, _ = CommittedStartup._time_status(committed_baseline, at)
+                    _require(status == "FRESH", "COORDINATOR_PREPARATION_ACCOUNT_NOT_CURRENT")
                 _require((not self._universe or at <= self._window.end)
                          and (not self._carry or at < self._window.end), "COORDINATOR_MANAGEMENT_RENEWAL_REQUIRED")
                 return at
 
             actual = preparation_clock()
+            check_committed_entry = None
             if self._committed_producer is not None:
-                self._current_committed(actual)
+                pair = self._current_committed(actual)
                 _require(self._ready, "COORDINATOR_STARTUP_RECONCILE_REQUIRED")
+                inspection = self._committed_reconciliation.inspection
+                _require(inspection.origin_ready, "COORDINATOR_PREPARATION_ORDER_ORIGIN_UNVERIFIED")
+                _require(not inspection.permanent_halt and not inspection.daily_stop_at_checkpoint,
+                         "COORDINATOR_PREPARATION_RISK_BLOCKED")
+                _require(not inspection.path_entry_block, "COORDINATOR_PREPARATION_PATH_BLOCKED")
+                expected, account = pair.committed, self._committed_account
+                committed_baseline = self._store.load(expected_head=expected.baseline_head)
+                def check_committed_entry(tx, context, at):
+                    self._check_committed_preparation(expected, account, tx, context, at)
                 actual = self._time()
             if build is not None:
                 _require(callable(build) and selected_plan is None and inputs is None and selection_seed_hex is None
@@ -1974,7 +2009,8 @@ class Coordinator:
                     implementation_verifier=self._implementation_verifier, journal=self._journal,
                     selected_plan=selected_plan, inputs=inputs, positions=observation.positions, now=now,
                     selection_seed_hex=selection_seed_hex, expires_at=expires_at, universe_batch=universe_batch,
-                    clock=preparation_clock, positions_asof=observation.asof, cap_review_expiry=(build is not None))
+                    clock=preparation_clock, positions_asof=observation.asof, cap_review_expiry=(build is not None),
+                    check_committed_entry=check_committed_entry)
             except Exception as exc:
                 raise CoordinatorError(_code(exc, "COORDINATOR_DEPENDENCY_REFUSED")) from None
             self._launch = launch

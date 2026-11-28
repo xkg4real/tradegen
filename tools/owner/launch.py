@@ -55,7 +55,8 @@ _FIXED_ERROR_MODULES = frozenset({__name__, "tools.owner.planner", "tools.owner.
     "execution_launch.live_history", "execution_launch.baseline_head", "execution_launch.instrument_refresh",
     "execution_accounts.baseline", "execution_accounts.baseline_store", "execution_accounts.instrument_terms",
     "execution_launch.history_storage", "execution_launch.strategy", "execution_control.session",
-    "execution_control.universe_odds"})
+    "execution_control.universe_odds", "execution_launch.committed_startup",
+    "execution_launch.research_bundle", "execution_launch.research_bundle_store"})
 
 
 class OwnerOperationError(ValueError):
