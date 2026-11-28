@@ -4,25 +4,27 @@ reason: manual
 from: gpt
 task: upbit-universe
 cycle: 2026-11-24
-done_ids: owner-merges-1127, blocker1-approach-a-code/a1-a2, protective-hold/p2-integration, launch-planner-provider-1, launch-controlled-coordinator-1, live-cpp20-accel-1, m11-didm-quantgpt-section12-1, qlib-lab-model-factory-1, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1/account-fixtures, pr79-upbit-receipt-review-1, rules-review-1202/preparation, policy-loss-budget-plan-1, pr79-study-gate-repair-1, pr79-native-integrity-1, pr79-controlled-rehearsal-1, pr79-upbit-crosscheck-preview-1, pr79-independent-review-1, first-trade-account-startup-1128, didm-coverage-and-receipts-1128, didm-upside-research-1128, first-trade-historical-comparison-1128
+done_ids: owner-merges-1127, blocker1-approach-a-code/a1-a2, protective-hold/p2-integration, launch-planner-provider-1, launch-controlled-coordinator-1, live-cpp20-accel-1, m11-didm-quantgpt-section12-1, qlib-lab-model-factory-1, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1/account-fixtures, pr79-upbit-receipt-review-1, rules-review-1202/preparation, policy-loss-budget-plan-1, pr79-study-gate-repair-1, pr79-native-integrity-1, pr79-controlled-rehearsal-1, pr79-upbit-crosscheck-preview-1, pr79-independent-review-1, first-trade-account-startup-1128, didm-coverage-and-receipts-1128, didm-upside-research-1128, first-trade-historical-comparison-1128, didm-world-discovery-and-event-ranking-1128
 next_ids: rules-review-1202, launch-multi-market-validation-1, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, universe-pr5, universe-pr5/recovery-operations, universe-pr5-clock-notify, launch-private-capture-setup-1, universe-code-approve, e1-14-owner-setup, launch-prospective-study
-updated_at: 2026-11-28T15:00:40+09:00
+updated_at: 2026-11-28T15:34:54+09:00
 stale_after_hours: 24
 waiting_on: none
-work_branch: gpt/first-trade-integration-20261128
-work_commit: 9a2ad28a0582ad5693a3f25a71ac224d9652a722
+work_branch: gpt/didm-global-ranking-20261128
+work_commit: f5242856f0c2518a56dab2076ae6a2b3fead145a
 uncommitted_changes: no
-pr: 83, 82, 81, 80, 79, 69
+pr: 84, 83, 82, 81, 80, 79, 69
 usage_weekly_pct: unknown
 usage_source: unavailable
 usage_5h_pct: unknown
 usage_resets_at: unknown
-session: Codex Cloud PR 82, performance evaluation and PR 83
+session: Codex Cloud worldwide instrument discovery and research PR 84
 ---
 
 # TRADEGEN 인수인계 · 첫 거래 통합 및 네 사건의 역사적 재생
 
 ## 0. 한 줄 요약
+
+소유자가 지정한 DIDM의 탐색 범위는 전 세계의 개별 주식·채권·집합상품·파생·가상자산·예측계약이다. [PR #84](https://github.com/xkg4real/tradegen/pull/84)에 자료 시점, 실제 상품의 지급 방향, 비용 후 초과수익에 따른 연구용 평가를 연결했다. [세계시장 검증 인계](context/upbit-universe/gpt-20261128/세계시장_DIDM_인계.md)에 자료 범위와 미해결 과제가 있다.
 
 소유자가 첫 거래 전 세 과제(계좌 대사, 손실 보호·재시작 복구, 전향 연구·배포 승인)를 최우선으로 지정했다. [PR #82](https://github.com/xkg4real/tradegen/pull/82)에서 계좌·가드·연구 경로를 보완했다. DIDM은 TRADEGEN에서 먼저 개발하고 검증된 공통 부분을 QUANTGEN에 동기화한다. 네 사건의 실험과 운영 검증의 차이는 [최신 인계 기록](context/upbit-universe/gpt-20261128/첫거래_DIDM_사건연구_인계.md)에 있다.
 
@@ -74,6 +76,8 @@ PR #82에 원본 수신·연구 재현·상방 후보·프로그램 외부 배�
 소유자 Windows의 `floor_state_check` S1~S12와 허용된 QUANTGEN 비공개 SQLite 사본의 오프라인 검사(TG-MAN-012)는 수동 확인이 남았다. 공개 저장소에는 금액·계좌·자격 자료를 기록하지 않는다. 코드 검토, 한도 서명, 전략 승인과 실거래 활성화 권한은 각각 확인한다.
 
 ## 9. 다음 에이전트의 시작 지점
+
+세계시장 연구는 PR #84와 위 세계시장 검증 인계에서 재개한다. 보유 공시·현재 상품 목록은 역사적인 진입 근거로 쓸 수 없다. 공시 강도, 가이던스와 공급망 지표를 별개로 고정하고, 미사용 날짜의 상승 참여와 비용 후 기준 대비 차이를 검증한다.
 
 연구 성능 후속 기록. 현금 수익률, 시장 가격 및 매수보유 비용을 구분하는 독립 도구를 [PR #83](https://github.com/xkg4real/tradegen/pull/83)에서 검토한다. 추세의 방향을 양쪽으로 거래하는 IBIT·BITI 모의계좌는 선거 구간(10/27~11/16)에 +21.16%, 다른 기간(3/2~10/26)에 −29.17%였다. IBIT·현금 대조군은 각각 0.00%, −5.68%였다. 두 기간은 독립 계좌로 재시작했다. 28개 분기의 방향 연구에서 2025년 가격 모형 상승 고신뢰 판단은 115회 중 46회 적중했다. 2025년 이동평균 3/15와 강화된 진입 조건은 기존 5/20보다 낮은 수익을 냈다. 운영 승격은 미결이다. 규칙·비용·시점·보호 하한을 유지하고, 다음 미사용 구간에서 상방과 하방을 별도 검증한다. 상세 연구 원장과 자료 묶음은 소유자에게 직접 전달했다.
 

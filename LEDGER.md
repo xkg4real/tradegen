@@ -247,3 +247,4 @@ Claude와 GPT가 끝낸 작업을 한 줄씩 쌓는 기록입니다. 같은 작�
 | didm-coverage-and-receipts-1128 | 2026-11-28T14:41:23+09:00 | 2026-11-24 | gpt | GDELT 원본 구간·D2 결측 및 D3 시점 확인 | PR 82 및 context/upbit-universe/gpt-20261128/첫거래_DIDM_사건연구_인계.md | 9a2ad28 | 공급자 점수 예제 32건·D3 및 커버리지 회귀 |
 | didm-upside-research-1128 | 2026-11-28T14:41:23+09:00 | 2026-11-24 | gpt | 상방 연구 후보와 비용·지연·근거를 갖춘 평가 통합 | PR 82 및 context/upbit-universe/gpt-20261128/첫거래_DIDM_사건연구_인계.md | 9a2ad28 | 최종 집중 검사 54/54, 실자료 수익 미확인 |
 | first-trade-historical-comparison-1128 | 2026-11-28T14:41:23+09:00 | 2026-11-24 | gpt | 네 역사 사건에서 같은 가격·보유 조건으로 정보 입력의 증분 평가 | PR 82 및 context/upbit-universe/gpt-20261128/첫거래_DIDM_사건연구_인계.md | 9a2ad28 | 고정 8a840a3·유효 사례 17개·비용 시나리오 34개, 실계좌 적용 미측정 |
+| didm-world-discovery-and-event-ranking-1128 | 2026-11-28T15:34:54+09:00 | 2026-11-24 | gpt | 세계 상품 명부와 역사적 정보·수익 비교 | PR #84 및 세계시장_DIDM_인계.md | f524285 | 20개 회귀 통과, 8개 출처 347,264행, 실제 투자가능 전수 미확인 |
