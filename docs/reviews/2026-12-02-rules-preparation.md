@@ -29,6 +29,8 @@
 
 `review_by`는 당일까지 유효하다. `auto_off`와 `effective_until`은 지정일 00:00 KST부터 적용된다. 검사 코드 2는 기한이 지난 항목이 있다는 뜻이다. 신규 노출과 보유분 청산·반환은 의도에 해당하는 규칙과 서명 상태에 따라 게이트가 따로 결정한다. [검사 구현](../../core/compliance/rules.py) · [거래 게이트](../../core/compliance/gate.py)
 
+고정한 PR #79에서 `python -m tests.compliance_acceptance compliance_tables` 75/75, `python -m tests.compliance_acceptance compliance_cli` 37/37이 통과했다. 이는 코드·초안의 동작 확인이다. 12월 공식 문서 확인과 실제 소유자 상태 점검은 별도로 기록한다.
+
 검사한 SHA-256은 규칙 `1699d1d67e1864a693e1097a47b86db40541cf45823f720701a1a41948420c01`, 상품 `50fa819f62707eb58e09135355b4f84160611ef4a8ad1af7345bb119b6f1431a`, 거래소 `5d966ef1639d5da23acfd58e2caff70d80233f401984d683faceebdb30b14aa9`이다. 재검토 후 변경이 필요한 행은 새 원문·시행일과 변경 사유를 적어 별도 검토·서명한다. 서명 전에는 승인 저장소에 있는 표가 계속 적용된다.
 
 법률, 세무, 투자 조언이 아니며 면허를 가진 자문가가 아니다.

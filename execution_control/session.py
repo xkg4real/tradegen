@@ -79,7 +79,7 @@ def prepare_session(*, journal, session_id: str, selected_plan, inputs, position
                     account_scope: str, market: str, quote_currency: str,
                     clock, positions_asof: datetime, completion_check=None,
                     expires_at: datetime | None = None,
-                    universe_batch: UniverseBatch | None = None) -> PreparedSession:
+                    universe_batch: UniverseBatch | None = None, cap_review_expiry=False) -> PreparedSession:
     """Actually rerun selected_plan with a fresh comparison seed before arming.
 
     Inputs and positions come from the caller's reconciled observations. A result
@@ -200,6 +200,8 @@ def prepare_session(*, journal, session_id: str, selected_plan, inputs, position
             review_deadline = completion_check(checked)
             _require(_aware(review_deadline) and checked < review_deadline,
                      "SESSION_PREPARATION_REVIEW_DEADLINE_REQUIRED")
+            if cap_review_expiry:
+                end = min(end, review_deadline - timedelta(seconds=60))
         checked = current_time()
         current_ctx = owner.load_context(checked, positions, session_id=session_id)
         _require(model.is_sealed(current_ctx) and current_ctx.owner.ok and current_ctx.code_signed

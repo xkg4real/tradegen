@@ -14,9 +14,6 @@ from __future__ import annotations
 
 import hashlib
 import importlib.metadata
-import json
-import math
-import os
 import re
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -25,15 +22,13 @@ import yaml
 
 from core.calendars import clocks, regime
 from core.calendars.store import CalendarCoverageError, CalendarSet, CalendarUnsigned
-from core.compliance import model, owner, rules
-from core.isolation import checked_target, state_root
+from core.compliance import owner, rules
+from core.odds_registry import STATE_SCHEMA, begin_run, state_path
 from core.odds import plan as P
 
 REPO = Path(__file__).resolve().parents[2]
 UNVERSIONED = "UNVERSIONED"                                    # == core.quant.gate_ledger.UNVERSIONED
 TREE_GLOBS = ("core/**/*.py", "data/macro/**/*", "config.py")  # == core.ficc.macro_artifacts.TREE_GLOBS
-STATE_SCHEMA = "tradegen.odds_state/1"
-CID_RE = r"c[0-9]{6}"
 _MD5_FILES = {"KR": ("holidays_KRX", "kr_regime_tags", "kr_sessions"), "US": ("holidays_NYSE",)}
 
 
@@ -129,89 +124,6 @@ def provenance() -> P.Provenance:
 # --------------------------------------------------------------------------- #
 # The comparison state (Q12, Q34, Q36)
 # --------------------------------------------------------------------------- #
-def state_path() -> Path:
-    return state_root() / "odds" / "state.json"
-
-
-def _number(v) -> bool:
-    try:
-        return isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v)
-    except OverflowError:
-        return False
-
-
-def _hex64(v) -> bool:
-    return isinstance(v, str) and re.fullmatch(r"[0-9a-f]{64}", v) is not None
-
-
-def _state_ok(doc) -> bool:
-    """A tradegen.odds_state/1 document: every comparison holds its own run counter (1 <= run <= runs, its id
-    c<run:06d>, so ids and runs are unique and a new id is never an issued one), sorted unique plan hashes and sorted
-    unique typed rates."""
-    if not (isinstance(doc, dict) and set(doc) == {"schema", "runs", "comparisons"} and doc["schema"] == STATE_SCHEMA
-            and isinstance(doc["runs"], int) and not isinstance(doc["runs"], bool) and doc["runs"] >= 0
-            and isinstance(doc["comparisons"], dict)):
-        return False
-    for cid, comp in doc["comparisons"].items():
-        if not (re.fullmatch(CID_RE, cid) and isinstance(comp, dict) and set(comp) == {"run", "plans", "typed"}
-                and isinstance(comp["run"], int) and not isinstance(comp["run"], bool)
-                and 1 <= comp["run"] <= doc["runs"] and cid == f"c{comp['run']:06d}"
-                and isinstance(comp["plans"], list)
-                and all(_hex64(h) for h in comp["plans"]) and comp["plans"] == sorted(set(comp["plans"]))
-                and isinstance(comp["typed"], list) and all(_number(p) for p in comp["typed"])
-                and comp["typed"] == sorted(set(comp["typed"]))):
-            return False
-    return True
-
-
-def _read_state(path: Path) -> dict:
-    if not path.exists():
-        return {"schema": STATE_SCHEMA, "runs": 0, "comparisons": {}}
-    try:
-        doc = json.loads(path.read_bytes().decode("utf-8"))
-    except (UnicodeDecodeError, ValueError):
-        doc = None
-    if not _state_ok(doc):
-        raise RuntimeError(f"odds state {path}: not a {STATE_SCHEMA} file; the owner deletes it before the next run")
-    return doc
-
-
-def begin_run(comparison: str | None, plan_hashes: list[str], typed: list[float]
-              ) -> tuple[str, int, int, int, dict[str, int]]:
-    """Opens one run: a new comparison (comparison None, id c<runs:06d>, its run counter fixed at creation) or an
-    issued one (its own counter reused, so every invocation of it gets the same seed). Adds the plan hashes and typed
-    win rates, writes the state atomically, and returns (id, run counter, K plans, J typed rates, R per plan hash:
-    the number of comparisons whose plans hold it). ValueError, writing nothing, for an id that is malformed or was
-    never issued, or a plan hash or rate that is not one."""
-    # ponytail: one writer at a time. Two overlapping runs read the same `runs`, issue the same new id and counter
-    # (one seed), and the later os.replace drops the other's plans; take an exclusive state.lock (open "x" after
-    # checked_target) if runs can ever overlap. Ids stop at c999999: run 1,000,000 writes c1000000, which the next
-    # read refuses; widen CID_RE before that.
-    if comparison is not None and not (isinstance(comparison, str) and re.fullmatch(CID_RE, comparison)):
-        raise ValueError(f"comparison id {comparison!r} is not c followed by six digits")
-    if not all(_hex64(h) for h in plan_hashes) or not all(_number(p) for p in typed):
-        raise ValueError("begin_run: plan hashes are 64 hex characters and typed rates finite numbers")
-    path = state_path()
-    state = _read_state(path)
-    comps = state["comparisons"]
-    if comparison is not None and comparison not in comps:
-        raise ValueError(f"comparison {comparison} was never issued; leave --comparison out to start a new one")
-    state["runs"] += 1
-    cid = comparison or f"c{state['runs']:06d}"
-    comp = comps.setdefault(cid, {"run": state["runs"], "plans": [], "typed": []})
-    comp["plans"] = sorted(set(comp["plans"]) | set(plan_hashes))
-    comp["typed"] = sorted(set(comp["typed"]) | {float(p) for p in typed})
-    base = path.parent
-    checked_target(base, "odds folder", within=state_root())     # a junction made after state_root()'s scan (A0)
-    target = checked_target(path, "odds state", within=base)
-    tmp = checked_target(base / "state.json.tmp", "odds state tmp", within=base)
-    base.mkdir(parents=True, exist_ok=True)
-    tmp.write_bytes((model.canonical_json(state) + "\n").encode("utf-8"))
-    os.replace(tmp, target)
-    seen = {h: sum(h in c["plans"] for c in comps.values()) for h in plan_hashes}
-    return cid, comp["run"], len(comp["plans"]), len(comp["typed"]), seen
-
-
 def build_inputs(plan, now: datetime, *, series, sessions_info, calendar_sha: str, replay, run) -> P.Inputs:
     """plan.Inputs from the pieces: `sessions_info` is the 5-tuple of sessions(), `run` the 5-tuple of begin_run()."""
     dates, limits, md5s, version, error = sessions_info

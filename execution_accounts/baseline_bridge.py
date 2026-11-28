@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from decimal import DecimalException, Inexact, localcontext
+from decimal import Decimal, DecimalException, Inexact, localcontext
 import re
 from threading import Lock
 
@@ -33,9 +33,18 @@ def _require(ok, code):
 
 
 @dataclass(frozen=True, kw_only=True)
+class BidGapObservation:
+    """Preview terms used at the account endpoint. This record confers no order authority."""
+    account_scope: str
+    asof: datetime
+    threshold: Decimal | None
+
+
+@dataclass(frozen=True, kw_only=True)
 class BaselineFrame:
     interval: BaselineInterval
     accounts: tuple[AccountEvidence, ...]
+    bid_gap: BidGapObservation | None = None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -45,7 +54,7 @@ class BaselineUpdate:
     observation: AccountObservation
 
 
-def _reconcile(state, accounts, *, now, source_sha256, interval_start=None):
+def _reconcile(state, accounts, *, now, source_sha256, interval_start=None, bid_gap=None):
     baseline = risk_baseline(state, now=now, expected_head=state.state_digest)
     _require(type(accounts) is tuple and len(accounts) == 1 and type(accounts[0]) is AccountEvidence,
              "BASELINE_BRIDGE_SINGLE_ACCOUNT_REQUIRED")
@@ -57,7 +66,13 @@ def _reconcile(state, accounts, *, now, source_sha256, interval_start=None):
     _require(account.account_scope == state.account_scope and account.execution_quote == "KRW"
              and account.observed_at == state.asof, "BASELINE_BRIDGE_ACCOUNT_BINDING_MISMATCH")
     bundle = AccountBundle(accounts=accounts, risk_baseline=baseline)
-    observation = build_observation(bundle, now=now)
+    if bid_gap is None:
+        observation = build_observation(bundle, now=now)
+    else:
+        _require(type(bid_gap) is BidGapObservation and bid_gap.account_scope == account.account_scope
+                 and bid_gap.asof == state.asof and account.venue == "upbit",
+                 "BASELINE_BRIDGE_BID_GAP_BINDING_MISMATCH")
+        observation = build_observation(bundle, now=now, bid_gap_y=bid_gap.threshold)
     _require(observation.risk.equity == state.equity_krw and observation.asof == state.asof,
              "BASELINE_BRIDGE_EQUITY_MISMATCH")
     # Existing reconciliation has already validated row types/page chains.
@@ -102,7 +117,8 @@ def initialize_account_baseline(conventions: BaselineConventions, anchor: Baseli
 
 
 def advance_account_baseline(previous: BaselineState, interval: BaselineInterval,
-                             accounts: tuple[AccountEvidence, ...], *, now: datetime) -> BaselineUpdate:
+                             accounts: tuple[AccountEvidence, ...], *, now: datetime,
+                             bid_gap: BidGapObservation | None = None) -> BaselineUpdate:
     """Use the actual reduced baseline, then reconcile both account and counters.
 
     The narrow current path is one KRW-settled account. All cumulative FIFO totals
@@ -115,7 +131,7 @@ def advance_account_baseline(previous: BaselineState, interval: BaselineInterval
             numeric.prec = 512; numeric.traps[Inexact] = True
             state = advance_baseline(previous, interval)
             return _reconcile(state, accounts, now=now, source_sha256=interval.source_sha256,
-                              interval_start=interval.start)
+                              interval_start=interval.start, bid_gap=bid_gap)
     except BaselineBridgeError:
         raise
     except (ValueError, TypeError, AttributeError, DecimalException, OverflowError):
@@ -196,7 +212,7 @@ class ContinuousAccountProvider:
             except Exception:
                 raise BaselineBridgeError("BASELINE_INTERVAL_SOURCE_FAILED") from None
             _require(type(frame) is BaselineFrame, "BASELINE_PROVIDER_FRAME_REQUIRED")
-            update = advance_account_baseline(previous, frame.interval, frame.accounts, now=now)
+            update = advance_account_baseline(previous, frame.interval, frame.accounts, now=now, bid_gap=frame.bid_gap)
             if update.state.state_digest != old_head:
                 try:
                     self._store.commit(update.state, expected_previous_head=old_head)

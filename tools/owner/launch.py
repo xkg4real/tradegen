@@ -34,6 +34,7 @@ from core.isolation import state_root
 from execution_accounts.baseline import restore_state
 from execution_accounts.baseline_store import CheckpointStore
 from execution_accounts.universe import daily_bars
+from execution_control.capability import digest
 from execution_control.store import GENESIS
 from execution_launch.baseline_head import BaselineHead, BaselineHeadError, CheckpointChain
 from execution_launch.coordinator import Coordinator, compose_driver, history_head_name, read_history_storage
@@ -214,6 +215,9 @@ class OwnerRuntime:
                  (preparation_provider is None or callable(preparation_provider)) and
                  (on_close is None or callable(on_close)), "OWNER_RUNTIME_REQUIRED")
         self._coordinator, self._preparation_provider = coordinator, preparation_provider
+        from tools.owner.planner import CurrentPlanner
+        self._current_planner = preparation_provider if type(preparation_provider) is CurrentPlanner else None
+        self._planner_lock, self._selection = Lock(), None
         self._on_close = on_close
         self._lock, self._thread, self._failure = Lock(), None, ""
         self._batch = None  # preparation input only; never review, activation or order authority
@@ -231,6 +235,10 @@ class OwnerRuntime:
         with self._lock:
             alive = self._thread is not None and self._thread.is_alive()
             failure = self._failure
+            selection = self._selection
+        planner_status = None if selection is None else {
+            "comparison_id": selection.value.inputs.comparison_id, "run_counter": selection.value.inputs.run_counter,
+            "selection_seed_hex": selection.value.selection_seed_hex, "plan_hash": selection.plan_hash}
         return {"command": "status", "phase": status.phase, "worker_running": alive,
                 "strategy_stopped": status.strategy_stopped, "new_entry_blocked": status.new_entry_blocked,
                 "account_source": status.account_source, "account_asof":
@@ -253,7 +261,7 @@ class OwnerRuntime:
                 "protective_phase": status.protective_phase,
                 "protective_triggers": list(status.protective_triggers),
                 "protective_exit_client_id": status.protective_exit_client_id,
-                "worker_failure": failure, "execution_ready": False}
+                "worker_failure": failure, "planner_selection": planner_status, "execution_ready": False}
 
     def bootstrap(self) -> dict:
         self._coordinator.bootstrap()
@@ -261,12 +269,19 @@ class OwnerRuntime:
 
     def prepare(self) -> dict:
         _require(self._preparation_provider is not None, "OWNER_CURRENT_PREPARATION_INPUTS_REQUIRED")
-        value = self._preparation_provider()
-        _require(type(value) is PreparationInputs, "OWNER_CURRENT_PREPARATION_INPUTS_REQUIRED")
-        with self._lock:
-            batch = self._batch
-        prepared = self._coordinator.prepare(selected_plan=value.selected_plan, inputs=value.inputs,
-            selection_seed_hex=value.selection_seed_hex, expires_at=value.expires_at, universe_batch=batch)
+        if self._current_planner is None:
+            value = self._preparation_provider()
+            _require(type(value) is PreparationInputs, "OWNER_CURRENT_PREPARATION_INPUTS_REQUIRED")
+            with self._lock:
+                batch = self._batch
+            prepared = self._coordinator.prepare(selected_plan=value.selected_plan, inputs=value.inputs,
+                selection_seed_hex=value.selection_seed_hex, expires_at=value.expires_at, universe_batch=batch)
+        else:
+            with self._planner_lock:
+                with self._lock:
+                    selection, batch = self._selection, self._batch
+                builder = self._current_planner.prepare_builder(selection, self._coordinator.planner_scope)
+                prepared = self._coordinator.prepare(build=builder, universe_batch=batch)
         return {"command": "prepare", "session_id": prepared.session_id,
                 "prepared_at": prepared.prepared_at.isoformat(), "expires_at": prepared.expires_at.isoformat(),
                 "record_digest": prepared.record_digest, "owner_activation_performed": False,
@@ -278,6 +293,26 @@ class OwnerRuntime:
         No approval or activation is conferred. A failed replacement attempt leaves
         no previous batch selected; the session boundary authenticates any result.
         """
+        if self._current_planner is not None:
+            with self._planner_lock:
+                with self._lock:
+                    self._selection = self._batch = None
+                selection = self._current_planner.select(self._coordinator.planner_scope)
+                value, passed, batch = selection.value, selection.passed, None
+                if passed and selection.universe:
+                    batch = self._coordinator.odds_batch(value.selected_plan, self._current_planner.bars_reader)
+                    passed = (bool(batch.coins) and batch.coins[0].market == selection.market
+                              and batch.coins[0].plan_hash == selection.plan_hash
+                              and batch.coins[0].inputs_digest == digest(list(selection.bar_receipts))
+                              and all(coin.passed is True for coin in batch.coins))
+                if passed:
+                    with self._lock:
+                        self._selection, self._batch = selection, batch
+                return {"command": "odds", "passed": passed, "card": selection.rendered_card, "market": selection.market,
+                        "plan_hash": selection.plan_hash, "comparison_id": value.inputs.comparison_id,
+                        "run_counter": value.inputs.run_counter, "selection_seed_hex": value.selection_seed_hex,
+                        "batch_digest": None if batch is None else batch.batch_digest,
+                        "coins": 1 if batch is None else len(batch.coins), "execution_ready": False}
         with self._lock:
             self._batch = None
         _require(self._preparation_provider is not None, "OWNER_CURRENT_PREPARATION_INPUTS_REQUIRED")

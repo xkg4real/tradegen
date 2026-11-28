@@ -303,11 +303,24 @@ class _Codec:
         cls, schema = _SCHEMAS[spec]
         if decode:
             values = _untag(item, spec)
-            _need(type(values) is dict and len(values) == len(schema) and set(values) == set(schema))
+            _need(type(values) is dict)
         else:
-            _need(type(item) is cls and type(vars(item)) is dict and len(vars(item)) == len(schema)
-                  and set(vars(item)) == set(schema))
+            _need(type(item) is cls and type(vars(item)) is dict)
             values = vars(item)
+        if spec == 'Position':
+            # Historical v1 packets predate stale-mark bid evidence. Keep their exact
+            # wire shape when neither value exists. With evidence, commit both fields.
+            quote_fields = {'best_bid': _optional('Decimal'), 'best_bid_asof': _optional('datetime')}
+            if decode:
+                if not quote_fields.keys().isdisjoint(values):
+                    schema = schema | quote_fields
+            else:
+                _need(values.keys() == schema.keys() | quote_fields.keys())
+                if item.best_bid is None and item.best_bid_asof is None:
+                    values = {name: values[name] for name in schema}
+                else:
+                    schema = schema | quote_fields
+        _need(values.keys() == schema.keys())
         if spec == 'AccountEvidence':
             pages = _untag(values['pages'], 'tuple') if decode else values['pages']
             _need(type(pages) is (list if decode else tuple))

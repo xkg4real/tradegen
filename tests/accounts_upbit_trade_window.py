@@ -74,14 +74,16 @@ def test_both_trade_days_last_wire_cursor_and_complete_global_budget():
     refused("UPBIT_TRADE_COVERAGE_INCOMPLETE", lambda: walk(Source(), max_pages=3, anchor_trade_id=7))
 
 
-def test_settlement_gate_stops_before_first_trade_read_and_ticker_disagreement_refuses():
+def test_settlement_gate_stops_before_first_trade_read_and_retains_ticker_disagreement():
     s = Source()
     s.now = END + timedelta(milliseconds=1999)
     refused("COLLECTOR_TRADE_WINDOW_UNSETTLED", lambda: walk(s))
     assert [path for path, _ in s.calls] == ["/v1/ticker"]
     s.now = END + timedelta(seconds=2)
     s.ticker[0]["trade_price"] = 12
-    refused("COLLECTOR_TICKER_TRADE_MISMATCH", lambda: walk(s))
+    result = walk(s)
+    assert result.ticker_discrepancy == (END - timedelta(seconds=1), 12)
+    assert result.prints and result.receipts[0].path == "/v1/ticker"
 
 
 def test_conflicting_trade_or_nonprogressing_cursor_cannot_close_window():
@@ -144,3 +146,14 @@ def test_upbit_stale_mark_exception_does_not_apply_to_kis_or_okx():
         changed = replace(account, positions=(stale, *account.positions[1:]))
         evidence = replace(original, accounts=(changed,))
         refused("EVIDENCE_STALE_OR_FUTURE", lambda: build_observation(evidence, now=now, bid_gap_y=Decimal("0.05")))
+
+
+
+def test_walk_refuses_unordered_page_or_unverified_eighth_utc_day():
+    s = Source()
+    s.pages[(1, None)].reverse()
+    refused("COLLECTOR_TRADE_PAGE_NOT_CHRONOLOGICAL", lambda: walk(s))
+    s = Source()
+    s.now = END + timedelta(days=6, seconds=3)
+    refused("UPBIT_TRADE_COVERAGE_INCOMPLETE", lambda: walk(s))
+    assert [path for path, _ in s.calls] == ["/v1/ticker"]

@@ -136,6 +136,7 @@ class TradeWindowResult:
     all_prints: tuple[TradePrint, ...]
     receipts: tuple[SourceReceipt, ...]
     proof_sha256: str
+    ticker_discrepancy: tuple[datetime, Decimal] | None = None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -652,13 +653,13 @@ def collect_trade_window(source, market: str, *, start: datetime, end: datetime,
         require(server >= end + timedelta(seconds=2), "COLLECTOR_TRADE_WINDOW_UNSETTLED")
         require(len(body) == 1 and body[0].get("market") == market, "COLLECTOR_TICKER_INVALID")
         ms = body[0].get("trade_timestamp")
-        require(type(ms) is int and 0 < ms <= _ms(ticker.received_at) + 60000, "COLLECTOR_TRADE_TIME_REQUIRED")
+        require(type(ms) is int and 0 < ms < _ms(server) + 1000, "COLLECTOR_TRADE_TIME_REQUIRED")
         ticker_at = _EPOCH + timedelta(milliseconds=ms)
         ticker_price = number(body[0].get("trade_price"), positive=True, json_number=True)
         receipts, seen = [ticker], {}
         day = start.date()
         last_day = (end - timedelta(microseconds=1)).date()
-        require(0 <= (server.date() - day).days <= 7, "UPBIT_TRADE_COVERAGE_INCOMPLETE")
+        require(0 <= (server.date() - day).days < 7, "UPBIT_TRADE_COVERAGE_INCOMPLETE")
         while day <= last_day:
             midnight = datetime.combine(day + timedelta(days=1), datetime.min.time(), timezone.utc)
             upper = min(end, midnight)
@@ -670,6 +671,7 @@ def collect_trade_window(source, market: str, *, start: datetime, end: datetime,
                         and (days_ago is None or type(days_ago) is int and days_ago == offset),
                         "COLLECTOR_WINDOW_QUERY_MISMATCH")
             cursor, cursors = None, set()
+            previous_oldest_at = None
             while True:
                 require(len(receipts) <= max_pages, "UPBIT_TRADE_COVERAGE_INCOMPLETE")
                 receipt, rows = _window_read(source, scope, clock, market, count, cursor, bound, offset or None)
@@ -681,7 +683,11 @@ def collect_trade_window(source, market: str, *, start: datetime, end: datetime,
                 require(len(rows) <= count, "COLLECTOR_PAGE_LIMIT_EXCEEDED")
                 receipts.append(receipt)
                 page = [_public_print(row, market, receipt) for row in rows]
+                require(all(left.at >= right.at for left, right in zip(page, page[1:])),
+                        "COLLECTOR_TRADE_PAGE_NOT_CHRONOLOGICAL")
                 for item in page:
+                    if previous_oldest_at is not None and item.sequential_id not in seen:
+                        require(item.at <= previous_oldest_at, "COLLECTOR_TRADE_PAGE_NOT_CHRONOLOGICAL")
                     require(item.at.date() == day and (bound is None or item.at < rounded),
                             "COLLECTOR_TRADE_OUTSIDE_QUERY")
                     old = seen.get(item.sequential_id)
@@ -694,6 +700,7 @@ def collect_trade_window(source, market: str, *, start: datetime, end: datetime,
                 require(len(seen) <= max_prints, "UPBIT_TRADE_COVERAGE_INCOMPLETE")
                 if not page or any(item.at < start for item in page):
                     break
+                previous_oldest_at = page[-1].at
                 cursor = str(page[-1].sequential_id)
                 require(cursor not in cursors, "UPBIT_TRADE_COVERAGE_INCOMPLETE")
                 cursors.add(cursor)
@@ -703,16 +710,18 @@ def collect_trade_window(source, market: str, *, start: datetime, end: datetime,
         opening = prior[-1] if prior else None
         if opening is not None and any(p.at == opening.at and p.price != opening.price for p in prior):
             opening = None  # IDs do not establish ordering inside a millisecond.
-        # A ticker predating this walk has no comparable observation in its receipt range.
-        comparable = (ticker_at.date() >= start.date() and ticker_at < rounded and
-                      (ticker_at >= start or any(p.at <= ticker_at for p in prior)))
-        matches = any(p.at == ticker_at and p.price == ticker_price for p in ordered)
-        require(not comparable or matches, "COLLECTOR_TICKER_TRADE_MISMATCH")
+        discrepancy = None
+        if start <= ticker_at < rounded:
+            if not any(p.at == ticker_at and p.price == ticker_price for p in ordered):
+                discrepancy = (ticker_at, ticker_price)
+        elif ticker_at < start and opening is not None and (opening.at, opening.price) != (ticker_at, ticker_price):
+            discrepancy = (ticker_at, ticker_price)
         inside = tuple(p for p in ordered if start <= p.at < end)
         proof = content_digest((market, scope, start, end, anchor_trade_id,
             tuple((r.path, r.params, r.received_at, r.server_time, r.sha256) for r in receipts)))
         return TradeWindowResult(market=market, start=start, end=end, opening_print=opening, prints=inside,
-                                 all_prints=tuple(ordered), receipts=tuple(receipts), proof_sha256=proof)
+                                 all_prints=tuple(ordered), receipts=tuple(receipts), proof_sha256=proof,
+                                 ticker_discrepancy=discrepancy)
     except EvidenceError:
         raise
     except (ValueError, TypeError, KeyError, AttributeError, ArithmeticError, OverflowError):

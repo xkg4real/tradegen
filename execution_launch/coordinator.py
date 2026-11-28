@@ -3,9 +3,8 @@
 Explicit operation only. Import and construction read no clock, account, quote, head or journal, start no thread
 and install no signal handler; run() works on the caller's thread until the schedule ends or close() is called.
 There is no transport here: the account producer, the trusted heads, the quote source and the history adapter
-arrive already constructed, and the only supported mode is "rehearsal" (exact DryRunAdapters over an isolated
-state root, checked by runner.py). "controlled" is refused: the shipped interval producer is flat-only
-(account_interval.py), so a filled entry would stop the account chain before the position could be managed.
+arrive already constructed, and the execution mode is "rehearsal" (exact DryRunAdapters over an isolated
+state root, checked by runner.py). The interval producer lacks production coverage and protective authority before the position could be managed.
 
 A unit of work (startup, monitor, boundary, gap, slot, or an explicit cancel/exit) loads the checkpoint behind the
 trusted head, runs the account prefetch, picks its time only after every fetch has finished, publishes exactly one
@@ -86,7 +85,7 @@ from execution_launch.strategy import ForwardProtocol, evaluate_capture_json, pa
 from execution_launch.toast_queue import ToastQueue
 from execution_launch.workflow import MAX_CAPTURE_BYTES, MAX_CONFIG_BYTES, artifact, read_file
 
-MODES = ("paper", "rehearsal", "controlled")
+MODES = ("paper", "rehearsal")
 _ZERO = Decimal(0)
 SLOT_WINDOW = timedelta(seconds=10)      # the driver's execution slot and the quote freshness bound
 ACCOUNT_AGE = timedelta(seconds=30)      # the runner's and the reducer's account freshness bound
@@ -214,8 +213,8 @@ def _check_protective_binding(store, identity, profile, evidence, window, monito
              "COORDINATOR_PROTECTIVE_BINDING_MISMATCH")
 
 
-def _check_live_protective_binding(store, identity, profile, evidence, window, monitor_until):
-    """Standing Amendment A2 protective-store context commitments for controlled live operation."""
+def _check_rehearsal_protective_binding(store, identity, profile, evidence, window, monitor_until):
+    """Standing Amendment A2 protective-store context commitments for isolated A2 rehearsal."""
     _require(type(store) is ProtectiveStore, "COORDINATOR_PROTECTIVE_STORE_REQUIRED")
     policy, binding = store.policy, store.binding
     management_policy_digest(policy)
@@ -421,34 +420,9 @@ class Coordinator:
                  protective_store: ProtectiveStore | None = None,
                  committed_producer: CommittedAccountProducer | None = None,
                  controller: Controller | None = None,
-                 owner_snapshot_provider: Callable | None = None,
-                 allow_held_account: bool = False) -> None:
+                 owner_snapshot_provider: Callable | None = None) -> None:
         _require(mode in MODES, "COORDINATOR_MODE_UNSUPPORTED")
-        if mode == "controlled":
-            eff_adapters = controller.adapters if type(controller) is Controller else adapters
-            held_ready = (allow_held_account
-                          or getattr(account_source, "_trade_window_collector", None) is not None)
-            live_adapters_ok = (
-                isinstance(eff_adapters, Mapping)
-                and bool(eff_adapters)
-                and "upbit" in eff_adapters
-                and all(
-                    type(a) is not DryRunAdapter
-                    and callable(getattr(a, "prepare", None))
-                    and callable(getattr(a, "dispatch", None))
-                    and getattr(getattr(a, "credentials", None), "__name__", "") != "unconfigured_credentials"
-                    for a in eff_adapters.values()
-                )
-            )
-            _require(
-                committed_producer is None
-                and held_ready
-                and live_adapters_ok
-                and type(protective_store) is ProtectiveStore,
-                "COORDINATOR_MODE_UNSUPPORTED",
-            )
-            adapters = eff_adapters
-        elif mode == "paper":
+        if mode == "paper":
             _require(committed_producer is None, "COORDINATOR_MODE_UNSUPPORTED")
         _require(type(profile) is LaunchProfile and (profile.venue, profile.market, profile.quote_currency)
                  == ("upbit", "spot", "KRW"), "COORDINATOR_VENUE_UNSUPPORTED")
@@ -503,12 +477,12 @@ class Coordinator:
         _require(window.end <= monitor_until <= window.end + timedelta(days=1), "COORDINATOR_MONITOR_SPAN_UNSUPPORTED")
         _require(not carry or (identity is not None and type(protective_store) is ProtectiveStore),
                  "COORDINATOR_PROTECTIVE_STORE_REQUIRED")
-        if mode != "controlled":
-            _require(carry or protective_store is None, "COORDINATOR_PROTECTIVE_BEHAVIOR_UNSUPPORTED")
+        a2_rehearsal = mode == "rehearsal" and not carry and type(protective_store) is ProtectiveStore
+        _require(carry or protective_store is None or a2_rehearsal, "COORDINATOR_PROTECTIVE_BEHAVIOR_UNSUPPORTED")
         if carry:
             _check_protective_binding(protective_store, identity, profile, evidence, window, monitor_until)
-        elif mode == "controlled":
-            _check_live_protective_binding(protective_store, identity, profile, evidence, window, monitor_until)
+        elif a2_rehearsal:
+            _check_rehearsal_protective_binding(protective_store, identity, profile, evidence, window, monitor_until)
         policy = risk_policy(profile)
         cutoff = None if policy.recovery_condition is None else policy.recovery_condition.cutoff_seconds
         if cutoff is not None:
@@ -521,7 +495,7 @@ class Coordinator:
                 _require(not (window.start <= slot <= window.end and abs(slot - boundary) <= BOUNDARY_BAND),
                          "COORDINATOR_SLOT_NEAR_BOUNDARY")
         root = state_root().absolute()
-        self._mode = mode
+        self._a2_rehearsal = a2_rehearsal
         self._committed_producer = committed_producer
         self._committed_unit, self._committed_account = None, None
         self._committed_reconciliation = None
@@ -549,7 +523,7 @@ class Coordinator:
                 self._journal = Journal()                                             # path checks only
                 self._controller = Controller(journal=self._journal, account_provider=self._provider, policy=policy,
                                               adapters=adapters, session_provider=self._session_for,
-                                              clock=clock if mode == "controlled" else None)
+                                              clock=clock if a2_rehearsal else None)
             self._runner = Runner(profile=profile, quote_provider=self._board.quote, account_provider=self._provider,
                                   evidence=evidence, driver=driver, implementation_verifier=implementation_verifier,
                                   mode=mode, controller=self._controller, launch_session=None, isolated_state_root=root,
@@ -1106,8 +1080,9 @@ class Coordinator:
 
     def _commit_protective_fault(self, fault_kind: str, now: datetime | None = None) -> None:
         """Record non-selling A2 fault / restart / deadline state; NEVER triggers a sale."""
-        if self._mode != "controlled" or self._protective_store is None:
+        if not self._a2_rehearsal or self._protective_store is None:
             return
+        self._pending_protective_exit = None
         try:
             ts = now if (now is not None and _aware(now)) else self._now()
         except Exception:
@@ -1166,7 +1141,11 @@ class Coordinator:
                                      last_tick: TickResult | None = None,
                                      universe_decided: str | None = None,
                                      universe_decided_valid: bool = False) -> None:
-        if self._mode != "controlled" or self._protective_store is None or self._latest_frame is None:
+        if not self._a2_rehearsal or self._protective_store is None or self._latest_frame is None:
+            return
+        self._pending_protective_exit = None
+        if now >= self._window.end:
+            self._commit_protective_fault("deadline", now)
             return
         account = self._latest_frame.accounts[0]
         q_app, q_free = self._compute_app_holdings(account, observation)
@@ -1217,7 +1196,9 @@ class Coordinator:
         eq_adj = observation.risk.equity - self._external_net_flow_krw(account)
         try:
             owner_snap = self._owner_snapshot_provider(now)
-            terms = owner_snap.protective_for(self._profile.account_scope) if getattr(owner_snap, "ok", False) else None
+            terms_for = getattr(owner_snap, "protective_for", None)
+            terms = (terms_for(self._profile.account_scope)
+                     if getattr(owner_snap, "ok", False) and callable(terms_for) else None)
         except Exception:
             terms = None
 
@@ -1390,11 +1371,17 @@ class Coordinator:
                         )
                         snap = writer.commit(ev_a, authority=auth, observations=obs_facts, ledger_refs=refs)
                 phase_out = snap.state.phase
+                reduction_recorded = phase_out == "exit_pending" and any(
+                    item.intent_id == snap.state.last_reduce_intent_id and item.evidence_sha256 == ev_sha
+                    and item.not_after is not None and now < item.not_after for item in snap.unresolved_reductions
+                )
         except Exception as exc:
-            self._update(management_source=_code(exc, "COORDINATOR_PROTECTIVE_STORE_FAILED"))
+            self._update(management_source=_code(exc, "COORDINATOR_PROTECTIVE_STORE_FAILED"),
+                         new_entry_blocked=True, protective_triggers=())
+            return
 
         trig_tuple = tuple(triggers)
-        if trig_tuple and not halted and free_units > _ZERO and not active_sell:
+        if reduction_recorded and trig_tuple and not halted and free_units > _ZERO and not active_sell:
             self._cancel_resting_runner_orders(now, buys_only=True)
             self._pending_protective_exit = (sym, free_units, trig_tuple)
 
@@ -1409,11 +1396,14 @@ class Coordinator:
         """Execute a staged S/W/T/B protective sell as a separate serialized unit outside _work."""
         pending = self._pending_protective_exit
         self._pending_protective_exit = None
-        if pending is None or self._mode != "controlled":
+        if pending is None or not self._a2_rehearsal:
             return
         sym, max_qty, triggers = pending
 
         def run_protective_sell(now: datetime):
+            if now >= self._window.end:
+                self._commit_protective_fault("deadline", now)
+                return None
             risk = self._controller.observe(now=now)
             if "PERSISTENT_HALT" in risk.reasons or self._observation.risk.halted:
                 self._cancel_resting_runner_orders(now, buys_only=False)
@@ -1489,7 +1479,7 @@ class Coordinator:
                                  snapshot_sha256=None if risk.universe is None else risk.universe.snapshot_sha256,
                                  universe_state=universe_state(risk.universe, self._profile.universe_rule_sha256, now))
                     self._universe_monitor(now)
-                if self._mode == "controlled":
+                if self._a2_rehearsal:
                     self._evaluate_a2_protective_hold(now=now, observation=observation, risk=risk)
                 local_block = (self._terms_blocked or self._terms_unavailable or self._stopping.is_set()
                                or (self._carry and (now >= self._window.end or bool(self.status().management_source))))
@@ -1503,14 +1493,14 @@ class Coordinator:
             except Exception as exc:
                 fault_code = _code(exc, "COORDINATOR_DEPENDENCY_REFUSED")
                 self._refused(stage, fault_code, slot=False)
-                if self._mode == "controlled":
+                if self._a2_rehearsal:
                     f_kind = ("clock_unreliable" if "CLOCK" in fault_code else
                               "account_unavailable" if stage == "account" else "inputs_missing")
                     self._commit_protective_fault(f_kind)
             finally:
                 self._board.clear()
                 self._update(in_flight="")
-        if fault_code is None and self._mode == "controlled":
+        if fault_code is None and self._a2_rehearsal:
             self._dispatch_pending_protective_exit()
 
     def _slot(self, slot) -> None:
@@ -1563,7 +1553,7 @@ class Coordinator:
                 self._update(in_flight="control")
                 results = self._runner.run((tick,), max_steps=1, should_stop=self._stopping.is_set)
                 last = results[0] if results else None
-                if self._mode == "controlled":
+                if self._a2_rehearsal:
                     risk = self._controller.observe(now=tick)
                     self._evaluate_a2_protective_hold(
                         now=tick, observation=observation, risk=risk, book=book, last_tick=last,
@@ -1573,14 +1563,14 @@ class Coordinator:
             except Exception as exc:
                 fault_code = _code(exc, "COORDINATOR_DEPENDENCY_REFUSED")
                 self._refused(stage, fault_code, slot=True)
-                if self._mode == "controlled":
+                if self._a2_rehearsal:
                     f_kind = ("clock_unreliable" if "CLOCK" in fault_code else
                               "account_unavailable" if stage == "account" else "inputs_missing")
                     self._commit_protective_fault(f_kind)
             finally:
                 self._board.clear()
                 self._update(in_flight="")
-        if fault_code is None and self._mode == "controlled":
+        if fault_code is None and self._a2_rehearsal:
             self._dispatch_pending_protective_exit()
 
 
@@ -1682,7 +1672,7 @@ class Coordinator:
                         except Exception:
                             self._update(notification_failed=True)
                 if not recorded or self._stopping.is_set() or self._vanished:
-                    if self._mode == "controlled" and not self._vanished:
+                    if self._a2_rehearsal and not self._vanished:
                         reconcile_orders(self._runner, now)
                         risk = self._controller.observe(now=now)
                         self._evaluate_a2_protective_hold(
@@ -1691,7 +1681,7 @@ class Coordinator:
                     self._update(reasons=reasons)
                     return
                 if book is None:
-                    if self._mode == "controlled":
+                    if self._a2_rehearsal:
                         reconcile_orders(self._runner, now)
                         risk = self._controller.observe(now=now)
                         self._evaluate_a2_protective_hold(
@@ -1706,7 +1696,7 @@ class Coordinator:
                                            entry_allow=self._history.recorded_allow)
                 last = results[0] if results else None
                 self._after_tick(last, acted, day)
-                if self._mode == "controlled":
+                if self._a2_rehearsal:
                     risk = self._controller.observe(now=tick)
                     dec_now = self._history.decided_symbol()
                     self._evaluate_a2_protective_hold(
@@ -1720,14 +1710,14 @@ class Coordinator:
                 self._refused(stage, fault_code, slot=True)
                 if not recorded:
                     self._slot_missed()
-                if self._mode == "controlled":
+                if self._a2_rehearsal:
                     f_kind = ("clock_unreliable" if "CLOCK" in fault_code else
                               "account_unavailable" if stage == "account" else "inputs_missing")
                     self._commit_protective_fault(f_kind)
             finally:
                 self._board.clear()
                 self._update(in_flight="")
-        if fault_code is None and self._mode == "controlled":
+        if fault_code is None and self._a2_rehearsal:
             self._dispatch_pending_protective_exit()
 
     def _slot_missed(self) -> None:
@@ -1769,7 +1759,7 @@ class Coordinator:
         total = sum(missed.values())
         if total != seen:
             self._update(missed_slots=missed["slot"], missed_boundaries=missed["boundary"], data_gap_at=self._now())
-            if self._mode == "controlled" and (missed["slot"] or missed["boundary"]):
+            if self._a2_rehearsal and (missed["slot"] or missed["boundary"]):
                 with self._work:
                     self._commit_protective_fault("inputs_missing", self._now())
             self._monitor("gap")
@@ -1924,8 +1914,31 @@ class Coordinator:
             self._update(new_entry_blocked=True, reasons=("COORDINATOR_DISARM_RECORD_REFUSED",))
             raise CoordinatorError(_code(exc, "COORDINATOR_DISARM_RECORD_REFUSED")) from None
 
-    def prepare(self, *, selected_plan, inputs, selection_seed_hex: str, expires_at: datetime | None = None,
-                universe_batch=None):
+    def planner_scope(self, at):
+        """Read the currently published market, stake cap and management deadline."""
+        obs = self._observation
+        _require(_aware(at) and obs is not None and _aware(obs.asof) and timedelta(0) <= at-obs.asof <= ACCOUNT_AGE,
+                 "COORDINATOR_PREPARATION_ACCOUNT_NOT_CURRENT")
+        end = self._window.end
+        if self._universe:
+            snap = self._snapshot
+            _require(universe_state(snap, self._profile.universe_rule_sha256, at) == "in_force",
+                     "UNIVERSE_NO_SNAPSHOT")
+            top = universe_top_n(snap, self._program.max_candidates)
+            _require(top, "UNIVERSE_NO_SNAPSHOT")
+            market = top[0]
+            capital = obs.settled_cash_krw.get(("upbit", self._profile.account_scope))
+            end = min(end, snap.valid_until - timedelta(seconds=60))
+        else:
+            market = self._profile.symbol
+            capital = obs.risk.equity
+        principal = self._profile.policy.initial_equity
+        _require(type(capital) is Decimal and capital.is_finite() and type(principal) is Decimal and principal.is_finite(),
+                 "COORDINATOR_PLANNER_CAP_REQUIRED")
+        return market, min(principal, capital), end, self._universe
+
+    def prepare(self, *, selected_plan=None, inputs=None, selection_seed_hex=None, expires_at: datetime | None = None,
+                universe_batch=None, build=None):
         """prepare_launch_session over the last unit's observation; the actual PreparedSession is kept here and
         served to the Controller by identity. Nothing is signed or armed."""
         with self._work:
@@ -1946,6 +1959,12 @@ class Coordinator:
                 self._current_committed(actual)
                 _require(self._ready, "COORDINATOR_STARTUP_RECONCILE_REQUIRED")
                 actual = self._time()
+            if build is not None:
+                _require(callable(build) and selected_plan is None and inputs is None and selection_seed_hex is None
+                         and expires_at is None, "COORDINATOR_PREPARATION_BUILDER_INVALID")
+                prepared_inputs = build(actual)
+                selected_plan, inputs = prepared_inputs.selected_plan, prepared_inputs.inputs
+                selection_seed_hex, expires_at = prepared_inputs.selection_seed_hex, prepared_inputs.expires_at
             observation, now = self._observation, getattr(inputs, "now", None)
             _require(observation is not None and _aware(now) and observation.asof <= now <= actual
                      and actual - now <= ACCOUNT_AGE and actual - observation.asof <= ACCOUNT_AGE,
@@ -1955,7 +1974,7 @@ class Coordinator:
                     implementation_verifier=self._implementation_verifier, journal=self._journal,
                     selected_plan=selected_plan, inputs=inputs, positions=observation.positions, now=now,
                     selection_seed_hex=selection_seed_hex, expires_at=expires_at, universe_batch=universe_batch,
-                    clock=preparation_clock, positions_asof=observation.asof)
+                    clock=preparation_clock, positions_asof=observation.asof, cap_review_expiry=(build is not None))
             except Exception as exc:
                 raise CoordinatorError(_code(exc, "COORDINATOR_DEPENDENCY_REFUSED")) from None
             self._launch = launch

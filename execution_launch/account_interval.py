@@ -34,17 +34,17 @@ from collections.abc import Mapping
 from core.compliance.model import KST
 from execution_accounts.baseline import (BaselineError, BaselineInterval, BaselineState, _required_cutoff,
                                          advance_baseline, risk_baseline)
-from execution_accounts.baseline_bridge import BaselineFrame, advance_account_baseline
+from execution_accounts.baseline_bridge import BaselineFrame, BidGapObservation, advance_account_baseline
 from execution_accounts.collector import CoverageEvidence, OpeningAnchor, SourceReceipt, TradeFeeEvidence, instant
-from execution_accounts.model import (AccountEvidence, BrokerOrder, CashBalance, EvidencePage, Position,
+from execution_accounts.model import (AccountEvidence, CashBalance, EvidencePage, Position,
                                       RiskBaseline, content_digest)
-from execution_accounts.continuous import (COVERAGE_CONTRACT, MAX_DURATION, MAX_HELD_MARKETS, CoverageRequest,
+from execution_accounts.continuous import (COVERAGE_CONTRACT, MAX_DURATION, MAX_HELD_MARKETS, MAX_PRINTS, CoverageRequest,
                                            ContinuousEvidenceError, ContinuousPath, PathValuation, PriceMark,
                                            VerifiedCoverage, value_path, value_trade_paths, verify_coverage)
 from execution_launch.continuous_archive import archive_candidate
 from execution_control.risk import account_fills
 from execution_accounts.provider import EvidenceError, _fresh, build_observation
-from execution_accounts.upbit_collector import CollectionResult, collect_upbit
+from execution_accounts.upbit_collector import CollectionResult, TradeWindowResult, collect_upbit
 
 BOUNDARY_LEAD_SECONDS = 10   # calibration knob: a boundary capture must start inside this window before the boundary
 _ZERO = Decimal(0)
@@ -132,98 +132,75 @@ def _stamped(account, end):
                    pages=tuple(replace(page, end=end, page_sha256="") for page in account.pages))
 
 
-def _project_orders_at_cutoff(orders: tuple[BrokerOrder, ...], accepted_fills, later_fills,
-                              cash_krw: Decimal, units_by_symbol: Mapping[str, Decimal]) -> tuple[BrokerOrder, ...]:
-    later_by_oid: dict[str, Decimal] = {}
-    for fill in later_fills:
-        later_by_oid[fill.order_id] = later_by_oid.get(fill.order_id, _ZERO) + fill.quantity
-    prior_by_oid: dict[str, Decimal] = {}
+def _closed_orders_at_cutoff(orders, accepted_fills):
+    """Only a fully filled order is proved closed solely by its fills before the cutoff."""
+    filled = {}
     for fill in accepted_fills:
-        prior_by_oid[fill.order_id] = prior_by_oid.get(fill.order_id, _ZERO) + fill.quantity
-    out: list[BrokerOrder] = []
-    reserved_krw = _ZERO
-    promised_by_sym: dict[str, Decimal] = {}
-    for order in orders:
-        prior_qty = prior_by_oid.get(order.order_id, _ZERO)
-        later_qty = later_by_oid.get(order.order_id, _ZERO)
-        if later_qty > _ZERO:
-            if prior_qty == _ZERO:
-                continue
-            rem = order.quantity - prior_qty
-            res_cash = max(order.reserved_cash, rem * order.limit_price) if order.side == "buy" else _ZERO
-            if order.side == "buy" and reserved_krw + res_cash > cash_krw:
-                raise AccountIntervalError("ACCOUNT_INTERVAL_CLOSING_CASH_MISMATCH")
-            if order.side == "sell" and promised_by_sym.get(order.symbol, _ZERO) + rem > units_by_symbol.get(order.symbol, _ZERO):
-                raise AccountIntervalError("ACCOUNT_INTERVAL_CLOSING_HOLDINGS_MISMATCH")
-            if order.side == "buy":
-                reserved_krw += res_cash
-            else:
-                promised_by_sym[order.symbol] = promised_by_sym.get(order.symbol, _ZERO) + rem
-            out.append(BrokerOrder(
-                client_id=order.client_id, order_id=order.order_id, market=order.market,
-                symbol=order.symbol, side=order.side, quote_currency=order.quote_currency,
-                quantity=order.quantity, filled_quantity=prior_qty, remaining_quantity=rem,
-                limit_price=order.limit_price, reserved_cash=res_cash, status="partial",
-                cancelable_quantity=rem,
-            ))
-            continue
-        if order.status in ("open", "partial"):
-            if order.side == "buy":
-                if reserved_krw + order.reserved_cash > cash_krw:
-                    if prior_qty == _ZERO:
-                        continue
-                    raise AccountIntervalError("ACCOUNT_INTERVAL_CLOSING_CASH_MISMATCH")
-                reserved_krw += order.reserved_cash
-            else:
-                if promised_by_sym.get(order.symbol, _ZERO) + order.remaining_quantity > units_by_symbol.get(order.symbol, _ZERO):
-                    if prior_qty == _ZERO:
-                        continue
-                    raise AccountIntervalError("ACCOUNT_INTERVAL_CLOSING_HOLDINGS_MISMATCH")
-                promised_by_sym[order.symbol] = promised_by_sym.get(order.symbol, _ZERO) + order.remaining_quantity
-        out.append(order)
-    return tuple(out)
+        filled[fill.order_id] = filled.get(fill.order_id, _ZERO) + fill.quantity
+    _require(all(order.status == "filled" and filled.get(order.order_id, _ZERO) == order.quantity
+                 for order in orders), "ACCOUNT_INTERVAL_BOUNDARY_ORDER_EVIDENCE_REQUIRED")
+    return orders
 
 
 def _reconstruct_cutoff_account(account: AccountEvidence, cutoff: datetime, valuation: PathValuation,
-                                accepted_fills, later_fills, flows, manifest_sha256: str) -> AccountEvidence:
+                                accepted_fills, flows, manifest_sha256: str) -> AccountEvidence:
     marks_by_sym = {m.symbol: m for m in valuation.closing_marks}
     units_by_sym = dict(valuation.closing_units)
     positions = tuple(
         Position(
             market="spot", symbol=sym, quote_currency="KRW", units=qty,
-            price=marks_by_sym[sym].price, asof=cutoff, base_currency=sym[4:],
+            price=marks_by_sym[sym].price, asof=marks_by_sym[sym].asof, base_currency=sym[4:],
         )
         for sym, qty in sorted(units_by_sym.items())
     )
-    orig_orders = ()
-    for page in account.pages:
-        if page.kind == "orders":
-            orig_orders = page.rows
-            break
-    projected_orders = _project_orders_at_cutoff(orig_orders, accepted_fills, later_fills,
-                                                 valuation.closing_cash_krw, units_by_sym)
+    orig_orders = tuple(order for page in account.pages if page.kind == "orders" for order in page.rows)
+    projected_orders = _closed_orders_at_cutoff(orig_orders, accepted_fills)
     pages = tuple(
         EvidencePage(kind=kind, cursor=None, next_cursor=None, start=account.origin, end=cutoff,
                      rows=tuple(rows), source_sha256=manifest_sha256)
         for kind, rows in (("fills", accepted_fills), ("flows", flows), ("orders", projected_orders))
     )
-    srv = account.server_time
-    if srv.astimezone(KST).date() != cutoff.astimezone(KST).date() or abs(cutoff - srv) > timedelta(seconds=60):
-        srv = cutoff
     return replace(
         account,
         balances=(CashBalance(currency="KRW", total=valuation.closing_cash_krw, settled=valuation.closing_cash_krw),),
         positions=positions,
-        fx=tuple(replace(rate, asof=cutoff) for rate in account.fx),
         pages=pages,
-        restrictions=replace(account.restrictions, asof=cutoff),
         observed_at=cutoff,
-        server_time=srv,
     )
 
 
+def _opening_trade_marks(retained, prior_prints, symbols, units, *, start, equity, cash):
+    """Use only prices knowable at the interval opening, or the unique residual at that instant."""
+    marks = {symbol: retained[symbol] for symbol in symbols if symbol in retained}
+    for symbol in symbols:
+        if symbol not in marks and symbol in prior_prints:
+            trade = prior_prints[symbol]
+            _require(trade.market == symbol and trade.at < start, "ACCOUNT_INTERVAL_OPENING_MARK_INVALID")
+            marks[symbol] = PriceMark(symbol=symbol, price=trade.price, asof=trade.at)
+    _require(all(type(mark) is PriceMark and mark.symbol == symbol and mark.asof <= start
+                 and type(mark.price) is Decimal and mark.price.is_finite() and mark.price > _ZERO
+                 for symbol, mark in marks.items()), "ACCOUNT_INTERVAL_OPENING_MARK_INVALID")
+    missing = [symbol for symbol, amount in units if amount > _ZERO and symbol not in marks]
+    if len(missing) == 1:
+        symbol = missing[0]
+        known = sum((qty * marks[sym].price for sym, qty in units if sym in marks), _ZERO)
+        price = (equity - cash - known) / dict(units)[symbol]
+        _require(price > _ZERO, "ACCOUNT_INTERVAL_OPENING_MARK_INVALID")
+        marks[symbol] = PriceMark(symbol=symbol, price=price, asof=start)
+    _require(all(symbol in marks for symbol in symbols), "ACCOUNT_INTERVAL_OPENING_MARK_REQUIRED")
+    return marks
+
+
+def _capture_bid_gap(value, account_scope, at):
+    threshold = value(at, account_scope) if callable(value) else value
+    _require(threshold is None or (type(threshold) is Decimal and threshold.is_finite()
+                                   and _ZERO < threshold <= Decimal("0.05")),
+             "ACCOUNT_INTERVAL_BID_GAP_POLICY_INVALID")
+    return BidGapObservation(account_scope=account_scope, asof=at, threshold=threshold)
+
+
 def upbit_held_interval_frames(previous: BaselineState, collection: CollectionResult, *,
-                               trade_path: Mapping[str, object],
+                               trade_path: Mapping[str, object], bid_gap_y=None,
                                opening_marks: Mapping[str, PriceMark | Decimal] | tuple[PriceMark, ...] | None = None
                                ) -> tuple[BaselineFrame, ...]:
     """Build 1 or 2 reconciled BaselineFrames over Approach A multi-coin trade windows + order fills.
@@ -236,7 +213,8 @@ def upbit_held_interval_frames(previous: BaselineState, collection: CollectionRe
             numeric.prec = 512
             numeric.traps[Inexact] = True
             _require(type(previous) is BaselineState and type(collection) is CollectionResult
-                     and isinstance(trade_path, Mapping), "ACCOUNT_INTERVAL_INPUT_REQUIRED")
+                     and isinstance(trade_path, Mapping) and len(trade_path) <= MAX_HELD_MARKETS,
+                     "ACCOUNT_INTERVAL_INPUT_REQUIRED")
             bundle, receipts = collection.bundle, collection.receipts
             _require(len(bundle.accounts) == 1 and bool(receipts)
                      and bundle.accounts[0].venue == "upbit" and bundle.accounts[0].execution_quote == "KRW"
@@ -249,7 +227,8 @@ def upbit_held_interval_frames(previous: BaselineState, collection: CollectionRe
             _require(previous.asof < first <= observed, "ACCOUNT_INTERVAL_CAPTURE_NOT_AFTER_PREVIOUS")
             _fresh(previous.asof, observed)
 
-            observation = build_observation(bundle, now=observed, bid_gap_y=Decimal("0.05"))
+            endpoint_gap = _capture_bid_gap(bid_gap_y, account.account_scope, observed)
+            observation = build_observation(bundle, now=observed, bid_gap_y=endpoint_gap.threshold)
             all_fills = observation.fills
             _require(all(f.executed_at < observed for f in all_fills), "ACCOUNT_INTERVAL_FILL_AFTER_BOUNDARY")
 
@@ -281,8 +260,6 @@ def upbit_held_interval_frames(previous: BaselineState, collection: CollectionRe
             boundary0, _ = _pending_boundary(previous)
             if observed <= boundary0:
                 segments.append((previous.asof, observed))
-            elif first <= boundary0 and not any(boundary0 <= f.executed_at < observed for f in all_fills) and False:
-                segments.append((previous.asof, boundary0))
             else:
                 segments.append((previous.asof, boundary0))
                 if boundary0 < observed:
@@ -301,8 +278,20 @@ def upbit_held_interval_frames(previous: BaselineState, collection: CollectionRe
             all_prints_by_sym: dict[str, tuple[object, ...]] = {}
             opening_print_by_sym: dict[str, object] = {}
             proof_digests: list[tuple[str, str]] = []
+            total_prints = 0
             for sym, win in sorted(trade_path.items()):
+                _require(getattr(win, "ticker_discrepancy", None) is None,
+                         "ACCOUNT_INTERVAL_TICKER_CHECK_BLOCK_ALERT_REQUIRED")
+                if hasattr(win, "prints"):
+                    _require(win.market == sym and win.start == previous.asof and win.end == observed,
+                             "ACCOUNT_INTERVAL_TRADE_WINDOW_MISMATCH")
                 raw_prints = getattr(win, "prints", win)
+                _require(type(raw_prints) in (tuple, list), "ACCOUNT_INTERVAL_TRADE_WINDOW_MISMATCH")
+                total_prints += len(raw_prints)
+                _require(total_prints <= MAX_PRINTS, "ACCOUNT_INTERVAL_TRADE_WINDOW_TOO_LARGE")
+                for item in raw_prints:
+                    stamp = item.asof if type(item) is PriceMark else (item[0] if type(item) is tuple else item.at)
+                    _require(previous.asof <= stamp < observed, "ACCOUNT_INTERVAL_TRADE_WINDOW_MISMATCH")
                 all_prints_by_sym[sym] = tuple(raw_prints)
                 op = getattr(win, "opening_print", None)
                 if op is not None:
@@ -316,7 +305,6 @@ def upbit_held_interval_frames(previous: BaselineState, collection: CollectionRe
             for seg_idx, (seg_start, seg_end) in enumerate(segments):
                 hist_fills = tuple(f for f in all_fills if f.executed_at < seg_start)
                 seg_fills = tuple(f for f in all_fills if seg_start <= f.executed_at < seg_end)
-                later_fills = tuple(f for f in all_fills if seg_end <= f.executed_at < observed)
                 prior_acc = account_fills(hist_fills)
                 _require(prior_acc.ok and prior_acc.duplicate_count == 0, "ACCOUNT_INTERVAL_PRIOR_HISTORY_REFUSED")
                 seg_cash = base_anchor_cash + sum(
@@ -325,36 +313,15 @@ def upbit_held_interval_frames(previous: BaselineState, collection: CollectionRe
                     _ZERO,
                 )
                 seg_units = tuple((row[3], row[4]) for row in prior_acc.inventory if row[4] != 0)
-                active_syms = sorted(set(dict(seg_units)) | {f.symbol for f in seg_fills} | set(all_prints_by_sym))
+                required_syms = set(dict(seg_units)) | {f.symbol for f in seg_fills}
+                _require(required_syms <= set(all_prints_by_sym), "ACCOUNT_INTERVAL_TRADE_WINDOW_REQUIRED")
+                active_syms = sorted(required_syms | set(all_prints_by_sym))
                 _require(len(active_syms) <= MAX_HELD_MARKETS, "ACCOUNT_INTERVAL_EXTREMA_EVIDENCE_REQUIRED")
 
-                # Fill any missing opening mark from opening_print, single-coin exact algebra, or first fill/print
-                if len(seg_units) == 1 and seg_units[0][0] not in cur_marks:
-                    u_sym, u_qty = seg_units[0]
-                    implied = (cur_state.equity_krw - seg_cash) / u_qty
-                    if implied > _ZERO:
-                        cur_marks[u_sym] = PriceMark(symbol=u_sym, price=implied, asof=seg_start)
-                for sym in active_syms:
-                    if sym not in cur_marks:
-                        if sym in opening_print_by_sym:
-                            op = opening_print_by_sym[sym]
-                            cur_marks[sym] = PriceMark(symbol=sym, price=op.price, asof=op.at)
-                        else:
-                            pos_match = next((p for p in account.positions if p.symbol == sym), None)
-                            seg_p = [
-                                p for p in all_prints_by_sym.get(sym, ())
-                                if seg_start <= getattr(p, "at", getattr(p, "asof", seg_start)) < seg_end
-                            ]
-                            if seg_p:
-                                first_p = seg_p[0]
-                                p_val = first_p.price
-                                cur_marks[sym] = PriceMark(symbol=sym, price=p_val, asof=seg_start)
-                            elif seg_fills:
-                                sym_f = [f for f in seg_fills if f.symbol == sym]
-                                if sym_f:
-                                    cur_marks[sym] = PriceMark(symbol=sym, price=sym_f[0].price, asof=seg_start)
-                            elif pos_match is not None and pos_match.price > _ZERO:
-                                cur_marks[sym] = PriceMark(symbol=sym, price=pos_match.price, asof=seg_start)
+                cur_marks = _opening_trade_marks(
+                    cur_marks, opening_print_by_sym, active_syms, seg_units,
+                    start=seg_start, equity=cur_state.equity_krw, cash=seg_cash,
+                )
 
                 seg_trade_path = {}
                 for sym in active_syms:
@@ -378,6 +345,10 @@ def upbit_held_interval_frames(previous: BaselineState, collection: CollectionRe
                     end=seg_end,
                     account_scope=previous.account_scope,
                     conservative_ms=True,
+                    closing_marks=({
+                        pos.symbol: PriceMark(symbol=pos.symbol, price=pos.price, asof=pos.asof)
+                        for pos in account.positions if pos.unlisted is not True
+                    } if seg_end == observed else None),
                 )
 
                 if seg_end == observed:
@@ -388,26 +359,18 @@ def upbit_held_interval_frames(previous: BaselineState, collection: CollectionRe
                     _require(valuation.closing_units == closing_units,
                              "ACCOUNT_INTERVAL_CLOSING_HOLDINGS_MISMATCH")
                     c_marks = {m.symbol: m for m in valuation.closing_marks}
-                    if all(pos.price == c_marks[pos.symbol].price for pos in account.positions):
-                        seg_accounts = (account,)
-                    else:
-                        # Reconstruct endpoint mark from authenticated print path when ticker lagged a print
-                        patched = replace(
-                            account,
-                            positions=tuple(
-                                replace(pos, price=c_marks[pos.symbol].price)
-                                for pos in account.positions
-                            ),
-                        )
-                        seg_accounts = (patched,)
+                    _require(all(pos.price == c_marks[pos.symbol].price for pos in account.positions),
+                             "ACCOUNT_INTERVAL_CLOSING_MARK_MISMATCH")
+                    seg_accounts = (account,)
                 else:
                     cutoff_acc = _reconstruct_cutoff_account(
-                        account, seg_end, valuation, hist_fills + seg_fills, later_fills,
+                        account, seg_end, valuation, hist_fills + seg_fills,
                         tuple(flows_list), collection.manifest_sha256,
                     )
                     seg_accounts = (cutoff_acc,)
 
-                cov_sha = content_digest((collection.manifest_sha256, seg_start, seg_end, tuple(proof_digests)))
+                gap = endpoint_gap if seg_end == observed else _capture_bid_gap(bid_gap_y, account.account_scope, seg_end)
+                cov_sha = content_digest((collection.manifest_sha256, seg_start, seg_end, tuple(proof_digests), gap))
                 interval = BaselineInterval(
                     account_scope=previous.account_scope,
                     sequence=cur_state.sequence + 1,
@@ -424,11 +387,11 @@ def upbit_held_interval_frames(previous: BaselineState, collection: CollectionRe
                     coverage_sha256=cov_sha,
                 )
                 reconcile_now = observed if seg_end.astimezone(KST).date() == observed.astimezone(KST).date() else seg_end
-                update = advance_account_baseline(cur_state, interval, seg_accounts, now=reconcile_now)
+                update = advance_account_baseline(cur_state, interval, seg_accounts, now=reconcile_now, bid_gap=gap)
                 cur_state = update.state
                 for cm in valuation.closing_marks:
                     cur_marks[cm.symbol] = cm
-                frames.append(BaselineFrame(interval=interval, accounts=seg_accounts))
+                frames.append(BaselineFrame(interval=interval, accounts=seg_accounts, bid_gap=gap))
 
             return tuple(frames)
     except (AccountIntervalError, ContinuousEvidenceError, EvidenceError, BaselineError):
@@ -438,12 +401,13 @@ def upbit_held_interval_frames(previous: BaselineState, collection: CollectionRe
 
 
 def upbit_interval_frame(previous: BaselineState, collection: CollectionResult, *,
-                         trade_path: Mapping[str, object] | None = None,
+                         trade_path: Mapping[str, object] | None = None, bid_gap_y=None,
                          opening_marks: Mapping[str, PriceMark | Decimal] | tuple[PriceMark, ...] | None = None
                          ) -> BaselineFrame:
     """Pure: one flat interval [previous.asof, end) over one capture, or held interval when trade_path supplied."""
     if trade_path is not None:
-        frames = upbit_held_interval_frames(previous, collection, trade_path=trade_path, opening_marks=opening_marks)
+        frames = upbit_held_interval_frames(previous, collection, trade_path=trade_path, opening_marks=opening_marks,
+                                           bid_gap_y=bid_gap_y)
         _require(len(frames) == 1, "ACCOUNT_INTERVAL_BOUNDARY_SPLIT_REQUIRED")
         return frames[0]
     try:
@@ -498,7 +462,14 @@ class UpbitIntervalSource:
     locks, and straddled 22:00 / 00:00 KST boundary splits are evaluated via Approach A ``value_trade_paths``.
     """
 
-    def __init__(self, *, trade_window_collector=None, order_fill_collector=None, opening_marks=None):
+    @property
+    def execution_ready(self) -> bool:
+        """A retained preview does not establish production coverage or order authority."""
+        return False
+
+    def __init__(self, *, trade_window_collector=None, order_fill_collector=None, opening_marks=None,
+                 bid_gap_y=None):
+        self._bid_gap_y = bid_gap_y
         _require(trade_window_collector is None or callable(trade_window_collector),
                  "ACCOUNT_INTERVAL_INPUT_REQUIRED")
         _require(order_fill_collector is None or callable(order_fill_collector),
@@ -559,35 +530,46 @@ class UpbitIntervalSource:
                 active_syms = sorted(prior_syms | held_syms | fill_syms)
                 _require(len(active_syms) <= MAX_HELD_MARKETS, "ACCOUNT_INTERVAL_EXTREMA_EVIDENCE_REQUIRED")
                 extra_receipts: list[SourceReceipt] = []
-                if self._order_fill_collector is not None and in_fills:
+                if in_fills:
+                    _require(self._order_fill_collector is not None, "ACCOUNT_INTERVAL_ORDER_DETAIL_REQUIRED")
                     in_oids = sorted({f.order_id for f in in_fills})
                     for oid in in_oids:
                         of_res = self._order_fill_collector(
                             collector_source, oid, account_scope=previous.account_scope,
                             fee_evidence=trade_fees, clock=clock,
                         )
-                        if getattr(of_res, "receipt", None) is not None:
-                            extra_receipts.append(of_res.receipt)
+                        captured = {f.fill_id: f for f in fills_page if f.order_id == oid}
+                        checked = {f.fill_id: f for f in of_res.fills}
+                        _require(of_res.order_id == oid and len(checked) == len(of_res.fills)
+                                 and checked == captured and of_res.order is not None
+                                 and of_res.order in orders_page and type(of_res.receipt) is SourceReceipt,
+                                 "ACCOUNT_INTERVAL_ORDER_DETAIL_MISMATCH")
+                        extra_receipts.append(of_res.receipt)
                 trade_windows = {}
                 for sym in active_syms:
                     win = self._trade_window_collector(
                         collector_source, sym, start=previous.asof, end=observed,
                         account_scope=previous.account_scope, clock=clock,
                     )
+                    _require(type(win) is TradeWindowResult and win.market == sym
+                             and win.start == previous.asof and win.end == observed
+                             and type(win.receipts) is tuple and bool(win.receipts)
+                             and all(type(receipt) is SourceReceipt and receipt.account_scope == previous.account_scope
+                                     for receipt in win.receipts), "ACCOUNT_INTERVAL_TRADE_WINDOW_MISMATCH")
                     trade_windows[sym] = win
-                    win_receipts = getattr(win, "receipts", ())
-                    if win_receipts:
-                        extra_receipts.extend(win_receipts)
+                    extra_receipts.extend(win.receipts)
                 with self._lock:
                     cached_marks = dict(self._marks_by_state.get(previous.state_digest, {}))
                 eff_marks = opening_marks if opening_marks is not None else (cached_marks or self._seed_marks)
                 if not active_syms and not in_fills and observed <= boundary:
-                    # Pure flat interval inside boundary: fast path
                     frame = upbit_interval_frame(previous, collection)
-                    frames = (frame,)
+                    gap = _capture_bid_gap(self._bid_gap_y, account.account_scope, frame.interval.end)
+                    coverage_hash = content_digest((frame.interval.coverage_sha256, gap))
+                    frames = (replace(frame, interval=replace(frame.interval, coverage_sha256=coverage_hash),
+                                      bid_gap=gap),)
                 else:
                     frames = upbit_held_interval_frames(
-                        previous, collection, trade_path=trade_windows, opening_marks=eff_marks,
+                        previous, collection, trade_path=trade_windows, opening_marks=eff_marks, bid_gap_y=self._bid_gap_y,
                     )
                 receipts = collection.receipts + tuple(extra_receipts)
                 # Cache closing marks keyed by each frame's resulting state digest
@@ -601,7 +583,7 @@ class UpbitIntervalSource:
                         for pos in fr_acc.positions
                     }
                 with self._lock:
-                    self._marks_by_state.update(new_marks_cache)
+                    self._marks_by_state = new_marks_cache
             staged = StagedInterval(frame=frames[-1], receipts=receipts,
                                     manifest_sha256=collection.manifest_sha256,
                                     observed_at=observed)

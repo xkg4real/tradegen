@@ -42,7 +42,7 @@ MODULES = ("launch_guards", "network_route", "accounts_collector", "launch_profi
            "launch_recovered_selection_boundaries", "launch_recovered_selection_integration",
            "launch_recovered_selection_cli", "launch_committed_producer",
            "launch_committed_producer_reconcile", "launch_committed_producer_integration",
-           "launch_coordinator_committed")
+           "launch_coordinator_committed", "pr79_planner")
 
 
 def tests():
