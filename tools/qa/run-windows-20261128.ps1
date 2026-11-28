@@ -28,6 +28,8 @@ if ($LASTEXITCODE -ne 0) { throw 'Fetch the tested commit in this clone before r
 Expand-Archive -LiteralPath $qaArchive -DestinationPath $qaSource
 if (Test-Path -LiteralPath (Join-Path $qaSource '.env')) { throw 'A clean archive without local configuration is required.' }
 $qaInterpreter = (Get-Command $Python -ErrorAction Stop).Source
+& $qaInterpreter -I -B -c "import sys; sys.exit(0 if sys.version_info[:2] == (3,13) else 1)"
+if ($LASTEXITCODE -ne 0) { throw 'Supply an explicit CPython 3.13 executable using -Python.' }
 if ($InstallDependencies) {
     $qaBasePython = $qaInterpreter
     $qaVenv = Join-Path $qaRoot 'venv'

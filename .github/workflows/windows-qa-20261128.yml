@@ -19,10 +19,6 @@ jobs:
           path: tested-source
           fetch-depth: 1
           persist-credentials: false
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.13'
-          architecture: x64
       - name: Provision an independent signed Windows CPython in the hosted runner
         shell: pwsh
         run: |
@@ -46,4 +42,4 @@ jobs:
           Add-Content -LiteralPath $env:GITHUB_ENV -Value ('TGQA_BROKER_BASE=' + (Join-Path $base 'python.exe'))
       - name: Run frozen keyless Windows tests
         shell: pwsh
-        run: ./tools/qa/run-windows-20261128.ps1 -Repository "$env:GITHUB_WORKSPACE/tested-source" -InstallDependencies -BrokerBasePython "$env:TGQA_BROKER_BASE"
+        run: ./tools/qa/run-windows-20261128.ps1 -Repository "$env:GITHUB_WORKSPACE/tested-source" -InstallDependencies -Python "$env:TGQA_BROKER_BASE" -BrokerBasePython "$env:TGQA_BROKER_BASE"
