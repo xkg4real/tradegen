@@ -4,25 +4,27 @@ reason: manual
 from: gpt
 task: upbit-universe
 cycle: 2026-11-24
-done_ids: owner-merges-1127, blocker1-approach-a-code/a1-a2, protective-hold/p2-integration, launch-planner-provider-1, launch-controlled-coordinator-1, live-cpp20-accel-1, m11-didm-quantgpt-section12-1, qlib-lab-model-factory-1
-next_ids: pr79-independent-review-1, rules-review-1202, policy-loss-budget-plan-1, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, universe-pr5, universe-pr5/recovery-operations, universe-pr5-clock-notify, launch-private-capture-setup-1, universe-code-approve, e1-14-owner-setup, launch-prospective-study
-updated_at: 2026-11-28T12:56:28+09:00
+done_ids: owner-merges-1127, blocker1-approach-a-code/a1-a2, protective-hold/p2-integration, launch-planner-provider-1, launch-controlled-coordinator-1, live-cpp20-accel-1, m11-didm-quantgpt-section12-1, qlib-lab-model-factory-1, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1/account-fixtures, pr79-upbit-receipt-review-1
+next_ids: pr79-independent-review-1, rules-review-1202, policy-loss-budget-plan-1, launch-multi-market-validation-1, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, universe-pr5, universe-pr5/recovery-operations, universe-pr5-clock-notify, launch-private-capture-setup-1, universe-code-approve, e1-14-owner-setup, launch-prospective-study
+updated_at: 2026-11-28T13:06:30+09:00
 stale_after_hours: 24
 waiting_on: none
-work_branch: gpt/live-cpp-didm-qlib-20261127
-work_commit: cd70bdd
+work_branch: gpt/pr79-followup-20261128
+work_commit: 71508dc
 uncommitted_changes: no
-pr: 79 (열림, 소유자 검토·병합 및 GPT 후속 검증 대상), 69 (초안)
+pr: 80 (PR #79 대상 후속 초안), 79 (검토 중), 69 (초안)
 usage_weekly_pct: unknown
 usage_source: unavailable
 usage_5h_pct: unknown
 usage_resets_at: 2026-12-01T17:00:00+09:00
-session: Antigravity Remote Session (9d960a6b-6c90-4ae6-a3d0-27489c0e33d2)
+session: Codex Cloud, PR #79 독립 검증
 ---
 
 # 인수인계: 3대 메인 목표(실거래 제어·C++20 가속, DIDM·QuantGPT 파이프라인, Qlib 모형 팩토리) PR #79 개설 및 후속 인계
 
 ## 0. 한 줄 요약
+
+**GPT 진행 중.** 후속 [PR #80](https://github.com/xkg4real/tradegen/pull/80)의 최초 체크포인트. KIS와 OKX의 모의 증거 수집 및 양 시장 합산 대사를 검증했다. PR #79 원본의 보유 관리 권한, 사후 시점으로 학습·평가하는 문제와 서명 형식 불일치를 수정 중이다. 독립 검토가 끝날 때까지 운영 서명·활성화를 진행하지 않는다.
 
 소유자가 PR #74~#78을 `main`(`3ef3f9a`)에 병합한 뒤, Antigravity 세션에서 3대 메인 목표(① 실거래 `controlled` 개통·Blocker 1 Approach A·Standing Amendment A2·C++20 저지연 엔진 `44b226c`, ② DIDM & QuantGPT 브리지 및 방향 모형 12절 전체 도구 `2a94271`, ③ Qlib 방식 지속 모형 팩토리 `qlib_lab/` `cd70bdd`)를 구현·검증해 PR #79(`gpt/live-cpp-didm-qlib-20261127`)를 열었습니다. 이어받는 GPT는 먼저 `pr79-independent-review-1`(PR #79 독립 코드 리뷰·경계 대조·필요 시 후속 보완 커밋)과 다가오는 `rules-review-1202` 규칙 테이블 월간 점검 준비부터 진행합니다.
 
@@ -62,6 +64,9 @@ session: Antigravity Remote Session (9d960a6b-6c90-4ae6-a3d0-27489c0e33d2)
 | Qlib 방식 모형 팩토리를 동결된 `research_lab/` 밖의 최상위 `qlib_lab/`으로 신설하고 `pickle`을 전면 금지(JSON + `allow_pickle=False` NPZ) | `research_lab/run.py`는 9개 파일 바이트 해시가 고정된 과거 연구이므로 수정 불가하며, `pickle`은 임의 코드 실행 위험이 있어 TRADEGEN 보안 기준과 충돌함. 또한 `RollingGen`에서 프로세서 `[fit_start_time, fit_end_time]`을 창마다 자동 재결속하고 비중첩 `[active_from, active_until)`만 노출해 Qlib 원본 `manager.py`의 신호 오염 문제를 구조적으로 해결 | `research_lab/` 내부 확장 또는 원본 `pyqlib` 패키지 설치: 동결 연구 검증 파괴 및 `constraints.txt` 외부 의존성 오염으로 기각 |
 
 ## 4. 진행 상황
+
+- [x] KIS 9개, OKX 8개, 다시장 대사 4개 모의 검사. 업비트 체결 자료 경계 7개 검사. 입력과 거절 조건을 각 후보 커밋에 보존.
+- [ ] 원 사양 비교와 포괄적 검증 진행. 아래 Antigravity 기록은 원 커밋의 주장으로 보존한다.
 
 - [x] `owner-merges-1127` 소유자가 PR #74(개정 A2), #75(M11-T3 어댑터), #76(M11-T8 대용량 DIDM 스트리밍), #77(패스키 개정 P1), #78(M11-T6 방향 모형 설계)을 `main`(`3ef3f9a`)에 병합 확인 — 커밋 `3ef3f9a`, LEDGER 기록함
 - [x] `blocker1-approach-a-code/a1-a2` `/v1/trades/ticks`·`/v1/order` E1 경로, 역방향 체결 수집·주문 수수료 정산, 유동성 공백 `best_bid`·BR-10 `Y` 래치, 4-마켓 연속 가치평가, `00:00`/`22:00 KST` 경계 분할, `owner.py`/`sign.py` D12 서명 미러링 — 커밋 `44b226c`, LEDGER 기록함
