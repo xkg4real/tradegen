@@ -5,7 +5,7 @@ Verifies:
 2. 1,100+ randomized differential test cases across HP-1 .. HP-6 proving 0-ULP / 0-digest
    identity between C++20 native execution and pure Python (TRADEGEN_DISABLE_NATIVE=1).
 3. Seamless TG_FALLBACK_PRECISION fallback for sub-1e-18 precision and >1e20 magnitude inputs.
-4. End-to-end latency speedup benchmarks across HP-1, HP-3, HP-5, and HP-6.
+4. End-to-end latency speedup benchmarks across HP-1, HP-3, and HP-6.
 """
 from __future__ import annotations
 
@@ -20,6 +20,7 @@ import os
 from pathlib import Path
 import random
 import shutil
+import statistics
 import sys
 import tempfile
 import time
@@ -555,6 +556,26 @@ def test_hp6_odds_mc_and_bid_gap_study_differential():
     assert 0.0 <= s1["favorable_prob"] <= 1.0 and 0.0 <= s1["adverse_prob"] <= 1.0
 
 
+def _latency_samples(workload):
+    backends = (("native", _with_native_enabled), ("python", _with_native_disabled))
+    samples = {name: [] for name, _ in backends}
+    for _, run in backends:
+        run(workload)
+
+    def timed():
+        start = time.perf_counter_ns()
+        workload()
+        return (time.perf_counter_ns() - start) / 1_000_000
+
+    for pair in range(6):
+        for name, run in (backends if pair % 2 == 0 else reversed(backends)):
+            samples[name].append(run(timed))
+    native = statistics.median(samples["native"])
+    python = statistics.median(samples["python"])
+    return {"native": native, "python": python, "speedup_x": python / native,
+            "samples_ms": samples}
+
+
 def test_native_latency_benchmarks():
     rng = random.Random(2026112799)
 
@@ -585,25 +606,15 @@ def test_native_latency_benchmarks():
     }
     prev_eq = D("10000000") + D("6000000")
 
-    t0 = time.perf_counter()
-    for _ in range(5):
-        _with_native_enabled(lambda: continuous.value_trade_paths(
+    def _run_hp1_workload():
+        return continuous.value_trade_paths(
             prints_by, opening_marks=o_m, opening_cash_krw=D("10000000"),
             opening_units=o_u, historical_fills=h_fills, interval_fills=(),
             previous_equity_krw=prev_eq, previous_realized_net_krw=D(0),
             start=t_start, end=t_end, account_scope="acct-1",
-        ))
-    hp1_nat_ms = (time.perf_counter() - t0) * 1000.0 / 5.0
+        )
 
-    t0 = time.perf_counter()
-    for _ in range(2):
-        _with_native_disabled(lambda: continuous.value_trade_paths(
-            prints_by, opening_marks=o_m, opening_cash_krw=D("10000000"),
-            opening_units=o_u, historical_fills=h_fills, interval_fills=(),
-            previous_equity_krw=prev_eq, previous_realized_net_krw=D(0),
-            start=t_start, end=t_end, account_scope="acct-1",
-        ))
-    hp1_py_ms = (time.perf_counter() - t0) * 1000.0 / 2.0
+    hp1 = _latency_samples(_run_hp1_workload)
 
     # Benchmark 2: HP-3 2,000-bar multi-lot decimal carry simulation + 2,000-mark MA crossover
     n_bars = 2000
@@ -653,15 +664,7 @@ def test_native_latency_benchmarks():
         for _ in range(10):
             LP.target_fraction(ma_bench_spec, marks_2000)
 
-    t0 = time.perf_counter()
-    for _ in range(3):
-        _with_native_enabled(_run_hp3_workload)
-    hp3_nat_ms = (time.perf_counter() - t0) * 1000.0 / 3.0
-
-    t0 = time.perf_counter()
-    for _ in range(2):
-        _with_native_disabled(_run_hp3_workload)
-    hp3_py_ms = (time.perf_counter() - t0) * 1000.0 / 2.0
+    hp3 = _latency_samples(_run_hp3_workload)
 
     # Benchmark 3: HP-6 10,000-path Monte Carlo odds simulation
     with CF.temp_home() as home, CF.pubkey_at(home / "test-anchor.pem"), OF.chunk(10_000), OF.pilots():
@@ -686,28 +689,20 @@ def test_native_latency_benchmarks():
             fraction=odds_plan.fixed(0.3),
         )
         inputs = OF.inputs(plan, series, now=now)
-        t0 = time.perf_counter()
-        for _ in range(5):
-            _with_native_enabled(lambda: odds_sim.simulate(plan, ctx, inputs))
-        hp6_nat_ms = (time.perf_counter() - t0) * 1000.0 / 5.0
 
-        t0 = time.perf_counter()
-        for _ in range(2):
-            _with_native_disabled(lambda: odds_sim.simulate(plan, ctx, inputs))
-        hp6_py_ms = (time.perf_counter() - t0) * 1000.0 / 2.0
+        def _run_hp6_workload():
+            report = odds_sim.simulate(plan, ctx, inputs)
+            assert len(report.columns) == 12 and report.n == 10_000
+            assert all(column.n == 10_000 for column in report.columns)
 
-    assert hp1_nat_ms < hp1_py_ms, (hp1_nat_ms, hp1_py_ms)
-    assert hp3_nat_ms < hp3_py_ms, (hp3_nat_ms, hp3_py_ms)
-    assert hp6_nat_ms < hp6_py_ms, (hp6_nat_ms, hp6_py_ms)
-    print(json.dumps({
-        "benchmark": "tradegen_fast_cpp20",
-        "hp1_4coin_4000prints_ms": {"native": round(hp1_nat_ms, 2), "python": round(hp1_py_ms, 2),
-                                    "speedup_x": round(hp1_py_ms / hp1_nat_ms, 2)},
-        "hp3_2000bars_carry_ms": {"native": round(hp3_nat_ms, 2), "python": round(hp3_py_ms, 2),
-                                  "speedup_x": round(hp3_py_ms / hp3_nat_ms, 2)},
-        "hp6_10000paths_mc_ms": {"native": round(hp6_nat_ms, 2), "python": round(hp6_py_ms, 2),
-                                 "speedup_x": round(hp6_py_ms / hp6_nat_ms, 2)},
-    }, sort_keys=True))
+        hp6 = _latency_samples(_run_hp6_workload)
+
+    results = {"hp1_4coin_4000prints_ms": hp1, "hp3_2000bars_carry_ms": hp3,
+               "hp6_10000paths_mc_ms": hp6}
+    print(json.dumps({"benchmark": "tradegen_fast_cpp20", "statistic": "median", **results},
+                     sort_keys=True), flush=True)
+    for workload, measurement in results.items():
+        assert measurement["native"] < measurement["python"], (workload, measurement)
 
 
 def tests():

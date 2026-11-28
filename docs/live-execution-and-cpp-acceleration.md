@@ -83,10 +83,12 @@ Compiled with `g++ -std=c++20 -O3 -fno-fast-math -ffp-contract=off -shared -fPIC
 ### Reproducing the latency measurements
 
 After building the reference kernel, run `python -m tests.native_cpp_acceptance latency_benchmarks`.
-The JSON output reports mean milliseconds per repetition for each backend on the current host.
-For HP-1 it folds four markets and 4,000 prints (five native and two Python repetitions).
-HP-3 simulates 2,000 bars and evaluates moving averages (three native and two Python repetitions).
-HP-6 uses 10,000 paths per scenario and a 10-day horizon (five native and two Python repetitions).
+Each backend runs once to warm up and then six times in alternating order. The first backend
+switches with each pair. The workload timer excludes test setup and the backend selector.
+The JSON output includes every elapsed time in milliseconds, the median for each backend, and
+the Python-to-native median ratio. Each native median must be lower than its Python counterpart.
+HP-1 folds four markets and 4,000 prints. HP-3 simulates 2,000 bars and evaluates moving averages.
+HP-6 verifies 12 scenarios with 10,000 paths per scenario and a 10-day horizon.
 These workloads run offline and exclude venue, network, and broker latency.
 
 법률, 세무, 투자 조언이 아니며 면허를 가진 자문가가 아니다
