@@ -85,6 +85,7 @@ class RiskObservation:
     legacy_floor_conflict: bool = False
     halted: bool = False
     bid_gap_triggered: bool = False
+    bid_gap_policy_missing: bool = False
     recovery_checkpoint: RecoveryCheckpoint | None = None
 
 
@@ -194,7 +195,7 @@ def _risk_errors(policy: RiskPolicy, observation: RiskObservation) -> tuple[str,
         if value is not None and not _decimal(value):
             reasons.append("INVALID_OBSERVATION_" + name.upper())
     for name in ("is_first_trading_day", "data_complete", "external_flows_known",
-                 "legacy_floor_conflict", "halted", "bid_gap_triggered"):
+                 "legacy_floor_conflict", "halted", "bid_gap_triggered", "bid_gap_policy_missing"):
         if type(getattr(observation, name)) is not bool:
             reasons.append("INVALID_OBSERVATION_" + name.upper())
     if not _stamp(observation.asof):
@@ -297,6 +298,8 @@ def _evaluate(policy: RiskPolicy, observation: RiskObservation, *, now=None) -> 
         reasons.append("LEGACY_FLOOR_POLICY_CONFLICT")
     if observation.halted:
         reasons.append("PERSISTENT_HALT")
+    if observation.bid_gap_policy_missing:
+        reasons.append("SIGNED_BID_GAP_REQUIRED")
     if observation.bid_gap_triggered:
         reasons.append("BID_GAP_BLOCKED")
     previous = observation.prior_day_realized_net_profit
