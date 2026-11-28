@@ -1,30 +1,30 @@
 ---
-status: taken
+status: returned
 reason: manual
 from: gpt
 task: upbit-universe
 cycle: 2026-11-24
-done_ids: owner-merges-1127, blocker1-approach-a-code/a1-a2, protective-hold/p2-integration, launch-planner-provider-1, launch-controlled-coordinator-1, live-cpp20-accel-1, m11-didm-quantgpt-section12-1, qlib-lab-model-factory-1, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1/account-fixtures, pr79-upbit-receipt-review-1, rules-review-1202/preparation, policy-loss-budget-plan-1, pr79-study-gate-repair-1, pr79-native-integrity-1, pr79-controlled-rehearsal-1, pr79-upbit-crosscheck-preview-1, pr79-independent-review-1
+done_ids: owner-merges-1127, blocker1-approach-a-code/a1-a2, protective-hold/p2-integration, launch-planner-provider-1, launch-controlled-coordinator-1, live-cpp20-accel-1, m11-didm-quantgpt-section12-1, qlib-lab-model-factory-1, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1/account-fixtures, pr79-upbit-receipt-review-1, rules-review-1202/preparation, policy-loss-budget-plan-1, pr79-study-gate-repair-1, pr79-native-integrity-1, pr79-controlled-rehearsal-1, pr79-upbit-crosscheck-preview-1, pr79-independent-review-1, first-trade-account-startup-1128, didm-coverage-and-receipts-1128, didm-upside-research-1128, first-trade-historical-comparison-1128
 next_ids: rules-review-1202, launch-multi-market-validation-1, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, universe-pr5, universe-pr5/recovery-operations, universe-pr5-clock-notify, launch-private-capture-setup-1, universe-code-approve, e1-14-owner-setup, launch-prospective-study
-updated_at: 2026-11-28T14:09:21+09:00
+updated_at: 2026-11-28T14:41:23+09:00
 stale_after_hours: 24
 waiting_on: none
-work_branch: gpt/pr79-followup-20261128
-work_commit: d8f5181
+work_branch: gpt/first-trade-integration-20261128
+work_commit: 9a2ad28a0582ad5693a3f25a71ac224d9652a722
 uncommitted_changes: no
-pr: 80, 81, 79, 69
+pr: 82, 81, 80, 79, 69
 usage_weekly_pct: unknown
 usage_source: unavailable
 usage_5h_pct: unknown
 usage_resets_at: unknown
-session: Codex Cloud PR 80 and 81
+session: Codex Cloud PR 82 and four historical regimes
 ---
 
-# TRADEGEN 인수인계 · PR #79 독립 검토와 후속 PR #80·81
+# TRADEGEN 인수인계 · 첫 거래 통합 및 네 사건의 역사적 재생
 
 ## 0. 한 줄 요약
 
-소유자가 첫 거래 전 세 과제(계좌 대사, 손실 보호·재시작 복구, 전향 연구·배포 승인)를 최우선으로 지정했다. GPT가 PR #81을 기반으로 이를 이어받았다. DIDM의 QUANTGEN 원본과 TRADEGEN 연구 단계도 다시 확인한다.
+소유자가 첫 거래 전 세 과제(계좌 대사, 손실 보호·재시작 복구, 전향 연구·배포 승인)를 최우선으로 지정했다. [PR #82](https://github.com/xkg4real/tradegen/pull/82)에서 계좌·가드·연구 경로를 보완했다. DIDM은 TRADEGEN에서 먼저 개발하고 검증된 공통 부분을 QUANTGEN에 동기화한다. 네 사건의 실험과 운영 검증의 차이는 [최신 인계 기록](context/upbit-universe/gpt-20261128/첫거래_DIDM_사건연구_인계.md)에 있다.
 
 PR #79 원본 `cd70bdd`을 검토해 [PR #80](https://github.com/xkg4real/tradegen/pull/80)에 수정했다. 체결·분봉 대조는 [PR #81](https://github.com/xkg4real/tradegen/pull/81)에 올렸다. [이번 작업의 인계문](context/upbit-universe/gpt-20261128/TRADEGEN_인수인계_2026-11-28.md)과 [검증 보고서](context/upbit-universe/gpt-20261128/PR79_오프라인_검증.md)에 재개 지점이 있다. 운영용 자동주문은 차단돼 있다.
 
@@ -53,9 +53,11 @@ PR #79 원본 `cd70bdd`을 검토해 [PR #80](https://github.com/xkg4real/tradeg
 
 ## 5. 중단 지점
 
-GPT가 검토 결과를 반환했다. PR #80의 기준 소스는 `d8f5181`, #81의 기준 소스는 `4b9ebb2`다. PR #80에서 `171365f`를 전체 검사의 기준으로 고정했고, 이후 바뀐 검사와 배포 서명기 의존성은 해당 검사군을 별도로 다시 실행했다. `tests/run_all.main()`은 동결된 보고서를 바꾸므로 각 모음의 테스트 등록기를 사용한다.
+PR #82에 원본 수신·연구 재현·상방 후보·프로그램 외부 배포 비교·계좌 대사 및 잠금 복구를 반영했다. 네 사건에 대한 비공개 역사 연구는 사전 고정 소스 `8a840a3`을 사용했다. 운영 D2·D3·현지 호가와 지정가 체결의 증거가 불충분하여 세 가지 공개 자료 기반 대리 실험을 분리했다. 17개 적격 사례를 두 비용으로 계산하고 두 비교군 장부 68개를 대조했다. 과거 연구가 운영 승인을 대신하지 않는다.
 
 ## 6. 다음 할 일
+
+원래 DIDM 기사 수·양방향 호가·실제 배포 모형의 원본이 제공되면 이번 사건 연구를 동일한 조건으로 재생한다. 변동성 큰 발표에서의 상방 진입은 발표 전·후 수익 및 시간외 호가를 구분하고, Q-score 연구에는 실제 수신·산출·집행 가능 시각을 추가한다.
 
 1. 두 초안의 검토 보고서를 확인하고 남은 운영 권한 및 보유 관리 과업을 이어받는다. 분봉 실측 증거, 주문 원장과 청산 권한은 별도 요건이다.
 2. `launch-held-positions-1/production-authority`, `launch-continuous-guard-adapter-1` 배포에 결속한 관리 권한, 계좌·미체결 대사, 가드 원장 확정·알림·복구를 실제 진입점으로 연결한다. 설계 결정은 최신 개정과 대조한다.
