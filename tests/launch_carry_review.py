@@ -311,8 +311,8 @@ def test_independent_behavior_document_hash_and_factory_source_closure_match():
     assert signer._review_carry_behavior_digest() == behavior_digest()
     assert signer._REVIEW_SOURCES == driver_module._SOURCE_FILES
     assert signer._REVIEW_CARRY_SOURCES == driver_module._CARRY_SOURCE_FILES
-    assert len(signer._REVIEW_SOURCES) == len(set(signer._REVIEW_SOURCES)) == 46
-    assert len(signer._REVIEW_CARRY_SOURCES) == len(set(signer._REVIEW_CARRY_SOURCES)) == 49
+    assert len(signer._REVIEW_SOURCES) == len(set(signer._REVIEW_SOURCES)) == 50
+    assert len(signer._REVIEW_CARRY_SOURCES) == len(set(signer._REVIEW_CARRY_SOURCES)) == 53
     assert signer._REVIEW_CARRY_SOURCES[-1] == 'execution_launch/review_request.py'
     assert signer._review_source_hash(ROOT) == driver_module._sources()[0]
     carry_hash = signer._review_source_hash(ROOT, factory_id=CARRY_FACTORY_ID)
@@ -410,6 +410,10 @@ def test_both_factories_and_independent_signer_detect_each_producer_dependency()
         'execution_launch/research_bundle_store.py',
         'execution_accounts/collector.py',
         'execution_accounts/upbit_collector.py',
+        'execution_accounts/path_checks.py',
+        'execution_accounts/candle_audit.py',
+        'execution_accounts/ownership.py',
+        'execution_launch/path_check_guard.py',
         'execution_control/owner_authority.py',
         'execution_control/dry_run.py',
         'core/compliance/model.py',

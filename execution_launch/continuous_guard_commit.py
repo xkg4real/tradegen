@@ -29,7 +29,7 @@ import json
 from execution_accounts.baseline import _NUMBER, restore_state, state_json
 from execution_accounts.baseline_store import CheckpointError, CheckpointStore, CommitReceipt, _require
 from execution_accounts.model import canonical, content_digest
-from execution_control.store import GENESIS, Journal, _utc
+from execution_control.store import GENESIS, Journal, JournalError, _utc, validate_entry_block
 from execution_launch.continuous_guard import (
     _FRESH, _SHA, ContinuousGuardError, GuardCheckpoint, _hash, _instant, _need, _validate_checkpoint,
     plan_continuous_guard,
@@ -171,12 +171,13 @@ class RestartState:
     new_guard_sha256: str = ""
     new_baseline_sha256: str = ""
     permanently_halted: bool = False
+    entry_blocked: bool = False
 
     @property
     def new_entries_blocked(self):
         """Pending, divergent, refused or locally halted state blocks entries; FRESH and CONSISTENT remain
         subject to the current owner, session, source and controller checks."""
-        return self.status not in (FRESH, CONSISTENT) or self.permanently_halted
+        return self.status not in (FRESH, CONSISTENT) or self.permanently_halted or self.entry_blocked
 
 
 def classify_restart(events, *, guard_head, baseline_head, expected_guard_head: str,
@@ -185,7 +186,7 @@ def classify_restart(events, *, guard_head, baseline_head, expected_guard_head: 
 
     Expected heads are the caller's predecessors; they are never inferred from a balance or a local file.
     """
-    halted = False
+    halted = blocked = False
     try:
         for value in (expected_guard_head, expected_baseline_head, expected_control_head):
             _hash(value)
@@ -197,8 +198,11 @@ def classify_restart(events, *, guard_head, baseline_head, expected_guard_head: 
             if open_tx is not None and (kind not in ("halt", COMPLETE)
                                         or (kind == "halt" and not open_tx["halt_required"])):
                 return RestartState(status=REFUSED, reason="GUARD_RESTART_FOREIGN_ROW_IN_TRANSACTION",
-                                    permanently_halted=halted or kind == "halt")
-            if kind == "halt":
+                                    permanently_halted=halted or kind == "halt", entry_blocked=blocked or kind == "entry_block")
+            if kind == "entry_block":
+                validate_entry_block(data, recorded_at=row["utc"])
+                blocked = True
+            elif kind == "halt":
                 halted = True
             elif kind == PREPARE:
                 _need(open_tx is None and type(data) is dict and set(data) == _PREPARE_KEYS
@@ -213,21 +217,21 @@ def classify_restart(events, *, guard_head, baseline_head, expected_guard_head: 
                       "GUARD_RESTART_JOURNAL_INVALID")
                 open_tx = None
             control = row["row_sha256"]
-    except (ContinuousGuardError, KeyError, TypeError, AttributeError):
-        return RestartState(status=REFUSED, reason="GUARD_RESTART_JOURNAL_INVALID", permanently_halted=halted)
+    except (ContinuousGuardError, JournalError, KeyError, TypeError, AttributeError):
+        return RestartState(status=REFUSED, reason="GUARD_RESTART_JOURNAL_INVALID", permanently_halted=halted, entry_blocked=blocked)
     expected = (expected_guard_head, expected_baseline_head)
     if open_tx is None and (last is None or expected != (last["old_guard_sha256"], last["old_baseline_sha256"])):
         # After a completed transaction the next one must start from exactly its successors.
         chained = last is None or expected == (last["new_guard_sha256"], last["new_baseline_sha256"])
         if chained and (guard_head, baseline_head) == expected and control == expected_control_head:
-            return RestartState(status=FRESH, reason="", permanently_halted=halted)
-        return RestartState(status=REFUSED, reason="GUARD_RESTART_HEAD_UNKNOWN", permanently_halted=halted)
+            return RestartState(status=FRESH, reason="", permanently_halted=halted, entry_blocked=blocked)
+        return RestartState(status=REFUSED, reason="GUARD_RESTART_HEAD_UNKNOWN", permanently_halted=halted, entry_blocked=blocked)
     tx = open_tx or last
     if (expected != (tx["old_guard_sha256"], tx["old_baseline_sha256"])
             or tx["control_head_sha256"] != expected_control_head):
-        return RestartState(status=REFUSED, reason="GUARD_RESTART_PREDECESSOR_MISMATCH", permanently_halted=halted)
+        return RestartState(status=REFUSED, reason="GUARD_RESTART_PREDECESSOR_MISMATCH", permanently_halted=halted, entry_blocked=blocked)
     known = dict(transaction_id=tx["transaction_id"], new_guard_sha256=tx["new_guard_sha256"],
-                 new_baseline_sha256=tx["new_baseline_sha256"], permanently_halted=halted)
+                 new_baseline_sha256=tx["new_baseline_sha256"], permanently_halted=halted, entry_blocked=blocked)
     guard ="old" if guard_head == tx["old_guard_sha256"] else "new" if guard_head == tx["new_guard_sha256"] else None
     base = ("old" if baseline_head == tx["old_baseline_sha256"]
             else "new" if baseline_head == tx["new_baseline_sha256"] else None)

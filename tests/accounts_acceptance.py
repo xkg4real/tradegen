@@ -9,7 +9,8 @@ from tests.control_acceptance import _wrap
 MODULES = ("accounts_guards", "accounts_provider", "accounts_readiness", "accounts_baseline", "accounts_quotes",
            "accounts_baseline_integration", "accounts_recovery", "accounts_continuous", "accounts_universe",
            "accounts_committed_baseline", "accounts_upbit_trade_window", "accounts_kis_collector",
-           "accounts_okx_collector", "accounts_multivenue", "accounts_multicoin_extrema", "accounts_path_checks", "accounts_candle_audit")
+           "accounts_okx_collector", "accounts_multivenue", "accounts_multicoin_extrema", "accounts_path_checks", "accounts_candle_audit",
+           "accounts_ownership")
 
 
 def tests():

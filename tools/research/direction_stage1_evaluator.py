@@ -528,6 +528,8 @@ def evaluate_stage1(
         try:
             dfb.verify_feature_table(feature_table)
         except StudyError as exc:
+            if str(exc) == "S4_UPSTREAM_IDENTITY_CHANGED":
+                return finish("STOPPED", "S4", str(exc))
             return finish("VOID", "S1", str(exc))
         if feature_table.get("market") != market or int(feature_table.get("step_seconds", -1)) != step:
             return finish("STOPPED", "S4", "S4_FEATURE_TABLE_MISMATCH")
@@ -746,7 +748,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         m_snaps, m_recs = load_snaps(args.m_snapshot)
         b1_snaps, b1_recs = load_snaps(args.b1_snapshot)
         b0_snaps, b0_recs = load_snaps(args.b0_snapshot) if args.b0_snapshot else ([], [])
-        ftable = dfb.read_feature_table(args.features) if args.features is not None else None
+        # Keep valid diagnostic evidence so the evaluator can issue its S4 stop.
+        ftable = (dfb.read_feature_table(args.features, for_drift_report=True)
+                  if args.features is not None else None)
 
         report = evaluate_stage1(
             study=study_doc,

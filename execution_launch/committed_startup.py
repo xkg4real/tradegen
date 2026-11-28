@@ -17,6 +17,7 @@ from core.isolation import state_root
 from execution_accounts.baseline import _required_cutoff
 from execution_accounts.baseline_store import CheckpointStore
 from execution_accounts.model import content_digest
+from execution_accounts.ownership import reconcile_first_order
 from execution_control.capability import digest as control_digest
 from execution_control.controller import Controller, _exact, _fold, _view
 from execution_control.dry_run import DryRunAdapter
@@ -68,6 +69,15 @@ class StartupInspection:
     observed_control_head: str | None
     asof: datetime
     inspected_at: datetime
+    account_anchor_sha256: str = field(repr=False)
+    permanent_halt: bool
+    daily_stop_at_checkpoint: bool
+    path_entry_block: bool
+    origin_ready: bool
+    origin_reason: str
+    app_open_count: int
+    personal_open_count: int
+    unknown_order_count: int
 
     @property
     def execution_ready(self): return False
@@ -301,9 +311,16 @@ class CommittedStartup:
                   'STARTUP_DEPENDENCY_CHANGED')
             self._physical(tx, events)
             self._configuration()
-            finished = self._now()
+            checked_at = self._now()
             if events:
-                _need(finished >= datetime.fromisoformat(events[-1]['utc']), 'STARTUP_CLOCK_ROLLBACK')
+                _need(checked_at >= datetime.fromisoformat(events[-1]['utc']), 'STARTUP_CLOCK_ROLLBACK')
+            account, _ = self._rows(retained)
+            observed_head = events[-1]['row_sha256'] if events else GENESIS
+            ownership = reconcile_first_order(account, events, now=checked_at,
+                account_sha256=content_digest(account), journal_head=observed_head)
+            # Hashing a long journal and reconciling holdings consume real time.
+            # The last freshness check must include that work.
+            finished = self._now()
             if current == 'FRESH':
                 current, reason = self._time_status(baseline, finished)
                 obs = projection.observation
@@ -314,8 +331,12 @@ class CommittedStartup:
                 completion_archive_digest=None if completed is None else completed.archive_digest,
                 durable_status=state.status, current_status=current, reason=reason,
                 transaction_id=state.transaction_id or None,
-                observed_control_head=events[-1]['row_sha256'] if events else GENESIS,
-                asof=package['interval'].end, inspected_at=finished)
+                observed_control_head=observed_head, asof=package['interval'].end, inspected_at=finished,
+                account_anchor_sha256=baseline.anchor_sha256, permanent_halt=state.permanently_halted or guard.permanently_halted,
+                daily_stop_at_checkpoint=guard.daily_stopped, path_entry_block=state.entry_blocked,
+                origin_ready=ownership.origin_ready,
+                origin_reason=ownership.reason, app_open_count=ownership.app_open_count,
+                personal_open_count=ownership.personal_open_count, unknown_order_count=ownership.unknown_order_count)
 
     def _inspect(self, input_digest, completion_digest):
         retained = self._input(input_digest)

@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 from datetime import datetime
 import math
+import tempfile
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
@@ -29,6 +30,7 @@ from tools.research._study_common import (
     parse_aware_iso,
     parse_epoch_int,
     read_strict_json_file,
+    read_verified_chained_log,
     require,
     sha256_ascii,
 )
@@ -76,6 +78,11 @@ def _normalize_didm_record(item: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def _source_fields(row):
+    """Only the daily store's local sequence may differ for an identical version."""
+    return {k: v for k, v in row.items() if k != "seq"}
+
+
 def merge_didm_reports(reports: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
     """Merge one or more tradegen-didm-inspection-v1 reports, deduplicating identical versions."""
     by_version_key: dict[tuple[str, str, str, str], dict[str, Any]] = {}
@@ -90,9 +97,8 @@ def merge_didm_reports(reports: Sequence[Mapping[str, Any]]) -> list[dict[str, A
             vkey = (norm["source_id"], norm["item_id"], norm["received_utc"], norm["payload_sha256"])
             if vkey in by_version_key:
                 # Ignore seq differences across separate daily stores only if payload & timestamps match
-                prev_row = {k: v for k, v in by_version_key[vkey]["row"].items() if k != "seq"}
-                cur_row = {k: v for k, v in norm["row"].items() if k != "seq"}
-                require(prev_row == cur_row, "DIDM_CONFLICTING_DUPLICATE_VERSION")
+                require(_source_fields(by_version_key[vkey]["row"]) == _source_fields(norm["row"]),
+                        "DIDM_CONFLICTING_DUPLICATE_VERSION")
             else:
                 by_version_key[vkey] = norm
     merged = list(by_version_key.values())
@@ -273,7 +279,7 @@ def compute_d2_at(
     total_7d = sum(slot_counts.get(s, 0) for s in present_672)
     denom_mean_96 = total_7d * (float(GDELT_NUMERATOR_SLOTS) / float(len(present_672)))
     if denom_mean_96 == 0.0:
-        return 0.0
+        return None
     return float(num) / denom_mean_96
 
 
@@ -282,6 +288,8 @@ def prepare_didm_v0_scores(
     *,
     pinned_didm_v0: Mapping[str, str] | None = None,
     strict_s4: bool = False,
+    through: int | None = None,
+    window_start: int | None = None,
 ) -> tuple[list[dict[str, Any]], list[int], int]:
     """Validate DIDM V0 score exports + PC receipt times.
 
@@ -290,47 +298,101 @@ def prepare_didm_v0_scores(
     pinned_scores: list[dict[str, Any]] = []
     receipt_times: list[int] = []
     unpinned_count = 0
-    seen_ids: set[tuple[str, str]] = set()
+    versions = {}
+    source_fields = {}
+    score_events = {}
+    # Repeated audited deliveries of the same document refresh the delivery
+    # clock but never the score's first availability. CLI SHA-checked copies
+    # share one document; independent API inputs are still validated separately.
+    delivered = {}
+    for doc, when in exports:
+        parse_epoch_int(when, error_code="DIDM_RECEIPT_TIME_INVALID")
+        if through is None or when <= through:
+            delivered.setdefault(id(doc), (doc, []))[1].append(when)
+    if delivered:
+        require(type(pinned_didm_v0) is dict
+                and type(pinned_didm_v0.get("model_version")) is str and pinned_didm_v0["model_version"].strip()
+                and type(pinned_didm_v0.get("prompt_sha256")) is str
+                and HEX64_RE.fullmatch(pinned_didm_v0["prompt_sha256"]), "DIDM_SCORE_PIN_REQUIRED")
 
-    for export_doc, receipt_at in exports:
-        parse_epoch_int(receipt_at, error_code="DIDM_RECEIPT_TIME_INVALID")
-        receipt_times.append(receipt_at)
-        require(type(export_doc) is dict and export_doc.get("format") == bridge.EXPORT_FORMAT, "DIDM_EXPORT_INVALID")
-        scores_list = export_doc.get("scores", [])
-        require(type(scores_list) is list, "DIDM_EXPORT_INVALID")
+    for export_doc, arrivals in delivered.values():
+        receipt_at = min(arrivals)
+        latest_delivery = max(arrivals)
+        receipt_times.extend(arrivals)
+        try:
+            raw = bridge.canonical(export_doc).encode("utf-8")
+            require(len(raw) <= bridge.MAX_INPUT_BYTES, "DIDM_EXPORT_INVALID")
+            with tempfile.TemporaryDirectory(prefix="tradegen-score-evidence-") as folder:
+                with bridge.inspection(raw, input_kind="export", input_sha256=bridge.sha256(raw),
+                                       as_of=datetime.fromtimestamp(receipt_at, UTC).isoformat(),
+                                       directory=folder) as inspected:
+                    checked_scores = inspected.fields["scores"]
+        except bridge.BridgeError as exc:
+            raise StudyError(str(exc)) from None
 
-        for wrapper in scores_list:
-            require(type(wrapper) is dict and "score" in wrapper, "DIDM_SCORE_LINK_SCHEMA_MISMATCH")
-            try:
-                score = bridge.validate_score(wrapper["score"])
-            except bridge.BridgeError as exc:
-                raise StudyError(str(exc)) from None
-
-            if pinned_didm_v0 is not None:
-                matches_pin = (
-                    score["model_version"] == pinned_didm_v0["model_version"]
-                    and score["prompt_sha256"] == pinned_didm_v0["prompt_sha256"]
-                )
-                if not matches_pin:
-                    unpinned_count += 1
-                    if strict_s4:
-                        raise StudyError("S4_UPSTREAM_IDENTITY_CHANGED")
-                    continue
-
-            recv_dt = parse_aware_iso(score["received_at"], error_code="DIDM_TIME_INVALID")
-            recv_epoch = math.ceil(recv_dt.timestamp())
-            eff_known = max(recv_epoch, receipt_at)
-            dedup_key = (score["record_id"], score["model_version"])
-            if dedup_key in seen_ids:
+        links = {}
+        for row in export_doc["rows"]:
+            source_item = (row["source_id"], row["item_id"])
+            received = bridge.timestamp(row["received_at"])
+            version = (received, row["payload_sha256"])
+            key = (source_item, version)
+            known_at = max(receipt_at, math.ceil(received.timestamp()))
+            if through is not None and known_at > through:
                 continue
-            seen_ids.add(dedup_key)
-            pinned_scores.append({
-                "record_id": score["record_id"],
-                "event_type": score["event_type"],
-                "ess_like_0_100": float(score["ess_like_0_100"]),
-                "received_epoch": recv_dt.timestamp(),
-                "known_at": eff_known,
-            })
+            fields = _source_fields(row)
+            require(source_fields.setdefault(key, fields) == fields, "DIDM_CONFLICTING_DUPLICATE_VERSION")
+            versions[key] = min(known_at, versions.get(key, known_at))
+            links[bridge.sha256(bridge.canonical(row).encode("utf-8"))] = key
+
+        for wrapped in checked_scores:
+            score = wrapped["score"]
+            received = bridge.timestamp(score["received_at"])
+            known_at = max(receipt_at, math.ceil(received.timestamp()))
+            if through is not None and known_at > through:
+                continue
+            if (score["model_version"] != pinned_didm_v0["model_version"]
+                    or score["prompt_sha256"] != pinned_didm_v0["prompt_sha256"]):
+                if window_start is not None and max(known_at, latest_delivery) < window_start:
+                    continue
+                unpinned_count += 1
+                if strict_s4:
+                    raise StudyError("S4_UPSTREAM_IDENTITY_CHANGED")
+                continue
+            identity = (score["record_id"], score["model_version"], received)
+            source_version = links[wrapped["source_record_sha256"]]
+            prior = score_events.get(identity)
+            if prior is not None:
+                require(prior["score_sha256"] == wrapped["score_sha256"] and prior["source_version"] == source_version,
+                        "DIDM_SCORE_REVISION_CONFLICT")
+                prior["known_at"] = min(prior["known_at"], known_at)
+                continue
+            score_events[identity] = {
+                "record_id": score["record_id"], "event_type": score["event_type"],
+                "ess_like_0_100": float(score["ess_like_0_100"]), "received_epoch": received.timestamp(),
+                "known_at": known_at, "score_sha256": wrapped["score_sha256"], "source_version": source_version,
+            }
+
+    # A later source version supersedes the old one only when it actually arrives.
+    # Walk newest to oldest to find the first time any higher-ranked version was available.
+    until = {}
+    next_known = {}
+    for key in sorted(versions, reverse=True):
+        item, _version = key
+        until[key] = next_known.get(item)
+        next_known[item] = min(versions[key], next_known.get(item, versions[key]))
+    next_score = {}
+    for identity in sorted(score_events, reverse=True):
+        score = score_events[identity]
+        family = identity[:2]
+        source_until = until[score.pop("source_version")]
+        if source_until is not None and source_until <= score["known_at"]:
+            # A late rescore of an already superseded source was never usable.
+            # It must not retire a score for the current source version.
+            continue
+        bounds = [t for t in (source_until, next_score.get(family)) if t is not None]
+        score["superseded_at"] = min(bounds) if bounds else None
+        next_score[family] = min(score["known_at"], next_score.get(family, score["known_at"]))
+        pinned_scores.append(score)
     return pinned_scores, sorted(receipt_times), unpinned_count
 
 
@@ -350,6 +412,7 @@ def compute_d3_at(
         float(s["ess_like_0_100"])
         for s in pinned_scores
         if (as_of - 86400) < int(s["known_at"]) <= as_of
+        and (s.get("superseded_at") is None or as_of < s["superseded_at"])
         and float(s["received_epoch"]) > (as_of - 86400)
         and s["event_type"] in d3_event_types
     ]
@@ -445,7 +508,9 @@ def build_feature_table(
     d1_required_sources = sorted({s.split(":")[0] for s in d1_series}) if "D1" in feature_names else []
 
     pinned_scores, d3_receipt_times, unpinned_didm_count = (
-        prepare_didm_v0_scores(didm_v0_exports, pinned_didm_v0=pinned_didm_v0, strict_s4=strict_s4)
+        prepare_didm_v0_scores(didm_v0_exports, pinned_didm_v0=pinned_didm_v0, strict_s4=strict_s4,
+                               through=max(as_of_list, default=-1),
+                               window_start=min(as_of_list, default=0) - max(86400, d3_cadence_seconds) + 1)
         if ("D3" in feature_names or didm_v0_exports)
         else ([], [], 0)
     )
@@ -561,12 +626,14 @@ def build_feature_table(
     return body
 
 
-def read_feature_table(path: Path | str, expected_sha256: str | None = None) -> dict[str, Any]:
+def read_feature_table(path: Path | str, expected_sha256: str | None = None, *,
+                       for_drift_report: bool = False) -> dict[str, Any]:
     doc, _ = read_strict_json_file(path, max_bytes=64 * 1024 * 1024, path_error="FEATURE_TABLE_FILE", size_error="FEATURE_TABLE_SIZE")
-    return verify_feature_table(doc, expected_sha256)
+    return verify_feature_table(doc, expected_sha256, for_drift_report=for_drift_report)
 
 
-def verify_feature_table(doc: Any, expected_sha256: str | None = None) -> dict[str, Any]:
+def verify_feature_table(doc: Any, expected_sha256: str | None = None, *,
+                         for_drift_report: bool = False) -> dict[str, Any]:
     require(type(doc) is dict and doc.get("format") == FEATURE_TABLE_FORMAT, "FEATURE_TABLE_FORMAT")
     for k, v in RESEARCH_FLAGS.items():
         require(doc.get(k) is v, "FEATURE_TABLE_FLAGS")
@@ -576,7 +643,56 @@ def verify_feature_table(doc: Any, expected_sha256: str | None = None) -> dict[s
     require(sha256_ascii(body) == recorded_sha, "FEATURE_TABLE_SHA256_MISMATCH")
     if expected_sha256 is not None:
         require(recorded_sha == expected_sha256, "FEATURE_TABLE_SHA256_MISMATCH")
+    if "D3" in (doc.get("feature_names") or ()):
+        count = doc.get("unpinned_didm_score_count")
+        require(type(count) is int and count >= 0, "DIDM_SCORE_COUNT_INVALID")
+        require(count == 0 or for_drift_report, "S4_UPSTREAM_IDENTITY_CHANGED")
     return doc
+
+
+def logged_d3_receipts(log_dir: Path | str, summary: Mapping[str, Any], through: int) -> list[dict[str, Any]]:
+    """Return each locally recorded D3 delivery available by the cutoff, in chain order.
+
+    The summary must come from summarize_run_log on this log. Paths and digests are
+    local references; the consumer must still hash-check its actual export bytes.
+    """
+    # The summary retains the first receipt per SHA. Read its verified prefix
+    # for individual deliveries, including byte-identical deliveries; unrelated
+    # reopening or copying of files has no heartbeat effect.
+    through = parse_epoch_int(through, error_code="DIDM_RECEIPT_TIME_INVALID")
+    entries, _ = read_verified_chained_log(log_dir, rl.RUN_LOG_FILENAME)
+    count = summary["entry_count"]
+    require(type(count) is int and 0 <= count <= len(entries), "ARCHIVE_HEAD_MISMATCH")
+    prefix_head = entries[count - 1]["sha256"] if count else "0" * 64
+    require(prefix_head == summary["head_sha256"], "ARCHIVE_HEAD_MISMATCH")
+    receipts = []
+    for entry in entries[:count]:
+        receipt = entry["data"]
+        if receipt.get("kind") != "didm_export_receipt":
+            continue
+        when = parse_epoch_int(receipt["received_at"], error_code="DIDM_RECEIPT_TIME_INVALID")
+        if when > through:
+            continue
+        digest, path = receipt["export_sha256"], receipt["export_path"]
+        require(type(digest) is str and HEX64_RE.fullmatch(digest)
+                and type(path) is str and path, "DIDM_RECEIPT_FIELDS_INVALID")
+        receipts.append({"export_sha256": digest, "export_path": path, "received_at": when})
+    return receipts
+
+
+def _logged_d3_exports(log_dir, summary, through):
+    documents = {}
+    checked_files = set()
+    exports = []
+    for receipt in logged_d3_receipts(log_dir, summary, through):
+        digest, path = receipt["export_sha256"], receipt["export_path"]
+        if (digest, path) not in checked_files:
+            doc, raw = read_strict_json_file(Path(path), max_bytes=bridge.MAX_INPUT_BYTES)
+            require(bridge.sha256(raw) == digest, "DIDM_EXPORT_RECEIPT_HASH_MISMATCH")
+            documents.setdefault(digest, doc)
+            checked_files.add((digest, path))
+        exports.append((documents[digest], receipt["received_at"]))
+    return exports
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -587,6 +703,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--features", default="P1,P2,P3,P4,D2")
     parser.add_argument("--didm-report", action="append", default=[], type=Path)
     parser.add_argument("--run-log-dir", type=Path)
+    parser.add_argument("--didm-score-model", help="Registered D3 model version")
+    parser.add_argument("--didm-score-prompt-sha256", help="Registered D3 prompt SHA-256")
     parser.add_argument("--builder-commit", default="0" * 40)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args(argv)
@@ -597,11 +715,23 @@ def main(argv: Sequence[str] | None = None) -> int:
         reports = [read_strict_json_file(p, max_bytes=64 * 1024 * 1024)[0] for p in args.didm_report]
         log_sum = rl.summarize_run_log(args.run_log_dir) if args.run_log_dir is not None else None
         feats = [f.strip() for f in args.features.split(",") if f.strip()]
+        exports = []
+        pin = None
+        if "D3" in feats:
+            require(log_sum is not None and args.didm_score_model and args.didm_score_prompt_sha256
+                    and HEX64_RE.fullmatch(args.didm_score_prompt_sha256), "DIDM_SCORE_PIN_AND_RECEIPTS_REQUIRED")
+            pin = {"model_version": args.didm_score_model, "prompt_sha256": args.didm_score_prompt_sha256}
+            require(type(bars) is list and bars, "EMPTY_PRICE_BARS")
+            through = max(parse_epoch_int(bar["end"], error_code="INVALID_BAR_TIME") for bar in bars)
+            exports = _logged_d3_exports(args.run_log_dir, log_sum, through)
         table = build_feature_table(
             market=args.market,
             step_seconds=args.step_seconds,
             bars=bars,
             feature_names=feats,
+            didm_v0_exports=exports,
+            pinned_didm_v0=pin,
+            strict_s4=True,
             didm_reports=reports,
             run_log_summary=log_sum,
             feature_builder_commit=args.builder_commit,

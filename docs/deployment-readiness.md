@@ -56,6 +56,20 @@ approval. Copying a public PEM or signed owner log does not make different hashe
 equivalent. Remote manifest approval is not implemented by this tool. Use the already selected Windows deployment's interpreter and checkout before relying
 on a transferred approval.
 
+## Check the reviewed release before owner code approval
+
+Run the comparison with the target checkout's interpreter in the exclusive deployment Windows Terminal. Use the full Git commit ID independently confirmed during review and a local repository containing that commit. First save a fresh `execution_launch.deployment export` using the instructions above. Provide the actual separate `sign.py` that the owner plans to use.
+
+```powershell
+& .\.venv\Scripts\python.exe -B -m tools.reviewed_deployment --review-repo $reviewRepo --commit $reviewedCommit --manifest $savedManifest --trusted-signer $trustedSigner
+```
+
+The checker reads raw committed Python files into a disposable directory, discovers the entire D14 source list with the existing scanner, and compares it with the target's freshly measured source list. It also compares the saved manifest with the fresh export, including runtime metadata and dependency RECORDs, and compares the separate and in-checkout signer files with the committed signer blob. The checker never executes the signer's bytes or imports modules from the review repository. It prints digests, counts and match results without private paths. Exit 0 means all four comparisons passed. A mismatch or unavailable input exits 2.
+
+The comparison assumes a trusted local checker, interpreter, Git installation and reviewed object database. The owner still verifies the separate signer's hash against their independently retained review and uses the existing Windows Terminal signing flow. The checker does not verify Git author identity or an owner signature, and supplies no strategy, session or order authority. Legacy code approval has no dependency on this optional diagnostic. The reported D14 hash covers its existing Python-source and dependency-record scope. Separate native binaries and broker deployment manifests retain their own validation paths.
+
+Run `python -m unittest tests.test_reviewed_deployment` to reproduce the synthetic local Git and actual CLI checks.
+
 ## Missing owner inputs and timing
 
 Default/setup prints only credential variable names, exact venue hosts, an all-null

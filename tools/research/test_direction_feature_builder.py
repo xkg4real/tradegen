@@ -1,8 +1,10 @@
 """Unit tests for direction_feature_builder. Synthetic data only; network patched."""
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 import math
+import json
+import tempfile
 from pathlib import Path
 import socket
 import unittest
@@ -13,6 +15,7 @@ from tools.research import didm_source_bridge as bridge
 from tools.research import direction_feature_builder as dfb
 from tools.research import quantgpt_feature_bridge as qfb
 from tools.research._study_common import (
+    StudyError,
     RESEARCH_FLAGS,
     UTC,
     assert_all_isolation_invariants,
@@ -274,6 +277,12 @@ class DirectionFeatureBuilderTests(unittest.TestCase):
             ],
         }
 
+        source_time = exp2["scores"][0]["score"]["published_at"]
+        source = _make_didm_row(1, published_at=source_time, valid_at=source_time, received_at=source_time)
+        exp2["rows"] = [source]
+        for wrapper in exp2["scores"]:
+            wrapper["source_record_sha256"] = bridge.check_row(source)["record_sha256"]
+
         # Q1 snapshot: risk event issued at t0 + 3700, snapshot received at t0 + 2*step + 10
         q_rec = {
             "record_id": "q-1",
@@ -331,6 +340,61 @@ class DirectionFeatureBuilderTests(unittest.TestCase):
         self.assertEqual(rows[3]["features"], {"D3": 50.0, "Q1": 1.0})
         # At t0 + 4*step: exp2 is now known -> D3 = 50 + 50*(0.8 - 0.1) = 85.0 (unpinned score ignored!)
         self.assertEqual(rows[4]["features"], {"D3": 85.0, "Q1": 1.0})
+
+
+class ScoreEvidenceTests(unittest.TestCase):
+    def setUp(self):
+        from tools.research.test_didm_source_bridge import row, score, linked
+        self.raw = row()
+        self.score = score(self.raw)
+        self.pin = {k: self.score[k] for k in ("model_version", "prompt_sha256")}
+        self.at = int(bridge.timestamp(self.raw["received_at"]).timestamp())
+        self.export = {"contract": bridge.CONTRACT, "format": bridge.EXPORT_FORMAT,
+                       "rows": [self.raw], "scores": [linked(self.raw, self.score)]}
+
+    def test_unlinked_score_modified_contract_and_absent_score_array_refuse(self):
+        for doc, reason in ((dict(self.export, rows=[]), "DIDM_SCORE_SOURCE_LINK_MISSING"),
+                            (dict(self.export, contract={}), "DIDM_EXCHANGE_CONTRACT_MISMATCH"),
+                            ({"format": bridge.EXPORT_FORMAT}, "DIDM_EXCHANGE_SCHEMA_MISMATCH")):
+            with self.subTest(reason=reason), self.assertRaisesRegex(StudyError, reason):
+                dfb.prepare_didm_v0_scores([(doc, self.at)], pinned_didm_v0=self.pin)
+        with self.assertRaisesRegex(StudyError, "DIDM_SCORE_PIN_REQUIRED"):
+            dfb.prepare_didm_v0_scores([(self.export, self.at)])
+
+    def test_first_delivery_and_late_supersession_use_their_actual_availability(self):
+        from tools.research.test_didm_source_bridge import row
+        later_time = (bridge.timestamp(self.raw["received_at"]) + timedelta(seconds=10)).isoformat()
+        update = row(2, received=later_time, value=99)
+        refreshed = dict(self.export, rows=[update], scores=[])
+        sources = [(refreshed, self.at+90), (self.export, self.at+45), (self.export, self.at+2)]
+        scores, arrivals, _ = dfb.prepare_didm_v0_scores(sources, pinned_didm_v0=self.pin)
+        def at(when):
+            return dfb.compute_d3_at(scores, arrivals, self.at+when, d3_event_types={"inflation"})
+        self.assertIsNone(at(1))
+        self.assertEqual((at(2), at(89), at(90)), (70, 70, 50))
+        changed = dict(self.score, novelty_0_100=54)
+        wrapper = dict(self.export["scores"][0], score=changed)
+        with self.assertRaisesRegex(StudyError, "DIDM_SCORE_REVISION_CONFLICT"):
+            dfb.prepare_didm_v0_scores(sources + [(dict(self.export, scores=[wrapper]), self.at+5)],
+                                       pinned_didm_v0=self.pin)
+
+    def test_cli_uses_logged_bytes_and_reports_replaced_export(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            export, history, logs = root/"export.json", root/"bars.json", root/"log"
+            export.write_text(json.dumps(self.export))
+            rl.record_didm_export(logs, export, received_at=self.at)
+            cut = self.at + 5
+            history.write_text(json.dumps([{"end": cut, "known_at": cut+1, "return_bps": 1}]))
+            args = ["--features", "D3", "--market", "KRW-BTC", "--step-seconds", "3600",
+                    "--history", str(history), "--didm-score-model", self.pin["model_version"],
+                    "--didm-score-prompt-sha256", self.pin["prompt_sha256"], "--run-log-dir", str(logs)]
+            good, bad = root/"features.json", root/"bad.json"
+            self.assertEqual(dfb.main([*args, "--output", str(good)]), 0)
+            self.assertEqual(json.loads(good.read_text())["rows"][0]["features"]["D3"], 50.0)
+            export.write_text(json.dumps(dict(self.export, scores=[])))
+            self.assertEqual(dfb.main([*args, "--output", str(bad)]), 2)
+            self.assertFalse(bad.exists())
 
 
 class IsolationTests(unittest.TestCase):

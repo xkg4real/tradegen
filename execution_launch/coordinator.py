@@ -64,8 +64,9 @@ from execution_control.owner_authority import CurrentOwnerAuthority
 from execution_control.store import Journal, JournalError
 from execution_control.universe_odds import run_batch
 from execution_launch.baseline_head import BaselineHead
-from execution_launch.committed_account import CommittedAccountProvider
+from execution_launch.committed_account import CommittedAccountProvider, CommittedPreparationInputs
 from execution_launch.committed_producer import CommittedAccountProducer
+from execution_launch.committed_startup import CommittedStartup
 from execution_launch.driver import (DeploymentWindow, FixedDriverError, FixedDriverIdentity, describe_fixed_driver,
                                      make_fixed_driver, make_fixed_carry_driver)
 from execution_launch.live_history import HistoryChain, LiveHistory, SlotUniverse
@@ -1946,18 +1947,33 @@ class Coordinator:
             _require(not self._terms_blocked, "COORDINATOR_CURRENT_TERMS_REQUIRED")
             _require(not (self._universe and self.status().window_ended_missed_slot),
                      "COORDINATOR_HISTORY_WINDOW_ENDED")
+            committed_baseline = None
             def preparation_clock():
                 _require(not self._stopping.is_set() and not self._closing.is_set(), "COORDINATOR_STOPPED")
                 _require(not self._terms_blocked, "COORDINATOR_CURRENT_TERMS_REQUIRED")
                 at = self._now()
+                if committed_baseline is not None:
+                    status, _ = CommittedStartup._time_status(committed_baseline, at)
+                    _require(status == "FRESH", "COORDINATOR_PREPARATION_ACCOUNT_NOT_CURRENT")
                 _require((not self._universe or at <= self._window.end)
                          and (not self._carry or at < self._window.end), "COORDINATOR_MANAGEMENT_RENEWAL_REQUIRED")
                 return at
 
             actual = preparation_clock()
+            committed_preparation = None
             if self._committed_producer is not None:
-                self._current_committed(actual)
+                pair = self._current_committed(actual)
                 _require(self._ready, "COORDINATOR_STARTUP_RECONCILE_REQUIRED")
+                inspection = self._committed_reconciliation.inspection
+                _require(inspection.origin_ready, "COORDINATOR_PREPARATION_ORDER_ORIGIN_UNVERIFIED")
+                _require(not inspection.permanent_halt and not inspection.daily_stop_at_checkpoint,
+                         "COORDINATOR_PREPARATION_RISK_BLOCKED")
+                _require(not inspection.path_entry_block, "COORDINATOR_PREPARATION_PATH_BLOCKED")
+                expected = pair.committed
+                committed_baseline = self._store.load(expected_head=expected.baseline_head)
+                committed_preparation = CommittedPreparationInputs(controller=self._controller, provider=self._provider,
+                    transaction_id=expected.transaction_id, guard_head=expected.guard_head,
+                    baseline_head=expected.baseline_head, control_head=expected.observed_control_head)
                 actual = self._time()
             if build is not None:
                 _require(callable(build) and selected_plan is None and inputs is None and selection_seed_hex is None
@@ -1974,7 +1990,8 @@ class Coordinator:
                     implementation_verifier=self._implementation_verifier, journal=self._journal,
                     selected_plan=selected_plan, inputs=inputs, positions=observation.positions, now=now,
                     selection_seed_hex=selection_seed_hex, expires_at=expires_at, universe_batch=universe_batch,
-                    clock=preparation_clock, positions_asof=observation.asof, cap_review_expiry=(build is not None))
+                    clock=preparation_clock, positions_asof=observation.asof, cap_review_expiry=(build is not None),
+                    committed_preparation=committed_preparation)
             except Exception as exc:
                 raise CoordinatorError(_code(exc, "COORDINATOR_DEPENDENCY_REFUSED")) from None
             self._launch = launch

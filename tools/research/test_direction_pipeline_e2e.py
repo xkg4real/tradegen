@@ -22,6 +22,7 @@ from tools.research import direction_stage2_replay as s2r
 from tools.research import quantgpt_feature_bridge as qfb
 from tools.research import upbit_price_recorder as upr
 from tools.research import upbit_quote_recorder as uqr
+from tools.research.test_direction_feature_builder import _make_didm_row
 from tools.research.test_didm_run_log import _insert_didm_row
 from tools.research.test_upbit_price_recorder import FakeClock, _candle_json, _reply
 from tools.research._study_common import (
@@ -188,11 +189,13 @@ class EndToEndDirectionPipelineTest(unittest.TestCase):
                     "model_version": "didm-v0.1",
                     "prompt_sha256": "d" * 64,
                 }
+                source = _make_didm_row(d, item_id="event-" + str(d), published_at=score_obj["published_at"],
+                                        received_at=score_obj["published_at"], valid_at=score_obj["published_at"])
                 exp_doc = {
                     "format": bridge.EXPORT_FORMAT,
                     "contract": dict(bridge.CONTRACT),
-                    "rows": [],
-                    "scores": [{"source_record_sha256": "e" * 64, "score": score_obj}],
+                    "rows": [source],
+                    "scores": [{"source_record_sha256": bridge.check_row(source)["record_sha256"], "score": score_obj}],
                 }
                 didm_v0_exports.append((exp_doc, day_ts + 30))
 

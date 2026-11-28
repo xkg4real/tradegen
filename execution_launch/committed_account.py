@@ -25,10 +25,11 @@ from execution_accounts.baseline_bridge import reconcile_committed_baseline
 from execution_accounts.baseline_store import CheckpointStore
 from execution_accounts.continuous import ContinuousPath, VerifiedCoverage
 from execution_accounts.model import content_digest
+from execution_accounts.ownership import reconcile_first_order
 from execution_control.capability import digest as control_digest
-from execution_control.controller import AccountObservation, _fold
+from execution_control.controller import AccountObservation, Controller, _fold
 from execution_control.risk import RiskPolicy
-from execution_control.store import Journal, Transaction, _utc
+from execution_control.store import GENESIS, Journal, Transaction, _utc
 from execution_launch.continuous_guard import (
     AccountCaptureInputs, OwnerContextClaim, ValuationInputs, _SHA, _input_digest,
     _instant, _owner, _owner_terms,
@@ -112,6 +113,17 @@ class CommittedGenerationInspection:
     @property
     def execution_ready(self):
         return False
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class CommittedPreparationInputs:
+    """Select an existing committed account. None of these fields can grant authority."""
+    controller: Controller
+    provider: CommittedAccountProvider
+    transaction_id: str
+    guard_head: str
+    baseline_head: str
+    control_head: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -446,6 +458,38 @@ class CommittedAccountProvider:
         except (ValueError, RuntimeError, TypeError, AttributeError, KeyError, DecimalException,
                 OverflowError, RecursionError):
             raise CommittedAccountError("COMMITTED_ACCOUNT_EVIDENCE_REFUSED") from None
+
+    def require_entry_preparation(self, inputs, *, journal, transaction, context, now):
+        """Revalidate the actual provider, account and risk at the locked session append."""
+        _need(type(self) is CommittedAccountProvider and type(inputs) is CommittedPreparationInputs
+              and inputs.provider is self and type(inputs.controller) is Controller
+              and inputs.controller.account_provider is self and inputs.controller.journal is journal
+              and self._journal is journal and type(transaction) is Transaction and transaction._journal is journal,
+              "COMMITTED_PREPARATION_INPUT_INVALID")
+        for value in (inputs.transaction_id, inputs.guard_head, inputs.baseline_head, inputs.control_head):
+            _digest(value)
+        events = self._events(transaction)
+        current_head = events[-1]["row_sha256"] if events else GENESIS
+        _need(current_head == inputs.control_head, "COORDINATOR_PREPARATION_GENERATION_CHANGED")
+        generation = self.__generation
+        controller = inputs.controller
+        read = Controller._account(controller, now, transaction)
+        pinned = read.committed
+        _need(type(pinned) is CommittedAccountProjection and (pinned.transaction_id, pinned.guard_head,
+              pinned.baseline_head, pinned.observed_control_head) == (inputs.transaction_id, inputs.guard_head,
+              inputs.baseline_head, inputs.control_head), "COORDINATOR_PREPARATION_GENERATION_CHANGED")
+        Controller._committed_context(controller, read, context, now)
+        _need(pinned.owner_claim.signed_bid_gap_fraction is not None, "COORDINATOR_PREPARATION_BID_GAP_POLICY_REQUIRED")
+        account = generation.package["account_capture"].endpoint_accounts[0]
+        assessment = reconcile_first_order(account, events, now=now, account_sha256=content_digest(account),
+                                           journal_head=current_head)
+        _need(assessment.origin_ready, "COORDINATOR_PREPARATION_ORDER_ORIGIN_UNVERIFIED")
+        _, _, halted, _ = _fold(events)
+        result, _, stopped = Controller._risk_view(controller, transaction, read.observation, now, context,
+                                                    committed=pinned)
+        _need(not halted and not stopped and not result.new_entry_blocked, "COORDINATOR_PREPARATION_RISK_BLOCKED")
+        self._still(generation, generation)
+        _need(self._events(transaction) == events, "COORDINATOR_PREPARATION_GENERATION_CHANGED")
 
     def read(self, *, now: datetime, transaction: Transaction) -> CommittedAccountProjection:
         try:

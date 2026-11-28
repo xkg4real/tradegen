@@ -89,17 +89,11 @@ def parse_external_status_flags(
 ) -> dict[str, Any]:
     """Read external runtime status snapshot and strip BID_GAP_TRIGGERED causes."""
     require(type(status_doc) is dict, "INVALID_STATUS_SNAPSHOT")
-    if expected_second is not None and "as_of" in status_doc:
-        require(type(status_doc["as_of"]) is int, "INVALID_STATUS_SNAPSHOT")
-        if status_doc["as_of"] != expected_second:
-            # Stale runtime status fails closed by latching prior_block_active
-            return {
-                "prior_block_active": True,
-                "floor_halt": bool(status_doc.get("floor_halt", False)),
-                "daily_stop": bool(status_doc.get("daily_stop", False)),
-                "stripped_causes": [],
-                "status_stale": True,
-            }
+    if expected_second is not None:
+        require(type(expected_second) is int and type(status_doc.get("as_of")) is int
+                and {"floor_halt", "daily_stop"} <= status_doc.keys()
+                and ("block_causes" in status_doc or "prior_block_active" in status_doc),
+                "INVALID_STATUS_SNAPSHOT")
 
     floor_halt = status_doc.get("floor_halt", False)
     daily_stop = status_doc.get("daily_stop", False)
@@ -109,6 +103,9 @@ def parse_external_status_flags(
     if "block_causes" in status_doc:
         causes = status_doc["block_causes"]
         require(type(causes) is list and all(type(c) is str for c in causes), "INVALID_STATUS_SNAPSHOT")
+        if expected_second is not None and "prior_block_active" in status_doc:
+            require(type(status_doc["prior_block_active"]) is bool
+                    and status_doc["prior_block_active"] == bool(causes), "INVALID_STATUS_SNAPSHOT")
         remaining = []
         for cause in causes:
             if cause in STRIPPED_BID_GAP_CAUSES:
@@ -125,6 +122,10 @@ def parse_external_status_flags(
             prior_block = False
         else:
             prior_block = raw_prior
+
+    if expected_second is not None and status_doc["as_of"] != expected_second:
+        return {"prior_block_active": True, "floor_halt": floor_halt, "daily_stop": daily_stop,
+                "stripped_causes": [], "status_stale": True}
 
     return {
         "prior_block_active": prior_block,

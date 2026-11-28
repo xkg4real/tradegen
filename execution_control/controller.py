@@ -20,7 +20,7 @@ from execution_control import risk
 from execution_control.capability import _issue, digest, plain
 from execution_control.model import Order, InstrumentRules, order_body, order_digest, validate_order
 from execution_control.session import PreparedSession, verify_session
-from execution_control.store import guard_pending, Transaction
+from execution_control.store import ENTRY_BLOCK_FIELDS, entries_blocked, guard_pending, Transaction
 from execution_control.universe_odds import CoinOdds, UniverseBatch
 from execution_orders.model import AdapterResult, request_digest, validate_request
 
@@ -224,7 +224,7 @@ def _event_data(kind, data):
         'session_prepared': prepared,
         'risk_snapshot': {'policy_digest', 'day', 'high_watermark', 'day_start_equity', 'effective_floor',
                           'calculated_floor', 'daily_stopped', 'floor_relaxation_approved'},
-        'kill': {'session_id', 'reason'}, 'halt': {'floor'},
+        'kill': {'session_id', 'reason'}, 'halt': {'floor'}, 'entry_block': ENTRY_BLOCK_FIELDS,
         'reserved': pair | {'order', 'rules', 'session_id', 'request_digest', 'permit_digest', 'trade_date'},
         'dispatching': pair | {'request_digest', 'permit_digest'},
         'acknowledged': pair | {'venue_order_id', 'metadata'},
@@ -317,7 +317,7 @@ def _fold(events):
                 stopped_days.add(data['day'])
             risk_history.append(data)
             continue
-        elif kind in ('session_prepared', 'continuous_guard_prepare', 'continuous_guard_complete',
+        elif kind in ('session_prepared', 'entry_block', 'continuous_guard_prepare', 'continuous_guard_complete',
                       'universe_odds_batch'):
             continue
         elif kind in _ORDER_EVENTS:
@@ -823,6 +823,8 @@ class Controller:
         if daily_stopped and 'PERSISTENT_DAILY_STOP' not in result.reasons:
             result = replace(result, new_entry_blocked=True,
                              reasons=result.reasons + ('PERSISTENT_DAILY_STOP',), protective_action_needed=True)
+        if entries_blocked(tx.events):
+            result = replace(result, new_entry_blocked=True, reasons=result.reasons + ('PATH_EVIDENCE_ENTRY_BLOCK',))
         return result, start, daily_stopped
 
     def _snapshot_risk(self, tx, obs, now, orders, ctx, *, committed=None):
@@ -1063,6 +1065,8 @@ class Controller:
                 raise ValueError('exact venue cap exceeded')
 
     def _buy_latches(self, tx, orders, killed, halted, session_id, own_dispatch=None):
+        if entries_blocked(tx.events):
+            raise ValueError('PATH_EVIDENCE_ENTRY_BLOCK')
         if halted or session_id in killed or guard_pending(tx.events):
             raise ValueError('local no-entry latch active')
         if any(r['status'] in ('DISPATCHING','UNKNOWN','CANCEL_REQUESTED') or r['cancel_pending']
