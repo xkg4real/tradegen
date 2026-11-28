@@ -1,14 +1,14 @@
 ---
-status: returned
-reason: milestone
+status: taken
+reason: manual
 from: gpt
 task: upbit-universe
 cycle: 2026-11-24
 done_ids: owner-merges-1127, blocker1-approach-a-code/a1-a2, protective-hold/p2-integration, launch-planner-provider-1, launch-controlled-coordinator-1, live-cpp20-accel-1, m11-didm-quantgpt-section12-1, qlib-lab-model-factory-1, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1/account-fixtures, pr79-upbit-receipt-review-1, rules-review-1202/preparation, policy-loss-budget-plan-1, pr79-study-gate-repair-1, pr79-native-integrity-1, pr79-controlled-rehearsal-1, pr79-upbit-crosscheck-preview-1, pr79-independent-review-1
 next_ids: rules-review-1202, launch-multi-market-validation-1, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, universe-pr5, universe-pr5/recovery-operations, universe-pr5-clock-notify, launch-private-capture-setup-1, universe-code-approve, e1-14-owner-setup, launch-prospective-study
-updated_at: 2026-11-28T13:57:04+09:00
+updated_at: 2026-11-28T14:09:21+09:00
 stale_after_hours: 24
-waiting_on: review
+waiting_on: none
 work_branch: gpt/pr79-followup-20261128
 work_commit: d8f5181
 uncommitted_changes: no
@@ -23,6 +23,8 @@ session: Codex Cloud PR 80 and 81
 # TRADEGEN 인수인계 · PR #79 독립 검토와 후속 PR #80·81
 
 ## 0. 한 줄 요약
+
+소유자가 첫 거래 전 세 과제(계좌 대사, 손실 보호·재시작 복구, 전향 연구·배포 승인)를 최우선으로 지정했다. GPT가 PR #81을 기반으로 이를 이어받았다. DIDM의 QUANTGEN 원본과 TRADEGEN 연구 단계도 다시 확인한다.
 
 PR #79 원본 `cd70bdd`을 검토해 [PR #80](https://github.com/xkg4real/tradegen/pull/80)에 수정했다. 체결·분봉 대조는 [PR #81](https://github.com/xkg4real/tradegen/pull/81)에 올렸다. [이번 작업의 인계문](context/upbit-universe/gpt-20261128/TRADEGEN_인수인계_2026-11-28.md)과 [검증 보고서](context/upbit-universe/gpt-20261128/PR79_오프라인_검증.md)에 재개 지점이 있다. 운영용 자동주문은 차단돼 있다.
 
