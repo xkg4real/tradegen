@@ -23,6 +23,27 @@ jobs:
         with:
           python-version: '3.13'
           architecture: x64
+      - name: Provision an independent signed Windows CPython in the hosted runner
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:RUNNER_ENVIRONMENT -ne 'github-hosted') { throw 'Ephemeral GitHub-hosted Windows required.' }
+          $installer = Join-Path $env:RUNNER_TEMP 'qa-python-31317.exe'
+          $base = Join-Path $env:RUNNER_TEMP 'tradegen-qa-cpython'
+          Invoke-WebRequest 'https://www.python.org/ftp/python/3.13.17/python-3.13.17-amd64.exe' -OutFile $installer
+          # Microsoft WinGet Python.Python.3.13 3.13.17 x64 manifest and Authenticode publisher.
+          $sha = (Get-FileHash -LiteralPath $installer -Algorithm SHA256).Hash
+          $sig = Get-AuthenticodeSignature -LiteralPath $installer
+          if ($sha -ne '5DA012101BA2E17113A9A1CD901E9CE1441086F2B7ECB5DE06EC94163899A190' -or
+              $sig.Status -ne 'Valid' -or $sig.SignerCertificate.Subject -notmatch 'Python Software Foundation') {
+            throw 'Independent CPython installer digest or publisher verification failed.'
+          }
+          $switches = @('/quiet','InstallAllUsers=0',('TargetDir="' + $base + '"'),'Include_test=0','Include_tcltk=0','Include_doc=0','Include_tools=0','Include_launcher=0','Include_pip=1','AssociateFiles=0','Shortcuts=0','PrependPath=0')
+          $installed = Start-Process -FilePath $installer -ArgumentList $switches -PassThru -Wait
+          if ($installed.ExitCode -ne 0 -or -not (Test-Path -LiteralPath (Join-Path $base 'python.exe'))) {
+            throw 'Fresh CPython setup failed to create its separate interpreter.'
+          }
+          Add-Content -LiteralPath $env:GITHUB_ENV -Value ('TGQA_BROKER_BASE=' + (Join-Path $base 'python.exe'))
       - name: Run frozen keyless Windows tests
         shell: pwsh
-        run: ./tools/qa/run-windows-20261128.ps1 -Repository "$env:GITHUB_WORKSPACE/tested-source" -InstallDependencies
+        run: ./tools/qa/run-windows-20261128.ps1 -Repository "$env:GITHUB_WORKSPACE/tested-source" -InstallDependencies -BrokerBasePython "$env:TGQA_BROKER_BASE"

@@ -3,6 +3,7 @@ param(
     [string]$Repository = (Get-Location).Path,
     [string]$Python = 'python',
     [string]$BrokerPython,
+    [string]$BrokerBasePython,
     [switch]$InstallDependencies
 )
 $ErrorActionPreference = 'Stop'
@@ -36,6 +37,7 @@ if ($InstallDependencies) {
     & $qaInterpreter -I -m pip --isolated install --disable-pip-version-check --no-cache-dir --index-url https://pypi.org/simple -c (Join-Path $qaSource 'constraints.txt') numpy pandas scipy matplotlib PyYAML requests python-dotenv tzdata 'fido2==2.2.1' cryptography websockets
     if ($LASTEXITCODE -ne 0) { throw 'Dependency installation failed. No Windows test ran.' }
     $qaBrokerVenv = Join-Path $qaRoot 'broker-venv'
+    if ($BrokerBasePython) { $qaBasePython = (Get-Command $BrokerBasePython -ErrorAction Stop).Source }
     & $qaBasePython -I -m venv --without-pip $qaBrokerVenv
     if ($LASTEXITCODE -ne 0) { throw 'The temporary broker environment was not created.' }
     $BrokerPython = Join-Path $qaBrokerVenv 'Scripts/python.exe'
