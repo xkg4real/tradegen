@@ -1,12 +1,12 @@
 ---
-status: handoff
+status: taken
 reason: manual
-from: antigravity
+from: gpt
 task: upbit-universe
 cycle: 2026-11-24
 done_ids: owner-merges-1127, blocker1-approach-a-code/a1-a2, protective-hold/p2-integration, launch-planner-provider-1, launch-controlled-coordinator-1, live-cpp20-accel-1, m11-didm-quantgpt-section12-1, qlib-lab-model-factory-1
 next_ids: pr79-independent-review-1, rules-review-1202, policy-loss-budget-plan-1, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, universe-pr5, universe-pr5/recovery-operations, universe-pr5-clock-notify, launch-private-capture-setup-1, universe-code-approve, e1-14-owner-setup, launch-prospective-study
-updated_at: 2026-11-28T12:48:00+09:00
+updated_at: 2026-11-28T12:56:28+09:00
 stale_after_hours: 24
 waiting_on: none
 work_branch: gpt/live-cpp-didm-qlib-20261127
@@ -14,6 +14,7 @@ work_commit: cd70bdd
 uncommitted_changes: no
 pr: 79 (열림, 소유자 검토·병합 및 GPT 후속 검증 대상), 69 (초안)
 usage_weekly_pct: unknown
+usage_source: unavailable
 usage_5h_pct: unknown
 usage_resets_at: 2026-12-01T17:00:00+09:00
 session: Antigravity Remote Session (9d960a6b-6c90-4ae6-a3d0-27489c0e33d2)
