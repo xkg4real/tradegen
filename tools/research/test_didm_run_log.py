@@ -106,13 +106,9 @@ class DidmRunLogTests(unittest.TestCase):
                     kind="alfred_vintage",
                     payload_obj={"series_id": "CPIAUCSL", "value": "315.2"},
                 )
-                stdout = json.dumps({
-                    "sources": {
-                        "gdelt": {"ok": False, "failed_slots": [slot1_stamp]},
-                        "alfred": {"ok": True},
-                        "ecos": {"ok": False},
-                    }
-                })
+                stdout = ("GDELT failed at lastupdate: TimeoutError\n"
+                          "ALFRED CPIAUCSL: vintage rows 1, new 1\n"
+                          "ECOS failed: TimeoutError")
                 return rl.CollectorExecResult(0, stdout)
 
             r1 = rl.run_collector_once(
@@ -132,13 +128,8 @@ class DidmRunLogTests(unittest.TestCase):
                 self.assertEqual(list(backfills), [slot1_stamp])
                 _insert_didm_row(store_path, item_id=f"{slot1_stamp}:ev1", received_at="2026-11-24T12:17:10+00:00")
                 _insert_didm_row(store_path, item_id=f"{slot2_stamp}:ev2", received_at="2026-11-24T12:17:10+00:00")
-                stdout = json.dumps({
-                    "sources": {
-                        "gdelt": {"ok": True, "fetched_slots": [slot1_stamp, slot2_stamp]},
-                        "alfred": {"ok": True},
-                        "ecos": {"ok": True},
-                    }
-                })
+                stdout = (f"GDELT files 2 ({slot2_stamp}:events, {slot2_stamp}:gkg), rows 7, new 1\n"
+                          f"GDELT backfill files 2 ({slot1_stamp}:events, {slot1_stamp}:gkg), rows 1, new 1")
                 return rl.CollectorExecResult(0, stdout)
 
             r2 = rl.run_collector_once(
@@ -159,6 +150,128 @@ class DidmRunLogTests(unittest.TestCase):
             self.assertEqual(summary["slot_known_at"][slot1_stamp], slot2_ep + 140)
             self.assertEqual(summary["slot_known_at"][slot2_stamp], slot2_ep + 140)
             self.assertEqual(summary["unresolved_missing_slots"], [])
+
+    def test_no_partial_file_pair_database_row_or_exit_zero_claims_a_slot(self):
+        stamp = "20261124120000"
+        other = "20261124121500"
+        lookalikes = [
+            "SLOT_OK slot=" + stamp, json.dumps({"sources": {"gdelt": {"ok": True, "fetched_slots": [stamp]}}}),
+            f"GDELT files 1 ({stamp}:events), rows 5, new 1",
+            f"GDELT files 2 ({stamp}:events, {other}:gkg), rows 5, new 1",
+            f"GDELT files 2 ({stamp}:events, {stamp}:events), rows 5, new 1",
+            f"GDELT fallback {stamp}..{other}: files 3, missing 1, rows 1, new 0 (zip CRC checked, md5 not published for these)",
+            "GDELT day 20261124 UTC (events+gkg): files 191, missing 1, rows 100, new 0",
+            "GDELT day 20261124 UTC (events): files 96, missing 0, rows 100, new 0",
+        ]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            def run(db, target, backfills):
+                _insert_didm_row(db)
+                return rl.CollectorExecResult(0, "\n".join(lookalikes + [
+                    "ALFRED CPIAUCSL: vintage rows 5, new 4", "ALFRED failed: TimeoutError",
+                    "ECOS 722Y001 M 202401-202610: observations 0, new 0 (ECOS ERROR: message)",
+                ]))
+            r = rl.run_collector_once(root/"logs", root/"stores", started_at=rl.stamp_to_slot_epoch(stamp),
+                                      collector_runner=run, target_slot_stamp=stamp, finished_at=rl.stamp_to_slot_epoch(stamp)+1)
+            self.assertEqual(r["sources_ok"], {"gdelt": False, "alfred": False, "ecos": False})
+            self.assertEqual(r["new_row_count"], 1)
+            self.assertEqual(r["missing_slots"], [stamp])
+
+    def test_all_files_in_bounded_date_or_adjacent_fallback_can_identify_requested_pairs(self):
+        wanted = {"20261124120000", "20261124121500", "20261124123000", "20261125120000"}
+        good = ("GDELT fallback 20261124120000..20261124121500: files 4, missing 0, rows 0, new 0 "
+                "(zip CRC checked, md5 not published for these)")
+        self.assertEqual(set(rl._slot_receipts(good, wanted)), {"20261124120000", "20261124121500"})
+        self.assertFalse(rl._slot_receipts(good.replace("121500", "123000"), wanted))
+        day = "GDELT day 20261124 UTC (events+gkg): files 192, missing 0, rows 100, new 0"
+        self.assertEqual(set(rl._slot_receipts(day, wanted)), wanted-{"20261125120000"})
+
+    def test_legacy_claims_are_retained_but_need_independent_slot_evidence(self):
+        stamp = "20261124120000"
+        with tempfile.TemporaryDirectory() as td:
+            with rl.HashChainedLog(td, rl.RUN_LOG_FILENAME) as log:
+                log.append({"kind": "collector_run", "started_at": 2, "finished_at": 3, "returncode": 0,
+                            "fetched_slots": [stamp], "sources_ok": {"gdelt": True}})
+            result = rl.summarize_run_log(td)
+            self.assertEqual(result["slot_known_at"], {})
+            self.assertEqual(result["unresolved_missing_slots"], [stamp])
+            self.assertFalse(result["source_runs"]["gdelt"][0]["succeeded"])
+
+    def test_official_module_subprocess_and_bounded_backfill_with_offline_fixture(self):
+        with tempfile.TemporaryDirectory() as td:
+            temp = Path(td)
+            repo = temp / "fixture provider checkout"
+            for part in ("tools", "tools/didm", "data", "data/didm"):
+                (repo/part).mkdir(parents=True, exist_ok=True)
+                (repo/part/"__init__.py").touch()
+            (repo/"data/didm/gdelt.py").write_text("fetch_bytes_optional = None\n", encoding="utf-8")
+            (repo/"tools/didm/collect_daily.py").write_text("""import argparse, sys
+from contextlib import nullcontext
+from types import SimpleNamespace
+def offline(event, args):
+    if event.startswith("socket."):
+        raise AssertionError("offline")
+sys.addaudithook(offline)
+def _now(): return 0
+def _stamp_completed_batch(rows): pass
+def PointInTimeStore(path):
+    return nullcontext(SimpleNamespace(append_many=lambda rows: 0))
+def ingest_stamps(fetch, stamps, at, kinds):
+    [stamp] = stamps
+    assert kinds == ("events", "gkg")
+    first = stamp + ".export.CSV.zip"
+    second = stamp + ".gkg.csv.zip"
+    if stamp.endswith("114500"):
+        return [], [first], [second]
+    return [], [first, second], []
+gdelt_ingest = SimpleNamespace(ingest_stamps=ingest_stamps)
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--data-dir", required=True)
+    parser.parse_args()
+    print("GDELT files 2 (20261124121500:events, 20261124121500:gkg), rows 0, new 0")
+""", encoding="utf-8")
+            stamps = ("20261124114500", "20261124120000", "20261124121500")
+            stores = temp/"stores"
+            _init_didm_sqlite(stores/"kst_20261124"/"didm_store.sqlite")
+            for stamp in stamps:
+                ep = rl.stamp_to_slot_epoch(stamp)
+                result = rl.run_collector_once(temp/"logs", stores, collector_cwd=repo,
+                    collector_cmd=[sys.executable, "-m", "tools.didm.collect_daily"], sources=("gdelt",),
+                    target_slot_stamp=stamp, started_at=ep+5, finished_at=ep+15)
+            self.assertEqual(result["fetched_slots"], [stamps[2]])
+            self.assertEqual(result["backfilled_slots"], [stamps[1]])
+            self.assertEqual(result["missing_slots"], [stamps[0]])
+            summary = rl.summarize_run_log(temp/"logs")
+            self.assertEqual(summary["slot_known_at"], {s: ep+15 for s in stamps[1:]})
+
+    def test_reported_new_rows_must_exist_in_that_source_in_the_inspected_store(self):
+        stamp = "20261124120000"
+        ep = rl.stamp_to_slot_epoch(stamp)
+        def run(db, *_):
+            _insert_didm_row(db, source_id="alfred", item_id="fixture", kind="alfred_vintage")
+            return rl.CollectorExecResult(0,
+                f"GDELT files 2 ({stamp}:events, {stamp}:gkg), rows 1, new 1\n"
+                "ALFRED CPIAUCSL: vintage rows 2, new 2\n")
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            result = rl.run_collector_once(root/"log", root/"stores", started_at=ep+1, finished_at=ep+2,
+                                           target_slot_stamp=stamp, collector_runner=run, sources=("gdelt","alfred"))
+            self.assertEqual(result["sources_ok"], {"gdelt":False,"alfred":False})
+            self.assertEqual(result["missing_slots"], [stamp])
+
+    def test_cli_incomplete_run_is_recorded_and_returns_three(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            with patch.object(rl, "_default_subprocess_runner", return_value=rl.CollectorExecResult(0, "")), \
+                    patch("builtins.print"):
+                code = rl.main(["run-collector", "--log-dir", str(root/"logs"),
+                                "--stores-root", str(root/"stores"), "--collector-arg=python",
+                                "--collector-arg=-m", "--collector-arg=tools.didm.collect_daily"])
+            self.assertEqual(code, 3)
+            summary = rl.summarize_run_log(root/"logs")
+            self.assertEqual(set(summary["source_runs"]), {"gdelt"})
+            self.assertEqual(len(summary["unresolved_missing_slots"]), 1)
 
     def test_snapshot_backup_retention_and_receipt_logging(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

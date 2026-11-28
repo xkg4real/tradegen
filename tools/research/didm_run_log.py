@@ -1,5 +1,11 @@
 """Append-only hash-chained run-log wrapper for DIDM 15m collection, snapshots & receipts.
 
+The owner can select the QUANTGEN checkout with --collector-cwd and supply its Python
+interpreter, -m, tools.didm.collect_daily and the desired source options with separate
+--collector-arg entries. Use --collector-arg=-m for values starting with a dash.
+Complete GDELT events/GKG receipts establish slots, even when SQLite deduplicates rows.
+Unknown slots remain queued. A later backfill uses its own completion time.
+
 Research only. Coordinates per-KST-day DIDM SQLite stores, GDELT 15-minute slot tracking
 and backfill, offline SQLite backup + didm_source_bridge inspection + Section 9 report
 retention, and DIDM V0 / QuantGPT delivery receipts.
@@ -12,6 +18,7 @@ from dataclasses import dataclass
 from datetime import datetime
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -48,15 +55,7 @@ RUN_LOG_FILENAME = "run_log.jsonl"
 RUN_LOG_SCHEMA = "tradegen-didm-run-log-v1"
 SLOT_STAMP_RE = re.compile(r"[0-9]{14}\Z")
 GDELT_SOURCES = frozenset({"gdelt-events2", "gdelt-gkg2"})
-SOURCE_GROUP_MAP = {
-    "gdelt-events2": "gdelt",
-    "gdelt-gkg2": "gdelt",
-    "alfred": "alfred",
-    "ecos": "ecos",
-    "sec-edgar": "sec-edgar",
-    "opendart": "opendart",
-    "kalshi": "kalshi",
-}
+MAX_BACKFILLS_PER_RUN = 8
 
 
 @dataclass(frozen=True)
@@ -151,9 +150,9 @@ def _read_store_max_seq(store_path: Path) -> int:
         conn.close()
 
 
-def _read_new_store_rows(store_path: Path, pre_max_seq: int) -> tuple[int, list[dict[str, Any]]]:
+def _inspect_new_store_rows(store_path: Path, pre_max_seq: int) -> tuple[int, dict[str, int]]:
     if not os.path.lexists(store_path):
-        return pre_max_seq, []
+        return pre_max_seq, {}
     check_safe_path(store_path, error_code="DIDM_STORE_PATH_REFUSED")
     conn = sqlite3.connect(store_path.as_uri() + "?mode=ro", uri=True, timeout=5.0)
     try:
@@ -163,72 +162,83 @@ def _read_new_store_rows(store_path: Path, pre_max_seq: int) -> tuple[int, list[
             "FROM items WHERE seq > ? ORDER BY seq",
             (pre_max_seq,),
         )
-        rows: list[dict[str, Any]] = []
+        counts = {}
         post_max = pre_max_seq
         for vals in cursor:
             row_dict = dict(zip(bridge.ROW_COLUMNS, vals))
             try:
-                checked = bridge.check_row(row_dict)
+                bridge.check_row(row_dict)
             except bridge.BridgeError as exc:
                 raise StudyError(str(exc)) from None
-            row_dict["_parsed"] = checked["parsed"]
-            rows.append(row_dict)
+            source = row_dict["source_id"]
+            group = "gdelt" if source in GDELT_SOURCES else source
+            counts[group] = counts.get(group, 0) + 1
             post_max = max(post_max, int(row_dict["seq"]))
-        return post_max, rows
+        return post_max, counts
     except sqlite3.Error:
         raise StudyError("DIDM_STORE_READ_FAILED") from None
     finally:
         conn.close()
 
 
-def _parse_collector_stdout(stdout: str, requested_sources: Sequence[str]) -> tuple[dict[str, bool | None], set[str], set[str]]:
-    """Parse structured JSON or status lines from collector stdout.
+_SOURCE_REPORTS = {
+    "alfred": ("ALFRED", r"ALFRED (?:file )?[^ :]+: vintage rows ([0-9]+), new [0-9]+"),
+    "ecos": ("ECOS", r"ECOS [^ ]+ [^ ]+ [^ :]+: observations ([0-9]+), new [0-9]+"),
+    "sec-edgar": ("EDGAR", r"EDGAR CIK [0-9]+: filings ([0-9]+), new [0-9]+"),
+    "opendart": ("OpenDART", r"OpenDART [0-9]{8}-[0-9]{8}: pages [0-9]+, filings ([0-9]+), new [0-9]+"),
+    "kalshi": ("Kalshi", r"Kalshi [^ :]+: pages [0-9]+ \(complete True\), markets ([0-9]+), "
+                         r"priced [0-9]+, volume missing [0-9]+, liquid [0-9]+, new [0-9]+"),
+}
+COLLECTOR_EVIDENCE = "quantgen-gdelt-file-evidence-v1"
 
-    Note: The pinned collector can exit 0 even when an upstream source fails!
-    Returns (explicit_source_ok, explicit_fetched_slots, explicit_failed_slots).
-    """
-    source_status: dict[str, bool | None] = {s: None for s in requested_sources}
-    fetched_slots: set[str] = set()
-    failed_slots: set[str] = set()
 
-    for raw_line in (stdout or "").splitlines():
-        line = raw_line.strip()
-        if not line:
+def _new_rows_in_receipts(lines):
+    return sum(int(re.search(r", new ([0-9]+)", line)[1]) for line in lines)
+
+
+def _slot_receipts(stdout: str, wanted: set[str]) -> dict[str, str]:
+    """Only an exact events/GKG pair or a fully accounted bounded range proves its slots."""
+    receipts = {}
+    for line in stdout.splitlines():
+        pair = re.fullmatch(r"GDELT (files|backfill files) 2 \(([0-9]{14}):(events|gkg), "
+                            r"([0-9]{14}):(events|gkg)\), rows [0-9]+, new [0-9]+", line)
+        if pair and pair[2] == pair[4] and pair[2] in wanted and pair[3] != pair[5]:
+            receipts[pair[2]] = line
             continue
-        if line.startswith("{") and line.endswith("}"):
+        fallback = re.fullmatch(r"GDELT fallback ([0-9]{14})\.\.([0-9]{14}): files 4, missing 0, "
+                                r"rows [0-9]+, new [0-9]+ \(zip CRC checked, md5 not published for these\)", line)
+        if fallback:
             try:
-                obj = loads_strict_json(line, max_bytes=256 * 1024)
+                adjacent = stamp_to_slot_epoch(fallback[2]) - stamp_to_slot_epoch(fallback[1]) == 900
             except StudyError:
-                obj = None
-            if type(obj) is dict and isinstance(obj.get("sources"), Mapping):
-                for src, info in obj["sources"].items():
-                    if src in source_status and isinstance(info, Mapping):
-                        if type(info.get("ok")) is bool:
-                            source_status[src] = info["ok"]
-                        for slot_s in info.get("fetched_slots", ()) or ():
-                            if type(slot_s) is str and SLOT_STAMP_RE.fullmatch(slot_s):
-                                fetched_slots.add(slot_s)
-                        for slot_s in info.get("failed_slots", ()) or ():
-                            if type(slot_s) is str and SLOT_STAMP_RE.fullmatch(slot_s):
-                                failed_slots.add(slot_s)
-                continue
-
-        # Fallback structured text markers: SOURCE_OK source=alfred / SOURCE_FAIL source=ecos / SLOT_OK slot=20261124120000
-        m_src = re.match(r"^(SOURCE_OK|SOURCE_FAIL|SOURCE_ERROR)\s+source=([a-z0-9\-]+)", line)
-        if m_src:
-            tag, src_name = m_src.group(1), m_src.group(2)
-            if src_name in source_status:
-                source_status[src_name] = tag == "SOURCE_OK"
+                adjacent = False
+            if adjacent:
+                for stamp in wanted.intersection((fallback[1], fallback[2])):
+                    receipts[stamp] = line
             continue
-        m_slot = re.match(r"^(SLOT_OK|SLOT_FAIL)\s+slot=([0-9]{14})\b", line)
-        if m_slot:
-            tag, stamp = m_slot.group(1), m_slot.group(2)
-            if tag == "SLOT_OK":
-                fetched_slots.add(stamp)
-            else:
-                failed_slots.add(stamp)
+        day = re.fullmatch(r"GDELT day ([0-9]{8}) UTC \(events\+gkg\): files 192, missing 0, "
+                           r"rows [0-9]+, new [0-9]+", line)
+        if day:
+            for stamp in wanted:
+                if stamp.startswith(day[1]):
+                    receipts[stamp] = line
+    return receipts
 
-    return source_status, fetched_slots, failed_slots
+
+def _source_receipts(stdout: str, source: str) -> list[str]:
+    if source not in _SOURCE_REPORTS:
+        return []
+    label, pattern = _SOURCE_REPORTS[source]
+    reports = [line for line in stdout.splitlines() if line.startswith(label + " ")]
+    # One failed series, partial pagination, skipped call or unknown output prevents
+    # a group success. Do not mistake the separate diagnostic field list for data.
+    if source == "kalshi":
+        reports = [line for line in reports if not line.startswith("Kalshi field names (first market): ")]
+    for line in reports:
+        match = re.fullmatch(pattern, line)
+        if not match or int(match[1]) == 0:
+            return []
+    return reports
 
 
 # --------------------------------------------------------------------------- #
@@ -253,23 +263,35 @@ def summarize_run_log(
         kind = data.get("kind")
         if kind == "collector_run":
             finished = int(data["finished_at"])
-            for stamp in data.get("fetched_slots", ()):
+            received = set(data.get("fetched_slots", ())) | set(data.get("backfilled_slots", ()))
+            versioned = data.get("collector_evidence") == COLLECTOR_EVIDENCE
+            evidence = data.get("slot_receipts", {})
+            source_proofs = data.get("source_receipts", {})
+            for stamp in received:
                 ep = stamp_to_slot_epoch(stamp)
-                if stamp not in slot_known_at or finished < slot_known_at[stamp]:
-                    slot_known_at[stamp] = finished
-                    slot_known_epoch[ep] = finished
-            for stamp in data.get("backfilled_slots", ()):
-                ep = stamp_to_slot_epoch(stamp)
+                receipt = evidence.get(stamp) if type(evidence) is dict else None
+                if (not versioned or type(receipt) is not str or data.get("returncode") != 0
+                        or stamp not in _slot_receipts(receipt, {stamp})):
+                    ever_missing_slots.add(stamp)
+                    continue
                 if stamp not in slot_known_at or finished < slot_known_at[stamp]:
                     slot_known_at[stamp] = finished
                     slot_known_epoch[ep] = finished
             for stamp in data.get("missing_slots", ()):
                 ever_missing_slots.add(stamp)
             for src, ok_val in data.get("sources_ok", {}).items():
+                if src == "gdelt":
+                    target = data.get("target_slot")
+                    receipt = evidence.get(target) if type(evidence) is dict else None
+                    seen = type(receipt) is str and target in _slot_receipts(receipt, {target})
+                else:
+                    lines = source_proofs.get(src, []) if type(source_proofs) is dict else []
+                    seen = (type(lines) is list and all(type(line) is str for line in lines)
+                            and bool(_source_receipts("\n".join(lines), src)))
                 source_runs.setdefault(src, []).append({
                     "started_at": int(data["started_at"]),
                     "finished_at": finished,
-                    "succeeded": bool(ok_val),
+                    "succeeded": versioned and bool(seen) and ok_val is True and data.get("returncode") == 0,
                 })
         elif kind == "bridge_snapshot":
             bridge_snapshots.append(dict(data))
@@ -306,21 +328,45 @@ def summarize_run_log(
 def _default_subprocess_runner(
     command_prefix: Sequence[str],
     store_path: Path,
-    target_slot_stamp: str,
     backfill_stamps: Sequence[str],
+    collector_cwd: Path | None = None,
 ) -> CollectorExecResult:
-    argv = [*command_prefix, "--database", str(store_path), "--gdelt-slot", target_slot_stamp]
-    for bf in backfill_stamps:
-        argv.extend(["--backfill-slot", bf])
-    proc = subprocess.run(
-        argv,
-        capture_output=True,
-        text=True,
-        timeout=300,
-        check=False,
-        env={"PATH": os.environ.get("PATH", ""), "LANG": "C.UTF-8"},
-    )
-    return CollectorExecResult(proc.returncode, proc.stdout, proc.stderr)
+    def call(argv):
+        try:
+            proc = subprocess.run(argv, cwd=collector_cwd, capture_output=True, text=True,
+                                  timeout=300, check=False,
+                                  env={k: os.environ[k] for k in ("PATH", "SYSTEMROOT", "TEMP", "TMP", "LANG")
+                                       if k in os.environ})
+            return CollectorExecResult(proc.returncode, proc.stdout, proc.stderr)
+        except (OSError, subprocess.TimeoutExpired):
+            return CollectorExecResult(1, "")
+
+    # QUANTGEN collect_daily writes <data-dir>/didm_store.sqlite and fetches
+    # the newest published files, which need not match the requested clock slot.
+    if collector_cwd is not None:
+        collector_cwd = collector_cwd.resolve(strict=True)
+    latest = call([*command_prefix, "--data-dir", str(store_path.parent)])
+    if latest.returncode != 0 or not backfill_stamps or "--no-gdelt" in command_prefix:
+        return latest
+    wanted = set(backfill_stamps)
+    pending = sorted(wanted - _slot_receipts(latest.stdout, wanted).keys())
+    if not pending or collector_cwd is None:
+        return latest
+    # Targeted repair is available with the canonical Python module invocation.
+    # A custom executable has no known interpreter or QUANTGEN package location.
+    try:
+        index = command_prefix.index("-m")
+    except ValueError:
+        return latest
+    if tuple(command_prefix[index:index+2]) != ("-m", "tools.didm.collect_daily"):
+        return latest
+    script = Path(__file__).with_name("didm_quantgen_slots.py").resolve()
+    repair = call([*command_prefix[:index], str(script), str(collector_cwd),
+                   str(store_path.parent), *pending])
+    # Each repair receipt is emitted only after its SQLite append. If this child
+    # itself aborts, do not count its partial claims; latest remains independent.
+    output = latest.stdout + "\n" + repair.stdout if repair.returncode == 0 else latest.stdout
+    return CollectorExecResult(latest.returncode, output)
 
 
 def run_collector_once(
@@ -330,15 +376,28 @@ def run_collector_once(
     started_at: int,
     finished_at: int | None = None,
     target_slot_stamp: str | None = None,
-    sources: Sequence[str] = ("gdelt", "alfred", "ecos"),
+    sources: Sequence[str] | None = None,
     collector_runner: Callable[[Path, str, Sequence[str]], CollectorExecResult] | None = None,
     collector_cmd: Sequence[str] | None = None,
+    collector_cwd: Path | None = None,
     max_backfill_lookback_seconds: int = 7 * 86400,
 ) -> dict[str, Any]:
     """Run one 15-minute DIDM collector step into kst_YYYYMMDD/didm_store.sqlite and log verified state."""
     parse_epoch_int(started_at, low=900, error_code="INVALID_TIMESTAMP")
+    require(type(max_backfill_lookback_seconds) is int and 0 <= max_backfill_lookback_seconds <= 7 * 86400,
+            "INVALID_BACKFILL_LOOKBACK")
     require(collector_runner is not None or bool(collector_cmd), "COLLECTOR_RUNNER_REQUIRED")
 
+    if sources is None and collector_cmd:
+        flags = {arg.partition("=")[0] for arg in collector_cmd}
+        options = {"alfred": {"--alfred", "--alfred-file"}, "ecos": {"--ecos"},
+                   "sec-edgar": {"--edgar"}, "opendart": {"--opendart"}, "kalshi": {"--kalshi"}}
+        sources = [src for src, switches in options.items() if flags.intersection(switches)]
+        if "--no-gdelt" not in flags or "--gdelt-day" in flags:
+            sources.append("gdelt")
+    if sources is None:
+        sources = ("gdelt", "alfred", "ecos")
+    require(bool(sources) and set(sources) <= {"gdelt", *_SOURCE_REPORTS}, "COLLECTOR_SOURCE_REQUIRED")
     target_epoch = (
         stamp_to_slot_epoch(target_slot_stamp)
         if target_slot_stamp is not None
@@ -349,49 +408,42 @@ def run_collector_once(
     day_dir = ensure_safe_directory(Path(stores_root) / f"kst_{kst_day}", error_code="DIDM_STORE_PATH_REFUSED")
     store_path = check_safe_path(day_dir / "didm_store.sqlite", error_code="DIDM_STORE_PATH_REFUSED")
 
-    prior_summary = summarize_run_log(log_dir)
-    min_backfill_epoch = target_epoch - max_backfill_lookback_seconds
-    queued_backfills = [
-        s for s in prior_summary["unresolved_missing_slots"]
-        if min_backfill_epoch <= stamp_to_slot_epoch(s) < target_epoch
-    ]
-
+    require(0 < target_epoch <= started_at, "INVALID_GDELT_SLOT")
     with HashChainedLog(log_dir, RUN_LOG_FILENAME, lock_name=".run_log.lock") as log:
+        prior_summary = summarize_run_log(log_dir)
+        min_backfill_epoch = target_epoch - max_backfill_lookback_seconds
+        queued_backfills = [
+            s for s in prior_summary["unresolved_missing_slots"]
+            if min_backfill_epoch <= stamp_to_slot_epoch(s) < target_epoch
+        ]
+        last_attempt = {}
+        for row in log.entries:
+            for stamp in row["data"].get("requested_backfills", ()):
+                last_attempt[stamp] = row["seq"]
+        queued_backfills.sort(key=lambda stamp: (last_attempt.get(stamp, -1), stamp))
+        queued_backfills = queued_backfills[:MAX_BACKFILLS_PER_RUN] if "gdelt" in sources else []
         pre_max_seq = _read_store_max_seq(store_path)
         if collector_runner is not None:
             exec_res = collector_runner(store_path, target_stamp, queued_backfills)
         else:
             assert collector_cmd is not None
-            exec_res = _default_subprocess_runner(collector_cmd, store_path, target_stamp, queued_backfills)
+            exec_res = _default_subprocess_runner(collector_cmd, store_path, queued_backfills, collector_cwd)
 
-        actual_finished = int(time.time()) if finished_at is None else parse_epoch_int(finished_at, low=started_at)
-        post_max_seq, new_rows = _read_new_store_rows(store_path, pre_max_seq)
-        explicit_src_ok, explicit_slots_ok, explicit_slots_fail = _parse_collector_stdout(exec_res.stdout, sources)
-
-        rows_by_group: dict[str, int] = {s: 0 for s in sources}
-        sql_slot_stamps: set[str] = set()
-        for r in new_rows:
-            grp = SOURCE_GROUP_MAP.get(r["source_id"], r["source_id"])
-            if grp in rows_by_group:
-                rows_by_group[grp] += 1
-            st_stamp = extract_row_slot_stamp(r, r.get("_parsed"))
-            if st_stamp is not None:
-                sql_slot_stamps.add(st_stamp)
-
-        sources_ok: dict[str, bool] = {}
-        for src in sources:
-            if exec_res.returncode != 0:
-                sources_ok[src] = False
-            elif explicit_src_ok.get(src) is False:
-                sources_ok[src] = False
-            elif explicit_src_ok.get(src) is True:
-                sources_ok[src] = True
-            else:
-                sources_ok[src] = rows_by_group.get(src, 0) > 0
-
-        verified_slots = set()
-        if "gdelt" in sources and sources_ok.get("gdelt", False):
-            verified_slots = (explicit_slots_ok | sql_slot_stamps) - explicit_slots_fail
+        post_max_seq, added_by_source = _inspect_new_store_rows(store_path, pre_max_seq)
+        wanted = {target_stamp, *queued_backfills}
+        completed = exec_res.returncode == 0 and store_path.is_file()
+        slot_receipts = _slot_receipts(exec_res.stdout, wanted) if completed and "gdelt" in sources else {}
+        if _new_rows_in_receipts(set(slot_receipts.values())) > added_by_source.get("gdelt", 0):
+            slot_receipts = {}
+        verified_slots = set(slot_receipts)
+        source_receipts = {src: _source_receipts(exec_res.stdout, src) if completed else []
+                           for src in sources if src != "gdelt"}
+        for src, lines in source_receipts.items():
+            if _new_rows_in_receipts(lines) > added_by_source.get(src, 0):
+                source_receipts[src] = []
+        sources_ok = {src: bool(lines) for src, lines in source_receipts.items()}
+        if "gdelt" in sources:
+            sources_ok["gdelt"] = target_stamp in verified_slots
 
         fetched_primary: list[str] = []
         missing_now: list[str] = []
@@ -408,8 +460,14 @@ def run_collector_once(
             else:
                 missing_now.append(bf_stamp)
 
+        # Round up the completed verification instant when recording integer seconds.
+        actual_finished = parse_epoch_int(math.ceil(time.time()) if finished_at is None else finished_at,
+                                          low=started_at)
         entry_data = {
             "kind": "collector_run",
+            "collector_evidence": COLLECTOR_EVIDENCE,
+            "slot_receipts": slot_receipts,
+            "source_receipts": source_receipts,
             "kst_day": kst_day,
             "store_path": str(store_path),
             "started_at": started_at,
@@ -417,9 +475,11 @@ def run_collector_once(
             "returncode": int(exec_res.returncode),
             "pre_max_seq": pre_max_seq,
             "post_max_seq": post_max_seq,
-            "new_row_count": len(new_rows),
+            "new_row_count": sum(added_by_source.values()),
+            "new_rows_by_source": added_by_source,
             "sources_ok": sources_ok,
             "target_slot": target_stamp,
+            "requested_backfills": queued_backfills,
             "fetched_slots": sorted(fetched_primary),
             "backfilled_slots": sorted(backfilled_now),
             "missing_slots": sorted(set(missing_now)),
@@ -610,6 +670,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     p_col.add_argument("--log-dir", type=Path, required=True)
     p_col.add_argument("--stores-root", type=Path, required=True)
     p_col.add_argument("--target-slot", help="Optional explicit 14-digit UTC GDELT slot stamp")
+    p_col.add_argument("--collector-cwd", type=Path, help="QUANTGEN checkout for python -m tools.didm.collect_daily")
+    p_col.add_argument("--source", action="append", choices=["gdelt", *_SOURCE_REPORTS],
+                       help="Source group expected in this run (repeat for each group)")
     p_col.add_argument("--collector-arg", action="append", required=True, help="Collector executable and base args")
 
     p_snap = sub.add_parser("take-snapshot", help="Backup daily SQLite store, run bridge, and clean superseded reports")
@@ -645,6 +708,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                 started_at=now_ts,
                 target_slot_stamp=args.target_slot,
                 collector_cmd=args.collector_arg,
+                collector_cwd=args.collector_cwd,
+                sources=args.source,
             )
         elif args.cmd == "take-snapshot":
             report = take_bridge_snapshot(
@@ -672,6 +737,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         else:
             report = summarize_run_log(args.log_dir, pinned_head=args.pinned_head)
         print(canonical_ascii_str(report))
+        if args.cmd == "run-collector" and (report["missing_slots"] or not all(report["sources_ok"].values())):
+            return 3
         return 0
     except StudyError as exc:
         reason = str(exc)
