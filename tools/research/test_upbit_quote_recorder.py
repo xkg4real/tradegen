@@ -15,6 +15,8 @@ from tools.research import upbit_quote_recorder as uqr
 from tools.research.test_upbit_price_recorder import FakeClock, _reply
 from tools.research._study_common import (
     RESEARCH_FLAGS,
+    StudyError,
+    read_verified_chained_log,
     assert_all_isolation_invariants,
     kst_date_iso,
 )
@@ -101,6 +103,34 @@ class UpbitQuoteRecorderTests(unittest.TestCase):
             self.assertTrue(obs1["prior_block_active"])
             self.assertEqual(obs0["bid_at"], obs0["as_of"])
             self.assertLess(obs2["bid_at"], obs2["as_of"])
+
+    def test_app_running_requires_dated_complete_status_before_archiving_quote(self):
+        second = 1_764_000_100
+        full = {"as_of": second, "floor_halt": False, "daily_stop": False, "prior_block_active": False}
+        missing = [{k: v for k, v in full.items() if k != name} for name in full]
+        invalid = [{}, *missing, dict(full, as_of=True), dict(full, floor_halt=1),
+                   dict(full, prior_block_active="no"), dict(full, prior_block_active=True, block_causes=[])]
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            status = root / "status.json"
+            config = uqr.QuoteRecorderConfig(market="KRW-BTC", scope="test", app_running=True)
+            def transport(path, params):
+                if path == "/v1/ticker":
+                    return _reply([{"market": "KRW-BTC", "trade_price": 100, "trade_timestamp": second*1000}])
+                return _reply([{"market": "KRW-BTC", "orderbook_units": [{"bid_price": 99, "ask_price": 101}]}])
+            for snapshot in invalid:
+                with self.subTest(snapshot=snapshot):
+                    status.write_text(json.dumps(snapshot), encoding="utf-8")
+                    recorder = uqr.UpbitQuoteRecorder(root/"quotes", config, transport=transport,
+                                                      clock=FakeClock(second+0.1), status_file=status)
+                    with self.assertRaisesRegex(StudyError, "INVALID_STATUS_SNAPSHOT"):
+                        recorder.capture_once()
+            entries, _ = read_verified_chained_log(root/"quotes", "quotes.jsonl")
+            self.assertFalse(any(entry["data"]["kind"] == "quote" for entry in entries))
+        stale = uqr.parse_external_status_flags(dict(full, as_of=second-1, daily_stop=True), expected_second=second)
+        self.assertTrue(stale["status_stale"] and stale["prior_block_active"] and stale["daily_stop"])
+        self.assertFalse(uqr.parse_external_status_flags(full, expected_second=second)["prior_block_active"])
+        self.assertFalse(uqr.parse_external_status_flags({})["prior_block_active"])
 
     def test_app_not_running_and_cli_network_gate(self) -> None:
         t0 = 1_764_000_200

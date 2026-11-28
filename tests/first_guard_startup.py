@@ -58,9 +58,13 @@ def test_native_inspect_checks_record_and_never_calls_owner_or_trading_services(
                 for name in (("load_context", "load_owner_snapshot") if target is live.owner
                              else ("build_live", "_LiveLock", "VenueOrderTransport", "_AccountSource")):
                     stack.enter_context(patch.object(target, name, side_effect=AssertionError("unexpected live I/O")))
-            # The CLI clock is genuine; these fixtures are historical, so inspect stays stale.
+            # Only the virtual receipt time changes. The native CLI still routes to
+            # the actual archive reader and verifies the physical journal and heads.
+            actual_inspect = live.inspect_startup
+            def historical(config_path, selection_path, *, clock):
+                return actual_inspect(config_path, selection_path, clock=lambda: e.clock()+timedelta(minutes=1))
             output = StringIO()
-            with redirect_stdout(output):
+            with patch.object(live, "inspect_startup", historical), redirect_stdout(output):
                 assert live.main(["--config", config, "--inspect-startup", record]) == 2, output.getvalue()
             result = json.loads(output.getvalue())
             assert not result["execution_ready"] and result["new_entries_blocked"] and not result["source_authenticated"]
