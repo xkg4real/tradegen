@@ -88,10 +88,13 @@ def own_fill_findings(walk, orders, *, account_scope, expected_order_ids, anchor
     """Consume one public print per distinct own fill in the half-open interval.
 
     The caller supplies the account capture's reviewed order IDs for this market.
-    The comparison uses milliseconds, exact price and quantity. Public maker/taker
-    side is not attested. A prevented quantity has no execution to match.
+    Both boundaries must be aligned to the public feed's milliseconds so that
+    truncating an execution time cannot move it across a boundary. Matching
+    uses milliseconds, exact price and quantity. Public maker/taker side is not attested. A prevented quantity has no execution to match.
     """
     verified = replay_window(walk, account_scope=account_scope, anchor_trade_id=anchor_trade_id)
+    require(verified.start.microsecond % 1000 == verified.end.microsecond % 1000 == 0,
+            "PATH_CHECK_MILLISECOND_BOUNDARIES_REQUIRED")
     require(type(orders) is tuple and len(orders) <= 2000 and all(type(r) is OrderFillsResult for r in orders)
             and all(identifier(r.order_id) for r in orders)
             and type(expected_order_ids) is frozenset and all(identifier(s) for s in expected_order_ids)

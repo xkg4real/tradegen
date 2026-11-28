@@ -75,11 +75,23 @@ def test_both_receipt_and_server_clocks_must_reach_the_authenticated_boundary():
     assert checked.status == "CHECKED" and checked.findings[0].kind == "CANDLE_LOW"
 
 
+def test_final_older_candle_proves_the_requested_minute_absent_and_supplies_no_price():
+    older = candle(MINUTE, 3, 8, row_at=MINUTE-STEP)
+    for ticks, expect_missing in (([tick(MINUTE, 5, 1)], True), ([], False)):
+        path = window(Archive(ticks))
+        result, = audit((path,), (older,))
+        assert result.status == "CHECKED"
+        assert [(f.kind, f.price) for f in result.findings] == ([("CANDLE_MINUTE", None)] if expect_missing else [])
+        unverified, = audit((path,), (older,), verify_finality=None)
+        assert unverified.status == "FINALITY_UNVERIFIED" and not unverified.findings
+        early = replace(older, received_at=MINUTE+STEP, server_time=MINUTE+STEP)
+        prior, = audit((path,), (early,))
+        assert prior.status == "NEED_LATER_CAPTURE" and not prior.findings
+
+
 def test_wrong_minute_market_range_query_and_receipt_hash_are_never_compared():
     path = window(Archive([tick(MINUTE, 5, 1)]))
     raw = candle(MINUTE, 3, 8)
-    r, = audit((path,), (candle(MINUTE,3,8,row_at=MINUTE-STEP),))
-    assert r.status == "TARGET_MINUTE_NOT_RETURNED" and not r.findings
     refused("CANDLE_AUDIT_WRONG_MINUTE", lambda: audit((path,), (candle(MINUTE,3,8,row_at=MINUTE+STEP),)))
     refused("CANDLE_AUDIT_RECEIPT_BINDING",lambda: audit((path,), (replace(raw,params=candle_params("KRW-ETH",MINUTE+STEP,1)),)))
     refused("CANDLE_AUDIT_RECEIPT_BINDING",lambda: audit((path,), (replace(raw,params=candle_params(MARKET,MINUTE+STEP,2)),)))

@@ -19,7 +19,6 @@ from execution_accounts.provider import EvidenceError
 _CANDLE = "/v1/candles/minutes/1"
 _MINUTE = timedelta(minutes=1)
 _FINALITY_CONTRACT = "upbit-minute-finality-v1"
-_EARLIER_CANDLE = object()
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -65,8 +64,9 @@ def _candle(r, market, start, scope, now):
     row = rows[0]
     require(type(row) is dict and row.get("market") == market and type(row.get("unit")) is int
             and row["unit"] == 1, "CANDLE_AUDIT_RESPONSE_INVALID")
-    # The one-candle endpoint can send an older nonempty minute. It is not
-    # evidence of this minute's OHLC, even when its extrema happen to match.
+    # count=1 returns the latest published candle strictly before the target
+    # minute's end. An older row witnesses absence, subject to the same external
+    # finality and clock checks as an empty response. Its price belongs elsewhere.
     stamp = row.get("candle_date_time_utc")
     require(type(stamp) is str and len(stamp) == 19, "CANDLE_AUDIT_WRONG_MINUTE")
     try:
@@ -78,7 +78,7 @@ def _candle(r, market, start, scope, now):
     low = number(row.get("low_price"), positive=True, json_number=True)
     high = number(row.get("high_price"), positive=True, json_number=True)
     require(low <= high, "CANDLE_AUDIT_RESPONSE_INVALID")
-    return _EARLIER_CANDLE if candle_at < start else (low, high)
+    return None if candle_at < start else (low, high)
 
 
 def _judgment(challenge, receipt, proof, prices, candle):
@@ -153,10 +153,6 @@ def audit_minutes(windows, receipts, *, market, account_scope, first_minute, now
         challenge = MinuteFinalityRequest(contract=_FINALITY_CONTRACT, account_scope=scope, market=market,
             minute_start=start, candle_receipt_sha256=receipt_fingerprint(r), trade_history_sha256=history_digest)
         request_sha = content_digest(challenge)
-        if candle is _EARLIER_CANDLE:
-            results.append(MinuteResult(start=start, status="TARGET_MINUTE_NOT_RETURNED", findings=(),
-                                        evidence_sha256=request_sha))
-            continue
         try:
             proof = verify_finality(challenge, r) if verify_finality else None
         except Exception:

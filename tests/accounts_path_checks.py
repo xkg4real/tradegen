@@ -101,6 +101,20 @@ def test_canary_consumes_multiplicity_across_orders_and_matches_submilliseconds_
     assert not check(window(src), (a,b))
 
 
+def test_microsecond_boundaries_cannot_split_a_public_print_bucket_in_the_own_fill_canary():
+    public_at = MINUTE + timedelta(milliseconds=1)
+    own_at = public_at + timedelta(microseconds=300)
+    src = Archive([tick(public_at, 11, 9)])
+    observed = order(src, "partial-boundary", [("fill-at-300us", own_at, 11, 1)])
+    # A start 200 us into the bin would exclude the public print and include the fill.
+    start_cut = window(src, start=public_at+timedelta(microseconds=200), end=MINUTE+timedelta(seconds=1))
+    # An end 200 us into the bin would include the public print but cannot prove when its trade occurred.
+    end_cut = window(src, start=MINUTE, end=public_at+timedelta(microseconds=200))
+    for candidate in (start_cut, end_cut):
+        refused("PATH_CHECK_MILLISECOND_BOUNDARIES_REQUIRED", lambda: check(candidate, (observed,)))
+    assert not check(window(src,start=public_at,end=public_at+timedelta(milliseconds=1)), (observed,))
+
+
 def test_prevented_only_orders_produce_no_miss_and_existing_fills_are_checked_in_half_open_interval():
     src = Archive([tick(MINUTE, 3, 10)])
     canceled = order(src, "zero", [], prevented="2")
