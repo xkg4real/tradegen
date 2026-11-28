@@ -856,6 +856,7 @@ READ_CAPTURE_ENDPOINTS_PIN = frozenset({
     ("GET", "/v1/accounts"), ("GET", "/v1/orders/open"), ("GET", "/v1/orders/closed"),
     ("GET", "/v1/order"), ("GET", "/v1/deposits"), ("GET", "/v1/withdraws"),
     ("GET", "/v1/ticker"), ("GET", "/v1/market/all"), ("GET", "/v1/orderbook"),
+    ("GET", "/v1/trades/ticks"),
 })
 
 
@@ -1130,7 +1131,7 @@ def test_allowlists_are_pinned():
                        ("GET", "/v1/withdraws"), ("GET", "/v1/withdraws/coin_addresses"), ("GET", "/v1/deposits"),
                        ("GET", "/v1/api_keys"), ("GET", "/v1/status/wallet"), ("GET", "/v1/ticker"),
                        ("GET", "/v1/orderbook"), ("GET", "/v1/orders/chance"), ("GET", "/v1/orderbook/instruments"),
-                       ("GET", "/v1/market/all"), ("GET", "/v1/candles/days")})
+                       ("GET", "/v1/market/all"), ("GET", "/v1/candles/days"), ("GET", "/v1/trades/ticks")})
     okx = frozenset({("GET", "/api/v5/account/config"), ("GET", "/api/v5/account/balance"),
                      ("GET", "/api/v5/account/positions"), ("GET", "/api/v5/asset/balances"),
                      ("GET", "/api/v5/asset/asset-valuation"), ("GET", "/api/v5/finance/savings/balance"),
@@ -1151,7 +1152,7 @@ def test_allowlists_are_pinned():
     assert upbit_inquiry.READ_CAPTURE_ENDPOINTS < upbit_inquiry.ENDPOINTS
     assert not _capture_endpoint_hits((ROOT / UPBIT_FILE).read_text(encoding="utf-8"))
     assert upbit_inquiry.PUBLIC == frozenset({"/v1/ticker", "/v1/orderbook", "/v1/orderbook/instruments",
-                                              "/v1/market/all", "/v1/candles/days"})
+                                              "/v1/market/all", "/v1/candles/days", "/v1/trades/ticks"})
     assert "/v1/orders/chance" not in upbit_inquiry.PUBLIC
     assert okx_inquiry.ENDPOINTS == okx, sorted(okx_inquiry.ENDPOINTS ^ okx)
     assert okx_inquiry.PUBLIC == frozenset({"/api/v5/public/time", "/api/v5/market/ticker"})

@@ -47,6 +47,10 @@ _VALID = {                                          # one valid data object per 
     "transfer_ack": {"intent_hash": "d" * 64, "warning_sha256": "e" * 64},
     "key_rotated": {"old_pubkey_b64": base64.b64encode(bytes(range(32))).decode("ascii"),
                     "new_pubkey_b64": base64.b64encode(bytes(32)).decode("ascii")},
+    "bid_gap_set": {"scope": "upbit", "y": "0.02", "effective_from": None},
+    "bid_gap_clear": {"scope": "upbit", "reason": "owner reset"},
+    "protective_terms_set": {"scope": "upbit", "trailing_stop_x": "0.03",
+                             "halt_margin_krw": "10000", "daily_margin_krw": "2000"},
     "system_halt": {"floor_krw": 21000.0},
     "system_disarm": {"session_id": "S1", "reason": "floor reached"},
 }

@@ -14,6 +14,7 @@ import hashlib
 import json
 import re
 
+from core.compliance import native_accel
 from execution_control.capability import digest
 
 _ID = re.compile(r"[A-Za-z][A-Za-z0-9_.:-]{0,95}")
@@ -178,6 +179,9 @@ def target_fraction(spec: ProgramSpec, marks: tuple[Decimal, ...]) -> Decimal:
         _decimal(value, positive=True)
     if spec.kind == "cash" or len(marks) < spec.slow_window:
         return Decimal(0)
+    native_above = native_accel.ma_crossover(marks, spec.fast_window, spec.slow_window)
+    if native_above is not None:
+        return spec.exposure_fraction if native_above else Decimal(0)
     fast = sum((Fraction(v) for v in marks[-spec.fast_window:]), Fraction(0))/spec.fast_window
     slow = sum((Fraction(v) for v in marks[-spec.slow_window:]), Fraction(0))/spec.slow_window
     return spec.exposure_fraction if fast > slow else Decimal(0)
@@ -185,6 +189,7 @@ def target_fraction(spec: ProgramSpec, marks: tuple[Decimal, ...]) -> Decimal:
 
 # core.compliance.rules.FLAG_CLASSES (pinned by a test; not imported here)
 _FLAG_CLASSES = frozenset({"unflagged", "warning", "caution", "unknown", "absent"})
+_FLAG_CODES = {"unflagged": 0, "warning": 1, "caution": 2, "unknown": 3, "absent": 4}
 
 
 @dataclass(frozen=True)
@@ -227,12 +232,42 @@ def choose(spec: ProgramSpec, state: ChooserState, now_slot: ChooserSlot,
         for price in slot.prices.values():
             _decimal(price, positive=True)
 
+    h = state.held
+    coin_list = sorted(set(now_slot.top_n) | ({h} if h is not None else set()))
+    coin_to_id = {c: idx for idx, c in enumerate(coin_list)}
+    cands = [
+        (
+            coin_to_id[c],
+            _FLAG_CODES.get(now_slot.flags.get(c, "absent"), 4),
+            now_slot.prices.get(c),
+            None if lag_slot is None else lag_slot.prices.get(c),
+        )
+        for c in now_slot.top_n
+    ]
+    h_id = -1 if h is None else coin_to_id[h]
+    h_flag = 4 if h is None else _FLAG_CODES.get(now_slot.flags.get(h, "absent"), 4)
+    h_now = None if h is None else now_slot.prices.get(h)
+    h_lag = None if (h is None or lag_slot is None) else lag_slot.prices.get(h)
+    native_choice = native_accel.universe_momentum_top1(
+        candidates=cands,
+        held_coin_id=h_id,
+        held_flag_code=h_flag,
+        held_now_price=h_now,
+        held_lag_price=h_lag,
+        hold_count=state.hold_count,
+        min_hold_slots=spec.min_hold_slots,
+        switch_margin=spec.switch_margin,
+    )
+    if native_choice is not None:
+        chosen_id, new_cnt = native_choice
+        chosen = None if chosen_id < 0 else coin_list[chosen_id]
+        return chosen, ChooserState(held=chosen, hold_count=new_cnt)
+
     def ret(coin):
         if lag_slot is None or coin not in now_slot.prices or coin not in lag_slot.prices:
             return None
         return Fraction(now_slot.prices[coin]) / Fraction(lag_slot.prices[coin]) - 1
 
-    h = state.held
     targets = [(ret(coin), coin) for coin in now_slot.top_n
                if now_slot.flags.get(coin) == "unflagged" and ret(coin) is not None]
     best_r, best = min(targets, key=lambda item: (-item[0], item[1])) if targets else (None, None)

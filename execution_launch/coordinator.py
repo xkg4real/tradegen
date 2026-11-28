@@ -41,6 +41,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 from datetime import date, datetime, time, timedelta
+from decimal import Decimal, ROUND_DOWN
 from fractions import Fraction
 import heapq
 import re
@@ -50,6 +51,7 @@ from typing import Callable, Iterable, Iterator, Mapping
 
 from core.compliance.alerts import toast
 from core.compliance.model import KST
+from core.compliance.owner import load_owner_snapshot
 from core.compliance.rules import universe_top_n
 from core.isolation import state_root
 from execution_accounts.baseline_bridge import BaselineFrame, ContinuousAccountProvider
@@ -74,15 +76,18 @@ from execution_launch.paper_capture import sample_prefetched_book
 from execution_launch.profile import LaunchProfile, parse_profile_json, profile_contract_digest, risk_policy
 from execution_launch.program import ProgramSpec, parse_program
 from execution_launch.managed_behavior import resolve_behavior
-from execution_launch.protective_state import ManagementEvent, policy_digest as management_policy_digest, state_digest
+from execution_launch.protective_state import (AuthorityFacts, ManagementEvent, ObservationFacts,
+                                               policy_digest as management_policy_digest, state_digest)
 from execution_launch.protective_store import LedgerReferences, ProtectiveStore
 from execution_launch.review_auth import MAX_DOCUMENT_BYTES, ReviewVerifiers
-from execution_launch.runner import (EvidencePackage, LaunchSession, Runner, StrategyDriver, TickResult, active,
+from execution_launch.runner import (EvidencePackage, LaunchSession, Runner, Signal, StrategyDriver, TickResult, active,
                                      dust, flat_in, prepare_launch_session)
 from execution_launch.strategy import ForwardProtocol, evaluate_capture_json, parse_protocol, evidence_digest
 from execution_launch.toast_queue import ToastQueue
 from execution_launch.workflow import MAX_CAPTURE_BYTES, MAX_CONFIG_BYTES, artifact, read_file
 
+MODES = ("paper", "rehearsal", "controlled")
+_ZERO = Decimal(0)
 SLOT_WINDOW = timedelta(seconds=10)      # the driver's execution slot and the quote freshness bound
 ACCOUNT_AGE = timedelta(seconds=30)      # the runner's and the reducer's account freshness bound
 BOUNDARY_BAND = 2 * SLOT_WINDOW          # calibration: no slot this close to a boundary, so the slot unit's tail
@@ -206,6 +211,25 @@ def _check_protective_binding(store, identity, profile, evidence, window, monito
              and binding.driver_identity_sha256 == digest(identity)
              and binding.research_sha256 == evidence_digest(evidence.result)
              and binding.source_sha256 == evidence.result.inputs_digest,
+             "COORDINATOR_PROTECTIVE_BINDING_MISMATCH")
+
+
+def _check_live_protective_binding(store, identity, profile, evidence, window, monitor_until):
+    """Standing Amendment A2 protective-store context commitments for controlled live operation."""
+    _require(type(store) is ProtectiveStore, "COORDINATOR_PROTECTIVE_STORE_REQUIRED")
+    policy, binding = store.policy, store.binding
+    management_policy_digest(policy)
+    binding.__post_init__()
+    _require((policy.account_scope, policy.venue, policy.market, policy.quote_currency)
+             == (profile.account_scope, profile.venue, profile.market, profile.quote_currency)
+             and (profile.universe_rule_sha256 is not None or policy.symbol == profile.symbol)
+             and policy.holding_deadline == window.end and policy.monitor_until == monitor_until
+             and policy.strategy_sha256 == evidence.protocol.strategy_code_sha256
+             and policy.risk_policy_sha256 == digest(risk_policy(profile))
+             and binding.research_sha256 == evidence_digest(evidence.result)
+             and binding.source_sha256 == evidence.result.inputs_digest
+             and (identity is None or (policy.code_sha256 == identity.deployment_code_sha256
+                                       and binding.driver_identity_sha256 == digest(identity))),
              "COORDINATOR_PROTECTIVE_BINDING_MISMATCH")
 
 
@@ -335,6 +359,10 @@ class CoordinatorStatus:
     management_request_id: str | None = None
     management_source: str = ""          # fixed failure code; no storage paths or unverified request success
     window_ended_missed_slot: bool = False  # sticky: a slot the history did not record ended the window
+    protective_hold_active: bool = False
+    protective_phase: str = ""
+    protective_triggers: tuple[str, ...] = ()
+    protective_exit_client_id: str = ""
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -379,7 +407,8 @@ class Coordinator:
     neither publication nor history advances the committed baseline again.
     """
     def __init__(self, *, mode: str, profile: LaunchProfile, evidence: EvidencePackage, driver: StrategyDriver,
-                 implementation_verifier: Callable, adapters: Mapping[str, object], account_source: Callable | None,
+                 implementation_verifier: Callable, adapters: Mapping[str, object] = MappingProxyType({}),
+                 account_source: Callable | None,
                  trusted_head: object, quote_source: object, window: DeploymentWindow, bar_seconds: int,
                  monitor_until: datetime, clock: Callable[[], datetime], account_prefetch: Callable | None = None,
                  history: object | None = None, terms_source: object | None = None,
@@ -390,8 +419,37 @@ class Coordinator:
                  slot_source: object | None = None, program: object | None = None,
                  toast: Callable[[str, str], bool] = toast,
                  protective_store: ProtectiveStore | None = None,
-                 committed_producer: CommittedAccountProducer | None = None) -> None:
-        _require(mode == "rehearsal", "COORDINATOR_MODE_UNSUPPORTED")
+                 committed_producer: CommittedAccountProducer | None = None,
+                 controller: Controller | None = None,
+                 owner_snapshot_provider: Callable | None = None,
+                 allow_held_account: bool = False) -> None:
+        _require(mode in MODES, "COORDINATOR_MODE_UNSUPPORTED")
+        if mode == "controlled":
+            eff_adapters = controller.adapters if type(controller) is Controller else adapters
+            held_ready = (allow_held_account
+                          or getattr(account_source, "_trade_window_collector", None) is not None)
+            live_adapters_ok = (
+                isinstance(eff_adapters, Mapping)
+                and bool(eff_adapters)
+                and "upbit" in eff_adapters
+                and all(
+                    type(a) is not DryRunAdapter
+                    and callable(getattr(a, "prepare", None))
+                    and callable(getattr(a, "dispatch", None))
+                    and getattr(getattr(a, "credentials", None), "__name__", "") != "unconfigured_credentials"
+                    for a in eff_adapters.values()
+                )
+            )
+            _require(
+                committed_producer is None
+                and held_ready
+                and live_adapters_ok
+                and type(protective_store) is ProtectiveStore,
+                "COORDINATOR_MODE_UNSUPPORTED",
+            )
+            adapters = eff_adapters
+        elif mode == "paper":
+            _require(committed_producer is None, "COORDINATOR_MODE_UNSUPPORTED")
         _require(type(profile) is LaunchProfile and (profile.venue, profile.market, profile.quote_currency)
                  == ("upbit", "spot", "KRW"), "COORDINATOR_VENUE_UNSUPPORTED")
         _require(type(evidence) is EvidencePackage and type(driver) is StrategyDriver
@@ -400,7 +458,8 @@ class Coordinator:
                  and (account_prefetch is None or callable(account_prefetch))
                  and callable(getattr(quote_source, "read", None)) and callable(getattr(trusted_head, "read", None))
                  and (history is None or callable(getattr(history, "record_slot", None)))
-                 and (terms_source is None or callable(getattr(terms_source, "read", None))),
+                 and (terms_source is None or callable(getattr(terms_source, "read", None)))
+                 and (owner_snapshot_provider is None or callable(owner_snapshot_provider)),
                  "COORDINATOR_INTEGRATIONS_REQUIRED")
         if committed_producer is not None:
             _require(type(committed_producer) is CommittedAccountProducer and account_prefetch is None,
@@ -444,9 +503,12 @@ class Coordinator:
         _require(window.end <= monitor_until <= window.end + timedelta(days=1), "COORDINATOR_MONITOR_SPAN_UNSUPPORTED")
         _require(not carry or (identity is not None and type(protective_store) is ProtectiveStore),
                  "COORDINATOR_PROTECTIVE_STORE_REQUIRED")
-        _require(carry or protective_store is None, "COORDINATOR_PROTECTIVE_BEHAVIOR_UNSUPPORTED")
+        if mode != "controlled":
+            _require(carry or protective_store is None, "COORDINATOR_PROTECTIVE_BEHAVIOR_UNSUPPORTED")
         if carry:
             _check_protective_binding(protective_store, identity, profile, evidence, window, monitor_until)
+        elif mode == "controlled":
+            _check_live_protective_binding(protective_store, identity, profile, evidence, window, monitor_until)
         policy = risk_policy(profile)
         cutoff = None if policy.recovery_condition is None else policy.recovery_condition.cutoff_seconds
         if cutoff is not None:
@@ -459,6 +521,7 @@ class Coordinator:
                 _require(not (window.start <= slot <= window.end and abs(slot - boundary) <= BOUNDARY_BAND),
                          "COORDINATOR_SLOT_NEAR_BOUNDARY")
         root = state_root().absolute()
+        self._mode = mode
         self._committed_producer = committed_producer
         self._committed_unit, self._committed_account = None, None
         self._committed_reconciliation = None
@@ -467,13 +530,26 @@ class Coordinator:
         self._committed_contract = profile_contract_digest(profile) if committed_producer is not None else None
         self._committed_policy = digest(policy) if committed_producer is not None else None
         if committed_producer is None:
-            self._store = CheckpointStore(root=root)                              # path metadata only
             self._board = _TickBoard()
-            self._provider = ContinuousAccountProvider(source=self._board.account_frame, store=self._store,
-                                                       trusted_head=trusted_head)
-            self._journal = Journal()                                             # path checks only
-            self._controller = Controller(journal=self._journal, account_provider=self._provider, policy=policy,
-                                          adapters=adapters, session_provider=self._session_for)
+            if controller is not None:
+                _require(type(controller) is Controller
+                         and type(controller.account_provider) is ContinuousAccountProvider
+                         and digest(controller.policy) == digest(policy),
+                         "COORDINATOR_INTEGRATIONS_REQUIRED")
+                self._provider = controller.account_provider
+                self._provider._source = self._board.account_frame
+                self._store = self._provider._store
+                self._journal = controller.journal
+                controller.session_provider = self._session_for
+                self._controller = controller
+            else:
+                self._store = CheckpointStore(root=root)                              # path metadata only
+                self._provider = ContinuousAccountProvider(source=self._board.account_frame, store=self._store,
+                                                           trusted_head=trusted_head)
+                self._journal = Journal()                                             # path checks only
+                self._controller = Controller(journal=self._journal, account_provider=self._provider, policy=policy,
+                                              adapters=adapters, session_provider=self._session_for,
+                                              clock=clock if mode == "controlled" else None)
             self._runner = Runner(profile=profile, quote_provider=self._board.quote, account_provider=self._provider,
                                   evidence=evidence, driver=driver, implementation_verifier=implementation_verifier,
                                   mode=mode, controller=self._controller, launch_session=None, isolated_state_root=root,
@@ -502,6 +578,14 @@ class Coordinator:
         self._status = CoordinatorStatus()
         self._universe, self._slot_source, self._program = universe, slot_source, program
         self._carry, self._protective_store, self._driver_identity = carry, protective_store, identity
+        self._owner_snapshot_provider = (
+            owner_snapshot_provider if owner_snapshot_provider is not None else load_owner_snapshot
+        )
+        self._post_stop_high: dict[str, Decimal] = {}
+        self._app_units: dict[str, Decimal] = {}
+        self._owner_exit_client_ids: set[str] = set()
+        self._pending_protective_exit: tuple[str, Decimal, tuple[str, ...]] | None = None
+        self._protective_restart_logged = False
         self._toasts, self._toasted = ToastQueue(toast), set()        # spec section 15: queued, deduped here
         self._snapshot, self._held, self._extra = None, None, False   # _held None: no frame read yet
         self._vanished, self._disarmed, self._terms_unavailable = False, False, False
@@ -689,6 +773,26 @@ class Coordinator:
             self._update(published_units=self._published, account_source="", account_asof=pair.account.asof,
                          held_symbol=self._held[0] if self._held else None, trade_symbol=self._profile.symbol)
             return pair.account
+        staged_frames = getattr(self._account_source, "staged_frames", ())
+        if isinstance(staged_frames, tuple) and len(staged_frames) > 1:
+            cur_prev = previous
+            observation = None
+            last_frame = None
+            for idx_f, sub_frame in enumerate(staged_frames):
+                _require(type(sub_frame) is BaselineFrame and sub_frame.interval.end <= now,
+                         "COORDINATOR_ACCOUNT_FRAME_INVALID")
+                self._board.publish(sub_frame, book if idx_f == len(staged_frames) - 1 else None)
+                self._published += 1
+                self._update(published_units=self._published)
+                sub_now = now if sub_frame.interval.end.astimezone(KST).date() == now.astimezone(KST).date() else sub_frame.interval.end
+                observation = self._provider(sub_now)
+                last_frame = sub_frame
+                if idx_f + 1 < len(staged_frames):
+                    cur_prev = self._load_previous()
+            self._observation = observation
+            self._latest_frame = last_frame
+            self._update(account_source="", account_asof=observation.asof)
+            return observation
         try:
             frame = self._account_source(previous, now)
         except Exception as exc:
@@ -910,10 +1014,441 @@ class Coordinator:
                              "Dependent strategy execution is blocked; a storage failure is not a sell signal.")
             return False
 
+    # -- Standing Amendment A2 durable Protective Hold ---------------------------------------------------------
+
+    def _external_net_flow_krw(self, account) -> Decimal:
+        net = _ZERO
+        seen = set()
+        for page in account.pages:
+            if page.kind == "flows":
+                for flow in page.rows:
+                    if flow.flow_id in seen:
+                        continue
+                    seen.add(flow.flow_id)
+                    if flow.effective_at >= self._window.start and flow.currency == "KRW":
+                        net += flow.amount if flow.kind == "deposit" else -flow.amount
+        return net
+
+    def _compute_app_holdings(self, account, observation) -> tuple[dict[str, Decimal], dict[str, Decimal]]:
+        ns = self._runner._namespace if self._runner is not None else ""
+        open_sell_locked: dict[str, Decimal] = {}
+        broker_by_cid: dict[str, Decimal] = {}
+        broker_oid_by_cid: dict[str, str] = {}
+        for page in account.pages:
+            if page.kind == "orders":
+                for order in page.rows:
+                    if order.status in ("open", "partial") and order.side == "sell":
+                        open_sell_locked[order.symbol] = open_sell_locked.get(order.symbol, _ZERO) + order.remaining_quantity
+                    if ns and order.client_id.startswith(ns):
+                        broker_by_cid[order.client_id] = max(broker_by_cid.get(order.client_id, _ZERO), order.filled_quantity)
+                        if order.order_id:
+                            broker_oid_by_cid[order.client_id] = order.order_id
+        fills_by_oid: dict[str, Decimal] = {}
+        for fill in observation.fills:
+            fills_by_oid[fill.order_id] = fills_by_oid.get(fill.order_id, _ZERO) + fill.quantity
+        raw_app: dict[str, Decimal] = {}
+        if self._controller is not None and ns:
+            for st in self._controller.states():
+                if not st.client_id.startswith(ns) or not st.symbol or st.side not in ("buy", "sell"):
+                    continue
+                if st.updated_at is not None and st.updated_at < self._window.start:
+                    continue
+                oid = st.venue_order_id or broker_oid_by_cid.get(st.client_id, "")
+                reconciled = st.client_id in observation.reconciled_client_ids
+                obs_qty = fills_by_oid.get(oid, _ZERO) if (oid and not reconciled) else _ZERO
+                filled = max(st.filled_quantity, broker_by_cid.get(st.client_id, _ZERO))
+                if filled == _ZERO and obs_qty > _ZERO:
+                    filled = obs_qty
+                if filled > _ZERO:
+                    delta = filled if st.side == "buy" else -filled
+                    raw_app[st.symbol] = raw_app.get(st.symbol, _ZERO) + delta
+        pos_units = {pos.symbol: pos.units for pos in account.positions if pos.units > _ZERO}
+        q_app: dict[str, Decimal] = {}
+        q_free: dict[str, Decimal] = {}
+        for sym, qty in raw_app.items():
+            if qty > _ZERO and pos_units.get(sym, _ZERO) > _ZERO:
+                clamped = min(qty, pos_units[sym])
+                q_app[sym] = clamped
+                avail_total = max(_ZERO, pos_units[sym] - open_sell_locked.get(sym, _ZERO))
+                free = min(clamped, avail_total)
+                if free > _ZERO:
+                    q_free[sym] = free
+        self._app_units = dict(q_app)
+        return q_app, q_free
+
+    def _safe_controller_states(self):
+        if self._controller is None:
+            return ()
+        try:
+            return self._controller.states()
+        except Exception:
+            return ()
+
+    def _cancel_resting_runner_orders(self, now: datetime, *, buys_only: bool) -> None:
+        if self._controller is None or self._runner is None:
+            return
+        ns = self._runner._namespace
+        try:
+            states = self._controller.states()
+        except Exception:
+            return
+        for st in states:
+            if not st.client_id.startswith(ns) or st.client_id in self._owner_exit_client_ids:
+                continue
+            if st.status not in ("RESERVED", "ACKNOWLEDGED", "PARTIAL"):
+                continue
+            if buys_only and st.side != "buy":
+                continue
+            try:
+                self._controller.cancel(st.client_id, now=now)
+            except Exception:
+                pass
+
+    def _commit_protective_fault(self, fault_kind: str, now: datetime | None = None) -> None:
+        """Record non-selling A2 fault / restart / deadline state; NEVER triggers a sale."""
+        if self._mode != "controlled" or self._protective_store is None:
+            return
+        try:
+            ts = now if (now is not None and _aware(now)) else self._now()
+        except Exception:
+            ts = self._last_time
+        if ts is not None and _aware(ts):
+            self._cancel_resting_runner_orders(ts, buys_only=True)
+        phase_out = "waiting_inputs"
+        if ts is not None and _aware(ts):
+            try:
+                refs = LedgerReferences(
+                    account_head_sha256=None, orders_head_sha256=None, risk_head_sha256=None,
+                    high_water_sha256=None, floor_sha256=None, halt_sha256=None, source_evidence_sha256=None,
+                )
+                with self._protective_store.session() as writer:
+                    snap = writer.snapshot()
+                    if snap.state.phase != "closed":
+                        if snap.restart_required:
+                            ev_r = ManagementEvent(
+                                sequence=snap.state.sequence + 1,
+                                previous_state_sha256=state_digest(snap.state),
+                                at=ts,
+                                kind="restart",
+                            )
+                            snap = writer.commit(ev_r, authority=None, observations=None, ledger_refs=refs)
+                        if fault_kind == "deadline" and ts >= self._window.end:
+                            if not snap.state.deadline_seen or snap.state.renewal_request_id is None:
+                                ev_d = ManagementEvent(
+                                    sequence=snap.state.sequence + 1,
+                                    previous_state_sha256=state_digest(snap.state),
+                                    at=ts,
+                                    kind="deadline",
+                                )
+                                snap = writer.commit(ev_d, authority=None, observations=None, ledger_refs=refs)
+                        elif fault_kind in ("inputs_missing", "strategy_error", "account_unavailable",
+                                            "storage_unavailable", "settings_missing", "clock_unreliable"):
+                            if fault_kind == "clock_unreliable" or snap.state.last_event_at is None or ts >= snap.state.last_event_at:
+                                ev_f = ManagementEvent(
+                                    sequence=snap.state.sequence + 1,
+                                    previous_state_sha256=state_digest(snap.state),
+                                    at=ts,
+                                    kind="fault",
+                                    fault=fault_kind,
+                                )
+                                snap = writer.commit(ev_f, authority=None, observations=None, ledger_refs=refs)
+                    phase_out = snap.state.phase
+            except Exception as exc:
+                self._update(management_source=_code(exc, "COORDINATOR_PROTECTIVE_STORE_FAILED"))
+        self._update(
+            protective_hold_active=True,
+            protective_phase=phase_out,
+            new_entry_blocked=True,
+            orders=self._safe_controller_states(),
+        )
+
+    def _evaluate_a2_protective_hold(self, *, now: datetime, observation, risk, book=None, flags=None,
+                                     last_tick: TickResult | None = None,
+                                     universe_decided: str | None = None,
+                                     universe_decided_valid: bool = False) -> None:
+        if self._mode != "controlled" or self._protective_store is None or self._latest_frame is None:
+            return
+        account = self._latest_frame.accounts[0]
+        q_app, q_free = self._compute_app_holdings(account, observation)
+        halted = ("PERSISTENT_HALT" in risk.reasons) or bool(observation.risk.halted)
+        if halted:
+            self._pending_protective_exit = None
+            self._cancel_resting_runner_orders(now, buys_only=False)
+
+        hold_latch = (
+            now >= self._window.end
+            or self._stopping.is_set()
+            or self.status().window_ended_missed_slot
+            or self.status().missed_slots > 0
+            or self.status().missed_boundaries > 0
+            or halted
+            or (last_tick is not None and last_tick.status == "blocked"
+                and any(r in ("RUNNER_DEPENDENCY_REFUSED", "RUNNER_CLOCK_ROLLBACK") for r in last_tick.reasons))
+        )
+        if hold_latch and not halted:
+            self._cancel_resting_runner_orders(now, buys_only=True)
+
+        # Update post-stop / post-entry high watermarks per app-held market; prune flat markets
+        for tracked_sym in list(self._post_stop_high):
+            if q_app.get(tracked_sym, _ZERO) <= _ZERO:
+                self._post_stop_high.pop(tracked_sym, None)
+        bid_px: Decimal | None = None
+        if book is not None:
+            try:
+                q_view = self._board.quote(now)
+                if q_view.symbol == self._profile.symbol:
+                    bid_px = q_view.bid
+            except Exception:
+                bid_px = None
+        pos_by_sym = {pos.symbol: pos for pos in account.positions}
+        for sym, qty in q_app.items():
+            if qty <= _ZERO or sym not in pos_by_sym:
+                continue
+            pos = pos_by_sym[sym]
+            candidates = [pos.price]
+            if pos.best_bid is not None:
+                candidates.append(pos.best_bid)
+            if sym == self._profile.symbol and bid_px is not None:
+                candidates.append(bid_px)
+            cur_high = max(candidates)
+            prev_high = self._post_stop_high.get(sym)
+            self._post_stop_high[sym] = cur_high if prev_high is None else max(prev_high, cur_high)
+
+        eq_adj = observation.risk.equity - self._external_net_flow_krw(account)
+        try:
+            owner_snap = self._owner_snapshot_provider(now)
+            terms = owner_snap.protective_for(self._profile.account_scope) if getattr(owner_snap, "ok", False) else None
+        except Exception:
+            terms = None
+
+        sym = self._profile.symbol
+        free_units = q_free.get(sym, _ZERO)
+        triggers: list[str] = []
+        risk_causes: list[str] = []
+        strategy_verdict = "hold"
+
+        if not halted and free_units > _ZERO:
+            # Trigger S: genuine strategy cash or other-coin decision
+            if self._universe:
+                if universe_decided_valid and universe_decided != sym:
+                    triggers.append("S")
+                    strategy_verdict = "sell"
+            elif last_tick is not None:
+                if (last_tick.decision_state == "cash_target"
+                        and "MANAGED_DECISION_UNAVAILABLE" not in last_tick.execution_block_reasons):
+                    triggers.append("S")
+                    strategy_verdict = "sell"
+                elif last_tick.status == "blocked" and "RUNNER_OBSERVATION_ONLY" not in last_tick.reasons:
+                    # Legacy v1 exit blocked only by non-halt reason never fabricates S unless action was exit
+                    pass
+
+            # Trigger W: market warning / unknown / absent flag
+            eff_flags = flags
+            if eff_flags is None and self._slot_source is not None and callable(getattr(self._slot_source, "read_flags", None)):
+                try:
+                    eff_flags = self._slot_source.read_flags()
+                except Exception:
+                    eff_flags = None
+            if eff_flags is not None and eff_flags.ok:
+                f_val = eff_flags.flags.get(sym, "absent")
+                if f_val in ("warning", "unknown", "absent"):
+                    triggers.append("W")
+                    strategy_verdict = "sell"
+
+            # Trigger T: signed trailing stop X from post-stop high h
+            if terms is not None and sym in self._post_stop_high and sym in pos_by_sym:
+                pos = pos_by_sym[sym]
+                ref_px = bid_px if bid_px is not None else (pos.best_bid if pos.best_bid is not None else pos.price)
+                high_px = self._post_stop_high[sym]
+                if ref_px > _ZERO and high_px > _ZERO:
+                    if Fraction(ref_px) <= Fraction(high_px) * (Fraction(1) - Fraction(terms.trailing_stop_x)):
+                        triggers.append("T")
+                        risk_causes.append("trailing_condition")
+
+            # Trigger B: signed pre-halt M / daily-loss Md band on flow-adjusted equity Eq_adj
+            if terms is not None:
+                if risk.halt_line is not None:
+                    if Fraction(eq_adj) <= Fraction(risk.halt_line) + Fraction(terms.halt_margin_krw):
+                        if "B" not in triggers:
+                            triggers.append("B")
+                        risk_causes.append("floor_band_condition")
+                if risk.daily_limit is not None:
+                    eff_loss = max(_ZERO, observation.risk.day_start_equity - eq_adj, observation.risk.observed_daily_loss)
+                    if Fraction(eff_loss) >= Fraction(risk.daily_limit) - Fraction(terms.daily_margin_krw):
+                        if "B" not in triggers:
+                            triggers.append("B")
+                        risk_causes.append("daily_band_condition")
+
+        states = self._controller.states()
+        active_sell = any(active(s) and s.side == "sell" and s.symbol == sym for s in states)
+
+        # Persist durable P2 transition in ProtectiveStore
+        phase_out = self.status().protective_phase
+        try:
+            pol_sha = management_policy_digest(self._protective_store.policy)
+            issued = min(self._window.start, now - timedelta(microseconds=1))
+            auth = AuthorityFacts(
+                policy_sha256=pol_sha,
+                checked_at=now,
+                issued_at=issued,
+                accepted=True,
+                revoked=False,
+                entry_until=self._window.end if self._window.end > issued else None,
+                reduce_until=self._monitor_until if self._monitor_until > issued else None,
+                cancel_until=self._monitor_until if self._monitor_until > issued else None,
+                monitor_until=self._monitor_until if self._monitor_until > issued else None,
+            )
+            acct_head = None
+            try:
+                acct_head = self._head.read()
+            except Exception:
+                acct_head = None
+            ev_sha = digest({"asof": observation.asof.isoformat(), "eq": str(eq_adj), "triggers": triggers})
+            refs = LedgerReferences(
+                account_head_sha256=acct_head,
+                orders_head_sha256=None,
+                risk_head_sha256=digest({"reasons": risk.reasons, "asof": observation.asof.isoformat()}),
+                high_water_sha256=digest({"high": str(risk.high_watermark)}),
+                floor_sha256=None if risk.effective_floor is None else digest({"floor": str(risk.effective_floor)}),
+                halt_sha256=digest({"halted": halted}),
+                source_evidence_sha256=ev_sha,
+            )
+            with self._protective_store.session() as writer:
+                snap = writer.snapshot()
+                if snap.state.phase != "closed":
+                    if snap.restart_required:
+                        ev_r = ManagementEvent(
+                            sequence=snap.state.sequence + 1,
+                            previous_state_sha256=state_digest(snap.state),
+                            at=now,
+                            kind="restart",
+                        )
+                        snap = writer.commit(ev_r, authority=None, observations=None, ledger_refs=refs)
+                    if snap.state.recovering:
+                        no_pend = not (bool(snap.unresolved_reductions) or active_sell)
+                        obs_rec = ObservationFacts(
+                            policy_sha256=pol_sha,
+                            evidence_sha256=ev_sha,
+                            checked_at=now,
+                            monitoring_ok=True,
+                            account_ok=True,
+                            market_ok=not self._vanished,
+                            recording_ok=True,
+                            strategy_ok=not hold_latch,
+                            risk_ok=True,
+                            orders_known=True,
+                            no_pending_reduce=no_pend,
+                            entry_eligible=False,
+                            reduce_eligible=not halted,
+                            recovery_complete=True,
+                            halted=halted,
+                            strategy_verdict="unavailable",
+                            risk_causes=(),
+                        )
+                        if snap.state.last_event_at is None or now >= snap.state.last_event_at:
+                            ev_rc = ManagementEvent(
+                                sequence=snap.state.sequence + 1,
+                                previous_state_sha256=state_digest(snap.state),
+                                at=now,
+                                kind="recovery_complete",
+                            )
+                            snap = writer.commit(ev_rc, authority=auth, observations=obs_rec, ledger_refs=refs)
+                    if snap.state.last_event_at is None or now >= snap.state.last_event_at:
+                        no_pend = not (bool(snap.unresolved_reductions) or active_sell)
+                        entry_ok = (
+                            not hold_latch
+                            and not halted
+                            and not risk.new_entry_blocked
+                            and no_pend
+                            and strategy_verdict == "hold"
+                            and not risk_causes
+                        )
+                        obs_facts = ObservationFacts(
+                            policy_sha256=pol_sha,
+                            evidence_sha256=ev_sha,
+                            checked_at=now,
+                            monitoring_ok=True,
+                            account_ok=True,
+                            market_ok=not self._vanished,
+                            recording_ok=True,
+                            strategy_ok=not hold_latch or strategy_verdict == "sell",
+                            risk_ok=True,
+                            orders_known=True,
+                            no_pending_reduce=no_pend,
+                            entry_eligible=entry_ok,
+                            reduce_eligible=(not halted and no_pend),
+                            recovery_complete=True,
+                            halted=halted,
+                            strategy_verdict=strategy_verdict if (not hold_latch or strategy_verdict == "sell") else "unavailable",
+                            risk_causes=tuple(sorted(set(risk_causes))),
+                        )
+                        ev_a = ManagementEvent(
+                            sequence=snap.state.sequence + 1,
+                            previous_state_sha256=state_digest(snap.state),
+                            at=now,
+                            kind="assessment",
+                        )
+                        snap = writer.commit(ev_a, authority=auth, observations=obs_facts, ledger_refs=refs)
+                phase_out = snap.state.phase
+        except Exception as exc:
+            self._update(management_source=_code(exc, "COORDINATOR_PROTECTIVE_STORE_FAILED"))
+
+        trig_tuple = tuple(triggers)
+        if trig_tuple and not halted and free_units > _ZERO and not active_sell:
+            self._cancel_resting_runner_orders(now, buys_only=True)
+            self._pending_protective_exit = (sym, free_units, trig_tuple)
+
+        self._update(
+            protective_hold_active=bool(hold_latch or bool(q_app) or trig_tuple),
+            protective_phase=phase_out,
+            protective_triggers=trig_tuple,
+            orders=self._controller.states(),
+        )
+
+    def _dispatch_pending_protective_exit(self) -> None:
+        """Execute a staged S/W/T/B protective sell as a separate serialized unit outside _work."""
+        pending = self._pending_protective_exit
+        self._pending_protective_exit = None
+        if pending is None or self._mode != "controlled":
+            return
+        sym, max_qty, triggers = pending
+
+        def run_protective_sell(now: datetime):
+            risk = self._controller.observe(now=now)
+            if "PERSISTENT_HALT" in risk.reasons or self._observation.risk.halted:
+                self._cancel_resting_runner_orders(now, buys_only=False)
+                return None
+            if sym != self._profile.symbol:
+                return None
+            account = self._latest_frame.accounts[0]
+            _, q_free = self._compute_app_holdings(account, self._observation)
+            avail = min(max_qty, q_free.get(sym, _ZERO))
+            if avail <= _ZERO:
+                return None
+            rules = self._profile.instrument_rules
+            lots = (avail / rules.lot_size).to_integral_value(rounding=ROUND_DOWN)
+            qty = lots * rules.lot_size
+            quote = self._board.quote(now)
+            if qty < rules.min_quantity or qty * quote.bid < rules.min_notional_krw:
+                return None
+            sig_id = "a2-exit-" + "-".join(triggers) + "-" + digest(
+                {"symbol": sym, "triggers": triggers, "qty": str(qty), "price": str(quote.bid)}
+            )[:16]
+            sig = Signal(signal_id=sig_id, action="exit", quantity=qty, limit_price=quote.bid)
+            return self._runner.submit_exit(sig, now=now)
+
+        try:
+            st = self._explicit(run_protective_sell, with_book=True)
+            if st is not None:
+                self._update(protective_exit_client_id=st.client_id, orders=self._controller.states())
+        except Exception as exc:
+            self._update(reasons=(_code(exc, "COORDINATOR_PROTECTIVE_EXIT_FAILED"),))
+
     # -- units -------------------------------------------------------------------------------------------------
 
     def _monitor(self, kind) -> None:
         """Startup, monitor, boundary and gap units: account step, risk observation, reconciliation."""
+        fault_code = None
         with self._work:
             stage = "account"
             try:
@@ -928,7 +1463,7 @@ class Coordinator:
                 if self._closing.is_set():
                     return
                 now = self._time()
-                self._publish(previous, now, None)
+                observation = self._publish(previous, now, None)
                 if self._universe:
                     self._holdings(now)
                 stage = "control"
@@ -954,6 +1489,8 @@ class Coordinator:
                                  snapshot_sha256=None if risk.universe is None else risk.universe.snapshot_sha256,
                                  universe_state=universe_state(risk.universe, self._profile.universe_rule_sha256, now))
                     self._universe_monitor(now)
+                if self._mode == "controlled":
+                    self._evaluate_a2_protective_hold(now=now, observation=observation, risk=risk)
                 local_block = (self._terms_blocked or self._terms_unavailable or self._stopping.is_set()
                                or (self._carry and (now >= self._window.end or bool(self.status().management_source))))
                 if self._universe:
@@ -964,16 +1501,24 @@ class Coordinator:
                              risk_reasons=risk.reasons, recovery_status=risk.recovery_status,
                              recovery_deadline=risk.recovery_deadline, orders=self._controller.states())
             except Exception as exc:
-                self._refused(stage, _code(exc, "COORDINATOR_DEPENDENCY_REFUSED"), slot=False)
+                fault_code = _code(exc, "COORDINATOR_DEPENDENCY_REFUSED")
+                self._refused(stage, fault_code, slot=False)
+                if self._mode == "controlled":
+                    f_kind = ("clock_unreliable" if "CLOCK" in fault_code else
+                              "account_unavailable" if stage == "account" else "inputs_missing")
+                    self._commit_protective_fault(f_kind)
             finally:
                 self._board.clear()
                 self._update(in_flight="")
+        if fault_code is None and self._mode == "controlled":
+            self._dispatch_pending_protective_exit()
 
     def _slot(self, slot) -> None:
         """One strategy slot: the book at the prefetch lead, then the account capture (it may end inside the slot
         window), the sample at or after the slot, the record, one Runner tick."""
         if self._universe:
             return self._universe_slot(slot)
+        fault_code = None
         with self._work:
             stage = "gate"                                  # the gate is no account step: `reasons` only
             try:
@@ -1018,13 +1563,25 @@ class Coordinator:
                 self._update(in_flight="control")
                 results = self._runner.run((tick,), max_steps=1, should_stop=self._stopping.is_set)
                 last = results[0] if results else None
+                if self._mode == "controlled":
+                    risk = self._controller.observe(now=tick)
+                    self._evaluate_a2_protective_hold(
+                        now=tick, observation=observation, risk=risk, book=book, last_tick=last,
+                    )
                 self._update(last_tick=last, orders=self._controller.states(),
                              reasons=() if last is None else last.reasons)
             except Exception as exc:
-                self._refused(stage, _code(exc, "COORDINATOR_DEPENDENCY_REFUSED"), slot=True)
+                fault_code = _code(exc, "COORDINATOR_DEPENDENCY_REFUSED")
+                self._refused(stage, fault_code, slot=True)
+                if self._mode == "controlled":
+                    f_kind = ("clock_unreliable" if "CLOCK" in fault_code else
+                              "account_unavailable" if stage == "account" else "inputs_missing")
+                    self._commit_protective_fault(f_kind)
             finally:
                 self._board.clear()
                 self._update(in_flight="")
+        if fault_code is None and self._mode == "controlled":
+            self._dispatch_pending_protective_exit()
 
 
     def _universe_slot(self, slot) -> None:
@@ -1032,6 +1589,7 @@ class Coordinator:
         (None when unavailable, never a refusal), the account prefetch, the flag and ticker reads, the sample,
         _publish, record_slot in its own try, then one tick with the recorded allow-list, only when the slot is
         recorded, the strategy is not stopping and the book is available."""
+        fault_code = None
         with self._work:
             if self._stopping.is_set() or self.status().window_ended_missed_slot:
                 return
@@ -1124,9 +1682,21 @@ class Coordinator:
                         except Exception:
                             self._update(notification_failed=True)
                 if not recorded or self._stopping.is_set() or self._vanished:
+                    if self._mode == "controlled" and not self._vanished:
+                        reconcile_orders(self._runner, now)
+                        risk = self._controller.observe(now=now)
+                        self._evaluate_a2_protective_hold(
+                            now=now, observation=observation, risk=risk, book=book, flags=flags,
+                        )
                     self._update(reasons=reasons)
                     return
                 if book is None:
+                    if self._mode == "controlled":
+                        reconcile_orders(self._runner, now)
+                        risk = self._controller.observe(now=now)
+                        self._evaluate_a2_protective_hold(
+                            now=now, observation=observation, risk=risk, book=None, flags=flags,
+                        )
                     self._update(reasons=reasons + ("COORDINATOR_NO_TRADE_BOOK",))
                     return
                 tick = self._time()
@@ -1136,15 +1706,29 @@ class Coordinator:
                                            entry_allow=self._history.recorded_allow)
                 last = results[0] if results else None
                 self._after_tick(last, acted, day)
+                if self._mode == "controlled":
+                    risk = self._controller.observe(now=tick)
+                    dec_now = self._history.decided_symbol()
+                    self._evaluate_a2_protective_hold(
+                        now=tick, observation=observation, risk=risk, book=book, flags=flags,
+                        last_tick=last, universe_decided=dec_now, universe_decided_valid=True,
+                    )
                 self._update(last_tick=last, orders=self._controller.states(),
                              reasons=reasons + (() if last is None else last.reasons))
             except Exception as exc:
-                self._refused(stage, _code(exc, "COORDINATOR_DEPENDENCY_REFUSED"), slot=True)
+                fault_code = _code(exc, "COORDINATOR_DEPENDENCY_REFUSED")
+                self._refused(stage, fault_code, slot=True)
                 if not recorded:
                     self._slot_missed()
+                if self._mode == "controlled":
+                    f_kind = ("clock_unreliable" if "CLOCK" in fault_code else
+                              "account_unavailable" if stage == "account" else "inputs_missing")
+                    self._commit_protective_fault(f_kind)
             finally:
                 self._board.clear()
                 self._update(in_flight="")
+        if fault_code is None and self._mode == "controlled":
+            self._dispatch_pending_protective_exit()
 
     def _slot_missed(self) -> None:
         """Spec section 12: a slot the history did not record ends the window. Sticky status and, while a coin is
@@ -1185,6 +1769,9 @@ class Coordinator:
         total = sum(missed.values())
         if total != seen:
             self._update(missed_slots=missed["slot"], missed_boundaries=missed["boundary"], data_gap_at=self._now())
+            if self._mode == "controlled" and (missed["slot"] or missed["boundary"]):
+                with self._work:
+                    self._commit_protective_fault("inputs_missing", self._now())
             self._monitor("gap")
             if self._universe and missed["slot"] and not self._stopping.is_set():
                 self._slot_missed()          # spec section 12: a missed slot ends the history window
@@ -1406,9 +1993,66 @@ class Coordinator:
         """A cancel request through the Runner; an acknowledgement, not a confirmed cancellation."""
         return self._explicit(lambda now: self._runner.cancel(client_id, now=now), with_book=False)
 
+    def cancel_all(self) -> tuple[OrderState, ...]:
+        """Cancel all active orders in this coordinator's scope via an explicit operator unit."""
+        def _do_cancel_all(now: datetime) -> tuple[OrderState, ...]:
+            out: list[OrderState] = []
+            ns = self._runner._namespace
+            for st in self._controller.states():
+                if st.status not in ("RESERVED", "ACKNOWLEDGED", "PARTIAL"):
+                    continue
+                if st.client_id.startswith(ns):
+                    out.append(self._runner.cancel(st.client_id, now=now))
+                else:
+                    out.append(self._controller.cancel(st.client_id, now=now))
+            return tuple(out)
+        return self._explicit(_do_cancel_all, with_book=False)
+
     def submit_exit(self, exit_signal) -> OrderState:
         """An explicit reducing exit through the Runner; a repeat returns the existing state."""
-        return self._explicit(lambda now: self._runner.submit_exit(exit_signal, now=now), with_book=True)
+        def _do_exit(now: datetime) -> OrderState:
+            try:
+                if type(exit_signal) is Signal and exit_signal.action == "exit" and self._observation is not None:
+                    order = self._runner._order(exit_signal, self._observation, now)
+                    if order is not None:
+                        self._owner_exit_client_ids.add(order.client_id)
+            except Exception:
+                pass
+            return self._runner.submit_exit(exit_signal, now=now)
+        return self._explicit(_do_exit, with_book=True)
+
+    def submit_owner_exit(self, *, quantity: Decimal | None = None, limit_price: Decimal | None = None,
+                          signal_id: str | None = None) -> OrderState:
+        """Explicit owner-tagged reducing exit (preserved across PERSISTENT_HALT per A2 N2)."""
+        def _do_owner_exit(now: datetime) -> OrderState:
+            quote = self._board.quote(now)
+            account = self._latest_frame.accounts[0]
+            price = quote.bid if limit_price is None else limit_price
+            qty = quantity
+            if qty is None:
+                sym = self._profile.symbol
+                open_sell = _ZERO
+                for page in account.pages:
+                    if page.kind == "orders":
+                        for row in page.rows:
+                            if row.status in ("open", "partial") and row.side == "sell" and row.symbol == sym:
+                                open_sell += row.remaining_quantity
+                held_units = next((pos.units for pos in account.positions if pos.symbol == sym), _ZERO)
+                avail = max(_ZERO, held_units - open_sell)
+                lots = (avail / self._profile.instrument_rules.lot_size).to_integral_value(rounding=ROUND_DOWN)
+                qty = lots * self._profile.instrument_rules.lot_size
+            _require(type(qty) is Decimal and qty > _ZERO and type(price) is Decimal and price > _ZERO,
+                     "COORDINATOR_EXIT_NOTHING_TO_SELL")
+            sig_id = signal_id or ("owner-exit-" + digest(
+                {"symbol": self._profile.symbol, "qty": str(qty), "price": str(price),
+                 "asof": self._observation.asof.isoformat()}
+            )[:20])
+            sig = Signal(signal_id=sig_id, action="exit", quantity=qty, limit_price=price)
+            order = self._runner._order(sig, self._observation, now)
+            if order is not None:
+                self._owner_exit_client_ids.add(order.client_id)
+            return self._runner.submit_exit(sig, now=now)
+        return self._explicit(_do_owner_exit, with_book=True)
 
 
 # -- the owned composition ------------------------------------------------------------------------------------

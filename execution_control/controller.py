@@ -800,7 +800,20 @@ class Controller:
         view = replace(obs.risk, prior_high_watermark=high, day_start_equity=start,
                        approved_effective_floor=floor, is_first_trading_day=first)
         result = risk.evaluate(self.policy, view, now=now)
+        signed_floor = ctx.owner.limits.get('total_loss_floor_krw') if ctx.owner.ok else None
+        floor_candidates = [result.effective_floor] if result.effective_floor is not None else []
+        if signed_floor is not None:
+            floor_candidates.append(Decimal(str(signed_floor)))
+        halt_line = max(floor_candidates) if floor_candidates else None
         signed_daily = ctx.owner.limits.get('daily_loss_krw') if ctx.owner.ok else None
+        daily_candidates = [result.daily_loss_budget] if result.daily_loss_budget is not None else []
+        if signed_daily is not None:
+            daily_candidates.append(Decimal(str(signed_daily)))
+        daily_limit = min(daily_candidates) if daily_candidates else None
+        result = replace(result, halt_line=halt_line, daily_limit=daily_limit)
+        if ctx.owner.halted_floors and 'PERSISTENT_HALT' not in result.reasons:
+            result = replace(result, new_entry_blocked=True,
+                             reasons=result.reasons + ('PERSISTENT_HALT',), protective_action_needed=True)
         daily_stopped = ((committed is not None and committed.daily_stopped)
                          or any(e['daily_stopped'] for e in same)
                          or 'DAILY_LOSS_BUDGET_REACHED' in result.reasons
@@ -1196,6 +1209,15 @@ class Controller:
             if frame is not None and frame.local_record_started:
                 raise _CompletionRefused('COMMITTED_COMPLETION_LOCAL_RECORD_FAILED') from None
             raise
+
+    def submit(self, order, rules, *, session_id, now, reserve_only=False,
+               expected_committed_transaction_id=None):
+        reserved = self.reserve(order, rules, session_id=session_id, now=now,
+                                expected_committed_transaction_id=expected_committed_transaction_id)
+        if reserve_only or reserved.status != 'RESERVED':
+            return reserved
+        return self.dispatch(order.client_id, now=now,
+                             expected_committed_transaction_id=expected_committed_transaction_id)
 
     def _send(self,obj,request,now):
         try:

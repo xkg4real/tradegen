@@ -82,6 +82,8 @@ REVOCATION_NATIVE_PATH = "core/compliance/revocation_paths.py"
 # children under retained parents. Any changed native implementation needs fresh
 # review; this does not allow ctypes imports throughout core/compliance.
 REVOCATION_NATIVE_AST_SHA256 = "e0e4cce0ff3f27552524f8554c4f7fe0775bd8244898da29c2d1435bc7479f6d"
+ACCEL_NATIVE_PATH = "core/compliance/native_accel.py"
+ACCEL_NATIVE_AST_SHA256 = "809ebf1cda748f78344855250d601a7d2c9e4650b17c91a6e22b89adb17a1a18"
 
 
 # --------------------------------------------------------------------------- #
@@ -221,15 +223,19 @@ def _allowed(name: str) -> bool:
 
 def _allowlist_hits(rel: str, src: str) -> list[str]:
     hits = []
-    native = (rel == REVOCATION_NATIVE_PATH
-              and hashlib.sha256(ast.unparse(ast.parse(src)).encode("utf-8")).hexdigest()
-              == REVOCATION_NATIVE_AST_SHA256)
+    digest_now = hashlib.sha256(ast.unparse(ast.parse(src)).encode("utf-8")).hexdigest()
+    native = rel == REVOCATION_NATIVE_PATH and digest_now == REVOCATION_NATIVE_AST_SHA256
+    accel = rel == ACCEL_NATIVE_PATH and digest_now == ACCEL_NATIVE_AST_SHA256
     for node, module, names, funcs in _imports(rel, ast.parse(src)):
         net = [t for t in [module] + [f"{module}.{n}" for n in names]
                for m in NETWORK_MODULES if t == m or t.startswith(m + ".")]
-        native_import = (native and funcs == ("__init__",) and module == "ctypes"
-                         and ast.dump(node) in {ast.dump(ast.parse(text).body[0])
-                                               for text in ("import ctypes", "from ctypes import wintypes")})
+        native_import = (
+            (native and funcs == ("__init__",) and module == "ctypes"
+             and ast.dump(node) in {ast.dump(ast.parse(text).body[0])
+                                    for text in ("import ctypes", "from ctypes import wintypes")})
+            or (accel and funcs == ("_bind_library",) and module == "ctypes"
+                and ast.dump(node) == ast.dump(ast.parse("import ctypes").body[0]))
+        )
         if net and not native_import:                   # stdlib, so the allowlist alone would pass it
             hits.append(f"{rel}:{node.lineno}: imports {net[0]}: a network module; core/compliance never needs one")
         elif not (_allowed(module) or (names and all(_allowed(f"{module}.{n}") for n in names))):

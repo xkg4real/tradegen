@@ -32,7 +32,7 @@ RUN = "core/oddsdata/run.py"                            # the one file whose mai
 # Q1: everything core/odds may hold (a __pycache__ folder appears when it is imported)
 _CORE_FILES = ("__init__.py", "plan.py", "costs.py", "models.py", "simulate.py", "bold.py", "report.py")
 _CORE_OTHER = ("venues.yaml", "__pycache__")
-_COMPLIANCE_MODULES = ("model", "rules", "gate", "owner")   # O1: the compliance modules the core may import
+_COMPLIANCE_MODULES = ("model", "rules", "gate", "owner", "native_accel")   # O1: the compliance modules the core may import
 # The file-I/O modules the signed core never imports: the sixteen of contract section 0, builtins (its open), scipy.io
 # and the public and private numpy homes of np.load and open_memmap.
 _FILE_MODULES = ("io", "os", "pathlib", "shutil", "tempfile", "glob", "fileinput", "mmap", "sqlite3", "dbm", "csv",

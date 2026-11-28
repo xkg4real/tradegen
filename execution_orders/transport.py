@@ -269,3 +269,7 @@ class AuthenticatedTransport:
 
     def dispatch(self, request: PreparedRequest, capability, *, now: datetime) -> AdapterResult:
         return dispatch(request, capability, credentials=self.credentials, now=now)
+
+
+VenueOrderTransport = AuthenticatedTransport
+

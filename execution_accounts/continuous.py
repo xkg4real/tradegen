@@ -16,12 +16,15 @@ No network, file write, credential, owner state, signing or order operation occu
 """
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from decimal import Decimal, DecimalException, Inexact, localcontext
+from decimal import Decimal, DecimalException, Inexact, ROUND_DOWN, localcontext
+from fractions import Fraction
 import re
 from threading import Lock
 
+from core.compliance import native_accel
 from execution_accounts.model import content_digest
 from execution_control.risk import Fill, account_fills
 
@@ -29,8 +32,14 @@ _ID = re.compile(r"[A-Za-z0-9_.:/-]{1,128}")
 _SHA = re.compile(r"[0-9a-f]{64}")
 _SYMBOL = re.compile(r"KRW-[A-Z][A-Z0-9]{0,11}")
 _ZERO = Decimal(0)
+_EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
+_COST_SCALE = 10 ** 18
+_COST_QUANTUM = Decimal("1e-18")
 MAX_EVENTS = 20000
 MAX_SYMBOLS = 64
+MAX_HELD_MARKETS = 4
+MAX_PRINTS = 12000
+MAX_FILLS = 512
 MAX_INTERVAL_FILLS = 128
 MAX_HISTORY_FILLS = 20000
 MAX_DURATION = timedelta(seconds=30)
@@ -299,6 +308,242 @@ def verify_coverage(path, *, account_capture_sha256, verifier, now):
     return receipt
 
 
+def _ms_of(instant_utc: datetime) -> int:
+    return (instant_utc - _EPOCH) // timedelta(milliseconds=1)
+
+
+def _alloc_lot_cost(cost: Decimal, taken: Decimal, quantity: Decimal) -> Decimal:
+    if taken == quantity:
+        return cost
+    with localcontext() as sub:
+        sub.prec = 512
+        sub.traps[Inexact] = False
+        allocated = (cost * taken / quantity).quantize(_COST_QUANTUM, rounding=ROUND_DOWN)
+    _require(allocated.is_finite() and _ZERO <= allocated <= cost, "CONTINUOUS_FIFO_HISTORY_REFUSED")
+    return allocated
+
+
+def _opening_fifo_lots(accepted_fills: tuple[Fill, ...], market_index: Mapping[str, int]) -> tuple[tuple[int, Decimal, Decimal], ...]:
+    by_symbol: dict[str, list[list[Decimal]]] = {}
+    for fill in accepted_fills:
+        rows = by_symbol.setdefault(fill.symbol, [])
+        notional = fill.quantity * fill.price
+        if fill.side == "buy":
+            rows.append([fill.quantity, notional + fill.fee_amount])
+            continue
+        needed = fill.quantity
+        while needed > _ZERO:
+            _require(bool(rows), "CONTINUOUS_FIFO_HISTORY_REFUSED")
+            qty, basis = rows[0]
+            taken = min(needed, qty)
+            alloc = _alloc_lot_cost(basis, taken, qty)
+            needed -= taken
+            if taken == qty:
+                rows.pop(0)
+            else:
+                rows[0] = [qty - taken, basis - alloc]
+    out: list[tuple[int, Decimal, Decimal]] = []
+    for symbol in sorted(by_symbol):
+        rows = by_symbol[symbol]
+        if not rows:
+            continue
+        _require(symbol in market_index, "CONTINUOUS_MARK_COVERAGE_INCOMPLETE")
+        m_idx = market_index[symbol]
+        for qty, basis in rows:
+            out.append((m_idx, qty, basis))
+    return tuple(out)
+
+
+def _fold_interval_core(
+    *,
+    markets: tuple[str, ...],
+    opening_marks_by_market: Mapping[str, PriceMark],
+    opening_cash_krw: Decimal,
+    opening_units_by_market: Mapping[str, Decimal],
+    opening_realized_krw: Decimal,
+    opening_lots: tuple[tuple[int, Decimal, Decimal], ...],
+    ordered_events: tuple[tuple[int, datetime, int, int, Decimal, Decimal, Decimal], ...],
+    start: datetime,
+    end: datetime,
+    previous_equity_krw: Decimal,
+    conservative_ms: bool,
+):
+    num_markets = len(markets)
+    opening_units_vec = tuple(opening_units_by_market.get(sym, _ZERO) for sym in markets)
+    opening_marks_vec = tuple(opening_marks_by_market[sym].price for sym in markets)
+    initial_eq = opening_cash_krw + sum(
+        (opening_units_vec[i] * opening_marks_vec[i] for i in range(num_markets)),
+        _ZERO,
+    )
+    _number(initial_eq, positive=True)
+    _require(initial_eq == previous_equity_krw, "CONTINUOUS_OPENING_EQUITY_MISMATCH")
+
+    if 1 <= num_markets <= MAX_HELD_MARKETS:
+        native_events = tuple(
+            (at_ms, kind, m_idx, eqty, eprice, efee)
+            for at_ms, _at, kind, m_idx, eqty, eprice, efee in ordered_events
+        )
+        fast = native_accel.fold_continuous_interval(
+            num_markets=num_markets,
+            opening_cash_krw=opening_cash_krw,
+            opening_units=opening_units_vec,
+            opening_marks=opening_marks_vec,
+            opening_realized_krw=opening_realized_krw,
+            opening_lots=opening_lots,
+            events=native_events,
+            conservative_ms=conservative_ms,
+            need_points=True,
+        )
+        if fast is not None:
+            status = fast["status"]
+            if status == native_accel.TG_ERR_NEGATIVE_STATE:
+                raise ContinuousEvidenceError("CONTINUOUS_NEGATIVE_CASH_OR_INVENTORY")
+            _require(status == native_accel.TG_OK, "CONTINUOUS_VALUATION_REFUSED")
+            closing_eq = fast["closing_equity_krw"]
+            min_eq = fast["min_equity_krw"]
+            max_eq = fast["max_equity_krw"]
+            _number(closing_eq, positive=True)
+            _number(min_eq, positive=True)
+            _number(max_eq, positive=True)
+            raw_pts = fast["points"]
+            pts = [EquityPoint(at=start, equity_krw=raw_pts[0][0], realized_net_total_krw=raw_pts[0][1])]
+            for idx, (_at_ms, ev_at, _kind, _m_idx, _eqty, _eprice, _efee) in enumerate(ordered_events):
+                pts.append(EquityPoint(at=ev_at, equity_krw=raw_pts[idx + 1][0], realized_net_total_krw=raw_pts[idx + 1][1]))
+            pts.append(EquityPoint(at=end, equity_krw=raw_pts[-1][0], realized_net_total_krw=raw_pts[-1][1]))
+            closing_units = tuple(
+                (markets[i], fast["closing_units"][i])
+                for i in range(num_markets)
+                if fast["closing_units"][i] != _ZERO
+            )
+            last_mark_at = {sym: opening_marks_by_market[sym].asof for sym in markets}
+            for _at_ms, ev_at, kind, m_idx, _eqty, _eprice, _efee in ordered_events:
+                if kind == native_accel.TG_EVENT_MARK:
+                    last_mark_at[markets[m_idx]] = ev_at
+            closing_marks = tuple(
+                PriceMark(symbol=markets[i], price=fast["closing_marks"][i], asof=last_mark_at[markets[i]])
+                for i in range(num_markets)
+            )
+            return PathValuation(
+                equity_krw=closing_eq,
+                minimum_equity_krw=min_eq,
+                maximum_equity_krw=max_eq,
+                realized_net_total_krw=fast["realized_net_krw"],
+                closing_cash_krw=fast["closing_cash_krw"],
+                closing_units=closing_units,
+                closing_marks=closing_marks,
+                points=tuple(pts),
+            )
+
+    cash = opening_cash_krw
+    realized = opening_realized_krw
+    units = [opening_units_by_market.get(sym, _ZERO) for sym in markets]
+    marks = [opening_marks_by_market[sym] for sym in markets]
+    lots: list[list[list[Decimal]]] = [[] for _ in range(num_markets)]
+    for m_idx, lq, lc in opening_lots:
+        lots[m_idx].append([lq, lc])
+
+    def calc_eq(mark_prices: Sequence[Decimal]) -> Decimal:
+        total = cash + sum((units[i] * mark_prices[i] for i in range(num_markets)), _ZERO)
+        _number(total, positive=True)
+        return total
+
+    def apply_fill_py(kind: int, m_idx: int, qty: Decimal, price: Decimal, fee: Decimal) -> None:
+        nonlocal cash, realized
+        notional = qty * price
+        if kind == native_accel.TG_EVENT_BUY:
+            outlay = notional + fee
+            next_cash = cash - outlay
+            _require(next_cash >= _ZERO, "CONTINUOUS_NEGATIVE_CASH_OR_INVENTORY")
+            cash = next_cash
+            units[m_idx] += qty
+            lots[m_idx].append([qty, outlay])
+            return
+        _require(units[m_idx] >= qty, "CONTINUOUS_NEGATIVE_CASH_OR_INVENTORY")
+        movement = notional - fee
+        next_cash = cash + movement
+        _require(next_cash >= _ZERO, "CONTINUOUS_NEGATIVE_CASH_OR_INVENTORY")
+        needed = qty
+        released = _ZERO
+        cur_lots = lots[m_idx]
+        while needed > _ZERO:
+            _require(bool(cur_lots), "CONTINUOUS_NEGATIVE_CASH_OR_INVENTORY")
+            lot_q, lot_c = cur_lots[0]
+            taken = min(needed, lot_q)
+            alloc = _alloc_lot_cost(lot_c, taken, lot_q)
+            released += alloc
+            needed -= taken
+            if taken == lot_q:
+                cur_lots.pop(0)
+            else:
+                cur_lots[0] = [lot_q - taken, lot_c - alloc]
+        cash = next_cash
+        units[m_idx] -= qty
+        realized += movement - released
+
+    current = initial_eq
+    low = high = current
+    points = [EquityPoint(at=start, equity_krw=current, realized_net_total_krw=realized)]
+
+    if not conservative_ms:
+        for _at_ms, ev_at, kind, m_idx, eqty, eprice, efee in ordered_events:
+            if kind == native_accel.TG_EVENT_MARK:
+                marks[m_idx] = PriceMark(symbol=markets[m_idx], price=eprice, asof=ev_at)
+            else:
+                apply_fill_py(kind, m_idx, eqty, eprice, efee)
+            current = calc_eq([m.price for m in marks])
+            low, high = min(low, current), max(high, current)
+            points.append(EquityPoint(at=ev_at, equity_krw=current, realized_net_total_krw=realized))
+    else:
+        idx = 0
+        n_ev = len(ordered_events)
+        while idx < n_ev:
+            ms = ordered_events[idx][0]
+            end_idx = idx
+            while end_idx < n_ev and ordered_events[end_idx][0] == ms:
+                end_idx += 1
+            min_prices = [m.price for m in marks]
+            max_prices = [m.price for m in marks]
+            last_marks = list(marks)
+            for k in range(idx, end_idx):
+                _ms_k, ev_at, kind, m_idx, _eqty, eprice, _efee = ordered_events[k]
+                if kind == native_accel.TG_EVENT_MARK:
+                    if eprice < min_prices[m_idx]:
+                        min_prices[m_idx] = eprice
+                    if eprice > max_prices[m_idx]:
+                        max_prices[m_idx] = eprice
+                    last_marks[m_idx] = PriceMark(symbol=markets[m_idx], price=eprice, asof=ev_at)
+            lo_eq = calc_eq(min_prices)
+            hi_eq = calc_eq(max_prices)
+            low, high = min(low, lo_eq), max(high, hi_eq)
+            for k in range(idx, end_idx):
+                _ms_k, ev_at, kind, m_idx, eqty, eprice, efee = ordered_events[k]
+                if kind == native_accel.TG_EVENT_MARK:
+                    marks[m_idx] = PriceMark(symbol=markets[m_idx], price=eprice, asof=ev_at)
+                else:
+                    apply_fill_py(kind, m_idx, eqty, eprice, efee)
+                    lo_eq = calc_eq(min_prices)
+                    hi_eq = calc_eq(max_prices)
+                    low, high = min(low, lo_eq), max(high, hi_eq)
+                current = calc_eq([m.price for m in marks])
+                points.append(EquityPoint(at=ev_at, equity_krw=current, realized_net_total_krw=realized))
+            marks = last_marks
+            current = calc_eq([m.price for m in marks])
+            low, high = min(low, current), max(high, current)
+            idx = end_idx
+
+    closing_units = tuple((markets[i], units[i]) for i in range(num_markets) if units[i] != _ZERO)
+    return PathValuation(
+        equity_krw=current,
+        minimum_equity_krw=low,
+        maximum_equity_krw=high,
+        realized_net_total_krw=realized,
+        closing_cash_krw=cash,
+        closing_units=closing_units,
+        closing_marks=tuple(marks),
+        points=tuple(points) + (EquityPoint(at=end, equity_krw=current, realized_net_total_krw=realized),),
+    )
+
+
 def value_path(path, *, opening_cash_krw, opening_units, historical_fills, interval_fills,
                previous_equity_krw, previous_realized_net_krw):
     """Derive exact event-path extrema; source authentication is a separate obligation.
@@ -343,46 +588,252 @@ def value_path(path, *, opening_cash_krw, opening_units, historical_fills, inter
                      "CONTINUOUS_OPENING_PROFIT_MISMATCH")
             expected_units = {row[3]: row[4] for row in before.inventory if row[4] != 0}
             _require(units == expected_units, "CONTINUOUS_OPENING_INVENTORY_MISMATCH")
-            cash = opening_cash_krw
-            def equity():
-                result = cash + sum((quantity*marks[symbol].price for symbol, quantity in units.items()), _ZERO)
-                _number(result, positive=True)
-                return result
-            current = equity()
-            _require(current == previous_equity_krw, "CONTINUOUS_OPENING_EQUITY_MISMATCH")
-            low = high = current
-            realized = before.realized_net_profit_krw
-            points = [EquityPoint(at=path.start, equity_krw=current, realized_net_total_krw=realized)]
-            accepted = list(historical_fills)
+            markets = tuple(sorted(marks))
+            market_index = {sym: idx for idx, sym in enumerate(markets)}
+            for fill in interval_fills:
+                _require(fill.symbol in market_index, "CONTINUOUS_MARK_COVERAGE_INCOMPLETE")
+            opening_lots = _opening_fifo_lots(before.accepted_fills, market_index)
+            ordered_events = []
             for event in path.events:
+                at_utc = event.at.astimezone(timezone.utc)
+                at_ms = _ms_of(at_utc)
                 if event.mark is not None:
-                    marks[event.mark.symbol] = event.mark
+                    ordered_events.append((
+                        at_ms, event.at, native_accel.TG_EVENT_MARK, market_index[event.mark.symbol],
+                        _ZERO, event.mark.price, _ZERO,
+                    ))
                 else:
                     fill = event.fill
-                    _require(fill.symbol in marks, "CONTINUOUS_MARK_COVERAGE_INCOMPLETE")
-                    notional = fill.quantity * fill.price
-                    cash += (-notional if fill.side == "buy" else notional) - fill.fee_amount
-                    quantity = units.get(fill.symbol, _ZERO) + (fill.quantity if fill.side == "buy" else -fill.quantity)
-                    _require(cash >= 0 and quantity >= 0, "CONTINUOUS_NEGATIVE_CASH_OR_INVENTORY")
-                    if quantity:
-                        units[fill.symbol] = quantity
-                    else:
-                        units.pop(fill.symbol, None)
-                    accepted.append(fill)
-                    prefix = account_fills(tuple(accepted))
-                    _require(prefix.ok and prefix.duplicate_count == 0, "CONTINUOUS_FIFO_HISTORY_REFUSED")
-                    realized = prefix.realized_net_profit_krw
-                current = equity()
-                low, high = min(low, current), max(high, current)
-                points.append(EquityPoint(at=event.at, equity_krw=current, realized_net_total_krw=realized))
-            _require(units == {row[3]: row[4] for row in after.inventory if row[4] != 0},
+                    kind = native_accel.TG_EVENT_BUY if fill.side == "buy" else native_accel.TG_EVENT_SELL
+                    ordered_events.append((
+                        at_ms, event.at, kind, market_index[fill.symbol],
+                        fill.quantity, fill.price, fill.fee_amount,
+                    ))
+            valuation = _fold_interval_core(
+                markets=markets,
+                opening_marks_by_market=marks,
+                opening_cash_krw=opening_cash_krw,
+                opening_units_by_market=units,
+                opening_realized_krw=before.realized_net_profit_krw,
+                opening_lots=opening_lots,
+                ordered_events=tuple(ordered_events),
+                start=path.start,
+                end=path.end,
+                previous_equity_krw=previous_equity_krw,
+                conservative_ms=False,
+            )
+            _require(dict(valuation.closing_units) == {row[3]: row[4] for row in after.inventory if row[4] != 0},
                      "CONTINUOUS_CLOSING_INVENTORY_MISMATCH")
-            return PathValuation(equity_krw=current, minimum_equity_krw=low, maximum_equity_krw=high,
-                realized_net_total_krw=after.realized_net_profit_krw, closing_cash_krw=cash,
-                closing_units=tuple(sorted(units.items())), closing_marks=tuple(marks[key] for key in sorted(marks)),
-                points=tuple(points)+(EquityPoint(at=path.end, equity_krw=current,
-                                                 realized_net_total_krw=realized),))
+            _require(valuation.realized_net_total_krw == after.realized_net_profit_krw,
+                     "CONTINUOUS_FIFO_HISTORY_REFUSED")
+            return valuation
     except ContinuousEvidenceError:
         raise
     except (ValueError, TypeError, AttributeError, KeyError, DecimalException, OverflowError):
         raise ContinuousEvidenceError("CONTINUOUS_VALUATION_REFUSED") from None
+
+
+def value_trade_paths(
+    trade_path: Mapping[str, object],
+    *,
+    opening_marks: Sequence[PriceMark] | Mapping[str, PriceMark | Decimal],
+    opening_cash_krw: Decimal,
+    opening_units: tuple[tuple[str, Decimal], ...],
+    historical_fills: tuple[Fill, ...] = (),
+    interval_fills: tuple[Fill, ...] = (),
+    previous_equity_krw: Decimal,
+    previous_realized_net_krw: Decimal,
+    start: datetime,
+    end: datetime,
+    account_scope: str,
+    conservative_ms: bool = True,
+) -> PathValuation:
+    """Multi-coin Approach A interval valuation (`<= 4` markets, `<= 12000` prints, `<= 512` fills).
+
+    Deterministic merge-join across up to 4 held/traded KRW markets with exact `1e-18` `ROUND_DOWN`
+    plus final residual FIFO lot cost release and conservative intra-millisecond `[min_eq, max_eq]`
+    envelope when `conservative_ms=True`. Preserves 100% single-coin behavior when `len(trade_path) <= 1`.
+    """
+    try:
+        with localcontext() as numeric:
+            numeric.prec = 512
+            numeric.traps[Inexact] = True
+            _id(account_scope)
+            start_utc = _instant(start)
+            end_utc = _instant(end)
+            _require(start_utc < end_utc, "CONTINUOUS_TIME_GAP_OR_ROLLBACK")
+            _number(opening_cash_krw)
+            _number(previous_equity_krw, positive=True)
+            _require(type(previous_realized_net_krw) is Decimal and previous_realized_net_krw.is_finite(),
+                     "CONTINUOUS_EXACT_NUMBER_REQUIRED")
+            _require(isinstance(trade_path, Mapping) and len(trade_path) <= MAX_HELD_MARKETS,
+                     "CONTINUOUS_MARK_SCOPE_INVALID")
+            _require(type(opening_units) is tuple and type(historical_fills) is tuple
+                     and type(interval_fills) is tuple, "CONTINUOUS_ACCOUNT_HISTORY_REQUIRED")
+            _require(len(historical_fills) <= MAX_HISTORY_FILLS and len(interval_fills) <= MAX_FILLS,
+                     "CONTINUOUS_FILL_BOUND_EXCEEDED")
+
+            units: dict[str, Decimal] = {}
+            for symbol, amount in opening_units:
+                _require(symbol not in units and type(symbol) is str and _SYMBOL.fullmatch(symbol) is not None,
+                         "CONTINUOUS_HOLDING_INVALID")
+                _number(amount, positive=True)
+                units[symbol] = amount
+
+            marks_map: dict[str, PriceMark] = {}
+            if isinstance(opening_marks, Mapping):
+                for symbol, val in opening_marks.items():
+                    _require(type(symbol) is str and _SYMBOL.fullmatch(symbol) is not None, "CONTINUOUS_MARK_INVALID")
+                    if type(val) is PriceMark:
+                        _mark(val)
+                        _require(val.symbol == symbol, "CONTINUOUS_MARK_INVALID")
+                        marks_map[symbol] = val
+                    else:
+                        _number(val, positive=True)
+                        marks_map[symbol] = PriceMark(symbol=symbol, price=val, asof=start)
+            else:
+                _require(isinstance(opening_marks, Sequence), "CONTINUOUS_OPENING_MARKS_REQUIRED")
+                for val in opening_marks:
+                    _mark(val)
+                    _require(val.symbol not in marks_map, "CONTINUOUS_MARK_SCOPE_INVALID")
+                    marks_map[val.symbol] = val
+
+            _require(all(type(f) is Fill and f.executed_at < start for f in historical_fills)
+                     and all(type(f) is Fill and start <= f.executed_at < end for f in interval_fills),
+                     "CONTINUOUS_FILL_CUTOFF_MISMATCH")
+            _require(all(f.venue == "upbit" and f.account_scope == account_scope and f.market == "spot"
+                         and _SYMBOL.fullmatch(f.symbol) is not None and f.quote_currency == "KRW"
+                         and f.quote_krw == Decimal(1) and f.fee_currency == "KRW"
+                         and f.base_currency == f.symbol[4:] and f.side in ("buy", "sell")
+                         and not f.order_date and not f.broker_org_id
+                         for f in historical_fills + interval_fills),
+                     "CONTINUOUS_FILL_BINDING_INVALID")
+            for fill in interval_fills:
+                _id(fill.order_id); _id(fill.fill_id)
+                _number(fill.quantity, positive=True); _number(fill.price, positive=True); _number(fill.fee_amount)
+
+            before = account_fills(historical_fills)
+            after = account_fills(historical_fills + interval_fills)
+            _require(before.ok and after.ok and before.duplicate_count == 0 and after.duplicate_count == 0,
+                     "CONTINUOUS_FIFO_HISTORY_REFUSED")
+            _require(before.realized_net_profit_krw == previous_realized_net_krw,
+                     "CONTINUOUS_OPENING_PROFIT_MISMATCH")
+            expected_units = {row[3]: row[4] for row in before.inventory if row[4] != 0}
+            _require(units == expected_units, "CONTINUOUS_OPENING_INVENTORY_MISMATCH")
+
+            active_symbols = set(units) | {f.symbol for f in interval_fills} | set(trade_path.keys())
+            for symbol in active_symbols:
+                _require(type(symbol) is str and _SYMBOL.fullmatch(symbol) is not None,
+                         "CONTINUOUS_MARK_SCOPE_INVALID")
+            _require(len(active_symbols) <= MAX_HELD_MARKETS, "CONTINUOUS_MARK_SCOPE_INVALID")
+
+            if not active_symbols:
+                _require(opening_cash_krw == previous_equity_krw and opening_cash_krw > _ZERO,
+                         "CONTINUOUS_OPENING_EQUITY_MISMATCH")
+                pt0 = EquityPoint(at=start, equity_krw=opening_cash_krw, realized_net_total_krw=previous_realized_net_krw)
+                pt1 = EquityPoint(at=end, equity_krw=opening_cash_krw, realized_net_total_krw=previous_realized_net_krw)
+                return PathValuation(
+                    equity_krw=opening_cash_krw,
+                    minimum_equity_krw=opening_cash_krw,
+                    maximum_equity_krw=opening_cash_krw,
+                    realized_net_total_krw=previous_realized_net_krw,
+                    closing_cash_krw=opening_cash_krw,
+                    closing_units=(),
+                    closing_marks=(),
+                    points=(pt0, pt1),
+                )
+
+            markets = tuple(sorted(active_symbols))
+            market_index = {sym: idx for idx, sym in enumerate(markets)}
+
+            # Populate opening marks from trade_path opening_print when available if not already given
+            for sym in markets:
+                win = trade_path.get(sym)
+                opening_print = getattr(win, "opening_print", None)
+                if sym not in marks_map and opening_print is not None:
+                    p_price = opening_print.price
+                    p_at = opening_print.at
+                    _number(p_price, positive=True)
+                    _instant(p_at)
+                    marks_map[sym] = PriceMark(symbol=sym, price=p_price, asof=p_at)
+            _require(set(markets) <= set(marks_map), "CONTINUOUS_MARK_COVERAGE_INCOMPLETE")
+
+            # Merge-join trade prints across <= 4 markets and interval fills deterministically
+            merged_rows: list[tuple[int, int, int, int, datetime, int, Decimal, Decimal, Decimal]] = []
+            total_prints = 0
+            for sym in markets:
+                m_idx = market_index[sym]
+                raw_source = trade_path.get(sym, ())
+                raw_prints = getattr(raw_source, "prints", raw_source)
+                _require(isinstance(raw_prints, Sequence) and not isinstance(raw_prints, (str, bytes)),
+                         "CONTINUOUS_PATH_INVALID")
+                for idx_p, item in enumerate(raw_prints):
+                    total_prints += 1
+                    _require(total_prints <= MAX_PRINTS, "CONTINUOUS_EVENT_LIMIT")
+                    if type(item) is PriceMark:
+                        _mark(item)
+                        _require(item.symbol == sym, "CONTINUOUS_MARK_BINDING_INVALID")
+                        p_at = item.asof
+                        p_ms = _ms_of(p_at.astimezone(timezone.utc))
+                        p_seq = idx_p
+                        p_price = item.price
+                    elif hasattr(item, "price") and hasattr(item, "at"):
+                        m_sym = getattr(item, "market", sym)
+                        _require(m_sym == sym, "CONTINUOUS_MARK_BINDING_INVALID")
+                        p_at = item.at
+                        _instant(p_at)
+                        p_price = item.price
+                        _number(p_price, positive=True)
+                        p_ms = int(getattr(item, "timestamp_ms", _ms_of(p_at.astimezone(timezone.utc))))
+                        p_seq = int(getattr(item, "sequential_id", idx_p))
+                    elif isinstance(item, tuple) and len(item) == 2:
+                        p_at, p_price = item
+                        _instant(p_at)
+                        _number(p_price, positive=True)
+                        p_ms = _ms_of(p_at.astimezone(timezone.utc))
+                        p_seq = idx_p
+                    else:
+                        raise ContinuousEvidenceError("CONTINUOUS_MARK_INVALID")
+                    _require(start <= p_at < end, "CONTINUOUS_HALF_OPEN_BOUNDARY_REQUIRED")
+                    merged_rows.append((
+                        p_ms, 0, m_idx, p_seq, p_at, native_accel.TG_EVENT_MARK, _ZERO, p_price, _ZERO,
+                    ))
+
+            for idx_f, fill in enumerate(interval_fills):
+                f_ms = _ms_of(fill.executed_at.astimezone(timezone.utc))
+                m_idx = market_index[fill.symbol]
+                kind = native_accel.TG_EVENT_BUY if fill.side == "buy" else native_accel.TG_EVENT_SELL
+                merged_rows.append((
+                    f_ms, 1, m_idx, idx_f, fill.executed_at, kind, fill.quantity, fill.price, fill.fee_amount,
+                ))
+
+            merged_rows.sort(key=lambda r: (r[0], r[1], r[2], r[3]))
+            ordered_events = tuple(
+                (r[0], r[4], r[5], r[2], r[6], r[7], r[8])
+                for r in merged_rows
+            )
+
+            opening_lots = _opening_fifo_lots(before.accepted_fills, market_index)
+            valuation = _fold_interval_core(
+                markets=markets,
+                opening_marks_by_market=marks_map,
+                opening_cash_krw=opening_cash_krw,
+                opening_units_by_market=units,
+                opening_realized_krw=before.realized_net_profit_krw,
+                opening_lots=opening_lots,
+                ordered_events=ordered_events,
+                start=start,
+                end=end,
+                previous_equity_krw=previous_equity_krw,
+                conservative_ms=conservative_ms,
+            )
+            _require(dict(valuation.closing_units) == {row[3]: row[4] for row in after.inventory if row[4] != 0},
+                     "CONTINUOUS_CLOSING_INVENTORY_MISMATCH")
+            _require(valuation.realized_net_total_krw == after.realized_net_profit_krw,
+                     "CONTINUOUS_FIFO_HISTORY_REFUSED")
+            return valuation
+    except ContinuousEvidenceError:
+        raise
+    except (ValueError, TypeError, AttributeError, KeyError, DecimalException, OverflowError):
+        raise ContinuousEvidenceError("CONTINUOUS_VALUATION_REFUSED") from None
+

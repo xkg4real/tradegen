@@ -329,6 +329,58 @@ class TickResult:
     execution_block_reasons: tuple[str, ...] = ()
 
 
+_MODES = ('observe', 'paper', 'rehearsal', 'controlled')
+
+
+def make_controller_order_boundary(controller: Controller, *, profile: LaunchProfile,
+                                   launch_session: LaunchSession | None = None) -> Callable:
+    """Create a live/rehearsal order submission boundary backed by Controller.submit(..., reserve_only=False)."""
+    _require(type(controller) is Controller, 'RUNNER_CONTROLLER_PROVIDER_MISMATCH')
+    _require(type(profile) is LaunchProfile, 'RUNNER_PROFILE_REQUIRED')
+    namespace = 'lr' + profile_contract_digest(profile)[:24] + '-'
+
+    def default_exit_session_id() -> str:
+        if (type(launch_session) is LaunchSession and type(launch_session.prepared) is PreparedSession
+                and type(launch_session.prepared.session_id) is str and launch_session.prepared.session_id):
+            return launch_session.prepared.session_id
+        return 'launch-exit-' + profile_contract_digest(profile)[:24]
+
+    def submit_boundary(signal: Signal, *, account: AccountObservation, now: datetime,
+                        session_id: str | None = None):
+        _instant(now)
+        _signal_metadata(signal)
+        _require(not signal.execution_block_reasons, 'RUNNER_SIGNAL_EXECUTION_BLOCKED')
+        if signal.action == 'hold':
+            return None
+        _require(_positive(signal.quantity) and _positive(signal.limit_price), 'RUNNER_SIGNAL_AMOUNTS_INVALID')
+        side = 'buy' if signal.action == 'entry' else 'sell'
+        tif = 'ioc' if (side == 'sell' and profile.universe_rule_sha256 is not None) else profile.time_in_force
+        identity = digest({'profile_contract_digest': profile_contract_digest(profile),
+                           'signal_id': signal.signal_id, 'side': side})
+        rate = account.quote_rates_krw.get((profile.venue, profile.account_scope, profile.quote_currency))
+        _require(_positive(rate), 'RUNNER_ACCOUNT_FX_REQUIRED')
+        order = Order(
+            client_id=namespace + identity[:37],
+            account_scope=profile.account_scope,
+            venue=profile.venue,
+            market=profile.market,
+            symbol=profile.symbol,
+            side=side,
+            quantity=signal.quantity,
+            limit_price=signal.limit_price,
+            quote_krw=rate,
+            time_in_force=tif,
+        )
+        validate_observed_order(order, profile.instrument_rules, now=now)
+        resolved_sid = session_id if session_id is not None else (
+            default_exit_session_id() if side == 'sell' else None
+        )
+        _require(type(resolved_sid) is str and bool(resolved_sid), 'RUNNER_ACTUAL_PREPARED_SESSION_REQUIRED')
+        return controller.submit(order, profile.instrument_rules, session_id=resolved_sid, now=now, reserve_only=False)
+
+    return submit_boundary
+
+
 class Runner:
     """One tick at a time, using the caller's clock and explicit providers.
 
@@ -340,7 +392,7 @@ class Runner:
     def __init__(self, *, profile, quote_provider, account_provider, evidence=None,
                  driver=None, implementation_verifier=None, mode='observe', controller=None,
                  launch_session=None, isolated_state_root=None, clock=None, deadline_record=None):
-        _require(mode in ('observe', 'rehearsal', 'controlled'), 'RUNNER_MODE_INVALID')
+        _require(mode in _MODES, 'RUNNER_MODE_INVALID')
         _require(type(profile) is LaunchProfile, 'RUNNER_PROFILE_REQUIRED')
         committed = type(account_provider) is CommittedAccountProvider
         _require(callable(quote_provider) and (callable(account_provider) or committed),
@@ -358,7 +410,7 @@ class Runner:
         self._clock, self._deadline_record, self._last_carry_clock = clock, deadline_record, None
         if evidence is not None and getattr(getattr(evidence, 'protocol', None), 'schema_version', None) == 2:
             _require(callable(clock), 'RUNNER_CARRY_CLOCK_REQUIRED')
-        if mode != 'observe':
+        if mode not in ('observe', 'paper'):
             self._controller_boundary()
 
     def _controller_boundary(self):
@@ -370,9 +422,6 @@ class Runner:
         else:
             _require(type(self.account_provider) is not CommittedAccountProvider,
                      'RUNNER_CONTROLLER_PROVIDER_MISMATCH')
-        _require(not (self.mode == 'controlled' and self.evidence is not None
-                      and getattr(getattr(self.evidence, 'protocol', None), 'schema_version', None) == 2),
-                 'RUNNER_CARRY_CONTROLLED_UNSUPPORTED')
         c = self.controller
         _require(type(c) is Controller and c.account_provider is self.account_provider,
                  'RUNNER_CONTROLLER_PROVIDER_MISMATCH')
@@ -384,6 +433,15 @@ class Runner:
             root = checked_target(Path(self._isolated_state_root).absolute(), 'rehearsal state')
             _require(not root.is_relative_to(Path.home() / '.tradegen') and state_root().absolute() == root
                      and c.journal._base == root, 'RUNNER_REHEARSAL_STATE_MISMATCH')
+        elif self.mode == 'controlled':
+            _require(bool(c.adapters) and self.profile.venue in c.adapters
+                     and all(type(a) is not DryRunAdapter
+                             and callable(getattr(a, 'prepare', None))
+                             and callable(getattr(a, 'dispatch', None))
+                             and getattr(getattr(a, 'credentials', None), '__name__', '') != 'unconfigured_credentials'
+                             for a in c.adapters.values()),
+                     'RUNNER_CONTROLLED_REQUIRES_LIVE_ADAPTERS')
+            _require(c.journal._base == state_root().absolute(), 'RUNNER_CONTROLLED_STATE_MISMATCH')
 
     def refresh_instrument_rules(self, renewal, *, now, account=None):
         """Apply an issued same-contract snapshot without changing owner authority.
@@ -612,7 +670,7 @@ class Runner:
             committed = None
             generation_constraints = {}
             observed_at = now
-            if self.mode != 'observe' or self._committed_provider is not None:
+            if self.mode not in ('observe', 'paper') or self._committed_provider is not None:
                 self._controller_boundary()
                 # A failed account/quote/research refresh must never cause a new
                 # create retry; reconcile durable orders first on every tick.
@@ -663,7 +721,7 @@ class Runner:
             if reasons:
                 return TickResult(mode=self.mode, status='blocked', reasons=reasons, client_id=order.client_id,
                     reconciled_orders=reconciled, protective_action_needed=risk.protective_action_needed, **metadata)
-            if self.mode == 'observe':
+            if self.mode in ('observe', 'paper'):
                 return TickResult(mode=self.mode, status='observed', reasons=('RUNNER_OBSERVATION_ONLY',),
                     client_id=order.client_id, protective_action_needed=risk.protective_action_needed, **metadata)
             if self.stopped:
@@ -714,14 +772,14 @@ class Runner:
         except Exception:
             # Uncertain control effects must be reviewed/reconciled, not retried
             # by a catch-all scheduler. No provider/account text is exposed.
-            self._stopped = self.mode != 'observe'
+            self._stopped = self.mode not in ('observe', 'paper')
             return TickResult(mode=self.mode, status='blocked', reasons=('RUNNER_DEPENDENCY_REFUSED',), **metadata)
         finally:
             self._lock.release()
 
     @contextmanager
     def _protective_action(self, now):
-        _require(self.mode != 'observe', 'RUNNER_OBSERVATION_ONLY')
+        _require(self.mode not in ('observe', 'paper'), 'RUNNER_OBSERVATION_ONLY')
         _instant(now)
         _require(self._lock.acquire(blocking=False), 'RUNNER_CONCURRENT_TICK_REFUSED')
         try:

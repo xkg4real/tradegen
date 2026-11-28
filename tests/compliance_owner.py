@@ -388,6 +388,10 @@ def test_event_data_schemas_are_exact():
         "key_rotated": {"old_pubkey_b64": _b64(bytes(32)), "new_pubkey_b64": _b64(bytes(range(32)))},
         "research_attestation_revoked": {"purpose": "research_archive_manifest_attestation",
                                          "target_sha256": "a" * 64, "reason_code": "OWNER_WITHDRAWN"},
+        "bid_gap_set": {"scope": "upbit:main", "y": "0.02", "effective_from": "2026-10-21"},
+        "bid_gap_clear": {"scope": "upbit:main", "reason": "book spread normalized"},
+        "protective_terms_set": {"scope": "upbit:main", "trailing_stop_x": "0.08",
+                                 "halt_margin_krw": "5000", "daily_margin_krw": "2000"},
         "system_halt": {"floor_krw": 21000},
         "system_disarm": {"session_id": "S1", "reason": "daily loss limit"},
     }
@@ -395,6 +399,7 @@ def test_event_data_schemas_are_exact():
     for kind, data in good.items():
         assert owner._data_problem(kind, data) == "", (kind, owner._data_problem(kind, data))
     assert owner._data_problem("withdrawal_address", {**tagged, "tag": None}) == ""
+    assert owner._data_problem("bid_gap_set", {"scope": "upbit:main", "y": "0.01", "effective_from": None}) == ""
     bad = [
         ("approved", {"kind": "rules"}),
         ("approved", {"kind": "rules", "sha256": "1" * 64, "note": "x"}),
@@ -420,6 +425,11 @@ def test_event_data_schemas_are_exact():
         ("session_ack", {"session_id": "S1", "row_id": "KR-OKX-SPOT", "warning_sha256": "x"}),
         ("key_rotated", {"new_pubkey_b64": _b64(bytes(32))}),
         ("key_rotated", {"old_pubkey_b64": _b64(bytes(31)), "new_pubkey_b64": _b64(bytes(32))}),
+        ("bid_gap_set", {"scope": "upbit:main", "y": "0", "effective_from": None}),
+        ("bid_gap_set", {"scope": "upbit:main", "y": "0.06", "effective_from": None}),
+        ("bid_gap_clear", {"scope": "upbit:main", "reason": " "}),
+        ("protective_terms_set", {"scope": "upbit:main", "trailing_stop_x": "1",
+                                  "halt_margin_krw": "5000", "daily_margin_krw": "2000"}),
         ("system_halt", {"floor_krw": float("nan")}),
         ("system_halt", {"floor_krw": 10 ** 400}),                 # an int too large for a float
         ("system_disarm", {"session_id": "", "reason": "x"}),
@@ -1017,3 +1027,45 @@ def test_universe_paths_sit_under_the_state_root_and_create_nothing():
     for bad in (sha.upper(), sha[:-1], sha + "0", "g" * 64, None, 1):
         _raises(lambda: owner.universe_path(day, bad), ValueError, "sha256 must be 64 lower-case hex digits")
     assert _listing(home) == before and not (home / "universe").exists(), "computing a path must create nothing"
+
+
+def test_owner_snapshot_bid_gap_and_protective_terms_d12_fold():
+    from decimal import Decimal
+    from tools.signer import sign as signer
+    check = _state_log(
+        ("bid_gap_set", {"scope": "upbit:main", "y": "0.02", "effective_from": None}, _state_kst(2026, 10, 10, 10)),
+        ("protective_terms_set", {"scope": "upbit:main", "trailing_stop_x": "0.10",
+                                  "halt_margin_krw": "4000", "daily_margin_krw": "1500"}, _state_kst(2026, 10, 10, 10)),
+        ("bid_gap_set", {"scope": "upbit:main", "y": "0.01", "effective_from": None}, _state_kst(2026, 10, 11, 11)),
+        ("bid_gap_set", {"scope": "upbit:main", "y": "0.03", "effective_from": None}, _state_kst(2026, 10, 11, 15)),
+        ("protective_terms_set", {"scope": "upbit:main", "trailing_stop_x": "0.05",
+                                  "halt_margin_krw": "6000", "daily_margin_krw": "2000"}, _state_kst(2026, 10, 11, 16)),
+        ("protective_terms_set", {"scope": "upbit:main", "trailing_stop_x": "0.15",
+                                  "halt_margin_krw": "3000", "daily_margin_krw": "1000"}, _state_kst(2026, 10, 11, 17)),
+        ("bid_gap_clear", {"scope": "upbit:main", "reason": "book restored"}, _state_kst(2026, 10, 11, 18)),
+    )
+    assert check.ok
+    # Initial bid_gap_set waits for next Asia/Seoul date (Oct 11); initial protective_terms_set applies from stamp!
+    s0 = owner.fold_owner_snapshot(check.entries[:2], now=_state_kst(2026, 10, 10, 20))
+    assert dict(s0.bid_gaps) == {} and s0.protective_for("upbit:main").trailing_stop_x == Decimal("0.10")
+    # On Oct 11 at 12:00: tightening 0.02 -> 0.01 applied immediately!
+    s1 = owner.fold_owner_snapshot(check.entries[:3], now=_state_kst(2026, 10, 11, 12))
+    assert dict(s1.bid_gaps) == {"upbit:main": Decimal("0.01")}
+    assert s1.protective_terms["upbit:main"].trailing_stop_x == Decimal("0.10")
+    # On Oct 11 at 16:30: loosening 0.01 -> 0.03 waits for Oct 12; tightening protective terms applies immediately!
+    s2 = owner.fold_owner_snapshot(check.entries[:5], now=_state_kst(2026, 10, 11, 16, 30))
+    assert dict(s2.bid_gaps) == {"upbit:main": Decimal("0.01")}
+    assert s2.protective_terms["upbit:main"].trailing_stop_x == Decimal("0.05")
+    assert s2.protective_terms["upbit:main"].halt_margin_krw == Decimal("6000")
+    assert s2.protective_terms["upbit:main"].daily_margin_krw == Decimal("2000")
+    # On Oct 12 at 12:00 (before clear): loosenings take effect, and sign.fold_owner_snapshot agrees 100%!
+    s3 = owner.fold_owner_snapshot(check.entries[:6], now=_state_kst(2026, 10, 12, 12))
+    s3_sig = signer.fold_owner_snapshot(check.entries[:6], now=_state_kst(2026, 10, 12, 12))
+    assert dict(s3.bid_gaps) == dict(s3_sig.bid_gaps) == {"upbit:main": Decimal("0.03")}
+    assert s3.protective_terms["upbit:main"].trailing_stop_x == s3_sig.protective_terms["upbit:main"].trailing_stop_x == Decimal("0.15")
+    assert s3.protective_terms["upbit:main"].halt_margin_krw == s3_sig.protective_terms["upbit:main"].halt_margin_krw == Decimal("3000")
+    # With bid_gap_clear appended, bid_gaps["upbit:main"] is removed (fail-closed buy block until re-set):
+    s4 = owner.fold_owner_snapshot(check.entries, now=_state_kst(2026, 10, 12, 12))
+    s4_sig = signer.fold_owner_snapshot(check.entries, now=_state_kst(2026, 10, 12, 12))
+    assert dict(s4.bid_gaps) == dict(s4_sig.bid_gaps) == {} and s4.bid_gap_for("upbit:main") is None
+

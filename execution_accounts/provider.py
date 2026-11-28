@@ -10,10 +10,11 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal, DecimalException, Inexact, localcontext
+from fractions import Fraction
 import math
 import re
 
-from core.compliance import model as compliance
+from core.compliance import model as compliance, native_accel
 from execution_control.controller import AccountObservation
 from execution_control.risk import Fill, RecoveryCheckpoint, RiskObservation, account_fills
 from execution_accounts.model import (
@@ -27,6 +28,9 @@ _ID = re.compile(r"[A-Za-z0-9_.:/-]{1,128}")
 _CCY = re.compile(r"[A-Z][A-Z0-9]{0,11}")
 _SHA = re.compile(r"[0-9a-f]{64}")
 _STALE = timedelta(seconds=30)
+_BOOK_STALE = timedelta(seconds=10)
+_MAX_BID_GAP_Y = Decimal("0.05")
+_UNSET = object()
 
 
 class EvidenceError(ValueError):
@@ -150,7 +154,16 @@ def _dedupe(rows, key, code):
     return tuple(seen.values())
 
 
-def _account(account, now):
+def _check_bid_gap(best_bid: Decimal | None, mark_price: Decimal, bid_gap_y: Decimal | None) -> bool:
+    fast = native_accel.check_bid_gap(best_bid, mark_price, bid_gap_y)
+    if fast is not None:
+        return fast
+    if bid_gap_y is None or best_bid is None:
+        return True
+    return Fraction(best_bid) <= Fraction(mark_price) * (Fraction(1) - Fraction(bid_gap_y))
+
+
+def _account(account, now, bid_gap_y=_UNSET):
     _require(type(account) is AccountEvidence and account.venue in ("kis", "upbit", "okx"),
              "ACCOUNT_SCHEMA_INVALID")
     _id(account.account_scope); _currency(account.execution_quote)
@@ -226,15 +239,34 @@ def _account(account, now):
     _require(set(reconstructed) <= set(balances), "CASH_HISTORY_CURRENCY_MISSING")
     _require(all(row.total == reconstructed.get(currency, _ZERO) for currency, row in balances.items()),
              "CASH_RECONCILIATION_MISMATCH")
+    y_supplied = bid_gap_y is not _UNSET
+    y_value = None if not y_supplied else bid_gap_y
+    if y_value is not None:
+        _amount(y_value, positive=True)
+        _require(y_value <= _MAX_BID_GAP_Y, "BID_GAP_LIMIT_OUT_OF_RANGE")
     actual, bases, marked, holdings = {}, set(), _ZERO, {}
+    bid_gap_triggered = False
     for position in account.positions:
         _require(type(position) is Position, "POSITION_SCHEMA_INVALID")
         base = _instrument(account.venue, position.market, position.symbol, position.quote_currency)
         _require(position.base_currency == base, "POSITION_BASE_CURRENCY_MISMATCH")
         _require(position.unlisted is None or position.unlisted is True, "POSITION_UNLISTED_MARKER_INVALID")
         _amount(position.units); _amount(position.price, positive=position.unlisted is not True)
-        _fresh(position.asof, now)
-        _require(position.unlisted is not True or position.price == 0, "POSITION_UNLISTED_PRICE_INVALID")
+        _instant(position.asof)
+        _require(position.asof <= now, "EVIDENCE_STALE_OR_FUTURE")
+        if position.best_bid is not None:
+            _amount(position.best_bid, positive=True)
+            _require(position.best_bid_asof is not None, "POSITION_BEST_BID_TIME_REQUIRED")
+        if position.best_bid_asof is not None:
+            _instant(position.best_bid_asof)
+            _require(timedelta(0) <= now - position.best_bid_asof <= _BOOK_STALE, "EVIDENCE_STALE_OR_FUTURE")
+        if position.unlisted is True:
+            _fresh(position.asof, now)
+            _require(position.price == 0, "POSITION_UNLISTED_PRICE_INVALID")
+        elif now - position.asof > _STALE:
+            _require(position.best_bid_asof is not None or y_supplied, "EVIDENCE_STALE_OR_FUTURE")
+            if _check_bid_gap(position.best_bid, position.price, y_value):
+                bid_gap_triggered = True
         _require(base not in bases, "MULTIPLE_MARKETS_FOR_BASE_UNSUPPORTED")
         _require(position.quote_currency in fx, "POSITION_FX_MISSING")
         bases.add(base)
@@ -327,10 +359,11 @@ def _account(account, now):
     return dict(equity=cash_equity+marked, marked=marked, available=available, holdings=holdings,
                 exact_holdings=actual, exposure=exposure, fills=accounting.accepted_fills,
                 daily=accounting.realized_by_account_day_krw, reconciled=reconciled,
-                cancelable=cancelable, trade_dates=trade_dates, clients=used_clients, rates=fx)
+                cancelable=cancelable, trade_dates=trade_dates, clients=used_clients, rates=fx,
+                bid_gap_triggered=bid_gap_triggered)
 
 
-def build_observation(bundle: AccountBundle, *, now: datetime) -> AccountObservation:
+def build_observation(bundle: AccountBundle, *, now: datetime, bid_gap_y=_UNSET) -> AccountObservation:
     """Return E2 data after exact reconciliation, or raise a redacted EvidenceError.
 
 This does not check/sign/arm owner state or grant an execution permit. A source
@@ -341,14 +374,14 @@ authenticated by these mathematical checks.
         with localcontext() as numeric:
             numeric.prec = 512
             numeric.traps[Inexact] = True
-            return _build(bundle, now)
+            return _build(bundle, now, bid_gap_y)
     except EvidenceError:
         raise
     except (ValueError, TypeError, AttributeError, KeyError, DecimalException, OverflowError):
         raise EvidenceError("EVIDENCE_SCHEMA_OR_ARITHMETIC_INVALID") from None
 
 
-def _build(bundle, now):
+def _build(bundle, now, bid_gap_y=_UNSET):
     _instant(now)
     _require(type(bundle) is AccountBundle and type(bundle.accounts) is tuple and 0 < len(bundle.accounts) <= 3,
              "ACCOUNT_BUNDLE_REQUIRED")
@@ -376,13 +409,17 @@ def _build(bundle, now):
     fills, days, stamps, server_stamps, all_clients = [], [], [], [], set()
     reconciled, cancelable, trade_dates = set(), {}, {}
     equity = _ZERO
+    bid_gap_triggered = False
     for account in bundle.accounts:
         _require(type(account) is AccountEvidence, "ACCOUNT_SCHEMA_INVALID")
         _require(account.venue not in scopes, "MULTIPLE_ACCOUNTS_PER_VENUE_UNSUPPORTED")
         _instant(account.origin)
         _require(account.origin.astimezone(compliance.KST).date() <= baseline.first_trading_day,
                  "HISTORY_START_AFTER_FIRST_TRADING_DAY")
-        result = _account(account, now)
+        account_y = bid_gap_y(now, account.account_scope) if callable(bid_gap_y) else bid_gap_y
+        result = _account(account, now, account_y)
+        if result["bid_gap_triggered"]:
+            bid_gap_triggered = True
         _require(not all_clients.intersection(result['clients']), "CROSS_ACCOUNT_CLIENT_ID_COLLISION")
         all_clients.update(result['clients'])
         key = (account.venue, account.account_scope)
@@ -412,7 +449,7 @@ def _build(bundle, now):
         day_start_equity=baseline.day_start_equity, current_day_realized_net_profit=current,
         prior_day_realized_net_profit=None if first else previous, observed_daily_loss=baseline.observed_daily_loss,
         approved_effective_floor=baseline.approved_effective_floor, is_first_trading_day=first, asof=asof,
-        recovery_checkpoint=checkpoint)
+        bid_gap_triggered=bid_gap_triggered, recovery_checkpoint=checkpoint)
     return AccountObservation(positions=compliance.Positions(equity_krw=_legacy(equity), holdings=holdings,
         exposure=exposures), account_scopes=scopes, settled_cash_krw=cash, holdings=exact_holdings,
         risk=observation, asof=asof, server_time=min(server_stamps), no_credit=True, fills=tuple(fills),
@@ -421,10 +458,10 @@ def _build(bundle, now):
         inventory_exposure_krw=inventory, quote_rates_krw=rates)
 
 
-def assess_bundle(bundle: AccountBundle, *, now: datetime) -> EvidenceAssessment:
+def assess_bundle(bundle: AccountBundle, *, now: datetime, bid_gap_y=_UNSET) -> EvidenceAssessment:
     """Sanitized data readiness; even a successful assessment grants no execution permission."""
     try:
-        observation = build_observation(bundle, now=now)
+        observation = build_observation(bundle, now=now, bid_gap_y=bid_gap_y)
     except EvidenceError as exc:
         return EvidenceAssessment(account_evidence_ready=False, execution_ready=False,
                                   reasons=(exc.code,), account_count=0, fill_count=0)
@@ -436,14 +473,15 @@ def assess_bundle(bundle: AccountBundle, *, now: datetime) -> EvidenceAssessment
 class ReconciledAccountProvider:
     """Explicit collector injection; no hidden default or fallback to E1 snapshots."""
 
-    def __init__(self, evidence_source: Callable[[datetime], AccountBundle]):
+    def __init__(self, evidence_source: Callable[[datetime], AccountBundle], *, bid_gap_y=_UNSET):
         if not callable(evidence_source):
             raise ValueError("evidence source must be callable")
         self._source = evidence_source
+        self._bid_gap_y = bid_gap_y
 
     def __call__(self, now: datetime) -> AccountObservation:
         try:
             bundle = self._source(now)
         except Exception:
             raise EvidenceError("EVIDENCE_SOURCE_FAILED") from None
-        return build_observation(bundle, now=now)
+        return build_observation(bundle, now=now, bid_gap_y=self._bid_gap_y)

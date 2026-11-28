@@ -84,6 +84,7 @@ class RiskObservation:
     external_flows_known: bool = True
     legacy_floor_conflict: bool = False
     halted: bool = False
+    bid_gap_triggered: bool = False
     recovery_checkpoint: RecoveryCheckpoint | None = None
 
 
@@ -104,6 +105,8 @@ class RiskResult:
     recovery_floor: Decimal | None = None
     recovery_status: str | None = None
     universe: Universe | None = None  # Controller.observe: ctx.universe of the context it loaded
+    halt_line: Decimal | None = None
+    daily_limit: Decimal | None = None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -191,7 +194,7 @@ def _risk_errors(policy: RiskPolicy, observation: RiskObservation) -> tuple[str,
         if value is not None and not _decimal(value):
             reasons.append("INVALID_OBSERVATION_" + name.upper())
     for name in ("is_first_trading_day", "data_complete", "external_flows_known",
-                 "legacy_floor_conflict", "halted"):
+                 "legacy_floor_conflict", "halted", "bid_gap_triggered"):
         if type(getattr(observation, name)) is not bool:
             reasons.append("INVALID_OBSERVATION_" + name.upper())
     if not _stamp(observation.asof):
@@ -294,6 +297,8 @@ def _evaluate(policy: RiskPolicy, observation: RiskObservation, *, now=None) -> 
         reasons.append("LEGACY_FLOOR_POLICY_CONFLICT")
     if observation.halted:
         reasons.append("PERSISTENT_HALT")
+    if observation.bid_gap_triggered:
+        reasons.append("BID_GAP_BLOCKED")
     previous = observation.prior_day_realized_net_profit
     budget = target = target_met = None
     if previous is None:
@@ -323,7 +328,8 @@ def _evaluate(policy: RiskPolicy, observation: RiskObservation, *, now=None) -> 
                       calculated_floor=requested, effective_floor=effective, relaxation_pending=pending,
                       daily_loss_budget=budget, daily_profit_target=target, daily_profit_target_met=target_met,
                       protective_action_needed=breach or exhausted or observation.halted or bool(recovery_reasons),
-                      recovery_deadline=deadline, recovery_floor=recovery_floor, recovery_status=recovery_status)
+                      recovery_deadline=deadline, recovery_floor=recovery_floor, recovery_status=recovery_status,
+                      halt_line=effective, daily_limit=budget)
 
 
 def _fill_error(fill: Fill) -> str | None:
