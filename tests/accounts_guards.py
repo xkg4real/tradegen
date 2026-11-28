@@ -18,6 +18,7 @@ COLLECTOR_ROUTES = frozenset({"/v1/accounts", "/v1/orders/open", "/v1/orders/clo
 
 READ_ROUTES = {"upbit_collector.py": COLLECTOR_ROUTES,
                "quotes.py": frozenset({"/v1/orderbook"})}
+OFFLINE_RECEIPT_PATHS = {"candle_audit.py": frozenset({"/v1/candles/minutes/1"})}
 TRANSPORT_IMPORTS = {
     "upbit_collector.py": frozenset({"inquiry_clock", "request"}),
     "quotes.py": frozenset({"Answer", "inquiry_clock", "request"}),
@@ -67,7 +68,8 @@ def problems(source, relative_path=""):
                   or node.module == "execution" and any(a.name == "transport" for a in node.names)):
                 failures.append("transport module import")
         if (isinstance(node, ast.Constant) and isinstance(node.value, str)
-                and "/v1/" in node.value.lower() and node.value not in routes):
+                and "/v1/" in node.value.lower() and node.value not in routes
+                and node.value not in OFFLINE_RECEIPT_PATHS.get(relative_path, ())):
             failures.append("endpoint literal outside fixed routes")
         if isinstance(node, ast.Name) and node.id == "request" and id(node) not in allowed_requests:
             failures.append("request outside fixed GET call")
