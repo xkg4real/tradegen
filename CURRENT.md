@@ -4,15 +4,15 @@ reason: manual
 from: gpt
 task: upbit-universe
 cycle: 2026-11-24
-done_ids: owner-merges-1127, blocker1-approach-a-code/a1-a2, protective-hold/p2-integration, launch-planner-provider-1, launch-controlled-coordinator-1, live-cpp20-accel-1, m11-didm-quantgpt-section12-1, qlib-lab-model-factory-1, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1/account-fixtures, pr79-upbit-receipt-review-1, rules-review-1202/preparation, policy-loss-budget-plan-1, pr79-study-gate-repair-1, pr79-native-integrity-1
+done_ids: owner-merges-1127, blocker1-approach-a-code/a1-a2, protective-hold/p2-integration, launch-planner-provider-1, launch-controlled-coordinator-1, live-cpp20-accel-1, m11-didm-quantgpt-section12-1, qlib-lab-model-factory-1, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1/account-fixtures, pr79-upbit-receipt-review-1, rules-review-1202/preparation, policy-loss-budget-plan-1, pr79-study-gate-repair-1, pr79-native-integrity-1, pr79-controlled-rehearsal-1, pr79-upbit-crosscheck-preview-1
 next_ids: pr79-independent-review-1, rules-review-1202, launch-multi-market-validation-1, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, universe-pr5, universe-pr5/recovery-operations, universe-pr5-clock-notify, launch-private-capture-setup-1, universe-code-approve, e1-14-owner-setup, launch-prospective-study
-updated_at: 2026-11-28T13:24:23+09:00
+updated_at: 2026-11-28T13:31:34+09:00
 stale_after_hours: 24
 waiting_on: none
 work_branch: gpt/pr79-followup-20261128
-work_commit: 6e34a4f
+work_commit: 68f8679
 uncommitted_changes: no
-pr: 80 (PR #79 대상 후속 초안), 79 (검토 중), 69 (초안)
+pr: 80, 81, 79, 69
 usage_weekly_pct: unknown
 usage_source: unavailable
 usage_5h_pct: unknown
@@ -47,7 +47,7 @@ PR #79 원본 `cd70bdd`을 검토해 [PR #80](https://github.com/xkg4real/tradeg
 ## 4. 진행 상황
 
 - 완료한 ID와 재현 결과는 이 파일의 `done_ids`와 `LEDGER.md`에 있다. KIS·OKX 수집기 및 교차 계좌 대사는 모의 원본으로 검증한 범위다.
-- Linux의 제어 런처 리허설 7건과 보유 복구 6건이 통과했다. Windows 검사와 전체 회귀를 실행 중이다.
+- Linux의 제어 런처 리허설 7건과 보유 복구 6건이 통과했다. Windows 검사와 전체 회귀를 실행 중이다. [원본 감사 PR #81](https://github.com/xkg4real/tradegen/pull/81)에서 합성 계좌 통합 검사 219건이 통과했다.
 
 ## 5. 중단 지점
 
