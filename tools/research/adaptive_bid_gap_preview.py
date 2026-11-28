@@ -12,6 +12,8 @@ import random
 import re
 import stat
 
+from tools.research import _native_bridge
+
 
 MAX_Y = Decimal("0.05")
 MAX_FILE = 1024 * 1024
@@ -60,6 +62,9 @@ def wilson_lower(successes, total):
 
 
 def sample_direction(log_returns, config, origin):
+    native_counts = _native_bridge.sample_direction_native(log_returns, config, origin)
+    if native_counts is not None:
+        return native_counts
     length, horizon, draws = config["block"], config["horizon"], config["paths"]
     rng = random.Random((config["seed"] << 40) + origin)
     positive, negative = 0, 0

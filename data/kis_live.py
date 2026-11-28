@@ -20,6 +20,7 @@ import time
 from typing import Callable
 from zoneinfo import ZoneInfo
 
+from data import _kis_native
 from data.kis_live_catalog import (CHANNELS, Channel, PAPER_APPROVAL_URL, PAPER_WS_URL,
     PRODUCTION_APPROVAL_URL, PRODUCTION_WS_URL, subscription_delay_seconds, validate_subscription)
 
@@ -331,9 +332,16 @@ def parse_frame(raw: str | bytes, subscriptions: tuple[Subscription, ...], *, re
     _require(_normalizable(channel) and re.fullmatch(r"[0-9]{1,3}", count_text) is not None, "INVALID_FRAME")
     count = int(count_text)
     _require(1 <= count <= MAX_RECORDS, "INVALID_FRAME")
-    values = payload.split("^")
-    _require(len(values) == count*len(channel.fields)
-             and all(len(value) <= 128 for value in values), "INVALID_FRAME")
+    expected_fields = count * len(channel.fields)
+    fast_values = _kis_native.parse_caret_fields(payload, expected_fields, 128)
+    if fast_values is False:
+        raise KISLiveError("INVALID_FRAME")
+    if fast_values is None:
+        values = payload.split("^")
+        _require(len(values) == expected_fields
+                 and all(len(value) <= 128 for value in values), "INVALID_FRAME")
+    else:
+        values = fast_values
     source_sha = hashlib.sha256(encoded).hexdigest()
     width = len(channel.fields)
     return tuple(_record(channel, values[index*width:(index+1)*width], subscriptions, received, source_sha)
@@ -412,6 +420,18 @@ def _fresh(value, now):
 
 
 def _metrics(trades, book, *, now, trade_fresh, book_fresh):
+    fast = _kis_native.compute_metrics(
+        trades,
+        book,
+        now=now,
+        window_seconds=WINDOW_SECONDS,
+        trade_fresh=trade_fresh,
+        book_fresh=book_fresh,
+    )
+    if fast is not None:
+        spread, imbalance, window_return, vwap, sample_count = fast
+        return Metrics(spread=spread, imbalance=imbalance, window_return=window_return,
+                       vwap=vwap, sample_count=sample_count)
     spread = imbalance = window_return = vwap = None
     if book_fresh and book is not None and book.levels:
         best = book.levels[0]

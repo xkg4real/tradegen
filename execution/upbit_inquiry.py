@@ -19,23 +19,27 @@ ENDPOINTS = frozenset({
     ("GET", "/v1/withdraws/coin_addresses"), ("GET", "/v1/deposits"), ("GET", "/v1/api_keys"),
     ("GET", "/v1/status/wallet"), ("GET", "/v1/ticker"), ("GET", "/v1/order"), ("GET", "/v1/orderbook"),
     ("GET", "/v1/orders/chance"), ("GET", "/v1/orderbook/instruments"), ("GET", "/v1/market/all"),
-    ("GET", "/v1/candles/days"),
+    ("GET", "/v1/candles/days"), ("GET", "/v1/trades/ticks"),
 })
 # Archival capture is narrower than inquiry permission; this adds no allowed request.
 READ_CAPTURE_ENDPOINTS = frozenset({
     ("GET", "/v1/accounts"), ("GET", "/v1/orders/open"), ("GET", "/v1/orders/closed"),
     ("GET", "/v1/order"), ("GET", "/v1/deposits"), ("GET", "/v1/withdraws"),
     ("GET", "/v1/ticker"), ("GET", "/v1/market/all"), ("GET", "/v1/orderbook"),
+    ("GET", "/v1/trades/ticks"),
 })
 PUBLIC = frozenset({"/v1/ticker", "/v1/orderbook", "/v1/orderbook/instruments", "/v1/market/all",
-                    "/v1/candles/days"})
+                    "/v1/candles/days", "/v1/trades/ticks"})
 
 
 TERMS_CHANCE_PATH = "/v1/orders/chance"
 TERMS_INSTRUMENTS_PATH = "/v1/orderbook/instruments"
 MARKET_ALL_PATH = "/v1/market/all"
 CANDLES_DAYS_PATH = "/v1/candles/days"
+TRADES_TICKS_PATH = "/v1/trades/ticks"
+ORDER_PATH = "/v1/order"
 CANDLE_COUNT_MAX = 200                    # Upbit's largest daily-candle page
+TRADES_COUNT_MAX = 200                    # Upbit's reviewed trades/ticks page bound
 
 
 def current_terms(symbol):
@@ -88,6 +92,43 @@ def candle_params(market: str, to: datetime, count: int) -> tuple[tuple[str, str
 def daily_candles(market: str, to: datetime, count: int) -> Answer:
     """One page of daily candles, one public GET; paging is the caller's."""
     return request("upbit", "GET", CANDLES_DAYS_PATH, candle_params(market, to, count))
+
+
+def trades_ticks(market: str, *, count: int = 200, cursor: str | None = None,
+                 to: str | None = None, days_ago: int | None = None) -> Answer:
+    """One public GET page of recent trade prints for a KRW market."""
+    checked = _krw_market(market)
+    if type(count) is not int or not 1 <= count <= TRADES_COUNT_MAX:
+        raise InquiryRefused("upbit: invalid trades count")
+    params = [("market", checked), ("count", str(count))]
+    if to is not None:
+        if type(to) is not str or re.fullmatch(r"(?:[01][0-9]|2[0-3])[0-5][0-9][0-5][0-9]", to) is None:
+            raise InquiryRefused("upbit: invalid trades to")
+        params.append(("to", to))
+    if cursor is not None:
+        if type(cursor) is not str or re.fullmatch(r"[1-9][0-9]{0,19}", cursor) is None:
+            raise InquiryRefused("upbit: invalid trades cursor")
+        params.append(("cursor", cursor))
+    if days_ago is not None:
+        if type(days_ago) is not int or not 1 <= days_ago <= 7:
+            raise InquiryRefused("upbit: invalid trades days_ago")
+        params.append(("days_ago", str(days_ago)))
+    return request("upbit", "GET", TRADES_TICKS_PATH, tuple(params))
+
+
+def order_detail(*, uuid: str | None = None, identifier: str | None = None) -> Answer:
+    """One authenticated GET for an individual order by uuid xor client identifier."""
+    if (uuid is None) == (identifier is None):
+        raise InquiryRefused("upbit: order requires uuid xor identifier")
+    if uuid is not None:
+        if type(uuid) is not str or re.fullmatch(r"[A-Za-z0-9_.:/-]{1,128}", uuid) is None:
+            raise InquiryRefused("upbit: invalid order uuid")
+        params = (("uuid", uuid),)
+    else:
+        if type(identifier) is not str or re.fullmatch(r"[A-Za-z0-9_.:/-]{1,128}", identifier) is None:
+            raise InquiryRefused("upbit: invalid order identifier")
+        params = (("identifier", identifier),)
+    return request("upbit", "GET", ORDER_PATH, params)
 
 
 def orderbook_instruments(markets: Sequence[str]) -> Answer:

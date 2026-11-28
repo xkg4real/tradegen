@@ -16,17 +16,18 @@ from collections.abc import Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import date, datetime
+from decimal import Decimal
 from pathlib import Path
 
 from core.compliance import rules
-from core.compliance.model import canonical_json, iso_utc, sha256_hex
+from core.compliance.model import OwnerSnapshot, ProtectiveTerms, canonical_json, iso_utc, sha256_hex
 from core.isolation import checked_target, state_root
 
 PUBKEY_PATH = Path(__file__).with_name("owner_pubkey.pem")   # the trust anchor; absent until owner act 1 (P24)
 
 OWNER_KINDS = frozenset({"approved", "code_approved", "course_completed", "broker_approval", "age_of_majority",
     "cap_set", "limit_set", "withdrawal_address", "session_armed", "session_ack", "transfer_ack", "key_rotated",
-    "research_attestation_revoked"})
+    "research_attestation_revoked", "bid_gap_set", "bid_gap_clear", "protective_terms_set"})
 SYSTEM_KINDS = frozenset({"system_halt", "system_disarm"})
 APPROVAL_KINDS = ("rules", "instruments", "venues", "calendar")
 SIG_DOMAIN = b"tradegen-owner-log/1\n"
@@ -78,6 +79,7 @@ _HEX64 = re.compile(r"[0-9a-f]{64}")
 # ASCII digits only: `\d` also takes fullwidth and Arabic-Indic digits, and strptime reads some of them.
 _UTC = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z")
 _ISO_DATE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")
+_DEC_STR = re.compile(r"(?:0|[1-9][0-9]*)(?:\.[0-9]{1,18})?")
 _BODY_KEYS = ("seq", "prev_sha256", "utc", "kind", "data")
 _LINE_KEYS = frozenset(_BODY_KEYS) | {"row_sha256"}
 _ITEMS = rules.OWNER_REQUIREMENTS - {"age_of_majority"}     # that flag comes only from a birth date
@@ -102,6 +104,45 @@ def _number(v) -> bool:
         return type(v) in (int, float) and math.isfinite(v)
     except OverflowError:
         return False
+
+
+def _dec_in(v, low: Decimal, high: Decimal, *, low_inclusive: bool = False, high_inclusive: bool = True) -> bool:
+    if isinstance(v, bool):
+        return False
+    if isinstance(v, str):
+        if _DEC_STR.fullmatch(v) is None:
+            return False
+        d = Decimal(v)
+    elif type(v) in (int, float):
+        try:
+            if not math.isfinite(v):
+                return False
+            d = Decimal(str(v))
+        except (OverflowError, ValueError):
+            return False
+        if abs(d.as_tuple().exponent) > 18:
+            return False
+    else:
+        return False
+    ok_low = d >= low if low_inclusive else d > low
+    ok_high = d <= high if high_inclusive else d < high
+    return ok_low and ok_high
+
+
+def _bid_gap_y(v) -> bool:
+    return _dec_in(v, Decimal("0"), Decimal("0.05"), low_inclusive=False, high_inclusive=True)
+
+
+def _effective_from(v) -> bool:
+    return v is None or _utc(v) or _iso_date(v)
+
+
+def _trailing_x(v) -> bool:
+    return _dec_in(v, Decimal("0"), Decimal("1"), low_inclusive=False, high_inclusive=False)
+
+
+def _margin_krw(v) -> bool:
+    return _dec_in(v, Decimal("0"), Decimal("1000000000000000"), low_inclusive=False, high_inclusive=True)
 
 
 def _one_of(options):
@@ -167,6 +208,14 @@ _DATA = {
         "purpose": lambda v: type(v) is str and v in _RESEARCH_ATTESTATION_PURPOSES,
         "target_sha256": lambda v: type(v) is str and _HEX64.fullmatch(v) is not None,
         "reason_code": lambda v: type(v) is str and v in _RESEARCH_REVOCATION_REASONS,
+    },
+    "bid_gap_set": {"scope": _text, "y": _bid_gap_y, "effective_from": _effective_from},
+    "bid_gap_clear": {"scope": _text, "reason": _text},
+    "protective_terms_set": {
+        "scope": _text,
+        "trailing_stop_x": _trailing_x,
+        "halt_margin_krw": _margin_krw,
+        "daily_margin_krw": _margin_krw,
     },
     "system_halt": {"floor_krw": lambda v: _number(v) and v >= 0},
     "system_disarm": {"session_id": _text, "reason": _text},
@@ -770,6 +819,169 @@ def _owner_fold(entries, day: _dt.date, now_utc: str, session_id, head, fingerpr
         armed_sessions=frozenset(armed), session_acks=frozenset(session_acks),
         transfer_acks=frozenset(transfer_acks), fingerprint=fingerprint_now,
         revoked_research_attestations=frozenset(revoked_research_attestations))
+
+
+def _to_dec(value) -> Decimal:
+    if isinstance(value, bool):
+        raise ValueError("invalid decimal")
+    if isinstance(value, Decimal):
+        return value
+    if isinstance(value, str):
+        if _DEC_STR.fullmatch(value) is None:
+            raise ValueError("invalid decimal")
+        return Decimal(value)
+    if type(value) in (int, float) and math.isfinite(value):
+        return Decimal(str(value))
+    raise ValueError("invalid decimal")
+
+
+def _effective_reached(eff, day: _dt.date, now_utc: str) -> bool:
+    if eff is None:
+        return True
+    if _utc(eff):
+        return eff <= now_utc
+    if _iso_date(eff):
+        return _dt.date.fromisoformat(eff) <= day
+    raise ValueError("invalid effective_from")
+
+
+def _coerce_entry(raw, idx: int) -> Entry:
+    if isinstance(raw, Entry):
+        return raw
+    if isinstance(raw, Mapping):
+        kind = str(raw["kind"])
+        return Entry(
+            seq=int(raw.get("seq", idx)),
+            utc=str(raw["utc"]),
+            kind=kind,
+            data=raw["data"],
+            row_sha256=str(raw.get("row_sha256", f"{idx:064x}")),
+            signed=bool(raw.get("signed", kind not in SYSTEM_KINDS)),
+        )
+    raise TypeError("unsupported entry")
+
+
+def _snapshot_fold(entries, day: _dt.date, now_utc: str, session_id: str | None,
+                   head: tuple[int, str]) -> OwnerSnapshot:
+    typed = tuple(_coerce_entry(e, i) for i, e in enumerate(entries, start=1))
+    base = _owner_fold(typed, day, now_utc, session_id, head, "")
+    stamps = [_seoul_date(e.utc) for e in typed]
+    late, seen = [], _dt.date.min
+    for on in stamps:
+        seen = max(seen, on)
+        late.append(seen)
+    early, soonest = [_dt.date.min] * len(stamps), day
+    for i in range(len(stamps) - 1, -1, -1):
+        soonest = min(soonest, stamps[i])
+        early[i] = soonest
+    dated = list(zip(typed, late, early))
+    halts = [(e.seq, soon) for e, _, soon in dated if e.kind == "system_halt"]
+    first_halt = min((seq for seq, _ in halts), default=None)
+    halt_day = min((soon for _, soon in halts), default=None)
+    blocking: dict[str, _dt.date] = {}
+    for e, _, soon in dated:
+        if e.kind == "session_armed":
+            sid = e.data["session_id"]
+            blocking[sid] = min(blocking.get(sid, soon), soon)
+        elif e.kind == "system_disarm":
+            blocking.pop(e.data["session_id"], None)
+    mine = blocking.get(session_id) if session_id is not None else None
+
+    def loosening_counts(e: Entry, on: _dt.date) -> bool:
+        return (e.utc <= now_utc and on < day
+                and (first_halt is None or (e.seq < first_halt and on < halt_day))
+                and (mine is None or mine > on))
+
+    bid_gaps: dict[str, Decimal] = {}
+    protective: dict[str, ProtectiveTerms] = {}
+    for e, on, _ in dated:
+        d = e.data
+        if e.kind in ("bid_gap_set", "bid_gap_clear", "protective_terms_set"):
+            if not e.signed or _data_problem(e.kind, dict(d)):
+                raise ValueError(f"invalid {e.kind}")
+        if e.kind == "bid_gap_clear":
+            bid_gaps.pop(d["scope"], None)
+        elif e.kind == "bid_gap_set":
+            scope = d["scope"]
+            new_y = _to_dec(d["y"])
+            eff = d["effective_from"]
+            old_y = bid_gaps.get(scope)
+            if old_y is not None and new_y <= old_y:
+                if (eff is None or e.utc <= now_utc) and _effective_reached(eff, day, now_utc):
+                    bid_gaps[scope] = new_y
+            elif loosening_counts(e, on) and _effective_reached(eff, day, now_utc):
+                bid_gaps[scope] = new_y
+        elif e.kind == "protective_terms_set":
+            scope = d["scope"]
+            nx = _to_dec(d["trailing_stop_x"])
+            nm = _to_dec(d["halt_margin_krw"])
+            nmd = _to_dec(d["daily_margin_krw"])
+            old_pt = protective.get(scope)
+            if old_pt is None:
+                if e.utc <= now_utc:
+                    protective[scope] = ProtectiveTerms(
+                        trailing_stop_x=nx, halt_margin_krw=nm, daily_margin_krw=nmd
+                    )
+            elif loosening_counts(e, on):
+                protective[scope] = ProtectiveTerms(
+                    trailing_stop_x=nx, halt_margin_krw=nm, daily_margin_krw=nmd
+                )
+            elif e.utc <= now_utc or (nx <= old_pt.trailing_stop_x and nm >= old_pt.halt_margin_krw
+                                      and nmd >= old_pt.daily_margin_krw):
+                protective[scope] = ProtectiveTerms(
+                    trailing_stop_x=min(old_pt.trailing_stop_x, nx),
+                    halt_margin_krw=max(old_pt.halt_margin_krw, nm),
+                    daily_margin_krw=max(old_pt.daily_margin_krw, nmd),
+                )
+    from types import MappingProxyType as _MP
+    return OwnerSnapshot(
+        ok=True,
+        head=head,
+        date=day,
+        now_utc=now_utc,
+        caps=_MP(dict(base.caps)),
+        limits=_MP(dict(base.limits)),
+        halted_floors=base.halted_floors,
+        armed_sessions=base.armed_sessions,
+        bid_gaps=_MP(dict(bid_gaps)),
+        protective_terms=_MP(dict(protective)),
+    )
+
+
+def owner_snapshot(check: LogCheck, *, date: _dt.date, now_utc: str, session_id: str | None = None,
+                   first_recorded: tuple[str, str] | None = None) -> OwnerSnapshot:
+    if not check.ok:
+        return OwnerSnapshot(ok=False, reason=check.reason, head=check.head, date=date, now_utc=now_utc)
+    if first_recorded is not None and first_recorded[0] != check.first_key_fingerprint:
+        since = first_recorded[1][:10] or "an unknown date"
+        return OwnerSnapshot(ok=False, reason=f"KEY CHANGED since {since}", head=check.head,
+                             date=date, now_utc=now_utc)
+    try:
+        return _snapshot_fold(check.entries, date, now_utc, session_id, check.head)
+    except (KeyError, TypeError, ValueError, rules.Invalid) as exc:
+        return OwnerSnapshot(ok=False, reason=f"owner log: unreadable entry data ({type(exc).__name__})",
+                             head=check.head, date=date, now_utc=now_utc)
+
+
+def fold_owner_snapshot(entries, *, now: _dt.datetime, session_id: str | None = None,
+                        head: tuple[int, str] | None = None) -> OwnerSnapshot:
+    now_utc = model.iso_utc(now)
+    day = now.astimezone(model.KST).date()
+    typed = tuple(_coerce_entry(e, i) for i, e in enumerate(entries, start=1))
+    resolved_head = head if head is not None else ((typed[-1].seq, typed[-1].row_sha256) if typed else (0, ""))
+    return _snapshot_fold(typed, day, now_utc, session_id, resolved_head)
+
+
+def load_owner_snapshot(now: _dt.datetime, *, session_id: str | None = None) -> OwnerSnapshot:
+    if not isinstance(now, _dt.datetime):
+        raise ValueError(f"load_owner_snapshot: now must be an aware datetime, got {now!r}")
+    now_utc = model.iso_utc(now)
+    day = now.astimezone(model.KST).date()
+    state, check = _owner_now(day, now_utc, session_id)
+    if not state.ok or check is None:
+        return OwnerSnapshot(ok=False, reason=state.reason, head=state.head, date=day, now_utc=now_utc)
+    return owner_snapshot(check, date=day, now_utc=now_utc, session_id=session_id,
+                          first_recorded=_first_recorded())
 
 
 def in_force(check: LogCheck) -> dict[str, tuple[str, int]]:

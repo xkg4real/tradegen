@@ -22,6 +22,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 import json
 from pathlib import Path
 import re
@@ -45,12 +46,15 @@ from execution_launch.workflow import MAX_CONFIG_BYTES, read_file
 
 _CODE = re.compile(r"[A-Z][A-Z0-9_]{0,95}")
 _HASH = re.compile(r"[0-9a-f]{64}")
+_AMOUNT = re.compile(r"(?:0|[1-9][0-9]{0,29})(?:\.[0-9]{1,18})?")
 _MAX_COMMAND = 4096
-_FIXED_ERROR_MODULES = frozenset({__name__, "execution_launch.coordinator", "execution_launch.deployment",
+_FIXED_ERROR_MODULES = frozenset({__name__, "tools.owner.planner", "tools.owner.live",
+    "execution_launch.coordinator", "execution_launch.runner", "execution_launch.deployment",
     "execution_launch.workflow", "execution_launch.profile", "execution_launch.driver",
     "execution_launch.live_history", "execution_launch.baseline_head", "execution_launch.instrument_refresh",
     "execution_accounts.baseline", "execution_accounts.baseline_store", "execution_accounts.instrument_terms",
-    "execution_launch.history_storage", "execution_launch.strategy"})
+    "execution_launch.history_storage", "execution_launch.strategy", "execution_control.session",
+    "execution_control.universe_odds"})
 
 
 class OwnerOperationError(ValueError):
@@ -204,10 +208,13 @@ class OwnerRuntime:
     Control requests remain serialized by the coordinator. This object cannot
     authorize an entry, invent a review, or resume a stopped coordinator.
     """
-    def __init__(self, coordinator: Coordinator, *, preparation_provider: Callable | None = None):
+    def __init__(self, coordinator: Coordinator, *, preparation_provider: Callable | None = None,
+                 on_close: Callable[[], None] | None = None):
         _require(type(coordinator) is Coordinator and
-                 (preparation_provider is None or callable(preparation_provider)), "OWNER_RUNTIME_REQUIRED")
+                 (preparation_provider is None or callable(preparation_provider)) and
+                 (on_close is None or callable(on_close)), "OWNER_RUNTIME_REQUIRED")
         self._coordinator, self._preparation_provider = coordinator, preparation_provider
+        self._on_close = on_close
         self._lock, self._thread, self._failure = Lock(), None, ""
         self._batch = None  # preparation input only; never review, activation or order authority
 
@@ -242,6 +249,10 @@ class OwnerRuntime:
                 "buy_block_reasons": list(status.buy_block_reasons), "disarm_failed": status.disarm_failed,
                 "window_ended_missed_slot": status.window_ended_missed_slot,
                 "notification_failed": status.notification_failed,
+                "protective_hold_active": status.protective_hold_active,
+                "protective_phase": status.protective_phase,
+                "protective_triggers": list(status.protective_triggers),
+                "protective_exit_client_id": status.protective_exit_client_id,
                 "worker_failure": failure, "execution_ready": False}
 
     def bootstrap(self) -> dict:
@@ -278,6 +289,16 @@ class OwnerRuntime:
         return {"command": "odds", "batch_digest": batch.batch_digest, "coins": len(batch.coins),
                 "passed": sum(coin.passed is True for coin in batch.coins), "execution_ready": False}
 
+    def cancel_all(self) -> dict:
+        states = self._coordinator.cancel_all()
+        return {"command": "cancel-all", "cancelled_requested": len(states),
+                "client_ids": [s.client_id for s in states], "execution_ready": False}
+
+    def exit(self, *, quantity: Decimal | None = None, limit_price: Decimal | None = None) -> dict:
+        state = self._coordinator.submit_owner_exit(quantity=quantity, limit_price=limit_price)
+        return {"command": "exit", "client_id": state.client_id, "order_status": state.status,
+                "owner_tagged": True, "execution_ready": False}
+
     def start(self) -> dict:
         with self._lock:
             _require(self._thread is None, "OWNER_RUNTIME_ALREADY_STARTED")
@@ -299,15 +320,26 @@ class OwnerRuntime:
     def close(self, *, timeout: float = 1.0) -> dict:
         _require(type(timeout) in (int, float) and 0 <= timeout <= 5, "OWNER_CLOSE_TIMEOUT_INVALID")
         closed = self._coordinator.close(timeout=timeout)
+        if closed and self._on_close is not None:
+            self._on_close()
         return {**self.status(), "command": "close", "closed": closed, "venue_orders_cancelled": False}
 
     def command(self, name: str) -> dict:
-        _require(type(name) is str and name in {"status", "bootstrap", "odds", "prepare", "run", "stop", "disarm", "close",
-                                              "refresh-terms"},
+        _require(type(name) is str, "OWNER_COMMAND_INVALID")
+        if name.startswith("exit "):
+            parts = name.split()
+            _require(len(parts) in (2, 3) and parts[0] == "exit"
+                     and all(_AMOUNT.fullmatch(p) is not None for p in parts[1:]), "OWNER_COMMAND_INVALID")
+            qty = Decimal(parts[1])
+            price = Decimal(parts[2]) if len(parts) == 3 else None
+            _require(qty > 0 and (price is None or price > 0), "OWNER_COMMAND_INVALID")
+            return self.exit(quantity=qty, limit_price=price)
+        _require(name in {"status", "bootstrap", "odds", "prepare", "run", "stop", "disarm", "close",
+                          "refresh-terms", "cancel-all", "exit"},
                  "OWNER_COMMAND_INVALID")
         methods = {"status": self.status, "bootstrap": self.bootstrap, "odds": self.odds, "prepare": self.prepare,
                    "run": self.start, "stop": self.stop, "disarm": self.disarm, "close": self.close,
-                   "refresh-terms": self.refresh_terms}
+                   "refresh-terms": self.refresh_terms, "cancel-all": self.cancel_all, "exit": self.exit}
         return methods[name]()
 
 

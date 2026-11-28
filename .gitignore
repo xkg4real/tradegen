@@ -5,3 +5,5 @@ __pycache__/
 *.pyc
 .claude/settings.local.json
 .serena/
+native/tradegen_fast/build/
+qlib_lab/_accel/build/

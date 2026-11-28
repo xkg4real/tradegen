@@ -347,7 +347,10 @@ def test_fresh_ticker_metadata_cannot_hide_a_stale_last_trade_or_a_stale_book():
             return super().fetch(path, params)
     source = EmptyBook(with_order=True)
     source.trade_at = NOW-timedelta(minutes=1)
-    refusal(lambda: collect(source), "COLLECTOR_BOOK_INVALID")
+    result = collect(source)
+    position = result.bundle.accounts[0].positions[0]
+    assert (position.price, position.best_bid, position.best_bid_asof) == (D("10000"), None, NOW)
+    assert build_observation(result.bundle, now=NOW, bid_gap_y=D("0.05")).risk.bid_gap_triggered is True
 
 
 def test_a_listed_coin_keeps_its_ticker_mark_after_one_listing_read():
@@ -409,8 +412,12 @@ def test_a_thin_coin_with_a_stale_last_trade_is_marked_at_a_fresh_best_bid():
     paths = [path for path, _ in source.calls]
     assert paths.index("/v1/orderbook") > max(i for i, path in enumerate(paths) if path == "/v1/withdraws")
     position = result.bundle.accounts[0].positions[0]
-    assert (position.price, position.asof, position.unlisted) == (D("9900"), NOW, None)
-    assert build_observation(result.bundle, now=NOW).risk.equity == D("99895")     # 89995 + 9900
+    assert (position.price, position.asof, position.unlisted) == (D("10000"), source.trade_at, None)
+    assert (position.best_bid, position.best_bid_asof) == (D("9900"), NOW)
+    obs_default = build_observation(result.bundle, now=NOW)
+    assert obs_default.risk.equity == D("99995") and obs_default.risk.bid_gap_triggered is True
+    assert build_observation(result.bundle, now=NOW, bid_gap_y=D("0.01")).risk.bid_gap_triggered is True
+    assert build_observation(result.bundle, now=NOW, bid_gap_y=D("0.02")).risk.bid_gap_triggered is False
     fresh = SyntheticSource(with_order=True)
     collect(fresh)
     assert not any(path == "/v1/orderbook" for path, _ in fresh.calls)

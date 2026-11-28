@@ -68,7 +68,8 @@ def request(params=None):
 
 def test_exact_capture_subset_is_nine_existing_get_pairs():
     expected = frozenset(('GET', path) for path in (PATH, '/v1/orders/open', '/v1/orders/closed',
-        '/v1/order', '/v1/deposits', '/v1/withdraws', '/v1/ticker', '/v1/market/all', '/v1/orderbook'))
+        '/v1/order', '/v1/deposits', '/v1/withdraws', '/v1/ticker', '/v1/market/all', '/v1/orderbook',
+        '/v1/trades/ticks'))
     assert U.READ_CAPTURE_ENDPOINTS == expected and expected < U.ENDPOINTS
     assert type(U.READ_CAPTURE_ENDPOINTS) is frozenset
 

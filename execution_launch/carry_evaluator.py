@@ -9,7 +9,7 @@ never invented sale proceeds. All four scenarios use the shared behavior policy.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from fractions import Fraction
 import hashlib
@@ -17,6 +17,7 @@ import json
 import math
 import re
 
+from core.compliance import native_accel
 from execution_launch.managed_behavior import (
     BEHAVIOR_REVISION, FixedDecisionV2, benchmark_fixed_decision_v2,
     decision_digest, derive_fixed_intent_v2, resolve_behavior,
@@ -28,6 +29,13 @@ _SCALE = 10**18
 _DECIMAL = re.compile(r'-?(?:0|[1-9][0-9]*)(?:\.[0-9]*[1-9])?')
 _SHA = re.compile(r'[0-9a-f]{64}')
 _MAX_TEXT = 4096
+_EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
+_DECISION_CODES = {'long_target': 0, 'cash_target': 1, 'warmup': 2, 'unavailable': 3}
+
+
+def _us(dt: datetime) -> int:
+    delta = dt - _EPOCH
+    return (delta.days * 86400 + delta.seconds) * 1_000_000 + delta.microseconds
 
 
 class CarryArithmeticError(ValueError):
@@ -228,6 +236,160 @@ def simulate_carry(protocol, bars, decisions, rules, *, cost_multiple=1, lag=1,
         _require(decision.cause != 'benchmark_buy_hold', 'CARRY_BENCHMARK_NOT_STRATEGY')
         previous_time = row.observed_at
     _require(bars[-1].observed_at == protocol.capture_end, 'CARRY_TERMINAL_TIME_INVALID')
+    fast = None
+    if native_accel.get_native_handle() is not None:
+        slip_dec = _decimal(slip)
+        fee_dec = _decimal(fee)
+        bars_fast = [(r.bid, r.ask, r.mark, _us(r.observed_at)) for r in bars]
+        decs_fast = [
+            (
+                _DECISION_CODES[d.state],
+                Decimal(0) if d.target_fraction is None else d.target_fraction,
+                _us(d.decided_at),
+            )
+            for d in decisions
+        ]
+        fast = native_accel.simulate_carry_fast(
+            bars_data=bars_fast,
+            decisions_data=decs_fast,
+            initial_cash=protocol.initial_cash_quote,
+            fee_fraction=fee_dec,
+            slip_fraction=slip_dec,
+            lot_size=rules.lot_size,
+            tick_size=rules.tick_size,
+            min_qty=rules.min_quantity,
+            min_notional=rules.min_notional_krw,
+            deadline_us=_us(protocol.capture_end),
+            lag=lag,
+            buy_hold=buy_hold,
+        )
+    if fast is not None:
+        net_returns = fast['net_returns']
+        if all(math.isfinite(v) and v > -1 for v in net_returns):
+            t_cash = fast['terminal_cash']
+            t_units = fast['terminal_units']
+            t_basis = fast['terminal_basis']
+            t_realized = fast['realized_net_profit']
+            t_fees = fast['total_fees']
+            t_turn = fast['turnover']
+            raw_fills = fast['fills']
+            raw_lots = fast['lots']
+            last_idx = len(bars) - 1
+            last_bar = bars[-1]
+            if last_idx >= lag:
+                last_dec = decisions[last_idx - lag]
+                if buy_hold:
+                    last_dec = benchmark_fixed_decision_v2(
+                        bar_index=last_dec.bar_index,
+                        decided_at=last_dec.decided_at,
+                        history_sha256=last_dec.history_sha256,
+                    )
+                last_intent = derive_fixed_intent_v2(
+                    last_dec,
+                    cash_quote=t_cash,
+                    units=t_units,
+                    mark=last_bar.mark,
+                    slot=last_bar.observed_at,
+                    deadline=protocol.capture_end,
+                )
+                f_state, f_cause, f_blocks = (
+                    last_intent.decision_state,
+                    last_intent.decision_cause,
+                    last_intent.execution_block_reasons,
+                )
+            else:
+                f_state, f_cause = 'not_yet_available', 'fill_delay'
+                f_blocks = ('MANAGED_FILL_DELAY',)
+                if last_bar.observed_at >= protocol.capture_end:
+                    f_blocks += ('MANAGED_DEADLINE_REACHED',)
+
+            def _to_fp18_int(val: Decimal) -> int:
+                if not val:
+                    return 0
+                txt = format(val, 'f')
+                if '.' in txt:
+                    w, fr = txt.split('.', 1)
+                    return int(w) * _SCALE + int(fr.ljust(18, '0'))
+                return int(txt) * _SCALE
+
+            cur_cash_fp = _to_fp18_int(protocol.initial_cash_quote)
+            cur_units_fp = 0
+            peak_fp = cur_cash_fp
+            best_drop, best_peak = 0, 1
+            fptr = 0
+            n_fills = len(raw_fills)
+            fill_records = []
+            for idx in range(1, len(bars)):
+                if fptr < n_fills and raw_fills[fptr][0] == idx:
+                    b_i, f_act, f_qty, f_px, f_fee = raw_fills[fptr]
+                    fptr += 1
+                    q_fp = _to_fp18_int(f_qty)
+                    notional_fp = (q_fp * _to_fp18_int(f_px)) // _SCALE
+                    fee_fp = _to_fp18_int(f_fee)
+                    if f_act == 'entry':
+                        cur_cash_fp -= notional_fp + fee_fp
+                        cur_units_fp += q_fp
+                    else:
+                        cur_cash_fp += notional_fp - fee_fp
+                        cur_units_fp -= q_fp
+                    f_dec = decisions[b_i - lag]
+                    if buy_hold:
+                        f_dec = benchmark_fixed_decision_v2(
+                            bar_index=f_dec.bar_index,
+                            decided_at=f_dec.decided_at,
+                            history_sha256=f_dec.history_sha256,
+                        )
+                    fill_records.append({
+                        'bar_index': b_i,
+                        'action': f_act,
+                        'quantity': decimal_text(f_qty),
+                        'price_quote': decimal_text(f_px),
+                        'fee_quote': decimal_text(f_fee),
+                        'source_sha256': bars[b_i].source_sha256,
+                        'decision_sha256': f_dec.decision_sha256,
+                    })
+                nav_fp = cur_cash_fp + (cur_units_fp * _to_fp18_int(bars[idx].mark)) // _SCALE
+                if nav_fp > peak_fp:
+                    peak_fp = nav_fp
+                elif nav_fp < peak_fp:
+                    drop = peak_fp - nav_fp
+                    if drop * best_peak > best_drop * peak_fp:
+                        best_drop, best_peak = drop, peak_fp
+
+            term_nav_frac = Fraction(t_cash) + Fraction(t_units) * Fraction(last_bar.mark)
+            unreal_frac = Fraction(t_units) * Fraction(last_bar.mark) - Fraction(t_basis)
+            metrics = CarryMetricsV2(
+                observations=len(net_returns),
+                completed_roundtrips=fast['completed_roundtrips'],
+                rejected_small_orders=fast['rejected_small_orders'],
+                total_return=float(term_nav_frac / initial - 1),
+                mean_return=math.fsum(net_returns) / len(net_returns),
+                max_drawdown=float(Fraction(best_drop, best_peak)),
+                total_fees_quote=float(Fraction(t_fees)),
+                turnover_quote=float(Fraction(t_turn)),
+                terminal_units=decimal_text(t_units),
+                cash_nonnegative=True,
+                terminal_cash_quote=decimal_text(t_cash),
+                terminal_mark_quote=decimal_text(last_bar.mark),
+                terminal_marked_equity_quote=_text(term_nav_frac),
+                terminal_inventory_cost_quote=decimal_text(t_basis),
+                realized_net_profit_quote=decimal_text(t_realized),
+                unrealized_net_profit_quote=_text(unreal_frac),
+                total_fees_quote_exact=decimal_text(t_fees),
+                turnover_quote_exact=decimal_text(t_turn),
+                terminal_observed_at=last_bar.observed_at,
+                terminal_source_sha256=last_bar.source_sha256,
+                terminal_decision_state=f_state,
+                terminal_decision_cause=f_cause,
+                terminal_execution_block_reasons=f_blocks,
+                fills_sha256=_digest(fill_records),
+                lots_sha256=_digest([
+                    {'quantity': decimal_text(lq), 'cost_quote': decimal_text(lc)}
+                    for lq, lc in raw_lots
+                ]),
+            )
+            return metrics, net_returns
+
     units = fees = turnover = realized = basis = _ZERO
     lots, navs, fills = (), [cash], []
     trips = rejected = 0

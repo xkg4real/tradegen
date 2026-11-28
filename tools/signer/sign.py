@@ -198,6 +198,48 @@ def _b64_of(n: int):
     return check
 
 
+_DEC_STR = re.compile(r"(?:0|[1-9][0-9]*)(?:\.[0-9]{1,18})?")
+
+
+def _dec_in(v, low: Decimal, high: Decimal, *, low_inclusive: bool = False, high_inclusive: bool = True) -> bool:
+    if isinstance(v, bool):
+        return False
+    if isinstance(v, str):
+        if _DEC_STR.fullmatch(v) is None:
+            return False
+        d = Decimal(v)
+    elif type(v) in (int, float):
+        try:
+            if not math.isfinite(v):
+                return False
+            d = Decimal(str(v))
+        except (OverflowError, ValueError):
+            return False
+        if abs(d.as_tuple().exponent) > 18:
+            return False
+    else:
+        return False
+    ok_low = d >= low if low_inclusive else d > low
+    ok_high = d <= high if high_inclusive else d < high
+    return ok_low and ok_high
+
+
+def _bid_gap_y(v) -> bool:
+    return _dec_in(v, Decimal("0"), Decimal("0.05"), low_inclusive=False, high_inclusive=True)
+
+
+def _effective_from(v) -> bool:
+    return v is None or _utc(v) or _iso_date(v)
+
+
+def _trailing_x(v) -> bool:
+    return _dec_in(v, Decimal("0"), Decimal("1"), low_inclusive=False, high_inclusive=False)
+
+
+def _margin_krw(v) -> bool:
+    return _dec_in(v, Decimal("0"), Decimal("1000000000000000"), low_inclusive=False, high_inclusive=True)
+
+
 def _files(v) -> bool:
     """[[relpath, sha256], ...], non-empty, sorted by path with no repeat (the order of code_files)."""
     if not (isinstance(v, list) and v and all(isinstance(f, list) and len(f) == 2 and _text(f[0]) and _hex64(f[1])
@@ -225,6 +267,14 @@ SCHEMAS = {
     _RESEARCH_REVOKED: {'purpose': lambda v: type(v) is str and v in _RESEARCH_PURPOSES,
         'target_sha256': lambda v: type(v) is str and _hex64(v),
         'reason_code': lambda v: type(v) is str and v in _RESEARCH_REASONS},
+    "bid_gap_set": {"scope": _text, "y": _bid_gap_y, "effective_from": _effective_from},
+    "bid_gap_clear": {"scope": _text, "reason": _text},
+    "protective_terms_set": {
+        "scope": _text,
+        "trailing_stop_x": _trailing_x,
+        "halt_margin_krw": _margin_krw,
+        "daily_margin_krw": _margin_krw,
+    },
 }
 SYSTEM_SCHEMAS = {                                     # never signed here; _head checks them in the log
     "system_halt": {"floor_krw": lambda v: _number(v) and v >= 0},
@@ -3173,6 +3223,220 @@ def _cmd_research_revoke(args):
     return 0
 
 
+@dataclass(frozen=True, kw_only=True)
+class ProtectiveTerms:
+    trailing_stop_x: Decimal
+    halt_margin_krw: Decimal
+    daily_margin_krw: Decimal
+
+
+@dataclass(frozen=True, kw_only=True)
+class OwnerSnapshot:
+    ok: bool
+    reason: str = ""
+    head: tuple[int, str] = (0, "")
+    date: date | None = None
+    now_utc: str = ""
+    caps: Mapping[str, float] = None  # type: ignore[assignment]
+    limits: Mapping[str, float] = None  # type: ignore[assignment]
+    halted_floors: frozenset = frozenset()
+    armed_sessions: frozenset = frozenset()
+    bid_gaps: Mapping[str, Decimal] = None  # type: ignore[assignment]
+    protective_terms: Mapping[str, ProtectiveTerms] = None  # type: ignore[assignment]
+
+    def __post_init__(self) -> None:
+        from types import MappingProxyType
+        for name in ("caps", "limits", "bid_gaps", "protective_terms"):
+            current = getattr(self, name)
+            object.__setattr__(self, name, MappingProxyType({} if current is None else dict(current)))
+
+    def bid_gap_for(self, scope: str) -> Decimal | None:
+        if not self.ok:
+            return None
+        if scope in self.bid_gaps:
+            return self.bid_gaps[scope]
+        return self.bid_gaps.get("*")
+
+    def protective_for(self, scope: str) -> ProtectiveTerms | None:
+        if not self.ok:
+            return None
+        if scope in self.protective_terms:
+            return self.protective_terms[scope]
+        return self.protective_terms.get("*")
+
+
+def _to_dec(value) -> Decimal:
+    if isinstance(value, bool):
+        raise ValueError("invalid decimal")
+    if isinstance(value, Decimal):
+        return value
+    if isinstance(value, str):
+        if _DEC_STR.fullmatch(value) is None:
+            raise ValueError("invalid decimal")
+        return Decimal(value)
+    if type(value) in (int, float) and math.isfinite(value):
+        return Decimal(str(value))
+    raise ValueError("invalid decimal")
+
+
+def _effective_reached(eff, day: date, now_utc: str) -> bool:
+    if eff is None:
+        return True
+    if _utc(eff):
+        return eff <= now_utc
+    if _iso_date(eff):
+        return date.fromisoformat(eff) <= day
+    raise ValueError("invalid effective_from")
+
+
+def _seoul_date_utc(utc: str) -> date:
+    import zoneinfo
+    moment = datetime.strptime(utc, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+    return moment.astimezone(zoneinfo.ZoneInfo("Asia/Seoul")).date()
+
+
+def fold_owner_snapshot(entries, *, now: datetime, session_id: str | None = None,
+                        head: tuple[int, str] | None = None) -> OwnerSnapshot:
+    import zoneinfo
+    if not isinstance(now, datetime) or now.utcoffset() is None:
+        raise ValueError("aware datetime required")
+    kst = zoneinfo.ZoneInfo("Asia/Seoul")
+    now_utc = now.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    day = now.astimezone(kst).date()
+    rows = []
+    for idx, raw in enumerate(entries, start=1):
+        if isinstance(raw, Mapping):
+            kind = str(raw["kind"])
+            rows.append((int(raw.get("seq", idx)), str(raw["utc"]), kind, dict(raw["data"]),
+                         str(raw.get("row_sha256", f"{idx:064x}")),
+                         bool(raw.get("signed", kind not in SYSTEM_SCHEMAS))))
+        else:
+            rows.append((int(raw.seq), str(raw.utc), str(raw.kind), dict(raw.data),
+                         str(raw.row_sha256), bool(raw.signed)))
+    resolved_head = head if head is not None else ((rows[-1][0], rows[-1][4]) if rows else (0, ""))
+    stamps = [_seoul_date_utc(r[1]) for r in rows]
+    late, seen = [], date.min
+    for on in stamps:
+        seen = max(seen, on)
+        late.append(seen)
+    early, soonest = [date.min] * len(stamps), day
+    for i in range(len(stamps) - 1, -1, -1):
+        soonest = min(soonest, stamps[i])
+        early[i] = soonest
+    dated = list(zip(rows, late, early))
+    halts = [(r[0], soon, float(r[3]["floor_krw"])) for r, _, soon in dated if r[2] == "system_halt"]
+    first_halt = min((seq for seq, _, _ in halts), default=None)
+    halt_day = min((soon for _, soon, _ in halts), default=None)
+    halt_floor = max((fl for _, _, fl in halts), default=None)
+    blocking: dict[str, date] = {}
+    armed: set[str] = set()
+    for r, _, soon in dated:
+        if r[2] == "session_armed":
+            sid = r[3]["session_id"]
+            blocking[sid] = min(blocking.get(sid, soon), soon)
+            if r[1] <= now_utc:
+                armed.add(sid)
+        elif r[2] == "system_disarm":
+            blocking.pop(r[3]["session_id"], None)
+            armed.discard(r[3]["session_id"])
+    mine = blocking.get(session_id) if session_id is not None else None
+
+    def loosening_counts(seq: int, utc: str, on: date) -> bool:
+        return (utc <= now_utc and on < day
+                and (first_halt is None or (seq < first_halt and on < halt_day))
+                and (mine is None or mine > on))
+
+    tighter = {
+        "okx_equity_share": lambda new, old: new <= old,
+        "total_loss_floor_krw": lambda new, old: new >= old,
+        "daily_loss_krw": lambda new, old: new <= old,
+    }
+    values: dict[str, float] = {}
+    bid_gaps: dict[str, Decimal] = {}
+    protective: dict[str, ProtectiveTerms] = {}
+    for (seq, utc, kind, d, _row_sha, signed), on, _ in dated:
+        if kind in ("bid_gap_set", "bid_gap_clear", "protective_terms_set"):
+            if not signed or _data_problem(kind, d):
+                raise ValueError(f"invalid {kind}")
+        if kind in ("cap_set", "limit_set"):
+            pairs = [(d["key"], d["value"])] if kind == "cap_set" else [
+                ("total_loss_floor_krw", d["total_loss_floor_krw"]),
+                ("daily_loss_krw", d["daily_loss_krw"]),
+            ]
+            for k, val in pairs:
+                fval, old = float(val), values.get(k)
+                if k in tighter and ((old is not None and tighter[k](fval, old)) or loosening_counts(seq, utc, on)):
+                    values[k] = fval
+        elif kind == "bid_gap_clear":
+            bid_gaps.pop(d["scope"], None)
+        elif kind == "bid_gap_set":
+            scope = d["scope"]
+            new_y = _to_dec(d["y"])
+            eff = d["effective_from"]
+            old_y = bid_gaps.get(scope)
+            if old_y is not None and new_y <= old_y:
+                if (eff is None or utc <= now_utc) and _effective_reached(eff, day, now_utc):
+                    bid_gaps[scope] = new_y
+            elif loosening_counts(seq, utc, on) and _effective_reached(eff, day, now_utc):
+                bid_gaps[scope] = new_y
+        elif kind == "protective_terms_set":
+            scope = d["scope"]
+            nx = _to_dec(d["trailing_stop_x"])
+            nm = _to_dec(d["halt_margin_krw"])
+            nmd = _to_dec(d["daily_margin_krw"])
+            old_pt = protective.get(scope)
+            if old_pt is None:
+                if utc <= now_utc:
+                    protective[scope] = ProtectiveTerms(
+                        trailing_stop_x=nx, halt_margin_krw=nm, daily_margin_krw=nmd
+                    )
+            elif loosening_counts(seq, utc, on):
+                protective[scope] = ProtectiveTerms(
+                    trailing_stop_x=nx, halt_margin_krw=nm, daily_margin_krw=nmd
+                )
+            elif utc <= now_utc or (nx <= old_pt.trailing_stop_x and nm >= old_pt.halt_margin_krw
+                                    and nmd >= old_pt.daily_margin_krw):
+                protective[scope] = ProtectiveTerms(
+                    trailing_stop_x=min(old_pt.trailing_stop_x, nx),
+                    halt_margin_krw=max(old_pt.halt_margin_krw, nm),
+                    daily_margin_krw=max(old_pt.daily_margin_krw, nmd),
+                )
+    if halt_floor is not None and "total_loss_floor_krw" in values:
+        values["total_loss_floor_krw"] = max(values["total_loss_floor_krw"], halt_floor)
+    return OwnerSnapshot(
+        ok=True,
+        head=resolved_head,
+        date=day,
+        now_utc=now_utc,
+        caps={k: v for k, v in values.items() if k == "okx_equity_share"},
+        limits={k: v for k, v in values.items() if k in ("total_loss_floor_krw", "daily_loss_krw")},
+        halted_floors=frozenset(fl for _, _, fl in halts),
+        armed_sessions=frozenset(armed),
+        bid_gaps=bid_gaps,
+        protective_terms=protective,
+    )
+
+
+def _cmd_bid_gap_set(args) -> int:
+    data = {"scope": args.scope, "y": args.y, "effective_from": args.effective_from}
+    return _sign(args, "bid_gap_set", data)
+
+
+def _cmd_bid_gap_clear(args) -> int:
+    data = {"scope": args.scope, "reason": args.reason}
+    return _sign(args, "bid_gap_clear", data)
+
+
+def _cmd_protective_terms_set(args) -> int:
+    data = {
+        "scope": args.scope,
+        "trailing_stop_x": args.trailing_stop_x,
+        "halt_margin_krw": args.halt_margin_krw,
+        "daily_margin_krw": args.daily_margin_krw,
+    }
+    return _sign(args, "protective_terms_set", data)
+
+
 def _cmd_event(args) -> int:
     if args.kind == _RESEARCH_REVOKED:
         raise ValueError('use research-revoke with the original detached document')
@@ -3193,6 +3457,9 @@ def _parser() -> argparse.ArgumentParser:
                             ("review-approve", _cmd_review_approve, "attest a prospective source and fixed implementation review"),
                             ("bundle-attest", _cmd_bundle_attest, "attest exact archived manifests and available file bytes only"),
                             ("research-revoke", _cmd_research_revoke, "restrict use of one exact research approval body"),
+                            ("bid-gap-set", _cmd_bid_gap_set, "sign a scoped BR-26 bid-gap threshold Y in (0, 0.05]"),
+                            ("bid-gap-clear", _cmd_bid_gap_clear, "clear a scoped BR-26 bid-gap threshold immediately"),
+                            ("protective-terms-set", _cmd_protective_terms_set, "sign standing A2 protective terms (X, M, Md)"),
                             ("event", _cmd_event, "sign one owner event")):
         p = sub.add_parser(name, help=text)
         p.set_defaults(run=run)
@@ -3213,6 +3480,18 @@ def _parser() -> argparse.ArgumentParser:
             p.add_argument('--document', required=True)
             p.add_argument('--purpose', required=True, choices=sorted(_RESEARCH_PURPOSES))
             p.add_argument('--reason-code', required=True, choices=sorted(_RESEARCH_REASONS))
+        elif name == "bid-gap-set":
+            p.add_argument("--scope", required=True)
+            p.add_argument("--y", required=True)
+            p.add_argument("--effective-from", default=None)
+        elif name == "bid-gap-clear":
+            p.add_argument("--scope", required=True)
+            p.add_argument("--reason", required=True)
+        elif name == "protective-terms-set":
+            p.add_argument("--scope", required=True)
+            p.add_argument("--trailing-stop-x", required=True)
+            p.add_argument("--halt-margin-krw", required=True)
+            p.add_argument("--daily-margin-krw", required=True)
         elif name == "event":
             p.add_argument("kind", choices=sorted(set(SCHEMAS) - {"approved", "code_approved", _RESEARCH_REVOKED}))
             p.add_argument("--data", required=True, help="the event data as one JSON object")

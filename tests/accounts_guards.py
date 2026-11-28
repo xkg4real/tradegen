@@ -14,7 +14,7 @@ FORBIDDEN_CALLS = {"eval", "exec", "__import__", "compile", "request", "urlopen"
 
 COLLECTOR_ROUTES = frozenset({"/v1/accounts", "/v1/orders/open", "/v1/orders/closed",
                               "/v1/order", "/v1/deposits", "/v1/withdraws", "/v1/ticker",
-                              "/v1/market/all", "/v1/orderbook"})          # spec 11: listing and thin-coin book
+                              "/v1/market/all", "/v1/orderbook", "/v1/trades/ticks"})
 
 READ_ROUTES = {"upbit_collector.py": COLLECTOR_ROUTES,
                "quotes.py": frozenset({"/v1/orderbook"})}

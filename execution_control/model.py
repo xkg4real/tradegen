@@ -14,6 +14,8 @@ import hashlib
 import json
 import re
 
+from core.compliance import native_accel
+
 _IDENTIFIER = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,63}")
 _SCOPE = re.compile(r"[A-Za-z][A-Za-z0-9_-]{0,63}")
 _HASH = re.compile(r"[0-9a-f]{64}")
@@ -170,6 +172,28 @@ def validate_order(order: Order, rules: InstrumentRules) -> None:
     _rule_fields(rules)
     if (order.venue, order.market, order.symbol) != (rules.venue, rules.market, rules.symbol):
         raise ValueError("instrument rules mismatch")
+    fast = native_accel.validate_and_size_order(
+        quantity=order.quantity,
+        limit_price=order.limit_price,
+        quote_krw=order.quote_krw,
+        lot_size=rules.lot_size,
+        tick_size=rules.tick_size,
+        min_quantity=rules.min_quantity,
+        min_notional_krw=rules.min_notional_krw,
+        require_integer_qty=(order.venue == "kis"),
+    )
+    if fast is not None:
+        if fast == native_accel.TG_ORDER_VALID:
+            return
+        if fast == native_accel.TG_ORDER_FRACTIONAL_SHARES:
+            raise ValueError("fractional shares unsupported")
+        if fast == native_accel.TG_ORDER_OFF_LOT:
+            raise ValueError("quantity not on lot")
+        if fast == native_accel.TG_ORDER_OFF_TICK:
+            raise ValueError("price not on tick")
+        if fast == native_accel.TG_ORDER_BELOW_MIN_QTY:
+            raise ValueError("quantity below minimum")
+        raise ValueError("notional below minimum")
     # Fractions avoid silently rounding Decimal modulo/division under ambient contexts.
     if (Fraction(order.quantity) / Fraction(rules.lot_size)).denominator != 1:
         raise ValueError("quantity not on lot")

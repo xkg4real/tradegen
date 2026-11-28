@@ -28,6 +28,7 @@ from datetime import date, timedelta
 
 import numpy as np
 
+from core.compliance import native_accel
 from core.odds import costs, models, plan, report
 
 CHUNK = 200_000
@@ -152,8 +153,218 @@ def _garch_prices(p0: float, ret: np.ndarray) -> Iterator[tuple]:
         yield p, 0.0, math.inf
 
 
+def _paths_native(spec: PathSpec, steps: list[tuple], n: int, record: bool) -> dict[str, np.ndarray] | None:
+    terms = spec.terms
+    if not steps or len(steps) != len(spec.checks.on):
+        return None
+    if spec.sizing not in ("floor_safe", "stop_based") or spec.fraction.kind not in ("fixed", "kelly", "bold"):
+        return None
+    if spec.fraction.kind == "kelly" and spec.fstar is None:
+        return None
+    if terms.book not in costs.TABLE_BP:
+        return None
+    try:
+        costs.check_validity(terms, spec.checks.on)
+    except Exception:
+        return None
+    ladders = set()
+    if terms.book == "KRX_ETF_line" or terms.ladder is not None:
+        try:
+            for d in set(spec.checks.on):
+                ladders.add(costs._rows(terms, d))
+        except Exception:
+            return None
+        if len(ladders) != 1:
+            return None
+        rows = next(iter(ladders))
+        ladder_starts = np.ascontiguousarray([float(r[0]) for r in rows], dtype=np.float64)
+        ladder_steps = np.ascontiguousarray([float(r[1]) for r in rows], dtype=np.float64)
+        n_ladder = len(rows)
+    else:
+        ladder_starts = np.zeros(1, dtype=np.float64)
+        ladder_steps = np.zeros(1, dtype=np.float64)
+        n_ladder = 0
+
+    n_checks = len(steps)
+    prices_mat = np.empty((n_checks, n), dtype=np.float64)
+    banded_flags = np.empty(n_checks, dtype=np.int32)
+    d_parts: list[np.ndarray] = []
+    u_parts: list[np.ndarray] = []
+    for j, (p_arr, d_edge, u_edge) in enumerate(steps):
+        p_c = np.asarray(p_arr, dtype=np.float64)
+        if p_c.shape != (n,) or not np.all(np.isfinite(p_c) & (p_c > 0.0)):
+            return None
+        prices_mat[j] = p_c
+        if isinstance(d_edge, np.ndarray):
+            banded_flags[j] = 1
+            d_parts.append(np.ascontiguousarray(d_edge, dtype=np.float64))
+            u_parts.append(np.ascontiguousarray(u_edge, dtype=np.float64))
+        else:
+            banded_flags[j] = 0
+            d_parts.append(np.array([float(d_edge)], dtype=np.float64))
+            u_parts.append(np.array([float(u_edge)], dtype=np.float64))
+    d_flat = np.ascontiguousarray(np.concatenate(d_parts), dtype=np.float64)
+    u_flat = np.ascontiguousarray(np.concatenate(u_parts), dtype=np.float64)
+
+    exit_from = spec.force_exit_from
+    entries_until = min((day for day in (spec.stop_entries_from, exit_from) if day is not None), default=None)
+    seoul = spec.checks.seoul
+    on_dates = spec.checks.on
+    check_close = np.ascontiguousarray(spec.checks.close.astype(np.int32), dtype=np.int32)
+    check_new_day = np.array([1 if (j > 0 and seoul[j] != seoul[j - 1]) else 0 for j in range(n_checks)], dtype=np.int32)
+    check_can_enter = np.array([0 if (entries_until is not None and seoul[j] >= entries_until) else 1 for j in range(n_checks)], dtype=np.int32)
+    check_force_exit = np.array([1 if (exit_from is not None and seoul[j] >= exit_from) else 0 for j in range(n_checks)], dtype=np.int32)
+    check_sell_tax = np.array(
+        [float(costs.SELL_TAX_BP[on_dates[j].year]) if terms.book == "KRX_stock_book" else 0.0 for j in range(n_checks)],
+        dtype=np.float64,
+    )
+
+    book_kind = 1 if terms.book == "KRX_ETF_line" else (2 if terms.book == "KRX_stock_book" else 0)
+    sizing_kind = 0 if spec.sizing == "floor_safe" else 1
+    frac_kind = 0 if spec.fraction.kind == "fixed" else (1 if spec.fraction.kind == "kelly" else 2)
+    bracket = spec.bracket
+
+    spec_fields = {
+        "n_paths": int(n),
+        "n_checks": int(n_checks),
+        "moonshot": 1 if spec.track == "moonshot" else 0,
+        "has_bracket": 1 if bracket is not None else 0,
+        "sizing_kind": sizing_kind,
+        "fraction_kind": frac_kind,
+        "has_fstar": 1 if spec.fstar is not None else 0,
+        "has_cap_krw": 1 if spec.cap_krw is not None else 0,
+        "has_delist_h": 1 if spec.delist_h is not None else 0,
+        "book_kind": book_kind,
+        "n_ladder_rows": int(n_ladder),
+        "record_brackets": 1 if record else 0,
+        "w0": float(spec.w0),
+        "target": float(spec.target),
+        "floor_val": float(spec.floor),
+        "daily_loss": float(spec.daily_loss),
+        "mult": float(spec.mult),
+        "take_profit": float(bracket.take_profit) if bracket is not None else 0.0,
+        "stop": float(bracket.stop) if bracket is not None else 0.0,
+        "fraction_val": float(spec.fraction.value) if spec.fraction.value is not None else 0.0,
+        "fstar": float(spec.fstar) if spec.fstar is not None else 0.0,
+        "cap_krw": float(spec.cap_krw) if spec.cap_krw is not None else 0.0,
+        "delist_h": float(spec.delist_h) if spec.delist_h is not None else 0.0,
+        "table_bp": float(costs.TABLE_BP[terms.book]),
+        "commission_bp": float(costs.COMMISSION_BP),
+        "quote_krw": float(terms.quote_krw),
+        "lot": float(terms.lot),
+        "min_krw": float(terms.min_krw),
+        "phi_buy": float(terms.phi_buy),
+        "phi_sell": float(terms.phi_sell),
+        "carry_mult": float(costs.LIMIT_DOWN_CARRY_COST_MULTIPLIER),
+        "cost_stress": float(costs.COST_STRESS),
+    }
+
+    out_p = np.empty(n, dtype=np.float64)
+    out_v = np.empty(n, dtype=np.float64)
+    out_cost = np.empty(n, dtype=np.float64)
+    out_x = np.empty(n, dtype=np.float64)
+    out_outcome = np.empty(n, dtype=np.int8)
+    out_fp = np.empty(n, dtype=bool)
+    out_entered = np.empty(n, dtype=bool)
+    out_entries = np.empty(n, dtype=np.int64)
+    out_wins = np.empty(n, dtype=np.int64)
+    out_losses = np.empty(n, dtype=np.int64)
+    out_unresolved = np.empty(n, dtype=np.int64)
+    out_gap = np.empty(n, dtype=np.float64)
+    out_cash_min = np.empty(n, dtype=np.float64)
+    out_locked = np.empty(n, dtype=bool)
+    out_edge = np.empty(n, dtype=np.int64)
+    out_carried = np.empty(n, dtype=np.int64)
+    out_stake = np.empty(n, dtype=np.float64)
+
+    max_br = max(n * 4, 65536) if record else 1
+    out_br_r = np.empty(max_br, dtype=np.float64)
+    out_br_d = np.empty(max_br, dtype=np.int64)
+
+    def make_ptrs(br_r_arr: np.ndarray, br_d_arr: np.ndarray) -> dict[str, int]:
+        return {
+            "ladder_starts": int(ladder_starts.ctypes.data),
+            "ladder_steps": int(ladder_steps.ctypes.data),
+            "check_close": int(check_close.ctypes.data),
+            "check_new_seoul_day": int(check_new_day.ctypes.data),
+            "check_banded": int(banded_flags.ctypes.data),
+            "check_can_enter_date": int(check_can_enter.ctypes.data),
+            "check_force_exit_date": int(check_force_exit.ctypes.data),
+            "check_sell_tax_bp": int(check_sell_tax.ctypes.data),
+            "prices": int(prices_mat.ctypes.data),
+            "d_edges": int(d_flat.ctypes.data),
+            "u_edges": int(u_flat.ctypes.data),
+            "out_p": int(out_p.ctypes.data),
+            "out_v": int(out_v.ctypes.data),
+            "out_cost": int(out_cost.ctypes.data),
+            "out_x": int(out_x.ctypes.data),
+            "out_outcome": int(out_outcome.ctypes.data),
+            "out_fp": int(out_fp.ctypes.data),
+            "out_entered": int(out_entered.ctypes.data),
+            "out_entries": int(out_entries.ctypes.data),
+            "out_wins": int(out_wins.ctypes.data),
+            "out_losses": int(out_losses.ctypes.data),
+            "out_unresolved": int(out_unresolved.ctypes.data),
+            "out_gap": int(out_gap.ctypes.data),
+            "out_cash_min": int(out_cash_min.ctypes.data),
+            "out_locked": int(out_locked.ctypes.data),
+            "out_edge": int(out_edge.ctypes.data),
+            "out_carried": int(out_carried.ctypes.data),
+            "out_stake": int(out_stake.ctypes.data),
+            "out_br_r": int(br_r_arr.ctypes.data),
+            "out_br_d": int(br_d_arr.ctypes.data),
+        }
+
+    res = native_accel.odds_run_paths_f64(spec_fields, make_ptrs(out_br_r, out_br_d), max_br if record else 0)
+    if res is None:
+        return None
+    rc, num_br = res
+    if rc == native_accel.TG_ERR_CAPACITY and record and num_br > max_br:
+        out_br_r = np.empty(num_br, dtype=np.float64)
+        out_br_d = np.empty(num_br, dtype=np.int64)
+        res = native_accel.odds_run_paths_f64(spec_fields, make_ptrs(out_br_r, out_br_d), num_br)
+        if res is None:
+            return None
+        rc, num_br = res
+    if rc != native_accel.TG_OK:
+        return None
+
+    return {
+        "p": out_p,
+        "v": out_v,
+        "cost": out_cost,
+        "x": out_x,
+        "outcome": out_outcome,
+        "fp": out_fp,
+        "entered": out_entered,
+        "entries": out_entries,
+        "wins": out_wins,
+        "losses": out_losses,
+        "unresolved": out_unresolved,
+        "gap": out_gap,
+        "cash_min": out_cash_min,
+        "locked": out_locked,
+        "edge": out_edge,
+        "carried": out_carried,
+        "stake": out_stake,
+        "br_r": out_br_r[:num_br].copy() if (record and num_br > 0) else np.zeros(0),
+        "br_d": out_br_d[:num_br].copy() if (record and num_br > 0) else np.zeros(0, dtype=np.int64),
+    }
+
+
 def _paths(spec: PathSpec, prices: Iterator[tuple], n: int, record: bool) -> dict[str, np.ndarray]:
     """The state machine of contract 8.4 over n paths, one check per (p, D, U) of `prices` (Q5, Q26, Q27, Q29)."""
+    if native_accel.get_native_handle() is not None:
+        steps = list(prices)
+        fast = _paths_native(spec, steps, n, record)
+        if fast is not None:
+            return fast
+        prices = iter(steps)
+    return _paths_python(spec, prices, n, record)
+
+
+def _paths_python(spec: PathSpec, prices: Iterator[tuple], n: int, record: bool) -> dict[str, np.ndarray]:
+    """Pure-Python reference state machine of contract 8.4 over n paths."""
     terms, mult, w0, target, floor = spec.terms, spec.mult, float(spec.w0), float(spec.target), float(spec.floor)
     bracket, moonshot, last = spec.bracket, spec.track == "moonshot", len(spec.checks.on) - 1
     take_profit, stop = (None, None) if bracket is None else (bracket.take_profit, bracket.stop)
