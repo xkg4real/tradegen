@@ -361,6 +361,15 @@ def _fees(order_id, rows, paid, evidence, consumed, *, allow_proportional=False)
     return {identifier(row.get("uuid")): paid if len(rows) == 1 else _ZERO for row in rows}, False
 
 
+def _limit_state(state, quantity, executed, remaining, locked):
+    require(executed + remaining == quantity, "COLLECTOR_ORDER_QUANTITY_MISMATCH")
+    active = state == "wait"
+    require(not active or remaining > 0, "COLLECTOR_ACTIVE_ORDER_EMPTY")
+    require(active or locked == 0, "COLLECTOR_TERMINAL_RESERVATION_PRESENT")
+    require(state != "done" or remaining == 0, "COLLECTOR_DONE_ORDER_INCOMPLETE")
+    return active
+
+
 def _order(detail, listed, scope, origin, cutoff, fee_evidence, consumed, *, allow_proportional_fees=False):
     require(type(detail) is dict, "COLLECTOR_ORDER_DETAIL_REQUIRED")
     order_id = identifier(detail.get("uuid"))
@@ -380,11 +389,7 @@ def _order(detail, listed, scope, origin, cutoff, fee_evidence, consumed, *, all
     executed = number(detail.get("executed_volume")); remaining = number(detail.get("remaining_volume"))
     price = number(detail.get("price"), positive=True); locked = number(detail.get("locked"))
     paid = number(detail.get("paid_fee"))
-    require(executed + remaining == quantity, "COLLECTOR_ORDER_QUANTITY_MISMATCH")
-    active = detail["state"] == "wait"
-    require(not active or remaining > 0, "COLLECTOR_ACTIVE_ORDER_EMPTY")
-    require(active or locked == 0, "COLLECTOR_TERMINAL_RESERVATION_PRESENT")
-    require(detail["state"] != "done" or remaining == 0, "COLLECTOR_DONE_ORDER_INCOMPLETE")
+    active = _limit_state(detail["state"], quantity, executed, remaining, locked)
     trades = _rows(detail.get("trades"))
     require(type(detail.get("trades_count")) is int and detail["trades_count"] == len(trades),
             "COLLECTOR_TRADE_DETAILS_INCOMPLETE")
@@ -710,11 +715,13 @@ def collect_trade_window(source, market: str, *, start: datetime, end: datetime,
         opening = prior[-1] if prior else None
         if opening is not None and any(p.at == opening.at and p.price != opening.price for p in prior):
             opening = None  # IDs do not establish ordering inside a millisecond.
+        # A query limited to a UTC day cannot include the following day's
+        # print, even when rounding E and adding the margin crosses midnight.
+        # The held opening mark may be ambiguous within one millisecond. BR-6
+        # compares membership in every page independently of that mark.
+        exclusive_to = min(rounded, midnight)
         discrepancy = None
-        if start <= ticker_at < rounded:
-            if not any(p.at == ticker_at and p.price == ticker_price for p in ordered):
-                discrepancy = (ticker_at, ticker_price)
-        elif ticker_at < start and opening is not None and (opening.at, opening.price) != (ticker_at, ticker_price):
+        if ticker_at < exclusive_to and not any(p.at == ticker_at and p.price == ticker_price for p in ordered):
             discrepancy = (ticker_at, ticker_price)
         inside = tuple(p for p in ordered if start <= p.at < end)
         proof = content_digest((market, scope, start, end, anchor_trade_id,
@@ -807,7 +814,14 @@ def collect_order_fills(
                 remaining = number(detail.get("remaining_volume"))
                 limit_price = number(detail.get("price"), positive=True)
                 locked = number(detail.get("locked"))
-                active = detail["state"] == "wait"
+                state = detail["state"]
+                if state in ("done", "wait"):
+                    # The documented REST prevented state is cancel. Without
+                    # evidence of non-cancel SMP accounting, do not infer fills.
+                    require(number(detail.get("prevented_volume", "0")) == 0,
+                            "COLLECTOR_SMP_LIMIT_STATE_UNVERIFIED")
+                    _limit_state(state, quantity, executed, remaining, locked)
+                active = state == "wait"
                 status = ("partial" if executed else "open") if active else ("filled" if detail["state"] == "done" else "canceled")
                 client = detail.get("identifier") or ""
                 require(type(client) is str, "COLLECTOR_CLIENT_ID_INVALID")

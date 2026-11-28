@@ -157,3 +157,75 @@ def test_walk_refuses_unordered_page_or_unverified_eighth_utc_day():
     s.now = END + timedelta(days=6, seconds=3)
     refused("UPBIT_TRADE_COVERAGE_INCOMPLETE", lambda: walk(s))
     assert [path for path, _ in s.calls] == ["/v1/ticker"]
+
+
+def test_br6_matches_any_preopening_print_and_checks_ambiguous_or_empty_history():
+    s = Source()
+    old, last = trade(-6, 151, 4), trade(-5, 150, 1)
+    s.pages[(1, "99")] = [trade(-3.5, 99, 2), last, old]
+    s.ticker = [dict(market="KRW-BTC", trade_timestamp=old["timestamp"], trade_price=4)]
+    assert walk(s).ticker_discrepancy is None
+
+    s.pages[(1, "99")] = [trade(-3.5, 99, 2), last, trade(-5, 152, 9)]
+    for price in (1, 9, 7):
+        s.ticker[0].update(trade_timestamp=last["timestamp"], trade_price=price)
+        result = walk(s)
+        assert result.opening_print is None
+        assert result.ticker_discrepancy == (None if price in (1, 9) else (END - timedelta(seconds=5), 7))
+
+    s.pages = {(1, None): [], (0, None): []}
+    assert walk(s).ticker_discrepancy == (END - timedelta(seconds=5), 7)
+
+
+def test_br6_uses_actual_exclusive_query_end_at_utc_day_rollover():
+    cutoff = END - timedelta(seconds=2)
+    s = Source()
+    s.ticker = [dict(market="KRW-BTC", trade_timestamp=trade(-2, 1, 8)["timestamp"], trade_price=8)]
+    result = collect_trade_window(s, "KRW-BTC", start=START, end=cutoff)
+    assert result.ticker_discrepancy is None
+    assert all(dict(r.params)["days_ago"] == "1" for r in result.receipts[1:])
+    s.ticker[0]["trade_timestamp"] -= 1
+    assert collect_trade_window(s, "KRW-BTC", start=START, end=cutoff).ticker_discrepancy == (
+        cutoff - timedelta(milliseconds=1), 8)
+
+
+def test_limit_order_receipt_reconciles_reported_volume_and_terminal_state_before_canary():
+    class Orders(Source):
+        def __init__(self):
+            super().__init__()
+            self.patch = {}
+
+        def fetch(self, path, params):
+            original = super().fetch(path, params)
+            body = json.loads(original.raw_body)
+            body.update(self.patch)
+            raw = json.dumps(body).encode()
+            return replace(original, raw_body=raw, sha256=hashlib.sha256(raw).hexdigest())
+
+    s = Orders()
+    def collect():
+        return collect_order_fills(s, "fixture-order")
+
+    assert collect().order.status == "open"
+    for patch, code in (
+        (dict(state="done", remaining_volume="0", locked="0"), "COLLECTOR_ORDER_QUANTITY_MISMATCH"),
+        (dict(state="done", remaining_volume="1", locked="0"), "COLLECTOR_DONE_ORDER_INCOMPLETE"),
+        (dict(state="wait", remaining_volume="2"), "COLLECTOR_ORDER_QUANTITY_MISMATCH"),
+        (dict(state="wait", prevented_volume="0.1"), "COLLECTOR_SMP_LIMIT_STATE_UNVERIFIED"),
+    ):
+        s.patch = patch
+        refused(code, collect)
+    fill = dict(uuid="fixture-fill", market="KRW-BTC", side="bid", created_at=START.isoformat(),
+                volume="0.5", price="1", funds="0.5")
+    s.patch = dict(state="wait", trades=[fill], trades_count=1, executed_volume="0.5", remaining_volume="0.5")
+    assert collect().order.status == "partial"
+    s.patch.update(state="done", volume="0.5", remaining_volume="0", locked="0")
+    assert collect().order.status == "filled"
+    s.patch.update(state="wait")
+    refused("COLLECTOR_ACTIVE_ORDER_EMPTY", collect)
+    s.patch.update(state="cancel", volume="1", prevented_volume="0.5", remaining_volume="0.5")
+    canceled = collect()
+    assert canceled.order.status == "canceled" and len(canceled.fills) == 1
+    s.patch.update(ord_type="market", volume=None, price=None)
+    market = collect()
+    assert market.order is None and len(market.fills) == 1
