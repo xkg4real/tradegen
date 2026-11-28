@@ -530,7 +530,18 @@ def test_synthetic_windows_owner_wiring_retains_pin_through_leaf_write_and_readb
             assert active==[True]
             events.append('leaf')
             return original(*args,**kwargs)
-        platform=SimpleNamespace(**(dict(vars(os))|{'name':'nt'}))
+        # The Linux stat_result used by this Windows wiring fixture has no
+        # creation-time field. Supply a stable synthetic value on both reads.
+        def windows_metadata(info):
+            fields = ('st_mode', 'st_dev', 'st_ino', 'st_size', 'st_nlink', 'st_mtime_ns')
+            return SimpleNamespace(**{name: getattr(info, name) for name in fields},
+                                   st_birthtime_ns=getattr(info, 'st_birthtime_ns', 1),
+                                   st_file_attributes=getattr(info, 'st_file_attributes', 0))
+        platform=SimpleNamespace(**(dict(vars(os)) | {
+            'name': 'nt',
+            'lstat': lambda path: windows_metadata(os.lstat(path)),
+            'fstat': lambda fd: windows_metadata(os.fstat(fd)),
+        }))
         with owner._exclusive(owner.log_path()):
             with patch.object(owner,'os',platform), \
                     patch.object(revocation_paths,'pinned_research_anchor_directory',pinned), \
