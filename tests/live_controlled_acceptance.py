@@ -279,6 +279,8 @@ def test_blocker1_approach_a_collector_bid_gap_and_boundary_splits():
     )
     mc = continuous.value_trade_paths(
         {
+            "KRW-ETH": (),  # Both markets were observed through the cutoff with no trades.
+            "KRW-SOL": (),
             "KRW-BTC": (TradePrint(
                 market="KRW-BTC", sequential_id=1, timestamp_ms=start_ms + 1000,
                 at=t0 + timedelta(seconds=1), price=D("98000000"), volume=D("0.1"),
