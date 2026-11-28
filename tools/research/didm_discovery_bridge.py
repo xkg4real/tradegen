@@ -15,7 +15,7 @@ from tools.research import didm_global_ranking as ranking
 FAMILIES = {
     "equity": "stock", "etf": "etf", "fund": "fund", "money_market_fund": "fund",
     "sovereign_fixed_rate": "bond", "sovereign_inflation_linked": "bond",
-    "corporate_bond": "bond", "corporate_fixed_rate": "bond", "equity_linked_note": "eln",
+    "reported_debt_security": "bond", "corporate_bond": "bond", "corporate_fixed_rate": "bond", "equity_linked_note": "eln",
     "commodity_future": "future", "equity_index_future": "future", "equity_etf_option": "option",
     "prediction_market": "prediction", "spot": "crypto", "future": "future",
     "swap": "swap", "option": "option",

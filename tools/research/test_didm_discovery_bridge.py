@@ -101,6 +101,16 @@ class DiscoveryBridge(unittest.TestCase):
         self.assertEqual(result["records"][0]["status"], "UNMODELED_PAYOFF")
         self.assertEqual(result["submitted"], 1)
 
+    def test_fund_reported_debt_still_requires_an_independent_listing(self):
+        row, binding = self.add(product="reported_debt_security", symbol="US91282ABC10")
+        row.update(dataset="sec_nport_debt", unit="reported_instrument_reference", venue_or_chain="")
+        result = self.run_bridge()
+        self.assertEqual(result["records"][0]["status"], "MISSING_DATED_LISTING")
+        self.listing(row, binding, venue="OTC")
+        result = self.run_bridge()
+        self.assertEqual(result["submitted_subset_ranking"]["candidates"][0]["family"], "bond")
+        self.assertEqual(result["scored"], 0)
+
     def test_newer_delisting_flag_blocks_a_stale_listing(self):
         row, binding = self.add(symbol="OLD", status="flagged_delisted")
         row.update(dataset="listed", asof_basis="1970-01-01 provider snapshot")
