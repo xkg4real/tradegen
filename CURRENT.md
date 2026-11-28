@@ -6,18 +6,18 @@ task: upbit-universe
 cycle: 2026-11-24
 done_ids: owner-merges-1127, blocker1-approach-a-code/a1-a2, protective-hold/p2-integration, launch-planner-provider-1, launch-controlled-coordinator-1, live-cpp20-accel-1, m11-didm-quantgpt-section12-1, qlib-lab-model-factory-1, launch-kis-live-collector-1, launch-okx-live-collector-1, launch-multi-market-validation-1/account-fixtures, pr79-upbit-receipt-review-1, rules-review-1202/preparation, policy-loss-budget-plan-1, pr79-study-gate-repair-1, pr79-native-integrity-1, pr79-controlled-rehearsal-1, pr79-upbit-crosscheck-preview-1, pr79-independent-review-1, first-trade-account-startup-1128, didm-coverage-and-receipts-1128, didm-upside-research-1128, first-trade-historical-comparison-1128
 next_ids: rules-review-1202, launch-multi-market-validation-1, launch-held-positions-1/production-authority, launch-continuous-guard-adapter-1, universe-pr5, universe-pr5/recovery-operations, universe-pr5-clock-notify, launch-private-capture-setup-1, universe-code-approve, e1-14-owner-setup, launch-prospective-study
-updated_at: 2026-11-28T14:41:23+09:00
+updated_at: 2026-11-28T15:00:40+09:00
 stale_after_hours: 24
 waiting_on: none
 work_branch: gpt/first-trade-integration-20261128
 work_commit: 9a2ad28a0582ad5693a3f25a71ac224d9652a722
 uncommitted_changes: no
-pr: 82, 81, 80, 79, 69
+pr: 83, 82, 81, 80, 79, 69
 usage_weekly_pct: unknown
 usage_source: unavailable
 usage_5h_pct: unknown
 usage_resets_at: unknown
-session: Codex Cloud PR 82 and four historical regimes
+session: Codex Cloud PR 82, performance evaluation and PR 83
 ---
 
 # TRADEGEN 인수인계 · 첫 거래 통합 및 네 사건의 역사적 재생
@@ -74,6 +74,9 @@ PR #82에 원본 수신·연구 재현·상방 후보·프로그램 외부 배�
 소유자 Windows의 `floor_state_check` S1~S12와 허용된 QUANTGEN 비공개 SQLite 사본의 오프라인 검사(TG-MAN-012)는 수동 확인이 남았다. 공개 저장소에는 금액·계좌·자격 자료를 기록하지 않는다. 코드 검토, 한도 서명, 전략 승인과 실거래 활성화 권한은 각각 확인한다.
 
 ## 9. 다음 에이전트의 시작 지점
+
+연구 성능 후속 기록. 현금 수익률, 시장 가격 및 매수보유 비용을 구분하는 독립 도구를 [PR #83](https://github.com/xkg4real/tradegen/pull/83)에서 검토한다. 추세의 방향을 양쪽으로 거래하는 IBIT·BITI 모의계좌는 선거 구간(10/27~11/16)에 +21.16%, 다른 기간(3/2~10/26)에 −29.17%였다. IBIT·현금 대조군은 각각 0.00%, −5.68%였다. 두 기간은 독립 계좌로 재시작했다. 28개 분기의 방향 연구에서 2025년 가격 모형 상승 고신뢰 판단은 115회 중 46회 적중했다. 2025년 이동평균 3/15와 강화된 진입 조건은 기존 5/20보다 낮은 수익을 냈다. 운영 승격은 미결이다. 규칙·비용·시점·보호 하한을 유지하고, 다음 미사용 구간에서 상방과 하방을 별도 검증한다. 상세 연구 원장과 자료 묶음은 소유자에게 직접 전달했다.
+
 
 인계 시점의 `work_commit`, PR과 검증 문서를 먼저 읽고 `LEDGER.md`의 완료 ID와 대조한다. PR #79 원본에서 제안한 별도 서명 명령은 사용하지 않는다. 가드 어댑터나 연구 모형은 해당 미완료 항목과 실제 입력의 근거를 대조한 뒤 작업한다.
 
