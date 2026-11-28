@@ -778,7 +778,8 @@ class Controller:
             values.append(_money(Decimal(str(value))))
         if values[1] <= 0:
             raise ValueError('COMMITTED_ACCOUNT_EFFECTIVE_LIMITS_REQUIRED')
-        if tuple(values) != (claim.signed_floor_krw, claim.signed_daily_loss_krw):
+        if (tuple(values) != (claim.signed_floor_krw, claim.signed_daily_loss_krw)
+                or owner.bid_gap_fraction(ctx.owner) != claim.signed_bid_gap_fraction):
             raise ValueError('COMMITTED_ACCOUNT_EFFECTIVE_LIMITS_CHANGED')
         if ctx.owner.halted_floors and not read.observation.risk.halted:
             raise ValueError('COMMITTED_ACCOUNT_OWNER_HALT_NOT_RETAINED')

@@ -414,3 +414,17 @@ def test_capture_registry_is_unchanged_and_returned_records_are_not_shared_cache
     assert C._SCHEMAS == before and set(C._SCHEMAS) == set(before)
     assert not any(name in C._SCHEMAS for name in ('GuardInputRecord','GuardCompletionRecord','RiskPolicy','OwnerContextClaim'))
     assert 'signed_floor_krw' not in repr(a)
+
+
+def test_optional_signed_bid_gap_round_trips_exactly_and_preserves_legacy_wire():
+    legacy = claim('before')
+    y = D('0.0499999999999999999991')
+    body = F.input_bytes(input_record(owner_before=replace(legacy, signed_bid_gap_fraction=y)))
+    decoded = F.parse_input(body)
+    assert decoded.owner_before.signed_bid_gap_fraction.as_tuple() == y.as_tuple()
+    assert F.input_bytes(decoded) == body
+    prior = F.input_bytes(input_record(owner_before=legacy))
+    assert b'signed_bid_gap_fraction' not in prior
+    assert F.input_bytes(F.parse_input(prior)) == prior
+    for invalid in (D('0'), D('0.05000000000000000000001'), D('NaN')):
+        refused(lambda: input_record(owner_before=replace(legacy, signed_bid_gap_fraction=invalid)))

@@ -292,7 +292,8 @@ class CommittedAccountProducer:
         _need(amounts[1] > 0, 'OWNER_REFUSED')
         claim = OwnerContextClaim(owner_head_sha256=ctx.owner.head[1], code_sha256=ctx.code_hash,
             code_approval_sha256=ctx.code_hash, signed_floor_krw=amounts[0], signed_daily_loss_krw=amounts[1],
-            observed_at=at, source_sha256=ctx.ctx_hash)
+            observed_at=at, source_sha256=ctx.ctx_hash,
+            signed_bid_gap_fraction=owner.bid_gap_fraction(ctx.owner))
         result = _OwnerRead(claim=claim, context=ctx, account=account, fingerprint=ctx.owner.fingerprint,
                             account_digest=_account_digest(account), completed_at=self._now())
         self._owner_intact(result)

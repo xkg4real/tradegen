@@ -160,40 +160,10 @@ class OwnerState:
 
 @dataclass(frozen=True, kw_only=True)
 class ProtectiveTerms:
-    """Signed standing protective-hold parameters (X, M, Md) under Standing Amendment A2."""
+    """Rehearsal terms. A live deployment must bind these through standing_armed."""
     trailing_stop_x: Decimal
     halt_margin_krw: Decimal
     daily_margin_krw: Decimal
-
-
-@dataclass(frozen=True, kw_only=True)
-class OwnerSnapshot:
-    """Verified D12 fold snapshot including scoped bid-gap Y and standing protective terms."""
-    ok: bool
-    reason: str = ""
-    head: tuple[int, str] = (0, "")
-    date: date | None = None
-    now_utc: str = ""
-    caps: Mapping[str, float] = field(default_factory=dict)
-    limits: Mapping[str, float] = field(default_factory=dict)
-    halted_floors: frozenset = frozenset()
-    armed_sessions: frozenset = frozenset()
-    bid_gaps: Mapping[str, Decimal] = field(default_factory=dict)
-    protective_terms: Mapping[str, ProtectiveTerms] = field(default_factory=dict)
-
-    def bid_gap_for(self, scope: str) -> Decimal | None:
-        if not self.ok:
-            return None
-        if scope in self.bid_gaps:
-            return self.bid_gaps[scope]
-        return self.bid_gaps.get("*")
-
-    def protective_for(self, scope: str) -> ProtectiveTerms | None:
-        if not self.ok:
-            return None
-        if scope in self.protective_terms:
-            return self.protective_terms[scope]
-        return self.protective_terms.get("*")
 
 
 @dataclass(frozen=True, kw_only=True)
