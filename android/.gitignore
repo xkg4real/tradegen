@@ -1,0 +1,3 @@
+# Provisioned per operator; static site source contains no production config.
+/web/push-config.json
+/tradegen-android-subscription.json

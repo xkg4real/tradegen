@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#143834">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; worker-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icon-192.png">
+  <link rel="stylesheet" href="./style.css">
+  <title>TRADEGEN · 승인 알림</title>
+</head>
+<body>
+  <header><img src="./icon-192.png" alt="" width="34" height="34"><span>TRADEGEN</span></header>
+  <main>
+    <section class="inbox">
+      <h1>승인함</h1>
+      <p>요청 내용을 확인하고 패스키로 승인하세요.</p>
+      <a class="primary" href="/approvals/">승인함 열기 <span aria-hidden="true">↗</span></a>
+    </section>
+    <section class="settings" aria-labelledby="notice-title">
+      <h2 id="notice-title">이 기기의 알림</h2>
+      <p id="status" role="status">브라우저 상태 확인 중…</p>
+      <button type="button" id="enable" disabled>푸시 알림 등록</button>
+      <button type="button" id="test" disabled>기기 알림 테스트</button>
+      <div id="registered" hidden>
+        <p>등록 파일을 운영 PC의 비공개 알림 설정에 연결하세요. 기기 또는 등록 정보가 바뀌면 새 파일이 필요합니다.</p>
+        <button type="button" id="export">비공개 등록 파일 저장</button>
+        <button type="button" id="disable">이 기기 등록 해제</button>
+      </div>
+      <p id="feedback" role="status" aria-live="polite"></p>
+    </section>
+  </main>
+  <noscript>알림을 사용하려면 JavaScript를 켜세요.</noscript>
+  <script type="module" src="./app.mjs"></script>
+</body>
+</html>
