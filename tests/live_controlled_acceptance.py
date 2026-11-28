@@ -28,7 +28,7 @@ from execution_accounts.upbit_collector import (
 )
 from execution_control.capability import digest
 from execution_control.dry_run import DryRunAdapter
-from execution_control.risk import Fill
+from execution_control.risk import Fill, evaluate
 from execution_launch import protective_state as P, protective_store as PS
 from execution_launch.account_interval import split_boundary_intervals
 from execution_launch.coordinator import Coordinator
@@ -492,9 +492,10 @@ def test_standing_amendment_a2_zero_auto_sale_and_swtb_app_only_sells():
         # A triggering assessment cannot stage a sell if its exact ledger record was not saved.
         previous_high = c._post_stop_high["KRW-BTC"]
         c._post_stop_high["KRW-BTC"] = 2 * previous_high
+        observed_risk = evaluate(risk_policy(c._profile), c._observation.risk, now=env.fake.now)
         with patch.object(pstore, "session", side_effect=OSError("synthetic store failure")):
             c._evaluate_a2_protective_hold(now=env.fake.now, observation=c._observation,
-                                         risk=c._controller.observe(now=env.fake.now))
+                                         risk=observed_risk)
         assert c.status().management_source == "COORDINATOR_PROTECTIVE_STORE_FAILED"
         assert c._pending_protective_exit is None
         assert len([r for r in dry_adapter.requests if r.operation == "create"]) == 1
