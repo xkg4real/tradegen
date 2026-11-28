@@ -81,7 +81,7 @@ def test_native_inspect_checks_record_and_never_calls_owner_or_trading_services(
 def test_inspect_refuses_foreign_account_anchor_and_damaged_archive_without_repair():
     with Archive.fixture(completed=True) as e, tempfile.TemporaryDirectory() as tmp:
         config, record = request(Path(tmp), e)
-        audit_path = Path(json.loads(Path(config).read_text())["account_audit"])
+        audit_path = Path(json.loads(Path(config).read_text(encoding="utf-8"))["account_audit"])
         initial = audit_path.read_bytes()
         audit = json.loads(initial)
         audit["baseline_anchor_sha256"] = "f" * 64
