@@ -113,13 +113,19 @@ def rebuild(inputs_path, model, study, now, *, training=False, expected_ancestor
     history = {"scope": study["scope"], "source_id": study["source_id"], "bars": combined_bars}
     require(all(b["end"] - a["end"] == study["step_seconds"] for a, b in zip(combined_bars, combined_bars[1:])),
             "MISSING_OR_DUPLICATE_BAR")
-    run_log = didm_run_log.summarize_run_log(_relative(directory, plan["run_log"]), pinned_head=expected_ancestor)
+    log_dir = _relative(directory, plan["run_log"])
+    run_log = didm_run_log.summarize_run_log(log_dir, pinned_head=expected_ancestor)
     require(run_log["entry_count"] > 0, "MISSING_RESEARCH_SOURCE_LOG")
     first_bar = history["bars"][0]["end"]
     hashes = {"run_log_head": run_log["head_sha256"], "price_manifests": receipts,
               "didm_reports": [], "didm_exports": [], "quantgpt_snapshots": []}
     names, defs, pins = model["feature_names"], model["feature_definitions"], model["upstream_identities"]
     require(model["feature_builder_commit"] != "0" * 40, "BUILDER_REVISION_REQUIRED")
+    through = min(now, combined_bars[-1]["end"])
+    deliveries = {}
+    if "D3" in names:
+        for receipt in features.logged_d3_receipts(log_dir, run_log, through):
+            deliveries.setdefault(receipt["export_sha256"], []).append(receipt["received_at"])
     report_receipts = {r["report_sha256"]: r for r in run_log["bridge_snapshots"] if r["captured_at"] <= now}
     reports, exports, qgpt = [], [], []
     qgpt_seen = set()
@@ -134,12 +140,16 @@ def rebuild(inputs_path, model, study, now, *, training=False, expected_ancestor
             elif key == "didm_exports":
                 receipt = run_log["didm_export_receipts"].get(raw_sha)
                 require(receipt and receipt["received_at"] <= now, "UNRECORDED_DIDM_EXPORT")
-                exports.append((doc, receipt["received_at"]))
+                if raw_sha not in deliveries:
+                    continue
+                exports.extend((doc, received_at) for received_at in deliveries[raw_sha])
             else:
                 snap = quantgpt_feature_bridge.check_feature_snapshot(doc)
                 receipt = run_log["quantgpt_receipts"].get(snap["snapshot_sha256"])
                 require(receipt and receipt["surface"] == "feature_snapshot" and snap["generated_at"] <= receipt["received_at"] <= now,
                         "UNRECORDED_QUANTGPT_SNAPSHOT")
+                if receipt["received_at"] > through:
+                    continue
                 qgpt_seen.add(snap["snapshot_sha256"])
                 qgpt.append((doc, receipt["received_at"]))
             hashes[key].append(raw_sha)
@@ -161,12 +171,14 @@ def rebuild(inputs_path, model, study, now, *, training=False, expected_ancestor
     if "Q1" in names:
         require(qgpt and type(pins.get("quantgpt")) is dict and
                 all(k in pins["quantgpt"] for k in ("name", "version", "sha256")), "LIVE_PINNED_QUANTGPT_REQUIRED")
-    for name, seen, key in (("D3", set(hashes["didm_exports"]), "didm_export_receipts"),
-                            ("Q1", qgpt_seen, "quantgpt_receipts")):
-        if name in names:
-            cutoff = first_bar - max(86400, defs[name.lower() + "_cadence_seconds"])
-            required = {digest for digest, r in run_log[key].items() if cutoff < r["received_at"] <= now}
-            require(required <= seen, "KNOWN_SOURCE_RECEIPT_OMITTED")
+    if "D3" in names:
+        cutoff = first_bar - max(86400, defs["d3_cadence_seconds"])
+        require(all(digest in hashes["didm_exports"] for digest, times in deliveries.items()
+                    if any(t > cutoff for t in times)), "KNOWN_SOURCE_RECEIPT_OMITTED")
+    if "Q1" in names:
+        cutoff = first_bar - max(86400, defs["q1_cadence_seconds"])
+        required = {digest for digest, r in run_log["quantgpt_receipts"].items() if cutoff < r["received_at"] <= through}
+        require(required <= qgpt_seen, "KNOWN_SOURCE_RECEIPT_OMITTED")
     bars = history["bars"]
     if training:
         period = [b for b in bars if model["training_start"] <= b["end"] <= model["training_cutoff"]]

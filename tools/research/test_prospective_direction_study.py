@@ -109,6 +109,29 @@ class ProspectiveWorkflowTests(unittest.TestCase):
         return self.cmd(self.start - 1 if now is None else now, "register", "--terms", self.terms, "--prerequisites",
                         self.prereqs, "--fit-dir", self.fit_dir, "--inputs", self.train_path)
 
+    def test_rebuild_uses_each_delivered_export_and_only_receipts_known_to_last_bar(self):
+        from tools.research import didm_source_bridge as bridge
+        doc = {"format": bridge.EXPORT_FORMAT, "contract": bridge.CONTRACT, "rows": [], "scores": []}
+        current = self.dump("current-didm", doc)
+        earliest = self.bars[0]["end"]
+        boundary = self.bars[280]["end"]
+        log_dir = self.src / "receipts"
+        inputs.didm_run_log.record_didm_export(log_dir, current, received_at=earliest)
+        inputs.didm_run_log.record_didm_export(log_dir, current, received_at=boundary)
+        # A distinct receipt after the final requested bar must not be required to replay it.
+        future = self.src / "later-didm.json"
+        future.write_text(json.dumps(doc, indent=2), encoding="utf-8")
+        inputs.didm_run_log.record_didm_export(log_dir, future, received_at=boundary+1)
+        plan = json.loads(self.train_path.read_text())
+        plan.update(didm_exports=[current.name], quantgpt_snapshots=[])
+        model = json.loads((self.fit_dir / "model_M.json").read_text())
+        model.update(feature_names=["D3"], upstream_identities={"didm_v0": {
+            "model_version": "research-v0", "prompt_sha256": "f"*64}, "quantgpt": None})
+        table, _, hashes = inputs.rebuild(self.dump("replay", plan), model, self.study, boundary+5)
+        self.assertEqual(len(hashes["didm_exports"]), 1)
+        self.assertEqual(table["rows"][-1]["features"]["D3"], 50.0)
+        self.assertIsNone(table["rows"][-2]["features"]["D3"])
+
     def test_registered_fit_forward_capture_interim_and_pinned_status(self):
         rc, registration = self.register()
         self.assertEqual(rc, 0, registration)
