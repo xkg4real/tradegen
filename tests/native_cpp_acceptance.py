@@ -241,18 +241,20 @@ def test_hp1_continuous_interval_differential_260_cases():
                         cur_c -= qty * px + fee
 
         trade_path = {m: tuple(v) for m, v in prints_by.items()}
+        close_marks = {m: continuous.PriceMark(symbol=m, price=rows[-1].price, asof=rows[-1].at)
+                       for m, rows in prints_by.items() if rows}
         o_units_tup = tuple(sorted(o_units_list))
         hist_tup = tuple(hist_fills)
         int_tup = tuple(int_fills)
 
         nat = _with_native_enabled(lambda: continuous.value_trade_paths(
-            trade_path, opening_marks=o_marks, opening_cash_krw=open_cash,
+            trade_path, opening_marks=o_marks, closing_marks=close_marks, opening_cash_krw=open_cash,
             opening_units=o_units_tup, historical_fills=hist_tup, interval_fills=int_tup,
             previous_equity_krw=open_eq, previous_realized_net_krw=D(0),
             start=t_start, end=t_end, account_scope="acct-1",
         ))
         py = _with_native_disabled(lambda: continuous.value_trade_paths(
-            trade_path, opening_marks=o_marks, opening_cash_krw=open_cash,
+            trade_path, opening_marks=o_marks, closing_marks=close_marks, opening_cash_krw=open_cash,
             opening_units=o_units_tup, historical_fills=hist_tup, interval_fills=int_tup,
             previous_equity_krw=open_eq, previous_realized_net_krw=D(0),
             start=t_start, end=t_end, account_scope="acct-1",
@@ -662,7 +664,7 @@ def test_native_latency_benchmarks():
     hp3_py_ms = (time.perf_counter() - t0) * 1000.0 / 2.0
 
     # Benchmark 3: HP-6 10,000-path Monte Carlo odds simulation
-    with CF.temp_home() as home, CF.pubkey_at(home / "test-anchor.pem"), OF.chunk(), OF.pilots():
+    with CF.temp_home() as home, CF.pubkey_at(home / "test-anchor.pem"), OF.chunk(10_000), OF.pilots():
         CF.full_home(
             home, venues_raw=OF.ODDS_VENUES,
             limits={"total_loss_floor_krw": 2000.0, "daily_loss_krw": 5000.0}, cap=0.1,

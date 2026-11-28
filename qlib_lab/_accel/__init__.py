@@ -335,10 +335,12 @@ def wilder_rsi(close, period: int = 14) -> np.ndarray:
 
 
 def wilder_atr(high, low, close, period: int = 14) -> np.ndarray:
+    ha, la, ca = _f64_1d(high), _f64_1d(low), _f64_1d(close)
+    if not ha.size == la.size == ca.size:
+        raise ValueError("series lengths must agree")
     lib = verify_and_load_accel()
     if lib is None:
-        return _np_fb.wilder_atr_np(high, low, close, int(period))
-    ha, la, ca = _f64_1d(high), _f64_1d(low), _f64_1d(close)
+        return _np_fb.wilder_atr_np(ha, la, ca, int(period))
     out = np.full(ca.size, np.nan, dtype=np.float64)
     if ca.size > 0:
         lib.wilder_atr_f64(
@@ -354,10 +356,12 @@ def wilder_atr(high, low, close, period: int = 14) -> np.ndarray:
 
 def rolling_corr(x, y, window: int, min_periods: int | None = None) -> np.ndarray:
     mp = max(2, int(window)) if min_periods is None else int(min_periods)
+    xa, ya = _f64_1d(x), _f64_1d(y)
+    if xa.size != ya.size:
+        raise ValueError("series lengths must agree")
     lib = verify_and_load_accel()
     if lib is None:
-        return _np_fb.rolling_biv_np(x, y, int(window), mp, True)
-    xa, ya = _f64_1d(x), _f64_1d(y)
+        return _np_fb.rolling_biv_np(xa, ya, int(window), mp, True)
     out = np.full(xa.size, np.nan, dtype=np.float64)
     if xa.size > 0 and window > 0:
         lib.rolling_biv_f64(
@@ -374,10 +378,12 @@ def rolling_corr(x, y, window: int, min_periods: int | None = None) -> np.ndarra
 
 def rolling_cov(x, y, window: int, min_periods: int | None = None) -> np.ndarray:
     mp = max(2, int(window)) if min_periods is None else int(min_periods)
+    xa, ya = _f64_1d(x), _f64_1d(y)
+    if xa.size != ya.size:
+        raise ValueError("series lengths must agree")
     lib = verify_and_load_accel()
     if lib is None:
-        return _np_fb.rolling_biv_np(x, y, int(window), mp, False)
-    xa, ya = _f64_1d(x), _f64_1d(y)
+        return _np_fb.rolling_biv_np(xa, ya, int(window), mp, False)
     out = np.full(xa.size, np.nan, dtype=np.float64)
     if xa.size > 0 and window > 0:
         lib.rolling_biv_f64(
@@ -420,14 +426,27 @@ def hist_build(
     hess: np.ndarray,
     sample_idx: np.ndarray,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    lib = verify_and_load_accel()
-    if lib is None:
-        return _np_fb.hist_build_np(X_binned, grad, hess, sample_idx)
-    xb = np.ascontiguousarray(X_binned, dtype=np.uint8)
+    bins = np.asarray(X_binned)
+    sample = np.asarray(sample_idx)
+    if bins.ndim != 2 or bins.dtype.kind not in "ui":
+        raise ValueError("expected a two-dimensional integer bin matrix")
+    if bins.dtype != np.uint8 and bins.size and (bins.min() < 0 or bins.max() > 255):
+        raise ValueError("bin indices must lie in [0, 255]")
+    n_total, n_features = bins.shape
+    if np.shape(grad) != (n_total,) or np.shape(hess) != (n_total,):
+        raise ValueError("gradient and Hessian lengths must match the row count")
+    if sample.ndim != 1 or (sample.size and sample.dtype.kind not in "ui"):
+        raise ValueError("expected a vector of integer sample indices")
+    largest_index = min(n_total - 1, np.iinfo(np.int32).max)
+    if sample.size and (sample.min() < 0 or sample.max() > largest_index):
+        raise ValueError("sample index outside matrix or kernel range")
+    xb = np.ascontiguousarray(bins, dtype=np.uint8)
     g = np.ascontiguousarray(grad, dtype=np.float64).ravel()
     h = np.ascontiguousarray(hess, dtype=np.float64).ravel()
     idx = np.ascontiguousarray(sample_idx, dtype=np.int32).ravel()
-    n_total, n_features = xb.shape
+    lib = verify_and_load_accel()
+    if lib is None:
+        return _np_fb.hist_build_np(xb, g, h, idx)
     out_g = np.zeros((n_features, 256), dtype=np.float64)
     out_h = np.zeros((n_features, 256), dtype=np.float64)
     out_c = np.zeros((n_features, 256), dtype=np.int64)
@@ -446,6 +465,13 @@ def hist_build(
     return out_g, out_h, out_c
 
 
+def _histogram_features(first, *others) -> int:
+    shape = np.shape(first)
+    if len(shape) != 2 or shape[1] != 256 or any(np.shape(a) != shape for a in others):
+        raise ValueError("expected equally shaped (n_features, 256) histograms")
+    return shape[0]
+
+
 def hist_subtract(
     parent_G: np.ndarray,
     parent_H: np.ndarray,
@@ -454,6 +480,7 @@ def hist_subtract(
     small_H: np.ndarray,
     small_count: np.ndarray,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    n_features = _histogram_features(parent_G, parent_H, parent_count, small_G, small_H, small_count)
     lib = verify_and_load_accel()
     if lib is None:
         return _np_fb.hist_subtract_np(parent_G, parent_H, parent_count, small_G, small_H, small_count)
@@ -463,7 +490,6 @@ def hist_subtract(
     sg = np.ascontiguousarray(small_G, dtype=np.float64)
     sh = np.ascontiguousarray(small_H, dtype=np.float64)
     sc = np.ascontiguousarray(small_count, dtype=np.int64)
-    n_features = int(pg.shape[0])
     lg = np.empty_like(pg)
     lh = np.empty_like(ph)
     lc = np.empty_like(pc)
@@ -493,6 +519,14 @@ def hist_best_split(
     reg_lambda: float,
     min_split_gain: float,
 ) -> tuple[int, int, bool, float]:
+    n_features = _histogram_features(G, H, count)
+    finite = np.asarray(n_finite_bins)
+    if finite.shape != (n_features,) or finite.dtype.kind not in "ui" or (
+        finite.size and (finite.min() < 0 or finite.max() > 255)
+    ):
+        raise ValueError("expected one finite-bin count in [0, 255] per feature")
+    if feature_mask is not None and np.shape(feature_mask) != (n_features,):
+        raise ValueError("feature mask length must match the histogram row count")
     lib = verify_and_load_accel()
     if lib is None:
         return _np_fb.hist_best_split_np(
@@ -502,7 +536,6 @@ def hist_best_split(
     hc = np.ascontiguousarray(H, dtype=np.float64)
     cc = np.ascontiguousarray(count, dtype=np.int64)
     nb = np.ascontiguousarray(n_finite_bins, dtype=np.int32).ravel()
-    n_features = int(gc.shape[0])
     if feature_mask is None:
         fm_ptr = ctypes.cast(0, _C_UINT8_P)
     else:

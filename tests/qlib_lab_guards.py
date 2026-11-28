@@ -293,3 +293,25 @@ def test_consistent_unreviewed_build_selects_numpy_before_binding() -> None:
         with patch.object(_accel.ctypes, "CDLL") as bind:
             assert _accel.verify_and_load_accel(lib_path=image, manifest_path=manifest) is None
             bind.assert_not_called()
+
+
+def test_misaligned_series_and_histograms_are_rejected_before_dispatch():
+    x = np.arange(5, dtype=np.float64)
+    bins = np.zeros((5, 2), dtype=np.uint8)
+    hist = np.zeros((2, 256), dtype=np.int64)
+    samples = np.arange(5, dtype=np.int32)
+    bad_calls = (
+        (_accel.wilder_atr, (x[:-1], x, x)),
+        (_accel.rolling_cov, (x, x[1:], 2)),
+        (_accel.rolling_corr, (x, x[1:], 2)),
+        (_accel.hist_build, (bins, x[:-1], x, samples)),
+        (_accel.hist_build, (bins, x, x, samples + 1)),
+        (_accel.hist_subtract, (hist[:, :2], hist, hist, hist, hist, hist)),
+        (_accel.hist_best_split, (hist, hist, hist, [2], None, 1, 0, 1, 0)),
+        (_accel.hist_best_split, (hist, hist, hist, [2, 2], [1], 1, 0, 1, 0)),
+    )
+    with patch.object(_accel, "verify_and_load_accel") as dispatcher:
+        for fn, args in bad_calls:
+            with np.testing.assert_raises(ValueError):
+                fn(*args)
+        dispatcher.assert_not_called()
