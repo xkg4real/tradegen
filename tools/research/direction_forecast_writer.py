@@ -98,7 +98,7 @@ def build_forecasts_from_model(
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """Evaluate frozen model on point-in-time feature rows and return (snapshot, manifest_body)."""
     dmf.verify_model_artifact(dict(artifact), expected_model_sha256)
-    require(type(feature_table) is dict and feature_table.get("format") == dfb.FEATURE_TABLE_FORMAT, "FEATURE_TABLE_FORMAT")
+    dfb.verify_feature_table(feature_table)
     require(mode in ("batch", "live"), "INVALID_WRITER_MODE")
     require(type(producer) is str and PRODUCER_RE.fullmatch(producer) is not None, "INVALID_PRODUCER")
     parse_epoch_int(issued_at, error_code="INVALID_ISSUED_AT")

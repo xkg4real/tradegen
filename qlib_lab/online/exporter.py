@@ -7,9 +7,11 @@ append-only non-revision index preventing conflicting forecasts for `(model_sha2
 from __future__ import annotations
 
 from collections.abc import Mapping
+from contextlib import contextmanager
 from decimal import Decimal, ROUND_HALF_UP
 import json
 import math
+import os
 from pathlib import Path
 import re
 from typing import Any
@@ -25,6 +27,7 @@ from qlib_lab.expression.ast_nodes import _epoch_seconds_array, _to_utc_timestam
 from qlib_lab.models.base import FrozenModelSpec
 from tools.research import adaptive_bid_gap_preview as br26_preview
 from tools.research import direction_forecast_adapter as br26_adapter
+from tools.research._study_common import StudyError, atomic_publish_bytes
 
 QUANT_6 = Decimal("0.000001")
 ONE_DEC = Decimal("1.000000")
@@ -74,12 +77,37 @@ def format_exact_probabilities(
     return str_map, winners[0]
 
 
+@contextmanager
+def _index_lock(path: Path):
+    # The lock file stays in place so all exporters lock the same inode across runs.
+    lock_path = checked_target(path.with_name(path.name + ".lock"), "forecast_index_lock")
+    with lock_path.open("a+b") as lock:
+        if os.name == "nt":
+            import msvcrt
+            lock.seek(0)
+            msvcrt.locking(lock.fileno(), msvcrt.LK_LOCK, 1)
+        else:
+            import fcntl
+            fcntl.flock(lock, fcntl.LOCK_EX)
+        yield  # closing the descriptor releases the lock, including on error
+
+
+def _publish(path: Path, data: bytes) -> None:
+    try:
+        atomic_publish_bytes(path, data)
+    except StudyError as exc:
+        if str(exc) != "OUTPUT_EXISTS" or path.read_bytes() != data:
+            raise SnapshotContractError(f"Cannot publish immutable forecast file {path.name}") from exc
+
+
 class NonRevisionIndex:
     """Append-only JSONL ledger enforcing Contract §3 Rule 3: first forecast for (model_sha256, market, as_of, horizon_seconds) stands."""
 
     def __init__(self, index_path: Path) -> None:
         self.path = checked_target(Path(index_path), "non_revision_index")
-        self._records: dict[tuple[str, str, int, int], dict[str, Any]] = {}
+
+    def _read(self):
+        records = {}
         if self.path.is_file():
             for line_no, raw in enumerate(self.path.read_text(encoding="utf-8").splitlines(), start=1):
                 if not raw.strip():
@@ -91,15 +119,22 @@ class NonRevisionIndex:
                     int(row["as_of"]),
                     int(row["horizon_seconds"]),
                 )
-                self._records[key] = row["forecast"]
+                if records.setdefault(key, row["forecast"]) != row["forecast"]:
+                    raise SnapshotContractError("FORECAST_REVISED: conflicting records in existing index")
+        return records
 
     def check_and_commit(self, model_sha256: str, forecasts: list[dict[str, Any]]) -> int:
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        with _index_lock(self.path):
+            return self._commit(model_sha256, forecasts, self._read())
+
+    def _commit(self, model_sha256, forecasts, records) -> int:
         to_append: list[dict[str, Any]] = []
         pending_seen: dict[tuple[str, str, int, int], dict[str, Any]] = {}
 
         for fc in forecasts:
             key = (str(model_sha256), str(fc["market"]), int(fc["as_of"]), int(fc["horizon_seconds"]))
-            if key in self._records and self._records[key] != fc:
+            if key in records and records[key] != fc:
                 raise SnapshotContractError(
                     f"FORECAST_REVISED: conflicting forecast for key={key} against previously exported snapshot"
                 )
@@ -107,7 +142,7 @@ class NonRevisionIndex:
                 raise SnapshotContractError(
                     f"FORECAST_REVISED: duplicate conflicting forecast for key={key} within same snapshot"
                 )
-            if key not in self._records and key not in pending_seen:
+            if key not in records and key not in pending_seen:
                 pending_seen[key] = fc
                 to_append.append(
                     {
@@ -125,9 +160,8 @@ class NonRevisionIndex:
             lines = "".join(canonical_json_ascii(item) + "\n" for item in to_append).encode("ascii")
             with self.path.open("ab") as fh:
                 fh.write(lines)
-            for item in to_append:
-                k = (item["model_sha256"], item["market"], item["as_of"], item["horizon_seconds"])
-                self._records[k] = item["forecast"]
+                fh.flush()
+                os.fsync(fh.fileno())
         return len(to_append)
 
 
@@ -140,7 +174,6 @@ class SnapshotExporter:
         producer: str = "qlib-lab",
         horizon_seconds: int = 7200,
         hurdle_bps: int = 10,
-        issue_lag_seconds: int = 60,
         index_path: Path | None = None,
     ) -> None:
         if not re.fullmatch(r"[a-z0-9-]{1,64}", producer):
@@ -149,13 +182,10 @@ class SnapshotExporter:
             raise SnapshotContractError("horizon_seconds must lie in [60, 2592000]")
         if not (0 <= int(hurdle_bps) <= 9999):
             raise SnapshotContractError("hurdle_bps must lie in [0, 9999]")
-        if int(issue_lag_seconds) < 0:
-            raise SnapshotContractError("issue_lag_seconds must be >= 0")
 
         self.producer = producer
         self.horizon_seconds = int(horizon_seconds)
         self.hurdle_bps = int(hurdle_bps)
-        self.issue_lag_seconds = int(issue_lag_seconds)
         self.index_path = Path(index_path) if index_path is not None else None
 
     def _render_interface_note(
@@ -193,6 +223,8 @@ class SnapshotExporter:
         exclude_in_sample: bool = True,
     ) -> dict[str, Any]:
         """Write `<stem>.json`, `<stem>.manifest.json`, and `<stem>.interface_note.md`, self-verified via adapter."""
+        if type(generated_at) is not int or generated_at < frozen_spec.frozen_at:
+            raise SnapshotContractError("An explicit snapshot write time at or after the model freeze is required")
         out_file = checked_target(Path(output_path), "snapshot_json")
         if out_file.suffix.lower() != ".json":
             raise SnapshotContractError("Snapshot output_path must end with '.json'")
@@ -236,10 +268,9 @@ class SnapshotExporter:
             prob_strs, direction = formatted
 
             row_key = proba_sorted.index[i]
-            if issued_at_by_row is not None and row_key in issued_at_by_row:
-                issued_ep = int(issued_at_by_row[row_key])
-            else:
-                issued_ep = as_of_ep + self.issue_lag_seconds
+            issued_ep = generated_at if issued_at_by_row is None else issued_at_by_row.get(row_key)
+            if type(issued_ep) is not int:
+                raise SnapshotContractError("A recorded issue time is required for each exported row")
 
             if issued_ep < as_of_ep:
                 raise SnapshotContractError(f"issued_at ({issued_ep}) < as_of ({as_of_ep})")
@@ -266,7 +297,7 @@ class SnapshotExporter:
             raise SnapshotContractError(f"Forecast count {len(forecasts)} exceeds MAX_FORECASTS={br26_adapter.MAX_FORECASTS}")
 
         max_issued = max((fc["issued_at"] for fc in forecasts), default=frozen_spec.frozen_at)
-        gen_ep = int(generated_at) if generated_at is not None else max_issued
+        gen_ep = generated_at
         if gen_ep < max_issued:
             raise SnapshotContractError(f"generated_at ({gen_ep}) < max(issued_at) ({max_issued})")
 
@@ -287,22 +318,11 @@ class SnapshotExporter:
         snap_sha = br26_preview.model_id(body)
         snapshot = {**body, "snapshot_sha256": snap_sha}
 
-        # Enforce non-revision rule BEFORE touching snapshot target
-        idx_file = self.index_path or (out_dir / "non_revision_index.jsonl")
-        nr_index = NonRevisionIndex(idx_file)
-        newly_indexed = nr_index.check_and_commit(frozen_spec.model_sha256, forecasts)
-
-        # In-memory check via direction_forecast_adapter.check_snapshot
         br26_adapter.check_snapshot(snapshot)
 
-        # Write UTF-8 (strictly ASCII, no BOM) snapshot JSON
-        raw_bytes = (json.dumps(snapshot, sort_keys=True, ensure_ascii=True, indent=2, allow_nan=False) + "\n").encode("ascii")
-        out_file.write_bytes(raw_bytes)
-
-        # Disk round-trip verification via direction_forecast_adapter.read_snapshot!
-        verified_disk = br26_adapter.read_snapshot(out_file, snap_sha)
-        if verified_disk["snapshot_sha256"] != snap_sha:
-            raise SnapshotContractError("Adapter disk read_snapshot verification mismatch")
+        raw_bytes = (canonical_json_ascii(snapshot) + "\n").encode("ascii")
+        if len(raw_bytes) > br26_adapter.MAX_BYTES:
+            raise SnapshotContractError("Snapshot exceeds the adapter file size limit")
 
         note_path = checked_target(out_file.with_suffix(".interface_note.md"), "interface_note", within=out_dir)
         note_text = self._render_interface_note(
@@ -311,7 +331,6 @@ class SnapshotExporter:
             markets=sorted(markets_set) or ["KRW-BTC"],
         )
         note_bytes = note_text.encode("utf-8")
-        note_path.write_bytes(note_bytes)
 
         manifest_path = checked_target(out_file.with_suffix(".manifest.json"), "snapshot_manifest", within=out_dir)
         manifest = {
@@ -325,7 +344,6 @@ class SnapshotExporter:
             "upstream_identities": frozen_spec.upstream_identities,
             "counts": {
                 "exported_forecasts": len(forecasts),
-                "newly_indexed_keys": newly_indexed,
                 "omitted_ties": omitted_ties,
                 "omitted_nan": omitted_nan,
                 "omitted_in_sample": omitted_insample,
@@ -334,13 +352,26 @@ class SnapshotExporter:
             **RESEARCH_FLAGS,
         }
         manifest_bytes = (json.dumps(manifest, sort_keys=True, ensure_ascii=True, indent=2, allow_nan=False) + "\n").encode("ascii")
-        manifest_path.write_bytes(manifest_bytes)
+        outputs = ((out_file, raw_bytes), (note_path, note_bytes), (manifest_path, manifest_bytes))
+        index_path = self.index_path or (out_dir / "non_revision_index.jsonl")
+        index = NonRevisionIndex(index_path)
+        index.path.parent.mkdir(parents=True, exist_ok=True)
+        with _index_lock(index.path):
+            for path, payload in outputs:
+                if path.exists() and path.read_bytes() != payload:
+                    raise SnapshotContractError(f"Forecast file {path.name} already contains different evidence")
+            newly_indexed = index._commit(frozen_spec.model_sha256, forecasts, index._read())
+            _publish(out_file, raw_bytes)
+            br26_adapter.read_snapshot(out_file, snap_sha)
+            _publish(note_path, note_bytes)
+            _publish(manifest_path, manifest_bytes)
 
         return {
             "snapshot": snapshot,
             "snapshot_path": out_file,
             "snapshot_sha256": snap_sha,
             "manifest": manifest,
+            "newly_indexed_keys": newly_indexed,
             "manifest_path": manifest_path,
             "interface_note_path": note_path,
             "research_flags": dict(RESEARCH_FLAGS),

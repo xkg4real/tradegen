@@ -563,6 +563,10 @@ def build_feature_table(
 
 def read_feature_table(path: Path | str, expected_sha256: str | None = None) -> dict[str, Any]:
     doc, _ = read_strict_json_file(path, max_bytes=64 * 1024 * 1024, path_error="FEATURE_TABLE_FILE", size_error="FEATURE_TABLE_SIZE")
+    return verify_feature_table(doc, expected_sha256)
+
+
+def verify_feature_table(doc: Any, expected_sha256: str | None = None) -> dict[str, Any]:
     require(type(doc) is dict and doc.get("format") == FEATURE_TABLE_FORMAT, "FEATURE_TABLE_FORMAT")
     for k, v in RESEARCH_FLAGS.items():
         require(doc.get(k) is v, "FEATURE_TABLE_FLAGS")

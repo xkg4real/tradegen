@@ -15,13 +15,13 @@ from datetime import datetime, timezone
 import json
 from pathlib import Path
 import sys
-from typing import Any
+from typing import Any, Callable
 
 import pandas as pd
 import yaml
 
 from core.isolation import checked_target
-from qlib_lab import RESEARCH_FLAGS
+from qlib_lab import RESEARCH_FLAGS, canonical_sha256
 from qlib_lab.data import DataHandlerLP, DatasetH, ExpressionDataLoader, StaticDataLoader
 from qlib_lab.models import FrozenModelSpec, Model
 from qlib_lab.online import (
@@ -84,9 +84,12 @@ def run_qrun(
     run_utc: str,
     panel_path: Path | None = None,
     experiment_name: str = "qrun_exp",
+    clock: Callable[[], int] | None = None,
 ) -> dict[str, Any]:
     cfg = _load_structured_file(config_path)
-    task = _hydrate_task_data(cfg.get("task", cfg), panel_path)
+    task = cfg.get("task", cfg)
+    handler_digest = canonical_sha256(task["dataset"]["kwargs"].get("handler", {}))
+    task = _hydrate_task_data(task, panel_path)
 
     dataset: DatasetH = init_instance_by_config(task["dataset"], accept_types=DatasetH)
     model: Model = init_instance_by_config(task["model"], accept_types=Model)
@@ -107,8 +110,9 @@ def run_qrun(
             model_name=str(task.get("model_name") or model.__class__.__name__.lower()),
             model_version=str(task.get("model_version") or "0.1.0"),
             training_cutoff=tc,
-            frozen_at=tc,
+            frozen_at=clock() if clock is not None else int(pd.Timestamp(run_utc).timestamp()),
             processor_states=proc_states,
+            upstream_identities={"handler_config_sha256": handler_digest},
         )
         pred = model.predict(dataset, "test")
         rec.save_objects(frozen_model=spec, pred=pred)
@@ -240,12 +244,25 @@ def run_export_snapshot(
     horizon_seconds: int = 7200,
     hurdle_bps: int = 10,
     generated_at: int | None = None,
+    clock: Callable[[], int] | None = None,
 ) -> dict[str, Any]:
     spec = FrozenModelSpec.load(frozen_model_path)
     model = Model.from_frozen_spec(spec)
     cfg = _load_structured_file(config_path)
-    task = _hydrate_task_data(cfg.get("task", cfg), panel_path)
+    task = cfg.get("task", cfg)
+    expected_recipe = spec.upstream_identities.get("handler_config_sha256")
+    if expected_recipe is not None and canonical_sha256(task["dataset"]["kwargs"].get("handler", {})) != expected_recipe:
+        raise ValueError("Export data handler differs from the frozen training recipe")
+    task = _hydrate_task_data(task, panel_path)
     dataset: DatasetH = init_instance_by_config(task["dataset"], accept_types=DatasetH)
+
+    if spec.processor_states is not None:
+        if not isinstance(dataset.handler, DataHandlerLP):
+            raise ValueError("Frozen processor states require the original DataHandlerLP")
+        dataset.handler.load_processor_states(spec.processor_states)
+    label = getattr(dataset.handler.data_loader, "label_builder", None)
+    if label is not None and (horizon_seconds != label.horizon_seconds or hurdle_bps != label.hurdle_bps or label.lag_bars):
+        raise ValueError("Export horizon and hurdle must match the frozen direction labels")
 
     proba = model.predict_proba(dataset, "test")
     exporter = SnapshotExporter(
@@ -257,7 +274,7 @@ def run_export_snapshot(
         frozen_spec=spec,
         probabilities=proba,
         output_path=output_path,
-        generated_at=generated_at,
+        generated_at=clock() if generated_at is None and clock is not None else generated_at,
     )
     return {
         "schema": "tradegen-qlib-cli-export-v1",
@@ -347,6 +364,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "qrun":
         out = run_qrun(
+            clock=None if args.run_utc else lambda: int(datetime.now(timezone.utc).timestamp()),
             config_path=args.config,
             state_dir=args.state_dir,
             run_utc=args.run_utc or default_run_utc,
@@ -392,6 +410,7 @@ def main(argv: list[str] | None = None) -> int:
             horizon_seconds=args.horizon_seconds,
             hurdle_bps=args.hurdle_bps,
             generated_at=args.generated_at,
+            clock=lambda: int(datetime.now(timezone.utc).timestamp()),
         )
     elif args.command == "replay-br26":
         out = run_replay_br26(replay_study_path=args.replay, snapshot_args=args.snapshot)

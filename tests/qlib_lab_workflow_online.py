@@ -486,7 +486,7 @@ def test_snapshot_exporter_and_end_to_end_br26_adapter_replay_and_cli() -> None:
                         },
                     },
                     "segments": {
-                        "train": [t0 + 6 * step, t0 + 70 * step],
+                        "train": [t0 + 6 * step, t0 + 70 * step + 20],  # include the last outcome receipt
                         "test": [t0 + 75 * step, t0 + 179 * step],
                     },
                     "embargo_bars": 2,
@@ -509,13 +509,14 @@ def test_snapshot_exporter_and_end_to_end_br26_adapter_replay_and_cli() -> None:
                 "--state-dir",
                 str(state_dir),
                 "--run-utc",
-                "2026-11-27T00:00:00Z",
+                pd.Timestamp(t0 + 71 * step, unit="s", tz="UTC").isoformat(),
             ]
         )
         assert qrun_out["schema"] == "tradegen-qlib-cli-qrun-v1"
         exp_runs = sorted((state_dir / "experiments" / "qrun_exp").iterdir())
         frozen_model_file = exp_runs[0] / "artifacts" / "frozen_model.model.json"
         spec = FrozenModelSpec.load(frozen_model_file)
+        assert spec.frozen_at == t0 + 71 * step and spec.training_cutoff < spec.frozen_at
 
         # 2. Run CLI `export-snapshot` -> writes .json + .manifest.json + .interface_note.md
         snap_path = root / "exports" / "forecasts-001.json"
@@ -524,6 +525,8 @@ def test_snapshot_exporter_and_end_to_end_br26_adapter_replay_and_cli() -> None:
                 "export-snapshot",
                 "--frozen-model",
                 str(frozen_model_file),
+                "--generated-at",
+                str(bars[-1]["end"] + 60),
                 "--config",
                 str(cfg_path),
                 "--panel",
@@ -548,6 +551,7 @@ def test_snapshot_exporter_and_end_to_end_br26_adapter_replay_and_cli() -> None:
 
         # 3. Verify non-revision index: identical re-export succeeds; conflicting probability raises SnapshotContractError!
         loaded_snap = br26_adapter.read_snapshot(snap_path, snap_sha)
+        assert {f["issued_at"] for f in loaded_snap["forecasts"]} == {bars[-1]["end"] + 60}
         exporter = SnapshotExporter(
             producer="qlib-lab",
             horizon_seconds=horizon_sec,
@@ -560,7 +564,7 @@ def test_snapshot_exporter_and_end_to_end_br26_adapter_replay_and_cli() -> None:
         )
         bad_proba = pd.DataFrame([[0.10, 0.80, 0.10]], index=bad_idx, columns=["up", "down", "neutral"])
         try:
-            exporter.export(frozen_spec=spec, probabilities=bad_proba, output_path=root / "exports" / "bad_rev.json")
+            exporter.export(frozen_spec=spec, probabilities=bad_proba, generated_at=bars[-1]["end"] + 60, output_path=root / "exports" / "bad_rev.json")
             raise AssertionError("Expected SnapshotContractError on revised forecast")
         except SnapshotContractError as exc:
             assert "FORECAST_REVISED" in str(exc)
@@ -568,7 +572,7 @@ def test_snapshot_exporter_and_end_to_end_br26_adapter_replay_and_cli() -> None:
         # Also verify exact tie omission (0.40, 0.40, 0.20 -> omitted_ties == 1)
         tie_idx = pd.MultiIndex.from_tuples([(t0 + 250 * step, "KRW-BTC")], names=["datetime", "instrument"])
         tie_proba = pd.DataFrame([[0.40, 0.40, 0.20]], index=tie_idx, columns=["up", "down", "neutral"])
-        tie_res = exporter.export(frozen_spec=spec, probabilities=tie_proba, output_path=root / "exports" / "tie.json")
+        tie_res = exporter.export(frozen_spec=spec, probabilities=tie_proba, generated_at=t0 + 250 * step, output_path=root / "exports" / "tie.json")
         assert tie_res["manifest"]["counts"]["omitted_ties"] == 1
         assert len(tie_res["snapshot"]["forecasts"]) == 0
 

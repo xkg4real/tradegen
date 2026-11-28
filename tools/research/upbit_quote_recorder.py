@@ -376,6 +376,10 @@ def export_daily_quotes(
 
 def read_daily_quotes(path: Path | str, expected_sha256: str | None = None) -> dict[str, Any]:
     doc, _ = read_strict_json_file(path, max_bytes=64 * 1024 * 1024, path_error="QUOTE_FILE", size_error="QUOTE_FILE_SIZE")
+    return verify_daily_quotes(doc, expected_sha256)
+
+
+def verify_daily_quotes(doc: Any, expected_sha256: str | None = None) -> dict[str, Any]:
     require(type(doc) is dict and doc.get("format") == DAILY_QUOTE_FORMAT, "QUOTE_FILE_FORMAT")
     for k, v in RESEARCH_FLAGS.items():
         require(doc.get(k) is v, "QUOTE_FILE_FLAGS")

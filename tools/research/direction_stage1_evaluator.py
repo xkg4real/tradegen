@@ -63,6 +63,7 @@ def _merge_with_receipts(
     receipt_times: Sequence[int | None] | None = None,
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     """Merge snapshots identically to adapter.merge while tracking effective issued_at = max(issued_at, receipt_at)."""
+    require(receipt_times is None or len(receipt_times) == len(snapshots), "RECEIPT_COUNT_MISMATCH")
     model, _merged = adapter.merge(list(snapshots))
     eff_by_key: dict[tuple[str, int, int], dict[str, Any]] = {}
     for idx, snap in enumerate(snapshots):
@@ -77,6 +78,19 @@ def _merge_with_receipts(
             else:
                 eff_by_key[key]["_effective_issued_at"] = min(eff_by_key[key]["_effective_issued_at"], eff_issued)
     return model, list(eff_by_key.values())
+
+
+def gate_forecasts_digest(forecasts, study):
+    """Identity of forecasts and their availability for all windows eligible in stage 1."""
+    rows = []
+    for f in forecasts:
+        if (f["market"] == study["market"] and f["horizon_seconds"] == study["horizon_seconds"]
+                and f["hurdle_bps"] == study["hurdle_bps"]
+                and study["evaluation_start"] <= f["as_of"] <= study["evaluation_end"] - study["horizon_seconds"]):
+            row = dict(f)
+            row["issued_at"] = row.pop("_effective_issued_at", row["issued_at"])
+            rows.append(row)
+    return sha256_ascii(sorted(rows, key=lambda f: f["as_of"]))
 
 
 def _score_criterion1_like_adapter(
@@ -107,7 +121,7 @@ def _score_criterion1_like_adapter(
             and f["hurdle_bps"] == hurdle_bps
             and f["as_of"] >= evaluation_start
             and f["as_of"] + horizon_seconds <= window_end
-            and int(f.get("_effective_issued_at", f["issued_at"])) < evaluated_at
+            and int(f.get("_effective_issued_at", f["issued_at"])) <= evaluated_at
         ),
         key=lambda f: (f["as_of"], int(f.get("_effective_issued_at", f["issued_at"]))),
     )
@@ -233,7 +247,7 @@ def _compute_criterion2_and_half_logloss(
                 and f["hurdle_bps"] == hurdle_bps
                 and evaluation_start <= f["as_of"]
                 and f["as_of"] + horizon_seconds <= window_end
-                and int(f.get("_effective_issued_at", f["issued_at"])) < evaluated_at
+                and int(f.get("_effective_issued_at", f["issued_at"])) <= evaluated_at
             ):
                 out[int(f["as_of"])] = f
         return out
@@ -333,7 +347,7 @@ def _compute_criterion2_and_half_logloss(
     h2_m = (math.fsum(r["loss_m"] for r in h2_rows) / len(h2_rows)) if h2_rows else None
     h2_b1 = (math.fsum(r["loss_b1"] for r in h2_rows) / len(h2_rows)) if h2_rows else None
 
-    b0_ok = True if mean_b0 is None else (mean_m < mean_b0)
+    b0_ok = mean_b0 is not None and mean_m < mean_b0
     passed_c2 = bool(lower_95 > criterion2_margin and b0_ok)
     passed_c4_ll = bool(
         h1_m is not None and h1_b1 is not None and h1_m < h1_b1
@@ -511,6 +525,10 @@ def evaluate_stage1(
 
     # S4 check on study & feature definitions
     if feature_table is not None:
+        try:
+            dfb.verify_feature_table(feature_table)
+        except StudyError as exc:
+            return finish("VOID", "S1", str(exc))
         if feature_table.get("market") != market or int(feature_table.get("step_seconds", -1)) != step:
             return finish("STOPPED", "S4", "S4_FEATURE_TABLE_MISMATCH")
         if "pinned_upstream_identities" in study and study["pinned_upstream_identities"] is not None:
@@ -524,19 +542,19 @@ def evaluate_stage1(
         b0_forecasts: list[dict[str, Any]] | None = None
         if b0_snapshots:
             b0_model, b0_forecasts = _merge_with_receipts(b0_snapshots, b0_receipt_times)
-            if "b0_forecast_model" in study and study["b0_forecast_model"] is not None:
-                if {k: b0_model[k] for k in ("name", "version", "sha256")} != study["b0_forecast_model"]:
-                    return finish("STOPPED", "S4", "S4_B0_MODEL_NOT_PINNED")
+            if int(b0_model["frozen_at"]) >= eval_start:
+                return finish("STOPPED", "S4", "MODEL_NOT_FROZEN_BEFORE_EVALUATION")
+            if {k: b0_model[k] for k in ("name", "version", "sha256")} != study.get("b0_forecast_model"):
+                return finish("STOPPED", "S4", "S4_B0_MODEL_NOT_PINNED")
     except (preview.Invalid, StudyError, KeyError, TypeError, ValueError) as exc:
         return finish("VOID", "S1", str(exc) if isinstance(exc, (preview.Invalid, StudyError)) else "S1_INVALID_SNAPSHOT")
 
     pinned_m = {k: m_model[k] for k in ("name", "version", "sha256")}
     if study.get("forecast_model") != pinned_m:
         return finish("STOPPED", "S4", "S4_M_MODEL_NOT_PINNED")
-    if "b1_forecast_model" in study and study["b1_forecast_model"] is not None:
-        pinned_b1 = {k: b1_model[k] for k in ("name", "version", "sha256")}
-        if study["b1_forecast_model"] != pinned_b1:
-            return finish("STOPPED", "S4", "S4_B1_MODEL_NOT_PINNED")
+    pinned_b1 = {k: b1_model[k] for k in ("name", "version", "sha256")}
+    if study.get("b1_forecast_model") != pinned_b1:
+        return finish("STOPPED", "S4", "S4_B1_MODEL_NOT_PINNED")
     if int(m_model["frozen_at"]) >= eval_start or int(b1_model["frozen_at"]) >= eval_start:
         return finish("STOPPED", "S4", "MODEL_NOT_FROZEN_BEFORE_EVALUATION")
 
@@ -562,17 +580,23 @@ def evaluate_stage1(
         return finish("VOID", "S1", "HISTORY_DOES_NOT_COVER_EVALUATION_WINDOW")
 
     # S1 <= 5% missing-feature check over [evaluation_start, window_end - horizon_seconds]
-    missing_feature_rate: float | None = None
-    if feature_table is not None:
-        win_rows = [
-            r for r in feature_table["rows"]
-            if eval_start <= int(r["as_of"]) and int(r["as_of"]) + horizon <= window_end
-        ]
-        if win_rows:
-            n_miss = sum(1 for r in win_rows if not r["complete"])
-            missing_feature_rate = n_miss / float(len(win_rows))
-            if missing_feature_rate > 0.05 + 1e-12:
-                return finish("VOID", "S1", "S1_MISSING_FEATURES_EXCEED_5PCT", {"missing_feature_rate": missing_feature_rate})
+    if feature_table is None:
+        return finish("VOID", "S1", "S1_FEATURE_EVIDENCE_MISSING")
+    expected = {bar["end"] for bar in bars if eval_start <= bar["end"] <= window_end - horizon}
+    if not expected:
+        return finish("VOID", "S1", "S1_NO_SCORABLE_BAR")
+    complete = set()
+    seen = set()
+    for row in feature_table["rows"]:
+        t = row["as_of"]
+        if t in seen or type(row["complete"]) is not bool:
+            return finish("VOID", "S1", "S1_INVALID_FEATURE_ROW")
+        seen.add(t)
+        if row["complete"] and t in expected:
+            complete.add(t)
+    missing_feature_rate = len(expected - complete) / len(expected)
+    if missing_feature_rate > 0.05:
+        return finish("VOID", "S1", "S1_MISSING_FEATURES_EXCEED_5PCT", {"missing_feature_rate": missing_feature_rate})
 
     try:
         c1_m = _score_criterion1_like_adapter(
@@ -657,6 +681,14 @@ def evaluate_stage1(
         "criterion1_B1": c1_b1,
         "criterion2": c2,
         "b2_report": b2_rep,
+        "gate_evidence": {
+            "study_fields": sorted(study),
+            "study_sha256": sha256_ascii(study),
+            "history_sha256": sha256_ascii(history),
+            "M_sha256": gate_forecasts_digest(m_forecasts, study),
+            "B1_sha256": gate_forecasts_digest(b1_forecasts, study),
+            "evaluated_at": eff_now,
+        },
     }
 
     max_m_calls = max(c1_m["directions"]["up"]["calls"], c1_m["directions"]["down"]["calls"])
@@ -688,7 +720,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--m-snapshot", action="append", required=True, metavar="PATH=SHA256[@RECEIPT]")
     parser.add_argument("--b1-snapshot", action="append", required=True, metavar="PATH=SHA256[@RECEIPT]")
     parser.add_argument("--b0-snapshot", action="append", default=[], metavar="PATH=SHA256[@RECEIPT]")
-    parser.add_argument("--features", type=Path, help="Optional feature table JSON for S1/S4 verification")
+    parser.add_argument("--features", type=Path, help="Feature table JSON required for a judged stage 1 result")
     parser.add_argument("--mode", choices=["interim", "final"], default="final")
     parser.add_argument("--output", type=Path, help="Optional atomic output report path")
     args = parser.parse_args(argv)

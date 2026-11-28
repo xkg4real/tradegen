@@ -14,6 +14,7 @@ from unittest.mock import patch
 
 from tools.research import adaptive_bid_gap_preview as preview
 from tools.research import direction_forecast_adapter as adapter
+from tools.research.direction_feature_builder import build_feature_table
 from tools.research import direction_stage1_evaluator as s1e
 from tools.research._study_common import (
     RESEARCH_FLAGS,
@@ -28,6 +29,11 @@ def _seal_snap(snap: dict) -> dict:
     body = {k: v for k, v in snap.items() if k != "snapshot_sha256"}
     snap["snapshot_sha256"] = preview.model_id(body)
     return snap
+
+
+def _coverage_table(study, history):
+    return build_feature_table(market=study["market"], step_seconds=study["step_seconds"],
+                               bars=history["bars"], feature_names=("P1",))
 
 
 def _build_stage1_scenario(
@@ -231,6 +237,7 @@ class DirectionStage1EvaluatorTests(unittest.TestCase):
             _seal_snap(m_snap)
             s1_rep = s1e.evaluate_stage1(
                 study=study,
+                feature_table=_coverage_table(study, history),
                 history=history,
                 m_snapshots=[m_snap],
                 b1_snapshots=[b1_snap],
@@ -249,6 +256,7 @@ class DirectionStage1EvaluatorTests(unittest.TestCase):
         study, history, m_snap, b1_snap, b0_snap = _build_stage1_scenario(300, m_skill=True)
         rep_pass = s1e.evaluate_stage1(
             study=study,
+            feature_table=_coverage_table(study, history),
             history=history,
             m_snapshots=[m_snap],
             b1_snapshots=[b1_snap],
@@ -263,6 +271,7 @@ class DirectionStage1EvaluatorTests(unittest.TestCase):
         # 2. --mode interim on skilled model -> CONTINUE (never spends alpha for PASS)
         rep_cont = s1e.evaluate_stage1(
             study=study,
+            feature_table=_coverage_table(study, history),
             history=history,
             m_snapshots=[m_snap],
             b1_snapshots=[b1_snap],
@@ -274,6 +283,7 @@ class DirectionStage1EvaluatorTests(unittest.TestCase):
         study_bad, hist_bad, m_bad, b1_bad, b0_bad = _build_stage1_scenario(300, m_skill=False)
         rep_s2 = s1e.evaluate_stage1(
             study=study_bad,
+            feature_table=_coverage_table(study, hist_bad),
             history=hist_bad,
             m_snapshots=[m_bad],
             b1_snapshots=[b1_bad],
@@ -283,6 +293,7 @@ class DirectionStage1EvaluatorTests(unittest.TestCase):
 
         rep_not_shown = s1e.evaluate_stage1(
             study=study_bad,
+            feature_table=_coverage_table(study, hist_bad),
             history=hist_bad,
             m_snapshots=[m_bad],
             b1_snapshots=[b1_bad],
@@ -295,6 +306,7 @@ class DirectionStage1EvaluatorTests(unittest.TestCase):
         study_s3 = dict(study, min_validation_calls=500)
         rep_s3 = s1e.evaluate_stage1(
             study=study_s3,
+            feature_table=_coverage_table(study, history),
             history=history,
             m_snapshots=[m_snap],
             b1_snapshots=[b1_snap],
@@ -317,6 +329,7 @@ class DirectionStage1EvaluatorTests(unittest.TestCase):
         study_s4["forecast_model"]["version"] = "9.9.9"
         rep_s4 = s1e.evaluate_stage1(
             study=study_s4,
+            feature_table=_coverage_table(study, history),
             history=history,
             m_snapshots=[m_snap],
             b1_snapshots=[b1_snap],

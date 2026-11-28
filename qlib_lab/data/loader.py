@@ -216,6 +216,29 @@ class ExpressionDataLoader(DataLoader):
             )
             parts.append(meta_df)
 
+        # A window may have ended while one of its source bars was still missing.
+        # Keep receipt time separate from the mathematical end of the label.
+        if len(parts) > 1 and self.known_at_col is not None:
+            receipt_key = next((c for c in base if c == self.known_at_col or (
+                isinstance(c, tuple) and c[-1] == self.known_at_col)), None)
+            if receipt_key is not None:
+                if self.label_builder is not None:
+                    forward = self.label_builder.lag_bars + self.label_builder.horizon_bars
+                    backward = 0
+                else:
+                    forward = max_fwd
+                    backward = max((r.max_backward_bars() for r in self.label_dag.named_roots.values()), default=0)
+                receipt = pd.Series(_epoch_seconds_array(base[receipt_key]), index=base.index)
+                # Cross-sectional label expressions also consume contemporaneous peers.
+                if self.label_dag is not None and any(r.contains_cross_sectional() for r in self.label_dag.named_roots.values()):
+                    receipt = receipt.groupby(level="datetime").transform(
+                        lambda peers: peers.max() if peers.notna().all() else np.nan)
+                def window_receipt(series):
+                    return series.rolling(backward + forward + 1).max().shift(-forward)
+                latest = receipt.groupby(level="instrument").transform(window_receipt)
+                end = parts[-1][("meta", "label_end_utc")]
+                parts.append(pd.DataFrame({("meta", "label_known_at"): np.maximum(end, latest)}))
+
         # Attach as_of_epoch in meta for downstream exporter / closed-window checks
         as_of_ep = _epoch_seconds_array(_to_utc_timestamps(base.index.get_level_values("datetime")))
         meta_as_of = pd.DataFrame(
