@@ -14,6 +14,7 @@ CORE_FAMILIES = frozenset({"stock", "bond", "etf", "eln", "crypto", "prediction"
 CONTRACT_FAMILIES = frozenset({"eln", "prediction", "option", "future", "swap", "etn", "structured_note", "warrant"})
 MODELED_FAMILIES = CORE_FAMILIES | CONTRACT_FAMILIES | {"fund", "fx", "commodity"}
 REFERENCE_FAMILIES = frozenset({"index", "asset_reference"})
+INACTIVE_STATES = frozenset({"inactive", "delisted", "expired", "closed", "settled", "halted"})
 REFERENCE_TYPES = frozenset({"company_guidance", "survey_consensus", "prior_observation", "preregistered_baseline"})
 COSTS = ("execution_bps", "fx_bps", "tax_bps", "other_bps")
 BASIS = "total_return_on_invested_cash"
@@ -169,8 +170,8 @@ def _evaluate(c, common, event, first_publication, decision, folder, clock):
     elif c["family"] not in MODELED_FAMILIES:
         reason = (reason or "UNMODELED_FAMILY") if c["family"] == "other" else "UNMODELED_FAMILY"
     if c.get("listing_status", "listed") != "listed":
-        require(c["listing_status"] in {"unverified", "placeholder"}, "invalid listing status")
-        reason = "LISTING_NOT_VERIFIED"
+        require(c["listing_status"] in INACTIVE_STATES | {"unverified", "placeholder"}, "invalid listing status")
+        reason = "INACTIVE_AT_SNAPSHOT" if c["listing_status"] in INACTIVE_STATES else "LISTING_NOT_VERIFIED"
     if reason:
         row["status"] = reason
         return row
@@ -248,7 +249,7 @@ def rank(study, evidence_dir, catalogue=None):
     return dict(schema="tradegen.global_didm.result.v1", event_id=study["event_id"], period=study["period"],
                 catalogue_sha256=study.get("catalogue_sha256"), decision_at=decision, information_clock=clock, comparison=common, event=event, research_only=True, execution_ready=False,
                 missing_families=sorted(CORE_FAMILIES - {r["family"] for r in rows
-                                                          if r["status"] != "LISTING_NOT_VERIFIED"}),
+                                                          if r["status"] not in {"LISTING_NOT_VERIFIED", "INACTIVE_AT_SNAPSHOT"}}),
                 declared_count=len(rows), scored_count=len(scored), top_positive=top,
                 best_among_scored=top[0] if len(top) == 1 else None,
                 best_in_declared_universe=top[0] if len(top) == 1 and len(rows) == len(scored) else None,

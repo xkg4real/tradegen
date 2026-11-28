@@ -20,3 +20,13 @@
 - market_access는 자료 제공자가 표시한 unknown·unavailable·paper_only·reported_access 중 하나이다. 이 항목은 추정 성과 순위를 바꾸지 않으며, 체결 가능한 가격·세금·계좌 적격성·소유자 위험정책 등은 주문 계층이 다시 확인해야 한다.
 
 검산 명령은 `python -m unittest tools.research.test_didm_global_ranking`이다. 테스트에 사용한 가격과 반응계수는 합성 자료다.
+
+사건을 식별하려면 발표자·사건 ID·버전·지표·단위·공표시각·원본 해시를 함께 이용한다. `raw_surprise`는 현재 모델이 정의한 부호 있는 상대차이며 출력할 때 ±1로 자르지 않는다. 응답 모형의 `relative_surprise_clamped_v1` 변환이 이 값을 [-1,1]로 제한한다. 서로 다른 사건이나 극단치가 같은 점수를 가질 수 있으므로 스칼라를 고유 식별자로 사용할 수 없다. `delisted`, `closed`, `expired`, `inactive`, `settled`, `halted`는 목록에 보존하고 평가 시점의 거래 중단 사유를 기록한다.
+
+## 공개 상품 목록 수집
+
+`python -m tools.research.didm_public_catalogue kalshi_current NEW_FOLDER`는 상태·산업·거래량 필터 없이 계약을 조회하고 서버의 빈 커서까지 반복한다. 오래된 시장은 `kalshi_historical`, 일반 이벤트는 `kalshi_events`, 복합 이벤트는 `kalshi_multivariate_events`, 시리즈는 `kalshi_series`로 각각 새 폴더에 수집한다. 제공자는 현재·과거 시장의 시간 경계를 이동시킬 수 있다. 엔드포인트별 `complete`는 여러 페이지가 동일 시점의 전체 시장을 보장하지 않는다. 국가·계정별 접근 권한은 확인되지 않았다. [시장 목록](https://docs.kalshi.com/api-reference/market/get-markets) · [역사적 시장](https://docs.kalshi.com/api-reference/historical/get-historical-markets) · [복합 이벤트](https://docs.kalshi.com/api-reference/events/get-multivariate-events)
+
+`upbit`, `coinbase`, `binance_spot`, `binance_usdm`, `binance_coinm`, `coingecko`도 같은 명령을 사용한다. 거래소·거래쌍·지급구조를 분리하고 코인 기준정보는 주문 대상에서 제외한다. 코인 증거금 inverse 선물은 지급 산식의 호가 관행을 나타내며, 그 자체로 하락에 투자한 포지션이 되지는 않는다. [업비트](https://docs.upbit.com/kr/reference/list-trading-pairs) · [코인베이스](https://docs.cdp.coinbase.com/api-reference/exchange-api/rest-api/products/get-all-known-trading-pairs) · [Binance](https://developers.binance.com/docs/derivatives/coin-margined-futures/market-data/rest-api/Exchange-Information) · [CoinGecko](https://docs.coingecko.com/reference/coins-list)
+
+`--max-pages N`은 표본 수집용이다. 같은 경로를 덮어쓰지 않는다. `coverage.json`에는 페이지·수신 객체 수·중복·불일치·오류·종료 사유가 있다. `pages.jsonl`과 압축 원문으로 재검증할 수 있다. `observations.sqlite`의 `entries`는 한 상품의 첫 구조 기록, `rejects`는 식별할 수 없는 페이지와 행 번호다. 행사·시리즈·복합 다리 정보는 별도 식별되며 원본에서 계약·증거를 대조할 수 있다. 한 복합계약의 구성 다리를 독립된 계약 거래로 계산하지 않는다. 수집된 두 방향은 원문 계약 검증 전까지 서명·연구 순위 근거로 삼지 않는다. HTTP 거절, 비정상 커서, 변경된 중복·불완전 자료는 일부 수집으로 보고된다. 결과 `candidates.csv`는 해시를 별도 등록하여 글로벌 연구 평가기로 가져올 수 있다. 주문 가능 여부는 `unknown` 또는 `unavailable`이다.

@@ -132,6 +132,14 @@ class GlobalRanking(unittest.TestCase):
         self.assertEqual(result["scored_count"], 4)
         self.assertIsNone(result["best_in_declared_universe"])
 
+    def test_inactive_sources_preserved_and_not_ranked(self):
+        self.study["candidates"] = [dict(self.instrument(state,"stock","spot"), listing_status=state)
+                                    for state in ("delisted", "expired", "closed", "inactive", "halted")]
+        result = self.run_study()
+        self.assertEqual(result["declared_count"],5)
+        self.assertTrue(all(r["status"] == "INACTIVE_AT_SNAPSHOT" for r in result["candidates"]))
+        self.assertIn("stock",result["missing_families"])
+
     def test_archive_receipt_does_not_backdate_publication(self):
         self.study["observations"] = [self.update(self.observed, received_at=200)]
         self.assertEqual(self.run_study()["event"]["status"],"EVENT_UNAVAILABLE")
